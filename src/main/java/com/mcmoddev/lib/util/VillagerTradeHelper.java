@@ -1,4 +1,4 @@
-package com.mcmoddev.basemetals.util;
+package com.mcmoddev.lib.util;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;

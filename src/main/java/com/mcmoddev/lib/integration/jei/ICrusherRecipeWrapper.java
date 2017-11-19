@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.jei;
+package com.mcmoddev.lib.integration.jei;
 
 import java.util.Collections;
 import java.util.List;

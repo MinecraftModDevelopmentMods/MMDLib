@@ -6,7 +6,7 @@ import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.integration.plugins.tinkers.traits.MMDTraits;
 
 import slimeknights.tconstruct.library.TinkerRegistry;
@@ -116,7 +116,7 @@ public class TraitRegistry {
 	public static void dumpRegistry() {
 		for (final Entry<String, ITrait> e : registeredTraits.entrySet()) {
 			final String t = String.format("BaseMetals-TCon> Trait: %s - class %s", e.getKey(), e.getValue().getClass().getName());
-			BaseMetals.logger.info(t);
+			MMDLib.logger.info(t);
 		}
 	}
 	

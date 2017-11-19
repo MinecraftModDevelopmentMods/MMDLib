@@ -6,8 +6,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import com.mcmoddev.basemetals.init.Materials;
-import com.mcmoddev.basemetals.items.MMDToolEffects;
+import com.mcmoddev.lib.init.Materials;
+//import com.mcmoddev.basemetals.items.MMDToolEffects;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.util.Oredicts;
@@ -73,7 +73,7 @@ public class ItemMMDPickaxe extends net.minecraft.item.ItemPickaxe implements IM
 	@Override
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target, final EntityLivingBase attacker) {
 		super.hitEntity(item, target, attacker);
-		MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
+		//MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
 		return true;
 	}
 
@@ -87,7 +87,7 @@ public class ItemMMDPickaxe extends net.minecraft.item.ItemPickaxe implements IM
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-		MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
+		//MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
 	}
 
 	@Override
@@ -103,7 +103,7 @@ public class ItemMMDPickaxe extends net.minecraft.item.ItemPickaxe implements IM
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		//MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override

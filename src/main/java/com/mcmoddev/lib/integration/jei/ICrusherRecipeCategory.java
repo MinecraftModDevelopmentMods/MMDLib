@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.jei;
+package com.mcmoddev.lib.integration.jei;
 
 import java.util.Collections;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.gui.IDrawable;
@@ -22,7 +22,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 public class ICrusherRecipeCategory implements IRecipeCategory<ICrusherRecipeWrapper> {
-	private final ResourceLocation resourceLocation = new ResourceLocation(BaseMetals.MODID, "textures/jei/jeihammeroverlay.png");
+	private final ResourceLocation resourceLocation = new ResourceLocation(MMDLib.MODID, "textures/jei/jeihammeroverlay.png");
 	private final IDrawable background;
 	private final IDrawable icon;
 	protected final IDrawableAnimated hammer;
@@ -39,7 +39,7 @@ public class ICrusherRecipeCategory implements IRecipeCategory<ICrusherRecipeWra
 
 	@Override
 	public String getUid() {
-		return BaseMetalsJEIPlugin.RECIPE_UID;
+		return MMDLibJEIPlugin.RECIPE_UID;
 	}
 
 	@Override

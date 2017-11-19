@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.material.MMDMaterial;
 
@@ -127,9 +127,9 @@ public class TinkersConstructRegistry {
 
 	public void setupIntegrations() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		BaseMetals.logger.debug("setupIntegrations() for mod %s", curMod);
+		MMDLib.logger.debug("setupIntegrations() for mod %s", curMod);
 		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
-			BaseMetals.logger.debug("processing material %s from mod %s", entry.getKey(), curMod);
+			MMDLib.logger.debug("processing material %s from mod %s", entry.getKey(), curMod);
 			TCMaterial material = entry.getValue();
 			
 			material.settle();
@@ -227,7 +227,7 @@ public class TinkersConstructRegistry {
 		final String curMod = Loader.instance().activeModContainer().getModId();
 		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
 			if(entry.getValue().getMaterial().isHidden()) {
-				BaseMetals.logger.fatal("Setting material %s to visible", entry.getValue().getMMDMaterial().getCapitalizedName());
+				MMDLib.logger.fatal("Setting material %s to visible", entry.getValue().getMMDMaterial().getCapitalizedName());
 				entry.getValue().getMaterial().setVisible();
 			}
 		}

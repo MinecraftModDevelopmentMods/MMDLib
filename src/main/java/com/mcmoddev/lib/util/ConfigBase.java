@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.registry.CrusherRecipeRegistry;
 
 import net.minecraft.block.Block;
@@ -87,7 +87,7 @@ public class ConfigBase {
 			String ingotX = Oredicts.INGOT.concat(entry.substring(4));
 			ItemStack dustX = OreDictionary.getOres(entry).get(0).copy();
 			dustX.setCount(2);
-			BaseMetals.logger.info("Automatically adding custom crusher recipe '{}' -> {}", ingotX, dustX);
+			MMDLib.logger.info("Automatically adding custom crusher recipe '{}' -> {}", ingotX, dustX);
 			CrusherRecipeRegistry.addNewCrusherRecipe(ingotX, dustX);				
 		});			
 	}
@@ -107,21 +107,21 @@ public class ConfigBase {
 			String oreX = Oredicts.ORE.concat(entry.substring(4));
 			ItemStack dustX = OreDictionary.getOres(entry).get(0).copy();
 			dustX.setCount(2);
-			BaseMetals.logger.info("Automatically adding custom crusher recipe '{}' -> {}", oreX, dustX);
+			MMDLib.logger.info("Automatically adding custom crusher recipe '{}' -> {}", oreX, dustX);
 			CrusherRecipeRegistry.addNewCrusherRecipe(oreX, dustX);				
 		});
 	}
 
 	private static void addUserRecipes() {
 		for (final String recipe : UserCrusherRecipes) {
-			BaseMetals.logger.info("Adding custom crusher recipe '%s'", recipe);
+			MMDLib.logger.info("Adding custom crusher recipe '%s'", recipe);
 			final int i = recipe.indexOf("->");
 			final String inputStr = recipe.substring(0, i);
 			final String outputStr = recipe.substring(i + 2, recipe.length());
 			final ItemStack input = parseStringAsItemStack(inputStr, true);
 			final ItemStack output = parseStringAsItemStack(outputStr, false);
 			if ((input == null) || (output == null)) {
-				BaseMetals.logger.error("Failed to add recipe formula '%s' because the blocks/items could not be found", recipe);
+				MMDLib.logger.error("Failed to add recipe formula '%s' because the blocks/items could not be found", recipe);
 			} else {
 				CrusherRecipeRegistry.addNewCrusherRecipe(input, output);
 			}
@@ -171,7 +171,7 @@ public class ConfigBase {
 			return new ItemStack(Item.getByNameOrId(id), count, meta);
 		} else {
 			// item not found
-			BaseMetals.logger.info("Failed to find item or block for ID '%s'", id);
+			MMDLib.logger.info("Failed to find item or block for ID '%s'", id);
 			return null;
 		}
 
