@@ -10,8 +10,8 @@ import java.util.Random;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.basemetals.BaseMetals;
-import com.mcmoddev.basemetals.util.VillagerTradeHelper;
+import com.mcmoddev.lib.MMDLib;
+import com.mcmoddev.lib.util.VillagerTradeHelper;
 import com.mcmoddev.lib.data.MaterialStats;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.item.ItemMMDCrackHammer;
@@ -230,7 +230,7 @@ public abstract class VillagerTrades {
 			try {
 				VillagerTradeHelper.insertTrades(profession, career, level, new MultiTradeGenerator(TRADES_PER_LEVEL, trades));
 			} catch (NoSuchFieldException | IllegalAccessException ex) {
-				BaseMetals.logger.error("Java Reflection Exception", ex);
+				MMDLib.logger.error("Java Reflection Exception", ex);
 			}
 		}
 	}

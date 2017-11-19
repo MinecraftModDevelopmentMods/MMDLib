@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.mcmoddev.lib.util.ConfigBase.Options;
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.block.*;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.item.ItemMMDBlock;
@@ -59,7 +59,9 @@ public abstract class Blocks {
 		if (initDone) {
 			return;
 		}
-		com.mcmoddev.basemetals.util.Config.init();
+		// MMDLib should get core config stuff
+		// TODO: add central MMDLib config
+		//com.mcmoddev.basemetals.util.Config.init();
 		
 		mapNameToClass(Names.ANVIL, BlockMMDAnvil.class);
 		mapNameToClass(Names.BARS, BlockMMDBars.class);
@@ -406,14 +408,14 @@ public abstract class Blocks {
 			try {
 				ctor = clazz.getConstructor(material.getClass());
 			} catch (Exception ex) {
-				BaseMetals.logger.fatal("Class for Block named " + name + " does not have an accessible constructor or another exception occurred", ex);
+				MMDLib.logger.fatal("Class for Block named " + name + " does not have an accessible constructor or another exception occurred", ex);
 				return null;
 			}
 
 			try {
 				inst = (Block) ctor.newInstance(material);
 			} catch (Exception ex) {
-				BaseMetals.logger.fatal("Unable to create Block named " + name + " for material " + material.getCapitalizedName(), ex);
+				MMDLib.logger.fatal("Unable to create Block named " + name + " for material " + material.getCapitalizedName(), ex);
 			}
 
 			if (inst != null) {

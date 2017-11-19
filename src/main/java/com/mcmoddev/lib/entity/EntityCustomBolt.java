@@ -1,8 +1,7 @@
 package com.mcmoddev.lib.entity;
 
-import com.mcmoddev.basemetals.data.MaterialNames;
-import com.mcmoddev.basemetals.init.Materials;
 import com.mcmoddev.lib.data.Names;
+import com.mcmoddev.lib.init.Materials;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityTippedArrow;
@@ -65,7 +64,7 @@ public class EntityCustomBolt extends EntityTippedArrow {
 	protected ItemStack getBoltStack() {
 		if (this.itemStack == null) {
 			// FIXME - this is potentially unreliable
-			this.itemStack = new ItemStack(Materials.getMaterialByName(MaterialNames.WOOD).getItem(Names.BOLT));
+			this.itemStack = new ItemStack(Materials.getMaterialByName("wood").getItem(Names.BOLT));
 		}
 
 		return new ItemStack(this.itemStack.getItem(), 1, this.itemStack.getItemDamage());
