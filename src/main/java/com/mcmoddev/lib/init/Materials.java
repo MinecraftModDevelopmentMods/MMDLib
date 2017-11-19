@@ -8,7 +8,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.MaterialStats;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.material.MMDMaterial.MaterialType;
@@ -263,7 +263,7 @@ public class Materials {
 		String modId = Loader.instance().activeModContainer().getModId();
 		ResourceLocation loc = new ResourceLocation( modId, material.getName());
 		if( instance.REGISTRY.containsKey(loc)) {
-			BaseMetals.logger.error("You asked registermaterial() to register an existing material, Don't do that! (Returning pre existing material instead");
+			MMDLib.logger.error("You asked registermaterial() to register an existing material, Don't do that! (Returning pre existing material instead");
 			return Materials.getMaterialByName(material.getName());
 		}
 
@@ -277,14 +277,14 @@ public class Materials {
 		final ArmorMaterial armorMaterial = EnumHelper.addArmorMaterial(enumName, texName, durability, protection, material.getEnchantability(), SoundEvents.ITEM_ARMOR_EQUIP_IRON, material.getStat(MaterialStats.HARDNESS) > 10 ? (int) (material.getStat(MaterialStats.HARDNESS) / 5) : 0);
 		if (armorMaterial == null) {
 			// uh-oh
-			BaseMetals.logger.error("Failed to create armor material enum for " + material);
+			MMDLib.logger.error("Failed to create armor material enum for " + material);
 		}
 		armorMaterialMap.put(material, armorMaterial);
 
 		final ToolMaterial toolMaterial = EnumHelper.addToolMaterial(enumName, material.getToolHarvestLevel(), material.getToolDurability(), material.getToolEfficiency(), material.getBaseAttackDamage(), material.getEnchantability());
 		if (toolMaterial == null) {
 			// uh-oh
-			BaseMetals.logger.error("Failed to create tool material enum for " + material);
+			MMDLib.logger.error("Failed to create tool material enum for " + material);
 		}
 		toolMaterialMap.put(material, toolMaterial);
 

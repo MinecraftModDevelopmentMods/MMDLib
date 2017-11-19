@@ -8,8 +8,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.basemetals.BaseMetals;
-import com.mcmoddev.basemetals.items.MMDToolEffects;
+import com.mcmoddev.lib.MMDLib;
+//import com.mcmoddev.basemetals.items.MMDToolEffects;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -63,7 +63,7 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 			int updateCount = playerUpdateCountMap.get(player).getAndIncrement();
 			for(int i = 0; i < 4; i++) {
 				if(player.inventory.armorInventory.get(i) != null && player.inventory.armorInventory.get(i).getItem() instanceof ItemMMDArmor) {
-					MMDToolEffects.extraEffectsOnArmorUpdate(w, player, this.mmd_material, player.inventory.armorInventory.get(i), updateCount);
+//					MMDToolEffects.extraEffectsOnArmorUpdate(w, player, this.mmd_material, player.inventory.armorInventory.get(i), updateCount);
 				}
 			}
 		}
@@ -81,7 +81,7 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 		ArmorMaterial amaterial = Materials.getArmorMaterialFor(material);
 		if (amaterial == null) {
 			// uh-oh
-			BaseMetals.logger.error("Failed to load armor material enum for " + material);
+			MMDLib.logger.error("Failed to load armor material enum for " + material);
 			return null;
 		}
 		return new ItemMMDArmor(material, amaterial, amaterial.ordinal(), slot);
@@ -135,7 +135,7 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmd_material, tooltip);
+		//MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmd_material, tooltip);
 	}
 
 	/**

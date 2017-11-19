@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.mcmoddev.basemetals.items.MMDToolEffects;
+//import com.mcmoddev.basemetals.items.//MMDToolEffect;
 import com.mcmoddev.lib.util.ConfigBase.Options;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDObject;
@@ -219,14 +219,14 @@ public class ItemMMDCrackHammer extends net.minecraft.item.ItemTool implements I
 	@Override
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target, final EntityLivingBase attacker) {
 		super.hitEntity(item, target, attacker);
-		MMDToolEffects.extraEffectsOnAttack(material, item, target, attacker);
+		//MMDToolEffect.extraEffectsOnAttack(material, item, target, attacker);
 		return true;
 	}
 
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-		MMDToolEffects.extraEffectsOnCrafting(material, item, world, crafter);
+		//MMDToolEffect.extraEffectsOnCrafting(material, item, world, crafter);
 	}
 
 	@Override
@@ -259,7 +259,7 @@ public class ItemMMDCrackHammer extends net.minecraft.item.ItemTool implements I
 	
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		//MMDToolEffect.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override

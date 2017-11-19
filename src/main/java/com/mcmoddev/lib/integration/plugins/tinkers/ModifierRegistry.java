@@ -7,7 +7,7 @@ import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.integration.plugins.tinkers.modifiers.*;
 
 import net.minecraft.item.Item;
@@ -34,7 +34,7 @@ public class ModifierRegistry {
 	public static void setModifierRecipe(@Nonnull final String name, @Nonnull final ItemStack... ingredients) {
 		final Modifier t = modifiers.get(name);
 		if (t == null) {
-			BaseMetals.logger.error("Trying to add a recipe to unknown modifier %s, ignoring.", name);
+			MMDLib.logger.error("Trying to add a recipe to unknown modifier %s, ignoring.", name);
 			return;
 		}
 
@@ -49,7 +49,7 @@ public class ModifierRegistry {
 	public static void setModifierItem(@Nonnull final String name, @Nonnull final Item item) {
 		final Modifier t = modifiers.get(name);
 		if (t == null) {
-			BaseMetals.logger.error("Trying to add an item to unknown modifier %s, ignoring.", name);
+			MMDLib.logger.error("Trying to add an item to unknown modifier %s, ignoring.", name);
 			return;
 		}
 		

@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import com.mcmoddev.basemetals.BaseMetals;
 import com.mcmoddev.lib.util.ConfigBase.Options;
 
 import net.minecraft.item.crafting.Ingredient;
@@ -39,7 +38,6 @@ public class ConfigVariedOutput implements IRecipeFactory {
 			resAmount = Options.plateQuantity();
 			break;
 		default:
-			BaseMetals.logger.error("Unknown quantity config value {}, setting to 1", confKey );
 			resAmount = 1;
 		}
 		

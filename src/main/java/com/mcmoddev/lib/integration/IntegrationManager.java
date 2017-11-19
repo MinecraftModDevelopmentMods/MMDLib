@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.discovery.ASMDataTable.ASMData;
@@ -45,12 +45,12 @@ public enum IntegrationManager {
 					integrations.add(integration);
 					integration.init();
 
-					BaseMetals.logger.debug("Loaded " + pluginId + " for " + addonId);
+					MMDLib.logger.debug("Loaded " + pluginId + " for " + addonId);
 					setCallback(integration, preInitCallback, "preInit");
 					setCallback(integration, initCallback, "init");
 					setCallback(integration, postInitCallback, "postInit");
 				} catch (final Exception ex) {
-					BaseMetals.logger.error("Couldn't load " + pluginId + " for " + addonId, ex);
+					MMDLib.logger.error("Couldn't load " + pluginId + " for " + addonId, ex);
 				}
 			}
 		}
@@ -72,7 +72,7 @@ public enum IntegrationManager {
 			k.add(mmm);
 			callbacks.put(phase, k);
 		} catch (final Exception ex) {
-			BaseMetals.logger.debug("Exception adding callback " + name + " for loading phase " + phase, ex);
+			MMDLib.logger.debug("Exception adding callback " + name + " for loading phase " + phase, ex);
 		}
 	}
 
@@ -81,7 +81,7 @@ public enum IntegrationManager {
 			try {
 				ent.getValue().invoke(ent.getKey());
 			} catch (final Exception ex) {
-				BaseMetals.logger.debug("Exception running callback: ", ex);
+				MMDLib.logger.debug("Exception running callback: ", ex);
 			}
 		}
 	}

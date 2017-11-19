@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.ImmutableList;
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.MaterialStats;
 import com.mcmoddev.lib.data.Names;
 
@@ -434,7 +434,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 	 */
 	public MMDMaterial addNewItem(String name, Item item) {
 		if (this.items.containsKey(name)) {
-			BaseMetals.logger.warn("Tried adding item %s to a material (%s) that already has it, don't do that!", name, this.getCapitalizedName());
+			MMDLib.logger.warn("Tried adding item %s to a material (%s) that already has it, don't do that!", name, this.getCapitalizedName());
 			return this;
 		}
 		this.items.put(name, item);
@@ -468,7 +468,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 	 */
 	public MMDMaterial addNewBlock(String name, Block block) {
 		if (this.blocks.containsKey(name)) {
-			BaseMetals.logger.warn("Tried adding block %s to a material (%s) that already has it, don't do that!", name, this.getCapitalizedName());
+			MMDLib.logger.warn("Tried adding block %s to a material (%s) that already has it, don't do that!", name, this.getCapitalizedName());
 			return this;
 		}
 		this.blocks.put(name, block);

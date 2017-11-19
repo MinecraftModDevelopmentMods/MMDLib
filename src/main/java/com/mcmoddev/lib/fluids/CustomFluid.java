@@ -1,6 +1,6 @@
 package com.mcmoddev.lib.fluids;
 
-import com.mcmoddev.basemetals.init.Materials;
+import com.mcmoddev.lib.init.Materials;
 
 import net.minecraft.util.text.translation.I18n;
 import net.minecraft.util.ResourceLocation;
