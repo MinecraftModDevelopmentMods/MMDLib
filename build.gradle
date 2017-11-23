@@ -142,36 +142,36 @@ dependencies {
         exclude group: 'mezz.jei'
     }
 
-    deobfCompile ("slimeknights:TConstruct:${mc_version}-${tconstruct_version}") {
+    compileOnly ("slimeknights:TConstruct:${mc_version}-${tconstruct_version}") {
         exclude group: 'mezz.jei'
     }
-    deobfCompile ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
+    compileOnly ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
         exclude group: 'mezz.jei'
     }
 	
 //  We do this to make NEI happy as there is no deobf or dev JEI jar for the deobf instance
-    deobfCompile "mezz.jei:jei_${mc_version}:${jei_version}"
+    compileOnly "mezz.jei:jei_${mc_version}:${jei_version}"
 
-    deobfCompile "codechicken:CodeChickenLib:${mc_version}-${ccl_version}:universal"
-    deobfCompile ("codechicken:NotEnoughItems:${mc_version}-${nei_version}:universal") {
+    compileOnly "codechicken:CodeChickenLib:${mc_version}-${ccl_version}:universal"
+    compileOnly ("codechicken:NotEnoughItems:${mc_version}-${nei_version}:universal") {
         exclude group: 'mezz.jei'
         exclude group: 'codechicken'
     }
     
-    deobfCompile ("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
+    compileOnly ("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
         exclude group: 'mezz.jei'
     }
 
-    deobfCompile ("MineTweaker3:MineTweaker3-API:${minetweaker_version}") {
+    compileOnly ("MineTweaker3:MineTweaker3-API:${minetweaker_version}") {
         exclude group: 'mezz.jei'
     }
-    
-    deobfCompile ("mcp.mobius.waila:Hwyla:${hwyla_version}") {
+
+    compileOnly ("mcp.mobius.waila:Hwyla:${hwyla_version}") {
         exclude group: 'mezz.jei'
     }
     
     // CoFHCore for TE integration
-    compile ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:deobf") {
+    compileOnly ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:deobf") {
     	exclude group: 'mezz.jei'
     }
 }
