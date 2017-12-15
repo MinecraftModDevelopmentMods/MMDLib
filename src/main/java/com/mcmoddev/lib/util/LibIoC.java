@@ -30,7 +30,7 @@ public class LibIoC {
 		return getInstance(true);
 	}
 	
-	public static LibIoC getInstance(Boolean autoWirup) {
+	public static LibIoC getInstance(boolean autoWirup) {
 	      if(_instance == null) {
 	         _instance = new LibIoC();
 	         

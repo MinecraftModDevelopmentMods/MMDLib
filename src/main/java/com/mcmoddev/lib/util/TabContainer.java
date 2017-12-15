@@ -3,6 +3,9 @@ package com.mcmoddev.lib.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.exceptions.MaterialNotFoundException;
 import com.mcmoddev.lib.exceptions.TabNotFoundException;
@@ -28,7 +31,7 @@ public final class TabContainer implements ITabProvider {
 	public final MMDCreativeTab itemsTab;
 	public final MMDCreativeTab toolsTab;
 
-	private List<Tuple2<String, String>> tabItemMapping;
+	private List<Pair<String, String>> tabItemMapping;
 	
 	public TabContainer(MMDCreativeTab blocksTab, MMDCreativeTab itemsTab, MMDCreativeTab toolsTab) {
 		this.blocksTab = blocksTab;
@@ -38,7 +41,7 @@ public final class TabContainer implements ITabProvider {
 		tabItemMapping = new ArrayList<>();
 	}
 
-	public TabContainer(MMDCreativeTab blocksTab, MMDCreativeTab itemsTab, MMDCreativeTab toolsTab, List<Tuple2<String, String>> tabItemMapping) {
+	public TabContainer(MMDCreativeTab blocksTab, MMDCreativeTab itemsTab, MMDCreativeTab toolsTab, List<Pair<String, String>> tabItemMapping) {
 		this.blocksTab = blocksTab;
 		this.itemsTab = itemsTab;
 		this.toolsTab = toolsTab;
@@ -91,7 +94,7 @@ public final class TabContainer implements ITabProvider {
 
 		MMDMaterial material = Materials.getMaterialByName(materialName);
 		
-		if (material.getName() == materialName && (material.hasBlock(Names.BLOCK)))
+		if (material.getName().equals(materialName) && (material.hasBlock(Names.BLOCK)))
 			temp = material.getBlock(Names.BLOCK);
 		else
 			temp = net.minecraft.init.Blocks.IRON_BLOCK;
@@ -107,16 +110,16 @@ public final class TabContainer implements ITabProvider {
 
 	@Override
 	public void setTabItemMapping(String tabName, String itemName) {
-		tabItemMapping.add(new Tuple2<String, String>(tabName, itemName));
+		tabItemMapping.add(Pair.of(tabName, itemName));
 	}
 
 	@Override
 	public String getTab(String itemName) {
-		List<Tuple2<String, String>> matchingTabs =  tabItemMapping.stream().filter(entry -> entry.y == itemName).collect(Collectors.toList());
+		List<Pair<String, String>> matchingTabs =  tabItemMapping.stream().filter(entry -> entry.getRight().equals(itemName)).collect(Collectors.toList());
 		
 		if (matchingTabs.isEmpty())
-			return "";
-		else
 			return "blocksTab";
+		else
+			return matchingTabs.get(0).getLeft();
 	}
 }
