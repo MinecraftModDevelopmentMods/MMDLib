@@ -1,11 +1,8 @@
 package com.mcmoddev.lib.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.tuple.Pair;
-
+import java.util.Collection;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.exceptions.MaterialNotFoundException;
 import com.mcmoddev.lib.exceptions.TabNotFoundException;
@@ -31,17 +28,17 @@ public final class TabContainer implements ITabProvider {
 	public final MMDCreativeTab itemsTab;
 	public final MMDCreativeTab toolsTab;
 
-	private List<Pair<String, String>> tabItemMapping;
+	private Multimap<String, String> tabItemMapping;
 	
 	public TabContainer(MMDCreativeTab blocksTab, MMDCreativeTab itemsTab, MMDCreativeTab toolsTab) {
 		this.blocksTab = blocksTab;
 		this.itemsTab = itemsTab;
 		this.toolsTab = toolsTab;
 		
-		tabItemMapping = new ArrayList<>();
+		tabItemMapping = ArrayListMultimap.create();
 	}
 
-	public TabContainer(MMDCreativeTab blocksTab, MMDCreativeTab itemsTab, MMDCreativeTab toolsTab, List<Pair<String, String>> tabItemMapping) {
+	public TabContainer(MMDCreativeTab blocksTab, MMDCreativeTab itemsTab, MMDCreativeTab toolsTab, Multimap<String, String> tabItemMapping) {
 		this.blocksTab = blocksTab;
 		this.itemsTab = itemsTab;
 		this.toolsTab = toolsTab;
@@ -75,8 +72,8 @@ public final class TabContainer implements ITabProvider {
 	@Override
 	public void addItemToTab(String tabName, Item item) throws TabNotFoundException {
 		MMDCreativeTab tab = this.getTabByName(tabName);
-		
-		if (tab == null) 
+
+		if (tab == null)
 			throw new TabNotFoundException(TAB_NOT_FOUND + tabName);
 		
 		item.setCreativeTab(tab);
@@ -110,16 +107,13 @@ public final class TabContainer implements ITabProvider {
 
 	@Override
 	public void setTabItemMapping(String tabName, String itemName) {
-		tabItemMapping.add(Pair.of(tabName, itemName));
+		tabItemMapping.put(itemName, tabName);
 	}
 
 	@Override
 	public String getTab(String itemName) {
-		List<Pair<String, String>> matchingTabs =  tabItemMapping.stream().filter(entry -> entry.getRight().equals(itemName)).collect(Collectors.toList());
-		
-		if (matchingTabs.isEmpty())
-			return "blocksTab";
-		else
-			return matchingTabs.get(0).getLeft();
+		Collection<String> tabs = tabItemMapping.get(itemName);
+
+		return tabs.isEmpty() ? "blocksTab" : tabs.iterator().next();
 	}
 }
