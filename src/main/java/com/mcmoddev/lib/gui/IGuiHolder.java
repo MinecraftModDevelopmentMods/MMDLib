@@ -30,5 +30,5 @@ public interface IGuiHolder {
     default IMessage receiveGuiUpdateTag(NBTTagCompound compound) { return null; }
 
     @Nullable
-    default NBTTagCompound getGuiUpdateTag() { return null; }
+    default NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) { return null; }
 }

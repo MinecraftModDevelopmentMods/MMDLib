@@ -3,6 +3,7 @@ package com.mcmoddev.lib.gui;
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.MMDLib;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
@@ -37,8 +38,17 @@ public class MMDGuiHandler implements IGuiHandler {
                 stack = player.getHeldItemOffhand();
             }
 
-            if (!stack.isEmpty() && (stack.getItem() instanceof IGuiProvider)) {
-                return ((IGuiProvider)stack.getItem());
+            if (!stack.isEmpty()) {
+                Item item = stack.getItem();
+                IGuiProvider provider = null;
+                if (item instanceof IItemStackGuiProvider) {
+                    provider = IItemStackGuiProvider.class.cast(item).getGuiProvider(stack);
+                }
+                else if (item instanceof IGuiProvider) {
+                    provider = IGuiProvider.class.cast(item);
+                }
+
+                return provider;
             }
         }
 

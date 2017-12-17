@@ -220,7 +220,7 @@ public class MMDContainer extends Container {
         super.detectAndSendChanges();
 
         if (this.player instanceof EntityPlayerMP) {
-            NBTTagCompound nbt = this.holder.getGuiUpdateTag();
+            NBTTagCompound nbt = this.holder.getGuiUpdateTag(true);
             if ((nbt != null) && (nbt.getSize() > 0)) {
                 MMDPackages.sendToPlayer((EntityPlayerMP)this.player, new NBTBasedPlayerMessage(this.player, nbt));
             }

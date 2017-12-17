@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.mcmoddev.lib.container.MMDContainer;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
 
@@ -38,6 +39,14 @@ public class MMDGuiContainer extends GuiContainer {
 
         this.holder = holder;
         this.player = player;
+    }
+
+    public int getRenderLeft() {
+        return this.piecesOffsetX + this.getGuiLeft();
+    }
+
+    public int getRenderTop() {
+        return this.piecesOffsetY + this.getGuiTop();
     }
 
     @Override
@@ -158,8 +167,17 @@ public class MMDGuiContainer extends GuiContainer {
             }
         }
 
+        for(IGuiPiece piece: this.pieces) {
+            piece.drawBackgroundLayer(this, partialTicks, mouseX, mouseY);
+        }
+
+        // TODO: move this to some pieces
         for(Slot slot : this.inventorySlots.inventorySlots) {
             GuiSprites.MC_SLOT_BACKGROUND.draw(this, slot.xPos - 1, slot.yPos - 1);
+        }
+
+        for(IGuiPiece piece: this.pieces) {
+            piece.drawMiddleLayer(this, partialTicks, mouseX, mouseY);
         }
     }
 
@@ -170,5 +188,33 @@ public class MMDGuiContainer extends GuiContainer {
     @Nullable
     protected IGuiSprite getBackgroundSprite() {
         return null;
+    }
+
+    @Override
+    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
+        super.drawGuiContainerForegroundLayer(mouseX, mouseY);
+
+        for(IGuiPiece piece: this.pieces) {
+            piece.drawForegroundLayer(this, mouseX, mouseY);
+        }
+
+        for(IGuiPiece piece: this.pieces) {
+            piece.drawForegroundTopLayer(this, mouseX, mouseY);
+        }
+    }
+
+    public void drawFilledRect(int x, int y, int width, int height, int color) {
+        this.drawGradientRect(x, y, x + width, y + height, color, color);
+    }
+
+    public void drawFilledRect(int x, int y, int width, int height, int color, int strokeColor) {
+        this.drawFilledRect(x, y, width, height, color);
+
+        this.drawHorizontalLine(x, x + width - 1, y, strokeColor);
+        this.drawVerticalLine(x, y, y + height - 1, strokeColor);
+        this.drawVerticalLine(x + width - 1, y, y + height - 1, strokeColor);
+        this.drawHorizontalLine(x, x + width - 1, y + height - 1, strokeColor);
+
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
