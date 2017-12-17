@@ -112,8 +112,6 @@ public final class TabContainer implements ITabProvider {
 
 	@Override
 	public String getTab(String itemName) {
-		Collection<String> tabs = tabItemMapping.get(itemName);
-
-		return tabs.isEmpty() ? "blocksTab" : tabs.iterator().next();
+		return tabItemMapping.get(itemName).stream().findFirst().orElse("blocksTab");
 	}
 }
