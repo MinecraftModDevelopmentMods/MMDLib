@@ -13,11 +13,12 @@ import net.minecraftforge.fml.common.eventhandler.Event;
  * @author madman
  *
  */
-public class MaterialRegisterEvent extends Event implements IMMDEvent<IMaterialApi>{
+public class MaterialRegisterEvent extends Event implements IMMDEvent<IMaterialApi> {
+
 	private final IMaterialApi api;
 	private final Materials registry;
-	
-	public MaterialRegisterEvent( IMaterialApi materialApi, Materials materialRegistry ) {
+
+	public MaterialRegisterEvent(IMaterialApi materialApi, Materials materialRegistry) {
 		api = materialApi;
 		registry = materialRegistry;
 	}

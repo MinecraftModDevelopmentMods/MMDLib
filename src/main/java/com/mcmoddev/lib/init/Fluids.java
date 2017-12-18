@@ -56,11 +56,13 @@ public abstract class Fluids {
 		initDone = true;
 	}
 
-	protected static Fluid addFluid(@Nonnull final String materialName, @Nonnull final int density, @Nonnull final int viscosity, @Nonnull final int temperature, @Nonnull final int luminosity) {
+	protected static Fluid addFluid(@Nonnull final String materialName, @Nonnull final int density,
+			@Nonnull final int viscosity, @Nonnull final int temperature, @Nonnull final int luminosity) {
 		return addFluid(Materials.getMaterialByName(materialName), density, viscosity, temperature, luminosity);
 	}
 
-	protected static Fluid addFluid(@Nonnull MMDMaterial material, @Nonnull final int density, @Nonnull final int viscosity, @Nonnull final int temperature, @Nonnull final int luminosity) {
+	protected static Fluid addFluid(@Nonnull MMDMaterial material, @Nonnull final int density,
+			@Nonnull final int viscosity, @Nonnull final int temperature, @Nonnull final int luminosity) {
 		int tintColor;
 		if (material.getFluid() != null) {
 			return material.getFluid();
@@ -69,7 +71,8 @@ public abstract class Fluids {
 
 		final Fluid fluid = new CustomFluid(material.getName(),
 				new ResourceLocation(Loader.instance().activeModContainer().getModId(), "blocks/molten_metal_still"),
-				new ResourceLocation(Loader.instance().activeModContainer().getModId(), "blocks/molten_metal_flow"), tintColor);
+				new ResourceLocation(Loader.instance().activeModContainer().getModId(), "blocks/molten_metal_flow"),
+				tintColor);
 		fluid.setDensity(density);
 		fluid.setViscosity(viscosity);
 		fluid.setTemperature(temperature);
@@ -103,12 +106,11 @@ public abstract class Fluids {
 		if (!name.equals("mercury")) {
 			block = new BlockFluidClassic(material.getFluid(), Material.LAVA);
 		} else {
-			block = new InteractiveFluidBlock(getFluidByName(name), false,
-					(World w, EntityLivingBase e) -> {
-						if (w.rand.nextInt(32) == 0) {
-							e.addPotionEffect(new PotionEffect(Potion.REGISTRY.getObject(dizzyPotionKey), 30 * 20, 2));
-						}
-					});
+			block = new InteractiveFluidBlock(getFluidByName(name), false, (World w, EntityLivingBase e) -> {
+				if (w.rand.nextInt(32) == 0) {
+					e.addPotionEffect(new PotionEffect(Potion.REGISTRY.getObject(dizzyPotionKey), 30 * 20, 2));
+				}
+			});
 		}
 
 		block.setRegistryName(name); // fullName

@@ -38,7 +38,8 @@ public class ShieldUpgradeRecipe extends RecipeRepairItem {
 		base = new ItemStack(input.getItem(Names.SHIELD), 1, 0);
 
 		for (MMDMaterial mat : allmats) {
-			if (mat.getStat(MaterialStats.HARDNESS) >= input.getStat(MaterialStats.HARDNESS) && mat.getName().equals(matName)) {
+			if (mat.getStat(MaterialStats.HARDNESS) >= input.getStat(MaterialStats.HARDNESS)
+					&& mat.getName().equals(matName)) {
 				NonNullList<ItemStack> mats = OreDictionary.getOres(Oredicts.PLATE + mat.getCapitalizedName());
 				upgradeMats.addAll(mats);
 			}
@@ -86,7 +87,8 @@ public class ShieldUpgradeRecipe extends RecipeRepairItem {
 				ItemStack comp = new ItemStack(curItem.getItem(), 1, curItem.getMetadata());
 				for (Entry<String, NonNullList<ItemStack>> ent : plates.entrySet()) {
 					if (OreDictionary.containsMatch(false, ent.getValue(), comp)) {
-						plateMatched = new ItemStack(Materials.getMaterialByName(ent.getKey().toLowerCase()).getItem(Names.SHIELD), 1, 0);
+						plateMatched = new ItemStack(
+								Materials.getMaterialByName(ent.getKey().toLowerCase()).getItem(Names.SHIELD), 1, 0);
 					}
 				}
 				if (OreDictionary.itemMatches(matcher, comp, false)) {
@@ -105,7 +107,8 @@ public class ShieldUpgradeRecipe extends RecipeRepairItem {
 
 			if (curItem != null) {
 				for (MMDMaterial e : Materials.getAllMaterials()) {
-					if (OreDictionary.containsMatch(false, OreDictionary.getOres(Oredicts.PLATE + e.getName()), curItem)) {
+					if (OreDictionary.containsMatch(false, OreDictionary.getOres(Oredicts.PLATE + e.getName()),
+							curItem)) {
 						return e;
 					}
 				}

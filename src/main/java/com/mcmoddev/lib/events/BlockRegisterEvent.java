@@ -7,10 +7,11 @@ import com.mcmoddev.lib.init.Materials;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
 public class BlockRegisterEvent extends Event implements IMMDEvent<IBlockApi> {
+
 	private final IBlockApi api;
 	private final Materials registry;
-	
-	public BlockRegisterEvent( IBlockApi blockAPI, Materials materialRegistry ) {
+
+	public BlockRegisterEvent(IBlockApi blockAPI, Materials materialRegistry) {
 		api = blockAPI;
 		registry = materialRegistry;
 	}

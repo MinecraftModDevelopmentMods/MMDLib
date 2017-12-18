@@ -84,8 +84,9 @@ public class EnderIOBase implements IIntegration {
 	 * @param energy
 	 *            How much energy it costs to perform
 	 */
-	protected static void addAlloySmelterRecipe(@Nonnull final String materialName, final String outputSecondary, @Nonnull final int energy) {
-			addAlloySmelterRecipe(Materials.getMaterialByName(materialName), outputSecondary, energy);
+	protected static void addAlloySmelterRecipe(@Nonnull final String materialName, final String outputSecondary,
+			@Nonnull final int energy) {
+		addAlloySmelterRecipe(Materials.getMaterialByName(materialName), outputSecondary, energy);
 	}
 
 	/**
@@ -97,7 +98,8 @@ public class EnderIOBase implements IIntegration {
 	 * @param energy
 	 *            How much energy it costs to perform
 	 */
-	protected static void addAlloySmelterRecipe(@Nonnull final MMDMaterial material, final String outputSecondary, @Nonnull final int energy) {
+	protected static void addAlloySmelterRecipe(@Nonnull final MMDMaterial material, final String outputSecondary,
+			@Nonnull final int energy) {
 		final String ownerModID = Loader.instance().activeModContainer().getModId();
 
 		final String capitalizedName = material.getCapitalizedName();
@@ -149,7 +151,8 @@ public class EnderIOBase implements IIntegration {
 	 * @param energy
 	 *            How much energy it costs to perform
 	 */
-	protected static void addSagMillRecipe(@Nonnull final String materialName, final String outputSecondary, @Nonnull final int energy) {
+	protected static void addSagMillRecipe(@Nonnull final String materialName, final String outputSecondary,
+			@Nonnull final int energy) {
 		addSagMillRecipe(Materials.getMaterialByName(materialName), outputSecondary, energy);
 	}
 
@@ -162,7 +165,8 @@ public class EnderIOBase implements IIntegration {
 	 * @param energy
 	 *            How much energy it costs to perform
 	 */
-	protected static void addSagMillRecipe(@Nonnull final MMDMaterial material, final String outputSecondary, @Nonnull final int energy) {
+	protected static void addSagMillRecipe(@Nonnull final MMDMaterial material, final String outputSecondary,
+			@Nonnull final int energy) {
 		int primaryQty = 2;
 		int secondaryQty = 1;
 
@@ -186,7 +190,8 @@ public class EnderIOBase implements IIntegration {
 	 * @param energy
 	 *            How much energy it costs to perform
 	 */
-	protected static void addSagMillRecipe(@Nonnull final String materialName, @Nonnull final int primaryQty, @Nonnull final String outputSecondary, @Nonnull final int secondaryQty, @Nonnull final int energy) {
+	protected static void addSagMillRecipe(@Nonnull final String materialName, @Nonnull final int primaryQty,
+			@Nonnull final String outputSecondary, @Nonnull final int secondaryQty, @Nonnull final int energy) {
 		addSagMillRecipe(Materials.getMaterialByName(materialName), primaryQty, outputSecondary, secondaryQty, energy);
 	}
 
@@ -203,7 +208,8 @@ public class EnderIOBase implements IIntegration {
 	 * @param energy
 	 *            How much energy it costs to perform
 	 */
-	protected static void addSagMillRecipe(@Nonnull final MMDMaterial material, @Nonnull final int primaryQty, final String outputSecondary, @Nonnull final int secondaryQty, @Nonnull final int energy) {
+	protected static void addSagMillRecipe(@Nonnull final MMDMaterial material, @Nonnull final int primaryQty,
+			final String outputSecondary, @Nonnull final int secondaryQty, @Nonnull final int energy) {
 		final String ownerModID = Loader.instance().activeModContainer().getModId();
 
 		final String materialName = material.getName();
@@ -235,8 +241,10 @@ public class EnderIOBase implements IIntegration {
 			return; // Only run for Ore types
 
 		if (outputSecondary != null)
-			messageSecondary = String.format("<itemStack oreDictionary=\"%s\" number=\"%d\" chance=\"%s\" />", secondaryOutput, secondaryQty, secondaryChance);
-			// messageSecondary = "<itemStack oreDictionary=\"" + rockOredict + "\" number=\"" + rockQty + "\" chance=\"" + rockChance + "\" />" +
+			messageSecondary = String.format("<itemStack oreDictionary=\"%s\" number=\"%d\" chance=\"%s\" />",
+					secondaryOutput, secondaryQty, secondaryChance);
+		// messageSecondary = "<itemStack oreDictionary=\"" + rockOredict + "\"
+		// number=\"" + rockQty + "\" chance=\"" + rockChance + "\" />" +
 
 		// @formatter:off
 		String messageSAGMill = String.format( "<recipeGroup name=\"%s\">\n\t"

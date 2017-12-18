@@ -26,7 +26,9 @@ public class ItemFishingRod extends net.minecraft.item.ItemFishingRod {
 			playerIn.getHeldItemMainhand().damageItem(i, playerIn);
 			playerIn.swingArm(hand);
 		} else {
-			worldIn.playSound((EntityPlayer) null, playerIn.posX, playerIn.posY, playerIn.posZ, SoundEvents.ENTITY_BOBBER_THROW, SoundCategory.NEUTRAL, 0.5F, 0.4F / ((itemRand.nextFloat() * 0.4F) + 0.8F));
+			worldIn.playSound((EntityPlayer) null, playerIn.posX, playerIn.posY, playerIn.posZ,
+					SoundEvents.ENTITY_BOBBER_THROW, SoundCategory.NEUTRAL, 0.5F,
+					0.4F / ((itemRand.nextFloat() * 0.4F) + 0.8F));
 
 			if (!worldIn.isRemote) {
 				// Changed from MC EntityFishHook to BMe EntityFishHook

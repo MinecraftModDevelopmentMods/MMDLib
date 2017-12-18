@@ -21,7 +21,9 @@ public class ModifierToxic extends ModifierTrait implements IModifierDisplay {
 	}
 
 	@Override
-	public void afterHit(@Nonnull final ItemStack tool, @Nonnull final EntityLivingBase player, @Nonnull final EntityLivingBase target, @Nonnull final float damageDealt, @Nonnull final boolean wasCritical, @Nonnull final boolean wasHit) {
+	public void afterHit(@Nonnull final ItemStack tool, @Nonnull final EntityLivingBase player,
+			@Nonnull final EntityLivingBase target, @Nonnull final float damageDealt,
+			@Nonnull final boolean wasCritical, @Nonnull final boolean wasHit) {
 		if (wasHit && target.isEntityAlive()) {
 			target.addPotionEffect(new PotionEffect(MobEffects.POISON, 50, 1));
 			target.addPotionEffect(new PotionEffect(MobEffects.BLINDNESS, 10));
@@ -32,18 +34,18 @@ public class ModifierToxic extends ModifierTrait implements IModifierDisplay {
 	public boolean isHidden() {
 		return false;
 	}
-	
-	  @Override
-	  public List<List<ItemStack>> getItems() {
-	    ImmutableList.Builder<List<ItemStack>> builder = ImmutableList.builder();
 
-	    for(RecipeMatch rm : items) {
-	      List<ItemStack> in = rm.getInputs();
-	      if(!in.isEmpty()) {
-	        builder.add(in);
-	      }
-	    }
+	@Override
+	public List<List<ItemStack>> getItems() {
+		ImmutableList.Builder<List<ItemStack>> builder = ImmutableList.builder();
 
-	    return builder.build();
+		for (RecipeMatch rm : items) {
+			List<ItemStack> in = rm.getInputs();
+			if (!in.isEmpty()) {
+				builder.add(in);
+			}
+		}
+
+		return builder.build();
 	}
 }

@@ -16,22 +16,25 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
  *
  */
 public class CommonProxy {
-	
+
 	public void preInit(FMLPreInitializationEvent event) {
-	    // despite other comments, most events get fired here
+		// despite other comments, most events get fired here
 	}
-	
+
 	public void init(FMLInitializationEvent event) {
-		// by this point all materials should have been registered both with MMDLib and Minecraft
-		// move to a separate function - potentially in FallbackGeneratorData - after the test
-		for( MMDMaterial mat : Materials.getAllMaterials() ) {
-			if( mat.hasBlock(Names.ORE) ){
-				FallbackGeneratorData.getInstance().addMaterial(mat.getName(), Names.ORE.toString(), mat.getDefaultDimension());
-				
-				if( mat.hasBlock(Names.NETHERORE) )
+		// by this point all materials should have been registered both with MMDLib and
+		// Minecraft
+		// move to a separate function - potentially in FallbackGeneratorData - after
+		// the test
+		for (MMDMaterial mat : Materials.getAllMaterials()) {
+			if (mat.hasBlock(Names.ORE)) {
+				FallbackGeneratorData.getInstance().addMaterial(mat.getName(), Names.ORE.toString(),
+						mat.getDefaultDimension());
+
+				if (mat.hasBlock(Names.NETHERORE))
 					FallbackGeneratorData.getInstance().addMaterial(mat.getName(), Names.NETHERORE.toString(), -1);
-				
-				if( mat.hasBlock(Names.ENDORE) )
+
+				if (mat.hasBlock(Names.ENDORE))
 					FallbackGeneratorData.getInstance().addMaterial(mat.getName(), Names.ENDORE.toString(), 1);
 			}
 		}

@@ -22,20 +22,20 @@ public class ArmorRepair implements IRecipeFactory {
 		String material = JsonUtils.getString(json, "material");
 		String type = JsonUtils.getString(json, "armorType").toLowerCase();
 		MMDMaterial mat = Materials.getMaterialByName(material.toLowerCase());
-		
-		switch(type) {
-		case "boots":
-			return new BootsRepairRecipe(mat);
-		case "leggings":
-			return new LeggingsRepairRecipe(mat);
-		case "chestplate":
-			return new ChestplateRepairRecipe(mat);
-		case "helmet":
-			return new HelmetRepairRecipe(mat);
-		case "shield":
-			return new ShieldRepairRecipe(mat);
-		default:
-			throw new JsonSyntaxException("Unknown Armor Type '"+type+"' specified!");
+
+		switch (type) {
+			case "boots":
+				return new BootsRepairRecipe(mat);
+			case "leggings":
+				return new LeggingsRepairRecipe(mat);
+			case "chestplate":
+				return new ChestplateRepairRecipe(mat);
+			case "helmet":
+				return new HelmetRepairRecipe(mat);
+			case "shield":
+				return new ShieldRepairRecipe(mat);
+			default:
+				throw new JsonSyntaxException("Unknown Armor Type '" + type + "' specified!");
 		}
 	}
 

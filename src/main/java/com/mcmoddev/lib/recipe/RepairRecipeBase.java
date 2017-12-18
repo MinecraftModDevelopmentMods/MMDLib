@@ -13,27 +13,30 @@ import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
 
 public abstract class RepairRecipeBase extends ShapelessOreRecipe {
+
 	public final MMDMaterial material;
 	public final ItemStack baseItem;
 	public final String materialName;
 	public final String itemName;
 	public final NonNullList<ItemStack> repairMaterials;
-	
-	public RepairRecipeBase(MMDMaterial material, String itemName, Object...objects) {
-		super( new ResourceLocation("armor"), new ItemStack(material.getItem(itemName)), objects);
+
+	public RepairRecipeBase(MMDMaterial material, String itemName, Object... objects) {
+		super(new ResourceLocation("armor"), new ItemStack(material.getItem(itemName)), objects);
 		this.material = material;
 		this.baseItem = new ItemStack(material.getItem(itemName));
 		this.materialName = material.getCapitalizedName();
 		this.repairMaterials = OreDictionary.getOres(Oredicts.PLATE + this.materialName);
 		this.itemName = itemName;
 	}
-	
+
 	@Override
 	public boolean matches(InventoryCrafting inv, World worldIn) {
-		// make sure we have all the materials that can be used for repair, not just what was
+		// make sure we have all the materials that can be used for repair, not just
+		// what was
 		// available when we were initialized.
-		OreDictionary.getOres(Oredicts.PLATE + this.materialName).stream().filter(item -> !repairMaterials.contains(item) ).forEach(item -> repairMaterials.add(item));
-		
+		OreDictionary.getOres(Oredicts.PLATE + this.materialName).stream()
+				.filter(item -> !repairMaterials.contains(item)).forEach(item -> repairMaterials.add(item));
+
 		boolean matched = false;
 		boolean repairMatched = false;
 
@@ -84,7 +87,7 @@ public abstract class RepairRecipeBase extends ShapelessOreRecipe {
 
 	@Override
 	public ItemStack getRecipeOutput() {
-		return new ItemStack( this.material.getItem(this.itemName));
+		return new ItemStack(this.material.getItem(this.itemName));
 	}
 
 	public NonNullList<Object> getInput() {

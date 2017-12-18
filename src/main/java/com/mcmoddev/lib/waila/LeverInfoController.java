@@ -21,24 +21,28 @@ public class LeverInfoController implements IWailaDataProvider {
 	}
 
 	@Override
-	public List<String> getWailaHead(ItemStack itemStack, List<String> currentTip, IWailaDataAccessor accessor, IWailaConfigHandler config) {
+	public List<String> getWailaHead(ItemStack itemStack, List<String> currentTip, IWailaDataAccessor accessor,
+			IWailaConfigHandler config) {
 		return currentTip;
 	}
 
 	@Override
-	public List<String> getWailaBody(ItemStack itemStack, List<String> currentTip, IWailaDataAccessor accessor, IWailaConfigHandler config) {
+	public List<String> getWailaBody(ItemStack itemStack, List<String> currentTip, IWailaDataAccessor accessor,
+			IWailaConfigHandler config) {
 		String redstoneOn = (accessor.getMetadata() & 8) == 0 ? I18n.format("hud.msg.off") : I18n.format("hud.msg.on");
 		currentTip.add(I18n.format("%s : %s", I18n.format("hud.msg.state"), redstoneOn));
 		return currentTip;
 	}
 
 	@Override
-	public List<String> getWailaTail(ItemStack itemStack, List<String> currentTip, IWailaDataAccessor accessor, IWailaConfigHandler config) {
+	public List<String> getWailaTail(ItemStack itemStack, List<String> currentTip, IWailaDataAccessor accessor,
+			IWailaConfigHandler config) {
 		return currentTip;
 	}
 
 	@Override
-	public NBTTagCompound getNBTData(EntityPlayerMP player, TileEntity te, NBTTagCompound tag, World world, BlockPos pos) {
+	public NBTTagCompound getNBTData(EntityPlayerMP player, TileEntity te, NBTTagCompound tag, World world,
+			BlockPos pos) {
 		return tag;
 	}
 }

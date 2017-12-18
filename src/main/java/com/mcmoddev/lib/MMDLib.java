@@ -41,13 +41,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
  * @author Jasmine Iwanek
  *
  */
-@Mod(
-		modid = MMDLib.MODID,
-		name = MMDLib.NAME,
-		version = MMDLib.VERSION,
-		dependencies = "required-after:forge@[14.21.0.2327,);after:tconstruct;after:ic2;before:buildingbricks",
-		acceptedMinecraftVersions = "[1.12,)",
-		updateJSON = MMDLib.UPDATEJSON)
+@Mod(modid = MMDLib.MODID, name = MMDLib.NAME, version = MMDLib.VERSION, dependencies = "required-after:forge@[14.21.0.2327,);after:tconstruct;after:ic2;before:buildingbricks", acceptedMinecraftVersions = "[1.12,)", updateJSON = MMDLib.UPDATEJSON)
 public class MMDLib {
 
 	@Instance
@@ -85,7 +79,7 @@ public class MMDLib {
 		proxy.preInit(event);
 		/*
 		 * Pull the lever, Kronk!
-         */
+		 */
 		MinecraftForge.EVENT_BUS.post(new MaterialRegisterEvent(MaterialApi.instance, Materials.instance));
 		MinecraftForge.EVENT_BUS.post(new BlockRegisterEvent(BlockApi.instance, Materials.instance));
 		MinecraftForge.EVENT_BUS.post(new ItemRegisterEvent(ItemApi.instance, Materials.instance));

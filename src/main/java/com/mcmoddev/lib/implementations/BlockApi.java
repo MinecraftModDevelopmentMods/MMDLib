@@ -11,8 +11,9 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;
 
 public class BlockApi implements IBlockApi {
+
 	public static final BlockApi instance = new BlockApi();
-	
+
 	@Override
 	public String getApiName() {
 		return "MMDLIb::BlockAPI";
@@ -53,6 +54,5 @@ public class BlockApi implements IBlockApi {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
 
 }

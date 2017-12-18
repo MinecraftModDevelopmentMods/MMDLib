@@ -39,11 +39,13 @@ public class ClientProxy extends CommonProxy {
 		for (final String name : Fluids.getFluidBlockRegistry().keySet()) {
 			final Block block = Fluids.getFluidBlockByName(name);
 			final Item item = Item.getItemFromBlock(block);
-			
-			final ModelResourceLocation fluidModelLocation = new ModelResourceLocation(item.getRegistryName().getResourceDomain() + ":" + name, "fluid");
+
+			final ModelResourceLocation fluidModelLocation = new ModelResourceLocation(
+					item.getRegistryName().getResourceDomain() + ":" + name, "fluid");
 			ModelBakery.registerItemVariants(item);
 			ModelLoader.setCustomMeshDefinition(item, stack -> fluidModelLocation);
 			ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
+
 				@Override
 				protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
 					return fluidModelLocation;
@@ -51,7 +53,7 @@ public class ClientProxy extends CommonProxy {
 			});
 		}
 	}
-	
+
 	@Override
 	public void init(FMLInitializationEvent event) {
 		super.init(event);
@@ -64,13 +66,13 @@ public class ClientProxy extends CommonProxy {
 		}
 	}
 
-	private void registerRenderOuter ( Item item ) {
+	private void registerRenderOuter(Item item) {
 		if (item != null) {
 			registerRender(item, Items.getNameOfItem(item));
 		}
 	}
 
-	private void registerRenderOuter ( Block block ) {
+	private void registerRenderOuter(Block block) {
 		if ((block instanceof BlockDoor) || (block instanceof BlockSlab)) {
 			return; // do not add door blocks or slabs
 		}

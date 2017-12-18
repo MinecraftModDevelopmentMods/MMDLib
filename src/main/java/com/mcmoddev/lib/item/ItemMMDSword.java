@@ -25,6 +25,7 @@ import net.minecraftforge.oredict.OreDictionary;
  *
  */
 public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDObject {
+
 	protected final MMDMaterial material;
 	protected final String repairOreDictName;
 	protected static final long REGEN_INTERVAL = 200;
@@ -39,7 +40,8 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 		super(Materials.getToolMaterialFor(material));
 		this.material = material;
 		this.setMaxDamage(this.material.getToolDurability());
-		// this.damageVsEntity = attackDamage + metal.getBaseAttackDamage(); // damageVsEntity is private, sadly
+		// this.damageVsEntity = attackDamage + metal.getBaseAttackDamage(); //
+		// damageVsEntity is private, sadly
 		this.attackDamage = 3F + this.material.getBaseAttackDamage();
 		this.repairOreDictName = Oredicts.INGOT + this.material.getCapitalizedName();
 	}
@@ -47,13 +49,13 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 	@Override
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target, final EntityLivingBase attacker) {
 		item.damageItem(1, attacker);
-		//MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
+		// MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
 		return true;
 	}
 
 	@Override
-	public boolean onBlockDestroyed(final ItemStack item, final World world, final IBlockState block, final BlockPos coord,
-									final EntityLivingBase entity) {
+	public boolean onBlockDestroyed(final ItemStack item, final World world, final IBlockState block,
+			final BlockPos coord, final EntityLivingBase entity) {
 		if (block.getBlockHardness(world, coord) != 0.0)
 			item.damageItem(2, entity);
 		return true;
@@ -76,15 +78,17 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-		//MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
+		// MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
 	}
 
 	@Override
-	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex, final boolean isHeld) {
+	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex,
+			final boolean isHeld) {
 		if (world.isRemote)
 			return;
 
-		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0) && ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
+		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0)
+				&& ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
 			item.setItemDamage(item.getItemDamage() - 1);
 		}
 	}
@@ -101,7 +105,7 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		//MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		// MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override

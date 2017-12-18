@@ -12,8 +12,9 @@ import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 
 public class MaterialApi implements IMaterialApi {
+
 	public static final IMaterialApi instance = new MaterialApi();
-	
+
 	@Override
 	public String getApiName() {
 		return "MMDLib::MaterialApi";

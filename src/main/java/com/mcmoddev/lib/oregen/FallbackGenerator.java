@@ -18,14 +18,16 @@ public class FallbackGenerator implements IWorldGenerator {
 			IChunkProvider chunkProvider) {
 
 		int dimension = world.provider.getDimension();
-		List<WorldGenMinable> ores = new ArrayList<>(FallbackGeneratorData.getInstance().getSpawnsForDimension(dimension));
-		if( dimension != -1 && dimension != 1 ) ores.addAll(FallbackGeneratorData.getInstance().getSpawnsForDimension(Integer.MIN_VALUE));
-		
-		int minY = dimension==-1||dimension==1?0:16;
-		int maxY = dimension==-1?126:dimension==1?256:80;
-		
-		for( WorldGenMinable ore : ores ) {
-			for( int i = 0; i < 8; i++ ) {
+		List<WorldGenMinable> ores = new ArrayList<>(
+				FallbackGeneratorData.getInstance().getSpawnsForDimension(dimension));
+		if (dimension != -1 && dimension != 1)
+			ores.addAll(FallbackGeneratorData.getInstance().getSpawnsForDimension(Integer.MIN_VALUE));
+
+		int minY = dimension == -1 || dimension == 1 ? 0 : 16;
+		int maxY = dimension == -1 ? 126 : dimension == 1 ? 256 : 80;
+
+		for (WorldGenMinable ore : ores) {
+			for (int i = 0; i < 8; i++) {
 				int pos_x = chunkX * 16 + random.nextInt(16);
 				int pos_z = chunkZ * 16 + random.nextInt(16);
 				int pos_y = minY + random.nextInt((maxY - minY));

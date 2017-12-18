@@ -38,7 +38,8 @@ public class TinkersConstructBase implements IIntegration {
 		initDone = true;
 	}
 
-	protected static void registerExtraMelting(@Nonnull final String materialName, @Nonnull final String type, @Nonnull final String name, @Nonnull final int amountPer) {
+	protected static void registerExtraMelting(@Nonnull final String materialName, @Nonnull final String type,
+			@Nonnull final String name, @Nonnull final int amountPer) {
 		String actName = String.format("%s:%s", type.toLowerCase(), name);
 		registry.getMaterial(materialName).addExtraMelting(actName, amountPer);
 	}
@@ -54,23 +55,25 @@ public class TinkersConstructBase implements IIntegration {
 	 * @param inputQty
 	 *            Array of quantities for input
 	 */
-	protected static void registerAlloy(@Nonnull final String outputName, @Nonnull final int outputQty, @Nonnull final String[] inputName, @Nonnull final int[] inputQty) {
+	protected static void registerAlloy(@Nonnull final String outputName, @Nonnull final int outputQty,
+			@Nonnull final String[] inputName, @Nonnull final int[] inputQty) {
 		FluidStack output = FluidRegistry.getFluidStack(outputName, outputQty);
 		FluidStack[] inputs = new FluidStack[inputName.length];
-		
-		for( int i = 0; i < inputName.length; i++ ) {
+
+		for (int i = 0; i < inputName.length; i++) {
 			inputs[i] = FluidRegistry.getFluidStack(inputName[i], inputQty[i]);
 		}
-		
+
 		registry.registerAlloy(outputName, output, inputs);
 	}
 
-	protected static TCMaterial registerMaterial(@Nonnull final String materialName, @Nonnull final boolean craftable, @Nonnull final boolean castable) {
+	protected static TCMaterial registerMaterial(@Nonnull final String materialName, @Nonnull final boolean craftable,
+			@Nonnull final boolean castable) {
 		MMDMaterial mat = Materials.getMaterialByName(materialName);
-		
+
 		return registerMaterial(mat, craftable, castable);
 	}
-	
+
 	/**
 	 * Creates a Tinkers Construct
 	 * {@link slimeknights.tconstruct.library.materials.Material}
@@ -83,13 +86,14 @@ public class TinkersConstructBase implements IIntegration {
 	 *            If this can be casted
 	 * @return a handle for potential, further manipulation of the material
 	 */
-	protected static TCMaterial registerMaterial(@Nonnull final MMDMaterial material, @Nonnull final boolean craftable, @Nonnull final boolean castable) {
+	protected static TCMaterial registerMaterial(@Nonnull final MMDMaterial material, @Nonnull final boolean craftable,
+			@Nonnull final boolean castable) {
 		TCMaterial tcm = registry.newMaterial(material.getName(), material.getTintColor());
-		if( craftable )
+		if (craftable)
 			tcm.setCraftable();
-		if( castable )
+		if (castable)
 			tcm.setCastable();
-		
+
 		return tcm;
 	}
 

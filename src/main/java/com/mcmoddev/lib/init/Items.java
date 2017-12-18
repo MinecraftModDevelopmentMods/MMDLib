@@ -54,7 +54,8 @@ public abstract class Items {
 	private static Map<Class<?>, Integer> classSortingValues = new HashMap<>();
 	private static Map<MMDMaterial, Integer> materialSortingValues = new HashMap<>();
 
-	// public static UniversalBucket universal_bucket; // now automatically added by Forge
+	// public static UniversalBucket universal_bucket; // now automatically added by
+	// Forge
 
 	protected Items() {
 		throw new IllegalAccessError("Not a instantiable class");
@@ -68,7 +69,7 @@ public abstract class Items {
 			return;
 		}
 
-		//com.mcmoddev.basemetals.util.Config.init();
+		// com.mcmoddev.basemetals.util.Config.init();
 		Blocks.init();
 
 		mapNameToClass(Names.CRYSTAL, ItemMMDIngot.class);
@@ -279,6 +280,7 @@ public abstract class Items {
 	protected static void createItemsBasic(@Nonnull final String materialName, @Nonnull final TabContainer tabs) {
 		createItemsBasic(Materials.getMaterialByName(materialName), tabs);
 	}
+
 	/**
 	 * 
 	 * @param material
@@ -381,7 +383,7 @@ public abstract class Items {
 		if (material.hasOre()) {
 			create(Names.CRUSHED, material, tabs.itemsTab);
 			create(Names.CRUSHED_PURIFIED, material, tabs.itemsTab);
-		}		
+		}
 	}
 
 	protected static void createItemsModMekanism(@Nonnull final String materialName, @Nonnull final TabContainer tabs) {
@@ -396,7 +398,8 @@ public abstract class Items {
 	 *            TabContainer covering the various CreativeTabs items might be
 	 *            on
 	 */
-	protected static void createItemsModMekanism(@Nonnull final MMDMaterial material, @Nonnull final TabContainer tabs) {
+	protected static void createItemsModMekanism(@Nonnull final MMDMaterial material,
+			@Nonnull final TabContainer tabs) {
 		if (material.hasOre()) {
 			createMekCrystal(material, tabs.itemsTab);
 			create(Names.SHARD, material, tabs.itemsTab);
@@ -406,7 +409,8 @@ public abstract class Items {
 		}
 	}
 
-	protected static Item create(@Nonnull final Names name, @Nonnull final String materialName, final CreativeTabs tab) {
+	protected static Item create(@Nonnull final Names name, @Nonnull final String materialName,
+			final CreativeTabs tab) {
 		return create(name, Materials.getMaterialByName(materialName), tab);
 	}
 
@@ -420,8 +424,9 @@ public abstract class Items {
 	 *            which creative tab is it on
 	 * @return the block this function created
 	 */
-	protected static Item create(@Nonnull final Names name, @Nonnull final MMDMaterial material, final CreativeTabs tab) {
-		if ( sanityCheck( name, material ) ) {
+	protected static Item create(@Nonnull final Names name, @Nonnull final MMDMaterial material,
+			final CreativeTabs tab) {
+		if (sanityCheck(name, material)) {
 			return null;
 		}
 
@@ -429,7 +434,7 @@ public abstract class Items {
 			return material.getItem(name);
 		}
 
-		if( isArmor(name) ) {
+		if (isArmor(name)) {
 			return createArmorItem(name, material, tab);
 		}
 
@@ -442,7 +447,7 @@ public abstract class Items {
 	}
 
 	private static boolean sanityCheck(Names name, MMDMaterial material) {
-		return ((material == null) || (name == null) || isWrongThingToMake( name, material));
+		return ((material == null) || (name == null) || isWrongThingToMake(name, material));
 	}
 
 	private static void setupOredict(Item item, String oredict, Names name, MMDMaterial material) {
@@ -463,14 +468,15 @@ public abstract class Items {
 	}
 
 	private static boolean isWrongThingToMake(Names name, MMDMaterial material) {
-		return ( ( ( (name.equals(Names.BLEND)) || (name.equals(Names.SMALLBLEND)) ) && (!material.hasBlend()) )
+		return ((((name.equals(Names.BLEND)) || (name.equals(Names.SMALLBLEND))) && (!material.hasBlend()))
 				|| (name.equals(Names.ANVIL) && (!material.hasBlock(Names.ANVIL)))
-				|| (name.equals(Names.DOOR) && (!material.hasBlock(Names.DOOR)))
-				|| (name.equals(Names.SLAB) && (!material.hasBlock(Names.SLAB) && (!material.hasBlock(Names.DOUBLE_SLAB)))));
+				|| (name.equals(Names.DOOR) && (!material.hasBlock(Names.DOOR))) || (name.equals(Names.SLAB)
+						&& (!material.hasBlock(Names.SLAB) && (!material.hasBlock(Names.DOUBLE_SLAB)))));
 	}
 
 	private static boolean isArmor(Names name) {
-		return 	((name.equals(Names.HELMET)) || (name.equals(Names.CHESTPLATE)) || (name.equals(Names.LEGGINGS)) || (name.equals(Names.BOOTS)));
+		return ((name.equals(Names.HELMET)) || (name.equals(Names.CHESTPLATE)) || (name.equals(Names.LEGGINGS))
+				|| (name.equals(Names.BOOTS)));
 	}
 
 	protected static Item addItem(@Nonnull final Item item, @Nonnull final Names name, final CreativeTabs tab) {
@@ -493,7 +499,8 @@ public abstract class Items {
 	 *            which creative tab it is in
 	 * @return the item that was added
 	 */
-	protected static Item addItem(@Nonnull final Item item, @Nonnull final String name, final MMDMaterial material, final CreativeTabs tab) {
+	protected static Item addItem(@Nonnull final Item item, @Nonnull final String name, final MMDMaterial material,
+			final CreativeTabs tab) {
 		String fullName;
 		if (material != null) {
 			if (material.hasItem(name)) {
@@ -506,7 +513,7 @@ public abstract class Items {
 
 		item.setRegistryName(fullName);
 		item.setUnlocalizedName(item.getRegistryName().getResourceDomain() + "." + fullName);
-		
+
 		itemRegistry.put(fullName, item);
 
 		if (tab != null) {
@@ -521,7 +528,8 @@ public abstract class Items {
 		return item;
 	}
 
-	private static Item createItem(@Nonnull final MMDMaterial material, @Nonnull final String name, @Nonnull final Class<? extends Item> clazz, @Nonnull final boolean enabled, final CreativeTabs tab) {
+	private static Item createItem(@Nonnull final MMDMaterial material, @Nonnull final String name,
+			@Nonnull final Class<? extends Item> clazz, @Nonnull final boolean enabled, final CreativeTabs tab) {
 		if (material.hasItem(name)) {
 			return material.getItem(name);
 		}
@@ -532,18 +540,21 @@ public abstract class Items {
 
 			try {
 				ctor = clazz.getConstructor(material.getClass());
-			} catch (NoSuchMethodException|SecurityException ex) {
+			} catch (NoSuchMethodException | SecurityException ex) {
 				MMDLib.logger.error("Class for Item named " + name + " does not have the correct constructor", ex);
 				return null;
 			}
 
 			try {
 				inst = (Item) ctor.newInstance(material);
-			} catch (IllegalAccessException|IllegalArgumentException|InstantiationException|InvocationTargetException|ExceptionInInitializerError ex) {
-				MMDLib.logger.error("Unable to create new instance of Item class for item name " + name + " of material " + material.getCapitalizedName(), ex);
+			} catch (IllegalAccessException | IllegalArgumentException | InstantiationException
+					| InvocationTargetException | ExceptionInInitializerError ex) {
+				MMDLib.logger.error("Unable to create new instance of Item class for item name " + name
+						+ " of material " + material.getCapitalizedName(), ex);
 				return null;
 			} catch (Exception ex) {
-				MMDLib.logger.error("Unable to create Item named " + name + " for material " + material.getCapitalizedName(), ex);
+				MMDLib.logger.error(
+						"Unable to create Item named " + name + " for material " + material.getCapitalizedName(), ex);
 				return null;
 			}
 
@@ -556,7 +567,8 @@ public abstract class Items {
 		return null;
 	}
 
-	private static Item createArmorItem(@Nonnull final Names name, @Nonnull final MMDMaterial material, final CreativeTabs tab) {
+	private static Item createArmorItem(@Nonnull final Names name, @Nonnull final MMDMaterial material,
+			final CreativeTabs tab) {
 		if (!(isNameEnabled(name))) {
 			return null;
 		}
@@ -567,19 +579,19 @@ public abstract class Items {
 
 		Item item = null;
 		switch (name) {
-		case HELMET:
-			item = ItemMMDArmor.createHelmet(material);
-			break;
-		case CHESTPLATE:
-			item = ItemMMDArmor.createChestplate(material);
-			break;
-		case LEGGINGS:
-			item = ItemMMDArmor.createLeggings(material);
-			break;
-		case BOOTS:
-			item = ItemMMDArmor.createBoots(material);
-			break;
-		default:
+			case HELMET:
+				item = ItemMMDArmor.createHelmet(material);
+				break;
+			case CHESTPLATE:
+				item = ItemMMDArmor.createChestplate(material);
+				break;
+			case LEGGINGS:
+				item = ItemMMDArmor.createLeggings(material);
+				break;
+			case BOOTS:
+				item = ItemMMDArmor.createBoots(material);
+				break;
+			default:
 		}
 
 		if (item == null) {
@@ -603,7 +615,8 @@ public abstract class Items {
 			return material.getItem(Names.CRYSTAL);
 		}
 
-		final Item item = createItem(material, Names.CRYSTAL.toString(), GenericMMDItem.class, (Options.isModEnabled("mekanism") && material.getType() != MaterialType.CRYSTAL), tab);
+		final Item item = createItem(material, Names.CRYSTAL.toString(), GenericMMDItem.class,
+				(Options.isModEnabled("mekanism") && material.getType() != MaterialType.CRYSTAL), tab);
 		if (item != null) {
 			Oredicts.registerOre(Oredicts.CRYSTAL + material.getCapitalizedName(), item);
 			return item;
@@ -619,13 +632,17 @@ public abstract class Items {
 	 * @param itemClass
 	 *            The class to modify
 	 */
-	private static void expandCombatArrays(@Nonnull final Class<?> itemClass) throws IllegalAccessException, NoSuchFieldException {
+	private static void expandCombatArrays(@Nonnull final Class<?> itemClass)
+			throws IllegalAccessException, NoSuchFieldException {
 		// WARNING: this method contains black magic
 		final int expandedSize = 256;
 		final Field[] fields = itemClass.getDeclaredFields();
 		for (final Field field : fields) {
-			if (Modifier.isStatic(field.getModifiers()) && field.getType().isArray() && field.getType().getComponentType().equals(float.class)) {
-				MMDLib.logger.info("%s: Expanding array variable %s.%s to size %d", Thread.currentThread().getStackTrace()[0].toString(), itemClass.getSimpleName(), field.getName(), expandedSize);
+			if (Modifier.isStatic(field.getModifiers()) && field.getType().isArray()
+					&& field.getType().getComponentType().equals(float.class)) {
+				MMDLib.logger.info("%s: Expanding array variable %s.%s to size %d",
+						Thread.currentThread().getStackTrace()[0].toString(), itemClass.getSimpleName(),
+						field.getName(), expandedSize);
 				field.setAccessible(true); // bypass 'private' key word
 				final Field modifiersField = Field.class.getDeclaredField("modifiers");
 				modifiersField.setAccessible(true);
@@ -647,12 +664,17 @@ public abstract class Items {
 	public static int getSortingValue(@Nonnull final ItemStack itemStack) {
 		int classVal = 990000;
 		int materialVal = 9900;
-		if ((itemStack.getItem() instanceof ItemBlock) && (((ItemBlock) itemStack.getItem()).getBlock() instanceof IMMDObject)) {
-			classVal = classSortingValues.computeIfAbsent(((ItemBlock) itemStack.getItem()).getBlock().getClass(), (Class<?> clazz) -> 990000);
-			materialVal = materialSortingValues.computeIfAbsent(((IMMDObject) ((ItemBlock) itemStack.getItem()).getBlock()).getMMDMaterial(), (MMDMaterial material) -> 9900);
+		if ((itemStack.getItem() instanceof ItemBlock)
+				&& (((ItemBlock) itemStack.getItem()).getBlock() instanceof IMMDObject)) {
+			classVal = classSortingValues.computeIfAbsent(((ItemBlock) itemStack.getItem()).getBlock().getClass(),
+					(Class<?> clazz) -> 990000);
+			materialVal = materialSortingValues.computeIfAbsent(
+					((IMMDObject) ((ItemBlock) itemStack.getItem()).getBlock()).getMMDMaterial(),
+					(MMDMaterial material) -> 9900);
 		} else if (itemStack.getItem() instanceof IMMDObject) {
 			classVal = classSortingValues.computeIfAbsent(itemStack.getItem().getClass(), (Class<?> clazz) -> 990000);
-			materialVal = materialSortingValues.computeIfAbsent(((IMMDObject) itemStack.getItem()).getMMDMaterial(), (MMDMaterial material) -> 9900);
+			materialVal = materialSortingValues.computeIfAbsent(((IMMDObject) itemStack.getItem()).getMMDMaterial(),
+					(MMDMaterial material) -> 9900);
 		}
 		return classVal + materialVal + (itemStack.getMetadata() % 100);
 	}

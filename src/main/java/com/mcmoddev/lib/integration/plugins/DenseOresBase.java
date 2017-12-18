@@ -36,7 +36,8 @@ public class DenseOresBase implements IIntegration {
 	 *            The metadata value for this ore in the source block
 	 * @author Daniel Hazelton &lt;dshadowwolf@gmail.com&gt;
 	 */
-	protected static void registerOre(@Nonnull final String name, @Nonnull final String underlying, @Nonnull final int meta) {
+	protected static void registerOre(@Nonnull final String name, @Nonnull final String underlying,
+			@Nonnull final int meta) {
 		final String modID = Loader.instance().activeModContainer().getModId();
 		registerOre(name, modID, underlying, meta);
 	}
@@ -55,7 +56,8 @@ public class DenseOresBase implements IIntegration {
 	 *            The metadata value for this ore in the source block
 	 * @author Daniel Hazelton &lt;dshadowwolf@gmail.com&gt;
 	 */
-	protected static void registerOre(@Nonnull final String name, @Nonnull final String modID, @Nonnull final String underlying, @Nonnull final int meta) {
+	protected static void registerOre(@Nonnull final String name, @Nonnull final String modID,
+			@Nonnull final String underlying, @Nonnull final int meta) {
 		final NBTTagCompound mess = new NBTTagCompound();
 
 		mess.setString("baseBlock", String.format("%s:%s", modID, name));
@@ -96,7 +98,8 @@ public class DenseOresBase implements IIntegration {
 	 *            The metadata value for this ore in the source block
 	 * @author Daniel Hazelton &lt;dshadowwolf@gmail.com&gt;
 	 */
-	protected static void registerNetherOre(@Nonnull final String name, @Nonnull final String modID, @Nonnull final int meta) {
+	protected static void registerNetherOre(@Nonnull final String name, @Nonnull final String modID,
+			@Nonnull final int meta) {
 		registerOre(String.format("nether_%s", name), modID, "netherrack", meta);
 	}
 
@@ -127,7 +130,8 @@ public class DenseOresBase implements IIntegration {
 	 *            The metadata value for this ore in the source block
 	 * @author Daniel Hazelton &lt;dshadowwolf@gmail.com&gt;
 	 */
-	protected static void registerEndOre(@Nonnull final String name, @Nonnull final String modID, @Nonnull final int meta) {
+	protected static void registerEndOre(@Nonnull final String name, @Nonnull final String modID,
+			@Nonnull final int meta) {
 		registerOre(String.format("end_%s", name), modID, "end_stone", meta);
 	}
 }

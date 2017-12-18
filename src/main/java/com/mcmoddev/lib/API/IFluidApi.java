@@ -12,10 +12,13 @@ public interface IFluidApi extends IMMDApi {
 		return "MMDLib Fluid->Material Registration API";
 	}
 
-	Fluid createFluid( String typeName, MMDMaterial material );
-	FluidStack getFluid( String typeName, MMDMaterial material, int amount );
-	
-	IFluidApi addFluid( String typeName, MMDMaterial material );
-	IFluidApi addFluid( String typeName, Fluid fluid, MMDMaterial material );
-	IFluidApi addFluid( String typeName, Fluid fluid, BlockFluidBase fluidBlock, MMDMaterial material );
+	Fluid createFluid(String typeName, MMDMaterial material);
+
+	FluidStack getFluid(String typeName, MMDMaterial material, int amount);
+
+	IFluidApi addFluid(String typeName, MMDMaterial material);
+
+	IFluidApi addFluid(String typeName, Fluid fluid, MMDMaterial material);
+
+	IFluidApi addFluid(String typeName, Fluid fluid, BlockFluidBase fluidBlock, MMDMaterial material);
 }
