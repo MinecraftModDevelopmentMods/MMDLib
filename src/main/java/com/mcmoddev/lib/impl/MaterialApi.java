@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.implementations;
+package com.mcmoddev.lib.impl;
 
 import org.apache.commons.lang3.tuple.Pair;
 

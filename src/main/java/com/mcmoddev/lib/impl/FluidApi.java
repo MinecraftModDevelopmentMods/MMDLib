@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.implementations;
+package com.mcmoddev.lib.impl;
 
 import com.mcmoddev.lib.API.IFluidApi;
 import com.mcmoddev.lib.material.MMDMaterial;
