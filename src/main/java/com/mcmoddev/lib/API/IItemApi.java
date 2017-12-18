@@ -6,11 +6,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 public interface IItemApi extends IMMDApi {
-
-	default String getApiName() {
-		return "MMD Item->Material registration API";
-	}
-
 	Item createItem(String typeName, MMDMaterial material);
 
 	ItemStack createItem(String typeName, MMDMaterial material, int metadata);

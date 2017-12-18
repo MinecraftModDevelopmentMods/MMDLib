@@ -7,14 +7,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 public class ItemApi implements IItemApi {
-
-	public static final IItemApi instance = new ItemApi();
-
-	@Override
-	public String getApiName() {
-		return "MMDLib:ItemApi";
-	}
-
 	@Override
 	public Item createItem(String typeName, MMDMaterial material) {
 		// TODO Auto-generated method stub

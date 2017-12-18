@@ -9,11 +9,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;
 
 public interface IBlockApi extends IMMDApi {
-
-	default String getApiName() {
-		return "MMDLib Block->Material Registration API";
-	}
-
 	Pair<? extends Block, ? extends ItemBlock> createBlock(String typeName, MMDMaterial material);
 
 	IBlockState getBlock(String typeName, MMDMaterial material);

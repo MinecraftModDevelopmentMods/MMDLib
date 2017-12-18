@@ -11,11 +11,6 @@ import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 
 public interface IMaterialApi extends IMMDApi {
-
-	default String getApiName() {
-		return "MMD Material Creation Api";
-	}
-
 	MMDMaterial createMaterial(String name, int hardness, int durability, int magicAffinity, int color, boolean glows);
 
 	MMDMaterial createVanillaMaterial(String name, int hardness, int durability, int magicAffinity, int color,

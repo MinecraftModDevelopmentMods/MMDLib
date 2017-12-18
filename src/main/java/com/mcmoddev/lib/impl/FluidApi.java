@@ -8,14 +8,6 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 public class FluidApi implements IFluidApi {
-
-	public static final IFluidApi instance = new FluidApi();
-
-	@Override
-	public String getApiName() {
-		return "MMDLib::FluidApi";
-	}
-
 	@Override
 	public Fluid createFluid(String typeName, MMDMaterial material) {
 		// TODO Auto-generated method stub

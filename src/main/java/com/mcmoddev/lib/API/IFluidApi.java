@@ -7,11 +7,6 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 public interface IFluidApi extends IMMDApi {
-
-	default String getApiName() {
-		return "MMDLib Fluid->Material Registration API";
-	}
-
 	Fluid createFluid(String typeName, MMDMaterial material);
 
 	FluidStack getFluid(String typeName, MMDMaterial material, int amount);

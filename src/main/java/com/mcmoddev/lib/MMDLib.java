@@ -3,6 +3,7 @@ package com.mcmoddev.lib;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.mcmoddev.lib.API.MMDLibAPI;
 import com.mcmoddev.lib.events.BlockRegisterEvent;
 import com.mcmoddev.lib.events.FluidRegisterEvent;
 import com.mcmoddev.lib.events.ItemRegisterEvent;
@@ -80,10 +81,10 @@ public class MMDLib {
 		/*
 		 * Pull the lever, Kronk!
 		 */
-		MinecraftForge.EVENT_BUS.post(new MaterialRegisterEvent(MaterialApi.instance, Materials.instance));
-		MinecraftForge.EVENT_BUS.post(new BlockRegisterEvent(BlockApi.instance, Materials.instance));
-		MinecraftForge.EVENT_BUS.post(new ItemRegisterEvent(ItemApi.instance, Materials.instance));
-		MinecraftForge.EVENT_BUS.post(new FluidRegisterEvent(FluidApi.instance, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new MaterialRegisterEvent(MMDLibAPI.materialAPI, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new BlockRegisterEvent(MMDLibAPI.blockAPI, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new ItemRegisterEvent(MMDLibAPI.itemAPI, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new FluidRegisterEvent(MMDLibAPI.fluidAPI, Materials.instance));
 	}
 
 	@EventHandler
