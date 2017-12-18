@@ -1,17 +1,12 @@
 package com.mcmoddev.lib.proxy;
 
-import com.mcmoddev.lib.client.renderer.RenderCustomArrow;
-import com.mcmoddev.lib.client.renderer.RenderCustomBolt;
-import com.mcmoddev.lib.entity.EntityCustomArrow;
-import com.mcmoddev.lib.entity.EntityCustomBolt;
 import com.mcmoddev.lib.material.MMDMaterial;
+import com.mcmoddev.lib.init.*;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ItemModelMesher;
 import net.minecraft.client.renderer.block.model.ModelBakery;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.block.statemap.StateMapperBase;
@@ -20,8 +15,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fml.client.registry.RenderingRegistry;
-import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -62,10 +55,6 @@ public class ClientProxy extends CommonProxy {
 	@Override
 	public void init(FMLInitializationEvent event) {
 		super.init(event);
-		if (Loader.isModLoaded("waila")) {
-			com.mcmoddev.lib.waila.Waila.init();
-		}
-
 		for (final String name : Items.getItemRegistry().keySet()) {
 			registerRenderOuter(Items.getItemByName(name));
 		}

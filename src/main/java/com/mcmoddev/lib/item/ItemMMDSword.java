@@ -2,8 +2,8 @@ package com.mcmoddev.lib.item;
 
 import java.util.List;
 
-import com.mcmoddev.basemetals.init.Materials;
-import com.mcmoddev.basemetals.items.MMDToolEffects;
+import com.mcmoddev.lib.init.Materials;
+//import com.mcmoddev.basemetals.items.MMDToolEffects;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.util.Oredicts;
@@ -47,7 +47,7 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 	@Override
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target, final EntityLivingBase attacker) {
 		item.damageItem(1, attacker);
-		MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
+		//MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
 		return true;
 	}
 
@@ -76,7 +76,7 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-		MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
+		//MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
 	}
 
 	@Override
@@ -101,7 +101,7 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		//MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override

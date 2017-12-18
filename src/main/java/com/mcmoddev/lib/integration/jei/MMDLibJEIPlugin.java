@@ -1,8 +1,8 @@
-package com.mcmoddev.lib.jei;
+package com.mcmoddev.lib.integration.jei;
 
 import java.util.stream.Collectors;
 
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.registry.CrusherRecipeRegistry;
 import com.mcmoddev.lib.registry.recipe.ICrusherRecipe;
 
@@ -21,9 +21,9 @@ import mezz.jei.api.recipe.IRecipeWrapperFactory;
  * 
  */
 @JEIPlugin
-public class BaseMetalsJEIPlugin implements IModPlugin {
+public class MMDLibJEIPlugin implements IModPlugin {
 
-	public static final String JEI_UID = BaseMetals.MODID;
+	public static final String JEI_UID = MMDLib.MODID;
 	public static final String RECIPE_UID = JEI_UID + ".crackhammer";
 
 	@Override

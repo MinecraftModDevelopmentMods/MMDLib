@@ -5,10 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.mcmoddev.lib.proxy.CommonProxy;
 
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -17,7 +13,6 @@ import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 /**
  * This is the entry point for this Mod. If you are writing your own Mod that

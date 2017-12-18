@@ -7,7 +7,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.mcmoddev.basemetals.data.MaterialNames;
 import com.mcmoddev.lib.block.InteractiveFluidBlock;
 import com.mcmoddev.lib.fluids.CustomFluid;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -101,7 +100,7 @@ public abstract class Fluids {
 			return null;
 		}
 
-		if (!name.equals(MaterialNames.MERCURY)) {
+		if (!name.equals("mercury")) {
 			block = new BlockFluidClassic(material.getFluid(), Material.LAVA);
 		} else {
 			block = new InteractiveFluidBlock(getFluidByName(name), false,

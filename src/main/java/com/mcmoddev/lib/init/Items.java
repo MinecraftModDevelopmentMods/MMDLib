@@ -17,7 +17,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.mcmoddev.basemetals.BaseMetals;
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.util.ConfigBase.Options;
 import com.mcmoddev.lib.block.*;
 import com.mcmoddev.lib.data.Names;
@@ -68,7 +68,7 @@ public abstract class Items {
 			return;
 		}
 
-		com.mcmoddev.basemetals.util.Config.init();
+		//com.mcmoddev.basemetals.util.Config.init();
 		Blocks.init();
 
 		mapNameToClass(Names.CRYSTAL, ItemMMDIngot.class);
@@ -210,7 +210,7 @@ public abstract class Items {
 		try {
 			expandCombatArrays(net.minecraft.item.ItemAxe.class);
 		} catch (IllegalAccessException | NoSuchFieldException ex) {
-			BaseMetals.logger.error("Error modifying item classes", ex);
+			MMDLib.logger.error("Error modifying item classes", ex);
 		}
 
 		setSortingList();
@@ -533,17 +533,17 @@ public abstract class Items {
 			try {
 				ctor = clazz.getConstructor(material.getClass());
 			} catch (NoSuchMethodException|SecurityException ex) {
-				BaseMetals.logger.error("Class for Item named " + name + " does not have the correct constructor", ex);
+				MMDLib.logger.error("Class for Item named " + name + " does not have the correct constructor", ex);
 				return null;
 			}
 
 			try {
 				inst = (Item) ctor.newInstance(material);
 			} catch (IllegalAccessException|IllegalArgumentException|InstantiationException|InvocationTargetException|ExceptionInInitializerError ex) {
-				BaseMetals.logger.error("Unable to create new instance of Item class for item name " + name + " of material " + material.getCapitalizedName(), ex);
+				MMDLib.logger.error("Unable to create new instance of Item class for item name " + name + " of material " + material.getCapitalizedName(), ex);
 				return null;
 			} catch (Exception ex) {
-				BaseMetals.logger.error("Unable to create Item named " + name + " for material " + material.getCapitalizedName(), ex);
+				MMDLib.logger.error("Unable to create Item named " + name + " for material " + material.getCapitalizedName(), ex);
 				return null;
 			}
 
@@ -625,7 +625,7 @@ public abstract class Items {
 		final Field[] fields = itemClass.getDeclaredFields();
 		for (final Field field : fields) {
 			if (Modifier.isStatic(field.getModifiers()) && field.getType().isArray() && field.getType().getComponentType().equals(float.class)) {
-				BaseMetals.logger.info("%s: Expanding array variable %s.%s to size %d", Thread.currentThread().getStackTrace()[0].toString(), itemClass.getSimpleName(), field.getName(), expandedSize);
+				MMDLib.logger.info("%s: Expanding array variable %s.%s to size %d", Thread.currentThread().getStackTrace()[0].toString(), itemClass.getSimpleName(), field.getName(), expandedSize);
 				field.setAccessible(true); // bypass 'private' key word
 				final Field modifiersField = Field.class.getDeclaredField("modifiers");
 				modifiersField.setAccessible(true);

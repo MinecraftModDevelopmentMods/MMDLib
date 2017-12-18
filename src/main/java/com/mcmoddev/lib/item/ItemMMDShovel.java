@@ -2,8 +2,8 @@ package com.mcmoddev.lib.item;
 
 import java.util.List;
 
-import com.mcmoddev.basemetals.init.Materials;
-import com.mcmoddev.basemetals.items.MMDToolEffects;
+import com.mcmoddev.lib.init.Materials;
+//import com.mcmoddev.basemetals.items.MMDToolEffects;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.util.Oredicts;
@@ -63,14 +63,14 @@ public class ItemMMDShovel extends net.minecraft.item.ItemSpade implements IMMDO
 	@Override
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target, final EntityLivingBase attacker) {
 		super.hitEntity(item, target, attacker);
-		MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
+		//MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
 		return true;
 	}
 
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-		MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
+		//MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
 	}
 
 	@Override
@@ -85,7 +85,7 @@ public class ItemMMDShovel extends net.minecraft.item.ItemSpade implements IMMDO
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		//MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override

@@ -2,7 +2,7 @@ package com.mcmoddev.lib.item;
 
 import java.util.List;
 
-import com.mcmoddev.basemetals.items.MMDToolEffects;
+//import com.mcmoddev.basemetals.items.MMDToolEffects;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.util.Oredicts;
@@ -57,7 +57,7 @@ public class ItemMMDShears extends net.minecraft.item.ItemShears implements IMMD
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		//MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override
