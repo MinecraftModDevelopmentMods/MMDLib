@@ -2,9 +2,15 @@ package com.mcmoddev.lib.util;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+import com.google.common.collect.Tables;
+
+import net.minecraft.util.ResourceLocation;
+
 public class LibIoC {
 
-	protected ConcurrentHashMap<Class<?>, Object> container = new ConcurrentHashMap<Class<?>, Object>();
+	protected ConcurrentHashMap<HashTuple2<Class<?>, String>, Object> container = new ConcurrentHashMap<>();
 	protected static LibIoC _instance;
 	
 	protected LibIoC() {
@@ -12,18 +18,34 @@ public class LibIoC {
 	}
 	
 	public <K, V extends K> boolean register(Class<K> key, V value) {
-	    return _instance.container.put(key, value) == null;
+	    return _instance.container.put(new HashTuple2<Class<?>, String>(key, ""), value) == null;
 	}
 
+	public <K, V extends K> boolean register(Class<K> key, V value, ResourceLocation resourceLocation) {
+	    return _instance.container.put(new HashTuple2<Class<?>, String>(key, resourceLocation.toString()), value) == null;
+	}
+	
+	public <K, V extends K> boolean register(Class<K> key, V value, String instanceName) {
+	    return _instance.container.put(new HashTuple2<Class<?>, String>(key, instanceName), value) == null;
+	}
+	
 	@SuppressWarnings("unchecked")
 	public <K, V extends K> V resolve(Class<K> keyObject) {
-	    return (V) container.get(keyObject);
+	    return (V) this.resolve(keyObject, "");
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <K, V extends K> V resolve(Class<K> keyObject, ResourceLocation resourceLocation) {
+		return (V) this.resolve(keyObject, resourceLocation.toString());
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <K, V extends K> V resolve(Class<K> keyObject, String instanceName) {
+	    return (V) container.get(new HashTuple2<Class<?>, String>(keyObject, instanceName));
 	}
 	
 	public void wireup() {
-//		ItemGroups.init();
-//		
-//		this.register(ITabProvider.class, ItemGroups.myTabs);
+		// TODO: Put code here for preliminary wireup e.g. ITabProvider to a concrete such as Tabcontainer
 	}
 	
 	public static LibIoC getInstance() {
