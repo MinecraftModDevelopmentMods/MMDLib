@@ -3,8 +3,21 @@ package com.mcmoddev.lib;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.mcmoddev.lib.events.BlockRegisterEvent;
+import com.mcmoddev.lib.events.FluidRegisterEvent;
+import com.mcmoddev.lib.events.ItemRegisterEvent;
+import com.mcmoddev.lib.events.MaterialRegisterEvent;
+import com.mcmoddev.lib.implementations.BlockApi;
+import com.mcmoddev.lib.implementations.FluidApi;
+import com.mcmoddev.lib.implementations.ItemApi;
+import com.mcmoddev.lib.implementations.MaterialApi;
+import com.mcmoddev.lib.init.Blocks;
+import com.mcmoddev.lib.init.Fluids;
+import com.mcmoddev.lib.init.Items;
+import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.proxy.CommonProxy;
 
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -72,7 +85,11 @@ public class MMDLib {
 		proxy.preInit(event);
 		/*
 		 * Pull the lever, Kronk!
-                 */
+         */
+		MinecraftForge.EVENT_BUS.post(new MaterialRegisterEvent(MaterialApi.instance, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new BlockRegisterEvent(BlockApi.instance, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new ItemRegisterEvent(ItemApi.instance, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new FluidRegisterEvent(FluidApi.instance, Materials.instance));
 	}
 
 	@EventHandler
