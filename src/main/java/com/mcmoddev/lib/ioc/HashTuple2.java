@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.util;
+package com.mcmoddev.lib.ioc;
 
 public class HashTuple2<A, B> {
 
