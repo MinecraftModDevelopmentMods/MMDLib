@@ -1,15 +1,14 @@
-package com.mcmoddev.lib.inventory;
+package com.mcmoddev.lib.feature;
 
-import java.util.List;
-import com.google.common.collect.Lists;
-import com.mcmoddev.lib.container.IPlayerInventoryProvider;
-import com.mcmoddev.lib.container.MMDContainer;
-import com.mcmoddev.lib.container.PlayerInventory;
-import com.mcmoddev.lib.container.PlayerInventoryInfo;
-import com.mcmoddev.lib.feature.BaseFeature;
+import com.mcmoddev.lib.gui.GuiContext;
+import com.mcmoddev.lib.gui.IGuiPiece;
+import com.mcmoddev.lib.gui.IGuiPieceProvider;
+import com.mcmoddev.lib.gui.PlayerInventory;
+import com.mcmoddev.lib.gui.PlayerInventoryInfo;
+import com.mcmoddev.lib.gui.piece.PlayerInventoryGrid;
 import net.minecraft.nbt.NBTTagCompound;
 
-public class PlayerInventoryFeature extends BaseFeature implements IPlayerInventoryProvider {
+public class PlayerInventoryFeature extends BaseFeature implements IGuiPieceProvider {
     private final PlayerInventoryInfo inventoryInfo;
 
     public PlayerInventoryFeature(PlayerInventory inventory, int guiLeft, int guiTop, int slotsPerRow) {
@@ -30,11 +29,6 @@ public class PlayerInventoryFeature extends BaseFeature implements IPlayerInvent
     }
 
     @Override
-    public List<PlayerInventoryInfo> getPlayerSlots(MMDContainer container) {
-        return Lists.newArrayList(this.inventoryInfo);
-    }
-
-    @Override
     protected void writeToNBT(NBTTagCompound tag) {
         // nothing else here, the vanilla container code should sort the item stacks out
     }
@@ -42,5 +36,10 @@ public class PlayerInventoryFeature extends BaseFeature implements IPlayerInvent
     @Override
     public void deserializeNBT(NBTTagCompound nbt) {
         // nothing else here, the vanilla container code should sort the item stacks out
+    }
+
+    @Override
+    public IGuiPiece getRootPiece(GuiContext context) {
+        return new PlayerInventoryGrid(context.getPlayer(), this.inventoryInfo.inventory, this.inventoryInfo.slotsPerRow);
     }
 }

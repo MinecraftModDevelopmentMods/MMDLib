@@ -24,7 +24,7 @@ public abstract class BaseSimpleFeature implements IFeature, IServerFeature {
     }
 
     @Override
-    public NBTTagCompound getUpdateTag(boolean resetDirtyFlag) {
+    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
         NBTTagCompound tag = this.dirtyTag;
         if (resetDirtyFlag) {
             this.dirtyTag = new NBTTagCompound();

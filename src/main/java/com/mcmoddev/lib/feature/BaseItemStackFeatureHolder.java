@@ -2,16 +2,15 @@ package com.mcmoddev.lib.feature;
 
 import java.util.List;
 import com.google.common.collect.Lists;
-import com.mcmoddev.lib.container.IContainerSlotsProvider;
-import com.mcmoddev.lib.container.MMDContainer;
+import com.mcmoddev.lib.gui.GuiContext;
 import com.mcmoddev.lib.gui.IGuiPiece;
 import com.mcmoddev.lib.gui.IGuiPieceProvider;
-import net.minecraft.inventory.Slot;
+import com.mcmoddev.lib.gui.layout.VerticalStackLayout;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
 
-public class BaseItemStackFeatureHolder implements IFeatureHolder, IContainerSlotsProvider, IGuiPieceProvider {
+public class BaseItemStackFeatureHolder implements IFeatureHolder, /*IContainerSlotsProvider,*/ IGuiPieceProvider {
     private final ItemStack stack;
     private List<IFeature> features = Lists.newArrayList();
 
@@ -45,31 +44,31 @@ public class BaseItemStackFeatureHolder implements IFeatureHolder, IContainerSlo
         storage.setTag(feature.getKey(), featureCompound);
     }
 
+//    @Override
+//    public List<Slot> getContainerSlots(MMDContainer container) {
+//        List<Slot> slots = Lists.newArrayList();
+//
+//        for(IFeature feature: this.features) {
+//            if (feature instanceof IContainerSlotsProvider) {
+//                IContainerSlotsProvider provider = (IContainerSlotsProvider)feature;
+//                slots.addAll(provider.getContainerSlots(container));
+//            }
+//        }
+//
+//        return slots;
+//    }
+
     @Override
-    public List<Slot> getContainerSlots(MMDContainer container) {
-        List<Slot> slots = Lists.newArrayList();
-
-        for(IFeature feature: this.features) {
-            if (feature instanceof IContainerSlotsProvider) {
-                IContainerSlotsProvider provider = (IContainerSlotsProvider)feature;
-                slots.addAll(provider.getContainerSlots(container));
-            }
-        }
-
-        return slots;
-    }
-
-    @Override
-    public List<IGuiPiece> getPieces() {
-        List<IGuiPiece> pieces = Lists.newArrayList();
+    public IGuiPiece getRootPiece(GuiContext context) {
+        VerticalStackLayout layout = new VerticalStackLayout();
 
         for(IFeature feature : this.features) {
             if (feature instanceof IGuiPieceProvider) {
                 IGuiPieceProvider provider = (IGuiPieceProvider)feature;
-                pieces.addAll(provider.getPieces());
+                layout.addPiece(provider.getRootPiece(context));
             }
         }
 
-        return pieces;
+        return layout;
     }
 }

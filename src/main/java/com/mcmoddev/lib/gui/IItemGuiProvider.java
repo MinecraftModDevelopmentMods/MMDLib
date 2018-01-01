@@ -1,7 +1,6 @@
 package com.mcmoddev.lib.gui;
 
 import javax.annotation.Nullable;
-import com.mcmoddev.lib.container.MMDContainer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;

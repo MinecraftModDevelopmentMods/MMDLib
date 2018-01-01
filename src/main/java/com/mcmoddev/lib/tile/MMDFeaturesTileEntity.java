@@ -5,21 +5,18 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.mcmoddev.lib.container.IContainerSlotsProvider;
-import com.mcmoddev.lib.container.IPlayerInventoryProvider;
-import com.mcmoddev.lib.container.MMDContainer;
-import com.mcmoddev.lib.container.PlayerInventoryInfo;
 import com.mcmoddev.lib.feature.IFeature;
 import com.mcmoddev.lib.feature.IFeatureHolder;
 import com.mcmoddev.lib.feature.IServerFeature;
+import com.mcmoddev.lib.gui.GuiContext;
 import com.mcmoddev.lib.gui.IGuiPiece;
 import com.mcmoddev.lib.gui.IGuiPieceProvider;
-import net.minecraft.inventory.Slot;
+import com.mcmoddev.lib.gui.layout.VerticalStackLayout;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ITickable;
 import net.minecraftforge.common.util.Constants;
 
-public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHolder, ITickable, IContainerSlotsProvider, IGuiPieceProvider {
+public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHolder, ITickable, /*IContainerSlotsProvider,*/ IGuiPieceProvider {
     private final List<IFeature> features = Lists.newArrayList();
     private final Set<String> dirtyFeatures = Sets.newHashSet();
 
@@ -83,7 +80,10 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
 
         for(IFeature feature: this.features) {
             if ((feature instanceof IServerFeature) && this.dirtyFeatures.contains(feature.getKey())) {
-                nbt.setTag(feature.getKey(), ((IServerFeature)feature).getUpdateTag(resetDirtyFlag));
+                NBTTagCompound updateTag = IServerFeature.class.cast(feature).getGuiUpdateTag(resetDirtyFlag);
+                if (updateTag != null) {
+                    nbt.setTag(feature.getKey(), updateTag);
+                }
             }
         }
         this.dirtyFeatures.clear();
@@ -101,51 +101,50 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
         if ((this.dirtyFeatures.size() > 0) && !this.getWorld().isRemote) {
             NBTTagCompound nbt = this.getGuiUpdateTag(true);
             if ((nbt != null) && (nbt.getSize() > 0)) {
-                //noinspection MethodCallSideOnly <-- this will be called on server side only
                 this.sendToListeningClients(nbt);
             }
         }
     }
 
+//    @Override
+//    public List<PlayerInventoryInfo> getPlayerSlots(MMDContainer container) {
+//        List<PlayerInventoryInfo> inventories = super.getPlayerSlots(container);
+//
+//        for(IFeature feature : this.features) {
+//            if (feature instanceof IPlayerInventoryProvider) {
+//                IPlayerInventoryProvider provider = (IPlayerInventoryProvider)feature;
+//                inventories.addAll(provider.getPlayerSlots(container));
+//            }
+//        }
+//
+//        return inventories;
+//    }
+
+//    @Override
+//    public List<Slot> getContainerSlots(MMDContainer container) {
+//        List<Slot> slots = Lists.newArrayList();
+//
+//        for(IFeature feature: this.features) {
+//            if (feature instanceof IContainerSlotsProvider) {
+//                IContainerSlotsProvider provider = (IContainerSlotsProvider)feature;
+//                slots.addAll(provider.getContainerSlots(container));
+//            }
+//        }
+//
+//        return slots;
+//    }
+
     @Override
-    public List<PlayerInventoryInfo> getPlayerSlots(MMDContainer container) {
-        List<PlayerInventoryInfo> inventories = super.getPlayerSlots(container);
+    public IGuiPiece getRootPiece(GuiContext context) {
+        VerticalStackLayout layout = new VerticalStackLayout();
 
-        for(IFeature feature : this.features) {
-            if (feature instanceof IPlayerInventoryProvider) {
-                IPlayerInventoryProvider provider = (IPlayerInventoryProvider)feature;
-                inventories.addAll(provider.getPlayerSlots(container));
-            }
-        }
-
-        return inventories;
-    }
-
-    @Override
-    public List<Slot> getContainerSlots(MMDContainer container) {
-        List<Slot> slots = Lists.newArrayList();
-
-        for(IFeature feature: this.features) {
-            if (feature instanceof IContainerSlotsProvider) {
-                IContainerSlotsProvider provider = (IContainerSlotsProvider)feature;
-                slots.addAll(provider.getContainerSlots(container));
-            }
-        }
-
-        return slots;
-    }
-
-    @Override
-    public List<IGuiPiece> getPieces() {
-        List<IGuiPiece> pieces = Lists.newArrayList();
-
-        for(IFeature feature : this.features) {
+        for (IFeature feature : this.features) {
             if (feature instanceof IGuiPieceProvider) {
-                IGuiPieceProvider provider = (IGuiPieceProvider)feature;
-                pieces.addAll(provider.getPieces());
+                IGuiPieceProvider provider = (IGuiPieceProvider) feature;
+                layout.addPiece(provider.getRootPiece(context));
             }
         }
 
-        return pieces;
+        return layout;
     }
 }

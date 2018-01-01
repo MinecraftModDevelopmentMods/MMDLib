@@ -1,9 +1,8 @@
-package com.mcmoddev.lib.container;
+package com.mcmoddev.lib.gui;
 
 import java.util.List;
 import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
-import com.mcmoddev.lib.gui.IGuiHolder;
 import com.mcmoddev.lib.network.MMDPackages;
 import com.mcmoddev.lib.network.NBTBasedPlayerMessage;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -33,8 +32,8 @@ public class MMDContainer extends Container {
     private final IGuiHolder holder;
     private final EntityPlayer player;
 
-    private int entitySlots;
-    private List<PlayerInventory> playerInventories;
+//    private int entitySlots;
+//    private List<PlayerInventory> playerInventories;
 
     public MMDContainer(IGuiHolder holder, EntityPlayer player) {
         super();
@@ -42,35 +41,50 @@ public class MMDContainer extends Container {
         this.holder = holder;
         this.player = player;
 
-        IContainerSlotsProvider slotsProvider = this.holder.getSlotsProvider();
-        List<Slot> entitySlots = (slotsProvider != null)
-            ? slotsProvider.getContainerSlots(this)
-            : Lists.newArrayList();
-        this.entitySlots = entitySlots.size();
-        for(Slot slot: entitySlots) {
-            this.addSlotToContainer(slot);
-        }
+//        IContainerSlotsProvider slotsProvider = this.holder.getSlotsProvider();
+//        List<Slot> entitySlots = (slotsProvider != null)
+//            ? slotsProvider.getContainerSlots(this)
+//            : Lists.newArrayList();
+//        this.entitySlots = entitySlots.size();
+//        for(Slot slot: entitySlots) {
+//            this.addSlotToContainer(slot);
+//        }
 
-        this.playerInventories = Lists.newArrayList();
-        List<PlayerInventoryInfo> playerInventoryInfos = this.getPlayerInventories();
-        for(PlayerInventoryInfo info : playerInventoryInfos) {
-            this.playerInventories.add(info.inventory);
-            if (info.inventory == PlayerInventory.EQUIPMENT) {
-                // special handling for equipment slots (stack size + background texture)
-                this.addPlayerEquipmentSlots(this.player, info);
-            } else if (info.inventory == PlayerInventory.OFF_HAND) {
-                // special handling for equipment slots (background texture)
-                this.addPlayerOffhandSlot(player, info);
-            } else {
-                this.addPlayerSlots(this.player, info);
+//        this.playerInventories = Lists.newArrayList();
+//        List<PlayerInventoryInfo> playerInventoryInfos = this.getPlayerInventories();
+//        for(PlayerInventoryInfo info : playerInventoryInfos) {
+//            this.playerInventories.add(info.inventory);
+//            if (info.inventory == PlayerInventory.EQUIPMENT) {
+//                // special handling for equipment slots (stack size + background texture)
+//                this.addPlayerEquipmentSlots(this.player, info);
+//            } else if (info.inventory == PlayerInventory.OFF_HAND) {
+//                // special handling for equipment slots (background texture)
+//                this.addPlayerOffhandSlot(player, info);
+//            } else {
+//                this.addPlayerSlots(this.player, info);
+//            }
+//        }
+
+        IGuiPieceProvider provider = this.holder.getPieceProvider();
+        List<IContainerSlot> slots = Lists.newArrayList();
+        if (provider != null) {
+            GuiContext context = new GuiContext(this.player, this, null, this.holder);
+            for(IGuiPiece piece : new GuiPieceIterator(provider.getRootPiece(context))) {
+                if (piece instanceof IContainerSlot) {
+                    slots.add(IContainerSlot.class.cast(piece));
+                }
             }
         }
+
+        for(IContainerSlot slot: slots) {
+            this.addSlotToContainer(slot.getSlot());
+        }
     }
 
-    protected List<PlayerInventoryInfo> getPlayerInventories() {
-        IPlayerInventoryProvider provider = this.holder.getPlayerInventoryProvider();
-        return (provider != null) ? provider.getPlayerSlots(this) : Lists.newArrayList();
-    }
+//    protected List<PlayerInventoryInfo> getPlayerInventories() {
+//        IPlayerInventoryProvider provider = this.holder.getPlayerInventoryProvider();
+//        return (provider != null) ? provider.getPlayerSlots(this) : Lists.newArrayList();
+//    }
 
     @Override
     public boolean canInteractWith(EntityPlayer playerIn) {
@@ -151,48 +165,48 @@ public class MMDContainer extends Container {
     @Override
     public ItemStack transferStackInSlot(EntityPlayer playerIn, int index) {
         ItemStack copyStack = ItemStack.EMPTY;
-        Slot slot = this.inventorySlots.get(index);
-
-        if ((slot != null) && slot.getHasStack()) {
-            ItemStack origStack = slot.getStack();
-            copyStack = origStack.copy();
-
-            boolean merged = false;
-            for (SlotRange range : this.getSlotsRange(index)) {
-                if (super.mergeItemStack(origStack, range.start, range.end, range.reverse)) {
-                    merged = true;
-                    break;
-                }
-            }
-            if (!merged) {
-                return ItemStack.EMPTY;
-            }
-        }
+//        Slot slot = this.inventorySlots.get(index);
+//
+//        if ((slot != null) && slot.getHasStack()) {
+//            ItemStack origStack = slot.getStack();
+//            copyStack = origStack.copy();
+//
+//            boolean merged = false;
+//            for (SlotRange range : this.getSlotsRange(index)) {
+//                if (super.mergeItemStack(origStack, range.start, range.end, range.reverse)) {
+//                    merged = true;
+//                    break;
+//                }
+//            }
+//            if (!merged) {
+//                return ItemStack.EMPTY;
+//            }
+//        }
 
         return copyStack;
     }
 
-    private List<SlotRange> getSlotsRange(int sourceIndex) {
-        List<SlotRange> list = Lists.newArrayList();
-
-        if (sourceIndex >= this.entitySlots) {
-            // not a tile entity slot, add tile's slots as target
-            list.add(new SlotRange(0, this.entitySlots - 1, false));
-        }
-
-        int start = this.entitySlots;
-        for(PlayerInventory pi : PLAYER_INVENTORY_INSERT_ORDER) {
-            if (this.playerInventories.contains(pi)) {
-                if ((sourceIndex < start) || (sourceIndex >= (start + pi.slotCount))) {
-                    // ignore the source inventory
-                    list.add(new SlotRange(start, start + pi.slotCount - 1, pi.insertInReverse));
-                }
-                start += pi.slotCount;
-            }
-        }
-
-        return list;
-    }
+//    private List<SlotRange> getSlotsRange(int sourceIndex) {
+//        List<SlotRange> list = Lists.newArrayList();
+//
+//        if (sourceIndex >= this.entitySlots) {
+//            // not a tile entity slot, add tile's slots as target
+//            list.add(new SlotRange(0, this.entitySlots - 1, false));
+//        }
+//
+//        int start = this.entitySlots;
+//        for(PlayerInventory pi : PLAYER_INVENTORY_INSERT_ORDER) {
+//            if (this.playerInventories.contains(pi)) {
+//                if ((sourceIndex < start) || (sourceIndex >= (start + pi.slotCount))) {
+//                    // ignore the source inventory
+//                    list.add(new SlotRange(start, start + pi.slotCount - 1, pi.insertInReverse));
+//                }
+//                start += pi.slotCount;
+//            }
+//        }
+//
+//        return list;
+//    }
 
     @Nullable
     public IMessage handleMessageFromServer(NBTTagCompound compound) {
@@ -215,7 +229,6 @@ public class MMDContainer extends Container {
     }
 
     @Override
-    @SideOnly(Side.SERVER)
     public void detectAndSendChanges() {
         super.detectAndSendChanges();
 

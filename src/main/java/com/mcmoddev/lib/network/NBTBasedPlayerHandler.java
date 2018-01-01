@@ -2,7 +2,7 @@ package com.mcmoddev.lib.network;
 
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.MMDLib;
-import com.mcmoddev.lib.container.MMDContainer;
+import com.mcmoddev.lib.gui.MMDContainer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;

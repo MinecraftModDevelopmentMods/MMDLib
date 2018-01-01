@@ -2,6 +2,7 @@ package com.mcmoddev.lib.gui;
 
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -12,6 +13,8 @@ public interface IGuiSprite {
     int getTop();
     int getWidth();
     int getHeight();
+
+    boolean needsAlpha();
 
     @SideOnly(Side.CLIENT)
     default void draw(GuiScreen screen, int left, int top) {
@@ -25,24 +28,24 @@ public interface IGuiSprite {
 
     @SideOnly(Side.CLIENT)
     default void draw(GuiScreen screen, int left, int top, int width, int height, boolean clip) {
-        int offsetX = 0;
-        int offsetY = 0;
-        if (screen instanceof GuiContainer) {
-            GuiContainer container = (GuiContainer)screen;
-            offsetX = container.getGuiLeft();
-            offsetY = container.getGuiTop();
-        }
-
-        int drawLeft = offsetX + left;
-        int drawTop = offsetY + top;
+//        int offsetX = 0;
+//        int offsetY = 0;
+//        if (screen instanceof GuiContainer) {
+//            GuiContainer container = (GuiContainer)screen;
+//            offsetX = container.getGuiLeft();
+//            offsetY = container.getGuiTop();
+//        }
+//
+//        int drawLeft = offsetX + left;
+//        int drawTop = offsetY + top;
 
         int texLeft = this.getLeft();
         int texTop = this.getTop();
         int texWidth = this.getWidth();
         int texHeight = this.getHeight();
 
-        int fullLeft = drawLeft + (width - texWidth) / 2;
-        int fullTop = drawTop + (height - texHeight) / 2;
+        int fullLeft = /*drawLeft*/left + (width - texWidth) / 2;
+        int fullTop = /*drawTop*/top + (height - texHeight) / 2;
 
         if (clip) {
             if (texWidth > width) {
@@ -56,6 +59,43 @@ public interface IGuiSprite {
         }
 
         this.getTexture().bind();
+
+        if (this.needsAlpha()) {
+            GlStateManager.enableBlend();
+            GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        }
+
         screen.drawTexturedModalRect(fullLeft, fullTop, texLeft, texTop, texWidth, texHeight);
+
+        if (this.needsAlpha()) {
+            GlStateManager.disableBlend();
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    default void draw(GuiScreen screen, int left, int top, int texLeft, int texTop, int texWidth, int texHeight) {
+        int offsetX = 0;
+        int offsetY = 0;
+        if (screen instanceof GuiContainer) {
+            GuiContainer container = (GuiContainer)screen;
+            offsetX = container.getGuiLeft();
+            offsetY = container.getGuiTop();
+        }
+
+        int drawLeft = offsetX + left;
+        int drawTop = offsetY + top;
+
+        this.getTexture().bind();
+
+        if (this.needsAlpha()) {
+            GlStateManager.enableBlend();
+            GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        }
+
+        screen.drawTexturedModalRect(drawLeft, drawTop, texLeft, texTop, texWidth, texHeight);
+
+        if (this.needsAlpha()) {
+            GlStateManager.disableBlend();
+        }
     }
 }

@@ -39,14 +39,25 @@ public abstract class BaseFeature implements IFeature, IServerFeature {
     protected abstract void writeToNBT(NBTTagCompound tag);
 
     @Override
-    public NBTTagCompound getUpdateTag(boolean resetDirtyFlag) {
+    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
         NBTTagCompound nbt = this.serializeNBT();
 
         if (resetDirtyFlag) {
             this.dirty = false;
         }
-
         return nbt;
+    }
+
+    @Nullable
+    @Override
+    public NBTTagCompound getTickUpdateTag(boolean resetDirtyFlag) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public NBTTagCompound getLoadUpdateTag() {
+        return this.serializeNBT();
     }
 
     @Nullable

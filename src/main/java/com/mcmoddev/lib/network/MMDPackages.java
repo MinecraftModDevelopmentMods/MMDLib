@@ -5,7 +5,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 public final class MMDPackages {
     private MMDPackages() {}
@@ -16,12 +15,10 @@ public final class MMDPackages {
         MMDPackages.wrapper.registerMessage(NBTBasedPlayerHandler.INSTANCE, NBTBasedPlayerMessage.class, 1, Side.SERVER);
     }
 
-    @SideOnly(Side.SERVER)
     public static void sendToPlayer(EntityPlayerMP player, IMessage message) {
         MMDPackages.wrapper.sendTo(message, player);
     }
 
-    @SideOnly(Side.SERVER)
     public static void sendToServer(IMessage message) {
         MMDPackages.wrapper.sendToServer(message);
     }

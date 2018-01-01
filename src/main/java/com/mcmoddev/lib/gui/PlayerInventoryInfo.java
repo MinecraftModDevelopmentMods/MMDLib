@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.container;
+package com.mcmoddev.lib.gui;
 
 public class PlayerInventoryInfo {
     public final PlayerInventory inventory;

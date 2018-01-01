@@ -6,7 +6,6 @@ import javax.annotation.Nullable;
 import com.mcmoddev.lib.util.ItemStackUtils;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemStackHandler;
 
 public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerModifiable {
     private final IItemHandlerModifiable internal;
@@ -14,12 +13,6 @@ public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerMo
     private final BiPredicate<Integer, ItemStack> insertFilter;
     @Nullable
     private final BiPredicate<Integer, ItemStack> extractFilter;
-
-    public FilteredItemHandler(int slots,
-                               @Nullable BiPredicate<Integer, ItemStack> insertFilter,
-                               @Nullable BiPredicate<Integer, ItemStack> extractFilter) {
-        this(new ItemStackHandler(slots), insertFilter, extractFilter);
-    }
 
     public FilteredItemHandler(IItemHandlerModifiable internal,
                                @Nullable BiPredicate<Integer, ItemStack> insertFilter,

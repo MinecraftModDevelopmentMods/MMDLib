@@ -1,15 +1,16 @@
 package com.mcmoddev.lib.util;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import com.mcmoddev.lib.gui.IGuiHolder;
 import com.mcmoddev.lib.gui.IGuiHolderProxy;
+import mcp.MethodsReturnNonnullByDefault;
 
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 public final class GuiUtils {
     private GuiUtils() {}
 
-    @Nullable
-    public static IGuiHolder getGuiHolder(@Nonnull Object thing) {
+    public static IGuiHolder getGuiHolder(Object thing) {
         if (thing instanceof IGuiHolder) {
             return IGuiHolder.class.cast(thing);
         }

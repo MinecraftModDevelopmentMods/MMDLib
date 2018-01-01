@@ -1,13 +1,9 @@
 package com.mcmoddev.lib.tile;
 
-import java.util.List;
 import javax.annotation.Nullable;
-import com.google.common.collect.Lists;
-import com.mcmoddev.lib.container.IPlayerInventoryProvider;
-import com.mcmoddev.lib.container.MMDContainer;
-import com.mcmoddev.lib.container.PlayerInventoryInfo;
 import com.mcmoddev.lib.gui.IGuiHolder;
 import com.mcmoddev.lib.gui.IGuiProvider;
+import com.mcmoddev.lib.gui.MMDContainer;
 import com.mcmoddev.lib.gui.MMDGuiContainer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
@@ -24,7 +20,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-public class MMDTileEntity extends TileEntity implements IGuiProvider, IPlayerInventoryProvider, IGuiHolder {
+public class MMDTileEntity extends TileEntity implements IGuiProvider, /*IPlayerInventoryProvider,*/ IGuiHolder {
     private static final String PARTIAL_SYNC_KEY = "partial_sync";
 
     //#region IGuiProvider Members
@@ -53,10 +49,10 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IPlayerIn
 
     //#endregion
 
-    @Override
-    public List<PlayerInventoryInfo> getPlayerSlots(MMDContainer container) {
-        return Lists.newArrayList();
-    }
+//    @Override
+//    public List<PlayerInventoryInfo> getPlayerSlots(MMDContainer container) {
+//        return Lists.newArrayList();
+//    }
 
     @Nullable
     public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
@@ -69,7 +65,6 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IPlayerIn
     }
 
     @SuppressWarnings("WeakerAccess")
-    @SideOnly(Side.SERVER)
     protected void sendToListeningClients(NBTTagCompound nbt) {
         ChunkPos cp = world.getChunkFromBlockCoords(pos).getPos();
         PlayerChunkMapEntry entry = ((WorldServer)world).getPlayerChunkMap().getEntry(cp.x, cp.z);

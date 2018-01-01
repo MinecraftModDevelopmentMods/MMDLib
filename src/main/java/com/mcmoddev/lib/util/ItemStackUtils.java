@@ -1,7 +1,11 @@
 package com.mcmoddev.lib.util;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import net.minecraft.item.ItemStack;
+import mcp.MethodsReturnNonnullByDefault;
 
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 public final class ItemStackUtils {
     private ItemStackUtils() {}
 

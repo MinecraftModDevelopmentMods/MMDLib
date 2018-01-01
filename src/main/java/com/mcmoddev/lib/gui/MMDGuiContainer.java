@@ -1,13 +1,16 @@
 package com.mcmoddev.lib.gui;
 
-import java.util.List;
 import javax.annotation.Nullable;
-import com.google.common.collect.Lists;
-import com.mcmoddev.lib.container.MMDContainer;
+import com.mcmoddev.lib.MMDLib;
+import com.mcmoddev.lib.gui.layout.BaseLayout;
+import com.mcmoddev.lib.gui.util.Size2D;
+import org.apache.logging.log4j.util.TriConsumer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SuppressWarnings("WeakerAccess")
 public class MMDGuiContainer extends GuiContainer {
@@ -21,15 +24,19 @@ public class MMDGuiContainer extends GuiContainer {
     private int piecesOffsetX = 0;
     private int piecesOffsetY = 0;
 
-    protected List<IGuiPiece> pieces;
+    protected IGuiPiece rootPiece;
+
+    private final MMDContainer container;
 
     public MMDGuiContainer(IGuiHolder holder, EntityPlayer player, MMDContainer container, int padding) {
         this(holder, player, container);
+
         this.specifiedPadding = padding;
     }
 
     public MMDGuiContainer(IGuiHolder holder, EntityPlayer player, MMDContainer container, int width, int height) {
         this(holder, player, container);
+
         this.specifiedWidth = width;
         this.specifiedHeight = height;
     }
@@ -37,6 +44,7 @@ public class MMDGuiContainer extends GuiContainer {
     public MMDGuiContainer(IGuiHolder holder, EntityPlayer player, MMDContainer container) {
         super(container);
 
+        this.container = container;
         this.holder = holder;
         this.player = player;
     }
@@ -51,58 +59,117 @@ public class MMDGuiContainer extends GuiContainer {
 
     @Override
     public void initGui() {
-        this.pieces = Lists.newArrayList();
-        IGuiPieceProvider pieceProvider = this.holder.getPieceProvider();
-        if (pieceProvider != null) {
-            // TODO: handle the case where someone manages to return a 'null' list...
-            this.pieces.addAll(pieceProvider.getPieces());
-        }
+        boolean firstRun = (this.rootPiece == null);
 
-        if (this.specifiedWidth > 0) {
-            this.xSize = this.specifiedWidth;
-        }
-        else {
-            int maxRight = ((this.pieces.size() > 0) || !this.inventorySlots.inventorySlots.isEmpty()) ? 0 : super.getXSize();
-            int minLeft = ((this.pieces.size() > 0) || !this.inventorySlots.inventorySlots.isEmpty()) ? Integer.MAX_VALUE : 0;
-            for(IGuiPiece piece: this.pieces) {
-                minLeft = Math.min(minLeft, piece.getLeft());
-                maxRight = Math.max(maxRight, piece.getLeft() + piece.getWidth());
+        if (firstRun) {
+            IGuiPieceProvider pieceProvider = this.holder.getPieceProvider();
+            Size2D rootSize = Size2D.ZERO;
+            if (pieceProvider != null) {
+                GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
+                this.rootPiece = pieceProvider.getRootPiece(context);
+                Padding padding = this.rootPiece.getPadding();
+                if (padding.isEmpty()) {
+                    padding = new Padding(this.specifiedPadding);
+                }
+                rootSize = this.rootPiece.getSize().add(padding.getHorizontal(), padding.getVertical());
+                this.piecesOffsetX = padding.left;
+                this.piecesOffsetY = padding.top;
+            } else {
+                this.rootPiece = null;
             }
-            for(Slot slot: this.inventorySlots.inventorySlots) {
-                minLeft = Math.min(minLeft, slot.xPos);
-                maxRight = Math.max(maxRight, slot.xPos + 18); // TODO: is there a constant for '18'?
-            }
-            this.piecesOffsetX = this.specifiedPadding - minLeft;
-            this.xSize = maxRight - minLeft + this.specifiedPadding * 2;
-        }
 
-        if (this.specifiedHeight > 0) {
-            this.ySize = this.specifiedHeight;
-        }
-        else {
-            int maxBottom = ((this.pieces.size() > 0) || !this.inventorySlots.inventorySlots.isEmpty()) ? 0 : super.getYSize();
-            int minTop = ((this.pieces.size() > 0) || !this.inventorySlots.inventorySlots.isEmpty()) ? Integer.MAX_VALUE : 0;
-            for(IGuiPiece piece: this.pieces) {
-                minTop = Math.min(minTop, piece.getTop());
-                maxBottom = Math.max(maxBottom, piece.getTop() + piece.getHeight());
-            }
-            for(Slot slot: this.inventorySlots.inventorySlots) {
-                minTop = Math.min(minTop, slot.yPos);
-                maxBottom = Math.max(maxBottom, slot.yPos + 18); // TODO: find a constant for '18'?
-            }
-            this.piecesOffsetY = this.specifiedPadding - minTop;
-            this.ySize = maxBottom - minTop + this.specifiedPadding * 2;
+            this.logRootPiece();
+
+            this.xSize = (this.specifiedWidth > 0) ? this.specifiedWidth : rootSize.width;
+            this.ySize = (this.specifiedHeight > 0) ? this.specifiedHeight : rootSize.height;
         }
 
         super.initGui();
 
-        if ((this.piecesOffsetX > 0) || (this.piecesOffsetY > 0)) {
+//        if (this.specifiedWidth > 0) {
+//            this.xSize = this.specifiedWidth;
+//        }
+//        else {
+//            int maxRight = ((this.rootPiece != null) || !this.inventorySlots.inventorySlots.isEmpty()) ? 0 : super.getXSize();
+//            int minLeft = (!this.inventorySlots.inventorySlots.isEmpty()) ? Integer.MAX_VALUE : 0;
+//            maxRight = Math.max(maxRight, rootSize.width);
+//
+//            for(Slot slot: this.inventorySlots.inventorySlots) {
+//                minLeft = Math.min(minLeft, slot.xPos);
+//                maxRight = Math.max(maxRight, slot.xPos + 18); // TODO: is there a constant for '18'?
+//            }
+//            this.piecesOffsetX = this.specifiedPadding - minLeft;
+//            this.xSize = maxRight - minLeft + this.specifiedPadding * 2;
+//        }
+//
+//        if (this.specifiedHeight > 0) {
+//            this.ySize = this.specifiedHeight;
+//        }
+//        else {
+//            int maxBottom = ((this.rootPiece != null) || !this.inventorySlots.inventorySlots.isEmpty()) ? 0 : super.getYSize();
+//            int minTop = (!this.inventorySlots.inventorySlots.isEmpty()) ? Integer.MAX_VALUE : 0;
+//            maxBottom = Math.max(maxBottom, rootSize.height);
+//
+//            for(Slot slot: this.inventorySlots.inventorySlots) {
+//                minTop = Math.min(minTop, slot.yPos);
+//                maxBottom = Math.max(maxBottom, slot.yPos + 18); // TODO: find a constant for '18'?
+//            }
+//            this.piecesOffsetY = this.specifiedPadding - minTop;
+//            this.ySize = maxBottom - minTop + this.specifiedPadding * 2;
+//        }
+//
+//        super.initGui();
+//
+        if (firstRun && ((this.piecesOffsetX > 0) || (this.piecesOffsetY > 0))) {
             for (Slot slot : this.inventorySlots.inventorySlots) {
                 slot.xPos += this.piecesOffsetX + 1;
                 slot.yPos += this.piecesOffsetY + 1;
             }
-            this.guiLeft -= this.piecesOffsetX;
-            this.guiTop -= this.piecesOffsetY;
+//            this.guiLeft -= this.piecesOffsetX;
+//            this.guiTop -= this.piecesOffsetY;
+        }
+    }
+
+    private void logRootPiece() {
+        if (this.rootPiece == null) {
+            MMDLib.logger.info("GUI Opened WITHOUT a root piece.");
+            return;
+        }
+
+        MMDLib.logger.info("GUI Opened with:");
+        this.logPiece(null, this.rootPiece, 0);
+        MMDLib.logger.info("End of GUI tree.");
+    }
+
+    private void logPiece(@Nullable IGuiLayout layout, IGuiPiece piece, int level) {
+        String prefix = new String(new char[level]).replace('\0', '\t') + "- ";
+        String line = prefix + piece.getClass().getName();
+        if ((layout != null) && (layout instanceof IGuiLayoutDebugInfo)) {
+            line += " {" + IGuiLayoutDebugInfo.class.cast(layout).getDebugInfo(piece) + "}";
+        }
+        if (piece instanceof IGuiPieceDebugInfo) {
+            line += " [" + IGuiPieceDebugInfo.class.cast(piece).getDebugInfo() + "]";
+        }
+        MMDLib.logger.info(line);
+        if (piece instanceof IGuiLayout) {
+            IGuiLayout container = IGuiLayout.class.cast(piece);
+            for(IGuiPiece child : container.getPieces()) {
+                this.logPiece(container, child, level + 1);
+            }
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderRootPiece(TriConsumer<IGuiPiece, Integer, Integer> renderer, int globalLeft, int globalTop, int mouseX, int mouseY) {
+        if (this.rootPiece != null) {
+            try {
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(globalLeft, globalTop, BaseLayout.CHILD_Z_INCREASE);
+                renderer.accept(this.rootPiece, mouseX - globalLeft, mouseY - globalTop);
+            }
+            finally {
+                GlStateManager.popMatrix();
+            }
         }
     }
 
@@ -167,18 +234,22 @@ public class MMDGuiContainer extends GuiContainer {
             }
         }
 
-        for(IGuiPiece piece: this.pieces) {
-            piece.drawBackgroundLayer(this, partialTicks, mouseX, mouseY);
-        }
+//        if (this.rootPiece != null) {
+//            Padding padding = this.rootPiece.getPadding();
+//        }
 
-        // TODO: move this to some pieces
-        for(Slot slot : this.inventorySlots.inventorySlots) {
-            GuiSprites.MC_SLOT_BACKGROUND.draw(this, slot.xPos - 1, slot.yPos - 1);
-        }
+        this.renderRootPiece((p, mx, my) -> {
+            p.drawBackgroundLayer(this, partialTicks, mx, my);
+        }, this.getRenderLeft(), this.getRenderTop(), mouseX, mouseY);
 
-        for(IGuiPiece piece: this.pieces) {
-            piece.drawMiddleLayer(this, partialTicks, mouseX, mouseY);
-        }
+//        // TODO: move this to some pieces
+//        for(Slot slot : this.inventorySlots.inventorySlots) {
+//            GuiSprites.MC_SLOT_BACKGROUND.draw(this, slot.xPos - 1, slot.yPos - 1);
+//        }
+
+        this.renderRootPiece((p, mx, my) -> {
+            p.drawMiddleLayer(this, partialTicks, mx, my);
+        }, this.getRenderLeft(), this.getRenderTop(), mouseX, mouseY);
     }
 
     protected boolean hasBackground() {
@@ -194,13 +265,13 @@ public class MMDGuiContainer extends GuiContainer {
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         super.drawGuiContainerForegroundLayer(mouseX, mouseY);
 
-        for(IGuiPiece piece: this.pieces) {
-            piece.drawForegroundLayer(this, mouseX, mouseY);
-        }
+        this.renderRootPiece((p, mx, my) -> {
+            p.drawForegroundLayer(this, mx, my);
+        }, this.piecesOffsetX, this.piecesOffsetY, mouseX, mouseY);
 
-        for(IGuiPiece piece: this.pieces) {
-            piece.drawForegroundTopLayer(this, mouseX, mouseY);
-        }
+        this.renderRootPiece((p, mx, my) -> {
+            p.drawForegroundTopLayer(this, mx, my);
+        }, this.piecesOffsetX, this.piecesOffsetY, mouseX, mouseY);
     }
 
     public void drawFilledRect(int x, int y, int width, int height, int color) {

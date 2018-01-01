@@ -1,37 +1,30 @@
 package com.mcmoddev.lib.feature;
 
-import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import javax.annotation.Nullable;
-import com.google.common.collect.Lists;
-import com.mcmoddev.lib.container.IContainerSlotsProvider;
-import com.mcmoddev.lib.container.MMDContainer;
+import com.mcmoddev.lib.gui.GuiContext;
 import com.mcmoddev.lib.gui.IGuiPiece;
 import com.mcmoddev.lib.gui.IGuiPieceProvider;
-import com.mcmoddev.lib.gui.piece.ColorOverlayPiece;
+import com.mcmoddev.lib.gui.piece.ItemStackHandlerGrid;
 import com.mcmoddev.lib.inventory.FilteredItemHandler;
 import com.mcmoddev.lib.inventory.ItemHandlerWrapper;
-import com.mcmoddev.lib.math.Vec2i;
-import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
-import net.minecraftforge.items.SlotItemHandler;
 
-public class ItemInventoryFeature extends BaseFeature implements IClientFeature, IContainerSlotsProvider, IGuiPieceProvider {
+public class ItemInventoryFeature extends BaseFeature implements IClientFeature, /*IContainerSlotsProvider, */IGuiPieceProvider {
     private final IItemHandlerModifiable internalHandler;
     private final IItemHandlerModifiable externalHandler;
-    private Function<Integer, Vec2i> slotPositioner;
+//    private Function<Integer, Vec2i> slotPositioner;
 
     private int overlayColor = -1;
     private int overlayAlpha = -1;
+    private int columns = 9;
 
-    @Nullable
     private Function<Integer, ItemStack[]> validStacksGetter;
 
     public ItemInventoryFeature(String key, int slots) {
@@ -103,37 +96,37 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
             }
         }
     }
+//
+//    public ItemInventoryFeature setSlotPositioner(Function<Integer, Vec2i> slotPositioner) {
+//        this.slotPositioner = slotPositioner;
+//        return this;
+//    }
+//
+//    public ItemInventoryFeature setSlotPositions(int left, int top, int slotsPerRow) {
+//        return this.setSlotPositioner(slot -> {
+//            int x = left + (slot % slotsPerRow) * 18;
+//            int y = top + (slot / slotsPerRow) * 18;
+//            return new Vec2i(x, y);
+//        });
+//    }
 
-    public ItemInventoryFeature setSlotPositioner(Function<Integer, Vec2i> slotPositioner) {
-        this.slotPositioner = slotPositioner;
-        return this;
-    }
-
-    public ItemInventoryFeature setSlotPositions(int left, int top, int slotsPerRow) {
-        return this.setSlotPositioner(slot -> {
-            int x = left + (slot % slotsPerRow) * 18;
-            int y = top + (slot / slotsPerRow) * 18;
-            return new Vec2i(x, y);
-        });
-    }
-
-    @Override
-    public List<Slot> getContainerSlots(MMDContainer container) {
-        List<Slot> slots = Lists.newArrayList();
-
-        if (this.slotPositioner != null) {
-            IItemHandler handler = this.externalHandler;
-            for(int index = 0; index < handler.getSlots(); index++) {
-                Vec2i position = this.slotPositioner.apply(index);
-                if (position != null) {
-                    Slot slot = new SlotItemHandler(handler, index, position.x, position.y);
-                    slots.add(slot);
-                }
-            }
-        }
-
-        return slots;
-    }
+//    @Override
+//    public List<Slot> getContainerSlots(MMDContainer container) {
+//        List<Slot> slots = Lists.newArrayList();
+//
+//        if (this.slotPositioner != null) {
+//            IItemHandler handler = this.externalHandler;
+//            for(int index = 0; index < handler.getSlots(); index++) {
+//                Vec2i position = this.slotPositioner.apply(index);
+//                if (position != null) {
+//                    Slot slot = new SlotItemHandler(handler, index, position.x, position.y);
+//                    slots.add(slot);
+//                }
+//            }
+//        }
+//
+//        return slots;
+//    }
 
     public ItemInventoryFeature setOverlayColor(int color) {
         this.overlayColor = color;
@@ -147,31 +140,56 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
         return this;
     }
 
+    public int getColumns() {
+        return this.columns;
+    }
+
+    public ItemInventoryFeature setColumns(int columns) {
+        this.columns = columns;
+        return this;
+    }
+
     @Override
-    public List<IGuiPiece> getPieces() {
-        List<IGuiPiece> pieces = Lists.newArrayList();
-
-        if ((this.overlayColor != -1) && (this.slotPositioner != null)) {
-            int left = Integer.MAX_VALUE;
-            int top = Integer.MAX_VALUE;
-            int right = Integer.MIN_VALUE;
-            int bottom = Integer.MIN_VALUE;
-            for(int index = 0; index < this.externalHandler.getSlots(); index++) {
-                Vec2i position = this.slotPositioner.apply(index);
-                left = Math.min(position.x, left);
-                top = Math.min(position.y, top);
-                right = Math.max(position.x + 18, right);
-                bottom = Math.max(position.y + 18, bottom);
-            }
-
+    public IGuiPiece getRootPiece(GuiContext context) {
+//        CanvasLayout layout = new CanvasLayout();
+//
+//        if ((this.overlayColor != -1) && (this.slotPositioner != null)) {
+//            int left = Integer.MAX_VALUE;
+//            int top = Integer.MAX_VALUE;
+//            int right = Integer.MIN_VALUE;
+//            int bottom = Integer.MIN_VALUE;
+//            for(int index = 0; index < this.externalHandler.getSlots(); index++) {
+//                Vec2i position = this.slotPositioner.apply(index);
+//                left = Math.min(position.x, left);
+//                top = Math.min(position.y, top);
+//                right = Math.max(position.x + 18, right);
+//                bottom = Math.max(position.y + 18, bottom);
+//            }
+//
+//            if (this.overlayAlpha > -1) {
+//                layout.addPiece(new ColorOverlayPiece(right - left, bottom - top, this.overlayColor, this.overlayAlpha), left, top);
+//            }
+//            else {
+//                layout.addPiece(new ColorOverlayPiece(right - left, bottom - top, this.overlayColor), left, top);
+//            }
+//        }
+//
+//        return layout;
+        ItemStackHandlerGrid grid = new ItemStackHandlerGrid(this.internalHandler, this.getKey(), this.columns);
+        if (this.overlayColor != 0) {
             if (this.overlayAlpha > -1) {
-                pieces.add(new ColorOverlayPiece(left, top, right - left, bottom - top, this.overlayColor, this.overlayAlpha));
+                grid.setColorOverlay(this.overlayColor, this.overlayAlpha);
             }
             else {
-                pieces.add(new ColorOverlayPiece(left, top, right - left, bottom - top, this.overlayColor));
+                grid.setColorOverlay(this.overlayColor);
             }
         }
+        return grid;
+    }
 
-        return pieces;
+    @Override
+    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
+        // gui slots should take care of this on GUIs... and outside GUIs we shouldn't care.
+        return null;
     }
 }

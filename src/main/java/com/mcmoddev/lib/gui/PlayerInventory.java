@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.container;
+package com.mcmoddev.lib.gui;
 
 public enum PlayerInventory {
     INVENTORY("_player", 9, 27, false),
