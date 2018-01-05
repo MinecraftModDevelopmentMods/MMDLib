@@ -34,7 +34,8 @@ public class InteractiveFluidBlock extends net.minecraftforge.fluids.BlockFluidC
 	 *            A function to define what happens to swimming entities. Can be
 	 *            null.
 	 */
-	public InteractiveFluidBlock(Fluid fluid, boolean flammable, java.util.function.BiConsumer<net.minecraft.world.World, net.minecraft.entity.EntityLivingBase> immersionEffect) {
+	public InteractiveFluidBlock(Fluid fluid, boolean flammable,
+			java.util.function.BiConsumer<net.minecraft.world.World, net.minecraft.entity.EntityLivingBase> immersionEffect) {
 		super(fluid, Material.WATER);
 		this.isFlammable = flammable;
 		this.immersionEffect = immersionEffect;
@@ -49,7 +50,8 @@ public class InteractiveFluidBlock extends net.minecraftforge.fluids.BlockFluidC
 	 *            A function to define what happens to swimming entities. Can be
 	 *            null.
 	 */
-	public InteractiveFluidBlock(Fluid fluid, java.util.function.BiConsumer<net.minecraft.world.World, net.minecraft.entity.EntityLivingBase> immersionEffect) {
+	public InteractiveFluidBlock(Fluid fluid,
+			java.util.function.BiConsumer<net.minecraft.world.World, net.minecraft.entity.EntityLivingBase> immersionEffect) {
 		this(fluid, false, immersionEffect);
 	}
 
@@ -109,7 +111,7 @@ public class InteractiveFluidBlock extends net.minecraftforge.fluids.BlockFluidC
 			return 30;
 		return 0;
 	}
-	
+
 	/**
 	 * @deprecated
 	 */

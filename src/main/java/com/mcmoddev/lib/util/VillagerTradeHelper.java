@@ -17,13 +17,9 @@ import net.minecraftforge.fml.common.registry.VillagerRegistry;
  */
 public class VillagerTradeHelper {
 
-	private static final ResourceLocation[] professionList = {
-			new ResourceLocation("minecraft:farmer"),
-			new ResourceLocation("minecraft:librarian"),
-			new ResourceLocation("minecraft:priest"),
-			new ResourceLocation("minecraft:smith"),
-			new ResourceLocation("minecraft:butcher")
-	};
+	private static final ResourceLocation[] professionList = { new ResourceLocation("minecraft:farmer"),
+			new ResourceLocation("minecraft:librarian"), new ResourceLocation("minecraft:priest"),
+			new ResourceLocation("minecraft:smith"), new ResourceLocation("minecraft:butcher") };
 
 	protected VillagerTradeHelper() {
 		throw new IllegalAccessError("Not a instantiable class");
@@ -51,12 +47,16 @@ public class VillagerTradeHelper {
 		final ResourceLocation profession = professionList[professionID];
 		insertTrades(profession, careerID, tradeLevel, trades);
 		/*
-		BaseMetals.logger.info("%s: injecting villager trades %s into default trade array table at position [%s][%s][%s][*]", BaseMetals.MODID, Arrays.toString(trades), professionID, careerID - 1, tradeLevel - 1);
-		Field vanillaTradeField = getTradeArrayFromClass(EntityVillager.class);
-		unlockPrivateFinalField(vanillaTradeField);
-		Object tradeTable = vanillaTradeField.get(null); // is static
-		appendToMultidimensionalArray(trades, tradeTable, professionID, Math.max (0, careerID - 1), Math.max(0, tradeLevel - 1));
-		*/
+		 * BaseMetals.logger.
+		 * info("%s: injecting villager trades %s into default trade array table at position [%s][%s][%s][*]"
+		 * , BaseMetals.MODID, Arrays.toString(trades), professionID, careerID - 1,
+		 * tradeLevel - 1);
+		 * Field vanillaTradeField = getTradeArrayFromClass(EntityVillager.class);
+		 * unlockPrivateFinalField(vanillaTradeField);
+		 * Object tradeTable = vanillaTradeField.get(null); // is static
+		 * appendToMultidimensionalArray(trades, tradeTable, professionID, Math.max (0,
+		 * careerID - 1), Math.max(0, tradeLevel - 1));
+		 */
 	}
 
 	/**
@@ -72,10 +72,13 @@ public class VillagerTradeHelper {
 	 * @param trades
 	 *            Trades to add to the given level
 	 */
-	public static void insertTrades(ResourceLocation profession, int careerID, int tradeLevel, EntityVillager.ITradeList... trades) {
+	public static void insertTrades(ResourceLocation profession, int careerID, int tradeLevel,
+			EntityVillager.ITradeList... trades) {
 		for (final EntityVillager.ITradeList trade : trades) {
 			VillagerRegistry.VillagerProfession _profession = ForgeRegistries.VILLAGER_PROFESSIONS.getValue(profession);
-			((List<VillagerRegistry.VillagerCareer>)ObfuscationReflectionHelper.getPrivateValue(VillagerRegistry.VillagerProfession.class, _profession, "careers")).get(careerID - 1).addTrade(tradeLevel, trade);
+			((List<VillagerRegistry.VillagerCareer>) ObfuscationReflectionHelper
+					.getPrivateValue(VillagerRegistry.VillagerProfession.class, _profession, "careers"))
+							.get(careerID - 1).addTrade(tradeLevel, trade);
 		}
 	}
 
@@ -130,7 +133,8 @@ public class VillagerTradeHelper {
 		// expand lowest level array to new size
 		final Class<?> aType = array.getClass().getComponentType();
 		if (!aType.isAssignableFrom(append.getClass().getComponentType()))
-			throw new IllegalArgumentException("Class type " + append.getClass().getComponentType().getCanonicalName() + " cannot be appended to " + aType.getCanonicalName() + " array");
+			throw new IllegalArgumentException("Class type " + append.getClass().getComponentType().getCanonicalName()
+					+ " cannot be appended to " + aType.getCanonicalName() + " array");
 		final Object newArray = expandArray(array, Array.getLength(array) + append.length, null);
 		System.arraycopy(append, 0, newArray, Array.getLength(array), append.length);
 		Array.set(prevArray, indices[indices.length - 1], newArray);
@@ -185,7 +189,8 @@ public class VillagerTradeHelper {
 					&& f.getType().getComponentType().isArray() // D2
 					&& f.getType().getComponentType().getComponentType().isArray() // D3
 					&& f.getType().getComponentType().getComponentType().getComponentType().isArray() // D4
-					&& f.getType().getComponentType().getComponentType().getComponentType().getComponentType().isAssignableFrom(EntityVillager.ITradeList.class))
+					&& f.getType().getComponentType().getComponentType().getComponentType().getComponentType()
+							.isAssignableFrom(EntityVillager.ITradeList.class))
 				return f;
 		return null;
 	}

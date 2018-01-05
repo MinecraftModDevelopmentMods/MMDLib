@@ -39,7 +39,8 @@ public class BlockMMDEndOre extends net.minecraft.block.BlockOre implements IMMD
 
 	@Override
 	public boolean canEntityDestroy(IBlockState bs, IBlockAccess w, BlockPos coord, Entity entity) {
-		if ((this == Materials.getMaterialByName("starsteel").getBlock(Names.ORE)) && (entity instanceof net.minecraft.entity.boss.EntityDragon))
+		if ((this == Materials.getMaterialByName("starsteel").getBlock(Names.ORE))
+				&& (entity instanceof net.minecraft.entity.boss.EntityDragon))
 			return false;
 		return super.canEntityDestroy(bs, w, coord, entity);
 	}

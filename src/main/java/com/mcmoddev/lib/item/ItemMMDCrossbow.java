@@ -47,18 +47,20 @@ public class ItemMMDCrossbow extends ItemCrossbow implements IMMDObject {
 	}
 
 	@Override
-	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex, final boolean isHeld) {
+	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex,
+			final boolean isHeld) {
 		if (world.isRemote)
 			return;
 
-		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0) && ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
+		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0)
+				&& ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
 			item.setItemDamage(item.getItemDamage() - 1);
 		}
 	}
-	
+
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		//MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		// MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override

@@ -146,7 +146,8 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 	 * @param hasBlend
 	 *            If true this material has a blend
 	 */
-	public MMDMaterial(String name, MaterialType type, float hardness, float strength, float magic, int tintColor, boolean isRare, boolean hasOre, boolean hasBlend) {
+	public MMDMaterial(String name, MaterialType type, float hardness, float strength, float magic, int tintColor,
+			boolean isRare, boolean hasOre, boolean hasBlend) {
 		// material stats
 		this.stats.put(MaterialStats.HARDNESS, hardness);
 		this.stats.put(MaterialStats.STRENGTH, strength);
@@ -434,7 +435,8 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 	 */
 	public MMDMaterial addNewItem(String name, Item item) {
 		if (this.items.containsKey(name)) {
-			MMDLib.logger.warn("Tried adding item %s to a material (%s) that already has it, don't do that!", name, this.getCapitalizedName());
+			MMDLib.logger.warn("Tried adding item %s to a material (%s) that already has it, don't do that!", name,
+					this.getCapitalizedName());
 			return this;
 		}
 		this.items.put(name, item);
@@ -468,7 +470,8 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 	 */
 	public MMDMaterial addNewBlock(String name, Block block) {
 		if (this.blocks.containsKey(name)) {
-			MMDLib.logger.warn("Tried adding block %s to a material (%s) that already has it, don't do that!", name, this.getCapitalizedName());
+			MMDLib.logger.warn("Tried adding block %s to a material (%s) that already has it, don't do that!", name,
+					this.getCapitalizedName());
 			return this;
 		}
 		this.blocks.put(name, block);
@@ -535,20 +538,22 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	/**
 	 * Get all the blocks that are made from this material
+	 * 
 	 * @return ImmutableList&lt;Block&gt; - the blocks
 	 */
 	public ImmutableList<Block> getBlocks() {
 		return ImmutableList.copyOf(this.blocks.values());
 	}
-	
+
 	/**
 	 * Get all the items that are made from/with this material
+	 * 
 	 * @return ImmutableList&lt;Item&gt; - the items
 	 */
 	public ImmutableList<Item> getItems() {
 		return ImmutableList.copyOf(this.items.values());
 	}
-	
+
 	public boolean hasOre() {
 		return this.hasOre;
 	}
@@ -611,7 +616,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 	public void setRegenerates(boolean regen) {
 		this.regenerates = regen;
 	}
-	
+
 	public final Material getVanillaMaterial() {
 		switch (this.getType()) {
 			case METAL:
@@ -653,11 +658,11 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 		this.spawnSize = size;
 		return this;
 	}
-	
+
 	public int getDefaultDimension() {
 		return this.defaultDimension;
 	}
-	
+
 	public MMDMaterial setDefaultDimension(int dim) {
 		this.defaultDimension = dim;
 		return this;

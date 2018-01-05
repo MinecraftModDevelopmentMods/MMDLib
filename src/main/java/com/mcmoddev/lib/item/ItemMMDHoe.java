@@ -81,7 +81,7 @@ public class ItemMMDHoe extends net.minecraft.item.ItemHoe implements IMMDObject
 	@Override
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target, final EntityLivingBase attacker) {
 		super.hitEntity(item, target, attacker);
-		//MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
+		// MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
 		return true;
 	}
 
@@ -95,15 +95,17 @@ public class ItemMMDHoe extends net.minecraft.item.ItemHoe implements IMMDObject
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-		//MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
+		// MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
 	}
 
 	@Override
-	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex, final boolean isHeld) {
+	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex,
+			final boolean isHeld) {
 		if (world.isRemote)
 			return;
 
-		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0) && ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
+		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0)
+				&& ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
 			item.setItemDamage(item.getItemDamage() - 1);
 		}
 	}

@@ -59,16 +59,16 @@ public class Platform {
 	 */
 	public static EnumFacing rotateAround(final EnumFacing forward) {
 		switch (forward) {
-		case NORTH:
-			return EnumFacing.EAST;
-		case EAST:
-			return EnumFacing.SOUTH;
-		case SOUTH:
-			return EnumFacing.WEST;
-		case WEST:
-			return EnumFacing.NORTH;
-		default:
-			return forward;
+			case NORTH:
+				return EnumFacing.EAST;
+			case EAST:
+				return EnumFacing.SOUTH;
+			case SOUTH:
+				return EnumFacing.WEST;
+			case WEST:
+				return EnumFacing.NORTH;
+			default:
+				return forward;
 		}
 	}
 
@@ -82,16 +82,16 @@ public class Platform {
 	 */
 	public static EnumFacing invertedRotateAround(final EnumFacing forward) {
 		switch (forward) {
-		case NORTH:
-			return EnumFacing.WEST;
-		case EAST:
-			return EnumFacing.NORTH;
-		case SOUTH:
-			return EnumFacing.EAST;
-		case WEST:
-			return EnumFacing.SOUTH;
-		default:
-			return forward;
+			case NORTH:
+				return EnumFacing.WEST;
+			case EAST:
+				return EnumFacing.NORTH;
+			case SOUTH:
+				return EnumFacing.EAST;
+			case WEST:
+				return EnumFacing.SOUTH;
+			default:
+				return forward;
 		}
 	}
 

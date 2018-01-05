@@ -30,24 +30,25 @@ import slimeknights.tconstruct.library.smeltery.AlloyRecipe;
 import slimeknights.tconstruct.library.traits.ITrait;
 
 public class TinkersConstructRegistry {
+
 	public static final TinkersConstructRegistry instance = new TinkersConstructRegistry();
 	private static final Map<String, Map<String, TCMaterial>> registry = new HashMap<>();
 	private static final Map<String, List<MaterialIntegration>> integrations = new HashMap<>();
 	private static final Map<String, Map<String, AlloyRecipe>> alloys = new HashMap<>();
 	private static final Map<String, Map<Item, FluidStack>> meltings = new HashMap<>();
-	
+
 	private TinkersConstructRegistry() {
 		// do nothing
 	}
-	
+
 	public TCMaterial newMaterial(@Nonnull final String name, @Nonnull final int color) {
 		final String curMod = Loader.instance().activeModContainer().getModId();
 		Map<String, TCMaterial> work = registry.getOrDefault(curMod, new HashMap<>());
 		TCMaterial temp;
-		if( work.isEmpty() || !work.containsKey(name) ) {
-			temp = TCMaterial.get(name,color);
+		if (work.isEmpty() || !work.containsKey(name)) {
+			temp = TCMaterial.get(name, color);
 			work.put(name, temp);
-			registry.put(curMod,work);
+			registry.put(curMod, work);
 		} else {
 			temp = work.get(name);
 		}
@@ -58,26 +59,26 @@ public class TinkersConstructRegistry {
 	public TCMaterial newMaterial(@Nonnull final MMDMaterial mat) {
 		final String curMod = Loader.instance().activeModContainer().getModId();
 		Map<String, TCMaterial> work = registry.getOrDefault(curMod, new HashMap<>());
-		if( work.isEmpty() || !work.containsKey(mat.getName()) ) {
+		if (work.isEmpty() || !work.containsKey(mat.getName())) {
 			work.put(mat.getName(), TCMaterial.get(mat));
 			registry.put(curMod, work);
 		}
-		
+
 		return work.get(mat.getName());
 	}
-	
+
 	public TCMaterial getMaterial(@Nonnull final String name) {
-		for( final Entry<String, Map<String,TCMaterial>> ent : registry.entrySet()) {
-			if(ent.getValue().containsKey(name))
+		for (final Entry<String, Map<String, TCMaterial>> ent : registry.entrySet()) {
+			if (ent.getValue().containsKey(name))
 				return ent.getValue().get(name);
 		}
-		
+
 		return newMaterial(name, 0xFFFFFFFF);
 	}
-	
+
 	public void addMaterialStats() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
+		for (final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
 			entry.getValue().settle(); // be double sure!
 			final HeadMaterialStats headStats = entry.getValue().getHeadStats();
 			final HandleMaterialStats handleStats = entry.getValue().getHandleStats();
@@ -85,42 +86,42 @@ public class TinkersConstructRegistry {
 			final BowMaterialStats bowStats = entry.getValue().getBowStats();
 			final ArrowShaftMaterialStats arrowStats = entry.getValue().getArrowStats();
 			final FletchingMaterialStats fletchingStats = entry.getValue().getFletchingStats();
-			
-			if( TinkerRegistry.getMaterial(entry.getKey()) == entry.getValue().getMaterial() ) {
+
+			if (TinkerRegistry.getMaterial(entry.getKey()) == entry.getValue().getMaterial()) {
 				// the material was properly registered
 				Material work = entry.getValue().getMaterial();
-				TinkerRegistry.addMaterialStats( work, headStats, handleStats, extraStats );
-				TinkerRegistry.addMaterialStats( work, bowStats );
-				TinkerRegistry.addMaterialStats( work, arrowStats );
-				TinkerRegistry.addMaterialStats( work, fletchingStats );
+				TinkerRegistry.addMaterialStats(work, headStats, handleStats, extraStats);
+				TinkerRegistry.addMaterialStats(work, bowStats);
+				TinkerRegistry.addMaterialStats(work, arrowStats);
+				TinkerRegistry.addMaterialStats(work, fletchingStats);
 			}
 		}
 	}
-	
-	public void registerAlloy(@Nonnull final String name, @Nonnull final FluidStack result, FluidStack... input ) {
+
+	public void registerAlloy(@Nonnull final String name, @Nonnull final FluidStack result, FluidStack... input) {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		Map<String,AlloyRecipe> curRecipes = alloys.getOrDefault(curMod, new HashMap<>());
-		if( curRecipes.containsKey(name) )
+		Map<String, AlloyRecipe> curRecipes = alloys.getOrDefault(curMod, new HashMap<>());
+		if (curRecipes.containsKey(name))
 			return;
-		
+
 		curRecipes.put(name, new AlloyRecipe(result, input));
 		alloys.put(curMod, curRecipes);
 	}
-	
-	public void registerMelting(@Nonnull final Item item, @Nonnull final FluidStack result ) {
+
+	public void registerMelting(@Nonnull final Item item, @Nonnull final FluidStack result) {
 		final String curMod = Loader.instance().activeModContainer().getModId();
 		Map<Item, FluidStack> modMelts = meltings.getOrDefault(curMod, new HashMap<>());
-		
-		if( modMelts.containsKey(item) )
+
+		if (modMelts.containsKey(item))
 			return;
-		
+
 		modMelts.put(item, result);
 		meltings.put(curMod, modMelts);
 	}
-	
+
 	public void setRepresentativeItem() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
+		for (final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
 			entry.getValue().setRepresentativeItem(Names.INGOT.toString());
 		}
 	}
@@ -128,25 +129,26 @@ public class TinkersConstructRegistry {
 	public void setupIntegrations() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
 		MMDLib.logger.debug("setupIntegrations() for mod %s", curMod);
-		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
+		for (final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
 			MMDLib.logger.debug("processing material %s from mod %s", entry.getKey(), curMod);
 			TCMaterial material = entry.getValue();
-			
+
 			material.settle();
-			
+
 			material.setFluid(material.getMMDMaterial().getFluid());
 
-			if( material.getCraftable() )
+			if (material.getCraftable())
 				material.getMaterial().setCraftable(true);
 			else
 				material.getMaterial().setCastable(true);
-			
-			MaterialIntegration integration = new MaterialIntegration(material.getMaterial(), material.getFluid(), material.getMMDMaterial().getCapitalizedName());
-			
-			if( material.getRepresentativeItemName() != null ) 				
+
+			MaterialIntegration integration = new MaterialIntegration(material.getMaterial(), material.getFluid(),
+					material.getMMDMaterial().getCapitalizedName());
+
+			if (material.getRepresentativeItemName() != null)
 				integration.setRepresentativeItem(material.getRepresentativeItemName());
-			
-			if( material.toolForge() )
+
+			if (material.toolForge())
 				integration.toolforge();
 
 			List<MaterialIntegration> cmi = integrations.getOrDefault(curMod, new ArrayList<>());
@@ -156,25 +158,25 @@ public class TinkersConstructRegistry {
 			integration.preInit();
 		}
 	}
-	
+
 	private void addTraits(TCMaterial mat) {
-		if( !mat.getTraits().isEmpty() ) {
-			for( final Entry<String, List<ITrait>> ent : mat.getTraits().entrySet() ) {
+		if (!mat.getTraits().isEmpty()) {
+			for (final Entry<String, List<ITrait>> ent : mat.getTraits().entrySet()) {
 				String traitLoc = ent.getKey();
-				for( ITrait trait : ent.getValue() ) {
-					if( traitLoc.equals("general") ) {
+				for (ITrait trait : ent.getValue()) {
+					if (traitLoc.equals("general")) {
 						mat.getMaterial().addTrait(trait);
 					} else {
-						mat.getMaterial().addTrait(trait,traitLoc);
+						mat.getMaterial().addTrait(trait, traitLoc);
 					}
 				}
-			}			
+			}
 		}
 	}
-	
+
 	public void integrationsInit() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
+		for (final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
 			final TCMaterial work = entry.getValue();
 			final MMDMaterial curMMDMat = work.getMMDMaterial();
 			final Material curMat = work.getMaterial();
@@ -186,48 +188,48 @@ public class TinkersConstructRegistry {
 			addTraits(work);
 		}
 	}
-	
-	
+
 	public void registerMeltings() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
 		Map<Item, FluidStack> myMelts = meltings.getOrDefault(curMod, Collections.emptyMap());
-		
-		if( myMelts.isEmpty())
+
+		if (myMelts.isEmpty())
 			return;
-		
-		for( final Entry<Item, FluidStack> ent : myMelts.entrySet() ) {
+
+		for (final Entry<Item, FluidStack> ent : myMelts.entrySet()) {
 			Item item = ent.getKey();
 			FluidStack fluidStack = ent.getValue();
 			Fluid fluid = fluidStack.getFluid();
 			int amount = fluidStack.amount;
-			
+
 			TinkerRegistry.registerMelting(item, fluid, amount);
-		}		
+		}
 	}
-	
+
 	public void registerAlloys() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		Map<String,AlloyRecipe> curRecipes;
-		if( alloys.containsKey(curMod) ) {
+		Map<String, AlloyRecipe> curRecipes;
+		if (alloys.containsKey(curMod)) {
 			curRecipes = alloys.get(curMod);
-			for( final Entry<String, AlloyRecipe> ent : curRecipes.entrySet()) {
+			for (final Entry<String, AlloyRecipe> ent : curRecipes.entrySet()) {
 				TinkerRegistry.registerAlloy(ent.getValue());
 			}
 		}
 	}
-	
+
 	public void resolveTraits() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
+		for (final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
 			entry.getValue().resolveTraits();
 		}
 	}
 
 	public void setMaterialsVisible() {
 		final String curMod = Loader.instance().activeModContainer().getModId();
-		for( final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
-			if(entry.getValue().getMaterial().isHidden()) {
-				MMDLib.logger.fatal("Setting material %s to visible", entry.getValue().getMMDMaterial().getCapitalizedName());
+		for (final Entry<String, TCMaterial> entry : registry.get(curMod).entrySet()) {
+			if (entry.getValue().getMaterial().isHidden()) {
+				MMDLib.logger.fatal("Setting material %s to visible",
+						entry.getValue().getMMDMaterial().getCapitalizedName());
 				entry.getValue().getMaterial().setVisible();
 			}
 		}

@@ -23,7 +23,8 @@ public class TraitRadioactive extends AbstractTrait {
 	}
 
 	@Override
-	public void onUpdate(@Nonnull final ItemStack tool, @Nonnull final World world, @Nonnull final Entity entity, @Nonnull final int itemSlot, @Nonnull final boolean isSelected) {
+	public void onUpdate(@Nonnull final ItemStack tool, @Nonnull final World world, @Nonnull final Entity entity,
+			@Nonnull final int itemSlot, @Nonnull final boolean isSelected) {
 		if (!ToolHelper.isBroken(tool) && entity instanceof EntityPlayer) {
 			EntityLivingBase player = (EntityPlayer) entity;
 			NBTTagCompound root = TagUtil.getTagSafe(tool);

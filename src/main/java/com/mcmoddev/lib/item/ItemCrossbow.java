@@ -31,11 +31,13 @@ public class ItemCrossbow extends ItemBow {
 	public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityLivingBase entityLiving, int timeLeft) {
 		if (entityLiving instanceof EntityPlayer) {
 			final EntityPlayer entityplayer = (EntityPlayer) entityLiving;
-			final boolean flag = entityplayer.capabilities.isCreativeMode || (EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, stack) > 0);
+			final boolean flag = entityplayer.capabilities.isCreativeMode
+					|| (EnchantmentHelper.getEnchantmentLevel(Enchantments.INFINITY, stack) > 0);
 			ItemStack itemstack = this.myFindAmmo(entityplayer);
 
 			int i = this.getMaxItemUseDuration(stack) - timeLeft;
-			i = net.minecraftforge.event.ForgeEventFactory.onArrowLoose(stack, worldIn, (EntityPlayer) entityLiving, i, (itemstack != null) || flag);
+			i = net.minecraftforge.event.ForgeEventFactory.onArrowLoose(stack, worldIn, (EntityPlayer) entityLiving, i,
+					(itemstack != null) || flag);
 			if (i < 0) {
 				return;
 			}
@@ -43,18 +45,26 @@ public class ItemCrossbow extends ItemBow {
 			if ((itemstack != null) || flag) {
 				if (itemstack == null) {
 					itemstack = getBolt();
-					if( itemstack == null ) return; // if its still null at this point, there is something seriously wrong, just bug out
+					if (itemstack == null)
+						return; // if its still null at this point, there is something seriously wrong, just bug
+								// out
 				}
 
 				final float f = getArrowVelocity(i);
 
 				if ((double) f >= 0.1D) {
-					final boolean flag1 = entityplayer.capabilities.isCreativeMode || (itemstack.getItem() instanceof ItemBolt ? ((ItemBolt) itemstack.getItem()).isInfinite(itemstack, stack, entityplayer) : false);
+					final boolean flag1 = entityplayer.capabilities.isCreativeMode
+							|| (itemstack.getItem() instanceof ItemBolt
+									? ((ItemBolt) itemstack.getItem()).isInfinite(itemstack, stack, entityplayer)
+									: false);
 
 					if (!worldIn.isRemote) {
-						final ItemBolt itemBolt = (ItemBolt) ((ItemBolt) (itemstack.getItem() instanceof ItemBolt ? itemstack.getItem() : Materials.getMaterialByName("iron").getItem(Names.BOLT)));
+						final ItemBolt itemBolt = (ItemBolt) ((ItemBolt) (itemstack.getItem() instanceof ItemBolt
+								? itemstack.getItem()
+								: Materials.getMaterialByName("iron").getItem(Names.BOLT)));
 						final EntityCustomBolt entityBolt = itemBolt.createBolt(worldIn, itemstack, entityplayer);
-						entityBolt.shoot(entityplayer, entityplayer.rotationPitch, entityplayer.rotationYaw, 0.0F, f * 3.0F, 1.0F);
+						entityBolt.shoot(entityplayer, entityplayer.rotationPitch, entityplayer.rotationYaw, 0.0F,
+								f * 3.0F, 1.0F);
 
 						if (f == 1.0F) {
 							entityBolt.setIsCritical(true);
@@ -85,7 +95,9 @@ public class ItemCrossbow extends ItemBow {
 						worldIn.spawnEntity(entityBolt);
 					}
 
-					worldIn.playSound((EntityPlayer) null, entityplayer.posX, entityplayer.posY, entityplayer.posZ, SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.NEUTRAL, 1.0F, (1.0F / ((itemRand.nextFloat() * 0.4F) + 1.2F)) + (f * 0.5F));
+					worldIn.playSound((EntityPlayer) null, entityplayer.posX, entityplayer.posY, entityplayer.posZ,
+							SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.NEUTRAL, 1.0F,
+							(1.0F / ((itemRand.nextFloat() * 0.4F) + 1.2F)) + (f * 0.5F));
 
 					if (!flag1) {
 						itemstack.setCount(itemstack.getCount() - 1);
@@ -102,8 +114,9 @@ public class ItemCrossbow extends ItemBow {
 	}
 
 	private ItemStack getBolt() {
-		for( MMDMaterial mat : Materials.getAllMaterials() ) {
-			if( mat.hasItem(Names.BOLT) ) return new ItemStack( mat.getItem(Names.BOLT) );
+		for (MMDMaterial mat : Materials.getAllMaterials()) {
+			if (mat.hasItem(Names.BOLT))
+				return new ItemStack(mat.getItem(Names.BOLT));
 		}
 		return null;
 	}

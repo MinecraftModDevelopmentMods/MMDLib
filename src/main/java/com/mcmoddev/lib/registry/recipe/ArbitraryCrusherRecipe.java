@@ -20,10 +20,10 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
  *
  */
 public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRecipe> implements ICrusherRecipe {
-	
+
 	private final ItemStack input;
 	private final ItemStack output;
-	
+
 	/**
 	 * Constructs a new instance of this ICrusherRecipe class representing a
 	 * recipe with an input and an output. If the input ItemStack has
@@ -40,7 +40,8 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 		this.input = input;
 		this.output = output;
 
-		super.setRegistryName(input.getItem().getRegistryName().getResourcePath() + "_to_" + output.getItem().getRegistryName().getResourcePath());
+		super.setRegistryName(input.getItem().getRegistryName().getResourcePath() + "_to_"
+				+ output.getItem().getRegistryName().getResourcePath());
 	}
 
 	/**
@@ -58,8 +59,9 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 	public ArbitraryCrusherRecipe(@Nonnull Item input, @Nonnull ItemStack output) {
 		this.input = new ItemStack(input);
 		this.output = output;
-		
-		super.setRegistryName(input.getRegistryName().getResourcePath() + "_to_" + output.getItem().getRegistryName().getResourcePath());
+
+		super.setRegistryName(input.getRegistryName().getResourcePath() + "_to_"
+				+ output.getItem().getRegistryName().getResourcePath());
 	}
 
 	/**
@@ -77,8 +79,9 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 	public ArbitraryCrusherRecipe(@Nonnull Block input, @Nonnull ItemStack output) {
 		this.input = new ItemStack(input);
 		this.output = output;
-		
-		super.setRegistryName(input.getRegistryName().getResourcePath() + "_to_" + output.getItem().getRegistryName().getResourcePath());
+
+		super.setRegistryName(input.getRegistryName().getResourcePath() + "_to_"
+				+ output.getItem().getRegistryName().getResourcePath());
 	}
 
 	/**

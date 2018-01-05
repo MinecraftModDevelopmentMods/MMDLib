@@ -3,8 +3,22 @@ package com.mcmoddev.lib;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.mcmoddev.lib.API.MMDLibAPI;
+import com.mcmoddev.lib.events.BlockRegisterEvent;
+import com.mcmoddev.lib.events.FluidRegisterEvent;
+import com.mcmoddev.lib.events.ItemRegisterEvent;
+import com.mcmoddev.lib.events.MaterialRegisterEvent;
+import com.mcmoddev.lib.impl.BlockApi;
+import com.mcmoddev.lib.impl.FluidApi;
+import com.mcmoddev.lib.impl.ItemApi;
+import com.mcmoddev.lib.impl.MaterialApi;
+import com.mcmoddev.lib.init.Blocks;
+import com.mcmoddev.lib.init.Fluids;
+import com.mcmoddev.lib.init.Items;
+import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.proxy.CommonProxy;
 
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -28,13 +42,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
  * @author Jasmine Iwanek
  *
  */
-@Mod(
-		modid = MMDLib.MODID,
-		name = MMDLib.NAME,
-		version = MMDLib.VERSION,
-		dependencies = "required-after:forge@[14.21.0.2327,);after:tconstruct;after:ic2;before:buildingbricks",
-		acceptedMinecraftVersions = "[1.12,)",
-		updateJSON = MMDLib.UPDATEJSON)
+@Mod(modid = MMDLib.MODID, name = MMDLib.NAME, version = MMDLib.VERSION, dependencies = "required-after:forge@[14.21.0.2327,);after:tconstruct;after:ic2;before:buildingbricks", acceptedMinecraftVersions = "[1.12,)", updateJSON = MMDLib.UPDATEJSON)
 public class MMDLib {
 
 	@Instance
@@ -72,7 +80,11 @@ public class MMDLib {
 		proxy.preInit(event);
 		/*
 		 * Pull the lever, Kronk!
-                 */
+		 */
+		MinecraftForge.EVENT_BUS.post(new MaterialRegisterEvent(MMDLibAPI.materialAPI, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new BlockRegisterEvent(MMDLibAPI.blockAPI, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new ItemRegisterEvent(MMDLibAPI.itemAPI, Materials.instance));
+		MinecraftForge.EVENT_BUS.post(new FluidRegisterEvent(MMDLibAPI.fluidAPI, Materials.instance));
 	}
 
 	@EventHandler

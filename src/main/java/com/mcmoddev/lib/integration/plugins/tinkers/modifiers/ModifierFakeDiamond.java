@@ -14,7 +14,8 @@ public class ModifierFakeDiamond extends ToolModifier {
 	public ModifierFakeDiamond() {
 		super("fake-diamond", 0x00FF00);
 
-		addAspects(new ModifierAspect.SingleAspect(this), new ModifierAspect.DataAspect(this), ModifierAspect.freeModifier);
+		addAspects(new ModifierAspect.SingleAspect(this), new ModifierAspect.DataAspect(this),
+				ModifierAspect.freeModifier);
 	}
 
 	@Override

@@ -58,24 +58,31 @@ public class BlockMMDDoor extends net.minecraft.block.BlockDoor implements IMMDO
 	public Item getItemDropped(final IBlockState state, final Random rand, final int fortune) {
 		return (state.getValue(BlockDoor.HALF) == EnumDoorHalf.UPPER) ? null : this.material.getItem(Names.DOOR);
 	}
+
 	@Override
 	public boolean onBlockActivated(World world, BlockPos coord, IBlockState blockstate, EntityPlayer player,
 			EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-		// if Vanilla is anything to go by, since we don't have wood doors at all, this should just return false
+		// if Vanilla is anything to go by, since we don't have wood doors at all, this
+		// should just return false
 		return false;
-/*		if (this.material.getToolHarvestLevel() > 1)
-			return false;
-		final BlockPos pos = (blockstate.getValue(BlockDoor.HALF) == EnumDoorHalf.LOWER) ? coord : coord.down();
-		final IBlockState bs = coord.equals(pos) ? blockstate : world.getBlockState(pos);
-		if (bs.getBlock() != this)
-			return false;
-		IBlockState newState = bs.cycleProperty(BlockDoor.OPEN);
-		world.setBlockState(pos, newState, 2);
-		world.markBlockRangeForRenderUpdate(pos, coord);
-		world.playEvent(player, ((Boolean) newState.getValue(BlockDoor.OPEN)) ? 1003 : 1006, coord, 0);
-		return true; */
+		/*
+		 * if (this.material.getToolHarvestLevel() > 1)
+		 * return false;
+		 * final BlockPos pos = (blockstate.getValue(BlockDoor.HALF) ==
+		 * EnumDoorHalf.LOWER) ? coord : coord.down();
+		 * final IBlockState bs = coord.equals(pos) ? blockstate :
+		 * world.getBlockState(pos);
+		 * if (bs.getBlock() != this)
+		 * return false;
+		 * IBlockState newState = bs.cycleProperty(BlockDoor.OPEN);
+		 * world.setBlockState(pos, newState, 2);
+		 * world.markBlockRangeForRenderUpdate(pos, coord);
+		 * world.playEvent(player, ((Boolean) newState.getValue(BlockDoor.OPEN)) ? 1003
+		 * : 1006, coord, 0);
+		 * return true;
+		 */
 	}
-	
+
 	@Override
 	public MMDMaterial getMMDMaterial() {
 		return this.material;

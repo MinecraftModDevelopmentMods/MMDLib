@@ -34,7 +34,6 @@ import net.minecraftforge.oredict.OreDictionary;
  */
 public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDObject {
 
-
 	private final String customTexture;
 	private final MMDMaterial mmd_material;
 	private final String repairOreDictName;
@@ -44,11 +43,12 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 	private static final Map<EntityPlayer, AtomicInteger> playerUpdateCountMap = new HashMap<>();
 
 	protected ItemMMDArmor(@Nonnull MMDMaterial material, @Nonnull ArmorMaterial armorMat, int renderIndex,
-							 EntityEquipmentSlot slot) {
+			EntityEquipmentSlot slot) {
 		super(armorMat, renderIndex, slot);
 		this.mmd_material = material;
 		this.repairOreDictName = Oredicts.INGOT + material.getCapitalizedName();
-		this.customTexture = Loader.instance().activeModContainer().getModId() + ":textures/models/armor/" + material.getName() + "_layer_" + (slot == EntityEquipmentSlot.LEGS ? 2 : 1) + ".png";
+		this.customTexture = Loader.instance().activeModContainer().getModId() + ":textures/models/armor/"
+				+ material.getName() + "_layer_" + (slot == EntityEquipmentSlot.LEGS ? 2 : 1) + ".png";
 	}
 
 	@Override
@@ -61,9 +61,11 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 		if (!w.isRemote && w.getTotalWorldTime() > playerUpdateTimestampMap.get(player).get()) {
 			playerUpdateTimestampMap.get(player).set(w.getTotalWorldTime() + UPDATE_INTERVAL);
 			int updateCount = playerUpdateCountMap.get(player).getAndIncrement();
-			for(int i = 0; i < 4; i++) {
-				if(player.inventory.armorInventory.get(i) != null && player.inventory.armorInventory.get(i).getItem() instanceof ItemMMDArmor) {
-//					MMDToolEffects.extraEffectsOnArmorUpdate(w, player, this.mmd_material, player.inventory.armorInventory.get(i), updateCount);
+			for (int i = 0; i < 4; i++) {
+				if (player.inventory.armorInventory.get(i) != null
+						&& player.inventory.armorInventory.get(i).getItem() instanceof ItemMMDArmor) {
+					// MMDToolEffects.extraEffectsOnArmorUpdate(w, player, this.mmd_material,
+					// player.inventory.armorInventory.get(i), updateCount);
 				}
 			}
 		}
@@ -135,7 +137,7 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		//MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmd_material, tooltip);
+		// MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmd_material, tooltip);
 	}
 
 	/**

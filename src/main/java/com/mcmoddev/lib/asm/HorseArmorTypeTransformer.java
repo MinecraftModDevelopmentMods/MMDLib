@@ -13,7 +13,7 @@ class HorseArmorTypeTransformer implements ITransformer {
 
 	private static final String HORSE_INTERFACE = "com/mcmoddev/lib/common/item/IHorseArmor";
 	private static final String GET_BY_ITEM = "func_188576_a";
-	
+
 	@Override
 	public String getTarget() {
 		return "net.minecraft.entity.passive.HorseArmorType";
@@ -29,7 +29,8 @@ class HorseArmorTypeTransformer implements ITransformer {
 			inject.add(new JumpInsnNode(IFEQ, label1));
 			inject.add(new VarInsnNode(ALOAD, 0));
 			inject.add(new TypeInsnNode(CHECKCAST, HORSE_INTERFACE));
-			inject.add(new MethodInsnNode(INVOKEINTERFACE, HORSE_INTERFACE, "getArmorType", "()Lnet/minecraft/entity/passive/HorseArmorType;", true));
+			inject.add(new MethodInsnNode(INVOKEINTERFACE, HORSE_INTERFACE, "getArmorType",
+					"()Lnet/minecraft/entity/passive/HorseArmorType;", true));
 			inject.add(new InsnNode(ARETURN));
 			inject.add(label1);
 			methodNode.instructions.insertBefore(methodNode.instructions.getFirst(), inject);

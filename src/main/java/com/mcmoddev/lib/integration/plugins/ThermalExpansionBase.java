@@ -22,7 +22,7 @@ import net.minecraftforge.fluids.FluidStack;
 public class ThermalExpansionBase implements IIntegration {
 
 	public static final String PLUGIN_MODID = "thermalexpansion";
-	
+
 	private static boolean initDone = false;
 
 	@Override
@@ -34,7 +34,8 @@ public class ThermalExpansionBase implements IIntegration {
 		initDone = true;
 	}
 
-	protected static void addCompactorPressRecipe(@Nonnull final int energy, @Nonnull final ItemStack input, @Nonnull final ItemStack output) {
+	protected static void addCompactorPressRecipe(@Nonnull final int energy, @Nonnull final ItemStack input,
+			@Nonnull final ItemStack output) {
 		if (input.getItem() == null || output.getItem() == null) {
 			return;
 		}
@@ -42,12 +43,13 @@ public class ThermalExpansionBase implements IIntegration {
 		ThermalExpansionHelper.addCompactorPressRecipe(energy, input, output);
 	}
 
-	protected static void addCompactorStorageRecipe(@Nonnull final int energy, @Nonnull final ItemStack input, @Nonnull final ItemStack output) {
+	protected static void addCompactorStorageRecipe(@Nonnull final int energy, @Nonnull final ItemStack input,
+			@Nonnull final ItemStack output) {
 
 		if (input.getItem() == null || output.getItem() == null) {
 			return;
 		}
-		
+
 		ThermalExpansionHelper.addCompactorStorageRecipe(energy, input, output);
 
 	}
@@ -71,7 +73,8 @@ public class ThermalExpansionBase implements IIntegration {
 	protected static void addFurnace(@Nonnull final MMDMaterial material) {
 		/*
 		 * Ore -> Ingot default, according to TE source, is 2000
-		 * dust -> Ingot default, according to same, is DEFAULT * 14 / 20 - at the 2000RF default, this is 1400
+		 * dust -> Ingot default, according to same, is DEFAULT * 14 / 20 - at the
+		 * 2000RF default, this is 1400
 		 */
 		final int ENERGY_ORE = 2000;
 		final int ENERGY_DUST = 1400;
@@ -144,17 +147,20 @@ public class ThermalExpansionBase implements IIntegration {
 			ThermalExpansionHelper.addCrucibleRecipe(ENERGY_QTY, dustStack, baseFluid);
 		}
 
-		addCrucibleExtra(Options.isThingEnabled("Plate"), Item.getItemFromBlock(material.getBlock(Names.PLATE)), baseFluid, ENERGY_QTY);
+		addCrucibleExtra(Options.isThingEnabled("Plate"), Item.getItemFromBlock(material.getBlock(Names.PLATE)),
+				baseFluid, ENERGY_QTY);
 		addCrucibleExtra(Options.isThingEnabled("Basics"), material.getItem(Names.NUGGET), nuggetFluid, ENERGY_QTY);
 	}
 
-	private static void addCrucibleExtra(@Nonnull final boolean enabled, @Nonnull final Item input, @Nonnull final FluidStack output, @Nonnull final int energy) {
+	private static void addCrucibleExtra(@Nonnull final boolean enabled, @Nonnull final Item input,
+			@Nonnull final FluidStack output, @Nonnull final int energy) {
 		if (enabled) {
-				addCrucibleExtra(input, output, energy);
-			}		
+			addCrucibleExtra(input, output, energy);
+		}
 	}
 
-	private static void addCrucibleExtra(@Nonnull final Item input, @Nonnull final FluidStack output, @Nonnull final int energy) {
+	private static void addCrucibleExtra(@Nonnull final Item input, @Nonnull final FluidStack output,
+			@Nonnull final int energy) {
 		final ItemStack inItems = new ItemStack(input);
 		ThermalExpansionHelper.addCrucibleRecipe(energy, inItems, output);
 	}
@@ -182,7 +188,8 @@ public class ThermalExpansionBase implements IIntegration {
 			 * Compactors default is 4000RF per operation
 			 */
 			final int ENERGY_QTY = 4000;
-			addCompactorPressRecipe(ENERGY_QTY, new ItemStack(material.getItem(Names.INGOT)), new ItemStack(material.getBlock(Names.PLATE)));
+			addCompactorPressRecipe(ENERGY_QTY, new ItemStack(material.getItem(Names.INGOT)),
+					new ItemStack(material.getBlock(Names.PLATE)));
 		}
 	}
 

@@ -22,7 +22,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 public class ICrusherRecipeCategory implements IRecipeCategory<ICrusherRecipeWrapper> {
-	private final ResourceLocation resourceLocation = new ResourceLocation(MMDLib.MODID, "textures/jei/jeihammeroverlay.png");
+
+	private final ResourceLocation resourceLocation = new ResourceLocation(MMDLib.MODID,
+			"textures/jei/jeihammeroverlay.png");
 	private final IDrawable background;
 	private final IDrawable icon;
 	protected final IDrawableAnimated hammer;
@@ -64,12 +66,13 @@ public class ICrusherRecipeCategory implements IRecipeCategory<ICrusherRecipeWra
 	}
 
 	@Override
-	public void setRecipe(IRecipeLayout recipeLayout, @Nonnull ICrusherRecipeWrapper recipeWrapper, IIngredients ingredients) {
+	public void setRecipe(IRecipeLayout recipeLayout, @Nonnull ICrusherRecipeWrapper recipeWrapper,
+			IIngredients ingredients) {
 		IGuiItemStackGroup guiItemStacks = recipeLayout.getItemStacks();
-		
+
 		// init the input slot
 		guiItemStacks.init(0, true, 40, 14);
-		
+
 		// init the output slot
 		guiItemStacks.init(1, false, 119, 14);
 
@@ -84,7 +87,7 @@ public class ICrusherRecipeCategory implements IRecipeCategory<ICrusherRecipeWra
 
 	@Override
 	public void drawExtras(Minecraft minecraft) {
-		this.hammer.draw(minecraft,  71, 6);
+		this.hammer.draw(minecraft, 71, 6);
 	}
 
 	@Override

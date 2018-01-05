@@ -25,7 +25,8 @@ public class HorseArmorUtils {
 		if (HorseArmorUtils.TYPES.containsKey(name))
 			return HorseArmorUtils.TYPES.get(name);
 
-		final HorseArmorType type = EnumHelper.addEnum(HorseArmorType.class, name.replace(" ", "_"), new Class[] { int.class, String.class, String.class }, protection, name.toLowerCase(), hash);
+		final HorseArmorType type = EnumHelper.addEnum(HorseArmorType.class, name.replace(" ", "_"),
+				new Class[] { int.class, String.class, String.class }, protection, name.toLowerCase(), hash);
 		HorseArmorUtils.TYPES.put(name, type);
 
 		return type;

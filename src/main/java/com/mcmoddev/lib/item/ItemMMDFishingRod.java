@@ -36,35 +36,42 @@ public class ItemMMDFishingRod extends ItemFishingRod implements IMMDObject {
 		// this.setMaxStackSize(1);
 		// this.setCreativeTab(CreativeTabs.TOOLS);
 		this.repairOreDictName = Oredicts.INGOT + this.material.getCapitalizedName();
-//		this.addPropertyOverride(new ResourceLocation("cast"), new IItemPropertyGetter() {
-//			@SideOnly(Side.CLIENT)
-//			@Override
-//			public float apply(ItemStack stack, World worldIn, EntityLivingBase entityIn) {
-//				return entityIn == null ? 0.0F : ((entityIn.getHeldItemMainhand() == stack) && (entityIn instanceof EntityPlayer) && (((EntityPlayer) entityIn).fishEntity != null) ? 1.0F : 0.0F);
-//			}
-//		});
+		// this.addPropertyOverride(new ResourceLocation("cast"), new
+		// IItemPropertyGetter() {
+		// @SideOnly(Side.CLIENT)
+		// @Override
+		// public float apply(ItemStack stack, World worldIn, EntityLivingBase entityIn)
+		// {
+		// return entityIn == null ? 0.0F : ((entityIn.getHeldItemMainhand() == stack)
+		// && (entityIn instanceof EntityPlayer) && (((EntityPlayer)
+		// entityIn).fishEntity != null) ? 1.0F : 0.0F);
+		// }
+		// });
 	}
 
 	/*
-	@Override
-	public ActionResult<ItemStack> onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn, EnumHand hand) {
-		if (playerIn.fishEntity != null) {
-			final int i = playerIn.fishEntity.handleHookRetraction();
-			itemStackIn.damageItem(i, playerIn);
-			playerIn.swingArm(hand);
-		} else {
-			worldIn.playSound((EntityPlayer) null, playerIn.posX, playerIn.posY, playerIn.posZ, SoundEvents.ENTITY_BOBBER_THROW, SoundCategory.NEUTRAL, 0.5F, 0.4F / ((itemRand.nextFloat() * 0.4F) + 0.8F));
-
-			if (!worldIn.isRemote)
-				worldIn.spawnEntity(new EntityMetalFishHook(worldIn, playerIn));
-
-			playerIn.swingArm(hand);
-			playerIn.addStat(StatList.getObjectUseStats(this));
-		}
-
-		return new ActionResult<ItemStack>(EnumActionResult.SUCCESS, itemStackIn);
-	}
-	*/
+	 * @Override
+	 * public ActionResult<ItemStack> onItemRightClick(ItemStack itemStackIn, World
+	 * worldIn, EntityPlayer playerIn, EnumHand hand) {
+	 * if (playerIn.fishEntity != null) {
+	 * final int i = playerIn.fishEntity.handleHookRetraction();
+	 * itemStackIn.damageItem(i, playerIn);
+	 * playerIn.swingArm(hand);
+	 * } else {
+	 * worldIn.playSound((EntityPlayer) null, playerIn.posX, playerIn.posY,
+	 * playerIn.posZ, SoundEvents.ENTITY_BOBBER_THROW, SoundCategory.NEUTRAL, 0.5F,
+	 * 0.4F / ((itemRand.nextFloat() * 0.4F) + 0.8F));
+	 * 
+	 * if (!worldIn.isRemote)
+	 * worldIn.spawnEntity(new EntityMetalFishHook(worldIn, playerIn));
+	 * 
+	 * playerIn.swingArm(hand);
+	 * playerIn.addStat(StatList.getObjectUseStats(this));
+	 * }
+	 * 
+	 * return new ActionResult<ItemStack>(EnumActionResult.SUCCESS, itemStackIn);
+	 * }
+	 */
 
 	@Override
 	public boolean getIsRepairable(final ItemStack intputItem, final ItemStack repairMaterial) {
@@ -76,20 +83,22 @@ public class ItemMMDFishingRod extends ItemFishingRod implements IMMDObject {
 	}
 
 	@Override
-	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex, final boolean isHeld) {
+	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex,
+			final boolean isHeld) {
 		super.onUpdate(item, world, player, inventoryIndex, isHeld);
 
 		if (world.isRemote)
 			return;
 
-		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0) && ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
+		if (this.material.regenerates() && isHeld && (item.getItemDamage() > 0)
+				&& ((world.getTotalWorldTime() % REGEN_INTERVAL) == 0)) {
 			item.setItemDamage(item.getItemDamage() - 1);
 		}
 	}
 
 	@Override
 	public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-		//MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
+		// MMDToolEffects.addToolSpecialPropertiesToolTip(this.material, tooltip);
 	}
 
 	@Override

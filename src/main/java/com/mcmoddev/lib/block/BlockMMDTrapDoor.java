@@ -34,18 +34,22 @@ public class BlockMMDTrapDoor extends BlockTrapDoor implements IMMDObject {
 	}
 
 	@Override
-	public boolean onBlockActivated(World world, BlockPos coord, IBlockState state, EntityPlayer player,
-			EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-		// just like with doors - using vanilla as an example, since we are all metal and work like the "Iron Trapdoor", this
+	public boolean onBlockActivated(World world, BlockPos coord, IBlockState state, EntityPlayer player, EnumHand hand,
+			EnumFacing facing, float hitX, float hitY, float hitZ) {
+		// just like with doors - using vanilla as an example, since we are all metal
+		// and work like the "Iron Trapdoor", this
 		// should just be:
 		return false;
-		
-/*		if (this.material.getToolHarvestLevel() > 1)
-			return true;
-		IBlockState newState = state.cycleProperty(BlockTrapDoor.OPEN);
-		world.setBlockState(coord, newState, 2);
-		world.playEvent(player, ((Boolean) newState.getValue(BlockTrapDoor.OPEN)) ? 1003 : 1006, coord, 0);
-		return true; */
+
+		/*
+		 * if (this.material.getToolHarvestLevel() > 1)
+		 * return true;
+		 * IBlockState newState = state.cycleProperty(BlockTrapDoor.OPEN);
+		 * world.setBlockState(coord, newState, 2);
+		 * world.playEvent(player, ((Boolean) newState.getValue(BlockTrapDoor.OPEN)) ?
+		 * 1003 : 1006, coord, 0);
+		 * return true;
+		 */
 	}
 
 	@Override
