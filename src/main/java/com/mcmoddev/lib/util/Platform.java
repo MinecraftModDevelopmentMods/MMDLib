@@ -98,10 +98,10 @@ public class Platform {
 	/**
 	 * Get PropertyString from BlockState properties
 	 *
-	 * @param values
-	 * @param extrasArgs
+	 * @param values Values
+	 * @param extrasArgs Args
 	 *
-	 * @return
+	 * @return Property String
 	 */
 	public static String getPropertyString(Map<IProperty<?>, Comparable<?>> values, String... extrasArgs) {
 		final StringBuilder stringbuilder = new StringBuilder();
