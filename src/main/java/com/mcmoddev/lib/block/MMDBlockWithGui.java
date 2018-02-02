@@ -1,8 +1,8 @@
 package com.mcmoddev.lib.block;
 
 import com.mcmoddev.lib.MMDLib;
-import com.mcmoddev.lib.gui.GuiHandlerIds;
-import com.mcmoddev.lib.gui.IGuiProvider;
+import com.mcmoddev.lib.container.GuiHandlerIds;
+import com.mcmoddev.lib.container.IGuiProvider;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;

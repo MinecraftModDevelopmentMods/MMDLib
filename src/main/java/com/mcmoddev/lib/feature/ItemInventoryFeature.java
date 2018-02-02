@@ -1,12 +1,16 @@
 package com.mcmoddev.lib.feature;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import javax.annotation.Nullable;
-import com.mcmoddev.lib.gui.GuiContext;
-import com.mcmoddev.lib.gui.IGuiPiece;
-import com.mcmoddev.lib.gui.IGuiPieceProvider;
-import com.mcmoddev.lib.gui.piece.ItemStackHandlerGrid;
+import com.mcmoddev.lib.container.IWidgetContainer;
+import com.mcmoddev.lib.container.gui.GuiContext;
+import com.mcmoddev.lib.container.gui.IWidgetGui;
+import com.mcmoddev.lib.container.gui.InventoryGrid;
+import com.mcmoddev.lib.container.widget.IWidget;
+import com.mcmoddev.lib.container.widget.ItemStackHandlerWidget;
 import com.mcmoddev.lib.inventory.FilteredItemHandler;
 import com.mcmoddev.lib.inventory.ItemHandlerWrapper;
 import net.minecraft.item.ItemStack;
@@ -16,10 +20,9 @@ import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
-public class ItemInventoryFeature extends BaseFeature implements IClientFeature, /*IContainerSlotsProvider, */IGuiPieceProvider {
+public class ItemInventoryFeature extends BaseFeature implements IClientFeature, IWidgetContainer {
     private final IItemHandlerModifiable internalHandler;
     private final IItemHandlerModifiable externalHandler;
-//    private Function<Integer, Vec2i> slotPositioner;
 
     private int overlayColor = -1;
     private int overlayAlpha = -1;
@@ -150,7 +153,16 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
     }
 
     @Override
-    public IGuiPiece getRootPiece(GuiContext context) {
+    public List<IWidget> getWidgets(GuiContext context) {
+        return new ArrayList<IWidget>() {{
+            add(new ItemStackHandlerWidget(
+                ItemInventoryFeature.this.getKey() + "_slots",
+                ItemInventoryFeature.this.getExternalHandler()));
+        }};
+    }
+
+    @Override
+    public IWidgetGui getRootWidgetGui(GuiContext context) {
 //        CanvasLayout layout = new CanvasLayout();
 //
 //        if ((this.overlayColor != -1) && (this.slotPositioner != null)) {
@@ -175,7 +187,8 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
 //        }
 //
 //        return layout;
-        ItemStackHandlerGrid grid = new ItemStackHandlerGrid(this.internalHandler, this.getKey(), this.columns);
+        InventoryGrid grid = new InventoryGrid(this.columns, this.getKey() + "_slots");
+//        ItemStackHandlerGrid grid = new ItemStackHandlerGrid(this.internalHandler, this.getKey(), this.columns);
         if (this.overlayColor != 0) {
             if (this.overlayAlpha > -1) {
                 grid.setColorOverlay(this.overlayColor, this.overlayAlpha);

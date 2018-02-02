@@ -1,8 +1,8 @@
 package com.mcmoddev.lib.proxy;
 
 import com.mcmoddev.lib.capability.MMDCapabilities;
+import com.mcmoddev.lib.container.MMDGuiHandler;
 import com.mcmoddev.lib.data.Names;
-import com.mcmoddev.lib.gui.MMDGuiHandler;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.network.MMDPackages;

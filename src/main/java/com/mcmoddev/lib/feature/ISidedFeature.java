@@ -34,6 +34,6 @@ public interface ISidedFeature extends IFeature {
 
     default boolean isFacingEnabled(EnumFacing facing) {
         EnumFacing[] facings = this.getFacings();
-        return (facings != null) && Arrays.stream(facings).anyMatch(f -> (f == facing));
+        return Arrays.stream(facings).anyMatch(f -> (f == facing));
     }
 }

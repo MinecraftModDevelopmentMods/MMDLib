@@ -4,7 +4,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.common.IModInstanceProvider;
-import com.mcmoddev.lib.gui.GuiHandlerIds;
+import com.mcmoddev.lib.container.GuiHandlerIds;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;

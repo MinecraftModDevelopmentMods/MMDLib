@@ -1,22 +1,24 @@
 package com.mcmoddev.lib.tile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.mcmoddev.lib.container.IWidgetContainer;
+import com.mcmoddev.lib.container.gui.GuiContext;
+import com.mcmoddev.lib.container.gui.IWidgetGui;
+import com.mcmoddev.lib.container.gui.layout.VerticalStackLayout;
+import com.mcmoddev.lib.container.widget.IWidget;
 import com.mcmoddev.lib.feature.IFeature;
 import com.mcmoddev.lib.feature.IFeatureHolder;
 import com.mcmoddev.lib.feature.IServerFeature;
-import com.mcmoddev.lib.gui.GuiContext;
-import com.mcmoddev.lib.gui.IGuiPiece;
-import com.mcmoddev.lib.gui.IGuiPieceProvider;
-import com.mcmoddev.lib.gui.layout.VerticalStackLayout;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ITickable;
 import net.minecraftforge.common.util.Constants;
 
-public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHolder, ITickable, /*IContainerSlotsProvider,*/ IGuiPieceProvider {
+public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHolder, ITickable, IWidgetContainer {
     private final List<IFeature> features = Lists.newArrayList();
     private final Set<String> dirtyFeatures = Sets.newHashSet();
 
@@ -134,14 +136,30 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
 //        return slots;
 //    }
 
+
     @Override
-    public IGuiPiece getRootPiece(GuiContext context) {
+    public List<IWidget> getWidgets(GuiContext context) {
+        List<IWidget> widgets = new ArrayList<>();
+
+        for(IFeature feature: this.features) {
+            if (feature instanceof IWidgetContainer) {
+                IWidgetContainer container = (IWidgetContainer)feature;
+                widgets.addAll(container.getWidgets(context));
+            }
+        }
+
+        return widgets;
+    }
+
+
+    @Override
+    public IWidgetGui getRootWidgetGui(GuiContext context) {
         VerticalStackLayout layout = new VerticalStackLayout();
 
         for (IFeature feature : this.features) {
-            if (feature instanceof IGuiPieceProvider) {
-                IGuiPieceProvider provider = (IGuiPieceProvider) feature;
-                layout.addPiece(provider.getRootPiece(context));
+            if (feature instanceof IWidgetContainer) {
+                IWidgetContainer provider = (IWidgetContainer) feature;
+                layout.addPiece(provider.getRootWidgetGui(context));
             }
         }
 

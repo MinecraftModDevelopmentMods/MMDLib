@@ -1,10 +1,10 @@
 package com.mcmoddev.lib.tile;
 
 import javax.annotation.Nullable;
-import com.mcmoddev.lib.gui.IGuiHolder;
-import com.mcmoddev.lib.gui.IGuiProvider;
-import com.mcmoddev.lib.gui.MMDContainer;
-import com.mcmoddev.lib.gui.MMDGuiContainer;
+import com.mcmoddev.lib.container.IGuiProvider;
+import com.mcmoddev.lib.container.IWidgetContainer;
+import com.mcmoddev.lib.container.MMDContainer;
+import com.mcmoddev.lib.container.gui.MMDGuiContainer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -20,7 +20,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-public class MMDTileEntity extends TileEntity implements IGuiProvider, /*IPlayerInventoryProvider,*/ IGuiHolder {
+public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetContainer {
     private static final String PARTIAL_SYNC_KEY = "partial_sync";
 
     //#region IGuiProvider Members

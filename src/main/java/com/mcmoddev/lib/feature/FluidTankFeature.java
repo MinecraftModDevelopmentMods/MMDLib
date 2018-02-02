@@ -2,13 +2,13 @@ package com.mcmoddev.lib.feature;
 
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
-import com.mcmoddev.lib.gui.GuiContext;
-import com.mcmoddev.lib.gui.GuiSprites;
-import com.mcmoddev.lib.gui.IGuiPiece;
-import com.mcmoddev.lib.gui.IGuiPieceProvider;
-import com.mcmoddev.lib.gui.layout.CanvasLayout;
-import com.mcmoddev.lib.gui.piece.GuiBackgroundSpritePiece;
-import com.mcmoddev.lib.gui.piece.GuiForegroundSpritePiece;
+import com.mcmoddev.lib.container.IWidgetContainer;
+import com.mcmoddev.lib.container.gui.GuiContext;
+import com.mcmoddev.lib.container.gui.GuiSprites;
+import com.mcmoddev.lib.container.gui.IWidgetGui;
+import com.mcmoddev.lib.container.gui.SpriteBackgroundGui;
+import com.mcmoddev.lib.container.gui.SpriteForegroundGui;
+import com.mcmoddev.lib.container.gui.layout.CanvasLayout;
 import com.mcmoddev.lib.inventory.FilteredFluidTank;
 import com.mcmoddev.lib.inventory.IFluidTankModifiable;
 import com.mcmoddev.lib.inventory.SimpleFluidTank;
@@ -17,12 +17,9 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
-public class FluidTankFeature extends BaseFeature implements IClientFeature, IGuiPieceProvider {
+public class FluidTankFeature extends BaseFeature implements IClientFeature, IWidgetContainer {
     private final IFluidTankModifiable internalTank;
     private final IFluidTankModifiable externalTank;
-
-    private int left = 0;
-    private int top = 0;
 
     public FluidTankFeature(String key, int capacity,
                             @Nullable Predicate<FluidStack> fillFilter,
@@ -73,20 +70,13 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IGu
         }
     }
 
-    public FluidTankFeature setPosition(int left, int top) {
-        this.left = left;
-        this.top = top;
-
-        return this;
-    }
-
     @Override
-    public IGuiPiece getRootPiece(GuiContext context) {
+    public IWidgetGui getRootWidgetGui(GuiContext context) {
         CanvasLayout layout = new CanvasLayout();
 
-        layout.addPiece(new GuiBackgroundSpritePiece(GuiSprites.TANK_CONTAINER), 0, 0);
+        layout.addPiece(new SpriteBackgroundGui(GuiSprites.TANK_CONTAINER), 0, 0);
         layout.addPiece(
-            new GuiForegroundSpritePiece(GuiSprites.TANK_OVERLAY, GuiSprites.TANK_CONTAINER.getWidth(), GuiSprites.TANK_CONTAINER.getHeight()),
+            new SpriteForegroundGui(GuiSprites.TANK_OVERLAY, GuiSprites.TANK_CONTAINER.getWidth(), GuiSprites.TANK_CONTAINER.getHeight()),
             0, 0);
 
         return layout;

@@ -1,6 +1,7 @@
 package com.mcmoddev.lib.network;
 
 import io.netty.buffer.ByteBuf;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
@@ -31,5 +32,9 @@ public class NBTBasedPlayerMessage extends NBTBasedMessage {
     public void toBytes(ByteBuf buf) {
         ByteBufUtils.writeUTF8String(buf, ((this.playerId == null) || (this.playerId.length() == 0)) ? "" : this.playerId);
         super.toBytes(buf);
+    }
+
+    public static void sendToServer(EntityPlayerSP player, NBTTagCompound data) {
+        MMDPackages.sendToServer(new NBTBasedPlayerMessage(player, data));
     }
 }

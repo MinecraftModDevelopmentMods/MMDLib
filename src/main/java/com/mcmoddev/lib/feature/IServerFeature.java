@@ -4,7 +4,7 @@ import javax.annotation.Nullable;
 import net.minecraft.inventory.Container;
 import net.minecraft.nbt.NBTTagCompound;
 
-public interface IServerFeature {
+public interface IServerFeature extends IFeature {
     boolean isDirty();
 
     /**

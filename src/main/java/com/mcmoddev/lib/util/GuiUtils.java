@@ -1,8 +1,10 @@
 package com.mcmoddev.lib.util;
 
+import java.awt.Color;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import com.mcmoddev.lib.gui.IGuiHolder;
-import com.mcmoddev.lib.gui.IGuiHolderProxy;
+import com.mcmoddev.lib.container.IWidgetContainer;
+import com.mcmoddev.lib.container.IWidgetContainerProxy;
 import mcp.MethodsReturnNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
@@ -10,15 +12,21 @@ import mcp.MethodsReturnNonnullByDefault;
 public final class GuiUtils {
     private GuiUtils() {}
 
-    public static IGuiHolder getGuiHolder(Object thing) {
-        if (thing instanceof IGuiHolder) {
-            return IGuiHolder.class.cast(thing);
+    @Nullable
+    public static IWidgetContainer getWidgetContainer(Object thing) {
+        if (thing instanceof IWidgetContainer) {
+            return IWidgetContainer.class.cast(thing);
         }
 
-        if (thing instanceof IGuiHolderProxy) {
-            return IGuiHolderProxy.class.cast(thing).getGuiHolder();
+        if (thing instanceof IWidgetContainerProxy) {
+            return IWidgetContainerProxy.class.cast(thing).getWidgetContainer();
         }
 
         return null;
+    }
+
+    public static int applyAlpha(int color, int alpha) {
+        Color base = new Color(color);
+        return new Color(base.getRed(), base.getGreen(), base.getBlue(), alpha).getRGB();
     }
 }
