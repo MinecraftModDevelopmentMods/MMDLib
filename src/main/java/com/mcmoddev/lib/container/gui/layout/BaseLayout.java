@@ -4,6 +4,7 @@ import java.util.Arrays;
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.container.gui.GuiPieceLayer;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
+import com.mcmoddev.lib.container.gui.IWidgetGuiDebugInfo;
 import com.mcmoddev.lib.container.gui.IWidgetLayout;
 import com.mcmoddev.lib.container.gui.MMDGuiContainer;
 import com.mcmoddev.lib.container.gui.util.Padding;
@@ -15,7 +16,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SuppressWarnings("WeakerAccess")
 @SideOnly(Side.CLIENT)
-public abstract class BaseLayout implements IWidgetLayout/*, IWidgetLayoutDebugInfo*/ {
+public abstract class BaseLayout implements IWidgetLayout, IWidgetGuiDebugInfo {
     public static final float CHILD_Z_INCREASE = 0.01f;
 
     private Padding padding = Padding.EMPTY;
@@ -126,11 +127,11 @@ public abstract class BaseLayout implements IWidgetLayout/*, IWidgetLayoutDebugI
         }
     }
 
-//    @Override
-//    public String getDebugInfo() {
-//        Size2D size = this.getSize();
-//        return String.format("[cw: %d, ch: %d]", size.width, size.height);
-//    }
+    @Override
+    public String getDebugInfo() {
+        Size2D size = this.getSize();
+        return String.format("[cw: %d, ch: %d]", size.width, size.height);
+    }
 
     @Override
     public boolean mouseClicked(MMDGuiContainer container, int mouseX, int mouseY, int mouseButton) {

@@ -65,4 +65,6 @@ public interface IWidgetGui {
 
     default void init(GuiContext context) {}
     default void postInit(GuiContext context) {}
+
+    default void tick(GuiContext context) {}
 }

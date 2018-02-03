@@ -1,6 +1,8 @@
 package com.mcmoddev.lib.container.widget;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import com.mcmoddev.lib.container.gui.GuiContext;
 import com.mcmoddev.lib.network.NBTBasedPlayerMessage;
 import com.mcmoddev.lib.util.NBTUtils;
 import net.minecraft.client.Minecraft;
@@ -9,11 +11,12 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-public class ActionWidget extends BaseWidget {
+@SuppressWarnings("WeakerAccess")
+public class ActionWidget extends BaseContextualWidget {
     private static final String ACTION_CALL_TAG_NAME = "_invokeAction";
 
-    private Consumer<NBTTagCompound> clientConsumer = null;
-    private Consumer<NBTTagCompound> serverConsumer = null;
+    private BiConsumer<GuiContext, NBTTagCompound> clientConsumer = null;
+    private BiConsumer<GuiContext, NBTTagCompound> serverConsumer = null;
 
     public ActionWidget(String key) {
         this(key, false);
@@ -24,6 +27,11 @@ public class ActionWidget extends BaseWidget {
     }
 
     public ActionWidget setClientSideConsumer(Consumer<NBTTagCompound> consumer) {
+        this.clientConsumer = (context, nbt) -> consumer.accept(nbt);
+        return this;
+    }
+
+    public ActionWidget setClientSideConsumer(BiConsumer<GuiContext, NBTTagCompound> consumer) {
         this.clientConsumer = consumer;
         return this;
     }
@@ -32,8 +40,13 @@ public class ActionWidget extends BaseWidget {
         return this.setClientSideConsumer(nbt -> consumer.run());
     }
 
-    public ActionWidget setServerSideConsumer(Consumer<NBTTagCompound> consumer) {
+    public ActionWidget setServerSideConsumer(BiConsumer<GuiContext, NBTTagCompound> consumer) {
         this.serverConsumer = consumer;
+        return this;
+    }
+
+    public ActionWidget setServerSideConsumer(Consumer<NBTTagCompound> consumer) {
+        this.serverConsumer = (context, nbt) -> consumer.accept(nbt);
         return this;
     }
 
@@ -44,7 +57,7 @@ public class ActionWidget extends BaseWidget {
     @Override
     public void handleMessageFromClient(NBTTagCompound tag) {
         if ((this.serverConsumer != null) && tag.hasKey(ACTION_CALL_TAG_NAME, Constants.NBT.TAG_COMPOUND)) {
-            this.serverConsumer.accept(tag.getCompoundTag(ACTION_CALL_TAG_NAME));
+            this.serverConsumer.accept(this.getContext(), tag.getCompoundTag(ACTION_CALL_TAG_NAME));
         }
     }
 
@@ -56,7 +69,7 @@ public class ActionWidget extends BaseWidget {
     @SideOnly(Side.CLIENT)
     public void actionPerformed(NBTTagCompound data) {
         if (this.clientConsumer != null) {
-            this.clientConsumer.accept(data);
+            this.clientConsumer.accept(this.getContext(), data);
         }
 
         if (this.serverConsumer != null) {

@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.mcmoddev.lib.container.gui.GuiContext;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
 import com.mcmoddev.lib.container.gui.IWidgetLayout;
+import com.mcmoddev.lib.container.gui.layout.CanvasLayout;
 import com.mcmoddev.lib.container.widget.IWidget;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -40,9 +41,8 @@ public interface IWidgetContainer {
      * @return The root Widget Gui of this container.
      * @implNote This will only get called on client thread.
      */
-    // TODO: return an empty canvas by default
     @SideOnly(Side.CLIENT)
-    default IWidgetGui getRootWidgetGui(GuiContext context) { return null; }
+    default IWidgetGui getRootWidgetGui(GuiContext context) { return new CanvasLayout(); }
 
     @Nullable
     @SideOnly(Side.CLIENT)

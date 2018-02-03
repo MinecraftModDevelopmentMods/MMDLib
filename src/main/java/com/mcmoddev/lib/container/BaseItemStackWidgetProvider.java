@@ -1,10 +1,13 @@
 package com.mcmoddev.lib.container;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.container.gui.GuiContext;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
 import com.mcmoddev.lib.container.gui.MMDGuiContainer;
 import com.mcmoddev.lib.container.gui.layout.VerticalStackLayout;
+import com.mcmoddev.lib.container.widget.IWidget;
 import com.mcmoddev.lib.feature.IClientFeature;
 import com.mcmoddev.lib.feature.IFeature;
 import com.mcmoddev.lib.feature.IFeatureHolder;
@@ -68,6 +71,20 @@ public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContain
         return new MMDContainer(this, player);
     }
 
+    @Override
+    public List<IWidget> getWidgets(GuiContext context) {
+        List<IWidget> widgets = new ArrayList<>();
+
+        if (this.features != null) {
+            for(IFeature feature: this.features.getFeatures()) {
+                if (feature instanceof IWidgetContainer) {
+                    widgets.addAll(IWidgetContainer.class.cast(feature).getWidgets(context));
+                }
+            }
+        }
+
+        return widgets;
+    }
 
     @Override
     public IWidgetGui getRootWidgetGui(GuiContext context) {

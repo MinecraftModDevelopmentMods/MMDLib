@@ -3,13 +3,14 @@ package com.mcmoddev.lib.container.gui.layout;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
+import com.mcmoddev.lib.container.gui.IWidgetLayoutDebugInfo;
 import com.mcmoddev.lib.container.gui.util.Padding;
 import com.mcmoddev.lib.container.gui.util.Size2D;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class HorizontalStackLayout extends BaseLayout /*implements IWidgetLayoutDebugInfo*/ {
+public class HorizontalStackLayout extends BaseLayout implements IWidgetLayoutDebugInfo {
     private final List<IWidgetGui> pieces = Lists.newArrayList();
 
     public HorizontalStackLayout() {
@@ -54,7 +55,7 @@ public class HorizontalStackLayout extends BaseLayout /*implements IWidgetLayout
         boolean found = false;
 
         for(IWidgetGui tempPiece : this.pieces) {
-            Size2D pieceSize = this.getSize(child);
+            Size2D pieceSize = this.getSize(tempPiece);
             height = Math.max(height, pieceSize.height);
 
             if (child == tempPiece) {
@@ -74,9 +75,9 @@ public class HorizontalStackLayout extends BaseLayout /*implements IWidgetLayout
         return new Size2D(left, top);
     }
 
-//    @Override
-//    public String getDebugInfo(IWidgetGui piece) {
-//        Size2D pos = this.getChildPosition(piece);
-//        return String.format("i: %d, cx: %d, cy: %d", this.pieces.indexOf(piece), pos.width, pos.height);
-//    }
+    @Override
+    public String getDebugInfo(IWidgetGui piece) {
+        Size2D pos = this.getChildPosition(piece);
+        return String.format("i: %d, cx: %d, cy: %d", this.pieces.indexOf(piece), pos.width, pos.height);
+    }
 }

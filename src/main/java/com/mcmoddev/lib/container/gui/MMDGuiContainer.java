@@ -15,7 +15,6 @@ import org.apache.logging.log4j.util.TriConsumer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Slot;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -72,38 +71,49 @@ public class MMDGuiContainer extends GuiContainer {
     @Override
     public void initGui() {
         boolean firstRun = (this.rootPiece == null);
-        GuiContext context = firstRun ? new GuiContext(this.player, this.container, this, this.holder) : null;
+        GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
 
-        if (firstRun) {
-            Size2D rootSize;
+//        if (firstRun) {
+        Size2D rootSize;
+        if (this.rootPiece == null) {
             this.rootPiece = this.holder.getRootWidgetGui(context);
             WidgetGuiIterable.forEach(this.rootPiece, widget -> widget.init(context));
-
-            Padding padding = this.rootPiece.getPadding();
-            if (padding.isEmpty()) {
-                padding = new Padding(this.specifiedPadding);
-            }
-            rootSize = this.rootPiece.getSize().add(padding.getHorizontal(), padding.getVertical());
-            this.piecesOffsetX = padding.left;
-            this.piecesOffsetY = padding.top;
-
-            this.logRootPiece();
-
-            this.xSize = (this.specifiedWidth > 0) ? this.specifiedWidth : rootSize.width;
-            this.ySize = (this.specifiedHeight > 0) ? this.specifiedHeight : rootSize.height;
         }
+
+        Padding padding = this.rootPiece.getPadding();
+        if (padding.isEmpty()) {
+            padding = new Padding(this.specifiedPadding);
+        }
+        rootSize = this.rootPiece.getSize().add(padding.getHorizontal(), padding.getVertical());
+        this.piecesOffsetX = padding.left;
+        this.piecesOffsetY = padding.top;
+
+        this.logRootPiece();
+
+        this.xSize = (this.specifiedWidth > 0) ? this.specifiedWidth : rootSize.width;
+        this.ySize = (this.specifiedHeight > 0) ? this.specifiedHeight : rootSize.height;
 
         super.initGui();
 
-        if (firstRun && ((this.piecesOffsetX > 0) || (this.piecesOffsetY > 0))) {
-            for (Slot slot : this.inventorySlots.inventorySlots) {
-                slot.xPos += this.piecesOffsetX + 1;
-                slot.yPos += this.piecesOffsetY + 1;
-            }
-        }
+//        if (firstRun && ((this.piecesOffsetX > 0) || (this.piecesOffsetY > 0))) {
+//            for (Slot slot : this.inventorySlots.inventorySlots) {
+//                slot.xPos += this.piecesOffsetX + 1;
+//                slot.yPos += this.piecesOffsetY + 1;
+//            }
+//        }
 
-        if (firstRun && (this.rootPiece != null)) {
+        if (this.rootPiece != null) {
             WidgetGuiIterable.forEach(this.rootPiece, widget -> widget.postInit(context));
+        }
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+
+        if (this.rootPiece != null) {
+            GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
+            WidgetGuiIterable.forEach(this.rootPiece, widget -> widget.tick(context));
         }
     }
 
@@ -134,6 +144,12 @@ public class MMDGuiContainer extends GuiContainer {
                 this.logPiece(container, child, level + 1);
             }
         }
+    }
+
+    @Override
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        this.drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     @SideOnly(Side.CLIENT)

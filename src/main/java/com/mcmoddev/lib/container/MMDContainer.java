@@ -1,9 +1,12 @@
 package com.mcmoddev.lib.container;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.mcmoddev.lib.container.gui.GuiContext;
+import com.mcmoddev.lib.container.widget.IContextualWidget;
+import com.mcmoddev.lib.container.widget.IProxyWidget;
 import com.mcmoddev.lib.container.widget.IWidget;
 import com.mcmoddev.lib.network.MMDPackages;
 import com.mcmoddev.lib.network.NBTBasedPlayerMessage;
@@ -64,9 +67,16 @@ public class MMDContainer extends Container {
 //        }
 
         GuiContext context = new GuiContext(player, this, provider);
-        this.widgets = this.provider.getWidgets(context);
+        this.widgets = this.provider
+            .getWidgets(context)
+            .stream()
+            .map(w -> (w instanceof IProxyWidget) ? ((IProxyWidget)w).getContextualWidget(context) : w)
+            .collect(Collectors.toList());
         List<IContainerSlot> slots = Lists.newArrayList();
         for(IWidget widget : this.widgets) {
+            if (widget instanceof IContextualWidget) {
+                ((IContextualWidget)widget).setContext(context);
+            }
             slots.addAll(widget.getSlots());
         }
 //        if (provider != null) {
@@ -214,10 +224,15 @@ public class MMDContainer extends Container {
 
     @Nullable
     public IMessage handleMessageFromServer(NBTTagCompound compound) {
-        if (this.provider != null) {
-            return this.provider.receiveGuiUpdateTag(compound);
+        if (compound.getSize() > 0) {
+            for(IWidget widget: this.widgets) {
+                if (compound.hasKey(widget.getKey(), Constants.NBT.TAG_COMPOUND)) {
+                    widget.handleMessageFromServer(compound.getCompoundTag(widget.getKey()));
+                }
+            }
         }
-        return null;
+
+        return (this.provider != null) ? this.provider.receiveGuiUpdateTag(compound) : null;
     }
 
     @Nullable
@@ -264,7 +279,23 @@ public class MMDContainer extends Container {
 
         if (this.player instanceof EntityPlayerMP) {
             NBTTagCompound nbt = this.provider.getGuiUpdateTag(true);
-            if ((nbt != null) && (nbt.getSize() > 0)) {
+            if (nbt == null) {
+                nbt = new NBTTagCompound();
+            }
+
+            for(IWidget widget: this.widgets) {
+                if (!widget.isDirty()) {
+                    continue;
+                }
+
+                NBTTagCompound widgetNbt = widget.getUpdateCompound();
+                if ((widgetNbt != null) && (widgetNbt.getSize() > 0)) {
+                    nbt.setTag(widget.getKey(), widgetNbt);
+                }
+                widget.resetDirtyFlag();
+            }
+
+            if (nbt.getSize() > 0) {
                 MMDPackages.sendToPlayer((EntityPlayerMP)this.player, new NBTBasedPlayerMessage(this.player, nbt));
             }
         }

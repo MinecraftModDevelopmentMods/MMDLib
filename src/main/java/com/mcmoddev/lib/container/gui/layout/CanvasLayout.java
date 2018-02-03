@@ -6,12 +6,13 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
+import com.mcmoddev.lib.container.gui.IWidgetLayoutDebugInfo;
 import com.mcmoddev.lib.container.gui.util.Size2D;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class CanvasLayout extends BaseLayout /*implements IWidgetLayoutDebugInfo*/ {
+public class CanvasLayout extends BaseLayout implements IWidgetLayoutDebugInfo {
     private class CanvasPieceInfo {
         public final IWidgetGui piece;
         public final int left;
@@ -66,13 +67,13 @@ public class CanvasLayout extends BaseLayout /*implements IWidgetLayoutDebugInfo
         return new Size2D(info.left, info.top);
     }
 
-//    @Override
-//    public String getDebugInfo(IWidgetGui piece) {
-//        if (!this.piecesMap.containsKey(piece)) {
-//            return "[n/a]";
-//        }
-//
-//        CanvasPieceInfo info = this.piecesMap.get(piece);
-//        return String.format("x: %d, y: %d", info.left, info.top);
-//    }
+    @Override
+    public String getDebugInfo(IWidgetGui piece) {
+        if (!this.piecesMap.containsKey(piece)) {
+            return "[n/a]";
+        }
+
+        CanvasPieceInfo info = this.piecesMap.get(piece);
+        return String.format("x: %d, y: %d", info.left, info.top);
+    }
 }

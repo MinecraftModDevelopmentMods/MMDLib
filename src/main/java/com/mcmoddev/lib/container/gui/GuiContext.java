@@ -1,9 +1,11 @@
 package com.mcmoddev.lib.container.gui;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.container.IWidgetContainer;
 import com.mcmoddev.lib.container.MMDContainer;
+import com.mcmoddev.lib.container.widget.IProxiedWidget;
 import com.mcmoddev.lib.container.widget.IWidget;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fml.relauncher.Side;
@@ -48,11 +50,24 @@ public class GuiContext {
     }
 
     public List<IWidget> getWidgets() {
-        return this.container.getWidgets();
+        return this.container.getWidgets()
+            .stream()
+            .map(w -> (w instanceof IProxiedWidget) ? ((IProxiedWidget)w).getOriginalWidget() : w)
+            .collect(Collectors.toList());
     }
 
     @Nullable
     public IWidget findWidgetByKey(String key) {
-        return this.container.findWidgetByKey(key);
+        return this.findWidgetByKey(key, true);
+    }
+
+    @Nullable
+    public IWidget findWidgetByKey(String key, boolean handleProxies) {
+        IWidget widget = this.container.findWidgetByKey(key);
+        if (handleProxies && (widget instanceof IProxiedWidget)) {
+            return ((IProxiedWidget) widget).getOriginalWidget();
+        } else {
+            return widget;
+        }
     }
 }

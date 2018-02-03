@@ -21,6 +21,7 @@ public interface IWidget {
      * Only need to override in case this widget provides Slots.
      * @return The list of slots exposed by this widget.
      * @implNote The position on the slots is not relevant here. They will be positioned by the corresponding Widget Gui.
+     * @implNote The slots should be created on every call of this method and not be cached.
      */
     // TODO: sounds stupid... but... minecraft!
     default Collection<IContainerSlot> getSlots() {

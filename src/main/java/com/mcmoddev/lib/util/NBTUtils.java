@@ -1,11 +1,14 @@
 package com.mcmoddev.lib.util;
 
+import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
 import mcp.MethodsReturnNonnullByDefault;
 
+@SuppressWarnings("WeakerAccess")
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public final class NBTUtils {
@@ -31,5 +34,24 @@ public final class NBTUtils {
         }
         nbt.setTag(path[path.length - 1], inner);
         return root;
+    }
+
+    public static NBTTagCompound getPatch(NBTTagCompound from, NBTTagCompound to) {
+        NBTTagCompound patch = new NBTTagCompound();
+
+        Set<String> keys = from.getKeySet();
+        for(String key: keys) {
+            NBTBase f = from.getTag(key);
+            if (!to.hasKey(key)) {
+                // TODO: handle stuff existing in FROM but not in TO
+            } else {
+                NBTBase t = to.getTag(key);
+                if (!f.equals(t)) {
+                    patch.setTag(key, t);
+                }
+            }
+        }
+
+        return patch;
     }
 }
