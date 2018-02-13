@@ -17,6 +17,8 @@ import com.mcmoddev.lib.feature.IServerFeature;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ITickable;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHolder, ITickable, IWidgetContainer {
     private final List<IFeature> features = Lists.newArrayList();
@@ -153,6 +155,7 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
 
 
     @Override
+    @SideOnly(Side.CLIENT)
     public IWidgetGui getRootWidgetGui(GuiContext context) {
         VerticalStackLayout layout = new VerticalStackLayout();
 

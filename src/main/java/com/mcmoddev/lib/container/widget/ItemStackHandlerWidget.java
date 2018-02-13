@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.mcmoddev.lib.container.IContainerSlot;
-import com.mcmoddev.lib.container.slots.ItemStackHandlerSlot;
+import com.mcmoddev.lib.container.slot.ItemStackHandlerSlot;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 public class ItemStackHandlerWidget extends BaseWidget {

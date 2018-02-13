@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.container.slots;
+package com.mcmoddev.lib.container.slot;
 
 import java.util.List;
 import com.google.common.collect.Lists;

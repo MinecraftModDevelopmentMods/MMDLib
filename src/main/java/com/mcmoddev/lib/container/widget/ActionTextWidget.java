@@ -2,7 +2,6 @@ package com.mcmoddev.lib.container.widget;
 
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
-import com.mcmoddev.lib.util.NBTUtils;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
@@ -60,12 +59,16 @@ public class ActionTextWidget extends ActionWidget {
     public void handleMessageFromServer(NBTTagCompound tag) {
         // client side, don't care about dirty flag
         this.text = this.getTextFromNBT(tag);
+
+        super.handleMessageFromServer(tag);
     }
 
     @Override
     public void handleMessageFromClient(NBTTagCompound tag) {
         // server side, we do care about dirty flag
         this.setText(this.getTextFromNBT(tag));
+
+        super.handleMessageFromClient(tag);
     }
 
     @Nullable
@@ -76,11 +79,11 @@ public class ActionTextWidget extends ActionWidget {
     }
 
     @SideOnly(Side.CLIENT)
-    public static NBTTagCompound getActionNBT(String widgetKey, @Nullable String newText) {
+    public static NBTTagCompound getActionNBT( @Nullable String newText) {
         NBTTagCompound data = new NBTTagCompound();
         if (newText != null) {
             data.setString(NBT_TEXT_KEY, newText);
         }
-        return NBTUtils.wrapCompound(data, widgetKey);
+        return data;
     }
 }

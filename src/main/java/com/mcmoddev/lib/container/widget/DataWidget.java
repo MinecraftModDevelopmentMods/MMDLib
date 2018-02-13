@@ -21,8 +21,9 @@ import com.mcmoddev.lib.util.NBTUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.TriConsumer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.common.util.INBTSerializable;
 
-public class DataWidget extends BaseWidget implements IProxyWidget {
+public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializable<NBTTagCompound> {
     private final List<DataHandler> dataHandlers = new ArrayList<>();
 
     protected DataWidget(String key) {
@@ -393,5 +394,28 @@ public class DataWidget extends BaseWidget implements IProxyWidget {
     public void handleMessageFromServer(NBTTagCompound tag) {
         MMDLib.logger.info("Data Widget info received from server :: " + tag.toString());
         this.refreshData(tag);
+    }
+
+    @Override
+    public NBTTagCompound serializeNBT() {
+        return this.getSnapshot();
+    }
+
+    @Override
+    public void deserializeNBT(NBTTagCompound nbt) {
+        this.refreshData(nbt);
+    }
+
+    @Nullable
+    public ActionTextWidget getStringUpdateActionWidget(String widgetKey, String dataKey) {
+        DataHandler rawHandler = this.dataHandlers.stream().filter(w -> w.getProviderKey().equals(dataKey)).findFirst().orElse(null);
+        if ((rawHandler == null) || !(rawHandler instanceof StringHandler)) {
+            // TODO: consider throwing an error
+            return null;
+        }
+        StringHandler handler = (StringHandler)rawHandler;
+        ActionTextWidget widget = new ActionTextWidget(widgetKey, handler.getValue(this));
+        widget.setServerSideTextConsumer(text -> handler.setValue(this, text));
+        return widget;
     }
 }

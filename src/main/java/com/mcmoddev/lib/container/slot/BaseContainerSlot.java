@@ -1,4 +1,4 @@
-package com.mcmoddev.lib.container.slots;
+package com.mcmoddev.lib.container.slot;
 
 import com.mcmoddev.lib.container.IContainerSlot;
 import net.minecraft.inventory.Slot;

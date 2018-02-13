@@ -6,7 +6,7 @@ import com.mcmoddev.lib.container.widget.DataWidget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
-public class TextWidgetGui extends BaseWidgetGui {
+public class LabelWidgetGui extends BaseWidgetGui {
     private String text;
     private Size2D measured = null;
     private FontRenderer font;
@@ -17,11 +17,15 @@ public class TextWidgetGui extends BaseWidgetGui {
     private String dataWidgetKey = null;
     private String dataWidgetDataKey = null;
 
-    public TextWidgetGui() {
+    public LabelWidgetGui() {
         this("", Minecraft.getMinecraft().fontRenderer, GuiPieceLayer.FOREGROUND, Color.black.getRGB());
     }
 
-    public TextWidgetGui(String text, FontRenderer font, GuiPieceLayer layer, int color) {
+    public LabelWidgetGui(String text) {
+        this(text, Minecraft.getMinecraft().fontRenderer, GuiPieceLayer.FOREGROUND, Color.black.getRGB());
+    }
+
+    public LabelWidgetGui(String text, FontRenderer font, GuiPieceLayer layer, int color) {
         this.setText(text);
         this.font = font;
         this.layer = layer;
@@ -47,7 +51,7 @@ public class TextWidgetGui extends BaseWidgetGui {
         return true;
     }
 
-    public TextWidgetGui connectDataWidget(String widgetKey, String dataKey) {
+    public LabelWidgetGui connectDataWidget(String widgetKey, String dataKey) {
         this.dataWidgetKey = widgetKey;
         this.dataWidgetDataKey = dataKey;
         return this;

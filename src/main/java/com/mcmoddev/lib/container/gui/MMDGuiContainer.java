@@ -1,6 +1,8 @@
 package com.mcmoddev.lib.container.gui;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.container.IWidgetContainer;
@@ -12,6 +14,7 @@ import com.mcmoddev.lib.container.gui.util.TexturedRectangleRenderer;
 import com.mcmoddev.lib.container.gui.util.WidgetGuiIterable;
 import com.mcmoddev.lib.container.widget.IWidget;
 import org.apache.logging.log4j.util.TriConsumer;
+import org.lwjgl.input.Keyboard;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
@@ -19,7 +22,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SuppressWarnings("WeakerAccess")
-public class MMDGuiContainer extends GuiContainer {
+public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
     protected final IWidgetContainer holder;
     protected final EntityPlayer player;
 
@@ -33,6 +36,10 @@ public class MMDGuiContainer extends GuiContainer {
     protected IWidgetGui rootPiece;
 
     private final MMDContainer container;
+
+    private IFocusableWidgetGui currentFocus = null;
+    private List<IFocusableWidgetGui> focusables = null;
+    private int currentFocusIndex = -1;
 
     public MMDGuiContainer(IWidgetContainer holder, EntityPlayer player, MMDContainer container, int padding) {
         this(holder, player, container);
@@ -73,11 +80,20 @@ public class MMDGuiContainer extends GuiContainer {
         boolean firstRun = (this.rootPiece == null);
         GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
 
-//        if (firstRun) {
         Size2D rootSize;
         if (this.rootPiece == null) {
             this.rootPiece = this.holder.getRootWidgetGui(context);
-            WidgetGuiIterable.forEach(this.rootPiece, widget -> widget.init(context));
+            this.focusables = new ArrayList<>();
+            WidgetGuiIterable.forEach(this.rootPiece, widget -> {
+                widget.init(context);
+                if (widget instanceof IFocusableWidgetGui) {
+                    ((IFocusableWidgetGui)widget).setFocusableHandler(this);
+                    this.focusables.add((IFocusableWidgetGui) widget);
+                }
+            });
+            if (this.focusables.size() > 0) {
+                this.setFocus(this.focusables.get(this.currentFocusIndex = 0));
+            }
         }
 
         Padding padding = this.rootPiece.getPadding();
@@ -94,13 +110,6 @@ public class MMDGuiContainer extends GuiContainer {
         this.ySize = (this.specifiedHeight > 0) ? this.specifiedHeight : rootSize.height;
 
         super.initGui();
-
-//        if (firstRun && ((this.piecesOffsetX > 0) || (this.piecesOffsetY > 0))) {
-//            for (Slot slot : this.inventorySlots.inventorySlots) {
-//                slot.xPos += this.piecesOffsetX + 1;
-//                slot.yPos += this.piecesOffsetY + 1;
-//            }
-//        }
 
         if (this.rootPiece != null) {
             WidgetGuiIterable.forEach(this.rootPiece, widget -> widget.postInit(context));
@@ -255,5 +264,47 @@ public class MMDGuiContainer extends GuiContainer {
             }
         }
         super.mouseReleased(mouseX, mouseY, state);
+    }
+
+    @Nullable
+    @Override
+    public IFocusableWidgetGui getCurrentFocus() {
+        return this.currentFocus;
+    }
+
+    @Override
+    public void setFocus(@Nullable IFocusableWidgetGui widgetGui) {
+        if (this.currentFocus != null) {
+            this.currentFocus.onBlur();
+        }
+
+        this.currentFocus = widgetGui;
+        if (this.currentFocus != null) {
+            this.currentFocusIndex = this.focusables.indexOf(this.currentFocus);
+            this.currentFocus.onFocus();
+        }
+        else {
+            this.currentFocusIndex = -1;
+        }
+    }
+
+    public void clearFocus() {
+        this.setFocus(null);
+    }
+
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (this.currentFocus.handleKeyPress(typedChar, keyCode)) {
+            return; // key handled, don't call default code
+        }
+        else if ((typedChar > 0) && (keyCode == Keyboard.KEY_TAB)) {
+            // tab pressed, move next
+            if ((this.focusables != null) && (this.focusables.size() > 1)) {
+                this.setFocus(this.focusables.get((this.currentFocusIndex + 1) % this.focusables.size()));
+                return;
+            }
+        }
+
+        super.keyTyped(typedChar, keyCode);
     }
 }

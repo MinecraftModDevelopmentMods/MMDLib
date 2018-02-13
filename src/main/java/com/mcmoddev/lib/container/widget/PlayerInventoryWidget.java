@@ -5,7 +5,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import com.mcmoddev.lib.container.IContainerSlot;
 import com.mcmoddev.lib.container.PlayerInventory;
-import com.mcmoddev.lib.container.slots.PlayerInventorySlot;
+import com.mcmoddev.lib.container.slot.PlayerInventorySlot;
 import net.minecraft.entity.player.EntityPlayer;
 
 public class PlayerInventoryWidget extends BaseWidget {
