@@ -18,22 +18,23 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+@SuppressWarnings("WeakerAccess")
 public class BaseItemStackFeatureHolder implements IFeatureHolder, IWidgetContainer {
     private final ItemStack stack;
-    private List<IFeature> features = Lists.newArrayList();
+    private final List<IFeature> features = Lists.newArrayList();
 
-    public BaseItemStackFeatureHolder(ItemStack stack) {
+    public BaseItemStackFeatureHolder(final ItemStack stack) {
         this.stack = stack;
     }
 
     @Override
-    public <T extends IFeature> T addFeature(T feature) {
+    public <T extends IFeature> T addFeature(final T feature) {
         this.features.add(feature);
         feature.setHolder(this);
 
-        NBTTagCompound storage = this.stack.getOrCreateSubCompound("features");
+        final NBTTagCompound storage = this.stack.getOrCreateSubCompound("features");
         if (storage.hasKey(feature.getKey(), Constants.NBT.TAG_COMPOUND)) {
-            NBTTagCompound featureCompound = storage.getCompoundTag(feature.getKey());
+            final NBTTagCompound featureCompound = storage.getCompoundTag(feature.getKey());
             feature.deserializeNBT(featureCompound);
         }
 
@@ -46,13 +47,13 @@ public class BaseItemStackFeatureHolder implements IFeatureHolder, IWidgetContai
     }
 
     @Override
-    public void featuredChanged(IFeature feature) {
-        NBTTagCompound featureCompound = feature.serializeNBT();
-        NBTTagCompound storage = this.stack.getOrCreateSubCompound("features");
+    public void featureChanged(final IFeature feature, FeatureDirtyLevel level) {
+        final NBTTagCompound featureCompound = feature.serializeNBT();
+        final NBTTagCompound storage = this.stack.getOrCreateSubCompound("features");
         storage.setTag(feature.getKey(), featureCompound);
     }
 
-    private Stream<IWidget> getWidgetsStream(GuiContext context) {
+    private Stream<IWidget> getWidgetsStream(final GuiContext context) {
         return this.features
             .stream()
             .map(f -> (f instanceof IWidgetContainer) ? IWidgetContainer.class.cast(f) : null)
@@ -61,48 +62,33 @@ public class BaseItemStackFeatureHolder implements IFeatureHolder, IWidgetContai
     }
 
     @Override
-    public List<IWidget> getWidgets(GuiContext context) {
+    public List<IWidget> getWidgets(final GuiContext context) {
         return this.getWidgetsStream(context)
             .collect(Collectors.toList());
     }
 
     @Nullable
     @Override
-    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
-        // Widgets are handled by the container, not this class
-        NBTTagCompound nbt = new NBTTagCompound();
-//        this.getWidgetsStream().forEach(widget -> {
-//            if (widget.isDirty()) {
-//                NBTTagCompound updateTag = widget.getUpdateCompound();
-//                if (updateTag != null) {
-//                    NBTUtils.setInnerCompound(nbt, updateTag, widget.getKey());
-//                }
-//            }
-//        });
+    public NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) {
+        final NBTTagCompound nbt = new NBTTagCompound();
         return (nbt.getSize() > 0) ? nbt : null;
     }
 
     @Nullable
     @Override
     @SideOnly(Side.CLIENT)
-    public IMessage receiveGuiUpdateTag(NBTTagCompound compound) {
-        // Widgets are handled by the container, not this class
-//        this.getWidgetsStream().forEach(widget -> {
-//            if (compound.hasKey(widget.getKey(), Constants.NBT.TAG_COMPOUND)) {
-//                widget.handleMessageFromServer(compound.getCompoundTag(widget.getKey()));
-//            }
-//        });
+    public IMessage receiveGuiUpdateTag(final NBTTagCompound compound) {
         return null;
     }
 
     @Override
     @SideOnly(Side.CLIENT)
-    public IWidgetGui getRootWidgetGui(GuiContext context) {
-        VerticalStackLayout layout = new VerticalStackLayout();
+    public IWidgetGui getRootWidgetGui(final GuiContext context) {
+        final VerticalStackLayout layout = new VerticalStackLayout();
 
-        for(IFeature feature : this.features) {
+        for(final IFeature feature : this.features) {
             if (feature instanceof IWidgetContainer) {
-                IWidgetContainer provider = (IWidgetContainer)feature;
+                final IWidgetContainer provider = (IWidgetContainer)feature;
                 layout.addPiece(provider.getRootWidgetGui(context));
             }
         }

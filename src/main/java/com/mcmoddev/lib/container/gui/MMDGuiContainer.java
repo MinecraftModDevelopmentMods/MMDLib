@@ -15,9 +15,12 @@ import com.mcmoddev.lib.container.gui.util.WidgetGuiIterable;
 import com.mcmoddev.lib.container.widget.IWidget;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.lwjgl.input.Keyboard;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.Slot;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -41,20 +44,20 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
     private List<IFocusableWidgetGui> focusables = null;
     private int currentFocusIndex = -1;
 
-    public MMDGuiContainer(IWidgetContainer holder, EntityPlayer player, MMDContainer container, int padding) {
+    public MMDGuiContainer(final IWidgetContainer holder, final EntityPlayer player, final MMDContainer container, final int padding) {
         this(holder, player, container);
 
         this.specifiedPadding = padding;
     }
 
-    public MMDGuiContainer(IWidgetContainer holder, EntityPlayer player, MMDContainer container, int width, int height) {
+    public MMDGuiContainer(final IWidgetContainer holder, final EntityPlayer player, final MMDContainer container, final int width, final int height) {
         this(holder, player, container);
 
         this.specifiedWidth = width;
         this.specifiedHeight = height;
     }
 
-    public MMDGuiContainer(IWidgetContainer holder, EntityPlayer player, MMDContainer container) {
+    public MMDGuiContainer(final IWidgetContainer holder, final EntityPlayer player, final MMDContainer container) {
         super(container);
 
         this.container = container;
@@ -70,24 +73,24 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
         return this.piecesOffsetY + this.getGuiTop();
     }
 
-    public Size2D getRenderOffset(IWidgetGui piece) {
-        Size2D initial = piece.getRenderOffset();
+    public Size2D getRenderOffset(final IWidgetGui piece) {
+        final Size2D initial = piece.getRenderOffset();
         return new Size2D(initial.width + this.piecesOffsetX, initial.height + this.piecesOffsetY);
     }
 
     @Override
     public void initGui() {
-        boolean firstRun = (this.rootPiece == null);
-        GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
+        final boolean firstRun = (this.rootPiece == null);
+        final GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
 
-        Size2D rootSize;
+        final Size2D rootSize;
         if (this.rootPiece == null) {
             this.rootPiece = this.holder.getRootWidgetGui(context);
             this.focusables = new ArrayList<>();
             WidgetGuiIterable.forEach(this.rootPiece, widget -> {
                 widget.init(context);
                 if (widget instanceof IFocusableWidgetGui) {
-                    ((IFocusableWidgetGui)widget).setFocusableHandler(this);
+                    ((IFocusableWidgetGui) widget).setFocusableHandler(this);
                     this.focusables.add((IFocusableWidgetGui) widget);
                 }
             });
@@ -121,24 +124,25 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
         super.updateScreen();
 
         if (this.rootPiece != null) {
-            GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
+            final GuiContext context = new GuiContext(this.player, this.container, this, this.holder);
             WidgetGuiIterable.forEach(this.rootPiece, widget -> widget.tick(context));
         }
     }
 
     private void logRootPiece() {
-        if (this.rootPiece == null) {
-            MMDLib.logger.info("GUI Opened WITHOUT a root piece.");
-            return;
-        }
-
-        MMDLib.logger.info("GUI Opened with:");
-        this.logPiece(null, this.rootPiece, 0);
-        MMDLib.logger.info("End of GUI tree.");
+        // TODO: make it a special widget gui for this
+//        if (this.rootPiece == null) {
+//            MMDLib.logger.info("GUI Opened WITHOUT a root piece.");
+//            return;
+//        }
+//
+//        MMDLib.logger.info("GUI Opened with:");
+//        this.logPiece(null, this.rootPiece, 0);
+//        MMDLib.logger.info("End of GUI tree.");
     }
 
-    private void logPiece(@Nullable IWidgetLayout layout, IWidgetGui piece, int level) {
-        String prefix = new String(new char[level]).replace('\0', '\t') + "- ";
+    private void logPiece(@Nullable final IWidgetLayout layout, final IWidgetGui piece, final int level) {
+        final String prefix = new String(new char[level]).replace('\0', '\t') + "- ";
         String line = prefix + piece.getClass().getName();
         if ((layout != null) && (layout instanceof IWidgetLayoutDebugInfo)) {
             line += " {" + IWidgetLayoutDebugInfo.class.cast(layout).getDebugInfo(piece) + "}";
@@ -148,53 +152,88 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
         }
         MMDLib.logger.info(line);
         if (piece instanceof IWidgetLayout) {
-            IWidgetLayout container = IWidgetLayout.class.cast(piece);
-            for(IWidgetGui child : container.getChildren()) {
+            final IWidgetLayout container = IWidgetLayout.class.cast(piece);
+            for (final IWidgetGui child : container.getChildren()) {
                 this.logPiece(container, child, level + 1);
             }
         }
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+    public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
         this.drawDefaultBackground();
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        FontRenderer font = null;
+        ItemStack forStack = ItemStack.EMPTY;
+
+        final List<String> tooltip = new ArrayList<>();
+        if (this.mc.player.inventory.getItemStack().isEmpty()) {
+            final Slot hoveredSlot = this.getSlotUnderMouse();
+            if ((hoveredSlot != null) && hoveredSlot.getHasStack()) {
+                forStack = hoveredSlot.getStack();
+                if (!forStack.isEmpty()) {
+                    tooltip.addAll(this.getItemToolTip(forStack));
+                    font = forStack.getItem().getFontRenderer(forStack);
+                }
+            }
+        }
+        if (this.rootPiece != null) {
+            if (this.rootPiece instanceof IWidgetLayout) {
+                ((IWidgetLayout) this.rootPiece)
+                    .hitTest(mouseX - this.getRenderLeft(), mouseY - this.getRenderTop())
+                    .forEach(gui -> gui.getTooltip(tooltip));
+            } else {
+                this.rootPiece.getTooltip(tooltip);
+            }
+        }
+
+        if (!tooltip.isEmpty()) {
+            if (font == null) {
+                font = this.fontRenderer;
+            }
+
+            if (!forStack.isEmpty()) {
+                net.minecraftforge.fml.client.config.GuiUtils.preItemToolTip(forStack);
+                this.drawHoveringText(tooltip, mouseX, mouseY, font);
+                net.minecraftforge.fml.client.config.GuiUtils.postItemToolTip();
+            } else {
+                this.drawHoveringText(tooltip, mouseX, mouseY, font);
+            }
+        }
     }
 
     @SideOnly(Side.CLIENT)
-    private void renderRootPiece(TriConsumer<IWidgetGui, Integer, Integer> renderer, int globalLeft, int globalTop, int mouseX, int mouseY) {
+    private void renderRootPiece(final TriConsumer<IWidgetGui, Integer, Integer> renderer, final int globalLeft, final int globalTop, final int mouseX, final int mouseY) {
         if (this.rootPiece != null) {
             try {
                 GlStateManager.pushMatrix();
                 GlStateManager.translate(globalLeft, globalTop, BaseLayout.CHILD_Z_INCREASE);
                 renderer.accept(this.rootPiece, mouseX - globalLeft, mouseY - globalTop);
-            }
-            finally {
+            } finally {
                 GlStateManager.popMatrix();
             }
         }
     }
 
     @Override
-    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
+    protected void drawGuiContainerBackgroundLayer(final float partialTicks, final int mouseX, final int mouseY) {
         if (this.hasBackground()) {
-            IGuiSprite sprite = this.getBackgroundSprite();
+            final IGuiSprite sprite = this.getBackgroundSprite();
             if (sprite != null) {
                 // assume the background sprite is the same size as the container
                 // TODO: consider adding a 'stretch' method to sprites
                 sprite.draw(this, 0, 0);
             } else {
-                TexturedRectangleRenderer.drawOnGUI(this, GuiSprites.MC_DEMO_BACKGROUND,5, 1, this.guiLeft, this.guiTop, this.xSize, this.ySize);
+                TexturedRectangleRenderer.drawOnGUI(this, GuiSprites.MC_DEMO_BACKGROUND, 5, 1, this.guiLeft, this.guiTop, this.xSize, this.ySize);
             }
         }
 
-        this.renderRootPiece((p, mx, my) -> {
-            p.drawBackgroundLayer(this, partialTicks, mx, my);
-        }, this.getRenderLeft(), this.getRenderTop(), mouseX, mouseY);
+        this.renderRootPiece((p, mx, my) -> p.drawBackgroundLayer(this, partialTicks, mx, my),
+            this.getRenderLeft(), this.getRenderTop(), mouseX, mouseY);
 
-        this.renderRootPiece((p, mx, my) -> {
-            p.drawMiddleLayer(this, partialTicks, mx, my);
-        }, this.getRenderLeft(), this.getRenderTop(), mouseX, mouseY);
+        this.renderRootPiece((p, mx, my) -> p.drawMiddleLayer(this, partialTicks, mx, my),
+            this.getRenderLeft(), this.getRenderTop(), mouseX, mouseY);
     }
 
     protected boolean hasBackground() {
@@ -207,23 +246,21 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
+    protected void drawGuiContainerForegroundLayer(final int mouseX, final int mouseY) {
         super.drawGuiContainerForegroundLayer(mouseX, mouseY);
 
-        this.renderRootPiece((p, mx, my) -> {
-            p.drawForegroundLayer(this, mx, my);
-        }, this.piecesOffsetX, this.piecesOffsetY, mouseX, mouseY);
+        this.renderRootPiece((p, mx, my) -> p.drawForegroundLayer(this, mx, my),
+            this.piecesOffsetX, this.piecesOffsetY, mouseX - this.guiLeft, mouseY - this.guiTop);
 
-        this.renderRootPiece((p, mx, my) -> {
-            p.drawForegroundTopLayer(this, mx, my);
-        }, this.piecesOffsetX, this.piecesOffsetY, mouseX, mouseY);
+        this.renderRootPiece((p, mx, my) -> p.drawForegroundTopLayer(this, mx, my),
+            this.piecesOffsetX, this.piecesOffsetY, mouseX - this.guiLeft, mouseY - this.guiTop);
     }
 
-    public void drawFilledRect(int x, int y, int width, int height, int color) {
+    public void drawFilledRect(final int x, final int y, final int width, final int height, final int color) {
         this.drawGradientRect(x, y, x + width, y + height, color, color);
     }
 
-    public void drawFilledRect(int x, int y, int width, int height, int color, int strokeColor) {
+    public void drawFilledRect(final int x, final int y, final int width, final int height, final int color, final int strokeColor) {
         this.drawFilledRect(x, y, width, height, color);
 
         this.drawHorizontalLine(x, x + width - 1, y, strokeColor);
@@ -234,16 +271,16 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    public IWidget findWidgetByKey(String widgetKey) {
+    public IWidget findWidgetByKey(final String widgetKey) {
         return this.container.findWidgetByKey(widgetKey);
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        int rootX = mouseX - this.guiLeft - this.piecesOffsetX;
-        int rootY = mouseY - this.guiTop - this.piecesOffsetY;
+    protected void mouseClicked(final int mouseX, final int mouseY, final int mouseButton) throws IOException {
+        final int rootX = mouseX - this.guiLeft - this.piecesOffsetX;
+        final int rootY = mouseY - this.guiTop - this.piecesOffsetY;
         if ((rootX >= 0) && (rootY >= 0)) {
-            Size2D size = this.rootPiece.getSize();
+            final Size2D size = this.rootPiece.getSize();
             if ((rootX <= size.width) && (rootY <= size.height)
                 && this.rootPiece.mouseClicked(this, rootX, rootY, mouseButton)) {
                 return;
@@ -253,11 +290,11 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
     }
 
     @Override
-    protected void mouseReleased(int mouseX, int mouseY, int state) {
-        int rootX = mouseX - this.guiLeft - this.piecesOffsetX;
-        int rootY = mouseY - this.guiTop - this.piecesOffsetY;
+    protected void mouseReleased(final int mouseX, final int mouseY, final int state) {
+        final int rootX = mouseX - this.guiLeft - this.piecesOffsetX;
+        final int rootY = mouseY - this.guiTop - this.piecesOffsetY;
         if ((rootX >= 0) && (rootY >= 0)) {
-            Size2D size = this.rootPiece.getSize();
+            final Size2D size = this.rootPiece.getSize();
             if ((rootX <= size.width) && (rootY <= size.height)
                 && this.rootPiece.mouseReleased(this, rootX, rootY, state)) {
                 return;
@@ -273,7 +310,7 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
     }
 
     @Override
-    public void setFocus(@Nullable IFocusableWidgetGui widgetGui) {
+    public void setFocus(@Nullable final IFocusableWidgetGui widgetGui) {
         if (this.currentFocus != null) {
             this.currentFocus.onBlur();
         }
@@ -282,8 +319,7 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
         if (this.currentFocus != null) {
             this.currentFocusIndex = this.focusables.indexOf(this.currentFocus);
             this.currentFocus.onFocus();
-        }
-        else {
+        } else {
             this.currentFocusIndex = -1;
         }
     }
@@ -293,18 +329,19 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
     }
 
     @Override
-    protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (this.currentFocus.handleKeyPress(typedChar, keyCode)) {
+    protected void keyTyped(final char typedChar, final int keyCode) throws IOException {
+        if ((this.currentFocus != null) && this.currentFocus.handleKeyPress(typedChar, keyCode)) {
             return; // key handled, don't call default code
-        }
-        else if ((typedChar > 0) && (keyCode == Keyboard.KEY_TAB)) {
-            // tab pressed, move next
-            if ((this.focusables != null) && (this.focusables.size() > 1)) {
-                this.setFocus(this.focusables.get((this.currentFocusIndex + 1) % this.focusables.size()));
-                return;
-            }
+        } else if ((typedChar > 0) && (keyCode == Keyboard.KEY_TAB) && (this.focusables != null) && (this.focusables.size() > 1)) {
+            this.setFocus(this.focusables.get((this.currentFocusIndex + 1) % this.focusables.size()));
+            return;
         }
 
         super.keyTyped(typedChar, keyCode);
     }
+
+//    @Override
+//    public void drawHoveringText(List<String> textLines, int x, int y) {
+//        super.drawHoveringText(textLines, x + this.guiLeft, y + this.guiTop);
+//    }
 }

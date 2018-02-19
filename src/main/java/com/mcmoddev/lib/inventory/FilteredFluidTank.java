@@ -13,14 +13,14 @@ public class FilteredFluidTank implements IFluidTank, IFluidTankModifiable, IFil
     @Nullable
     private final Predicate<FluidStack> drainFilter;
 
-    public FilteredFluidTank(IFluidTankModifiable innerTank,
+    public FilteredFluidTank(final IFluidTankModifiable innerTank,
                              @Nullable Predicate<FluidStack> fillFilter,
-                             @Nullable Predicate<FluidStack> drainFilter) {
+                             @Nullable final Predicate<FluidStack> drainFilter) {
         this.internal = innerTank;
         this.drainFilter = drainFilter;
 
         if (fillFilter == null) {
-            FluidStack existing = this.internal.getFluid();
+            final FluidStack existing = this.internal.getFluid();
             if ((existing != null) && (existing.getFluid() != null)) {
                 fillFilter = stack -> (stack.isFluidEqual(existing));
             }
@@ -29,12 +29,12 @@ public class FilteredFluidTank implements IFluidTank, IFluidTankModifiable, IFil
     }
 
     @Override
-    public boolean canFill(FluidStack fluid) {
+    public boolean canFill(final FluidStack fluid) {
         return (this.fillFilter == null) || this.fillFilter.test(fluid);
     }
 
     @Override
-    public boolean canDrain(FluidStack fluid) {
+    public boolean canDrain(final FluidStack fluid) {
         return (this.drainFilter == null) || this.drainFilter.test(fluid);
     }
 
@@ -60,7 +60,7 @@ public class FilteredFluidTank implements IFluidTank, IFluidTankModifiable, IFil
     }
 
     @Override
-    public int fill(FluidStack resource, boolean doFill) {
+    public int fill(final FluidStack resource, final boolean doFill) {
         if (!this.canFill(resource)) {
             return 0;
         }
@@ -70,8 +70,8 @@ public class FilteredFluidTank implements IFluidTank, IFluidTankModifiable, IFil
 
     @Nullable
     @Override
-    public FluidStack drain(int maxDrain, boolean doDrain) {
-        FluidStack simulated = this.internal.drain(maxDrain, false);
+    public FluidStack drain(final int maxDrain, final boolean doDrain) {
+        final FluidStack simulated = this.internal.drain(maxDrain, false);
         if ((simulated != null) && (simulated.amount > 0)) {
             if (!this.canDrain(simulated)) {
                 return null;
@@ -85,7 +85,7 @@ public class FilteredFluidTank implements IFluidTank, IFluidTankModifiable, IFil
     }
 
     @Override
-    public void setFluid(@Nullable FluidStack fluid) {
+    public void setFluid(@Nullable final FluidStack fluid) {
         if ((fluid != null) && !this.canFill(fluid)) {
             throw new RuntimeException("Cannot set tank content to an unacceptable fluid.");
         }

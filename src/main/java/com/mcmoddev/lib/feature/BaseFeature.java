@@ -8,7 +8,7 @@ public abstract class BaseFeature implements IFeature, IServerFeature {
     private boolean dirty = false;
     private IFeatureHolder holder = null;
 
-    protected BaseFeature(String key) {
+    protected BaseFeature(final String key) {
         this.key = key;
     }
 
@@ -23,15 +23,19 @@ public abstract class BaseFeature implements IFeature, IServerFeature {
     }
 
     protected void setDirty() {
+        this.setDirty(FeatureDirtyLevel.MIN_LEVEL);
+    }
+
+    protected void setDirty(final FeatureDirtyLevel level) {
         this.dirty = true;
         if (this.holder != null) {
-            this.holder.featuredChanged(this);
+            this.holder.featureChanged(this, level);
         }
     }
 
     @Override
     public final NBTTagCompound serializeNBT() {
-        NBTTagCompound nbt = new NBTTagCompound();
+        final NBTTagCompound nbt = new NBTTagCompound();
         this.writeToNBT(nbt);
         return nbt;
     }
@@ -39,8 +43,8 @@ public abstract class BaseFeature implements IFeature, IServerFeature {
     protected abstract void writeToNBT(NBTTagCompound tag);
 
     @Override
-    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
-        NBTTagCompound nbt = this.serializeNBT();
+    public NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) {
+        final NBTTagCompound nbt = this.serializeNBT();
 
         if (resetDirtyFlag) {
             this.dirty = false;
@@ -50,7 +54,7 @@ public abstract class BaseFeature implements IFeature, IServerFeature {
 
     @Nullable
     @Override
-    public NBTTagCompound getTickUpdateTag(boolean resetDirtyFlag) {
+    public NBTTagCompound getTickUpdateTag(final boolean resetDirtyFlag) {
         return null;
     }
 
@@ -67,7 +71,7 @@ public abstract class BaseFeature implements IFeature, IServerFeature {
     }
 
     @Override
-    public void setHolder(@Nullable IFeatureHolder holder) {
+    public void setHolder(@Nullable final IFeatureHolder holder) {
         this.holder = holder;
     }
 }

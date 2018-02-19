@@ -5,6 +5,7 @@ import com.mcmoddev.lib.container.IGuiProvider;
 import com.mcmoddev.lib.container.IWidgetContainer;
 import com.mcmoddev.lib.container.MMDContainer;
 import com.mcmoddev.lib.container.gui.MMDGuiContainer;
+import com.mcmoddev.lib.util.LoggingUtil;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -27,19 +28,19 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
 
     @Override
     @SideOnly(Side.CLIENT)
-    public GuiContainer getClientGui(int id, EntityPlayer player, World world, int x, int y, int z) {
-        BlockPos pos = this.getPos();
+    public GuiContainer getClientGui(final int id, final EntityPlayer player, final World world, final int x, final int y, final int z) {
+        final BlockPos pos = this.getPos();
         if ((world != this.world) || (pos.getX() != x) || (pos.getY() != y) || (pos.getZ() != z)) {
             return null;
         }
 
-        MMDContainer container = this.getServerGui(id, player, world, x, y, z);
+        final MMDContainer container = this.getServerGui(id, player, world, x, y, z);
         return (container == null) ? null : new MMDGuiContainer(this, player, container);
     }
 
     @Override
-    public MMDContainer getServerGui(int id, EntityPlayer player, World world, int x, int y, int z) {
-        BlockPos pos = this.getPos();
+    public MMDContainer getServerGui(final int id, final EntityPlayer player, final World world, final int x, final int y, final int z) {
+        final BlockPos pos = this.getPos();
         if ((world != this.world) || (pos.getX() != x) || (pos.getY() != y) || (pos.getZ() != z)) {
             return null;
         }
@@ -49,58 +50,71 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
 
     //#endregion
 
-//    @Override
-//    public List<PlayerInventoryInfo> getPlayerSlots(MMDContainer container) {
-//        return Lists.newArrayList();
-//    }
-
     @Nullable
-    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
+    public NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) {
         return null;
     }
 
     @Nullable
-    public IMessage receiveGuiUpdateTag(NBTTagCompound compound) {
+    public IMessage receiveGuiUpdateTag(final NBTTagCompound compound) {
+        this.readFromUpdateTag(compound);
         return null;
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    protected void sendToListeningClients(NBTTagCompound nbt) {
-        ChunkPos cp = world.getChunkFromBlockCoords(pos).getPos();
-        PlayerChunkMapEntry entry = ((WorldServer)world).getPlayerChunkMap().getEntry(cp.x, cp.z);
-        if (entry != null) {
-            NBTTagCompound updateTag = new NBTTagCompound();
-            updateTag.setTag(PARTIAL_SYNC_KEY, nbt);
-            entry.sendPacket(new SPacketUpdateTileEntity(this.getPos(), 42, updateTag));
-        }
     }
 
     @Nullable
     @Override
     public SPacketUpdateTileEntity getUpdatePacket() {
-        return new SPacketUpdateTileEntity(this.getPos(), 42, this.getUpdateTag());
+        final NBTTagCompound tag = this.getUpdateTag();
+        if (!tag.hasNoTags()) {
+            LoggingUtil.logNbtMessage(this, "SPacket TAG", tag);
+            return new SPacketUpdateTileEntity(this.getPos(), 42, tag);
+        }
+        return null;
     }
 
     @Override
     public NBTTagCompound getUpdateTag() {
-        NBTTagCompound compound = super.getUpdateTag();
+        final NBTTagCompound compound = super.getUpdateTag();
         this.writeToUpdateTag(compound);
+
+        if (!compound.hasNoTags()) {
+            LoggingUtil.logNbtMessage(this, "GET UPDATE NBT", compound);
+        }
         return compound;
     }
 
     @SuppressWarnings("WeakerAccess")
-    protected void writeToUpdateTag(NBTTagCompound tag) {}
+    protected void writeToUpdateTag(final NBTTagCompound tag) {
+        // just send the entire entity by default
+        this.writeToNBT(tag);
+    }
 
     @Override
-    public void handleUpdateTag(NBTTagCompound tag) {
+    public void handleUpdateTag(final NBTTagCompound tag) {
+        LoggingUtil.logNbtMessage(this, "HANDLE UPDATE NBT", tag);
+
         if (tag.hasKey(PARTIAL_SYNC_KEY, Constants.NBT.TAG_COMPOUND)) {
             this.readFromUpdateTag(tag.getCompoundTag(PARTIAL_SYNC_KEY));
         }
         else {
-            super.handleUpdateTag(tag);
+            this.readFromUpdateTag(tag);
         }
     }
 
     @SuppressWarnings("WeakerAccess")
-    protected void readFromUpdateTag(NBTTagCompound tag) {}
+    protected void readFromUpdateTag(final NBTTagCompound tag) {
+        this.readFromNBT(tag);
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    protected void sendToListeningClients(final NBTTagCompound nbt) {
+        final ChunkPos cp = world.getChunkFromBlockCoords(pos).getPos();
+        final PlayerChunkMapEntry entry = ((WorldServer)world).getPlayerChunkMap().getEntry(cp.x, cp.z);
+        if (entry != null) {
+            final NBTTagCompound updateTag = new NBTTagCompound();
+            updateTag.setTag(PARTIAL_SYNC_KEY, nbt);
+            LoggingUtil.logNbtMessage(this, "SEND TO CLIENT", nbt);
+            entry.sendPacket(new SPacketUpdateTileEntity(this.getPos(), 42, updateTag));
+        }
+    }
 }

@@ -19,22 +19,13 @@ import net.minecraftforge.fml.relauncher.SideOnly;
  */
 public interface IWidgetContainer {
     default boolean isValid() { return true; }
-    default int getDistance(EntityPlayer player) { return 0; }
+    default int getDistance(final EntityPlayer player) { return 0; }
 
     /**
      * Returns the list of widgets used to build a {@link MMDContainer}.
      * @return The list of widgets used to build a {@link MMDContainer}.
      */
-    default List<IWidget> getWidgets(GuiContext context) { return Lists.newArrayList(); }
-
-    /**
-     * Returns the combined update tag from all the contained widgets.
-     * @param resetDirtyFlag Specified if a call to {@link IWidget#resetDirtyFlag()} will also be made for all dirty widgets.
-     * @return The combined NBT from all the container widgets.
-     * @implNote This will only get called on server thread.
-     */
-    @Nullable
-    default NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) { return null; }
+    default List<IWidget> getWidgets(final GuiContext context) { return Lists.newArrayList(); }
 
     /**
      * Returns the root Widget Gui used to build this container's gui. Usually this will be a {@link IWidgetLayout}.
@@ -42,9 +33,12 @@ public interface IWidgetContainer {
      * @implNote This will only get called on client thread.
      */
     @SideOnly(Side.CLIENT)
-    default IWidgetGui getRootWidgetGui(GuiContext context) { return new CanvasLayout(); }
+    default IWidgetGui getRootWidgetGui(final GuiContext context) { return new CanvasLayout(); }
+
+    @Nullable
+    default NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) { return null; }
 
     @Nullable
     @SideOnly(Side.CLIENT)
-    default IMessage receiveGuiUpdateTag(NBTTagCompound compound) { return null; }
+    default IMessage receiveGuiUpdateTag(final NBTTagCompound compound) { return null; }
 }

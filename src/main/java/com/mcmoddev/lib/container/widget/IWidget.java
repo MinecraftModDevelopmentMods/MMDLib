@@ -54,7 +54,7 @@ public interface IWidget {
      * @param tag The compound received from the client thread.
      * @implNote Only called on server thread.
      */
-    default void handleMessageFromClient(NBTTagCompound tag) {}
+    default void handleMessageFromClient(final NBTTagCompound tag) {}
 
     /**
      * Called on client thread to handle update data from server thread.
@@ -62,5 +62,5 @@ public interface IWidget {
      * @implNote Only called on client thread.
      */
     @SideOnly(Side.CLIENT)
-    default void handleMessageFromServer(NBTTagCompound tag) {}
+    default void handleMessageFromServer(final NBTTagCompound tag) {}
 }

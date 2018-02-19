@@ -36,7 +36,7 @@ public class MMDContainer extends Container {
 //    private int entitySlots;
 //    private List<PlayerInventory> playerInventories;
 
-    public MMDContainer(IWidgetContainer provider, EntityPlayer player) {
+    public MMDContainer(final IWidgetContainer provider, final EntityPlayer player) {
         super();
 
         this.provider = provider;
@@ -66,14 +66,14 @@ public class MMDContainer extends Container {
 //            }
 //        }
 
-        GuiContext context = new GuiContext(player, this, provider);
+        final GuiContext context = new GuiContext(player, this, provider);
         this.widgets = this.provider
             .getWidgets(context)
             .stream()
             .map(w -> (w instanceof IProxyWidget) ? ((IProxyWidget)w).getContextualWidget(context) : w)
             .collect(Collectors.toList());
-        List<IContainerSlot> slots = Lists.newArrayList();
-        for(IWidget widget : this.widgets) {
+        final List<IContainerSlot> slots = Lists.newArrayList();
+        for(final IWidget widget : this.widgets) {
             if (widget instanceof IContextualWidget) {
                 ((IContextualWidget)widget).setContext(context);
             }
@@ -88,20 +88,24 @@ public class MMDContainer extends Container {
 //            }
 //        }
 
-        for(IContainerSlot slot: slots) {
-            Slot realSlot = slot.getSlot();
+        for(final IContainerSlot slot: slots) {
+            final Slot realSlot = slot.getSlot();
             this.addSlotToContainer(realSlot);
             slot.setIndex(realSlot.slotNumber);
         }
     }
 
-//    protected List<PlayerInventoryInfo> getPlayerInventories() {
+    public IWidgetContainer getProvider() {
+        return this.provider;
+    }
+
+    //    protected List<PlayerInventoryInfo> getPlayerInventories() {
 //        IPlayerInventoryProvider provider = this.holder.getPlayerInventoryProvider();
 //        return (provider != null) ? provider.getPlayerSlots(this) : Lists.newArrayList();
 //    }
 
     @Override
-    public boolean canInteractWith(EntityPlayer playerIn) {
+    public boolean canInteractWith(final EntityPlayer playerIn) {
         return this.provider.isValid() && (this.provider.getDistance(playerIn) <= MAX_INTERACT_DISTANCE);
     }
 
@@ -177,8 +181,8 @@ public class MMDContainer extends Container {
 //    }
 
     @Override
-    public ItemStack transferStackInSlot(EntityPlayer playerIn, int index) {
-        ItemStack copyStack = ItemStack.EMPTY;
+    public ItemStack transferStackInSlot(final EntityPlayer playerIn, final int index) {
+        final ItemStack copyStack = ItemStack.EMPTY;
 //        Slot slot = this.inventorySlots.get(index);
 //
 //        if ((slot != null) && slot.getHasStack()) {
@@ -223,9 +227,9 @@ public class MMDContainer extends Container {
 //    }
 
     @Nullable
-    public IMessage handleMessageFromServer(NBTTagCompound compound) {
+    public IMessage handleMessageFromServer(final NBTTagCompound compound) {
         if (compound.getSize() > 0) {
-            for(IWidget widget: this.widgets) {
+            for(final IWidget widget: this.widgets) {
                 if (compound.hasKey(widget.getKey(), Constants.NBT.TAG_COMPOUND)) {
                     widget.handleMessageFromServer(compound.getCompoundTag(widget.getKey()));
                 }
@@ -236,9 +240,9 @@ public class MMDContainer extends Container {
     }
 
     @Nullable
-    public IMessage handleMessageFromClient(NBTTagCompound compound) {
+    public IMessage handleMessageFromClient(final NBTTagCompound compound) {
         if (compound.getSize() > 0) {
-            for(IWidget widget: this.widgets) {
+            for(final IWidget widget: this.widgets) {
                 if (compound.hasKey(widget.getKey(), Constants.NBT.TAG_COMPOUND)) {
                     widget.handleMessageFromClient(compound.getCompoundTag(widget.getKey()));
                 }
@@ -248,8 +252,8 @@ public class MMDContainer extends Container {
     }
 
     @Nullable
-    public IWidget findWidgetByKey(String widgetKey) {
-        for(IWidget widget: this.widgets) {
+    public IWidget findWidgetByKey(final String widgetKey) {
+        for(final IWidget widget: this.widgets) {
             if (widgetKey.equals(widget.getKey())) {
                 return widget;
             }
@@ -266,7 +270,7 @@ public class MMDContainer extends Container {
         final int end;
         final boolean reverse;
 
-        SlotRange(int start, int end, boolean reverse) {
+        SlotRange(final int start, final int end, final boolean reverse) {
             this.start = start;
             this.end = end;
             this.reverse = reverse;
@@ -283,12 +287,12 @@ public class MMDContainer extends Container {
                 nbt = new NBTTagCompound();
             }
 
-            for(IWidget widget: this.widgets) {
+            for(final IWidget widget: this.widgets) {
                 if (!widget.isDirty()) {
                     continue;
                 }
 
-                NBTTagCompound widgetNbt = widget.getUpdateCompound();
+                final NBTTagCompound widgetNbt = widget.getUpdateCompound();
                 if ((widgetNbt != null) && (widgetNbt.getSize() > 0)) {
                     nbt.setTag(widget.getKey(), widgetNbt);
                 }

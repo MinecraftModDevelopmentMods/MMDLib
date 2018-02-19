@@ -50,4 +50,6 @@ public class Padding {
     public static Padding bottom(int bottom) {
         return new Padding(0, 0, 0, bottom);
     }
+
+    public static Padding uniform(int size) { return new Padding(size); }
 }

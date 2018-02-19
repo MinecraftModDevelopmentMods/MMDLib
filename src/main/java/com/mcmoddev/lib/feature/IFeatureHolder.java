@@ -6,11 +6,11 @@ public interface IFeatureHolder {
     <T extends IFeature> T addFeature(T feature);
 
     IFeature[] getFeatures();
-    void featuredChanged(IFeature feature);
+    void featureChanged(IFeature feature, FeatureDirtyLevel level);
 
     @Nullable
-    default IFeature getFeature(String key) {
-        for(IFeature feature : this.getFeatures()) {
+    default IFeature getFeature(final String key) {
+        for(final IFeature feature : this.getFeatures()) {
             if (feature.getKey().equals(key)) {
                 return feature;
             }
@@ -19,8 +19,8 @@ public interface IFeatureHolder {
     }
 
     @Nullable
-    default <T extends IFeature> T getTypedFeature(Class<T> expectedType, String key) {
-        for(IFeature feature : this.getFeatures()) {
+    default <T extends IFeature> T getTypedFeature(final Class<T> expectedType, final String key) {
+        for(final IFeature feature : this.getFeatures()) {
             if (feature.getKey().equals(key) && expectedType.isAssignableFrom(feature.getClass())) {
                 return expectedType.cast(feature);
             }

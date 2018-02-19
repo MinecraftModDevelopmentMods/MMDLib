@@ -1,5 +1,6 @@
 package com.mcmoddev.lib.container.gui;
 
+import java.util.List;
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.container.gui.util.Padding;
 import com.mcmoddev.lib.container.gui.util.Size2D;
@@ -40,6 +41,8 @@ public interface IWidgetGui {
     default void drawMiddleLayer(MMDGuiContainer container, float partialTicks, int mouseX, int mouseY) {}
     default void drawForegroundLayer(MMDGuiContainer container, int mouseX, int mouseY) {}
     default void drawForegroundTopLayer(MMDGuiContainer container, int mouseX, int mouseY) {}
+
+    default void getTooltip(List<String> lines) {}
 
     default boolean isVisible() { return true; }
     boolean setVisibility(boolean isVisible);

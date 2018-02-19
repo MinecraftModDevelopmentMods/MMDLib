@@ -45,7 +45,10 @@ public class FluidSprite implements IGuiSprite {
     public int getHeight() { return this.height; }
 
     @Override
-    public boolean needsAlpha() { return false; }
+    public boolean needsAlpha() {
+        // TODO: test fluid
+        return false;
+    }
 
     @Override
     @SideOnly(Side.CLIENT)
@@ -74,9 +77,6 @@ public class FluidSprite implements IGuiSprite {
         int spriteWidth = sprite.getIconWidth();
         int spriteHeight = sprite.getIconHeight();
 
-        int startX = texLeft % spriteWidth;
-        int startY = texTop % spriteHeight;
-
         this.getTexture().bind();
         Color color = new Color(this.fluid.getColor(), true);
         GlStateManager.color(
@@ -89,16 +89,30 @@ public class FluidSprite implements IGuiSprite {
         BufferBuilder bufferbuilder = tessellator.getBuffer();
         bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
 
-        int tileY = 0;
+        double u = sprite.getInterpolatedU(0.0);
+        double v = sprite.getInterpolatedV(0.0);
+
+        int tileY = texTop;
         while (tileY < texHeight) {
-            int tileX = 0;
-            int texX = startX;
+            int tileX = texLeft;
             while (tileX < texWidth) {
-//                bufferbuilder.pos((double)x, (double)(y + height), 0.0D).tex((double)(u * f), (double)((v + (float)height) * f1)).endVertex();
-//                bufferbuilder.pos((double)(x + width), (double)(y + height), 0.0D).tex((double)((u + (float)width) * f), (double)((v + (float)height) * f1)).endVertex();
-//                bufferbuilder.pos((double)(x + width), (double)y, 0.0D).tex((double)((u + (float)width) * f), (double)(v * f1)).endVertex();
-//                bufferbuilder.pos((double)x, (double)y, 0.0D).tex((double)(u * f), (double)(v * f1)).endVertex();
+                double x = left + tileX;
+                double y = top + tileY;
+                double w = Math.min(tileX + spriteWidth, this.width) - tileX;
+                double h = Math.min(tileY + spriteHeight, this.height) - tileY;
+                double ur = w / spriteWidth;
+                double vb = h / spriteHeight;
+
+                double uu = sprite.getInterpolatedU(ur * 16.0);
+                double vv = sprite.getInterpolatedV(vb * 16.0);
+
+                bufferbuilder.pos(x, y + h, 0.0D).tex(u, v).endVertex();
+                bufferbuilder.pos(x + w, y + h, 0.0D).tex(uu, v).endVertex();
+                bufferbuilder.pos(x + w, y, 0.0D).tex(uu, vv).endVertex();
+                bufferbuilder.pos(x, y, 0.0D).tex(u, vv).endVertex();
+                tileX += spriteWidth;
             }
+            tileY += spriteHeight;
         }
 
         tessellator.draw();

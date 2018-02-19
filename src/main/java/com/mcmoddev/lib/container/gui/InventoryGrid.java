@@ -24,7 +24,7 @@ public class InventoryGrid extends BaseGridLayout {
 
     @Override
     public void init(GuiContext context) {
-        List<IContainerSlot> slots = getContainerSlots(context);
+        List<IContainerSlot> slots = this.getContainerSlots(context);
 
         for(int index = 0; index < slots.size(); index++) {
             int column = index % this.maxColumns;
@@ -36,7 +36,7 @@ public class InventoryGrid extends BaseGridLayout {
 
     @Override
     public void postInit(GuiContext context) {
-        List<IContainerSlot> slots = getContainerSlots(context);
+        List<IContainerSlot> slots = this.getContainerSlots(context);
 
         Size2D offset = context.getGuiContainer().getRenderOffset(this);
         List<Slot> inventorySlots = context.getContainer().inventorySlots;
