@@ -1,8 +1,11 @@
 package com.mcmoddev.lib.feature;
 
+import java.awt.Color;
 import javax.annotation.Nullable;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.nbt.NBTTagCompound;
 
+@SuppressWarnings("WeakerAccess")
 public abstract class BaseFeature implements IFeature, IServerFeature {
     private final String key;
     private boolean dirty = false;
@@ -73,5 +76,17 @@ public abstract class BaseFeature implements IFeature, IServerFeature {
     @Override
     public void setHolder(@Nullable final IFeatureHolder holder) {
         this.holder = holder;
+    }
+
+    public ISidedFeature getSidedWrapper(final Color color, final int priorityIndex) {
+        return this.getSidedWrapper(color.getRGB(), priorityIndex);
+    }
+
+    public ISidedFeature getSidedWrapper(final MapColor color, final int priorityIndex) {
+        return this.getSidedWrapper(color.colorValue, priorityIndex);
+    }
+
+    public ISidedFeature getSidedWrapper(final int color, final int priorityIndex) {
+        return new SidedFeatureWrapper(this, color, priorityIndex);
     }
 }

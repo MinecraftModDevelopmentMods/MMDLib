@@ -13,13 +13,16 @@ public final class MMDPackages {
     public static void init() {
         MMDPackages.wrapper.registerMessage(NBTBasedPlayerHandler.INSTANCE, NBTBasedPlayerMessage.class, 1, Side.CLIENT);
         MMDPackages.wrapper.registerMessage(NBTBasedPlayerHandler.INSTANCE, NBTBasedPlayerMessage.class, 1, Side.SERVER);
+
+        MMDPackages.wrapper.registerMessage(NBTBasedTileHandler.INSTANCE, NBTBasedTileMessage.class, 2, Side.CLIENT);
+        MMDPackages.wrapper.registerMessage(NBTBasedTileHandler.INSTANCE, NBTBasedTileMessage.class, 2, Side.SERVER);
     }
 
-    public static void sendToPlayer(EntityPlayerMP player, IMessage message) {
+    public static void sendToPlayer(final EntityPlayerMP player, final IMessage message) {
         MMDPackages.wrapper.sendTo(message, player);
     }
 
-    public static void sendToServer(IMessage message) {
+    public static void sendToServer(final IMessage message) {
         MMDPackages.wrapper.sendToServer(message);
     }
 }

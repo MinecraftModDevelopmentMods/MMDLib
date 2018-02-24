@@ -15,35 +15,35 @@ import net.minecraft.nbt.NBTTagCompound;
 public class PlayerInventoryFeature extends BaseFeature implements IWidgetContainer {
     private final PlayerInventoryInfo inventoryInfo;
 
-    public PlayerInventoryFeature(PlayerInventory inventory, int slotsPerRow) {
+    public PlayerInventoryFeature(final PlayerInventory inventory, final int slotsPerRow) {
         this(new PlayerInventoryInfo(inventory, slotsPerRow));
     }
 
-    public PlayerInventoryFeature(String key, PlayerInventory inventory, int slotsPerRow) {
+    public PlayerInventoryFeature(final String key, final PlayerInventory inventory, final int slotsPerRow) {
         this(key, new PlayerInventoryInfo(inventory, slotsPerRow));
     }
 
-    public PlayerInventoryFeature(PlayerInventoryInfo inventoryInfo) {
+    public PlayerInventoryFeature(final PlayerInventoryInfo inventoryInfo) {
         this("player_" + inventoryInfo.inventory.name().toLowerCase(), inventoryInfo);
     }
 
-    public PlayerInventoryFeature(String key, PlayerInventoryInfo inventoryInfo) {
+    public PlayerInventoryFeature(final String key, final PlayerInventoryInfo inventoryInfo) {
         super(key);
         this.inventoryInfo = inventoryInfo;
     }
 
     @Override
-    protected void writeToNBT(NBTTagCompound tag) {
+    protected void writeToNBT(final NBTTagCompound tag) {
         // nothing else here, the vanilla container code should sort the item stacks out
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) {
+    public void deserializeNBT(final NBTTagCompound nbt) {
         // nothing else here, the vanilla container code should sort the item stacks out
     }
 
     @Override
-    public List<IWidget> getWidgets(GuiContext context) {
+    public List<IWidget> getWidgets(final GuiContext context) {
         return new ArrayList<IWidget>() {{
             add(new PlayerInventoryWidget(
                 PlayerInventoryFeature.this.getKey() + "_slots",
@@ -53,7 +53,7 @@ public class PlayerInventoryFeature extends BaseFeature implements IWidgetContai
     }
 
     @Override
-    public IWidgetGui getRootWidgetGui(GuiContext context) {
+    public IWidgetGui getRootWidgetGui(final GuiContext context) {
         return new InventoryGrid(this.inventoryInfo.slotsPerRow, this.getKey() + "_slots");
     }
 }

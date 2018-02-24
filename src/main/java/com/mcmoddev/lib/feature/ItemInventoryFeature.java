@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import com.mcmoddev.lib.capability.ICapabilitiesContainer;
 import com.mcmoddev.lib.container.IWidgetContainer;
 import com.mcmoddev.lib.container.gui.GuiContext;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
@@ -35,13 +36,13 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
 
 //    private Function<Integer, ItemStack[]> validStacksGetter;
 
-    public ItemInventoryFeature(String key, int slots) {
+    public ItemInventoryFeature(final String key, final int slots) {
         this(key, slots, null, null/*, null*/);
     }
 
-    public ItemInventoryFeature(String key, int slots,
-                                @Nullable BiPredicate<Integer, ItemStack> insertFilter,
-                                @Nullable BiPredicate<Integer, ItemStack> extractFilter) {
+    public ItemInventoryFeature(final String key, final int slots,
+                                @Nullable final BiPredicate<Integer, ItemStack> insertFilter,
+                                @Nullable final BiPredicate<Integer, ItemStack> extractFilter) {
         this(key, new ItemStackHandler(slots), insertFilter, extractFilter/*, null*/);
     }
 
@@ -52,15 +53,15 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
 //        this(key, new ItemStackHandler(slots), insertFilter, extractFilter, validStacksGetter);
 //    }
 
-    public ItemInventoryFeature(String key, IItemHandlerModifiable handler,
-                                @Nullable BiPredicate<Integer, ItemStack> insertFilter,
-                                @Nullable BiPredicate<Integer, ItemStack> extractFilter/*,
+    public ItemInventoryFeature(final String key, final IItemHandlerModifiable handler,
+                                @Nullable final BiPredicate<Integer, ItemStack> insertFilter,
+                                @Nullable final BiPredicate<Integer, ItemStack> extractFilter/*,
                                 @Nullable Function<Integer, ItemStack[]> validStacksGetter*/) {
         super(key);
 
         this.internalHandler = new ItemHandlerWrapper(handler) {
             @Override
-            protected void onChanged(int slot) {
+            protected void onChanged(final int slot) {
                 ItemInventoryFeature.this.setDirty();
             }
         };
@@ -79,24 +80,24 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
     }
 
     @Override
-    protected void writeToNBT(NBTTagCompound tag) {
+    protected void writeToNBT(final NBTTagCompound tag) {
         if (this.internalHandler instanceof INBTSerializable) {
             // TODO: hopefully this won't cause problems, wish java had real generics
             //noinspection unchecked
-            INBTSerializable<NBTTagCompound> serializable = (INBTSerializable<NBTTagCompound>)this.internalHandler;
+            final INBTSerializable<NBTTagCompound> serializable = (INBTSerializable<NBTTagCompound>)this.internalHandler;
 
             tag.setTag("stacks", serializable.serializeNBT());
         }
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) {
+    public void deserializeNBT(final NBTTagCompound nbt) {
         if (this.internalHandler instanceof INBTSerializable) {
             // TODO: hopefully this won't cause problems, wish java had real generics
             //noinspection unchecked
-            INBTSerializable<NBTTagCompound> serializable = (INBTSerializable<NBTTagCompound>) this.internalHandler;
+            final INBTSerializable<NBTTagCompound> serializable = (INBTSerializable<NBTTagCompound>) this.internalHandler;
             if (nbt.hasKey("stacks", Constants.NBT.TAG_COMPOUND)) {
-                NBTTagCompound stacksNBT = nbt.getCompoundTag("stacks");
+                final NBTTagCompound stacksNBT = nbt.getCompoundTag("stacks");
                 serializable.deserializeNBT(stacksNBT);
             } else {
                 // TODO: find a better way to reset an item stack handler
@@ -107,13 +108,18 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
         }
     }
 
-    public ItemInventoryFeature setOverlayColor(int color) {
+    @Override
+    public void initCapabilities(final ICapabilitiesContainer container) {
+        container.addCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, f -> this.externalHandler);
+    }
+
+    public ItemInventoryFeature setOverlayColor(final int color) {
         this.overlayColor = color;
         this.overlayAlpha = -1;
         return this;
     }
 
-    public ItemInventoryFeature setOverlayColor(int color, int alpha) {
+    public ItemInventoryFeature setOverlayColor(final int color, final int alpha) {
         this.overlayColor = color;
         this.overlayAlpha = alpha;
         return this;
@@ -123,13 +129,13 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
         return this.columns;
     }
 
-    public ItemInventoryFeature setColumns(int columns) {
+    public ItemInventoryFeature setColumns(final int columns) {
         this.columns = columns;
         return this;
     }
 
     @Override
-    public List<IWidget> getWidgets(GuiContext context) {
+    public List<IWidget> getWidgets(final GuiContext context) {
         return new ArrayList<IWidget>() {{
             add(new ItemStackHandlerWidget(
                 ItemInventoryFeature.this.getKey() + "_slots",
@@ -138,8 +144,8 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
     }
 
     @Override
-    public IWidgetGui getRootWidgetGui(GuiContext context) {
-        InventoryGrid grid = new InventoryGrid(this.columns, this.getKey() + "_slots");
+    public IWidgetGui getRootWidgetGui(final GuiContext context) {
+        final InventoryGrid grid = new InventoryGrid(this.columns, this.getKey() + "_slots");
         if (this.overlayColor != 0) {
             if (this.overlayAlpha > -1) {
                 grid.setColorOverlay(this.overlayColor, this.overlayAlpha);
@@ -152,7 +158,7 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
     }
 
     @Override
-    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
+    public NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) {
         // gui slots should take care of this on GUIs... and outside GUIs we shouldn't care.
         return null;
     }
@@ -164,13 +170,13 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
     }
 
     @Override
-    public boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
+    public boolean hasCapability(@Nonnull final Capability<?> capability, @Nullable final EnumFacing facing) {
         return (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
     }
 
     @Nullable
     @Override
-    public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
+    public <T> T getCapability(@Nonnull final Capability<T> capability, @Nullable final EnumFacing facing) {
         if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
             return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.getExternalHandler());
         }

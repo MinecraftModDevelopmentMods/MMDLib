@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
+import com.mcmoddev.lib.capability.CapabilitiesContainer;
 import com.mcmoddev.lib.container.IWidgetContainer;
 import com.mcmoddev.lib.container.gui.GuiContext;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
@@ -19,13 +20,16 @@ import com.mcmoddev.lib.feature.IServerFeature;
 import com.mcmoddev.lib.util.LoggingUtil;
 import com.mcmoddev.lib.util.NBTUtils;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHolder, ITickable, IWidgetContainer {
     private final List<IFeature> features = new ArrayList<>();
+    private final CapabilitiesContainer capContainer = new CapabilitiesContainer();
     private final Map<FeatureDirtyLevel, Set<String>> dirtyFeatures = new HashMap<>();
 
     protected MMDFeaturesTileEntity() {
@@ -37,6 +41,7 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
     public <T extends IFeature> T addFeature(final T feature) {
         this.features.add(feature);
         feature.setHolder(this);
+        feature.initCapabilities(this.capContainer);
         this.featureChanged(feature, FeatureDirtyLevel.LOAD);
         return feature;
     }
@@ -138,11 +143,6 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
         return this.getFeaturesUpdateTag(FeatureDirtyLevel.GUI, resetDirtyFlag);
     }
 
-//    @Override
-//    public NBTTagCompound getUpdateTag() {
-//        return this.getFeaturesUpdateTag(FeatureDirtyLevel.LOAD, true);
-//    }
-
     private NBTTagCompound getFeaturesUpdateTag(final FeatureDirtyLevel level, final boolean resetDirtyFlag) {
         final NBTTagCompound nbt = new NBTTagCompound();
 
@@ -164,5 +164,17 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
         this.dirtyFeatures.clear();
 
         return (nbt.getSize() > 0) ? NBTUtils.wrapCompound(nbt, "features") : nbt;
+    }
+
+    @Override
+    public boolean hasCapability(final Capability<?> capability, @Nullable final EnumFacing facing) {
+        return this.capContainer.hasCapability(capability, facing) || super.hasCapability(capability, facing);
+    }
+
+    @Nullable
+    @Override
+    public <T> T getCapability(final Capability<T> capability, @Nullable final EnumFacing facing) {
+        final T cap = this.capContainer.getCapability(capability, facing);
+        return (cap != null) ? cap : super.getCapability(capability, facing);
     }
 }

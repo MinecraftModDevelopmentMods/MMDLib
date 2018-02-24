@@ -131,14 +131,14 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
 
     private void logRootPiece() {
         // TODO: make it a special widget gui for this
-//        if (this.rootPiece == null) {
-//            MMDLib.logger.info("GUI Opened WITHOUT a root piece.");
-//            return;
-//        }
-//
-//        MMDLib.logger.info("GUI Opened with:");
-//        this.logPiece(null, this.rootPiece, 0);
-//        MMDLib.logger.info("End of GUI tree.");
+        if (this.rootPiece == null) {
+            MMDLib.logger.info("GUI Opened WITHOUT a root piece.");
+            return;
+        }
+
+        MMDLib.logger.info("GUI Opened with:");
+        this.logPiece(null, this.rootPiece, 0);
+        MMDLib.logger.info("End of GUI tree.");
     }
 
     private void logPiece(@Nullable final IWidgetLayout layout, final IWidgetGui piece, final int level) {

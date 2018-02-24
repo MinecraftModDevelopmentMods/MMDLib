@@ -5,15 +5,14 @@ import com.google.common.collect.Lists;
 import net.minecraft.inventory.Slot;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.SlotItemHandler;
 
 public class ItemStackHandlerSlot extends BaseContainerSlot {
     private final Slot slot;
 
-    public ItemStackHandlerSlot(IItemHandler stacks, String featureKey, int slot) {
+    public ItemStackHandlerSlot(final IItemHandler stacks, final String featureKey, final int slot) {
         super("self", featureKey);
 
-        this.slot = new SlotItemHandler(stacks, slot, 0, 0);
+        this.slot = new FilteredSlot(stacks, slot, 0, 0);
     }
 
     @Override
@@ -21,8 +20,8 @@ public class ItemStackHandlerSlot extends BaseContainerSlot {
         return this.slot;
     }
 
-    public static List<ItemStackHandlerSlot> createSlots(IItemHandlerModifiable inventory, String featureKey) {
-        List<ItemStackHandlerSlot> slots = Lists.newArrayList();
+    public static List<ItemStackHandlerSlot> createSlots(final IItemHandlerModifiable inventory, final String featureKey) {
+        final List<ItemStackHandlerSlot> slots = Lists.newArrayList();
 
         for(int index = 0; index < inventory.getSlots(); index++) {
             slots.add(new ItemStackHandlerSlot(inventory, featureKey, index));

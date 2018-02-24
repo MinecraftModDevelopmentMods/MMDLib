@@ -15,7 +15,7 @@ public class InventoryGrid extends BaseGridLayout {
     private final String[] widgetKeys;
     private ColorOverlayPiece colorOverlay = null;
 
-    public InventoryGrid(int columns, String... widgetKeys) {
+    public InventoryGrid(final int columns, final String... widgetKeys) {
         super(columns, 1);
 
         this.maxColumns = columns;
@@ -23,41 +23,47 @@ public class InventoryGrid extends BaseGridLayout {
     }
 
     @Override
-    public void init(GuiContext context) {
-        List<IContainerSlot> slots = this.getContainerSlots(context);
+    public void init(final GuiContext context) {
+        final List<IContainerSlot> slots = this.getContainerSlots(context);
 
         for(int index = 0; index < slots.size(); index++) {
-            int column = index % this.maxColumns;
-            int row = index / this.maxColumns;
+            final int column = index % this.maxColumns;
+            final int row = index / this.maxColumns;
 
             this.addPieceInternal(new SpriteBackgroundGui(GuiSprites.MC_SLOT_BACKGROUND, 18, 18), column, row);
+        }
+
+        if (this.colorOverlay != null) {
+            final GridSizeInfo size = this.getInternalSize();
+            this.colorOverlay.setSize(size.size);
+            this.updatePieceInternal(this.colorOverlay, 0, 0, size.columns, size.rows);
         }
     }
 
     @Override
-    public void postInit(GuiContext context) {
-        List<IContainerSlot> slots = this.getContainerSlots(context);
+    public void postInit(final GuiContext context) {
+        final List<IContainerSlot> slots = this.getContainerSlots(context);
 
-        Size2D offset = context.getGuiContainer().getRenderOffset(this);
-        List<Slot> inventorySlots = context.getContainer().inventorySlots;
+        final Size2D offset = context.getGuiContainer().getRenderOffset(this);
+        final List<Slot> inventorySlots = context.getContainer().inventorySlots;
 
         int index = 0;
-        for(IContainerSlot slot: slots) {
-            int column = index % this.maxColumns;
-            int row = index / this.maxColumns;
+        for(final IContainerSlot slot: slots) {
+            final int column = index % this.maxColumns;
+            final int row = index / this.maxColumns;
             index++;
 
             // assume slot is correctly cached
-            int slotIndex = slot.getIndex();
+            final int slotIndex = slot.getIndex();
             if (slotIndex < inventorySlots.size()) {
-                Slot inventorySlot = inventorySlots.get(slotIndex);
+                final Slot inventorySlot = inventorySlots.get(slotIndex);
                 inventorySlot.xPos = offset.width + column * 18 + 1;
                 inventorySlot.yPos = offset.height + row * 18 + 1;
             }
         }
     }
 
-    private List<IContainerSlot> getContainerSlots(GuiContext context) {
+    private List<IContainerSlot> getContainerSlots(final GuiContext context) {
         return Arrays.stream(this.widgetKeys)
                 .map(context::findWidgetByKey)
                 .filter(Objects::nonNull)
@@ -65,12 +71,12 @@ public class InventoryGrid extends BaseGridLayout {
                 .collect(Collectors.toList());
     }
 
-    public void setColorOverlay(int overlayColor, int overlayAlpha) {
+    public void setColorOverlay(final int overlayColor, final int overlayAlpha) {
         this.setColorOverlay(GuiUtils.applyAlpha(overlayColor, overlayAlpha));
     }
 
-    public void setColorOverlay(int overlayColor) {
-        GridSizeInfo size = this.getInternalSize();
+    public void setColorOverlay(final int overlayColor) {
+        final GridSizeInfo size = this.getInternalSize();
 
         if (this.colorOverlay != null) {
             this.colorOverlay.setColor(overlayColor);

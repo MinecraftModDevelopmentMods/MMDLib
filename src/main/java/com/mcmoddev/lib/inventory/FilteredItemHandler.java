@@ -14,26 +14,26 @@ public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerMo
     @Nullable
     private final BiPredicate<Integer, ItemStack> extractFilter;
 
-    public FilteredItemHandler(IItemHandlerModifiable internal,
-                               @Nullable BiPredicate<Integer, ItemStack> insertFilter,
-                               @Nullable BiPredicate<Integer, ItemStack> extractFilter) {
+    public FilteredItemHandler(final IItemHandlerModifiable internal,
+                               @Nullable final BiPredicate<Integer, ItemStack> insertFilter,
+                               @Nullable final BiPredicate<Integer, ItemStack> extractFilter) {
         this.internal = internal;
         this.insertFilter = insertFilter;
         this.extractFilter = extractFilter;
     }
 
     @Override
-    public boolean canInsertItem(int slot, @Nonnull ItemStack stack) {
+    public boolean canInsertItem(final int slot, @Nonnull final ItemStack stack) {
         return (this.insertFilter == null) || this.insertFilter.test(slot, stack);
     }
 
     @Override
-    public boolean canExtractItem(int slot, int amount) {
+    public boolean canExtractItem(final int slot, final int amount) {
         if (amount == 0) {
             return true;
         }
 
-        ItemStack stack = this.getStackInSlot(slot);
+        final ItemStack stack = this.getStackInSlot(slot);
         return !stack.isEmpty() && ((this.extractFilter == null) || this.extractFilter.test(slot, ItemStackUtils.copyWithSize(stack, amount)));
     }
 
@@ -44,14 +44,14 @@ public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerMo
 
     @Nonnull
     @Override
-    public ItemStack getStackInSlot(int slot) {
+    public ItemStack getStackInSlot(final int slot) {
         // TODO: figure out if filter needs to be applied here
         return this.internal.getStackInSlot(slot);
     }
 
     @Nonnull
     @Override
-    public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
+    public ItemStack insertItem(final int slot, @Nonnull final ItemStack stack, final boolean simulate) {
         if (!this.canInsertItem(slot, stack)) {
             return stack;
         }
@@ -61,7 +61,7 @@ public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerMo
 
     @Nonnull
     @Override
-    public ItemStack extractItem(int slot, int amount, boolean simulate) {
+    public ItemStack extractItem(final int slot, final int amount, final boolean simulate) {
         if (!this.canExtractItem(slot, amount)) {
             return ItemStack.EMPTY;
         }
@@ -69,13 +69,13 @@ public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerMo
     }
 
     @Override
-    public int getSlotLimit(int slot) {
+    public int getSlotLimit(final int slot) {
         return this.internal.getSlotLimit(slot);
     }
 
     @Override
-    public void setStackInSlot(int slot, @Nonnull ItemStack stack) {
-        if (!this.canInsertItem(slot, stack)) {
+    public void setStackInSlot(final int slot, @Nonnull final ItemStack stack) {
+        if (!stack.isEmpty() && !this.canInsertItem(slot, stack)) {
             throw new RuntimeException("Cannot set slot " + slot + " to an unacceptable stack.");
         }
         this.internal.setStackInSlot(slot, stack);

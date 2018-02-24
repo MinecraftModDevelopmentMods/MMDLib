@@ -12,7 +12,7 @@ public class ItemStackHandlerWidget extends BaseWidget {
 
     private List<IContainerSlot> cachedSlots = null;
 
-    public ItemStackHandlerWidget(String key, IItemHandlerModifiable inventory) {
+    public ItemStackHandlerWidget(final String key, final IItemHandlerModifiable inventory) {
         super(key,false); // dirty state is handled by the slots themselves
 
         this.inventory = inventory;
@@ -24,7 +24,7 @@ public class ItemStackHandlerWidget extends BaseWidget {
             return this.cachedSlots;
         }
 
-        List<IContainerSlot> slots = Lists.newArrayList();
+        final List<IContainerSlot> slots = Lists.newArrayList();
 
         slots.addAll(ItemStackHandlerSlot.createSlots(inventory, this.getKey()));
 

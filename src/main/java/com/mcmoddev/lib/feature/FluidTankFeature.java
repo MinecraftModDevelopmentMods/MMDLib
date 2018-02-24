@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
+import com.mcmoddev.lib.capability.ICapabilitiesContainer;
 import com.mcmoddev.lib.container.IWidgetContainer;
 import com.mcmoddev.lib.container.gui.BaseWidgetGui;
 import com.mcmoddev.lib.container.gui.FluidWidgetGui;
@@ -18,6 +19,7 @@ import com.mcmoddev.lib.container.gui.layout.CanvasLayout;
 import com.mcmoddev.lib.container.widget.ActionWidget;
 import com.mcmoddev.lib.container.widget.IWidget;
 import com.mcmoddev.lib.inventory.FilteredFluidTank;
+import com.mcmoddev.lib.inventory.FluidTankHandler;
 import com.mcmoddev.lib.inventory.IFluidTankModifiable;
 import com.mcmoddev.lib.inventory.IResponsiveFluidTank;
 import com.mcmoddev.lib.inventory.ResponsiveFluidTankWrapper;
@@ -34,6 +36,7 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class FluidTankFeature extends BaseFeature implements IClientFeature, IWidgetContainer {
@@ -81,6 +84,11 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
     }
 
     @Override
+    public void initCapabilities(final ICapabilitiesContainer container) {
+        container.addCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, f -> new FluidTankHandler(this.externalTank));
+    }
+
+    @Override
     protected void writeToNBT(final NBTTagCompound tag) {
         final FluidStack fluid = this.internalTank.getFluid();
         if (fluid != null) {
@@ -103,7 +111,7 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
 
     @Override
     public List<IWidget> getWidgets(final GuiContext context) {
-        return Collections.singletonList(new FluidTankHandler());
+        return Collections.singletonList(new FluidTankWidget());
     }
 
     @Override
@@ -128,7 +136,7 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
             new SpriteForegroundGui(GuiSprites.TANK_OVERLAY, GuiSprites.TANK_CONTAINER.getWidth(), GuiSprites.TANK_CONTAINER.getHeight()),
             0, 0);
 
-        layout.addPiece(new FluidTankHandlerGui(GuiSprites.TANK_CONTAINER.getWidth(), GuiSprites.TANK_CONTAINER.getHeight()), 0, 0);
+        layout.addPiece(new FluidTankWidgetGui(GuiSprites.TANK_CONTAINER.getWidth(), GuiSprites.TANK_CONTAINER.getHeight()), 0, 0);
 
         return layout;
     }
@@ -138,8 +146,8 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
         return this.internalTank.getFluid();
     }
 
-    private class FluidTankHandler extends ActionWidget {
-        protected FluidTankHandler() {
+    private class FluidTankWidget extends ActionWidget {
+        protected FluidTankWidget() {
             super(FluidTankFeature.this.getKey() + "_handler");
 
             this.setServerSideConsumer(this::serverCallback);
@@ -183,8 +191,8 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
         return true;
     }
 
-    private class FluidTankHandlerGui extends BaseWidgetGui {
-        FluidTankHandlerGui(final int width, final int height) {
+    private class FluidTankWidgetGui extends BaseWidgetGui {
+        FluidTankWidgetGui(final int width, final int height) {
             super(width, height);
         }
 
@@ -249,7 +257,7 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
                 if (action != null) {
                     final NBTTagCompound actionTag = new NBTTagCompound();
                     actionTag.setString("action", action);
-                    ((FluidTankHandler)container.findWidgetByKey(FluidTankFeature.this.getKey() + "_handler"))
+                    ((FluidTankWidget)container.findWidgetByKey(FluidTankFeature.this.getKey() + "_handler"))
                         .actionPerformed(actionTag);
                 }
             }

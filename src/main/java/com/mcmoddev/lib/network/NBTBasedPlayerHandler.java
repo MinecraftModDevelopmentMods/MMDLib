@@ -6,6 +6,7 @@ import com.mcmoddev.lib.container.MMDContainer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -17,43 +18,41 @@ public class NBTBasedPlayerHandler implements IMessageHandler<NBTBasedPlayerMess
 
     @Nullable
     @Override
-    public IMessage onMessage(NBTBasedPlayerMessage message, MessageContext ctx) {
+    public IMessage onMessage(final NBTBasedPlayerMessage message, final MessageContext ctx) {
         if (ctx.side == Side.CLIENT) {
-            // process message from server
-            EntityPlayerSP player = Minecraft.getMinecraft().player;
-            String playerId = player.getUniqueID().toString();
-            if (playerId.equals(message.getPlayerId())) {
-                if (player.openContainer instanceof MMDContainer) {
-                    // TODO: find a way to also support this for non-tile-based containers
-                    // like, use the same interface we use for tile entities
-                    return ((MMDContainer)player.openContainer).handleMessageFromServer(message.getCompound());
+            FMLCommonHandler.instance().getWorldThread(ctx.netHandler).addScheduledTask(() -> {
+                // process message from server
+                final EntityPlayerSP player = Minecraft.getMinecraft().player;
+                final String playerId = player.getUniqueID().toString();
+                if (playerId.equals(message.getPlayerId())) {
+                    if (player.openContainer instanceof MMDContainer) {
+                        ((MMDContainer) player.openContainer).handleMessageFromServer(message.getCompound());
+                    } else {
+                        MMDLib.logger.error("Message received for player. But wrong type of container is currently opened!");
+                    }
+                } else {
+                    MMDLib.logger.error("Message received for wrong player: '" + message.getPlayerId() + "'");
                 }
-                else {
-                    MMDLib.logger.error("Message received for player. But wrong type of container is currently opened!");
-                }
-            }
-            else {
-                MMDLib.logger.error("Message received for wrong player: '" + message.getPlayerId() + "'");
-            }
-        }
-        else if (ctx.side == Side.SERVER) {
+            });
+        } else if (ctx.side == Side.SERVER) {
             // process message from client
-            EntityPlayerMP player = ctx.getServerHandler().player;
-            String playerId = player.getUniqueID().toString();
-            if (playerId.equals(message.getPlayerId())) {
-                if (player.openContainer instanceof MMDContainer) {
-                    // TODO: find a way to also support this for non-tile-based containers
-                    // like, use the same interface we use for tile entities
-                    return ((MMDContainer)player.openContainer).handleMessageFromClient(message.getCompound());
+            FMLCommonHandler.instance().getWorldThread(ctx.netHandler).addScheduledTask(() -> {
+                final EntityPlayerMP player = ctx.getServerHandler().player;
+                final String playerId = player.getUniqueID().toString();
+                if (playerId.equals(message.getPlayerId())) {
+                    if (player.openContainer instanceof MMDContainer) {
+                        // TODO: find a way to also support this for non-tile-based containers
+                        // like, use the same interface we use for tile entities
+                        ((MMDContainer) player.openContainer).handleMessageFromClient(message.getCompound());
+                    } else {
+                        MMDLib.logger.error("Message received for player. But wrong type of container is currently opened!");
+                    }
+                } else {
+                    MMDLib.logger.error("Message received for wrong player: '" + message.getPlayerId() + "'");
                 }
-                else {
-                    MMDLib.logger.error("Message received for player. But wrong type of container is currently opened!");
-                }
-            }
-            else {
-                MMDLib.logger.error("Message received for wrong player: '" + message.getPlayerId() + "'");
-            }
+            });
         }
+
         return null;
     }
 }

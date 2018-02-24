@@ -8,13 +8,15 @@ public enum PlayerInventory {
 
     public final String key;
     public final int slotStart;
+    public final int slotEndExclusive;
     public final int slotCount;
     public final boolean insertInReverse;
 
-    PlayerInventory(String key, int slotStart, int slotCount, boolean insertInReverse) {
+    PlayerInventory(final String key, final int slotStart, final int slotCount, final boolean insertInReverse) {
         this.key = key;
         this.slotStart = slotStart;
         this.slotCount = slotCount;
+        this.slotEndExclusive = slotStart + slotCount;
         this.insertInReverse = insertInReverse;
     }
 }

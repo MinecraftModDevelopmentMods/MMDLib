@@ -2,7 +2,6 @@ package com.mcmoddev.lib.proxy;
 
 import com.mcmoddev.lib.capability.MMDCapabilities;
 import com.mcmoddev.lib.container.MMDGuiHandler;
-import com.mcmoddev.lib.container.parser.WidgetParserRegistry;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -24,9 +23,6 @@ public class CommonProxy {
 		MMDGuiHandler.init();
 		MMDCapabilities.init();
 	    // despite other comments, most events get fired here
-
-		// TODO: this should be a real registry
-		WidgetParserRegistry.initialize();
 	}
 	
 	public void init(FMLInitializationEvent event) {

@@ -1,5 +1,6 @@
 package com.mcmoddev.lib.network;
 
+import com.mcmoddev.lib.util.LoggingUtil;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
@@ -11,7 +12,7 @@ public abstract class NBTBasedMessage implements IMessage {
     public NBTBasedMessage() {
     }
 
-    public NBTBasedMessage(NBTTagCompound compound) {
+    public NBTBasedMessage(final NBTTagCompound compound) {
         this.compound = compound;
     }
 
@@ -20,12 +21,16 @@ public abstract class NBTBasedMessage implements IMessage {
     }
 
     @Override
-    public void fromBytes(ByteBuf buf) {
+    public void fromBytes(final ByteBuf buf) {
         this.compound = ByteBufUtils.readTag(buf);
+
+        LoggingUtil.logNbtMessage("FROM BYTE BUF", this.compound);
     }
 
     @Override
-    public void toBytes(ByteBuf buf) {
+    public void toBytes(final ByteBuf buf) {
         ByteBufUtils.writeTag(buf, this.compound);
+
+        LoggingUtil.logNbtMessage("TO BYTE BUF", this.compound);
     }
 }

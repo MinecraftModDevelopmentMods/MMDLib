@@ -16,11 +16,11 @@ public abstract class BaseWidgetGui implements IWidgetGui {
 
     protected BaseWidgetGui() {}
 
-    protected BaseWidgetGui(int width, int height) {
+    protected BaseWidgetGui(final int width, final int height) {
         this(new Size2D(width, height));
     }
 
-    protected BaseWidgetGui(Size2D size) {
+    protected BaseWidgetGui(final Size2D size) {
         this.size = size;
     }
 
@@ -32,7 +32,7 @@ public abstract class BaseWidgetGui implements IWidgetGui {
     }
 
     @Override
-    public IWidgetGui setPadding(Padding value) {
+    public IWidgetGui setPadding(final Padding value) {
         this.padding = value;
         return this;
     }
@@ -47,7 +47,7 @@ public abstract class BaseWidgetGui implements IWidgetGui {
     }
 
     @Override
-    public boolean setVisibility(boolean isVisible) {
+    public boolean setVisibility(final boolean isVisible) {
         if (this.canSetVisibility()) {
             this.setVisibilityProtected(isVisible);
         }
@@ -55,7 +55,7 @@ public abstract class BaseWidgetGui implements IWidgetGui {
     }
 
     @SuppressWarnings("WeakerAccess")
-    protected void setVisibilityProtected(boolean isVisible) {
+    protected void setVisibilityProtected(final boolean isVisible) {
         this.isVisible = isVisible;
     }
 
@@ -75,7 +75,7 @@ public abstract class BaseWidgetGui implements IWidgetGui {
     }
 
     @Override
-    public IWidgetGui setParentLayout(@Nullable IWidgetLayout layout) {
+    public IWidgetGui setParentLayout(@Nullable final IWidgetLayout layout) {
         this.parent = layout;
         return this;
     }
@@ -94,14 +94,14 @@ public abstract class BaseWidgetGui implements IWidgetGui {
         return this.size;
     }
 
-    protected void setSize(Size2D value) {
+    public void setSize(final Size2D value) {
         this.size = value;
     }
 
     //#endregion
 
-    protected boolean isInside(int x, int y) {
-        Size2D size = this.getSize();
+    protected boolean isInside(final int x, final int y) {
+        final Size2D size = this.getSize();
         return ((x >= 0) && (y >= 0) && (x <= size.width) && (y <= size.height));
     }
 }

@@ -27,11 +27,11 @@ public final class LoggingUtil {
         return true;
     }
 
-    public static void logNbtMessage(final String reason, final NBTBase nbt) {
+    public static void logNbtMessage(final String reason, @Nullable final NBTBase nbt) {
         LoggingUtil.logNbtMessage(null, reason, nbt);
     }
 
-    public static void logNbtMessage(@Nullable final Object sender, final String reason, final NBTBase nbt) {
+    public static void logNbtMessage(@Nullable final Object sender, final String reason, @Nullable final NBTBase nbt) {
         if (!LoggingUtil.isExtraLoggingEnabled()) {
             return;
         }
@@ -72,7 +72,12 @@ public final class LoggingUtil {
             log.append(": ");
         }
 
-        log.append(nbt);
+        if (nbt != null) {
+            log.append(nbt);
+        }
+        else {
+            log.append("{NO TAG}");
+        }
 
         MMDLib.logger.info(log.toString());
     }

@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
+import com.mcmoddev.lib.container.gui.IWidgetLayoutDebugInfo;
 import com.mcmoddev.lib.container.gui.util.Padding;
 import com.mcmoddev.lib.container.gui.util.Size2D;
 import net.minecraftforge.fml.relauncher.Side;
@@ -13,7 +14,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SuppressWarnings("WeakerAccess")
 @SideOnly(Side.CLIENT)
-public abstract class BaseGridLayout extends BaseLayout {
+public abstract class BaseGridLayout extends BaseLayout implements IWidgetLayoutDebugInfo {
     // TODO: add piece align in the cell
 
     protected class GridPieceInfo {
@@ -23,7 +24,7 @@ public abstract class BaseGridLayout extends BaseLayout {
         public final int columnSpan;
         public final int rowSpan;
 
-        protected GridPieceInfo(IWidgetGui piece, int column, int row, int columnSpan, int rowSpan) {
+        protected GridPieceInfo(final IWidgetGui piece, final int column, final int row, final int columnSpan, final int rowSpan) {
             this.piece = piece;
             this.column = column;
             this.row = row;
@@ -38,7 +39,7 @@ public abstract class BaseGridLayout extends BaseLayout {
     private final List<GridPieceInfo> pieces = Lists.newArrayList();
     private final Map<IWidgetGui, GridPieceInfo> piecesMap = Maps.newHashMap();
 
-    public BaseGridLayout(int minColumns, int minRows) {
+    public BaseGridLayout(final int minColumns, final int minRows) {
         this.minColumns = minColumns;
         this.minRows = minRows;
     }
@@ -48,16 +49,25 @@ public abstract class BaseGridLayout extends BaseLayout {
         return this.pieces.stream().map(p -> p.piece).collect(Collectors.toList());
     }
 
-    protected <T extends IWidgetGui> T addPieceInternal(T piece, int column, int row) {
+    protected <T extends IWidgetGui> T addPieceInternal(final T piece, final int column, final int row) {
         return this.addPieceInternal(piece, column, row, 1, 1);
     }
 
-    protected <T extends IWidgetGui> T addPieceInternal(T piece, int column, int row, int columnSpan, int rowSpan) {
-        GridPieceInfo info = new GridPieceInfo(piece, column, row, columnSpan, rowSpan);
+    protected <T extends IWidgetGui> T addPieceInternal(final T piece, final int column, final int row, final int columnSpan, final int rowSpan) {
+        final GridPieceInfo info = new GridPieceInfo(piece, column, row, columnSpan, rowSpan);
         this.pieces.add(info);
         this.piecesMap.put(info.piece, info);
         this.onChildAdded(piece);
         return piece;
+    }
+
+    protected <T extends IWidgetGui> T updatePieceInternal(final T piece, final int column, final int row, final int columnSpan, final int rowSpan) {
+        final GridPieceInfo info = this.piecesMap.get(piece);
+        if (info != null) {
+            this.pieces.remove(info);
+            this.piecesMap.remove(piece);
+        }
+        return this.addPieceInternal(piece, column, row, columnSpan, rowSpan);
     }
 
     @Override
@@ -71,8 +81,8 @@ public abstract class BaseGridLayout extends BaseLayout {
         int columns = this.minColumns;
         int rows = this.minRows;
 
-        for(GridPieceInfo info : this.pieces) {
-            Size2D size = this.getSize(info.piece);
+        for(final GridPieceInfo info : this.pieces) {
+            final Size2D size = this.getSize(info.piece);
             if (size.width > 0) {
                 cellWidth = Math.max(cellWidth, size.width / info.columnSpan);
             }
@@ -95,7 +105,7 @@ public abstract class BaseGridLayout extends BaseLayout {
         public final int columns;
         public final int rows;
 
-        private GridSizeInfo(Size2D size, Size2D cellSize, int columns, int rows) {
+        private GridSizeInfo(final Size2D size, final Size2D cellSize, final int columns, final int rows) {
             this.size = size;
             this.cellSize = cellSize;
 
@@ -104,35 +114,42 @@ public abstract class BaseGridLayout extends BaseLayout {
         }
     }
 
-    private Size2D getSize(IWidgetGui piece) {
-        Padding padding = piece.getPadding();
-        Size2D pieceSize = piece.getSize();
+    private Size2D getSize(final IWidgetGui piece) {
+        final Padding padding = piece.getPadding();
+        final Size2D pieceSize = piece.getSize();
         return new Size2D(
             pieceSize.width + padding.left + padding.right,
             pieceSize.height + padding.top + padding.bottom);
     }
 
     @Override
-    public Size2D getChildPosition(IWidgetGui child) {
+    public Size2D getChildPosition(final IWidgetGui child) {
         if (!this.piecesMap.containsKey(child)) {
             // not our piece?!?
             // TODO: consider crashing?
             return Size2D.ZERO;
         }
 
-        GridPieceInfo info = this.piecesMap.get(child);
-        GridSizeInfo sizes = this.getInternalSize();
-        int left = sizes.cellSize.width * info.column;
-        int top = sizes.cellSize.height * info.row;
-        int width = sizes.cellSize.width * info.columnSpan;
-        int height = sizes.cellSize.height * info.rowSpan;
+        final GridPieceInfo info = this.piecesMap.get(child);
+        final GridSizeInfo sizes = this.getInternalSize();
+        final int left = sizes.cellSize.width * info.column;
+        final int top = sizes.cellSize.height * info.row;
+        final int width = sizes.cellSize.width * info.columnSpan;
+        final int height = sizes.cellSize.height * info.rowSpan;
 
-        Size2D pieceSize = this.getSize(info.piece);
+        final Size2D pieceSize = this.getSize(info.piece);
 
         // TODO: add more than just centered rendering
-        int renderLeft = left + (width - pieceSize.width) / 2;
-        int renderTop = top + (height - pieceSize.height) / 2;
+        final int renderLeft = left + (width - pieceSize.width) / 2;
+        final int renderTop = top + (height - pieceSize.height) / 2;
 
         return new Size2D(renderLeft, renderTop);
+    }
+
+    @Override
+    public String getDebugInfo(final IWidgetGui piece) {
+        final GridPieceInfo info = this.piecesMap.get(piece);
+        return (info == null) ? "{no info}"
+            : String.format("c: %d, r: %d, cs: %d, rs: %d", info.column, info.row, info.columnSpan, info.rowSpan);
     }
 }

@@ -8,21 +8,21 @@ public interface ISidedFeature extends IFeature {
     EnumFacing[] getFacings();
     void setFacings(EnumFacing[] facings);
 
-    default void enableFacing(EnumFacing facing) {
+    default void enableFacing(final EnumFacing facing) {
         if (!this.isFacingEnabled(facing)) {
-            EnumFacing[] facings = this.getFacings();
+            final EnumFacing[] facings = this.getFacings();
             if ((facings == null) || (facings.length == 0)) {
                 this.setFacings(new EnumFacing[] { facing });
             }
             else {
-                List<EnumFacing> list = Arrays.asList(facings);
+                final List<EnumFacing> list = Arrays.asList(facings);
                 list.add(facing);
                 this.setFacings(list.toArray(new EnumFacing[facings.length + 1]));
             }
         }
     }
 
-    default void disableFacing(EnumFacing facing) {
+    default void disableFacing(final EnumFacing facing) {
         if (this.isFacingEnabled(facing)) {
             this.setFacings(Arrays
                 .stream(this.getFacings())
@@ -32,8 +32,8 @@ public interface ISidedFeature extends IFeature {
         }
     }
 
-    default boolean isFacingEnabled(EnumFacing facing) {
-        EnumFacing[] facings = this.getFacings();
+    default boolean isFacingEnabled(final EnumFacing facing) {
+        final EnumFacing[] facings = this.getFacings();
         return Arrays.stream(facings).anyMatch(f -> (f == facing));
     }
 }
