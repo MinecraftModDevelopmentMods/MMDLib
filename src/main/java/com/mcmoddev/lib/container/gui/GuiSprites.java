@@ -8,7 +8,14 @@ public enum GuiSprites implements IGuiSprite {
     MC_BUTTON_HOVER(GuiTextures.MC_WIDGETS, 0, 86, 200, 20), // TODO: I guess?
 
     TANK_CONTAINER(GuiTextures.GUI_BASE, 1, 1, 18, 54),
-    TANK_OVERLAY(GuiTextures.GUI_BASE, 3, 56, 14, 50)
+    TANK_OVERLAY(GuiTextures.GUI_BASE, 3, 56, 14, 50),
+
+    ENERGY_TESLA_EMPTY(GuiTextures.GUI_BASE, 20, 4, 12, 48),
+    ENERGY_TESLA_FULL(GuiTextures.GUI_BASE, 33, 4, 12, 48),
+    ENERGY_RF_EMPTY(GuiTextures.GUI_BASE, 46, 4, 12, 48),
+    ENERGY_RF_FULL(GuiTextures.GUI_BASE, 59, 4, 12, 48),
+    ENERGY_GRAY_EMPTY(GuiTextures.GUI_BASE, 72, 4, 12, 48),
+    ENERGY_GRAY_FULL(GuiTextures.GUI_BASE, 85, 4, 12, 48)
     ;
 
     private final IGuiTexture texture;
@@ -19,11 +26,11 @@ public enum GuiSprites implements IGuiSprite {
 
     private final boolean needsAlpha;
 
-    GuiSprites(IGuiTexture texture, int left, int top, int width, int height) {
+    GuiSprites(final IGuiTexture texture, final int left, final int top, final int width, final int height) {
         this(texture, left, top, width, height, true);
     }
 
-    GuiSprites(IGuiTexture texture, int left, int top, int width, int height, boolean needsAlpha) {
+    GuiSprites(final IGuiTexture texture, final int left, final int top, final int width, final int height, final boolean needsAlpha) {
         this.texture = texture;
         this.left = left;
         this.top = top;

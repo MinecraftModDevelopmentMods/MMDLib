@@ -38,6 +38,9 @@ public class MMDBlockWithGui extends Block {
 //            final EntityPlayerMP player = (EntityPlayerMP)playerIn;
             final int guiId = this.getGuiId(worldIn, pos, playerIn, hand, facing, hitX, hitY, hitZ);
             if (guiId >= 0) {
+                if (worldIn.isRemote) {
+                    return true;
+                }
                 return this.openGui(guiId, worldIn, pos, playerIn);
             }
         }

@@ -1,5 +1,6 @@
 package com.mcmoddev.lib.energy.tesla;
 
+import java.text.NumberFormat;
 import com.mcmoddev.lib.energy.BaseEnergyValue;
 import com.mcmoddev.lib.energy.EnergySystemRegistry;
 import com.mcmoddev.lib.energy.IEnergyValue;
@@ -34,5 +35,10 @@ public class TeslaEnergyValue extends BaseEnergyValue<Long> {
     @Override
     public IEnergyValue<Long> copy() {
         return new TeslaEnergyValue(this.getValue());
+    }
+
+    @Override
+    public String toString() {
+        return NumberFormat.getNumberInstance().format(this.getValue()) + " T";
     }
 }

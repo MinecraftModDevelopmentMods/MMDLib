@@ -146,7 +146,7 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
     @Override
     public IWidgetGui getRootWidgetGui(final GuiContext context) {
         final InventoryGrid grid = new InventoryGrid(this.columns, this.getKey() + "_slots");
-        if (this.overlayColor != 0) {
+        if (this.overlayColor != -1) {
             if (this.overlayAlpha > -1) {
                 grid.setColorOverlay(this.overlayColor, this.overlayAlpha);
             }

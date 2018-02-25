@@ -10,7 +10,6 @@ import com.mcmoddev.lib.container.gui.layout.CanvasLayout;
 import com.mcmoddev.lib.container.widget.IWidget;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -38,7 +37,6 @@ public interface IWidgetContainer {
     @Nullable
     default NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) { return null; }
 
-    @Nullable
     @SideOnly(Side.CLIENT)
-    default IMessage receiveGuiUpdateTag(final NBTTagCompound compound) { return null; }
+    default void receiveGuiUpdateTag(final NBTTagCompound compound) { }
 }

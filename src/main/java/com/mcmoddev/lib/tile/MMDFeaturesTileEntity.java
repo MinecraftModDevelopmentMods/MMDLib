@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import com.mcmoddev.lib.capability.CapabilitiesContainer;
@@ -23,6 +24,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -124,7 +126,10 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
 
     @Override
     public void readFromNBT(final NBTTagCompound compound) {
-        super.readFromNBT(compound);
+        // TODO: this is a hack... add an "internal" read features method and handle gui update tag correctly
+        if (compound.getSize() >= 3) {
+            super.readFromNBT(compound);
+        }
 
         if (compound.hasKey("features", Constants.NBT.TAG_COMPOUND)) {
             final NBTTagCompound featuresNBT = compound.getCompoundTag("features");
@@ -168,13 +173,25 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
 
     @Override
     public boolean hasCapability(final Capability<?> capability, @Nullable final EnumFacing facing) {
-        return this.capContainer.hasCapability(capability, facing) || super.hasCapability(capability, facing);
+        return this.capContainer.hasCapability(capability, facing)
+            || this.features.stream()
+            .filter(f -> (f instanceof ICapabilityProvider))
+            .anyMatch(f -> ((ICapabilityProvider)f).hasCapability(capability, facing))
+            || super.hasCapability(capability, facing);
     }
 
     @Nullable
     @Override
     public <T> T getCapability(final Capability<T> capability, @Nullable final EnumFacing facing) {
-        final T cap = this.capContainer.getCapability(capability, facing);
+        T cap = this.capContainer.getCapability(capability, facing);
+        if (cap == null) {
+            cap = this.features.stream()
+                .filter(f -> (f instanceof ICapabilityProvider))
+                .map(f -> ((ICapabilityProvider) f).getCapability(capability, facing))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+        }
         return (cap != null) ? cap : super.getCapability(capability, facing);
     }
 }

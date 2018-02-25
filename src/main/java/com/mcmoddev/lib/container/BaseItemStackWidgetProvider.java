@@ -21,7 +21,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -30,11 +29,11 @@ public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContain
     private final Item item;
     private final IFeatureHolder features;
 
-    public BaseItemStackWidgetProvider(ItemStack stack) {
+    public BaseItemStackWidgetProvider(final ItemStack stack) {
         this(stack, stack.getItem());
     }
 
-    public BaseItemStackWidgetProvider(ItemStack stack, Item item) {
+    public BaseItemStackWidgetProvider(final ItemStack stack, final Item item) {
         this.stack = stack;
         this.item = item;
         this.features = (this.item instanceof IItemStackFeatureHolder)
@@ -47,13 +46,13 @@ public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContain
     @Nullable
     @Override
     @SideOnly(Side.CLIENT)
-    public GuiContainer getClientGui(int id, EntityPlayer player, World world, int x, int y, int z) {
+    public GuiContainer getClientGui(final int id, final EntityPlayer player, final World world, final int x, final int y, final int z) {
         if (this.item instanceof IItemGuiProvider) {
-            IItemGuiProvider.GuiType type = (id == 1) ? IItemGuiProvider.GuiType.AIR : IItemGuiProvider.GuiType.BLOCK;
+            final IItemGuiProvider.GuiType type = (id == 1) ? IItemGuiProvider.GuiType.AIR : IItemGuiProvider.GuiType.BLOCK;
             return IItemGuiProvider.class.cast(this.item).getClientGui(type, this.stack, player, world, x, y, z);
         }
 
-        Container container = this.getServerGui(id, player, world, x, y, z);
+        final Container container = this.getServerGui(id, player, world, x, y, z);
         if (container instanceof MMDContainer) {
             return new MMDGuiContainer(this, player, MMDContainer.class.cast(container));
         }
@@ -63,20 +62,20 @@ public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContain
 
     @Nullable
     @Override
-    public Container getServerGui(int id, EntityPlayer player, World world, int x, int y, int z) {
+    public Container getServerGui(final int id, final EntityPlayer player, final World world, final int x, final int y, final int z) {
         if (this.item instanceof IItemGuiProvider) {
-            IItemGuiProvider.GuiType type = (id == 1) ? IItemGuiProvider.GuiType.AIR : IItemGuiProvider.GuiType.BLOCK;
+            final IItemGuiProvider.GuiType type = (id == 1) ? IItemGuiProvider.GuiType.AIR : IItemGuiProvider.GuiType.BLOCK;
             return IItemGuiProvider.class.cast(this.item).getServerGui(type, this.stack, player, world, x, y, z);
         }
         return new MMDContainer(this, player);
     }
 
     @Override
-    public List<IWidget> getWidgets(GuiContext context) {
-        List<IWidget> widgets = new ArrayList<>();
+    public List<IWidget> getWidgets(final GuiContext context) {
+        final List<IWidget> widgets = new ArrayList<>();
 
         if (this.features != null) {
-            for(IFeature feature: this.features.getFeatures()) {
+            for(final IFeature feature: this.features.getFeatures()) {
                 if (feature instanceof IWidgetContainer) {
                     widgets.addAll(IWidgetContainer.class.cast(feature).getWidgets(context));
                 }
@@ -87,11 +86,11 @@ public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContain
     }
 
     @Override
-    public IWidgetGui getRootWidgetGui(GuiContext context) {
-        VerticalStackLayout layout = new VerticalStackLayout();
+    public IWidgetGui getRootWidgetGui(final GuiContext context) {
+        final VerticalStackLayout layout = new VerticalStackLayout();
 
         if (this.features != null) {
-            for(IFeature feature: this.features.getFeatures()) {
+            for(final IFeature feature: this.features.getFeatures()) {
                 if (feature instanceof IWidgetContainer) {
                     layout.addPiece(IWidgetContainer.class.cast(feature).getRootWidgetGui(context));
                 }
@@ -101,29 +100,26 @@ public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContain
         return layout;
     }
 
-    @Nullable
     @Override
-    public IMessage receiveGuiUpdateTag(NBTTagCompound compound) {
-        for(IFeature feature : this.features.getFeatures()) {
+    public void receiveGuiUpdateTag(final NBTTagCompound compound) {
+        for(final IFeature feature : this.features.getFeatures()) {
             if ((feature instanceof IClientFeature) && compound.hasKey(feature.getKey(), Constants.NBT.TAG_COMPOUND)) {
-                IClientFeature clientFeature = IClientFeature.class.cast(feature);
-                NBTTagCompound update = compound.getCompoundTag(feature.getKey());
+                final IClientFeature clientFeature = IClientFeature.class.cast(feature);
+                final NBTTagCompound update = compound.getCompoundTag(feature.getKey());
                 clientFeature.handleUpdateTag(update);
             }
         }
-
-        return null;
     }
 
     @Nullable
     @Override
-    public NBTTagCompound getGuiUpdateTag(boolean resetDirtyFlag) {
-        NBTTagCompound compound = new NBTTagCompound();
+    public NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) {
+        final NBTTagCompound compound = new NBTTagCompound();
 
-        for(IFeature feature : this.features.getFeatures()) {
+        for(final IFeature feature : this.features.getFeatures()) {
             if (feature instanceof IServerFeature) {
-                IServerFeature serverFeature = IServerFeature.class.cast(feature);
-                NBTTagCompound update = serverFeature.getGuiUpdateTag(resetDirtyFlag);
+                final IServerFeature serverFeature = IServerFeature.class.cast(feature);
+                final NBTTagCompound update = serverFeature.getGuiUpdateTag(resetDirtyFlag);
                 if ((update != null) && (update.getSize() > 0)) {
                     compound.setTag(feature.getKey(), update);
                 }

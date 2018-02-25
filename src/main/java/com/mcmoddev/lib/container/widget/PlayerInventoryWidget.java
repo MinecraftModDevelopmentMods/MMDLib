@@ -14,7 +14,7 @@ public class PlayerInventoryWidget extends BaseWidget {
 
     private List<IContainerSlot> cachedSlots = null;
 
-    public PlayerInventoryWidget(String key, EntityPlayer player, PlayerInventory... inventories) {
+    public PlayerInventoryWidget(final String key, final EntityPlayer player, final PlayerInventory... inventories) {
         super(key,false); // dirty state is handled by the slots themselves
 
         this.player = player;
@@ -27,9 +27,9 @@ public class PlayerInventoryWidget extends BaseWidget {
             return this.cachedSlots;
 
         }
-        List<IContainerSlot> slots = Lists.newArrayList();
+        final List<IContainerSlot> slots = Lists.newArrayList();
 
-        for(PlayerInventory inventory: this.inventories) {
+        for(final PlayerInventory inventory: this.inventories) {
             slots.addAll(PlayerInventorySlot.createSlots(this.player, inventory));
         }
 

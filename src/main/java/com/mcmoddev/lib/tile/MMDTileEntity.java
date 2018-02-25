@@ -17,7 +17,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -55,10 +54,8 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
         return null;
     }
 
-    @Nullable
-    public IMessage receiveGuiUpdateTag(final NBTTagCompound compound) {
+    public void receiveGuiUpdateTag(final NBTTagCompound compound) {
         this.readFromUpdateTag(compound);
-        return null;
     }
 
     @Nullable

@@ -1,7 +1,6 @@
 package com.mcmoddev.lib.container.gui;
 
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -17,17 +16,17 @@ public interface IGuiSprite {
     boolean needsAlpha();
 
     @SideOnly(Side.CLIENT)
-    default void draw(GuiScreen screen, int left, int top) {
+    default void draw(final GuiScreen screen, final int left, final int top) {
         this.draw(screen, left, top, this.getWidth(), this.getHeight(), false);
     }
 
     @SideOnly(Side.CLIENT)
-    default void draw(GuiScreen screen, int left, int top, int width, int height) {
+    default void draw(final GuiScreen screen, final int left, final int top, final int width, final int height) {
         this.draw(screen, left, top, width, height, true);
     }
 
     @SideOnly(Side.CLIENT)
-    default void draw(GuiScreen screen, int left, int top, int width, int height, boolean clip) {
+    default void draw(final GuiScreen screen, final int left, final int top, final int width, final int height, final boolean clip) {
 //        int offsetX = 0;
 //        int offsetY = 0;
 //        if (screen instanceof GuiContainer) {
@@ -44,8 +43,8 @@ public interface IGuiSprite {
         int texWidth = this.getWidth();
         int texHeight = this.getHeight();
 
-        int fullLeft = /*drawLeft*/left + (width - texWidth) / 2;
-        int fullTop = /*drawTop*/top + (height - texHeight) / 2;
+        final int fullLeft = /*drawLeft*/left + (width - texWidth) / 2;
+        final int fullTop = /*drawTop*/top + (height - texHeight) / 2;
 
         if (clip) {
             if (texWidth > width) {
@@ -73,17 +72,17 @@ public interface IGuiSprite {
     }
 
     @SideOnly(Side.CLIENT)
-    default void draw(GuiScreen screen, int left, int top, int texLeft, int texTop, int texWidth, int texHeight) {
-        int offsetX = 0;
-        int offsetY = 0;
-        if (screen instanceof GuiContainer) {
-            GuiContainer container = (GuiContainer)screen;
-            offsetX = container.getGuiLeft();
-            offsetY = container.getGuiTop();
-        }
-
-        int drawLeft = offsetX + left;
-        int drawTop = offsetY + top;
+    default void draw(final GuiScreen screen, final int left, final int top, final int texLeft, final int texTop, final int texWidth, final int texHeight) {
+//        int offsetX = 0;
+//        int offsetY = 0;
+//        if (screen instanceof GuiContainer) {
+//            GuiContainer container = (GuiContainer)screen;
+//            offsetX = container.getGuiLeft();
+//            offsetY = container.getGuiTop();
+//        }
+//
+//        int drawLeft = offsetX + left;
+//        int drawTop = offsetY + top;
 
         this.getTexture().bind();
 
@@ -92,7 +91,11 @@ public interface IGuiSprite {
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
         }
 
-        screen.drawTexturedModalRect(drawLeft, drawTop, texLeft, texTop, texWidth, texHeight);
+        screen.drawTexturedModalRect(left, top,
+            this.getLeft() + texLeft,
+            this.getTop() + texTop,
+            texWidth,
+            texHeight);
 
         if (this.needsAlpha()) {
             GlStateManager.disableBlend();

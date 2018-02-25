@@ -1,5 +1,7 @@
 package com.mcmoddev.lib.energy;
 
+import java.text.NumberFormat;
+
 public class ForgeEnergyValue extends BaseEnergyValue<Integer> {
     public ForgeEnergyValue(final int value) {
         super(EnergySystemRegistry.FORGE_ENERGY, value);
@@ -30,5 +32,10 @@ public class ForgeEnergyValue extends BaseEnergyValue<Integer> {
     @Override
     public IEnergyValue<Integer> copy() {
         return new ForgeEnergyValue(this.getValue());
+    }
+
+    @Override
+    public String toString() {
+        return NumberFormat.getNumberInstance().format(this.getValue()) + " FE";
     }
 }

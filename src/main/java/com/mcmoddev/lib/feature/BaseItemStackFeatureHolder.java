@@ -14,7 +14,6 @@ import com.mcmoddev.lib.container.widget.IWidget;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -74,11 +73,9 @@ public class BaseItemStackFeatureHolder implements IFeatureHolder, IWidgetContai
         return (nbt.getSize() > 0) ? nbt : null;
     }
 
-    @Nullable
     @Override
     @SideOnly(Side.CLIENT)
-    public IMessage receiveGuiUpdateTag(final NBTTagCompound compound) {
-        return null;
+    public void receiveGuiUpdateTag(final NBTTagCompound compound) {
     }
 
     @Override

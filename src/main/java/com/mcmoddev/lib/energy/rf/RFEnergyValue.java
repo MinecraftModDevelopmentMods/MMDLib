@@ -1,5 +1,6 @@
 package com.mcmoddev.lib.energy.rf;
 
+import java.text.NumberFormat;
 import com.mcmoddev.lib.energy.BaseEnergyValue;
 import com.mcmoddev.lib.energy.EnergySystemRegistry;
 import com.mcmoddev.lib.energy.IEnergyValue;
@@ -34,5 +35,10 @@ public class RFEnergyValue extends BaseEnergyValue<Integer> {
     @Override
     public IEnergyValue<Integer> copy() {
         return new RFEnergyValue(this.getValue());
+    }
+
+    @Override
+    public String toString() {
+        return NumberFormat.getNumberInstance().format(this.getValue()) + " RF";
     }
 }
