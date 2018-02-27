@@ -39,11 +39,13 @@ public class ForgeEnergyStorage extends BaseGenericEnergyStorage<Integer> {
         return this.takeValue(new ForgeEnergyValue(toTake), doTake).getValue();
     }
 
-    public void setInputRate(final int value) {
+    public ForgeEnergyStorage setInputRate(final int value) {
         this.setInputRateValue(new ForgeEnergyValue(value));
+        return this;
     }
 
-    public void setoutputRate(final int value) {
+    public ForgeEnergyStorage setoutputRate(final int value) {
         this.setOutputRateValue(new ForgeEnergyValue(value));
+        return this;
     }
 }

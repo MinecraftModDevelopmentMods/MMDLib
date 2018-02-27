@@ -4,12 +4,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import javax.annotation.Nonnull;
-
 import com.mcmoddev.lib.MMDLib;
-import com.mcmoddev.lib.integration.plugins.tinkers.modifiers.*;
-
+import com.mcmoddev.lib.integration.plugins.tinkers.modifiers.ModifierEnergized;
+import com.mcmoddev.lib.integration.plugins.tinkers.modifiers.ModifierFakeDiamond;
+import com.mcmoddev.lib.integration.plugins.tinkers.modifiers.ModifierLeadPlated;
+import com.mcmoddev.lib.integration.plugins.tinkers.modifiers.ModifierToxic;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import slimeknights.mantle.util.RecipeMatch;
@@ -61,6 +61,7 @@ public class ModifierRegistry {
 		modifiers.put("toxic", new ModifierToxic());
 		modifiers.put("plated", new ModifierLeadPlated());
 		modifiers.put("fake-diamond", new ModifierFakeDiamond());
+		modifiers.put(ModifierEnergized.KEY, new ModifierEnergized());
 	}
 
 	public static void registerModifiers() {

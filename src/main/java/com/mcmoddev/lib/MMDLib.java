@@ -71,6 +71,9 @@ public class MMDLib {
 		/*
 		 * Pull the lever, Kronk!
 		 */
+
+		// TODO: this should probably not be here
+//		new TinkersConstructBase().init();
 	}
 
 	@EventHandler

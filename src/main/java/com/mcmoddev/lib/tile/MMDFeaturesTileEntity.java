@@ -35,8 +35,6 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
     private final Map<FeatureDirtyLevel, Set<String>> dirtyFeatures = new HashMap<>();
 
     protected MMDFeaturesTileEntity() {
-        // TODO: move this out of constructor somehow
-        this.initFeatures();
     }
 
     @Override
@@ -47,8 +45,6 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
         this.featureChanged(feature, FeatureDirtyLevel.LOAD);
         return feature;
     }
-
-    protected void initFeatures() { }
 
     @Override
     public final IFeature[] getFeatures() {
@@ -63,9 +59,17 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
     }
 
     @Override
-    public void update() {
+    public final void update() {
+        for(final IFeature feature : this.features) {
+            if (feature instanceof ITickable) {
+                ((ITickable) feature).update();
+            }
+        }
+        this.doWork();
         this.testForDirtyFeatures();
     }
+
+    protected void doWork() { }
 
     @SuppressWarnings("WeakerAccess")
     protected void testForDirtyFeatures() {

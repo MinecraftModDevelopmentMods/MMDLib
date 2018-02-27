@@ -1,15 +1,21 @@
 package com.mcmoddev.lib.energy;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraftforge.energy.CapabilityEnergy;
+import net.minecraftforge.energy.IEnergyStorage;
 
 public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStorage<T>, INBTSerializable<NBTTagCompound>, ICapabilityProvider {
     private IEnergyValue<T> stored;
@@ -17,6 +23,8 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
     private final List<IEnergySystem> acceptedSystems;
     private IEnergyValue<T> inputRate;
     private IEnergyValue<T> outputRate;
+
+    private final List<Runnable> onChangeListeners = new ArrayList<>();
 
     protected BaseGenericEnergyStorage(final IEnergyValue<T> initial, final IEnergyValue<T> capacity, final IEnergySystem... acceptedSystems) {
         this.stored = initial;
@@ -167,7 +175,11 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
         return canTake;
     }
 
-    protected void onChanged() {}
+    protected void onChanged() {
+        for(final Runnable listener : this.onChangeListeners) {
+            listener.run();
+        }
+    }
 
     @Override
     public boolean hasCapability(@Nonnull final Capability<?> capability, @Nullable final EnumFacing facing) {
@@ -185,5 +197,48 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
+    }
+
+    // TODO: this is kind of hacky... do it better!
+    private void addOnChangeListener(final Runnable listener) {
+        this.onChangeListeners.add(listener);
+    }
+
+    public ICapabilityProvider getProviderForItemStack(final ItemStack stack) {
+        return this.getProviderForItemStack(stack, null, null);
+    }
+
+    public ICapabilityProvider getProviderForItemStack(final ItemStack stack,
+                                                       @Nullable final BiPredicate<ItemStack, Capability> capabilityPreFilter,
+                                                       @Nullable final BiConsumer<ItemStack, IEnergyStorage> changedUpdate) {
+        this.addOnChangeListener(() -> {
+            stack.setTagInfo("mmd_battery", this.serializeNBT());
+            if (changedUpdate != null) {
+                changedUpdate.accept(stack, BaseGenericEnergyStorage.this.getCapability(CapabilityEnergy.ENERGY, null));
+            }
+        });
+        if (stack.getSubCompound("mod_battery") == null) {
+            // initial setup, set nbt
+            BaseGenericEnergyStorage.this.onChanged();
+        }
+
+        return new ICapabilityProvider() {
+            @Override
+            public boolean hasCapability(@Nonnull final Capability<?> capability, @Nullable final EnumFacing facing) {
+                return ((capabilityPreFilter == null) || capabilityPreFilter.test(stack, capability))
+                    && BaseGenericEnergyStorage.this.hasCapability(capability, facing);
+            }
+
+            @Nullable
+            @Override
+            public <C> C getCapability(@Nonnull final Capability<C> capability, @Nullable final EnumFacing facing) {
+                if (!this.hasCapability(capability, facing)) {
+                    return null;
+                }
+
+                BaseGenericEnergyStorage.this.deserializeNBT(stack.getSubCompound("mmd_battery"));
+                return BaseGenericEnergyStorage.this.getCapability(capability, facing);
+            }
+        };
     }
 }

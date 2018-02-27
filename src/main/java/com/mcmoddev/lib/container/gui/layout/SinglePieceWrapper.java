@@ -12,15 +12,15 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public class SinglePieceWrapper extends BaseLayout {
     private final IWidgetGui inner;
 
-    public SinglePieceWrapper(IWidgetGui inner) {
+    public SinglePieceWrapper(final IWidgetGui inner) {
         this(inner, Padding.EMPTY);
     }
 
-    public SinglePieceWrapper(IWidgetGui inner, int uniformPadding) {
+    public SinglePieceWrapper(final IWidgetGui inner, final int uniformPadding) {
         this(inner, new Padding(uniformPadding));
     }
 
-    public SinglePieceWrapper(IWidgetGui inner, Padding padding) {
+    public SinglePieceWrapper(final IWidgetGui inner, final Padding padding) {
         this.inner = inner;
         this.onChildAdded(this.inner);
         this.setPadding(padding);
@@ -32,15 +32,15 @@ public class SinglePieceWrapper extends BaseLayout {
     }
 
     @Override
-    public Size2D getChildPosition(IWidgetGui child) {
-        Padding padding = this.inner.getPadding();
+    public Size2D getChildPosition(final IWidgetGui child) {
+        final Padding padding = this.inner.getPadding();
         return new Size2D(padding.left, padding.top);
     }
 
     @Override
     public Size2D getSize() {
-        Padding childPadding = this.inner.getPadding();
-        Size2D childSize = this.inner.getSize();
+        final Padding childPadding = this.inner.getPadding();
+        final Size2D childSize = this.inner.getSize();
         return new Size2D(
             childSize.width + childPadding.getHorizontal(),
             childSize.height + childPadding.getVertical()
