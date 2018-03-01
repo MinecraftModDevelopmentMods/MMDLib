@@ -139,7 +139,7 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
             return this.getZeroEnergy();
         }
 
-        final IEnergyValue<T> available = this.capacity.substract(this.stored);
+        final IEnergyValue<T> available = this.capacity.subtract(this.stored);
         final IEnergyValue<T> canStore = (available.compareTo(normalized) < 0)
             ? available.copy()
             : normalized.copy();
@@ -168,7 +168,7 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
         // TODO: account for output rate
 
         if (doTake && (canTake.compareTo(this.getZeroEnergy()) > 0)) {
-            this.stored = this.stored.substract(canTake);
+            this.stored = this.stored.subtract(canTake);
             this.onChanged();
         }
 

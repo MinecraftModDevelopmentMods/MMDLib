@@ -18,10 +18,6 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import mcp.MethodsReturnNonnullByDefault;
 
-/**
- * A container to hold capabilities from multiple sources. <br>
- * It will group together into just one capability any provided {@link IItemHandler}. Same for {@link IFluidHandler}.
- */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class CapabilitiesContainer implements ICapabilitiesContainer, ICapabilityProvider {

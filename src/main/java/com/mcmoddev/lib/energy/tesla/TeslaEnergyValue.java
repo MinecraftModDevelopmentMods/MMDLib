@@ -22,7 +22,7 @@ public class TeslaEnergyValue extends BaseEnergyValue<Long> {
     }
 
     @Override
-    public IEnergyValue<Long> substract(final IEnergyValue other) {
+    public IEnergyValue<Long> subtract(final IEnergyValue other) {
         if (!this.isCompatible(other)) {
             // TODO: throw something?
             return this;

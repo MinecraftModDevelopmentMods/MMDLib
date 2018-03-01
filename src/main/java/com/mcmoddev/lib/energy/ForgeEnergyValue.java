@@ -19,7 +19,7 @@ public class ForgeEnergyValue extends BaseEnergyValue<Integer> {
     }
 
     @Override
-    public IEnergyValue<Integer> substract(final IEnergyValue other) {
+    public IEnergyValue<Integer> subtract(final IEnergyValue other) {
         if (!this.isCompatible(other)) {
             // TODO: throw something?
             return this;
