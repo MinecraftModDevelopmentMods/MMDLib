@@ -61,7 +61,12 @@ public class MMDContainer extends Container {
 
     @Override
     public boolean canInteractWith(final EntityPlayer playerIn) {
-        return this.provider.isValid() && (this.provider.getDistance(playerIn) <= MAX_INTERACT_DISTANCE);
+        if (!this.provider.isValid()) {
+            return false;
+        }
+        final long playerReach = Math.round(playerIn.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue());
+        final int distance = this.provider.getDistance(playerIn);
+        return (distance <= Math.min(MAX_INTERACT_DISTANCE, playerReach));
     }
 
     @Override
