@@ -17,6 +17,11 @@ import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 
+/**
+ * Base implementation of an {@link IGenericEnergyStorage}.
+ * @param <T> The type of energy value this storage stores. (ie. Integer for Forge Energy and RF, Long for Tesla etc)
+ */
+@SuppressWarnings("WeakerAccess")
 public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStorage<T>, INBTSerializable<NBTTagCompound>, ICapabilityProvider {
     private IEnergyValue<T> stored;
     private final IEnergyValue<T> capacity;
@@ -26,6 +31,12 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
 
     private final List<Runnable> onChangeListeners = new ArrayList<>();
 
+    /**
+     * Initializes a new instance of BaseGenericEnergyStorage
+     * @param initial Initial stored energy.
+     * @param capacity Total capacity of the storage.
+     * @param acceptedSystems Energy systems that will be accepted (via capabilities and adapters) by this storage.
+     */
     protected BaseGenericEnergyStorage(final IEnergyValue<T> initial, final IEnergyValue<T> capacity, final IEnergySystem... acceptedSystems) {
         this.stored = initial;
         this.capacity = capacity;
@@ -67,11 +78,19 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
         return this.outputRate.copy();
     }
 
+    /**
+     * Sets the input rate of this storage as an energy value.
+     * @param value The input rate energy value.
+     */
     protected void setInputRateValue(final IEnergyValue<T> value) {
         this.inputRate = value;
         this.onChanged();
     }
 
+    /**
+     * Sets the output rate of this storage as an energy value.
+     * @param value The output rate energy value.
+     */
     protected void setOutputRateValue(final IEnergyValue<T> value) {
         this.outputRate = value;
         this.onChanged();
@@ -106,6 +125,12 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
         return nbt;
     }
 
+    /**
+     * Stores an energy value's actual value in NBT.
+     * @param nbt The tag compound to store in.
+     * @param key The key of the energy value.
+     * @param energy The energy value.
+     */
     protected abstract void writeValueToNBT(NBTTagCompound nbt, String key, T energy);
 
     @Override
@@ -129,7 +154,18 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
         }
     }
 
+    /**
+     * Returns an energy value of the base energy system that represents no energy.
+     * @return
+     */
     protected abstract IEnergyValue<T> getZeroEnergy();
+
+    /**
+     * Reads an energy value's actual value from NBT.
+     * @param nbt The tag compound that stores the value.
+     * @param key The key of the energy value.
+     * @return The energy value.
+     */
     protected abstract IEnergyValue<T> readValueFromNBT(NBTTagCompound nbt, String key);
 
     @Override
@@ -175,6 +211,9 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
         return canTake;
     }
 
+    /**
+     * Called after any property of this storage was changed.
+     */
     protected void onChanged() {
         for(final Runnable listener : this.onChangeListeners) {
             listener.run();
@@ -204,10 +243,23 @@ public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStora
         this.onChangeListeners.add(listener);
     }
 
+    /**
+     * Gets a capability provider that can be used to manipulate an energy storage stored inside an item stack.
+     * @param stack The item stack that contains the energy storage.
+     * @return The capability provider that can be used to manipulate the contained energy storage.
+     */
     public ICapabilityProvider getProviderForItemStack(final ItemStack stack) {
         return this.getProviderForItemStack(stack, null, null);
     }
 
+    /**
+     * Gets a capability provider that can be used to manipulate an energy storage stored inside an item stack.
+     * @param stack The item stack that contains the energy storage.
+     * @param capabilityPreFilter Predicate used to test if the capability should actually be provided or not for the
+     *                            current state of the item stack.
+     * @param changedUpdate Consumer that will get called when the stored energy value is changed.
+     * @return The capability provider that can be used to manipulate the contained energy storage.
+     */
     public ICapabilityProvider getProviderForItemStack(final ItemStack stack,
                                                        @Nullable final BiPredicate<ItemStack, Capability> capabilityPreFilter,
                                                        @Nullable final BiConsumer<ItemStack, IEnergyStorage> changedUpdate) {

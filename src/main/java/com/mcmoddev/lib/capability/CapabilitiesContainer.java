@@ -18,6 +18,10 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import mcp.MethodsReturnNonnullByDefault;
 
+/**
+ * Reference implementation of an {@link ICapabilitiesContainer} that will automatically merge all {@link IItemHandler}
+ * and {@link IFluidHandler} into just one capability.
+ */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class CapabilitiesContainer implements ICapabilitiesContainer, ICapabilityProvider {
@@ -73,6 +77,7 @@ public class CapabilitiesContainer implements ICapabilitiesContainer, ICapabilit
         return null;
     }
 
+    @Override
     public <T> void addCapability(final Capability<T> capability, final Function<EnumFacing, T> capabilitySupplier,
                                   @Nullable final Predicate<EnumFacing> facingFilter) {
         // TODO: handle these special cases via a registry

@@ -9,8 +9,8 @@ import java.util.Objects;
  */
 public interface IEnergyValue<T> extends Comparable<IEnergyValue<T>> {
     /**
-     * The {@link IEnergySystem} this {@link IEnergyValue} stores energy values for.
-     * @return
+     * The {@link IEnergySystem} this energy value stores energy values for.
+     * @return The energy system that corresponds to this value.
      */
     IEnergySystem<T> getSystem();
 

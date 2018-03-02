@@ -15,6 +15,9 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 
+/**
+ * {@link IMessageHandler} for {@link NBTBasedTileMessage}.
+ */
 public class NBTBasedTileHandler implements IMessageHandler<NBTBasedTileMessage, IMessage> {
     public static final NBTBasedTileHandler INSTANCE = new NBTBasedTileHandler();
     private NBTBasedTileHandler() {}

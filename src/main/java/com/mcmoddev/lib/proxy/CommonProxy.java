@@ -5,7 +5,7 @@ import com.mcmoddev.lib.container.MMDGuiHandler;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.MMDMaterial;
-import com.mcmoddev.lib.network.MMDPackages;
+import com.mcmoddev.lib.network.MMDMessages;
 import com.mcmoddev.lib.oregen.FallbackGeneratorData;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -19,7 +19,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
  */
 public class CommonProxy {
 	public void preInit(FMLPreInitializationEvent event) {
-		MMDPackages.init();
+		MMDMessages.init();
 		MMDGuiHandler.init();
 		MMDCapabilities.init();
 	    // despite other comments, most events get fired here

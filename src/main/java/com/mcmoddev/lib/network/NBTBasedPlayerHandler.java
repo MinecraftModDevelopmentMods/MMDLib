@@ -12,6 +12,9 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 
+/**
+ * {@link IMessageHandler} for {@link NBTBasedPlayerMessage}.
+ */
 public class NBTBasedPlayerHandler implements IMessageHandler<NBTBasedPlayerMessage, IMessage> {
     public static final NBTBasedPlayerHandler INSTANCE = new NBTBasedPlayerHandler();
     private NBTBasedPlayerHandler() {}

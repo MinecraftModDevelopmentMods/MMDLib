@@ -7,8 +7,8 @@ package com.mcmoddev.lib.energy;
  */
 public interface IGenericEnergyStorage<T> {
     /**
-     * Gets the base {@link IEnergySystem} that is used
-     * @return
+     * Gets the base {@link IEnergySystem} that is used for this storage.
+     * @return the base {@link IEnergySystem} that is used for this storage.
      */
     IEnergySystem<T> getBaseSystem();
 

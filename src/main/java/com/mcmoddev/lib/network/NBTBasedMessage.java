@@ -6,16 +6,31 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
+/**
+ * Base implementation of an {@link IMessage} that works with NBT Tag Compounds.
+ */
+@SuppressWarnings("WeakerAccess")
 public abstract class NBTBasedMessage implements IMessage {
     private NBTTagCompound compound;
 
-    public NBTBasedMessage() {
+    /**
+     * Initializes a new instance of NBTBasedMessage.
+     */
+    protected NBTBasedMessage() {
     }
 
-    public NBTBasedMessage(final NBTTagCompound compound) {
+    /**
+     * Initializes a new instance of NBTBasedMessage.
+     * @param compound The tag compound representing the message body.
+     */
+    protected NBTBasedMessage(final NBTTagCompound compound) {
         this.compound = compound;
     }
 
+    /**
+     * Retrieves the tag compound representing the message body.
+     * @return The tag compound representing the message body.
+     */
     public NBTTagCompound getCompound() {
         return this.compound;
     }

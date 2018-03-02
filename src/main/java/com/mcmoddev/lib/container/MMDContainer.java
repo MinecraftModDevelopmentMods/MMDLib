@@ -9,7 +9,7 @@ import com.mcmoddev.lib.container.gui.GuiContext;
 import com.mcmoddev.lib.container.widget.IContextualWidget;
 import com.mcmoddev.lib.container.widget.IProxyWidget;
 import com.mcmoddev.lib.container.widget.IWidget;
-import com.mcmoddev.lib.network.MMDPackages;
+import com.mcmoddev.lib.network.MMDMessages;
 import com.mcmoddev.lib.network.NBTBasedPlayerMessage;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -188,7 +188,7 @@ public class MMDContainer extends Container {
             }
 
             if (nbt.getSize() > 0) {
-                MMDPackages.sendToPlayer((EntityPlayerMP)this.player, new NBTBasedPlayerMessage(this.player, nbt));
+                MMDMessages.sendToPlayer((EntityPlayerMP)this.player, new NBTBasedPlayerMessage(this.player, nbt));
             }
         }
     }
