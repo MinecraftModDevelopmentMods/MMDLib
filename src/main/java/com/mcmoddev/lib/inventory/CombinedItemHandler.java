@@ -8,19 +8,39 @@ import javax.annotation.Nullable;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
+/**
+ * Class that can be used to combine multiple {@link IItemHandler IItemHandlers} together.
+ */
+@SuppressWarnings("WeakerAccess")
 public class CombinedItemHandler implements IItemHandler {
+    /**
+     * The internal list of item handlers.
+     */
     protected final List<IItemHandler> handlers = new ArrayList<>();
 
+    /**
+     * Creates a new instance of CombinedItemHandler.
+     * @param handlers The list of item handlers to be merged.
+     */
     public CombinedItemHandler(final IItemHandler... handlers) {
         if (handlers.length > 0) {
             this.handlers.addAll(Arrays.asList(handlers));
         }
     }
 
+    /**
+     * Adds a new item handler to the combined inventory.
+     * @param handler The item handler to be merged.
+     */
     public void addItemHandler(final IItemHandler handler) {
         this.handlers.add(handler);
     }
 
+    /**
+     * Finds the local slot information for a merged item handler.
+     * @param slotIn The global slot index.
+     * @return slot information for the corresponding item handler. Or null if the slot is out of range.
+     */
     @Nullable
     protected ItemHandlerPosition findActualSlot(final int slotIn) {
         int slots = 0;
@@ -70,8 +90,17 @@ public class CombinedItemHandler implements IItemHandler {
         return (pos == null) ? 0 : pos.handler.getSlotLimit(pos.slot);
     }
 
+    /**
+     * Provides information about a merged item handler's slot.
+     */
     protected static class ItemHandlerPosition {
+        /**
+         * The merged item handler.
+         */
         final IItemHandler handler;
+        /**
+         * The slot this instance refers to.
+         */
         final int slot;
 
         ItemHandlerPosition(final IItemHandler handler, final int slot) {

@@ -9,6 +9,9 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 import net.minecraftforge.fluids.IFluidTank;
 
+/**
+ * Basic implementation for {@link IResponsiveFluidTank} and {@link IFilteredFluidTank}.
+ */
 public class ResponsiveFluidTankWrapper implements IFluidTankModifiable, IResponsiveFluidTank, IFluidTank, IFilteredFluidTank {
     private final List<Consumer<IResponsiveFluidTank>> responsiveTargets = new ArrayList<>();
 
@@ -16,6 +19,11 @@ public class ResponsiveFluidTankWrapper implements IFluidTankModifiable, IRespon
     private final IFluidTankModifiable modifiableTank;
     private final IFilteredFluidTank filteredTank;
 
+    /**
+     * Creates a new instance of ResponsiveFluidTankWrapper.
+     * @param tank The fluid tank to be wrapped.
+     * @param responsiveTarget The consumer that will receive content change notifications from this tank wrapper.
+     */
     public ResponsiveFluidTankWrapper(final IFluidTank tank, final Consumer<ResponsiveFluidTankWrapper> responsiveTarget) {
         this.tank = tank;
         this.filteredTank = (this.tank instanceof IFilteredFluidTank) ? (IFilteredFluidTank)this.tank : null;
@@ -96,6 +104,9 @@ public class ResponsiveFluidTankWrapper implements IFluidTankModifiable, IRespon
         return drained;
     }
 
+    /**
+     * Called when the content of this tank changes.
+     */
     @SuppressWarnings("WeakerAccess")
     protected void onChanged() {
         this.responsiveTargets.forEach(t -> t.accept(this));

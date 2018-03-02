@@ -5,7 +5,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+/**
+ * Provides {@link IItemHandlerModifiable} support to a {@link CombinedItemHandler}.
+ */
 public class CombinedItemHandlerModifiable extends CombinedItemHandler implements IItemHandlerModifiable {
+    /**
+     * Creates a new instance of CombinedItemHandlerModifiable.
+     * @param handlers The list of item handlers to be merged.
+     */
     public CombinedItemHandlerModifiable(final IItemHandler... handlers) {
         super(handlers);
     }
@@ -16,6 +23,8 @@ public class CombinedItemHandlerModifiable extends CombinedItemHandler implement
         if ((pos != null) && (pos.handler instanceof IItemHandlerModifiable)) {
             ((IItemHandlerModifiable) pos.handler).setStackInSlot(pos.slot, stack);
         }
-        // TODO: else { maybe throw an error or something? }
+        else {
+            throw new RuntimeException("Could not forcibly set the content of slot " + slot + ".");
+        }
     }
 }

@@ -8,13 +8,24 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
+/**
+ * Class that can be used to combine multiple {@link IFluidHandler IFluidHandlers} together.
+ */
 public class CombinedFluidHandler implements IFluidHandler {
     private final List<IFluidHandler> handlers = new ArrayList<>();
 
+    /**
+     * Creates a new instance of CombinedFluidHandler.
+     * @param handlers The fluid handlers to be merged together.
+     */
     public CombinedFluidHandler(final IFluidHandler... handlers) {
         this.handlers.addAll(Arrays.asList(handlers));
     }
 
+    /**
+     * Adds a new fluid handler to the combined handler.
+     * @param handler The handler to be added.
+     */
     public void addFluidHandler(final IFluidHandler handler) {
         this.handlers.add(handler);
     }

@@ -6,6 +6,9 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 import net.minecraftforge.fluids.IFluidTank;
 
+/**
+ * Basic implementation of a {@link IFilteredFluidTank}.
+ */
 public class FilteredFluidTank implements IFluidTank, IFluidTankModifiable, IFilteredFluidTank {
     private final IFluidTankModifiable internal;
     @Nullable
@@ -13,6 +16,14 @@ public class FilteredFluidTank implements IFluidTank, IFluidTankModifiable, IFil
     @Nullable
     private final Predicate<FluidStack> drainFilter;
 
+    /**
+     * Creates a new instance of FilteredFluidTank.
+     * @param innerTank The tank to be filtered.
+     * @param fillFilter Predicate used to test if a fluid can be inserted. If null and innerTank is not empty
+     *                  it will automatically filter by the initial content of the innerTank.
+     * @param drainFilter Predicate used to test if a fluid can be extracted.
+     *                   A null value means you can always extract from the inner tank.
+     */
     public FilteredFluidTank(final IFluidTankModifiable innerTank,
                              @Nullable Predicate<FluidStack> fillFilter,
                              @Nullable final Predicate<FluidStack> drainFilter) {

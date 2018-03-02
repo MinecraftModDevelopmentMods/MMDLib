@@ -7,6 +7,9 @@ import com.mcmoddev.lib.util.ItemStackUtils;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+/**
+ * Basic implementation of {@link IFilteredItemHandler}.
+ */
 public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerModifiable {
     private final IItemHandlerModifiable internal;
     @Nullable
@@ -14,6 +17,14 @@ public class FilteredItemHandler implements IFilteredItemHandler, IItemHandlerMo
     @Nullable
     private final BiPredicate<Integer, ItemStack> extractFilter;
 
+    /**
+     * Created a new instance of FilteredItemHandler.
+     * @param internal The item handler to be filtered.
+     * @param insertFilter Predicate used to test if an item can be inserted.
+     *                     A null value means you can always insert into the inner item handler.
+     * @param extractFilter Predicate used to test if an item can ve extracted.
+     *                      A null value means you can always extract from the inner item handler.
+     */
     public FilteredItemHandler(final IItemHandlerModifiable internal,
                                @Nullable final BiPredicate<Integer, ItemStack> insertFilter,
                                @Nullable final BiPredicate<Integer, ItemStack> extractFilter) {

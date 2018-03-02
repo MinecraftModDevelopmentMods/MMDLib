@@ -7,10 +7,17 @@ import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
+/**
+ * Basic implementation of an {@link IFluidHandler} that wraps a single fluid tank.
+ */
 public class FluidTankHandler implements IFluidHandler {
     private final IFluidTank tank;
     private final FluidTankPropertiesWrapper properties = new FluidTankPropertiesWrapper();
 
+    /**
+     * Creates a new instance of FluidTankHandler.
+     * @param tank The tank to be handled by this handler.
+     */
     public FluidTankHandler(final IFluidTank tank) {
         this.tank = tank;
     }
