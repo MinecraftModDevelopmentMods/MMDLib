@@ -17,11 +17,18 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+/**
+ * Basic implementation of a {@link IFeatureHolder feature holder} that works with item stacks.
+ */
 @SuppressWarnings("WeakerAccess")
 public class BaseItemStackFeatureHolder implements IFeatureHolder, IWidgetContainer {
     private final ItemStack stack;
     private final List<IFeature> features = Lists.newArrayList();
 
+    /**
+     * Initializes a new instance of BaseItemStackFeatureHolder.
+     * @param stack The item stack to get features from and to store features data in.
+     */
     public BaseItemStackFeatureHolder(final ItemStack stack) {
         this.stack = stack;
     }
@@ -46,7 +53,7 @@ public class BaseItemStackFeatureHolder implements IFeatureHolder, IWidgetContai
     }
 
     @Override
-    public void featureChanged(final IFeature feature, FeatureDirtyLevel level) {
+    public void featureChanged(final IFeature feature, final FeatureDirtyLevel level) {
         final NBTTagCompound featureCompound = feature.serializeNBT();
         final NBTTagCompound storage = this.stack.getOrCreateSubCompound("features");
         storage.setTag(feature.getKey(), featureCompound);

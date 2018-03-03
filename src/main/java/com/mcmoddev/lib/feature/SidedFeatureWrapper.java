@@ -37,10 +37,12 @@ public class SidedFeatureWrapper implements IFeature, IClientFeature, IServerFea
         this.priorityIndex = priorityIndex;
     }
 
+    @Override
     public int getColor() {
         return this.color;
     }
 
+    @Override
     public int getPriorityIndex() {
         return this.priorityIndex;
     }

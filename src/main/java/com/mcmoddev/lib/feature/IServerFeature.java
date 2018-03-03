@@ -4,7 +4,14 @@ import javax.annotation.Nullable;
 import net.minecraft.inventory.Container;
 import net.minecraft.nbt.NBTTagCompound;
 
+/**
+ * Represents a feature than can provide update data from server side.
+ */
 public interface IServerFeature extends IFeature {
+    /**
+     * Indicates if this feature should be considered for an update packet from server to client.
+     * @return True if this feature needs to send an update packet to client. False otherwise.
+     */
     boolean isDirty();
 
     /**
