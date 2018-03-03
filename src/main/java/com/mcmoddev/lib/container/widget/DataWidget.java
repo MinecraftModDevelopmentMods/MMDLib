@@ -23,17 +23,25 @@ import org.apache.logging.log4j.util.TriConsumer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.INBTSerializable;
 
+/**
+ * Annotation based implementation of a widget that provides data.
+ */
+@SuppressWarnings("WeakerAccess")
 public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializable<NBTTagCompound> {
     private final List<DataHandler> dataHandlers = new ArrayList<>();
 
-    protected DataWidget(String key) {
+    /**
+     * Initializes a new instance of DataWidget.
+     * @param key The key that uniquely identified this widget.
+     */
+    protected DataWidget(final String key) {
         super(key, false);
 
-        Map<String, DataProvider> providers = new HashMap<>();
+        final Map<String, DataProvider> providers = new HashMap<>();
         //#region SCAN FIELDS
 
-        for(Field field: this.getClass().getFields()) {
-            DataField thing = field.getAnnotation(DataField.class);
+        for(final Field field: this.getClass().getFields()) {
+            final DataField thing = field.getAnnotation(DataField.class);
             if (thing != null) {
                 providers.put(field.getName(), new FieldDataProvider(field));
             }
@@ -42,10 +50,10 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         //#endregion
         //#region SCAN PROPERTIES
 
-        Map<String, Method> getters = new HashMap<>();
-        Map<String, Method> setters = new HashMap<>();
-        for(Method method : this.getClass().getMethods()) {
-            DataGetter getter = method.getAnnotation(DataGetter.class);
+        final Map<String, Method> getters = new HashMap<>();
+        final Map<String, Method> setters = new HashMap<>();
+        for(final Method method : this.getClass().getMethods()) {
+            final DataGetter getter = method.getAnnotation(DataGetter.class);
             if (getter != null) {
                 String getterName = getter.value();
                 if (getterName.isEmpty()) {
@@ -57,7 +65,7 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
                 getters.put(getterName, method);
             }
             else {
-                DataSetter setter = method.getAnnotation(DataSetter.class);
+                final DataSetter setter = method.getAnnotation(DataSetter.class);
                 if (setter != null) {
                     String setterName = setter.value();
                     if (setterName.isEmpty()) {
@@ -71,9 +79,9 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
             }
         }
 
-        for(String methodKey : getters.keySet()) {
-            Method getter = getters.getOrDefault(methodKey, null);
-            Method setter = setters.getOrDefault(methodKey, null);
+        for(final String methodKey : getters.keySet()) {
+            final Method getter = getters.getOrDefault(methodKey, null);
+            final Method setter = setters.getOrDefault(methodKey, null);
             if ((getter == null) || (setter == null)) {
                 continue;
             }
@@ -88,8 +96,8 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
 
         //#endregion
 
-        for(String providerKey: providers.keySet()) {
-            DataHandler handler = DataWidget.getDataHandler(providers.get(providerKey), providerKey);
+        for(final String providerKey: providers.keySet()) {
+            final DataHandler handler = DataWidget.getDataHandler(providers.get(providerKey), providerKey);
             if (handler == null) {
                 MMDLib.logger.warn("Could not find data handler for data widget field: '" + providerKey + "'.");
                 continue;
@@ -99,8 +107,14 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         }
     }
 
-    public void setValue(String valueKey, Object value) {
-        for(DataHandler handler: this.dataHandlers) {
+    /**
+     * Sets the value of a data field.
+     * @param valueKey The key of the data field.
+     * @param value The value to be set to.
+     * @implNote Method will have no effect if key is not found or value type doesn't match.
+     */
+    public void setValue(final String valueKey, final Object value) {
+        for(final DataHandler handler: this.dataHandlers) {
             if (handler.providerKey.equals(valueKey) && handler.expectedType.isInstance(value)) {
                 //noinspection unchecked
                 handler.setValue(this, handler.expectedType.cast(value));
@@ -109,9 +123,14 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         }
     }
 
+    /**
+     * Gets the value of a data field.
+     * @param valueKey The key of the data field.
+     * @return The value of the data field. Or null if key is not found.
+     */
     @Nullable
-    public Object getValue(String valueKey) {
-        for(DataHandler handler: this.dataHandlers) {
+    public Object getValue(final String valueKey) {
+        for(final DataHandler handler: this.dataHandlers) {
             if (handler.providerKey.equals(valueKey)) {
                 return handler.getValue(this);
             }
@@ -119,9 +138,16 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         return null;
     }
 
+    /**
+     * Gets a typed value of a data field.
+     * @param expected Expected type of the data field's value.
+     * @param valueKey The key of the data field.
+     * @param <T> Expected type of the data field's value.
+     * @return The value of the data field. Or null if key not found or value has different type.
+     */
     @Nullable
-    public <T> T getValue(Class<T> expected, String valueKey) {
-        for(DataHandler handler: this.dataHandlers) {
+    public <T> T getValue(final Class<T> expected, final String valueKey) {
+        for(final DataHandler handler: this.dataHandlers) {
             if (handler.providerKey.equals(valueKey) && expected.isAssignableFrom(handler.expectedType)) {
                 return expected.cast(handler.getValue(this));
             }
@@ -131,18 +157,27 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
 
     //#region DATA ANNOTATIONS & HANDLERS
 
+    /**
+     * Annotate a method with this to be handled as a data field getter.
+     */
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     public @interface DataGetter {
         String value() default "";
     }
 
+    /**
+     * Annotate a method with this to be handled as a data field setter.
+     */
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     public @interface DataSetter {
         String value() default "";
     }
 
+    /**
+     * Annotate a field with this to be handled as a data field.
+     */
     @Target(ElementType.FIELD)
     @Retention(RetentionPolicy.RUNTIME)
     public @interface DataField { }
@@ -159,14 +194,14 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         private final Method getter;
         private final Method setter;
 
-        public MethodDataProvider(Method getter, Method setter) {
+        public MethodDataProvider(final Method getter, final Method setter) {
             (this.getter = getter).setAccessible(true);
             (this.setter = setter).setAccessible(true);
         }
 
         @Override
         @Nullable
-        public Object getValue(DataWidget widget) {
+        public Object getValue(final DataWidget widget) {
             try {
                 return this.getter.invoke(widget);
             } catch (IllegalAccessException | InvocationTargetException e) {
@@ -176,7 +211,7 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         }
 
         @Override
-        public void setValue(DataWidget widget, Object value) {
+        public void setValue(final DataWidget widget, final Object value) {
             try {
                 this.setter.invoke(widget, value);
             } catch (IllegalAccessException | InvocationTargetException e) {
@@ -193,26 +228,26 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
     private class FieldDataProvider extends DataProvider {
         private final Field field;
 
-        private FieldDataProvider(Field field) {
+        private FieldDataProvider(final Field field) {
             (this.field = field).setAccessible(true);
         }
 
         @Nullable
         @Override
-        public Object getValue(DataWidget widget) {
+        public Object getValue(final DataWidget widget) {
             try {
                 return this.field.get(widget);
-            } catch (IllegalAccessException e) {
+            } catch (final IllegalAccessException e) {
                 MMDLib.logger.error("Error getting data widget value.", e);
                 return null;
             }
         }
 
         @Override
-        public void setValue(DataWidget widget, Object value) {
+        public void setValue(final DataWidget widget, final Object value) {
             try {
                 this.field.set(widget, value);
-            } catch (IllegalAccessException e) {
+            } catch (final IllegalAccessException e) {
                 MMDLib.logger.error("Error setting data widget value.", e);
             }
         }
@@ -224,8 +259,8 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
     }
 
     @Nullable
-    private static DataHandler getDataHandler(DataProvider provider, String key) {
-        Class<?> type = provider.getDataType();
+    private static DataHandler getDataHandler(final DataProvider provider, final String key) {
+        final Class<?> type = provider.getDataType();
         if (type.equals(Integer.class) || type.equals(int.class)) {
             return new IntegerHandler(provider, key);
         }
@@ -245,9 +280,9 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         private final BiFunction<NBTTagCompound, String, T> getter;
         private final TriConsumer<NBTTagCompound, String, T> setter;
 
-        protected DataHandler(Class<T> expectedType, DataProvider provider, String providerKey,
-                              BiFunction<NBTTagCompound, String, T> getter,
-                              TriConsumer<NBTTagCompound, String, T> setter) {
+        protected DataHandler(final Class<T> expectedType, final DataProvider provider, final String providerKey,
+                              final BiFunction<NBTTagCompound, String, T> getter,
+                              final TriConsumer<NBTTagCompound, String, T> setter) {
             this.expectedType = expectedType;
             this.provider = provider;
             this.providerKey = providerKey;
@@ -255,19 +290,19 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
             this.setter = setter;
         }
 
-        protected T getValue(DataWidget widget) {
+        protected T getValue(final DataWidget widget) {
             return this.expectedType.cast(this.provider.getValue(widget));
         }
 
-        protected void setValue(DataWidget widget, T value) {
+        protected void setValue(final DataWidget widget, final T value) {
             this.provider.setValue(widget, value);
         }
 
-        public void readFromNBT(NBTTagCompound nbt, DataWidget widget) {
+        public void readFromNBT(final NBTTagCompound nbt, final DataWidget widget) {
             this.provider.setValue(widget, this.getter.apply(nbt, this.providerKey));
         }
 
-        public void writeToNBT(NBTTagCompound nbt, DataWidget widget) {
+        public void writeToNBT(final NBTTagCompound nbt, final DataWidget widget) {
             this.setter.accept(nbt, this.providerKey, this.expectedType.cast(this.provider.getValue(widget)));
         }
 
@@ -277,19 +312,19 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
     }
 
     private final static class IntegerHandler extends DataHandler<Integer> {
-        private IntegerHandler(DataProvider provider, String providerKey) {
+        private IntegerHandler(final DataProvider provider, final String providerKey) {
             super(Integer.class, provider, providerKey, NBTTagCompound::getInteger, NBTTagCompound::setInteger);
         }
     }
 
     private final static class FloatHandler extends DataHandler<Float> {
-        private FloatHandler(DataProvider provider, String providerKey) {
+        private FloatHandler(final DataProvider provider, final String providerKey) {
             super(Float.class, provider, providerKey, NBTTagCompound::getFloat, NBTTagCompound::setFloat);
         }
     }
 
     private final static class StringHandler extends DataHandler<String> {
-        private StringHandler(DataProvider provider, String providerKey) {
+        private StringHandler(final DataProvider provider, final String providerKey) {
             super(String.class, provider, providerKey, NBTTagCompound::getString,
                 (nbt, key, value) -> {
                     if (value == null) {
@@ -324,12 +359,12 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         }
 
         @Override
-        public void handleMessageFromClient(NBTTagCompound tag) {
+        public void handleMessageFromClient(final NBTTagCompound tag) {
             DataWidget.this.handleMessageFromClient(tag);
         }
 
         @Override
-        public void handleMessageFromServer(NBTTagCompound tag) {
+        public void handleMessageFromServer(final NBTTagCompound tag) {
             DataWidget.this.handleMessageFromServer(tag);
         }
 
@@ -337,7 +372,7 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
 
         @Override
         public boolean isDirty() {
-            NBTTagCompound nbt = DataWidget.this.getSnapshot();
+            final NBTTagCompound nbt = DataWidget.this.getSnapshot();
             return ((this.snapshot == null) || !nbt.equals(this.snapshot));
         }
 
@@ -349,7 +384,7 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         @Nullable
         @Override
         public NBTTagCompound getUpdateCompound() {
-            NBTTagCompound snapshot = DataWidget.this.getSnapshot();
+            final NBTTagCompound snapshot = DataWidget.this.getSnapshot();
             return (this.snapshot == null) ? snapshot : NBTUtils.getPatch(this.snapshot, snapshot);
         }
 
@@ -360,22 +395,22 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
     }
 
     @Override
-    public IWidget getContextualWidget(GuiContext context) {
+    public IWidget getContextualWidget(final GuiContext context) {
         return new DataWidgetProxy();
     }
 
     private NBTTagCompound getSnapshot() {
-        NBTTagCompound nbt = new NBTTagCompound();
+        final NBTTagCompound nbt = new NBTTagCompound();
 
-        for(DataHandler handler: this.dataHandlers) {
+        for(final DataHandler handler: this.dataHandlers) {
             handler.writeToNBT(nbt, this);
         }
 
         return nbt;
     }
 
-    private void refreshData(NBTTagCompound nbt) {
-        for(DataHandler handler: this.dataHandlers) {
+    private void refreshData(final NBTTagCompound nbt) {
+        for(final DataHandler handler: this.dataHandlers) {
             if (nbt.hasKey(handler.providerKey)) {
                 handler.readFromNBT(nbt, this);
             } // ELSE: value is unchanged and wasn't included in update patch
@@ -385,13 +420,13 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
     //#endregion
 
     @Override
-    public void handleMessageFromClient(NBTTagCompound tag) {
+    public void handleMessageFromClient(final NBTTagCompound tag) {
         MMDLib.logger.info("Data Widget info received from client :: " + tag.toString());
         this.refreshData(tag);
     }
 
     @Override
-    public void handleMessageFromServer(NBTTagCompound tag) {
+    public void handleMessageFromServer(final NBTTagCompound tag) {
         MMDLib.logger.info("Data Widget info received from server :: " + tag.toString());
         this.refreshData(tag);
     }
@@ -402,19 +437,25 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) {
+    public void deserializeNBT(final NBTTagCompound nbt) {
         this.refreshData(nbt);
     }
 
+    /**
+     * Gets an {@link ActionTextWidget} that can be used to update a text field of this data widget.
+     * @param widgetKey The key that will uniquely identify the newly created action widget.
+     * @param dataKey The key of the data field.
+     * @return The action widget instance that can be used to update a text field of this data widget.
+     */
     @Nullable
-    public ActionTextWidget getStringUpdateActionWidget(String widgetKey, String dataKey) {
-        DataHandler rawHandler = this.dataHandlers.stream().filter(w -> w.getProviderKey().equals(dataKey)).findFirst().orElse(null);
+    public ActionTextWidget getStringUpdateActionWidget(final String widgetKey, final String dataKey) {
+        final DataHandler rawHandler = this.dataHandlers.stream().filter(w -> w.getProviderKey().equals(dataKey)).findFirst().orElse(null);
         if ((rawHandler == null) || !(rawHandler instanceof StringHandler)) {
             // TODO: consider throwing an error
             return null;
         }
-        StringHandler handler = (StringHandler)rawHandler;
-        ActionTextWidget widget = new ActionTextWidget(widgetKey, handler.getValue(this));
+        final StringHandler handler = (StringHandler)rawHandler;
+        final ActionTextWidget widget = new ActionTextWidget(widgetKey, handler.getValue(this));
         widget.setServerSideTextConsumer(text -> handler.setValue(this, text));
         return widget;
     }

@@ -2,13 +2,24 @@ package com.mcmoddev.lib.container.slot;
 
 import java.util.List;
 import com.google.common.collect.Lists;
+import com.mcmoddev.lib.container.IContainerSlot;
 import net.minecraft.inventory.Slot;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+/**
+ * An {@link IContainerSlot} that provides a {@link Slot} linked to an {@link IItemHandler}.
+ * This uses {@link FilteredSlot filtered slots} so that filters set on item handlers will work here too.
+ */
 public class ItemStackHandlerSlot extends BaseContainerSlot {
     private final Slot slot;
 
+    /**
+     * Initializes a new instance of ItemStackHandlerSlot.
+     * @param stacks The item handler that provide access to the item stack.
+     * @param featureKey The key of the feature containing this item handler.
+     * @param slot The slot index inside the item handler.
+     */
     public ItemStackHandlerSlot(final IItemHandler stacks, final String featureKey, final int slot) {
         super("self", featureKey);
 
@@ -20,6 +31,12 @@ public class ItemStackHandlerSlot extends BaseContainerSlot {
         return this.slot;
     }
 
+    /**
+     * Creates a list of container slots for an item handler.
+     * @param inventory The item handler providing access to all the item stacks.
+     * @param featureKey The key of the feature containing the item handler.
+     * @return List of container slots for an item handler.
+     */
     public static List<ItemStackHandlerSlot> createSlots(final IItemHandlerModifiable inventory, final String featureKey) {
         final List<ItemStackHandlerSlot> slots = Lists.newArrayList();
 

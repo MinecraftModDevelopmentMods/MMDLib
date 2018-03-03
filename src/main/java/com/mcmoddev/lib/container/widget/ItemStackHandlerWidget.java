@@ -7,11 +7,19 @@ import com.mcmoddev.lib.container.IContainerSlot;
 import com.mcmoddev.lib.container.slot.ItemStackHandlerSlot;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+/**
+  Widget that provides slots for an {@link IItemHandlerModifiable item handler}.
+ */
 public class ItemStackHandlerWidget extends BaseWidget {
     private final IItemHandlerModifiable inventory;
 
     private List<IContainerSlot> cachedSlots = null;
 
+    /**
+     * Initializes a new instance of ItemStackHandlerWidget.
+     * @param key The key that uniquely identifies this widget.
+     * @param inventory The inventory this widget handles.
+     */
     public ItemStackHandlerWidget(final String key, final IItemHandlerModifiable inventory) {
         super(key,false); // dirty state is handled by the slots themselves
 
