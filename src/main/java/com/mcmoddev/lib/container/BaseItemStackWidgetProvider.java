@@ -24,15 +24,30 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+/**
+ * Base implementation of a gui provider for an item stack that has an item that implements {@link IItemStackFeatureHolder}.
+ */
+@SuppressWarnings("WeakerAccess")
 public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContainer {
     private final ItemStack stack;
     private final Item item;
     private final IFeatureHolder features;
 
+    /**
+     * Initializes a new instance of BaseItemStackWidgetProvider.
+     * @param stack The item stack this provider is for.
+     * @implNote The corresponding item should implement {@link IItemStackFeatureHolder}.
+     */
     public BaseItemStackWidgetProvider(final ItemStack stack) {
         this(stack, stack.getItem());
     }
 
+    /**
+     * Initializes a new instance of BaseItemStackWidgetProvider.
+     * @param stack The item stack this provider is for.
+     * @param item The item this provider is for. Usually same as {@link ItemStack#getItem()}.
+     * @implNote The item should implement {@link IItemStackFeatureHolder}.
+     */
     public BaseItemStackWidgetProvider(final ItemStack stack, final Item item) {
         this.stack = stack;
         this.item = item;

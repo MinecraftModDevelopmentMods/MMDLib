@@ -6,7 +6,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
 import com.mcmoddev.lib.inventory.CombinedFluidHandler;
 import com.mcmoddev.lib.inventory.CombinedItemHandler;
 import net.minecraft.util.EnumFacing;
@@ -16,14 +15,11 @@ import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
-import mcp.MethodsReturnNonnullByDefault;
 
 /**
  * Reference implementation of an {@link ICapabilitiesContainer} that will automatically merge all {@link IItemHandler}
  * and {@link IFluidHandler} into just one capability.
  */
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class CapabilitiesContainer implements ICapabilitiesContainer, ICapabilityProvider {
     private class CapabilityInfo<T> implements ICapabilityProvider {
         private final Capability<T> capability;

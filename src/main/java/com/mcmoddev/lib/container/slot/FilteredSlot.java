@@ -7,9 +7,20 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
+/**
+ * A {@link SlotItemHandler} that supports filtering.
+ */
+@SuppressWarnings("WeakerAccess")
 public class FilteredSlot extends SlotItemHandler {
     private final int index;
 
+    /**
+     * Initializes a new instance of FilteredSlot.
+     * @param itemHandler The item handler this slot is for.
+     * @param index The index of the slot this slot is for.
+     * @param xPosition The x coordinate of this slot.
+     * @param yPosition The y coordinate of this slot.
+     */
     public FilteredSlot(final IItemHandler itemHandler, final int index, final int xPosition, final int yPosition) {
         super(itemHandler, index, xPosition, yPosition);
 

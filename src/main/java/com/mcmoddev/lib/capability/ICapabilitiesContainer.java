@@ -3,16 +3,12 @@ package com.mcmoddev.lib.capability;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
-import mcp.MethodsReturnNonnullByDefault;
 
 /**
  * A container to hold capabilities from multiple sources.
  */
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public interface ICapabilitiesContainer {
     /**
      * Adds a capability to this container.

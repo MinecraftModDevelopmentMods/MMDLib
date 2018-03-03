@@ -1,25 +1,43 @@
 package com.mcmoddev.lib.container.slot;
 
 import com.mcmoddev.lib.container.IContainerSlot;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 
+/**
+ * Basic implementation of {@link IContainerSlot}.
+ */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public abstract class BaseContainerSlot implements IContainerSlot {
     private int index;
 
-    private String groupId;
-    private String subGroupId;
+    private final String groupId;
+    private final String subGroupId;
 
     private Slot cachedSlot;
 
+    /**
+     * Initializes a new instance of BaseContainerSlot. Uses an empty string for groupId and subGroupId.
+     */
     protected BaseContainerSlot() {
         this("", "");
     }
 
-    protected BaseContainerSlot(String groupId) {
+    /**
+     * Initializes a new instance of BaseContainerSlot. Uses an empty string for subGroupId.
+     * @param groupId The group id of this slot. Group/subgroups are used for {@link Container#transferStackInSlot(EntityPlayer, int)}.
+     */
+    protected BaseContainerSlot(final String groupId) {
         this(groupId, "");
     }
 
-    protected BaseContainerSlot(String groupId, String subGroupId) {
+    /**
+     * Initializes a new instance of BaseContainerSlot. Uses an empty string for subGroupId.
+     * @param groupId The group id of this slot. Group/subgroups are used for {@link Container#transferStackInSlot(EntityPlayer, int)}.
+     * @param subGroupId The sub group id of this slot. Group/subgroups are used for {@link Container#transferStackInSlot(EntityPlayer, int)}.
+     */
+    protected BaseContainerSlot(final String groupId, final String subGroupId) {
         this.groupId = groupId;
         this.subGroupId = subGroupId;
     }
@@ -40,7 +58,7 @@ public abstract class BaseContainerSlot implements IContainerSlot {
     }
 
     @Override
-    public void setIndex(int index) {
+    public void setIndex(final int index) {
         this.index = index;
     }
 
@@ -52,5 +70,9 @@ public abstract class BaseContainerSlot implements IContainerSlot {
         return this.cachedSlot;
     }
 
+    /**
+     * Creates the actual Slot exported by this container slot.
+     * @return The actual Slot exported by this container slot.
+     */
     protected abstract Slot getInternalSlot();
 }

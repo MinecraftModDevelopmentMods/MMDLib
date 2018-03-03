@@ -14,10 +14,20 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 /**
- * Represents a common provider for Widgets and Widget Guis.
+ * Represents a common provider for {@link IWidget Widgets} and {@link IWidgetGui Widget GUIs}.
  */
 public interface IWidgetContainer {
+    /**
+     * Returns a value indicating if this container is valid or not. An invalid container should not display a GUI.
+     * @return True if the container is valid. False if it is not.
+     */
     default boolean isValid() { return true; }
+
+    /**
+     * Gets the distance between this container and a player. Only makes sense when this interface is implemented by a Tile Entity.
+     * @param player The player to compute distance to.
+     * @return The distance from the player to this container.
+     */
     default int getDistance(final EntityPlayer player) { return 0; }
 
     /**
@@ -34,9 +44,18 @@ public interface IWidgetContainer {
     @SideOnly(Side.CLIENT)
     default IWidgetGui getRootWidgetGui(final GuiContext context) { return new CanvasLayout(); }
 
+    /**
+     * Gets a nbt compound to be sent to client. Called every tick.
+     * @param resetDirtyFlag True is it should reset dirty flags on all children.
+     * @return The nbt compound to be sent to client. Or null if no update is needed.
+     */
     @Nullable
     default NBTTagCompound getGuiUpdateTag(final boolean resetDirtyFlag) { return null; }
 
+    /**
+     * Receives a tag compound containing update information from server.
+     * @param compound The tag compound containing the update information.
+     */
     @SideOnly(Side.CLIENT)
     default void receiveGuiUpdateTag(final NBTTagCompound compound) { }
 }

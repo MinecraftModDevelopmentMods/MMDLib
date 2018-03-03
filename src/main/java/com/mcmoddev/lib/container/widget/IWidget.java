@@ -9,7 +9,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 /**
- * Represents...
+ * Represents the smallest piece of a container.
  */
 public interface IWidget {
     /**

@@ -11,26 +11,35 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
+/**
+ * MMDLib implementation of {@link IGuiHandler}.
+ */
 @SuppressWarnings("WeakerAccess")
 public class MMDGuiHandler implements IGuiHandler {
+    /**
+     * The unique instance of MMDGuiHandler.
+     */
     public final static MMDGuiHandler INSTANCE = new MMDGuiHandler();
     protected MMDGuiHandler() {}
 
+    /**
+     * Registers this handler to the {@link NetworkRegistry}.
+     */
     public static void init() {
         NetworkRegistry.INSTANCE.registerGuiHandler(MMDLib.instance, MMDGuiHandler.INSTANCE);
     }
 
     @Nullable
-    private IGuiProvider getGuiProvider(int ID, EntityPlayer player, World world, int x, int y, int z) {
-        int id = ID & 7; // 111
+    private IGuiProvider getGuiProvider(final int ID, final EntityPlayer player, final World world, final int x, final int y, final int z) {
+        final int id = ID & 7; // 111
         if (id == GuiHandlerIds.GUI_TILE.getValue()) {
-            TileEntity tile = world.getTileEntity(new BlockPos(x, y, z));
+            final TileEntity tile = world.getTileEntity(new BlockPos(x, y, z));
             if (tile instanceof IGuiProvider) {
                 return IGuiProvider.class.cast(tile);
             }
         }
         else if ((id == GuiHandlerIds.GUI_ITEM_MAIN_HAND.getValue()) || (id == GuiHandlerIds.GUI_ITEM_OFF_HAND.getValue())) {
-            ItemStack stack;
+            final ItemStack stack;
             if (id == GuiHandlerIds.GUI_ITEM_MAIN_HAND.getValue()) {
                 stack = player.getHeldItemMainhand();
             }
@@ -39,7 +48,7 @@ public class MMDGuiHandler implements IGuiHandler {
             }
 
             if (!stack.isEmpty()) {
-                Item item = stack.getItem();
+                final Item item = stack.getItem();
                 IGuiProvider provider = null;
                 if (item instanceof IItemStackGuiProvider) {
                     provider = IItemStackGuiProvider.class.cast(item).getGuiProvider(stack);
@@ -57,15 +66,15 @@ public class MMDGuiHandler implements IGuiHandler {
 
     @Nullable
     @Override
-    public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-        IGuiProvider provider = this.getGuiProvider(ID, player, world, x, y, z);
+    public Object getServerGuiElement(final int ID, final EntityPlayer player, final World world, final int x, final int y, final int z) {
+        final IGuiProvider provider = this.getGuiProvider(ID, player, world, x, y, z);
         return (provider == null) ? null : provider.getServerGui(ID >> 3, player, world, x, y, z);
     }
 
     @Nullable
     @Override
-    public Object getClientGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-        IGuiProvider provider = this.getGuiProvider(ID, player, world, x, y, z);
+    public Object getClientGuiElement(final int ID, final EntityPlayer player, final World world, final int x, final int y, final int z) {
+        final IGuiProvider provider = this.getGuiProvider(ID, player, world, x, y, z);
         return (provider == null) ? null : provider.getClientGui(ID >> 3, player, world, x, y, z);
     }
 }

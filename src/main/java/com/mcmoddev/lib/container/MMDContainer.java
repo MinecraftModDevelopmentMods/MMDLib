@@ -10,6 +10,7 @@ import com.mcmoddev.lib.container.widget.IContextualWidget;
 import com.mcmoddev.lib.container.widget.IProxyWidget;
 import com.mcmoddev.lib.container.widget.IWidget;
 import com.mcmoddev.lib.network.MMDMessages;
+import com.mcmoddev.lib.network.NBTBasedPlayerHandler;
 import com.mcmoddev.lib.network.NBTBasedPlayerMessage;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -19,6 +20,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
 
+/**
+ * Represents the base implementation of a Container that can handle an {@link IWidgetContainer}.
+ */
 @SuppressWarnings("WeakerAccess")
 public class MMDContainer extends Container {
     private final static double MAX_INTERACT_DISTANCE = 64.0;
@@ -27,6 +31,11 @@ public class MMDContainer extends Container {
     private final EntityPlayer player;
     private final List<IWidget> widgets;
 
+    /**
+     * Initializes a new instance of MMDContainer.
+     * @param provider The widget provider that will be used to build this container.
+     * @param player The player this container is for.
+     */
     public MMDContainer(final IWidgetContainer provider, final EntityPlayer player) {
         super();
 
@@ -55,6 +64,10 @@ public class MMDContainer extends Container {
         }
     }
 
+    /**
+     * Gets the widget provider used to build this container.
+     * @return The widget provider used to build this container.
+     */
     public IWidgetContainer getProvider() {
         return this.provider;
     }
@@ -71,7 +84,7 @@ public class MMDContainer extends Container {
 
     @Override
     public ItemStack transferStackInSlot(final EntityPlayer playerIn, final int index) {
-        final ItemStack copyStack = ItemStack.EMPTY;
+//        final ItemStack copyStack = ItemStack.EMPTY;
 //        Slot slot = this.inventorySlots.get(index);
 //
 //        if ((slot != null) && slot.getHasStack()) {
@@ -89,8 +102,9 @@ public class MMDContainer extends Container {
 //                return ItemStack.EMPTY;
 //            }
 //        }
-
-        return copyStack;
+//
+//        return copyStack;
+        return ItemStack.EMPTY;
     }
 
 //    private List<SlotRange> getSlotsRange(int sourceIndex) {
@@ -114,7 +128,23 @@ public class MMDContainer extends Container {
 //
 //        return list;
 //    }
+//
+//    private class SlotRange {
+//        final int start;
+//        final int end;
+//        final boolean reverse;
+//
+//        SlotRange(final int start, final int end, final boolean reverse) {
+//            this.start = start;
+//            this.end = end;
+//            this.reverse = reverse;
+//        }
+//    }
 
+    /**
+     * Handles a nbt message from server. Called by {@link NBTBasedPlayerHandler}. Do not call directly!
+     * @param compound The nbt message body.
+     */
     public void handleMessageFromServer(final NBTTagCompound compound) {
         if (compound.getSize() > 0) {
             for(final IWidget widget: this.widgets) {
@@ -129,6 +159,10 @@ public class MMDContainer extends Container {
         }
     }
 
+    /**
+     * Handles a nbt message from client. Called by {@link NBTBasedPlayerHandler}. Do not call directly!
+     * @param compound The nbt message body.
+     */
     public void handleMessageFromClient(final NBTTagCompound compound) {
         if (compound.getSize() > 0) {
             for(final IWidget widget: this.widgets) {
@@ -139,6 +173,11 @@ public class MMDContainer extends Container {
         }
     }
 
+    /**
+     * Finds a widget from this container.
+     * @param widgetKey Key of the widget to look for.
+     * @return The widget that has the specified key. Or null if such a widget was not found.
+     */
     @Nullable
     public IWidget findWidgetByKey(final String widgetKey) {
         for(final IWidget widget: this.widgets) {
@@ -149,20 +188,12 @@ public class MMDContainer extends Container {
         return null;
     }
 
+    /**
+     * Returns the list of widgets contained by this container.
+     * @return The list of widgets contained by this container.
+     */
     public List<IWidget> getWidgets() {
         return this.widgets;
-    }
-
-    private class SlotRange {
-        final int start;
-        final int end;
-        final boolean reverse;
-
-        SlotRange(final int start, final int end, final boolean reverse) {
-            this.start = start;
-            this.end = end;
-            this.reverse = reverse;
-        }
     }
 
     @Override
