@@ -177,41 +177,41 @@ repositories {
 }
 
 dependencies {
-    compileOnly ("com.github.aidancbrady:Mekanism:${mekanism_version}") {
+    deobfProvided ("com.github.aidancbrady:Mekanism:${mekanism_version}") {
         exclude group: 'MCMultiPart'
         exclude group: 'mezz.jei'
     }
 
-    compileOnly ("slimeknights:TConstruct:${mc_version}-${tconstruct_version}") {
+    deobfProvided ("slimeknights:TConstruct:${mc_version}-${tconstruct_version}") {
         exclude group: 'mezz.jei'
     }
-    compileOnly ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
+    deobfProvided ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
         exclude group: 'mezz.jei'
     }
 	
 //  We do this to make NEI happy as there is no deobf or dev JEI jar for the deobf instance
-    compileOnly "mezz.jei:jei_${mc_version}:${jei_version}"
+    deobfProvided "mezz.jei:jei_${mc_version}:${jei_version}"
 
-    compileOnly "codechicken:CodeChickenLib:${mc_version}-${ccl_version}:universal"
-    compileOnly ("codechicken:NotEnoughItems:${mc_version}-${nei_version}:universal") {
+    deobfProvided "codechicken:CodeChickenLib:${mc_version}-${ccl_version}:universal"
+    deobfProvided ("codechicken:NotEnoughItems:${mc_version}-${nei_version}:universal") {
         exclude group: 'mezz.jei'
         exclude group: 'codechicken'
     }
-    
-    compileOnly ("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
+
+    deobfProvided ("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
         exclude group: 'mezz.jei'
     }
 
-    compileOnly ("MineTweaker3:MineTweaker3-API:${minetweaker_version}") {
+    deobfProvided ("MineTweaker3:MineTweaker3-API:${minetweaker_version}") {
         exclude group: 'mezz.jei'
     }
 
-    compileOnly ("mcp.mobius.waila:Hwyla:${hwyla_version}") {
+    deobfProvided ("mcp.mobius.waila:Hwyla:${hwyla_version}") {
         exclude group: 'mezz.jei'
     }
     
     // CoFHCore for TE integration
-    compileOnly ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:deobf") {
+    deobfProvided ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:deobf") {
     	exclude group: 'mezz.jei'
     }
 }
