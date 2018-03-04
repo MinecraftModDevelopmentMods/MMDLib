@@ -151,7 +151,7 @@ public abstract class BaseLayout implements IWidgetLayout, IWidgetGuiDebugInfo {
     }
 
     @Override
-    public boolean mouseReleased(MMDGuiContainer container, int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseReleased(MMDGuiContainer container, int mouseX, int mouseY, int state) {
         for(IWidgetGui child: this.getChildren()) {
             Size2D pos = this.getChildPosition(child);
             if ((mouseX >= pos.width) && (mouseY >= pos.height)) {
@@ -159,7 +159,7 @@ public abstract class BaseLayout implements IWidgetLayout, IWidgetGuiDebugInfo {
                 int localX = mouseX - pos.width;
                 int localY = mouseY - pos.height;
                 if ((localX <= size.width) && (localY <= size.height)
-                    && child.mouseReleased(container, localX, localY, mouseButton)) {
+                    && child.mouseReleased(container, localX, localY, state)) {
                     return true;
                 }
             }

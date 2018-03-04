@@ -147,8 +147,8 @@ public abstract class BaseGridLayout extends BaseLayout implements IWidgetLayout
     }
 
     @Override
-    public String getDebugInfo(final IWidgetGui piece) {
-        final GridPieceInfo info = this.piecesMap.get(piece);
+    public String getDebugInfo(final IWidgetGui child) {
+        final GridPieceInfo info = this.piecesMap.get(child);
         return (info == null) ? "{no info}"
             : String.format("c: %d, r: %d, cs: %d, rs: %d", info.column, info.row, info.columnSpan, info.rowSpan);
     }

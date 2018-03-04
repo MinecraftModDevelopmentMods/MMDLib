@@ -68,12 +68,12 @@ public class CanvasLayout extends BaseLayout implements IWidgetLayoutDebugInfo {
     }
 
     @Override
-    public String getDebugInfo(IWidgetGui piece) {
-        if (!this.piecesMap.containsKey(piece)) {
+    public String getDebugInfo(IWidgetGui child) {
+        if (!this.piecesMap.containsKey(child)) {
             return "[n/a]";
         }
 
-        CanvasPieceInfo info = this.piecesMap.get(piece);
+        CanvasPieceInfo info = this.piecesMap.get(child);
         return String.format("x: %d, y: %d", info.left, info.top);
     }
 }

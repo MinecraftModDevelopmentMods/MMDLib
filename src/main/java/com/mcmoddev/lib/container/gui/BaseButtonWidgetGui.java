@@ -58,7 +58,7 @@ public abstract class BaseButtonWidgetGui extends BaseWidgetGui {
     }
 
     @Override
-    public boolean mouseReleased(MMDGuiContainer container, int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseReleased(MMDGuiContainer container, int mouseX, int mouseY, int state) {
         if (!this.isInside(mouseX, mouseY)) {
             return false;
         }

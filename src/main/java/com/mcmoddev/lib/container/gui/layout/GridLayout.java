@@ -29,8 +29,8 @@ public class GridLayout extends BaseGridLayout implements IWidgetLayoutDebugInfo
     }
 
     @Override
-    public String getDebugInfo(IWidgetGui piece) {
-        Size2D pos = this.getChildPosition(piece);
+    public String getDebugInfo(IWidgetGui child) {
+        Size2D pos = this.getChildPosition(child);
         GridSizeInfo size = this.getInternalSize();
         return String.format("col: %d, row: %d", pos.width / size.cellSize.width, pos.height / size.cellSize.height);
     }

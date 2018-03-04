@@ -13,7 +13,7 @@ public enum GuiTextures implements IGuiTexture {
 
     private final ResourceLocation resource;
 
-    GuiTextures(ResourceLocation resource) {
+    GuiTextures(final ResourceLocation resource) {
         this.resource = resource;
     }
 

@@ -21,11 +21,11 @@ public class LabelWidgetGui extends BaseWidgetGui {
         this("", Minecraft.getMinecraft().fontRenderer, GuiPieceLayer.FOREGROUND, Color.black.getRGB());
     }
 
-    public LabelWidgetGui(String text) {
+    public LabelWidgetGui(final String text) {
         this(text, Minecraft.getMinecraft().fontRenderer, GuiPieceLayer.FOREGROUND, Color.black.getRGB());
     }
 
-    public LabelWidgetGui(String text, FontRenderer font, GuiPieceLayer layer, int color) {
+    public LabelWidgetGui(final String text, final FontRenderer font, final GuiPieceLayer layer, final int color) {
         this.setText(text);
         this.font = font;
         this.layer = layer;
@@ -41,7 +41,7 @@ public class LabelWidgetGui extends BaseWidgetGui {
         return this.text;
     }
 
-    public boolean setText(String text) {
+    public boolean setText(final String text) {
         if ((this.text != null) && (this.text.compareTo(text) == 0)) {
             return false; // same text
         }
@@ -51,7 +51,7 @@ public class LabelWidgetGui extends BaseWidgetGui {
         return true;
     }
 
-    public LabelWidgetGui connectDataWidget(String widgetKey, String dataKey) {
+    public LabelWidgetGui connectDataWidget(final String widgetKey, final String dataKey) {
         this.dataWidgetKey = widgetKey;
         this.dataWidgetDataKey = dataKey;
         return this;
@@ -60,8 +60,8 @@ public class LabelWidgetGui extends BaseWidgetGui {
     @Override
     public Size2D getSize() {
         if (this.measured == null) {
-            int width = this.font.getStringWidth(this.text);
-            int height = this.font.FONT_HEIGHT;
+            final int width = this.font.getStringWidth(this.text);
+            final int height = this.font.FONT_HEIGHT;
             this.measured = new Size2D(width, height);
         }
 
@@ -69,37 +69,37 @@ public class LabelWidgetGui extends BaseWidgetGui {
     }
 
     @Override
-    public void drawBackgroundLayer(MMDGuiContainer container, float partialTicks, int mouseX, int mouseY) {
+    public void drawBackgroundLayer(final MMDGuiContainer container, final float partialTicks, final int mouseX, final int mouseY) {
         this.drawText(container); // will only be called if the correct layer is set
     }
 
     @Override
-    public void drawMiddleLayer(MMDGuiContainer container, float partialTicks, int mouseX, int mouseY) {
+    public void drawMiddleLayer(final MMDGuiContainer container, final float partialTicks, final int mouseX, final int mouseY) {
         this.drawText(container); // will only be called if the correct layer is set
     }
 
     @Override
-    public void drawForegroundLayer(MMDGuiContainer container, int mouseX, int mouseY) {
+    public void drawForegroundLayer(final MMDGuiContainer container, final int mouseX, final int mouseY) {
         this.drawText(container); // will only be called if the correct layer is set
     }
 
     @Override
-    public void drawForegroundTopLayer(MMDGuiContainer container, int mouseX, int mouseY) {
+    public void drawForegroundTopLayer(final MMDGuiContainer container, final int mouseX, final int mouseY) {
         this.drawText(container); // will only be called if the correct layer is set
     }
 
-    protected void drawText(MMDGuiContainer container) {
+    protected void drawText(final MMDGuiContainer container) {
         this.font.drawString(this.text, 0, 0, this.color);
     }
 
     @Override
-    public void tick(GuiContext context) {
+    public void tick(final GuiContext context) {
         if ((this.dataWidgetKey != null) && !this.dataWidgetKey.isEmpty()) {
-            DataWidget widget = DataWidget.class.cast(context.findWidgetByKey(this.dataWidgetKey));
+            final DataWidget widget = DataWidget.class.cast(context.findWidgetByKey(this.dataWidgetKey));
             if (widget != null) {
-                Object value = widget.getValue(this.dataWidgetDataKey);
+                final Object value = widget.getValue(this.dataWidgetDataKey);
                 if (this.setText((value == null) ? "" : value.toString())) {
-                    MMDGuiContainer container = context.getGuiContainer();
+                    final MMDGuiContainer container = context.getGuiContainer();
                     if (container != null) {
                         container.initGui();
                     }

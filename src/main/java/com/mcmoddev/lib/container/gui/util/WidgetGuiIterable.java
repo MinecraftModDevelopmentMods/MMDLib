@@ -7,10 +7,18 @@ import com.google.common.collect.Queues;
 import com.mcmoddev.lib.container.gui.IWidgetGui;
 import com.mcmoddev.lib.container.gui.IWidgetLayout;
 
+/**
+ * Iterable implementation used to enumerate the entire sub-tree of an {@link IWidgetGui}.
+ */
+@SuppressWarnings("WeakerAccess")
 public class WidgetGuiIterable implements Iterable<IWidgetGui> {
     private final IWidgetGui root;
 
-    public WidgetGuiIterable(IWidgetGui root) {
+    /**
+     * Initializes a new instance of WidgetGuiIterable.
+     * @param root The root widget.
+     */
+    public WidgetGuiIterable(final IWidgetGui root) {
         this.root = root;
     }
 
@@ -22,7 +30,7 @@ public class WidgetGuiIterable implements Iterable<IWidgetGui> {
     private class WidgetGuiIterator implements Iterator<IWidgetGui> {
         private final Deque<IWidgetGui> pieces = Queues.newArrayDeque();
 
-        WidgetGuiIterator(IWidgetGui root) {
+        WidgetGuiIterator(final IWidgetGui root) {
             this.pieces.push(root);
         }
 
@@ -33,11 +41,11 @@ public class WidgetGuiIterable implements Iterable<IWidgetGui> {
 
         @Override
         public IWidgetGui next() {
-            IWidgetGui piece = this.pieces.pop();
+            final IWidgetGui piece = this.pieces.pop();
 
             if (piece instanceof IWidgetLayout) {
-                IWidgetLayout layout = IWidgetLayout.class.cast(piece);
-                for(IWidgetGui child : layout.getChildren()) {
+                final IWidgetLayout layout = IWidgetLayout.class.cast(piece);
+                for(final IWidgetGui child : layout.getChildren()) {
                     this.pieces.push(child);
                 }
             }
@@ -46,8 +54,13 @@ public class WidgetGuiIterable implements Iterable<IWidgetGui> {
         }
     }
 
-    public static void forEach(IWidgetGui root, Consumer<IWidgetGui> action) {
-        for(IWidgetGui widget: new WidgetGuiIterable(root)) {
+    /**
+     * Executes the specified consumer for every widget in the sub tree, including the root one.
+     * @param root The root widget to start iteration at.
+     * @param action The consumer to apply to all widgets in tree.
+     */
+    public static void forEach(final IWidgetGui root, final Consumer<IWidgetGui> action) {
+        for(final IWidgetGui widget: new WidgetGuiIterable(root)) {
             action.accept(widget);
         }
     }

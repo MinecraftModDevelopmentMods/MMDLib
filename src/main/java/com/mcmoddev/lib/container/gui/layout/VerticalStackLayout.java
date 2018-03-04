@@ -81,8 +81,8 @@ public class VerticalStackLayout extends BaseLayout implements IWidgetLayoutDebu
     }
 
     @Override
-    public String getDebugInfo(IWidgetGui piece) {
-        Size2D pos = this.getChildPosition(piece);
-        return String.format("i: %d, cx: %d, cy: %d", this.pieces.indexOf(piece), pos.width, pos.height);
+    public String getDebugInfo(IWidgetGui child) {
+        Size2D pos = this.getChildPosition(child);
+        return String.format("i: %d, cx: %d, cy: %d", this.pieces.indexOf(child), pos.width, pos.height);
     }
 }

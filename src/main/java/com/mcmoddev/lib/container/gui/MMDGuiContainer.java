@@ -339,9 +339,4 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
 
         super.keyTyped(typedChar, keyCode);
     }
-
-//    @Override
-//    public void drawHoveringText(List<String> textLines, int x, int y) {
-//        super.drawHoveringText(textLines, x + this.guiLeft, y + this.guiTop);
-//    }
 }

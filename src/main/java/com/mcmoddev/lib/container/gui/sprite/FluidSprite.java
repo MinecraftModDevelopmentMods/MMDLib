@@ -16,12 +16,21 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+/**
+ * {@link IGuiSprite} implementation used to render a fluid.
+ */
 public class FluidSprite implements IGuiSprite {
     private final Fluid fluid;
     private final int width;
     private final int height;
 
-    public FluidSprite(Fluid fluid, int width, int height) {
+    /**
+     * Initializes a new instance of FluidSprite.
+     * @param fluid The fluid to render.
+     * @param width The width of the sprite.
+     * @param height The height of the sprite.
+     */
+    public FluidSprite(final Fluid fluid, final int width, final int height) {
         this.fluid = fluid;
         this.width = width;
         this.height = height;
@@ -52,59 +61,59 @@ public class FluidSprite implements IGuiSprite {
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void draw(GuiScreen screen, int left, int top) {
+    public void draw(final GuiScreen screen, final int left, final int top) {
         this.draw(screen, left, top, this.getWidth(), this.getHeight());
     }
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void draw(GuiScreen screen, int left, int top, int width, int height, boolean clip) {
+    public void draw(final GuiScreen screen, final int left, final int top, final int width, final int height, final boolean clip) {
         this.draw(screen, left, top, this.getWidth(), this.getHeight());
     }
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void draw(GuiScreen screen, int left, int top, int width, int height) {
+    public void draw(final GuiScreen screen, final int left, final int top, final int width, final int height) {
         this.draw(screen, left, top, 0, 0, width, height);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void draw(GuiScreen screen, int left, int top, int texLeft, int texTop, int texWidth, int texHeight) {
-        ResourceLocation still = this.fluid.getStill();
-        TextureAtlasSprite sprite = Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(still.toString());
+    public void draw(final GuiScreen screen, final int left, final int top, final int texLeft, final int texTop, final int texWidth, final int texHeight) {
+        final ResourceLocation still = this.fluid.getStill();
+        final TextureAtlasSprite sprite = Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(still.toString());
 
-        int spriteWidth = sprite.getIconWidth();
-        int spriteHeight = sprite.getIconHeight();
+        final int spriteWidth = sprite.getIconWidth();
+        final int spriteHeight = sprite.getIconHeight();
 
         this.getTexture().bind();
-        Color color = new Color(this.fluid.getColor(), true);
+        final Color color = new Color(this.fluid.getColor(), true);
         GlStateManager.color(
             (float)color.getRed() / 255f,
             (float)color.getGreen() / 255f,
             (float)color.getBlue() / 255f,
             (float)color.getAlpha() / 255f);
 
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder bufferbuilder = tessellator.getBuffer();
+        final Tessellator tessellator = Tessellator.getInstance();
+        final BufferBuilder bufferbuilder = tessellator.getBuffer();
         bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
 
-        double u = sprite.getInterpolatedU(0.0);
-        double v = sprite.getInterpolatedV(0.0);
+        final double u = sprite.getInterpolatedU(0.0);
+        final double v = sprite.getInterpolatedV(0.0);
 
         int tileY = texTop;
         while (tileY < texHeight) {
             int tileX = texLeft;
             while (tileX < texWidth) {
-                double x = left + tileX;
-                double y = top + tileY;
-                double w = Math.min(tileX + spriteWidth, this.width) - tileX;
-                double h = Math.min(tileY + spriteHeight, this.height) - tileY;
-                double ur = w / spriteWidth;
-                double vb = h / spriteHeight;
+                final double x = left + tileX;
+                final double y = top + tileY;
+                final double w = Math.min(tileX + spriteWidth, this.width) - tileX;
+                final double h = Math.min(tileY + spriteHeight, this.height) - tileY;
+                final double ur = w / spriteWidth;
+                final double vb = h / spriteHeight;
 
-                double uu = sprite.getInterpolatedU(ur * 16.0);
-                double vv = sprite.getInterpolatedV(vb * 16.0);
+                final double uu = sprite.getInterpolatedU(ur * 16.0);
+                final double vv = sprite.getInterpolatedV(vb * 16.0);
 
                 bufferbuilder.pos(x, y + h, 0.0D).tex(u, v).endVertex();
                 bufferbuilder.pos(x + w, y + h, 0.0D).tex(uu, v).endVertex();

@@ -6,11 +6,11 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class SpriteBackgroundGui extends BaseSpriteGui {
-    public SpriteBackgroundGui(IGuiSprite sprite, int width, int height) {
+    public SpriteBackgroundGui(final IGuiSprite sprite, final int width, final int height) {
         super(sprite, width, height);
     }
 
-    public SpriteBackgroundGui(IGuiSprite sprite) {
+    public SpriteBackgroundGui(final IGuiSprite sprite) {
         super(sprite);
     }
 
@@ -20,8 +20,8 @@ public class SpriteBackgroundGui extends BaseSpriteGui {
     }
 
     @Override
-    public void drawBackgroundLayer(MMDGuiContainer container, float partialTicks, int mouseX, int mouseY) {
-        Size2D size = this.getSize();
+    public void drawBackgroundLayer(final MMDGuiContainer container, final float partialTicks, final int mouseX, final int mouseY) {
+        final Size2D size = this.getSize();
         this.sprite.draw(container, 0, 0, size.width, size.height, true);
     }
 }

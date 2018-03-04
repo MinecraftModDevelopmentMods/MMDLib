@@ -233,7 +233,7 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
         }
 
         @Override
-        public boolean mouseReleased(final MMDGuiContainer container, final int mouseX, final int mouseY, final int mouseButton) {
+        public boolean mouseReleased(final MMDGuiContainer container, final int mouseX, final int mouseY, final int state) {
             boolean canFill = FluidTankFeature.this.supportsClickToFill();
             boolean canDrain = FluidTankFeature.this.supportsClickToDrain();
 
@@ -245,7 +245,7 @@ public class FluidTankFeature extends BaseFeature implements IClientFeature, IWi
                 String action = null;
 
                 if (canFill && canDrain) {
-                    action = (mouseButton == 1) ? "fill" : "drain";
+                    action = (state == 1) ? "fill" : "drain";
                 }
                 else if (canFill) {
                     action = "fill";

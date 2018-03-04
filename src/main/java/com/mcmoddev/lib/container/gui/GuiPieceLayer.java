@@ -2,6 +2,9 @@ package com.mcmoddev.lib.container.gui;
 
 import net.minecraft.client.gui.inventory.GuiContainer;
 
+/**
+ * Represents the layer a widget renders in.
+ */
 public enum GuiPieceLayer {
     /**
      * First pass of the {@link GuiContainer#drawGuiContainerBackgroundLayer(float, int, int)} call.
