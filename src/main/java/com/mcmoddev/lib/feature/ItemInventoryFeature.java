@@ -28,7 +28,7 @@ import net.minecraftforge.items.ItemStackHandler;
 @SuppressWarnings({"WeakerAccess", "unused", "UnusedReturnValue"})
 public class ItemInventoryFeature extends BaseFeature implements IClientFeature, IWidgetContainer, ICapabilityProvider {
     private final IItemHandlerModifiable internalHandler;
-    private final IItemHandlerModifiable externalHandler;
+    private final FilteredItemHandler externalHandler;
 
     private int overlayColor = -1;
     private int overlayAlpha = -1;
@@ -46,6 +46,7 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
         this(key, new ItemStackHandler(slots), insertFilter, extractFilter/*, null*/);
     }
 
+    // TODO: actually implement this at some point
 //    public ItemInventoryFeature(String key, int slots,
 //                                @Nullable BiPredicate<Integer, ItemStack> insertFilter,
 //                                @Nullable BiPredicate<Integer, ItemStack> extractFilter,
@@ -139,7 +140,8 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
         return new ArrayList<IWidget>() {{
             add(new ItemStackHandlerWidget(
                 ItemInventoryFeature.this.getKey() + "_slots",
-                ItemInventoryFeature.this.getExternalHandler()));
+                ItemInventoryFeature.this.internalHandler,
+                ItemInventoryFeature.this.externalHandler));
         }};
     }
 

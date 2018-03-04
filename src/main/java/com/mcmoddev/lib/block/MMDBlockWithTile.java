@@ -1,10 +1,8 @@
 package com.mcmoddev.lib.block;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.tile.MMDTileEntity;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.MapColor;
@@ -19,15 +17,18 @@ import mcp.MethodsReturnNonnullByDefault;
 @MethodsReturnNonnullByDefault
 public class MMDBlockWithTile<T extends MMDTileEntity> extends MMDBlockWithGui implements ITileEntityProvider {
     private final Class<T> tileClass;
+    private final Supplier<T> tileClassCreator;
 
-    public MMDBlockWithTile(final Class<T> tileClass, final Material materialIn) {
+    public MMDBlockWithTile(final Class<T> tileClass, final Supplier<T> tileClassCreator, final Material materialIn) {
         super(materialIn);
         this.tileClass = tileClass;
+        this.tileClassCreator = tileClassCreator;
     }
 
-    public MMDBlockWithTile(final Class<T> tileClass, final Material materialIn, final MapColor blockMapColorIn) {
+    public MMDBlockWithTile(final Class<T> tileClass, final Supplier<T> tileClassCreator, final Material materialIn, final MapColor blockMapColorIn) {
         super(materialIn, blockMapColorIn);
         this.tileClass = tileClass;
+        this.tileClassCreator = tileClassCreator;
     }
 
     public void registerTile() {
@@ -40,38 +41,7 @@ public class MMDBlockWithTile<T extends MMDTileEntity> extends MMDBlockWithGui i
     @Nullable
     @Override
     public TileEntity createNewTileEntity(final World worldIn, final int meta) {
-        Constructor<T> metaConstructor;
-        try {
-            // looking for constructor based on meta
-            // does anyone really use meta for tile entities?!?
-            metaConstructor = this.tileClass.getConstructor(int.class);
-        } catch (final NoSuchMethodException e) {
-            metaConstructor = null;
-        }
-        if (metaConstructor != null) {
-            try {
-                return metaConstructor.newInstance(meta);
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
-                MMDLib.logger.error("Error creating tile entity!", ex);
-            }
-        }
-
-        Constructor<T> constructor;
-        try {
-            constructor = this.tileClass.getConstructor();
-        } catch (final NoSuchMethodException e) {
-            constructor = null;
-        }
-        if (constructor != null) {
-            try {
-                return constructor.newInstance();
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
-                MMDLib.logger.error("Error creating tile entity!", ex);
-            }
-        }
-
-        // no suitable constructor found
-        return null;
+        return this.tileClassCreator.get();
     }
 
     // TODO: maybe the tile entity NBT to creative pick block
