@@ -114,9 +114,9 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.12.1-14.22.1.2485"
+    version = "1.12.2-14.23.1.2608"
     runDir = "run"
-    mappings = "snapshot_20170925"
+    mappings = "snapshot_20180131"
     clientJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
     serverJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
 }
@@ -141,10 +141,6 @@ repositories {
     maven { // MCMultipart
         name 'amadornes'
         url 'http://maven.amadornes.com/'
-    }
-    maven { // Tesla
-        name 'epoxide'
-        url 'http://maven.epoxide.org'
     }
     maven { // CraftTweaker, ZenScript
         name 'jared maven'
@@ -181,41 +177,41 @@ repositories {
 }
 
 dependencies {
-    compileOnly ("com.github.aidancbrady:Mekanism:${mekanism_version}") {
+    deobfProvided ("com.github.aidancbrady:Mekanism:${mekanism_version}") {
         exclude group: 'MCMultiPart'
         exclude group: 'mezz.jei'
     }
 
-    deobfCompile ("slimeknights:TConstruct:${mc_version}-${tconstruct_version}") {
+    deobfProvided ("slimeknights:TConstruct:${mc_version}-${tconstruct_version}") {
         exclude group: 'mezz.jei'
     }
-    deobfCompile ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
+    deobfProvided ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
         exclude group: 'mezz.jei'
     }
 	
 //  We do this to make NEI happy as there is no deobf or dev JEI jar for the deobf instance
-    deobfCompile "mezz.jei:jei_${mc_version}:${jei_version}"
+    deobfProvided "mezz.jei:jei_${mc_version}:${jei_version}"
 
-    deobfCompile "codechicken:CodeChickenLib:${mc_version}-${ccl_version}:universal"
-    deobfCompile ("codechicken:NotEnoughItems:${mc_version}-${nei_version}:universal") {
+    deobfProvided "codechicken:CodeChickenLib:${mc_version}-${ccl_version}:universal"
+    deobfProvided ("codechicken:NotEnoughItems:${mc_version}-${nei_version}:universal") {
         exclude group: 'mezz.jei'
         exclude group: 'codechicken'
     }
-    
-    deobfCompile ("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
+
+    deobfProvided ("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
         exclude group: 'mezz.jei'
     }
 
-    deobfCompile ("MineTweaker3:MineTweaker3-API:${minetweaker_version}") {
+    deobfProvided ("MineTweaker3:MineTweaker3-API:${minetweaker_version}") {
         exclude group: 'mezz.jei'
     }
-    
-    deobfCompile ("mcp.mobius.waila:Hwyla:${hwyla_version}") {
+
+    deobfProvided ("mcp.mobius.waila:Hwyla:${hwyla_version}") {
         exclude group: 'mezz.jei'
     }
     
     // CoFHCore for TE integration
-    compile ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:deobf") {
+    deobfProvided ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:deobf") {
     	exclude group: 'mezz.jei'
     }
 }

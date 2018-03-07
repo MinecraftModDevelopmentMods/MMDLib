@@ -1,10 +1,8 @@
 package com.mcmoddev.lib;
 
+import com.mcmoddev.lib.proxy.CommonProxy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.mcmoddev.lib.proxy.CommonProxy;
-
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -72,7 +70,10 @@ public class MMDLib {
 		proxy.preInit(event);
 		/*
 		 * Pull the lever, Kronk!
-                 */
+		 */
+
+		// TODO: this should probably not be here
+//		new TinkersConstructBase().init();
 	}
 
 	@EventHandler
@@ -86,5 +87,4 @@ public class MMDLib {
 		proxy.postInit(event);
 		// if we have anything else to do here, check 'proxy.allsGood' first
 	}
-
 }

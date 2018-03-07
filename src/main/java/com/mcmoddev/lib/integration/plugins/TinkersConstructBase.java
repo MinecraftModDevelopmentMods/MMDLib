@@ -1,15 +1,12 @@
 package com.mcmoddev.lib.integration.plugins;
 
 import javax.annotation.Nonnull;
-
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.integration.IIntegration;
 import com.mcmoddev.lib.integration.plugins.tinkers.ModifierRegistry;
 import com.mcmoddev.lib.integration.plugins.tinkers.TCMaterial;
 import com.mcmoddev.lib.integration.plugins.tinkers.TinkersConstructRegistry;
 import com.mcmoddev.lib.material.MMDMaterial;
-import com.mcmoddev.lib.util.ConfigBase.Options;
-
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -31,9 +28,12 @@ public class TinkersConstructBase implements IIntegration {
 
 	@Override
 	public void init() {
-		if (initDone || !Options.isModEnabled(PLUGIN_MODID)) {
+		if (initDone/* || !Options.isModEnabled(PLUGIN_MODID)*/) {
 			return;
 		}
+
+		this.modifierSetup();
+		this.modifierRegister();
 
 		initDone = true;
 	}
