@@ -1,10 +1,8 @@
 package com.mcmoddev.lib.integration.plugins;
 
 import javax.annotation.Nonnull;
-
 import com.mcmoddev.lib.integration.IIntegration;
 import com.mcmoddev.lib.util.ConfigBase.Options;
-
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.event.FMLInterModComms;
@@ -13,20 +11,16 @@ public class DenseOresBase implements IIntegration {
 
 	public static final String PLUGIN_MODID = "denseores";
 
-	private static boolean initDone = false;
-
 	@Override
 	public void init() {
-		if (initDone || !Options.isModEnabled(PLUGIN_MODID)) {
+		if (!Options.isModEnabled(PLUGIN_MODID)) {
 			return;
 		}
-
-		initDone = true;
 	}
 
 	/**
-	 * Register a single ore
-	 * 
+	 * Register a single ore.
+	 *
 	 * @param name
 	 *            Oredictionary name of this ore in its source mod
 	 * @param underlying
@@ -42,8 +36,8 @@ public class DenseOresBase implements IIntegration {
 	}
 
 	/**
-	 * Register a single ore
-	 * 
+	 * Register a single ore.
+	 *
 	 * @param name
 	 *            Oredictionary name of this ore in its source mod
 	 * @param modID
@@ -71,7 +65,7 @@ public class DenseOresBase implements IIntegration {
 
 	/**
 	 * Register a single ore that spawns in the nether and has an oredict of
-	 * 'nether_&lt;name&gt;_ore'
+	 * 'nether_&lt;name&gt;_ore'.
 	 *
 	 * @param name
 	 *            Oredictionary name of this ore in its source mod
@@ -86,7 +80,7 @@ public class DenseOresBase implements IIntegration {
 
 	/**
 	 * Register a single ore that spawns in the nether and has an oredict of
-	 * 'nether_&lt;name&gt;_ore'
+	 * 'nether_&lt;name&gt;_ore'.
 	 *
 	 * @param name
 	 *            Oredictionary name of this ore in its source mod
@@ -102,7 +96,7 @@ public class DenseOresBase implements IIntegration {
 
 	/**
 	 * Register a single ore that spawns in the end and has an oredict of
-	 * 'end_&lt;name&gt;_ore'
+	 * 'end_&lt;name&gt;_ore'.
 	 *
 	 * @param name
 	 *            Oredictionary name of this ore in its source mod
@@ -117,7 +111,7 @@ public class DenseOresBase implements IIntegration {
 
 	/**
 	 * Register a single ore that spawns in the end and has an oredict of
-	 * 'end_&lt;name&gt;_ore'
+	 * 'end_&lt;name&gt;_ore'.
 	 *
 	 * @param name
 	 *            Oredictionary name of this ore in its source mod

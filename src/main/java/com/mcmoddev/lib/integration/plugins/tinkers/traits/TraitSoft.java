@@ -1,10 +1,6 @@
-/**
- * 
- */
 package com.mcmoddev.lib.integration.plugins.tinkers.traits;
 
 import javax.annotation.Nonnull;
-
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import slimeknights.tconstruct.library.traits.AbstractTrait;
@@ -20,7 +16,7 @@ public class TraitSoft extends AbstractTrait {
 	}
 
 	@Override
-	public int onToolDamage(@Nonnull final ItemStack tool, @Nonnull final int damage, @Nonnull int newDamage, @Nonnull final EntityLivingBase entity) {
-		return super.onToolDamage(tool, damage, newDamage + ((int)(damage *1.25f)), entity);
+	public int onToolDamage(@Nonnull final ItemStack tool, @Nonnull final int damage, @Nonnull final int newDamage, @Nonnull final EntityLivingBase entity) {
+		return super.onToolDamage(tool, damage, newDamage + ((int) (damage * 1.25f)), entity);
 	}
 }

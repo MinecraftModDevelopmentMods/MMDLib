@@ -1,4 +1,4 @@
-def corePlugin = 'com.mcmoddev.lib.asm.ASMPlugin'
+//def corePlugin = 'com.mcmoddev.lib.asm.ASMPlugin'
 
 buildscript {
     repositories {
@@ -19,7 +19,7 @@ buildscript {
     dependencies {
         classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
         classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.0.9"
-        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.6.2"
         classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.2'
     }
 }
@@ -114,11 +114,14 @@ if (secretFile.exists()) {
 }
 
 minecraft {
-    version = "1.12.2-14.23.1.2608"
+    version = "1.12.2-14.23.2.2611"
     runDir = "run"
-    mappings = "snapshot_20180131"
-    clientJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
-    serverJvmArgs = ["-Dfml.coreMods.load=$corePlugin"]
+    mappings = "snapshot_20180223"
+
+    if (project.hasProperty('coreplugin')) {
+        clientJvmArgs += ['-Dfml.coreMods.load', project.coreplugin]
+        serverJvmArgs += ['-Dfml.coreMods.load', project.coreplugin]
+    }
 }
 
 repositories {
@@ -234,8 +237,8 @@ processResources {
 
 jar {
     manifest {
-        attributes 'FMLCorePluginContainsFMLMod': 'true'
-        attributes 'FMLCorePlugin': corePlugin
+//        attributes 'FMLCorePluginContainsFMLMod': 'true'
+//        attributes 'FMLCorePlugin': corePlugin
     }
 }
 

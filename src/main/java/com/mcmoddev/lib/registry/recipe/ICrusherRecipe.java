@@ -2,7 +2,6 @@ package com.mcmoddev.lib.registry.recipe;
 
 import java.util.Collection;
 import java.util.List;
-
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
@@ -11,7 +10,7 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
  * OreDictionary to describe the input item, use the OreDictionaryCrusherRecipe
  * class. If not using the OreDictionary, use the ArbitraryCrusherRecipe class.
  * Note that you should use the OreDictionary for most recipes.
- * 
+ *
  * @author DrCyano
  *
  */
@@ -19,21 +18,21 @@ public interface ICrusherRecipe extends IForgeRegistryEntry<ICrusherRecipe> {
 
 	/**
 	 * Gets the input item(s) from applying this recipe.
-	 * 
+	 *
 	 * @return An ItemStack instance of the result of this recipe
 	 */
 	public abstract List<ItemStack> getInputs();
 
 	/**
 	 * Gets the output item from applying this recipe.
-	 * 
+	 *
 	 * @return An ItemStack instance of the result of this recipe
 	 */
 	public abstract ItemStack getOutput();
 
 	/**
 	 * Checks if the given ItemStack instance is the input for this recipe.
-	 * 
+	 *
 	 * @param input
 	 *            An ItemStack to test
 	 * @return Returns true if and only if this recipe should produce an output
@@ -46,7 +45,7 @@ public interface ICrusherRecipe extends IForgeRegistryEntry<ICrusherRecipe> {
 	 * <code>isValidInput(...)</code> would return true. This method is only
 	 * used for displaying recipes in NEI and does not need to be performance
 	 * optimized.
-	 * 
+	 *
 	 * @return A list of allowed inputs.
 	 */
 	public abstract Collection<ItemStack> getValidInputs();

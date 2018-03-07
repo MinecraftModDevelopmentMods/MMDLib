@@ -3,7 +3,6 @@ package com.mcmoddev.lib.item;
 import com.mcmoddev.lib.entity.EntityCustomBolt;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
@@ -15,14 +14,14 @@ import net.minecraft.world.World;
  */
 public class ItemMMDBolt extends ItemBolt implements IMMDObject {
 
-	protected final MMDMaterial material;
+	private final MMDMaterial material;
 
 	/**
 	 *
 	 * @param material
 	 *            The material to make the bolt from
 	 */
-	public ItemMMDBolt(MMDMaterial material) {
+	public ItemMMDBolt(final MMDMaterial material) {
 		this.material = material;
 	}
 
@@ -37,7 +36,7 @@ public class ItemMMDBolt extends ItemBolt implements IMMDObject {
 	 * @return The Custom Bolt
 	 */
 	@Override
-	public EntityCustomBolt createBolt(World worldIn, ItemStack stack, EntityPlayer shooter) {
+	public EntityCustomBolt createBolt(final World worldIn, final ItemStack stack, final EntityPlayer shooter) {
 		return new EntityCustomBolt(worldIn, stack, shooter);
 	}
 
