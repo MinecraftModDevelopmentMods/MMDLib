@@ -1,9 +1,7 @@
 package com.mcmoddev.lib.block;
 
 import java.util.Random;
-import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.data.Names;
-import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 import net.minecraft.block.SoundType;
@@ -62,9 +60,10 @@ public class BlockMMDOre extends net.minecraft.block.BlockOre implements IMMDObj
 
 	@Override
 	public boolean canEntityDestroy(final IBlockState bs, final IBlockAccess w, final BlockPos coord, final Entity entity) {
-		if ((this == Materials.getMaterialByName(MaterialNames.STARSTEEL).getBlock(Names.ORE)) && (entity instanceof net.minecraft.entity.boss.EntityDragon)) {
-			return false;
-		}
+		// TODO: make this a stat or something:
+//		if ((this == Materials.getMaterialByName(MaterialNames.STARSTEEL).getBlock(Names.ORE)) && (entity instanceof net.minecraft.entity.boss.EntityDragon)) {
+//			return false;
+//		}
 		return super.canEntityDestroy(bs, w, coord, entity);
 	}
 

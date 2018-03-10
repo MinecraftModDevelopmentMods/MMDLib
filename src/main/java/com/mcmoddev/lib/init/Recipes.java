@@ -3,7 +3,6 @@ package com.mcmoddev.lib.init;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.annotation.Nonnull;
-import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.data.SharedStrings;
@@ -17,15 +16,10 @@ import com.mcmoddev.lib.util.Oredicts;
 import org.apache.commons.lang3.StringUtils;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
-import net.minecraftforge.oredict.ShapelessOreRecipe;
 
 /**
  *
@@ -469,20 +463,21 @@ public abstract class Recipes {
 
 		// the following is broken, as the event *DOES* *NOT* *WORK* right and the call
 		// asks the
-		if (mod.equals(MMDLib.MODID) && Materials.hasMaterial(MaterialNames.MERCURY)) {
-			addAdditionalOredicts(Materials.getMaterialByName(MaterialNames.MERCURY), "Quicksilver");
-
-			if (FluidRegistry.isUniversalBucketEnabled()) {
-				final ItemStack bucketMercury = FluidUtil.getFilledBucket(
-						new FluidStack(Materials.getMaterialByName(MaterialNames.MERCURY).getFluid(), 1000));
-				ShapelessOreRecipe buckMerc = new ShapelessOreRecipe(new ResourceLocation("basemetals", "bucket"),
-						bucketMercury, net.minecraft.init.Items.BUCKET, Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY,
-						Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY,
-						Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY);
-				buckMerc.setRegistryName("basemetals", "mercury_bucket");
-				event.getRegistry().register(buckMerc);
-			}
-		}
+		// TODO: revive the following code:
+//		if (mod.equals(MMDLib.MODID) && Materials.hasMaterial(MaterialNames.MERCURY)) {
+//			addAdditionalOredicts(Materials.getMaterialByName(MaterialNames.MERCURY), "Quicksilver");
+//
+//			if (FluidRegistry.isUniversalBucketEnabled()) {
+//				final ItemStack bucketMercury = FluidUtil.getFilledBucket(
+//						new FluidStack(Materials.getMaterialByName(MaterialNames.MERCURY).getFluid(), 1000));
+//				ShapelessOreRecipe buckMerc = new ShapelessOreRecipe(new ResourceLocation("basemetals", "bucket"),
+//						bucketMercury, net.minecraft.init.Items.BUCKET, Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY,
+//						Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY,
+//						Oredicts.INGOT_MERCURY, Oredicts.INGOT_MERCURY);
+//				buckMerc.setRegistryName("basemetals", "mercury_bucket");
+//				event.getRegistry().register(buckMerc);
+//			}
+//		}
 
 		initPureVanillaOredicts();
 		initPureVanillaCrusherRecipes();
