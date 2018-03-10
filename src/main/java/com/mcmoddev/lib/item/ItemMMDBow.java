@@ -39,7 +39,7 @@ public class ItemMMDBow extends net.minecraft.item.ItemBow implements IMMDObject
 
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn, final List<String> tooltip, final ITooltipFlag flagIn) {
-		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material.getName(), tooltip);
+		// TODO: MMDToolEffects.addToolSpecialPropertiesToolTip(this.material.getName(), tooltip);
 	}
 
 	@Override

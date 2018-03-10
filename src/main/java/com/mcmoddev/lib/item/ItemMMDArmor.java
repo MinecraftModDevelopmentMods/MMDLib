@@ -56,7 +56,7 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 			for (int i = 0; i < 4; i++) {
 				final ItemStack armorItemStack = player.inventory.armorInventory.get(i);
 				if ((!armorItemStack.isEmpty()) && (armorItemStack.getItem() instanceof ItemMMDArmor)) {
-					MMDToolEffects.extraEffectsOnArmorUpdate(w, player, this.mmdMaterial, armorItemStack, updateCount);
+					// TODO: MMDToolEffects.extraEffectsOnArmorUpdate(w, player, this.mmdMaterial, armorItemStack, updateCount);
 				}
 			}
 		}
@@ -115,7 +115,7 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn, final List<String> tooltip, final ITooltipFlag flagIn) {
-		MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmdMaterial.getName(), tooltip);
+		// TODO: MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmdMaterial.getName(), tooltip);
 	}
 
 	/**
