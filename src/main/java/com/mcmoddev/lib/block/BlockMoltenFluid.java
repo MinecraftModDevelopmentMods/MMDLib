@@ -1,7 +1,6 @@
 package com.mcmoddev.lib.block;
 
 import javax.annotation.Nonnull;
-
 import net.minecraft.block.material.Material;
 import net.minecraftforge.fluids.Fluid;
 
@@ -17,8 +16,7 @@ public class BlockMoltenFluid extends net.minecraftforge.fluids.BlockFluidClassi
 	 * @param fluid
 	 *            The fluid
 	 */
-	public BlockMoltenFluid(@Nonnull Fluid fluid) {
+	public BlockMoltenFluid(@Nonnull final Fluid fluid) {
 		super(fluid, Material.LAVA);
-
 	}
 }

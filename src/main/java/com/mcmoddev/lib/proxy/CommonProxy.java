@@ -23,6 +23,8 @@ public class CommonProxy {
 		MMDGuiHandler.init();
 		MMDCapabilities.init();
 	    // despite other comments, most events get fired here
+
+		Materials.init();
 	}
 	
 	public void init(FMLInitializationEvent event) {
