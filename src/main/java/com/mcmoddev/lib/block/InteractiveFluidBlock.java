@@ -65,8 +65,8 @@ public class InteractiveFluidBlock extends net.minecraftforge.fluids.BlockFluidC
 	}
 
 	@Override
-	public void onEntityCollidedWithBlock(final World world, final BlockPos coord, final IBlockState state, final Entity entity) {
-		super.onEntityCollidedWithBlock(world, coord, state, entity);
+	public void onEntityCollision(final World world, final BlockPos coord, final IBlockState state, final Entity entity) {
+		super.onEntityCollision(world, coord, state, entity);
 		if ((this.immersionEffect != null) && (entity instanceof EntityLivingBase)) {
 			this.immersionEffect.accept(world, (EntityLivingBase) entity);
 		}

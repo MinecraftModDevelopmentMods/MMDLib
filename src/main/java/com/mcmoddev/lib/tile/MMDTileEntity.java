@@ -62,7 +62,7 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
     @Override
     public SPacketUpdateTileEntity getUpdatePacket() {
         final NBTTagCompound tag = this.getUpdateTag();
-        if (!tag.hasNoTags()) {
+        if (!tag.isEmpty()) {
             LoggingUtil.logNbtMessage(this, "SPacket TAG", tag);
             return new SPacketUpdateTileEntity(this.getPos(), 42, tag);
         }
@@ -74,7 +74,7 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
         final NBTTagCompound compound = super.getUpdateTag();
         this.writeToUpdateTag(compound);
 
-        if (!compound.hasNoTags()) {
+        if (!compound.isEmpty()) {
             LoggingUtil.logNbtMessage(this, "GET UPDATE NBT", compound);
         }
         return compound;
@@ -105,7 +105,7 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
 
     @SuppressWarnings("WeakerAccess")
     protected void sendToListeningClients(final NBTTagCompound nbt) {
-        final ChunkPos cp = world.getChunkFromBlockCoords(pos).getPos();
+        final ChunkPos cp = world.getChunk(pos).getPos();
         final PlayerChunkMapEntry entry = ((WorldServer)world).getPlayerChunkMap().getEntry(cp.x, cp.z);
         if (entry != null) {
             final NBTTagCompound updateTag = new NBTTagCompound();

@@ -222,7 +222,7 @@ public abstract class Blocks {
 		final String fullName = getBlockFullName(block, material, name);
 
 		block.setRegistryName(fullName);
-		block.setUnlocalizedName(block.getRegistryName().getResourceDomain() + "." + fullName);
+		block.setTranslationKey(block.getRegistryName().getNamespace() + "." + fullName);
 
 		maybeMakeItemBlock(block, material, fullName);
 
@@ -247,7 +247,7 @@ public abstract class Blocks {
 		if (!(block instanceof BlockAnvil) && !(block instanceof BlockDoor) && !(block instanceof BlockSlab) && (!material.isEmpty())) {
 			final ItemBlock itemBlock = new ItemMMDBlock(material, block);
 			itemBlock.setRegistryName(block.getRegistryName());
-			itemBlock.setUnlocalizedName(block.getRegistryName().getResourceDomain() + "." + fullName);
+			itemBlock.setTranslationKey(block.getRegistryName().getNamespace() + "." + fullName);
 			material.addNewItem("ItemBlock_" + fullName, itemBlock);
 		}
 	}

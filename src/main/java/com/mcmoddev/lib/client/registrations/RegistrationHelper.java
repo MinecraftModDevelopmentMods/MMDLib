@@ -85,9 +85,9 @@ public class RegistrationHelper {
 		final Item item = Item.getItemFromBlock(block);
 		final ResourceLocation resourceLocation = block.getRegistryName();
 		final FluidStateMapper mapper = new FluidStateMapper(
-				resourceLocation.getResourceDomain() + ":" + fluid.getName());
+				resourceLocation.getNamespace() + ":" + fluid.getName());
 
-		if (!resourceLocation.getResourceDomain().equals(Loader.instance().activeModContainer().getModId())) {
+		if (!resourceLocation.getNamespace().equals(Loader.instance().activeModContainer().getModId())) {
 			return;
 		}
 
@@ -106,7 +106,7 @@ public class RegistrationHelper {
 	public static void registerRender(@Nonnull final Item item) {
 		final ResourceLocation resourceLocation = item.getRegistryName();
 
-		if (!resourceLocation.getResourceDomain().equals(Loader.instance().activeModContainer().getModId())) {
+		if (!resourceLocation.getNamespace().equals(Loader.instance().activeModContainer().getModId())) {
 			return;
 		}
 

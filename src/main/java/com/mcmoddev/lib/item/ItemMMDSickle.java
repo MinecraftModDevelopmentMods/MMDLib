@@ -110,7 +110,7 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 
 			if (block.removedByPlayer(bsatapos, world, actualPosition, player, true)) { // boolean is if block can be
 																						// harvested, checked above
-				block.onBlockDestroyedByPlayer(world, actualPosition, bsatapos);
+				block.onPlayerDestroy(world, actualPosition, bsatapos);
 				block.harvestBlock(world, player, actualPosition, bsatapos, tileEntity, tool);
 				block.dropXpOnBlockBreak(world, actualPosition, xp);
 			}
@@ -119,7 +119,7 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 		} else {
 			world.playBroadcastSound(2001, actualPosition, Block.getStateId(bsatapos));
 			if (block.removedByPlayer(bsatapos, world, actualPosition, player, true)) {
-				block.onBlockDestroyedByPlayer(world, actualPosition, bsatapos);
+				block.onPlayerDestroy(world, actualPosition, bsatapos);
 			}
 
 			tool.onBlockDestroyed(world, bsatapos, actualPosition, player);

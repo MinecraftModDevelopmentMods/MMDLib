@@ -374,7 +374,7 @@ public class Materials {
 	 */
 	public static @Nonnull MMDMaterial getMaterialByName(@Nonnull final String materialName) {
 		for (ResourceLocation key : REGISTRY.getKeys()) {
-			if (key.getResourcePath().equals(materialName)) {
+			if (key.getPath().equals(materialName)) {
 				return REGISTRY.getValue(key);
 			}
 		}
@@ -391,7 +391,7 @@ public class Materials {
 	 */
 	public static Collection<MMDMaterial> getMaterialsByMod(@Nonnull final String modId) {
 		return Lists.newArrayList(
-				REGISTRY.getEntries().stream().filter(ent -> ent.getKey().getResourceDomain().equals(modId))
+				REGISTRY.getEntries().stream().filter(ent -> ent.getKey().getNamespace().equals(modId))
 						.map(Entry::getValue).iterator());
 	}
 
@@ -414,7 +414,7 @@ public class Materials {
 	 */
 	public static boolean hasMaterialFromMod(@Nonnull final String modId) {
 		for (ResourceLocation rl : REGISTRY.getKeys()) {
-			if (rl.getResourceDomain().equals(modId)) {
+			if (rl.getNamespace().equals(modId)) {
 				return true;
 			}
 		}

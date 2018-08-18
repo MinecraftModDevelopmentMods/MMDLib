@@ -52,7 +52,7 @@ public class MMDCreativeTab extends CreativeTabs {
 		this.searchable = searchable;
 		this.setSortingAlgorithm((ItemStack first, ItemStack second) -> {
 			final int delta = Items.getSortingValue(first) - Items.getSortingValue(second);
-			return (delta == 0) ? first.getUnlocalizedName().compareToIgnoreCase(second.getUnlocalizedName()) : delta;
+			return (delta == 0) ? first.getTranslationKey().compareToIgnoreCase(second.getTranslationKey()) : delta;
 		});
 		if (searchable) {
 			setBackgroundImageName("item_search.png");
@@ -75,7 +75,7 @@ public class MMDCreativeTab extends CreativeTabs {
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public ItemStack getTabIconItem() {
+	public ItemStack createIcon() {
 		return this.iconItem;
 	}
 

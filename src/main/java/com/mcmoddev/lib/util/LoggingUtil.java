@@ -43,7 +43,7 @@ public final class LoggingUtil {
             final long id;
             if (compound.hasKey(LOGGING_ID, Constants.NBT.TAG_LONG)) {
                 id = compound.getLong(LOGGING_ID);
-            } else if (!nbt.hasNoTags()) {
+            } else if (!nbt.isEmpty()) {
                 id = LoggingUtil.currentId++;
                 compound.setLong(LOGGING_ID, id);
             } else {

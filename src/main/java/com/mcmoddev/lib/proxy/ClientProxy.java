@@ -40,7 +40,7 @@ public class ClientProxy extends CommonProxy {
 			final Block block = Fluids.getFluidBlockByName(name);
 			final Item item = Item.getItemFromBlock(block);
 			
-			final ModelResourceLocation fluidModelLocation = new ModelResourceLocation(item.getRegistryName().getResourceDomain() + ":" + name, "fluid");
+			final ModelResourceLocation fluidModelLocation = new ModelResourceLocation(item.getRegistryName().getNamespace() + ":" + name, "fluid");
 			ModelBakery.registerItemVariants(item);
 			ModelLoader.setCustomMeshDefinition(item, stack -> fluidModelLocation);
 			ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
@@ -81,7 +81,7 @@ public class ClientProxy extends CommonProxy {
 	}
 
 	public void registerRender(Item item, String name) {
-		String resourceDomain = item.getRegistryName().getResourceDomain();
+		String resourceDomain = item.getRegistryName().getNamespace();
 		ResourceLocation resLoc = new ResourceLocation(resourceDomain, name);
 		ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(resLoc, "inventory"));
 	}

@@ -23,7 +23,7 @@ public class ItemGroups {
 	public static final BiFunction<ItemStack, ItemStack, Integer> sortingAlgorithm = (final ItemStack a, final ItemStack b) -> {
 		final int delta = Items.getSortingValue(a) - Items.getSortingValue(b);
 		if (delta == 0) {
-			return a.getItem().getUnlocalizedName().compareToIgnoreCase(b.getItem().getUnlocalizedName());
+			return a.getItem().getTranslationKey().compareToIgnoreCase(b.getItem().getTranslationKey());
 		}
 		return delta;
 	};

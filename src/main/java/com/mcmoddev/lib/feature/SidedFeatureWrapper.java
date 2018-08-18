@@ -205,7 +205,7 @@ public class SidedFeatureWrapper implements IFeature, IClientFeature, IServerFea
         if (nbt.hasKey("facings", Constants.NBT.TAG_INT_ARRAY)) {
             this.facings = Arrays
                 .stream(nbt.getIntArray("facings"))
-                .mapToObj(EnumFacing::getFront)
+                .mapToObj(EnumFacing::byIndex)
                 .toArray(EnumFacing[]::new);
         }
         else {
