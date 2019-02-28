@@ -1,27 +1,30 @@
 package com.mcmoddev.lib.registry.recipe;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
 /**
- * This class is an implementation of the ICrusherRecipe superclass. It uses the
- * OreDictionary to check the input item.
+ * This class is an implementation of the ICrusherRecipe superclass. It uses the OreDictionary to
+ * check the input item.
  *
  * @author DrCyano
  *
  */
-public class OreDictionaryCrusherRecipe  extends IForgeRegistryEntry.Impl<ICrusherRecipe> implements ICrusherRecipe {
+public class OreDictionaryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRecipe>
+		implements ICrusherRecipe {
 
-	private List<ItemStack> inputs;
+	private final List<ItemStack> inputs;
 	private final ItemStack output;
 	private final String oreDictSource;
 
 	/**
-	 * Constructs a new instance of this ICrusherRecipe class representing a
-	 * recipe with an input and an output.
+	 * Constructs a new instance of this ICrusherRecipe class representing a recipe with an input
+	 * and an output.
 	 *
 	 * @param oreDictionaryID
 	 *            The input item(s), described by an OreDictionary name
@@ -33,7 +36,8 @@ public class OreDictionaryCrusherRecipe  extends IForgeRegistryEntry.Impl<ICrush
 		this.inputs = OreDictionary.getOres(this.oreDictSource);
 		this.output = results;
 
-		super.setRegistryName(oreDictionaryID + "_to_" + results.getItem().getRegistryName().getPath());
+		super.setRegistryName(
+				oreDictionaryID + "_to_" + results.getItem().getRegistryName().getPath());
 	}
 
 	/**
@@ -43,7 +47,7 @@ public class OreDictionaryCrusherRecipe  extends IForgeRegistryEntry.Impl<ICrush
 	 */
 	@Override
 	public List<ItemStack> getInputs() {
-		return this.inputs;
+		return Collections.unmodifiableList(OreDictionary.getOres(this.oreDictSource));
 	}
 
 	/**
@@ -61,18 +65,18 @@ public class OreDictionaryCrusherRecipe  extends IForgeRegistryEntry.Impl<ICrush
 	 *
 	 * @param input
 	 *            An ItemStack to test
-	 * @return Returns true if and only if this recipe should produce an output
-	 *         item from the given input.
+	 * @return Returns true if and only if this recipe should produce an output item from the given
+	 *         input.
 	 */
 	@Override
 	public boolean isValidInput(final ItemStack input) {
-		for (int i = 0; i < inputs.size(); i++) {
-			if (inputs.get(i).getMetadata() == OreDictionary.WILDCARD_VALUE) {
+		for (int i = 0; i < this.inputs.size(); i++) {
+			if (this.inputs.get(i).getMetadata() == OreDictionary.WILDCARD_VALUE) {
 				// do not compare metadata values
-				if (inputs.get(i).getItem() == input.getItem()) {
+				if (this.inputs.get(i).getItem() == input.getItem()) {
 					return true;
 				}
-			} else if (ItemStack.areItemsEqual(inputs.get(i), input)) {
+			} else if (ItemStack.areItemsEqual(this.inputs.get(i), input)) {
 				return true;
 			}
 		}
@@ -80,10 +84,9 @@ public class OreDictionaryCrusherRecipe  extends IForgeRegistryEntry.Impl<ICrush
 	}
 
 	/**
-	 * Returns a list of all registered blocks/items for which
-	 * <code>isValidInput(...)</code> would return true. This method is only
-	 * used for displaying recipes in NEI and does not need to be performance
-	 * optimized.
+	 * Returns a list of all registered blocks/items for which <code>isValidInput(...)</code> would
+	 * return true. This method is only used for displaying recipes in NEI and does not need to be
+	 * performance optimized.
 	 *
 	 * @return A list of allowed inputs.
 	 */

@@ -1,8 +1,11 @@
 package com.mcmoddev.lib.item;
 
 import java.util.List;
+
+//import com.mcmoddev.basemetals.items.MMDToolEffects;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
+
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
@@ -33,13 +36,15 @@ public class ItemMMDShears extends net.minecraft.item.ItemShears implements IMMD
 	}
 
 	@Override
-	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex, final boolean isHeld) {
+	public void onUpdate(final ItemStack item, final World world, final Entity player,
+			final int inventoryIndex, final boolean isHeld) {
 		MMDItemHelper.doRegeneration(item, world, isHeld, this.material.regenerates());
 	}
 
 	@Override
-	public void addInformation(final ItemStack stack, final World worldIn, final List<String> tooltip, final ITooltipFlag flagIn) {
-		// TODO: MMDToolEffects.addToolSpecialPropertiesToolTip(this.material.getName(), tooltip);
+	public void addInformation(final ItemStack stack, final World worldIn,
+			final List<String> tooltip, final ITooltipFlag flagIn) {
+//		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material.getName(), tooltip);
 	}
 
 	@Override

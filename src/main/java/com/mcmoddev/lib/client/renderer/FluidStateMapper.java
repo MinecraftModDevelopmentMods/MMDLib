@@ -1,6 +1,7 @@
 package com.mcmoddev.lib.client.renderer;
 
 import javax.annotation.Nonnull;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.ItemMeshDefinition;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -27,12 +28,12 @@ public class FluidStateMapper extends StateMapperBase implements ItemMeshDefinit
 	@Nonnull
 	@Override
 	protected ModelResourceLocation getModelResourceLocation(@Nonnull final IBlockState state) {
-		return location;
+		return this.location;
 	}
 
 	@Nonnull
 	@Override
 	public ModelResourceLocation getModelLocation(@Nonnull final ItemStack stack) {
-		return location;
+		return this.location;
 	}
 }

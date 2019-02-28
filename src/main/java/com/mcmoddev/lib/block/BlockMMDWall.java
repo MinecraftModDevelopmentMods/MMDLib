@@ -3,6 +3,7 @@ package com.mcmoddev.lib.block;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
@@ -17,7 +18,7 @@ import net.minecraft.world.IBlockAccess;
  */
 public class BlockMMDWall extends net.minecraft.block.BlockWall implements IMMDObject {
 
-	private final MMDMaterial material;
+	private final MMDMaterial mmdMaterial;
 
 	/**
 	 *
@@ -26,11 +27,12 @@ public class BlockMMDWall extends net.minecraft.block.BlockWall implements IMMDO
 	 */
 	public BlockMMDWall(final MMDMaterial material) {
 		super(material.getBlock(Names.BLOCK));
-		this.material = material;
-		this.setSoundType(this.material.getSoundType());
-		this.blockHardness = this.material.getBlockHardness();
-		this.blockResistance = this.material.getBlastResistance();
-		this.setHarvestLevel(this.material.getHarvestTool(), this.material.getRequiredHarvestLevel());
+		this.mmdMaterial = material;
+		this.setSoundType(this.mmdMaterial.getSoundType());
+		this.blockHardness = this.mmdMaterial.getBlockHardness();
+		this.blockResistance = this.mmdMaterial.getBlastResistance();
+		this.setHarvestLevel(this.mmdMaterial.getHarvestTool(),
+				this.mmdMaterial.getRequiredHarvestLevel());
 	}
 
 	@Override
@@ -40,12 +42,13 @@ public class BlockMMDWall extends net.minecraft.block.BlockWall implements IMMDO
 
 	// We don't specifically need this, but it does mean less logic being run on each check
 	@Override
-	public boolean canPlaceTorchOnTop(final IBlockState state, final IBlockAccess world, final BlockPos pos) {
+	public boolean canPlaceTorchOnTop(final IBlockState state, final IBlockAccess world,
+			final BlockPos pos) {
 		return true;
 	}
 
 	@Override
 	public MMDMaterial getMMDMaterial() {
-		return this.material;
+		return this.mmdMaterial;
 	}
 }

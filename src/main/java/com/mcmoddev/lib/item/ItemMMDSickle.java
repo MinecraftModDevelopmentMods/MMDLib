@@ -3,13 +3,17 @@ package com.mcmoddev.lib.item;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.mcmoddev.lib.MMDLib;
+import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -22,6 +26,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemTool;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.CPacketPlayerDigging;
 import net.minecraft.network.play.server.SPacketBlockChange;
@@ -32,22 +37,20 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.ForgeEventFactory;
 
-public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
-	public static final ImmutableSet<Material> vanilla_materials = ImmutableSet.of(
-			Material.WEB, Material.LEAVES, Material.PLANTS, Material.VINE, Material.GOURD, Material.CACTUS);
+public class ItemMMDSickle extends ItemTool implements IMMDObject {
+
+	private static final ImmutableSet<Material> vanilla_materials = ImmutableSet.of(Material.WEB,
+			Material.LEAVES, Material.PLANTS, Material.VINE, Material.GOURD, Material.CACTUS);
 
 	private final MMDMaterial material;
-	private int actionDiameter;
-	private float efficiency;
-	private float attackDamage;
-	private float attackSpeed;
+	private final int actionDiameter;
 
 	/**
 	 *
 	 * @param material
 	 */
 	public ItemMMDSickle(final MMDMaterial material) {
-		super(material);
+		super(Materials.getToolMaterialFor(material), null);
 		this.efficiency = material.getToolEfficiency();
 		this.setMaxDamage(material.getToolDurability());
 		this.material = material;
@@ -61,31 +64,34 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 
 	@Override
 	public float getDestroySpeed(final ItemStack stack, final IBlockState state) {
-		for (final String type : getToolClasses(stack)) {
+		for (final String type : this.getToolClasses(stack)) {
 			if (state.getBlock().isToolEffective(type, state)) {
-				return efficiency;
+				return this.efficiency;
 			}
 		}
 		return this.isEffective(state) ? this.efficiency : 1.0F;
 	}
 
 	@Override
-	public boolean onBlockStartBreak(final ItemStack stack, final BlockPos pos, final EntityPlayer player) {
+	public boolean onBlockStartBreak(final ItemStack stack, final BlockPos pos,
+			final EntityPlayer player) {
 		this.getEffectedBlocks(pos, player.getEntityWorld(), stack, this.actionDiameter).stream()
-				.filter(entityPos -> this.isEffective(player.getEntityWorld().getBlockState(entityPos)))
-				.forEach(entityPos -> breakBlock(stack, player.getEntityWorld(), player, pos, entityPos));
+				.filter(entityPos -> this
+						.isEffective(player.getEntityWorld().getBlockState(entityPos)))
+				.forEach(entityPos -> this.breakBlock(stack, player.getEntityWorld(), player, pos,
+						entityPos));
 
 		return true;
 	}
 
 	private static void sendPacket(final Entity player, final Packet<?> packet) {
-		if (player instanceof EntityPlayerMP && ((EntityPlayerMP) player).connection != null) {
+		if ((player instanceof EntityPlayerMP) && (((EntityPlayerMP) player).connection != null)) {
 			((EntityPlayerMP) player).connection.sendPacket(packet);
 		}
 	}
 
-	private void breakBlock(final ItemStack tool, final World world, final EntityPlayer player, final BlockPos centralPosition,
-			final BlockPos actualPosition) {
+	private void breakBlock(final ItemStack tool, final World world, final EntityPlayer player,
+			final BlockPos centralPosition, final BlockPos actualPosition) {
 
 		if (world.isAirBlock(actualPosition)) {
 			return;
@@ -98,7 +104,8 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 
 		if (!world.isRemote) {
 			// send the blockbreak event
-			final int xp = ForgeHooks.onBlockBreakEvent(world, ((EntityPlayerMP) player).interactionManager.getGameType(),
+			final int xp = ForgeHooks.onBlockBreakEvent(world,
+					((EntityPlayerMP) player).interactionManager.getGameType(),
 					(EntityPlayerMP) player, actualPosition);
 			if (xp == -1) {
 				return;
@@ -126,16 +133,18 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 
 			// tool should be, mostly, equal to what the player is holding... Maybe literal
 			// equality is needed, dunno
-			if (tool.getCount() == 0 && tool.equals(player.getHeldItemMainhand())) {
+			if ((tool.getCount() == 0) && tool.equals(player.getHeldItemMainhand())) {
 				ForgeEventFactory.onPlayerDestroyItem(player, tool, EnumHand.MAIN_HAND);
 				player.setHeldItem(EnumHand.MAIN_HAND, ItemStack.EMPTY);
 			}
 
 			// send an update to the server, so we get an update back
-			final NetHandlerPlayClient netHandlerPlayClient = Minecraft.getMinecraft().getConnection();
+			final NetHandlerPlayClient netHandlerPlayClient = Minecraft.getMinecraft()
+					.getConnection();
 			assert netHandlerPlayClient != null;
-			netHandlerPlayClient.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK,
-					actualPosition, Minecraft.getMinecraft().objectMouseOver.sideHit));
+			netHandlerPlayClient.sendPacket(
+					new CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK,
+							actualPosition, Minecraft.getMinecraft().objectMouseOver.sideHit));
 		}
 	}
 
@@ -154,15 +163,16 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 		// map the "Tool Classes" string-list to a list of Booleans where a "true"
 		// equates to the "stack" being effective against a particular block-state
 		final List<Boolean> isEffective = stack.getItem().getToolClasses(stack).stream()
-				.map(type -> state.getBlock().isToolEffective(type, state)).collect(Collectors.toList());
+				.map(type -> state.getBlock().isToolEffective(type, state))
+				.collect(Collectors.toList());
 		// return true if the list we've generated contains a true
 		stack.getItem().getToolClasses(stack).forEach(MMDLib.logger::fatal);
 		isEffective.forEach(b -> MMDLib.logger.debug("%s", b));
 		return isEffective.contains(true);
 	}
 
-	private ImmutableList<BlockPos> getEffectedBlocks(final BlockPos pos, final World world, final ItemStack stack,
-			final int range) {
+	private ImmutableList<BlockPos> getEffectedBlocks(final BlockPos pos, final World world,
+			final ItemStack stack, final int range) {
 
 		MMDLib.logger.debug("Entered getEffectedBlocks");
 		if (stack.isEmpty() || !(stack.getItem() instanceof ItemMMDSickle)) {
@@ -176,7 +186,7 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 		for (int x = -rangeOff; x < (rangeOff + 1); x++) {
 			for (int z = -rangeOff; z < (rangeOff + 1); z++) {
 				final BlockPos potential = pos.add(x, 0, z);
-				if (isEffective(world.getBlockState(potential))) {
+				if (this.isEffective(world.getBlockState(potential))) {
 					builder.add(potential);
 				}
 			}
@@ -190,22 +200,26 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 	}
 
 	/**
-	 * Gets a map of item attribute modifiers, used by ItemSword to increase hit
-	 * damage.
+	 * Gets a map of item attribute modifiers, used by ItemSword to increase hit damage.
+	 *
 	 * @deprecated
 	 */
 	@Override
 	@Deprecated
 	@SuppressWarnings("unused")
-	public Multimap<String, AttributeModifier> getItemAttributeModifiers(final EntityEquipmentSlot equipmentSlot) {
-		final Multimap<String, AttributeModifier> multimap = super.getAttributeModifiers(equipmentSlot, ItemStack.EMPTY);
+	public Multimap<String, AttributeModifier> getItemAttributeModifiers(
+			final EntityEquipmentSlot equipmentSlot) {
+		final Multimap<String, AttributeModifier> multimap = super.getItemAttributeModifiers(equipmentSlot);
 
-		// XXX: We drop the returns in booleans because it makes findbugs happy, maybe we should do something with them?
+		// XXX: We drop the returns in booleans because it makes findbugs happy, maybe we should do
+		// something with them?
 		if (equipmentSlot == EntityEquipmentSlot.MAINHAND) {
-			final boolean attackDamageReturned = multimap.put(SharedMonsterAttributes.ATTACK_DAMAGE.getName(),
-					new AttributeModifier(ATTACK_DAMAGE_MODIFIER, "Tool modifier", (double) this.attackDamage, 0));
-			final boolean attackSpeedReturned = multimap.put(SharedMonsterAttributes.ATTACK_SPEED.getName(),
-					new AttributeModifier(ATTACK_SPEED_MODIFIER, "Tool modifier", (double) this.attackSpeed, 0));
+			final boolean attackDamageReturned = multimap
+					.put(SharedMonsterAttributes.ATTACK_DAMAGE.getName(), new AttributeModifier(
+							ATTACK_DAMAGE_MODIFIER, "Tool modifier", this.attackDamage, 0));
+			final boolean attackSpeedReturned = multimap
+					.put(SharedMonsterAttributes.ATTACK_SPEED.getName(), new AttributeModifier(
+							ATTACK_SPEED_MODIFIER, "Tool modifier", this.attackSpeed, 0));
 		}
 
 		return multimap;
@@ -216,10 +230,9 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 
 	@Override
 	public int getHarvestLevel(final ItemStack stack, final String toolClass,
-			@Nullable final EntityPlayer player,
-			@Nullable final IBlockState blockState) {
+			@Nullable final EntityPlayer player, @Nullable final IBlockState blockState) {
 		final int level = super.getHarvestLevel(stack, toolClass, player, blockState);
-		if (level == -1 && toolClass.equals(this.toolClass)) {
+		if ((level == -1) && toolClass.equals(this.toolClass)) {
 			return this.material.getToolHarvestLevel();
 		} else {
 			return level;
@@ -228,7 +241,8 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 
 	@Override
 	public Set<String> getToolClasses(final ItemStack stack) {
-		return toolClass != null ? ImmutableSet.of(toolClass) : super.getToolClasses(stack);
+		return this.toolClass != null ? ImmutableSet.of(this.toolClass)
+				: super.getToolClasses(stack);
 	}
 
 	@Override
@@ -237,7 +251,8 @@ public class ItemMMDSickle extends GenericMMDItem implements IMMDObject {
 	}
 
 	@Override
-	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex, final boolean isHeld) {
+	public void onUpdate(final ItemStack item, final World world, final Entity player,
+			final int inventoryIndex, final boolean isHeld) {
 		MMDItemHelper.doRegeneration(item, world, isHeld, this.material.regenerates());
 	}
 }

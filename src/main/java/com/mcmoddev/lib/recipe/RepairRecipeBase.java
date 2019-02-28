@@ -3,6 +3,7 @@ package com.mcmoddev.lib.recipe;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.util.Oredicts;
+
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
@@ -27,7 +28,8 @@ public abstract class RepairRecipeBase extends ShapelessOreRecipe {
 	 * @param itemName
 	 */
 	public RepairRecipeBase(final MMDMaterial material, final Names itemName) {
-		this(material, itemName.toString(), material.getName() + "_" + itemName.toString(), Oredicts.PLATE + material.getCapitalizedName());
+		this(material, itemName.toString(), material.getName() + "_" + itemName.toString(),
+				Oredicts.PLATE + material.getCapitalizedName());
 	}
 
 	/**
@@ -36,7 +38,8 @@ public abstract class RepairRecipeBase extends ShapelessOreRecipe {
 	 * @param itemName
 	 * @param objects
 	 */
-	public RepairRecipeBase(final MMDMaterial material, final Names itemName, final Object...objects) {
+	public RepairRecipeBase(final MMDMaterial material, final Names itemName,
+			final Object... objects) {
 		this(material, itemName.toString(), objects);
 	}
 
@@ -46,7 +49,8 @@ public abstract class RepairRecipeBase extends ShapelessOreRecipe {
 	 * @param itemName
 	 * @param objects
 	 */
-	public RepairRecipeBase(final MMDMaterial material, final String itemName, final Object...objects) {
+	public RepairRecipeBase(final MMDMaterial material, final String itemName,
+			final Object... objects) {
 		super(new ResourceLocation(ARMOR), material.getItemStack(itemName), objects);
 		this.material = material;
 		this.baseItem = material.getItemStack(itemName);
@@ -56,7 +60,7 @@ public abstract class RepairRecipeBase extends ShapelessOreRecipe {
 	}
 
 	private boolean repairMaterialsDoesntContain(final ItemStack itemStack) {
-		return !repairMaterials.contains(itemStack);
+		return !this.repairMaterials.contains(itemStack);
 	}
 
 	@Override
@@ -64,30 +68,35 @@ public abstract class RepairRecipeBase extends ShapelessOreRecipe {
 		// make sure we have all the materials that can be used for repair, not just what was
 		// available when we were initialized.
 		OreDictionary.getOres(Oredicts.PLATE + this.materialName).stream()
-		.filter(this::repairMaterialsDoesntContain)
-		.forEach(repairMaterials::add);
+				.filter(this::repairMaterialsDoesntContain).forEach(this.repairMaterials::add);
 
 		boolean matched = false;
 		boolean repairMatched = false;
 
 		for (int i = 0; i < inv.getSizeInventory(); i++) {
 			final ItemStack item = inv.getStackInSlot(i);
-			if (!repairMatched) {
-				repairMatched = OreDictionary.containsMatch(false, repairMaterials, item);
+			
+			if(item.isEmpty()) {
+				break;
 			}
+			
+			if (!repairMatched) {
+				repairMatched = OreDictionary.containsMatch(false, this.repairMaterials, item);
+			}
+			
 			if (!matched) {
-				final boolean hasDamage = item.getItemDamage() > 0 ? true : false;
-				matched = OreDictionary.itemMatches(this.baseItem, item, false) ? hasDamage : false;
+				matched = this.baseItem.getItem() == item.getItem() && item.getItemDamage() > 0;
 			}
 		}
-		return matched ? repairMatched : false;
+
+		return matched && repairMatched;
 	}
 
 	private ItemStack findBaseItem(final InventoryCrafting inv) {
 		for (int i = 0; i < inv.getSizeInventory(); i++) {
 			final ItemStack a = inv.getStackInSlot(i);
 			if (a != null) {
-				ItemStack comp = new ItemStack(a.getItem(), 1, a.getMetadata());
+				final ItemStack comp = new ItemStack(a.getItem(), 1, a.getMetadata());
 				if (OreDictionary.itemMatches(this.baseItem, comp, false)) {
 					return a;
 				}
@@ -98,7 +107,7 @@ public abstract class RepairRecipeBase extends ShapelessOreRecipe {
 
 	@Override
 	public ItemStack getCraftingResult(final InventoryCrafting inv) {
-		ItemStack target = findBaseItem(inv);
+		final ItemStack target = this.findBaseItem(inv);
 		if (target.isEmpty()) {
 			return this.material.getItemStack(this.itemName);
 		} else {

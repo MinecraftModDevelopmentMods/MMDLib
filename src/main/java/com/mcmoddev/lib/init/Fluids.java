@@ -2,13 +2,17 @@ package com.mcmoddev.lib.init;
 
 import java.util.Collections;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.mcmoddev.lib.data.ActiveModData;
 import com.mcmoddev.lib.data.SharedStrings;
 import com.mcmoddev.lib.fluids.CustomFluid;
 import com.mcmoddev.lib.material.MMDMaterial;
+
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemBlock;
@@ -18,10 +22,11 @@ import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.ModContainer;
 
 /**
- * This class initializes all fluids in Base Metals and provides some utility
- * methods for looking up fluids.
+ * This class initializes all fluids in Base Metals and provides some utility methods for looking up
+ * fluids.
  *
  * @author Jasmine Iwanek
  *
@@ -41,16 +46,28 @@ public abstract class Fluids {
 	public static void init() {
 	}
 
-	protected static Fluid addFluid(@Nonnull final String materialName, @Nonnull final int density, @Nonnull final int viscosity, @Nonnull final int temperature, @Nonnull final int luminosity) {
-		return addFluid(Materials.getMaterialByName(materialName), density, viscosity, temperature, luminosity);
+	protected static Fluid addFluid(@Nonnull final String materialName, @Nonnull final int density,
+			@Nonnull final int viscosity, @Nonnull final int temperature,
+			@Nonnull final int luminosity) {
+		return addFluid(Materials.getMaterialByName(materialName), density, viscosity, temperature,
+				luminosity);
 	}
 
-	protected static Fluid addFluid(@Nonnull final MMDMaterial material, @Nonnull final int density, @Nonnull final int viscosity, @Nonnull final int temperature, @Nonnull final int luminosity) {
+	protected static Fluid addFluid(@Nonnull final MMDMaterial material, @Nonnull final int density,
+			@Nonnull final int viscosity, @Nonnull final int temperature,
+			@Nonnull final int luminosity) {
 		if (material.getFluid() != null) {
 			return material.getFluid();
 		}
 
-		final String modID = Loader.instance().activeModContainer().getModId();
+		final ModContainer base = Loader.instance().activeModContainer();
+		final ModContainer temp = Loader.instance().getIndexedModList().get(ActiveModData.instance.activeMod());
+
+		if (!base.equals(temp)) {
+			Loader.instance().setActiveModContainer(temp);
+		}
+
+		final String modID = temp.getModId();
 		final Fluid fluid = new CustomFluid(material.getName(),
 				new ResourceLocation(modID, "blocks/molten_metal_still"),
 				new ResourceLocation(modID, "blocks/molten_metal_flow"));
@@ -65,6 +82,10 @@ public abstract class Fluids {
 
 		material.setFluid(fluid);
 
+		if (!base.equals(temp)) {
+			Loader.instance().setActiveModContainer(base);
+		}
+
 		return fluidRegistry.put(material.getName(), fluid);
 	}
 
@@ -75,27 +96,38 @@ public abstract class Fluids {
 
 	@Nullable
 	protected static BlockFluidClassic addFluidBlock(@Nonnull final MMDMaterial material) {
+		final ModContainer base = Loader.instance().activeModContainer();
+		final ModContainer temp = Loader.instance().getIndexedModList().get(ActiveModData.instance.activeMod());
+
+		if (!base.equals(temp)) {
+			Loader.instance().setActiveModContainer(temp);
+		}
+
 		if (material.getFluidBlock() != null) {
 			return material.getFluidBlock();
 		}
 
 		BlockFluidClassic block;
-		String name = material.getName();
+		final String name = material.getName();
 
 		if (name == null) {
 			return null;
 		}
 
-		// TODO: make it into a flag/stat or something
-//		if (!name.equals(MaterialNames.MERCURY)) {
+		//TODO: what follows should be an override in BaseMetals, not here
+		//possibly a generic override where we say that the material has a potion effect
+		//for the fluid
+		block = new BlockFluidClassic(material.getFluid(), Material.LAVA);
+/*		if (!name.equals(MaterialNames.MERCURY)) {
 			block = new BlockFluidClassic(material.getFluid(), Material.LAVA);
-//		} else {
-//			block = new InteractiveFluidBlock(getFluidByName(name), false, (World w, EntityLivingBase e) -> {
-//				if (w.rand.nextInt(32) == 0) {
-//					e.addPotionEffect(new PotionEffect(MobEffects.NAUSEA, 30 * 20, 2));
-//				}
-//			});
-//		}
+		} else {
+			block = new InteractiveFluidBlock(getFluidByName(name), false,
+					(final World w, final EntityLivingBase e) -> {
+						if (w.rand.nextInt(32) == 0) {
+							e.addPotionEffect(new PotionEffect(MobEffects.NAUSEA, 30 * 20, 2));
+						}
+					});
+		}*/
 
 		block.setRegistryName(name); // fullName
 		block.setTranslationKey(block.getRegistryName().getNamespace() + "." + name);
@@ -109,13 +141,17 @@ public abstract class Fluids {
 
 		material.setFluidBlock(block);
 
+		if (!base.equals(temp)) {
+			Loader.instance().setActiveModContainer(base);
+		}
+
 		return fluidBlockRegistry.put(name, block);
 	}
 
 	/**
-	 * Gets a fluid by its name. The name is the name as it is registered in the
-	 * GameRegistry, not its unlocalized name (the unlocalized name is the
-	 * registered name plus the prefix "basemetals.")
+	 * Gets a fluid by its name. The name is the name as it is registered in the GameRegistry, not
+	 * its unlocalized name (the unlocalized name is the registered name plus the prefix
+	 * "basemetals.")
 	 *
 	 * @param name
 	 *            The name of the fluid in question
@@ -127,13 +163,12 @@ public abstract class Fluids {
 	}
 
 	/**
-	 * This is the reverse of the getFluidByName(...) method, returning the
-	 * registered name of an fluid instance (Base Metals fluids only).
+	 * This is the reverse of the getFluidByName(...) method, returning the registered name of an
+	 * fluid instance (Base Metals fluids only).
 	 *
 	 * @param fluid
 	 *            The fluid in question
-	 * @return The name of the fluid, or null if the item is not a Base Metals
-	 *         fluid.
+	 * @return The name of the fluid, or null if the item is not a Base Metals fluid.
 	 */
 	@Nullable
 	public static String getNameOfFluid(@Nonnull final Fluid fluid) {
@@ -145,9 +180,9 @@ public abstract class Fluids {
 	}
 
 	/**
-	 * Gets a fluid block by its name. The name is the name as it is registered
-	 * in the GameRegistry, not its unlocalized name (the unlocalized name is
-	 * the registered name plus the prefix "basemetals.")
+	 * Gets a fluid block by its name. The name is the name as it is registered in the GameRegistry,
+	 * not its unlocalized name (the unlocalized name is the registered name plus the prefix
+	 * "basemetals.")
 	 *
 	 * @param name
 	 *            The name of the fluid block in question
@@ -159,14 +194,12 @@ public abstract class Fluids {
 	}
 
 	/**
-	 * This is the reverse of the getFluidBlockByName(...) method, returning the
-	 * registered name of an fluid block instance (Base Metals fluid blocks
-	 * only).
+	 * This is the reverse of the getFluidBlockByName(...) method, returning the registered name of
+	 * an fluid block instance (Base Metals fluid blocks only).
 	 *
 	 * @param block
 	 *            The fluid block in question
-	 * @return The name of the item, or null if the item is not a Base Metals
-	 *         fluid block.
+	 * @return The name of the item, or null if the item is not a Base Metals fluid block.
 	 */
 	@Nullable
 	public static String getNameOfFluidBlock(@Nonnull final BlockFluidBase block) {

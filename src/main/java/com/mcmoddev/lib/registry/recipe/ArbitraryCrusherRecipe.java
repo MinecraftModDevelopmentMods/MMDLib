@@ -3,7 +3,9 @@ package com.mcmoddev.lib.registry.recipe;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
+
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -17,16 +19,16 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
  * @author DrCyano
  *
  */
-public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRecipe> implements ICrusherRecipe {
+public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRecipe>
+		implements ICrusherRecipe {
 
 	private final ItemStack input;
 	private final ItemStack output;
 
 	/**
-	 * Constructs a new instance of this ICrusherRecipe class representing a
-	 * recipe with an input and an output. If the input ItemStack has
-	 * OreDictionary.WILDCARD_VALUE as its damage value, then metadata values
-	 * will be ignored when testing an item for being a valid input for this
+	 * Constructs a new instance of this ICrusherRecipe class representing a recipe with an input
+	 * and an output. If the input ItemStack has OreDictionary.WILDCARD_VALUE as its damage value,
+	 * then metadata values will be ignored when testing an item for being a valid input for this
 	 * recipe.
 	 *
 	 * @param input
@@ -38,14 +40,14 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 		this.input = input;
 		this.output = output;
 
-		super.setRegistryName(input.getItem().getRegistryName().getPath() + "_to_" + output.getItem().getRegistryName().getPath());
+		super.setRegistryName(input.getItem().getRegistryName().getPath() + "_to_"
+				+ output.getItem().getRegistryName().getPath());
 	}
 
 	/**
-	 * Constructs a new instance of this ICrusherRecipe class representing a
-	 * recipe with an input and an output. If the input ItemStack has
-	 * OreDictionary.WILDCARD_VALUE as its damage value, then metadata values
-	 * will be ignored when testing an item for being a valid input for this
+	 * Constructs a new instance of this ICrusherRecipe class representing a recipe with an input
+	 * and an output. If the input ItemStack has OreDictionary.WILDCARD_VALUE as its damage value,
+	 * then metadata values will be ignored when testing an item for being a valid input for this
 	 * recipe.
 	 *
 	 * @param input
@@ -57,14 +59,14 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 		this.input = new ItemStack(input);
 		this.output = output;
 
-		super.setRegistryName(input.getRegistryName().getPath() + "_to_" + output.getItem().getRegistryName().getPath());
+		super.setRegistryName(input.getRegistryName().getPath() + "_to_"
+				+ output.getItem().getRegistryName().getPath());
 	}
 
 	/**
-	 * Constructs a new instance of this ICrusherRecipe class representing a
-	 * recipe with an input and an output. If the input ItemStack has
-	 * OreDictionary.WILDCARD_VALUE as its damage value, then metadata values
-	 * will be ignored when testing an item for being a valid input for this
+	 * Constructs a new instance of this ICrusherRecipe class representing a recipe with an input
+	 * and an output. If the input ItemStack has OreDictionary.WILDCARD_VALUE as its damage value,
+	 * then metadata values will be ignored when testing an item for being a valid input for this
 	 * recipe.
 	 *
 	 * @param input
@@ -76,7 +78,8 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 		this.input = new ItemStack(input);
 		this.output = output;
 
-		super.setRegistryName(input.getRegistryName().getPath() + "_to_" + output.getItem().getRegistryName().getPath());
+		super.setRegistryName(input.getRegistryName().getPath() + "_to_"
+				+ output.getItem().getRegistryName().getPath());
 	}
 
 	/**
@@ -104,8 +107,8 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 	 *
 	 * @param input
 	 *            An ItemStack to test
-	 * @return Returns true if and only if this recipe should produce an output
-	 *         item from the given input.
+	 * @return Returns true if and only if this recipe should produce an output item from the given
+	 *         input.
 	 */
 	@Override
 	public boolean isValidInput(@Nonnull final ItemStack input) {
@@ -116,10 +119,9 @@ public class ArbitraryCrusherRecipe extends IForgeRegistryEntry.Impl<ICrusherRec
 	}
 
 	/**
-	 * Returns a list of all registered blocks/items for which
-	 * <code>isValidInput(...)</code> would return true. This method is only
-	 * used for displaying recipes in NEI and does not need to be performance
-	 * optimized.
+	 * Returns a list of all registered blocks/items for which <code>isValidInput(...)</code> would
+	 * return true. This method is only used for displaying recipes in NEI and does not need to be
+	 * performance optimized.
 	 *
 	 * @return A list of allowed inputs.
 	 */

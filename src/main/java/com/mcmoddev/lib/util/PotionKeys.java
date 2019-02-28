@@ -1,6 +1,7 @@
 package com.mcmoddev.lib.util;
 
 import com.mcmoddev.lib.data.SharedStrings;
+
 import net.minecraft.util.ResourceLocation;
 
 public class PotionKeys {

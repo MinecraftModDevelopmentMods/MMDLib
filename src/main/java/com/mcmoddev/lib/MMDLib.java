@@ -65,6 +65,10 @@ public class MMDLib {
 		FluidRegistry.enableUniversalBucket();
 	}
 
+	public static final String getVersion() {
+		return VERSION;
+	}
+	
 	@EventHandler
 	public static void preInit(FMLPreInitializationEvent event) {
 		proxy.preInit(event);

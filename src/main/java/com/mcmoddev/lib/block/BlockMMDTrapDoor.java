@@ -1,9 +1,11 @@
 package com.mcmoddev.lib.block;
 
 import javax.annotation.Nullable;
+
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
-import com.mcmoddev.lib.material.MMDMaterial.MaterialType;
+import com.mcmoddev.lib.material.MMDMaterialType.MaterialType;
+
 import net.minecraft.block.BlockTrapDoor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
@@ -17,7 +19,7 @@ import net.minecraft.world.World;
  */
 public class BlockMMDTrapDoor extends net.minecraft.block.BlockTrapDoor implements IMMDObject {
 
-	private final MMDMaterial material;
+	private final MMDMaterial mmdMaterial;
 
 	/**
 	 *
@@ -26,22 +28,26 @@ public class BlockMMDTrapDoor extends net.minecraft.block.BlockTrapDoor implemen
 	 */
 	public BlockMMDTrapDoor(final MMDMaterial material) {
 		super(material.getVanillaMaterial());
-		this.material = material;
-		this.blockHardness = this.material.getBlockHardness();
-		this.blockResistance = this.material.getBlastResistance();
-		this.blockSoundType = this.material.getSoundType();
-		this.setHarvestLevel(this.material.getHarvestTool(), this.material.getRequiredHarvestLevel());
+		this.mmdMaterial = material;
+		this.blockHardness = this.mmdMaterial.getBlockHardness();
+		this.blockResistance = this.mmdMaterial.getBlastResistance();
+		this.blockSoundType = this.mmdMaterial.getSoundType();
+		this.setHarvestLevel(this.mmdMaterial.getHarvestTool(),
+				this.mmdMaterial.getRequiredHarvestLevel());
 		this.disableStats();
 	}
 
 	@Override
-	public boolean onBlockActivated(final World worldIn, final BlockPos pos, final IBlockState state, final EntityPlayer playerIn, final EnumHand hand, final EnumFacing facing, final float hitX, final float hitY, final float hitZ) {
-		if ((this.material.getToolHarvestLevel() > 1) || (this.material.getType().equals(MaterialType.METAL))) {
+	public boolean onBlockActivated(final World worldIn, final BlockPos pos,
+			final IBlockState state, final EntityPlayer playerIn, final EnumHand hand,
+			final EnumFacing facing, final float hitX, final float hitY, final float hitZ) {
+		if ((this.mmdMaterial.getToolHarvestLevel() > 1)
+				|| (this.mmdMaterial.getType().equals(MaterialType.METAL))) {
 			return false;
 		} else {
 			final IBlockState newState = state.cycleProperty(BlockTrapDoor.OPEN);
 			worldIn.setBlockState(pos, newState, 2);
-			this.playSound(playerIn, worldIn, pos, ((Boolean) newState.getValue(OPEN)).booleanValue());
+			this.playSound(playerIn, worldIn, pos, newState.getValue(OPEN).booleanValue());
 			return true;
 		}
 	}
@@ -52,7 +58,8 @@ public class BlockMMDTrapDoor extends net.minecraft.block.BlockTrapDoor implemen
 	// SoundEvents.BLOCK_IRON_TRAPDOOR_CLOSE = 1036
 	// SoundEvents.BLOCK_WOODEN_TRAPDOOR_CLOSE = 1013
 	@Override
-	protected void playSound(@Nullable final EntityPlayer player, final World worldIn, final BlockPos pos, final boolean open) {
+	protected void playSound(@Nullable final EntityPlayer player, final World worldIn,
+			final BlockPos pos, final boolean open) {
 		int retVal;
 		final boolean isMetal = this.getMMDMaterial().getType().equals(MaterialType.METAL);
 		if (open) {
@@ -65,6 +72,6 @@ public class BlockMMDTrapDoor extends net.minecraft.block.BlockTrapDoor implemen
 
 	@Override
 	public MMDMaterial getMMDMaterial() {
-		return this.material;
+		return this.mmdMaterial;
 	}
 }

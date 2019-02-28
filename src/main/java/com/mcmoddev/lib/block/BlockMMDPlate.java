@@ -1,9 +1,12 @@
 package com.mcmoddev.lib.block;
 
 import java.util.List;
+
 import javax.annotation.Nullable;
+
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
+
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyDirection;
 import net.minecraft.block.state.BlockStateContainer;
@@ -31,7 +34,7 @@ public class BlockMMDPlate extends net.minecraft.block.Block implements IMMDObje
 	 */
 	public static final PropertyDirection FACING = PropertyDirection.create("facing");
 
-	private final MMDMaterial material;
+	private final MMDMaterial mmdMaterial;
 
 	private static final float THICKNESS = 1.0f / 16.0f;
 
@@ -44,13 +47,13 @@ public class BlockMMDPlate extends net.minecraft.block.Block implements IMMDObje
 	 */
 	public BlockMMDPlate(final MMDMaterial material) {
 		super(material.getVanillaMaterial());
-		this.material = material;
-		this.blockSoundType = this.material.getSoundType();
-		this.blockHardness = this.material.getBlockHardness();
-		this.blockResistance = this.material.getBlastResistance();
-		this.setHarvestLevel(this.material.getHarvestTool(), this.material.getRequiredHarvestLevel());
-		this.setDefaultState(this.blockState.getBaseState()
-				.withProperty(FACING, EnumFacing.NORTH));
+		this.mmdMaterial = material;
+		this.blockSoundType = this.mmdMaterial.getSoundType();
+		this.blockHardness = this.mmdMaterial.getBlockHardness();
+		this.blockResistance = this.mmdMaterial.getBlastResistance();
+		this.setHarvestLevel(this.mmdMaterial.getHarvestTool(),
+				this.mmdMaterial.getRequiredHarvestLevel());
+		this.setDefaultState(this.blockState.getBaseState().withProperty(FACING, EnumFacing.NORTH));
 		this.useNeighborBrightness = true;
 	}
 
@@ -129,7 +132,9 @@ public class BlockMMDPlate extends net.minecraft.block.Block implements IMMDObje
 	 */
 	@Override
 	@Deprecated
-	public IBlockState getStateForPlacement(final World w, final BlockPos coord, final EnumFacing face, final float partialX, final float partialY, final float partialZ, final int i, final EntityLivingBase placer) {
+	public IBlockState getStateForPlacement(final World w, final BlockPos coord,
+			final EnumFacing face, final float partialX, final float partialY, final float partialZ,
+			final int i, final EntityLivingBase placer) {
 		final IBlockState defaultState = this.getDefaultState().withProperty(FACING, face);
 		// redimension to face-local up and right dimensions
 		float up;
@@ -189,7 +194,8 @@ public class BlockMMDPlate extends net.minecraft.block.Block implements IMMDObje
 				return defaultState.withProperty(FACING, face.rotateAround(upRotationAxis));
 			} else {
 				// right
-				return defaultState.withProperty(FACING, face.rotateAround(rightRotationAxis).getOpposite());
+				return defaultState.withProperty(FACING,
+						face.rotateAround(rightRotationAxis).getOpposite());
 			}
 		} else {
 			// down or left
@@ -198,7 +204,8 @@ public class BlockMMDPlate extends net.minecraft.block.Block implements IMMDObje
 				return defaultState.withProperty(FACING, face.rotateAround(rightRotationAxis));
 			} else {
 				// down
-				return defaultState.withProperty(FACING, face.rotateAround(upRotationAxis).getOpposite());
+				return defaultState.withProperty(FACING,
+						face.rotateAround(upRotationAxis).getOpposite());
 			}
 		}
 	}
@@ -227,7 +234,8 @@ public class BlockMMDPlate extends net.minecraft.block.Block implements IMMDObje
 	 */
 	@Override
 	@Deprecated
-	public AxisAlignedBB getBoundingBox(final IBlockState bs, final IBlockAccess world, final BlockPos coord) {
+	public AxisAlignedBB getBoundingBox(final IBlockState bs, final IBlockAccess world,
+			final BlockPos coord) {
 		final EnumFacing orientation = bs.getValue(FACING);
 		return BOXES[orientation.ordinal()];
 	}
@@ -237,14 +245,16 @@ public class BlockMMDPlate extends net.minecraft.block.Block implements IMMDObje
 	 */
 	@Override
 	@Deprecated
-	public void addCollisionBoxToList(final IBlockState state, final World worldIn, final BlockPos pos, final AxisAlignedBB entityBox,
-			final List<AxisAlignedBB> collidingBoxes, @Nullable final Entity entityIn, final boolean isActualState) {
-		final EnumFacing orientation = worldIn.getBlockState(pos).getValue(FACING);
+	public void addCollisionBoxToList(final IBlockState state, final World worldIn,
+			final BlockPos pos, final AxisAlignedBB entityBox,
+			final List<AxisAlignedBB> collidingBoxes, @Nullable final Entity entityIn,
+			final boolean isActualState) {
+		final EnumFacing orientation = state.getValue(FACING);
 		addCollisionBoxToList(pos, entityBox, collidingBoxes, BOXES[orientation.ordinal()]);
 	}
 
 	@Override
 	public MMDMaterial getMMDMaterial() {
-		return this.material;
+		return this.mmdMaterial;
 	}
 }

@@ -5,7 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
+
 import com.mcmoddev.lib.data.SharedStrings;
+
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -14,9 +18,9 @@ import net.minecraftforge.oredict.OreDictionary;
 
 public class Oredicts {
 
-	private static Map<String, List<Item>> oreDictItemMap = new HashMap<>();
-	private static Map<String, List<Block>> oreDictBlockMap = new HashMap<>();
-	private static Map<String, List<ItemStack>> oreDictItemStackMap = new HashMap<>();
+	private static final Map<String, List<Item>> oreDictItemMap = new HashMap<>();
+	private static final Map<String, List<Block>> oreDictBlockMap = new HashMap<>();
+	private static final Map<String, List<ItemStack>> oreDictItemStackMap = new HashMap<>();
 
 	// See net.minecraftforge.oredict.OreDictionary.initVanillaEntries() for Vanilla oreDict names
 
@@ -245,10 +249,10 @@ public class Oredicts {
 
 	/**
 	 *
-	 * @param name
-	 * @param block
+	 * @param name The name to register the Block against.
+	 * @param block The Block to register.
 	 */
-	public static void registerOre(final String name, final Block block) {
+	public static void registerOre(final String name, @Nullable final Block block) {
 		if (block != null) {
 			if (oreDictBlockMap.containsKey(name)) {
 				oreDictBlockMap.get(name).add(block);
@@ -262,10 +266,10 @@ public class Oredicts {
 
 	/**
 	 *
-	 * @param name
-	 * @param item
+	 * @param name The name to register the Item against.
+	 * @param item the Item to register.
 	 */
-	public static void registerOre(final String name, final Item item) {
+	public static void registerOre(final String name, @Nullable final Item item) {
 		if (item != null) {
 			if (oreDictItemMap.containsKey(name)) {
 				oreDictItemMap.get(name).add(item);
@@ -279,11 +283,11 @@ public class Oredicts {
 
 	/**
 	 *
-	 * @param name
-	 * @param itemStack
+	 * @param name The name to register the ItemStack against.
+	 * @param itemStack the ItemStack to register.
 	 */
 	public static void registerOre(final String name, final ItemStack itemStack) {
-		if (itemStack != null) {
+		if (!itemStack.isEmpty()) {
 			if (oreDictItemStackMap.containsKey(name)) {
 				oreDictItemStackMap.get(name).add(itemStack);
 			} else {
@@ -301,14 +305,16 @@ public class Oredicts {
 	public static void registerItemOreDictionaryEntries() {
 		for (final Entry<String, List<Item>> ent : oreDictItemMap.entrySet()) {
 			for (final Item i : ent.getValue()) {
-				if (i.getRegistryName().getNamespace().equals(Loader.instance().activeModContainer().getModId())) {
+				if (i.getRegistryName().getNamespace()
+						.equals(Loader.instance().activeModContainer().getModId())) {
 					OreDictionary.registerOre(ent.getKey(), i);
 				}
 			}
 		}
 		for (final Entry<String, List<ItemStack>> ent : oreDictItemStackMap.entrySet()) {
 			for (final ItemStack is : ent.getValue()) {
-				if (is.getItem().getRegistryName().getNamespace().equals(Loader.instance().activeModContainer().getModId())) {
+				if (is.getItem().getRegistryName().getNamespace()
+						.equals(Loader.instance().activeModContainer().getModId())) {
 					OreDictionary.registerOre(ent.getKey(), is);
 				}
 			}
@@ -321,7 +327,8 @@ public class Oredicts {
 	public static void registerBlockOreDictionaryEntries() {
 		for (final Entry<String, List<Block>> ent : oreDictBlockMap.entrySet()) {
 			for (final Block b : ent.getValue()) {
-				if (b.getRegistryName().getNamespace().equals(Loader.instance().activeModContainer().getModId())) {
+				if (b.getRegistryName().getNamespace()
+						.equals(Loader.instance().activeModContainer().getModId())) {
 					OreDictionary.registerOre(ent.getKey(), b);
 				}
 			}
