@@ -1,16 +1,24 @@
 package com.mcmoddev.lib;
 
+import com.mcmoddev.lib.data.SharedStrings;
+import com.mcmoddev.lib.integration.IntegrationManager;
 import com.mcmoddev.lib.proxy.CommonProxy;
+import com.mcmoddev.lib.util.MMDLibConfig;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.SidedProxy;
+import net.minecraftforge.fml.common.event.FMLConstructionEvent;
+import net.minecraftforge.fml.common.event.FMLFingerprintViolationEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationException;
 
 /**
  * This is the entry point for this Mod. If you are writing your own Mod that
@@ -70,6 +78,26 @@ public class MMDLib {
 	}
 	
 	@EventHandler
+	public static void constructing(final FMLConstructionEvent event) {
+		try {
+			IntegrationManager.INSTANCE.doSetupTasks(event);
+		} catch (InvalidVersionSpecificationException e) {
+			logger.error("Error loading version information for plugins: %s", e);
+		}
+
+		MMDLibConfig.init();
+	}
+
+	/**
+	 * Logs a warning when ever the mod finger print does not match the certificate loaded from the mod jar.
+	 * @param event The event that represents the finger print violation.
+	 */
+	@EventHandler
+	public void onFingerprintViolation(final FMLFingerprintViolationEvent event) {
+		logger.warn(SharedStrings.INVALID_FINGERPRINT);
+	}
+	
+	@EventHandler
 	public static void preInit(FMLPreInitializationEvent event) {
 		proxy.preInit(event);
 		/*
@@ -82,6 +110,9 @@ public class MMDLib {
 
 	@EventHandler
 	public static void init(FMLInitializationEvent event) {
+		if(Loader.isModLoaded("crafttweaker")) {
+			com.mcmoddev.lib.crafttweaker.CrusherRecipes.loadComplete();
+		}
 		proxy.init(event);
 		// if we have anything else to do here, check 'proxy.allsGood' first
 	}

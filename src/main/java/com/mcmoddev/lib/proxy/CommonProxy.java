@@ -3,10 +3,22 @@ package com.mcmoddev.lib.proxy;
 import com.mcmoddev.lib.capability.MMDCapabilities;
 import com.mcmoddev.lib.container.MMDGuiHandler;
 import com.mcmoddev.lib.data.Names;
-import com.mcmoddev.lib.init.Materials;
+import com.mcmoddev.lib.data.VanillaMaterialNames;
+import com.mcmoddev.lib.events.MMDLibRegisterBlocks;
+import com.mcmoddev.lib.events.MMDLibRegisterFluids;
+import com.mcmoddev.lib.events.MMDLibRegisterItems;
+import com.mcmoddev.lib.events.MMDLibRegisterMaterials;
+import com.mcmoddev.lib.events.MMLibPreInitSync;
+import com.mcmoddev.lib.init.Recipes;
+import com.mcmoddev.lib.init.VillagerTrades;
+import com.mcmoddev.lib.integration.IntegrationManager;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.network.MMDMessages;
 import com.mcmoddev.lib.oregen.FallbackGeneratorData;
+import com.mcmoddev.lib.util.Config;
+import com.mcmoddev.lib.util.MMDLibItemGroups;
+
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -24,25 +36,66 @@ public class CommonProxy {
 		MMDCapabilities.init();
 	    // despite other comments, most events get fired here
 
-		Materials.init();
-	}
-	
-	public void init(FMLInitializationEvent event) {
-		// by this point all materials should have been registered both with MMDLib and Minecraft
-		// move to a separate function - potentially in FallbackGeneratorData - after the test
-		for( MMDMaterial mat : Materials.getAllMaterials() ) {
-			if( mat.hasBlock(Names.ORE) ){
-				FallbackGeneratorData.getInstance().addMaterial(mat.getName(), Names.ORE.toString(), mat.getDefaultDimension());
-				
-				if( mat.hasBlock(Names.NETHERORE) )
-					FallbackGeneratorData.getInstance().addMaterial(mat.getName(), Names.NETHERORE.toString(), -1);
-				
-				if( mat.hasBlock(Names.ENDORE) )
-					FallbackGeneratorData.getInstance().addMaterial(mat.getName(), Names.ENDORE.toString(), 1);
-			}
-		}
+		
+		com.mcmoddev.lib.util.MMDLibItemGroups.init();
+
+		com.mcmoddev.lib.init.Materials.init();
+		com.mcmoddev.lib.init.Blocks.init();
+		com.mcmoddev.lib.init.Items.init();
+		com.mcmoddev.lib.init.Fluids.init();
+		com.mcmoddev.lib.init.Recipes.init();
+
+		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterMaterials());
+		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterBlocks());
+		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterItems());
+		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterFluids());
+
+		Recipes.init();
+		VillagerTrades.init();
+
+		IntegrationManager.INSTANCE.preInit(event);
+		MinecraftForge.EVENT_BUS.post(new MMLibPreInitSync());
+		IntegrationManager.INSTANCE.preInitPhase();
 	}
 
-	public void postInit(FMLPostInitializationEvent event) {
+	/**
+	 * Initialization for this mod.
+	 *
+	 * @param event The Event.
+	 */
+	public void init(final FMLInitializationEvent event) {
+		// by this point all materials should have been registered both with MMDLib and Minecraft
+		// move to a separate function - potentially in FallbackGeneratorData - after the test
+		for (final MMDMaterial material : com.mcmoddev.lib.init.Materials.getAllMaterials()) {
+			if (material.hasBlock(Names.ORE)) {
+				FallbackGeneratorData.getInstance().addMaterial(material.getName(),
+						Names.ORE.toString(), material.getDefaultDimension());
+
+				if (material.hasBlock(Names.NETHERORE)) {
+					FallbackGeneratorData.getInstance().addMaterial(material.getName(),
+							Names.NETHERORE.toString(), -1);
+				}
+
+				if (material.hasBlock(Names.ENDORE)) {
+					FallbackGeneratorData.getInstance().addMaterial(material.getName(),
+							Names.ENDORE.toString(), 1);
+				}
+			}
+		}
+
+		MMDLibItemGroups.setupIcons(VanillaMaterialNames.IRON);
+		IntegrationManager.INSTANCE.initPhase();
+		// dumpMaterials()
+	}
+
+	/**
+	 * Post Initialization for this mod.
+	 *
+	 * @param event The Event.
+	 */
+	public void postInit(final FMLPostInitializationEvent event) {
+		Config.postInit();
+		FallbackGeneratorData.getInstance().setup();
+		IntegrationManager.INSTANCE.postInitPhase();
 	}
 }

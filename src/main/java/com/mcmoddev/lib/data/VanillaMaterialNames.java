@@ -13,6 +13,9 @@ public class VanillaMaterialNames {
 	public static final String REDSTONE = "redstone";
 	public static final String QUARTZ = "quartz";
 	public static final String OBSIDIAN = "obsidian";
+	public static final String PRISMARINE = "prismarine";
+	public static final String STONE = "stone";
+	public static final String ENDER = "ender";
 	
 	private VanillaMaterialNames() {
 		// TODO Auto-generated constructor stub

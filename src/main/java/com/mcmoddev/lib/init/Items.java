@@ -103,6 +103,10 @@ public abstract class Items {
 
 	// public static UniversalBucket universal_bucket; // now automatically added by
 	// Forge
+	protected static final int BLOCK_BURN_TIME = 16000;
+	protected static final int INGOT_BURN_TIME = 1600;
+	protected static final int NUGGET_BURN_TIME = 200;
+
 
 	protected Items() {
 		throw new IllegalAccessError(SharedStrings.NOT_INSTANTIABLE);
