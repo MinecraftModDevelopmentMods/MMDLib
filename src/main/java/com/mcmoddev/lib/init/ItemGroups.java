@@ -6,11 +6,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.mcmoddev.lib.MMDLib;
+import com.mcmoddev.lib.data.ActiveModData;
 import com.mcmoddev.lib.data.SharedStrings;
+
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.Loader;
 
 /**
  * This class initializes all item groups in Base Metals.
@@ -20,10 +24,12 @@ import net.minecraftforge.fml.common.Loader;
  */
 public class ItemGroups {
 
-	public static final BiFunction<ItemStack, ItemStack, Integer> sortingAlgorithm = (final ItemStack a, final ItemStack b) -> {
+	public static final BiFunction<ItemStack, ItemStack, Integer> sortingAlgorithm = (
+			final ItemStack a, final ItemStack b) -> {
 		final int delta = Items.getSortingValue(a) - Items.getSortingValue(b);
 		if (delta == 0) {
-			return a.getItem().getTranslationKey().compareToIgnoreCase(b.getItem().getTranslationKey());
+			return a.getItem().getTranslationKey()
+					.compareToIgnoreCase(b.getItem().getTranslationKey());
 		}
 		return delta;
 	};
@@ -45,7 +51,8 @@ public class ItemGroups {
 	/**
 	 * Adds a non Searchable CreativeTab.
 	 *
-	 * @param name The Name of the CreativeTab
+	 * @param name
+	 *            The Name of the CreativeTab
 	 * @return The CreativeTab
 	 */
 	protected static MMDCreativeTab addTab(@Nonnull final String name) {
@@ -55,13 +62,21 @@ public class ItemGroups {
 	/**
 	 * Adds a CreativeTab.
 	 *
-	 * @param name The Name of the CreativeTab
-	 * @param searchable Is is searchable?
+	 * @param name
+	 *            The Name of the CreativeTab
+	 * @param searchable
+	 *            Is is searchable?
 	 * @return The CreativeTab
 	 */
-	protected static MMDCreativeTab addTab(@Nonnull final String name, @Nonnull final boolean searchable) {
-		final String modName = Loader.instance().activeModContainer().getModId();
+	protected static MMDCreativeTab addTab(@Nonnull final String name,
+			@Nonnull final boolean searchable) {
+		final String modName = ActiveModData.instance.activeMod();
 		final String internalTabName = String.format("%s.%s", modName, name);
+
+		if (itemGroupsByFullTabName.containsKey(internalTabName)) {
+			return itemGroupsByFullTabName.get(internalTabName);
+		}
+
 		final MMDCreativeTab tab = new MMDCreativeTab(internalTabName, searchable);
 
 		if (!itemGroupsByFullTabName.containsKey(modName)) {
@@ -81,27 +96,41 @@ public class ItemGroups {
 
 	/**
 	 *
-	 * @param name Name of the tab to get
-	 * @return The Tab
 	 */
-	@Nullable
-	public static MMDCreativeTab getTab(@Nonnull final String name) {
-		return getTab(Loader.instance().activeModContainer().getModId(), name);
+	public static void dumpTabs() {
+		MMDLib.logger.fatal("CREATIVE TABS (by internal reference name):");
+		itemGroupsByFullTabName.entrySet().stream().forEach(ent -> MMDLib.logger.fatal("Tab fullname: %s, object: %s", ent.getKey(), ent.getValue()));
+		MMDLib.logger.fatal("CREATIVE TABS (by mod-id reference name):");
+		itemGroupsByModID.entrySet().stream().forEach(ent -> {
+			MMDLib.logger.fatal("Mod %s", ent.getKey());
+			ent.getValue().stream().forEach(tab -> MMDLib.logger.fatal("tab name: %s is %s", tab.getTabLabel(), tab));
+		});
 	}
 
 	/**
 	 *
-	 * @param modName the ModID
-	 * @param name Name of the tab to get
+	 * @param name
+	 *            Name of the tab to get
+	 * @return The Tab
+	 */
+	@Nullable
+	public static MMDCreativeTab getTab(@Nonnull final String name) {
+		final String modName = ActiveModData.instance.activeMod();
+		return getTab(modName, name);
+	}
+
+	/**
+	 *
+	 * @param modName
+	 *            the ModID
+	 * @param name
+	 *            Name of the tab to get
 	 * @return The Tab
 	 */
 	@Nullable
 	public static MMDCreativeTab getTab(@Nonnull final String modName, @Nonnull final String name) {
 		final String finalName = String.format("%s.%s", modName, name);
-		if (itemGroupsByFullTabName.containsKey(finalName)) {
-			return itemGroupsByFullTabName.get(finalName);
-		}
-		return null;
+		return itemGroupsByFullTabName.getOrDefault(finalName, addTab(name, true));
 	}
 
 	/**

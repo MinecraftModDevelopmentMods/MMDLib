@@ -1,9 +1,14 @@
 package com.mcmoddev.lib.item;
 
 import java.util.Locale;
+
+import javax.annotation.Nullable;
+
 import com.mcmoddev.lib.MMDLib;
+//import com.mcmoddev.basemetals.BaseMetals;
 import com.mcmoddev.lib.common.item.IHorseArmor;
 import com.mcmoddev.lib.material.MMDMaterial;
+
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.passive.HorseArmorType;
 import net.minecraft.item.ItemStack;
@@ -29,23 +34,30 @@ public class ItemMMDHorseArmor extends GenericMMDItem implements IHorseArmor {
 	}
 
 	@Override
-	public HorseArmorType getHorseArmorType(final ItemStack stack) {
-		if (stack != null && stack.getItem() != this) { //NB stack CAN be null, when our ASM does it
+	public HorseArmorType getHorseArmorType(@Nullable final ItemStack stack) {
+		if ((stack != null) && (stack.getItem() != this)) { // NB stack CAN be null, when our ASM
+															// does it
 			return HorseArmorType.NONE;
 		}
-		return myArmorType;
+		return this.myArmorType;
 	}
 
 	@Override
 	public String getHorseArmorTexture(final EntityLiving entity, final ItemStack stack) {
-		return stack.getItem() == this ? getArmorTexture() : "";
+		return stack.getItem() == this ? this.getArmorTexture() : "";
 	}
 
 	private String getArmorTexture() {
-		return getRegistryName().getNamespace() + ":textures/entity/horse/armor/horse_armor_" + getMMDMaterial().getName() + ".png";
+		return this.getRegistryName().getNamespace()
+				+ ":textures/entity/horse/armor/horse_armor_" + this.getMMDMaterial().getName()
+				+ ".png";
 	}
 
-	private static HorseArmorType addArmorType(final String materialName, final int protectionLevel) {
-		return EnumHelper.addEnum(HorseArmorType.class, "BASEMETALS_" + materialName.toUpperCase(Locale.ROOT), new Class[] { int.class, String.class, String.class }, protectionLevel, materialName, MMDLib.MODID + "_" + materialName);
+	private static HorseArmorType addArmorType(final String materialName,
+			final int protectionLevel) {
+		return EnumHelper.addEnum(HorseArmorType.class,
+				"MMDLIB_" + materialName.toUpperCase(Locale.ROOT),
+				new Class[] { int.class, String.class, String.class }, protectionLevel,
+				materialName, MMDLib.MODID + "_" + materialName);
 	}
 }

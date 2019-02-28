@@ -3,6 +3,7 @@ package com.mcmoddev.lib.item;
 import com.mcmoddev.lib.data.MaterialStats;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -28,7 +29,8 @@ public class ItemMMDShield extends net.minecraft.item.ItemShield implements IMMD
 	}
 
 	@Override
-	public void onUpdate(final ItemStack item, final World world, final Entity player, final int inventoryIndex, final boolean isHeld) {
+	public void onUpdate(final ItemStack item, final World world, final Entity player,
+			final int inventoryIndex, final boolean isHeld) {
 		MMDItemHelper.doRegeneration(item, world, isHeld, this.material.regenerates());
 	}
 

@@ -1,8 +1,11 @@
 package com.mcmoddev.lib.integration.plugins.tinkers.modifiers;
 
 import java.util.List;
+
 import javax.annotation.Nonnull;
+
 import com.google.common.collect.ImmutableList;
+
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.MobEffects;
 import net.minecraft.item.ItemStack;
@@ -13,7 +16,7 @@ import slimeknights.tconstruct.library.modifiers.ModifierAspect;
 import slimeknights.tconstruct.library.modifiers.ModifierTrait;
 
 /**
- * 
+ *
  */
 public final class ModifierToxic extends ModifierTrait implements IModifierDisplay {
 
@@ -22,12 +25,14 @@ public final class ModifierToxic extends ModifierTrait implements IModifierDispl
 	 */
 	public ModifierToxic() {
 		super("toxic-modifier", 0xFFFFFF, 1, 0);
-		addAspects(new ModifierAspect.SingleAspect(this), new ModifierAspect.DataAspect(this), ModifierAspect.freeModifier);
-		this.addItem("powderMercury");
+		this.addAspects(new ModifierAspect.SingleAspect(this), new ModifierAspect.DataAspect(this),
+				ModifierAspect.freeModifier);
 	}
 
 	@Override
-	public void afterHit(@Nonnull final ItemStack tool, @Nonnull final EntityLivingBase player, @Nonnull final EntityLivingBase target, @Nonnull final float damageDealt, @Nonnull final boolean wasCritical, @Nonnull final boolean wasHit) {
+	public void afterHit(@Nonnull final ItemStack tool, @Nonnull final EntityLivingBase player,
+			@Nonnull final EntityLivingBase target, @Nonnull final float damageDealt,
+			@Nonnull final boolean wasCritical, @Nonnull final boolean wasHit) {
 		if (wasHit && target.isEntityAlive()) {
 			target.addPotionEffect(new PotionEffect(MobEffects.POISON, 50, 1));
 			target.addPotionEffect(new PotionEffect(MobEffects.BLINDNESS, 10));
@@ -39,17 +44,17 @@ public final class ModifierToxic extends ModifierTrait implements IModifierDispl
 		return false;
 	}
 
-	  @Override
-	  public List<List<ItemStack>> getItems() {
-	    ImmutableList.Builder<List<ItemStack>> builder = ImmutableList.builder();
+	@Override
+	public List<List<ItemStack>> getItems() {
+		final ImmutableList.Builder<List<ItemStack>> builder = ImmutableList.builder();
 
-	    for (RecipeMatch rm : items) {
-	      List<ItemStack> in = rm.getInputs();
-	      if (!in.isEmpty()) {
-	        builder.add(in);
-	      }
-	    }
+		for (final RecipeMatch rm : this.items) {
+			final List<ItemStack> in = rm.getInputs();
+			if (!in.isEmpty()) {
+				builder.add(in);
+			}
+		}
 
-	    return builder.build();
+		return builder.build();
 	}
 }

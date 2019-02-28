@@ -1,8 +1,8 @@
 package com.mcmoddev.lib.entity;
 
-import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.data.Names;
-import com.mcmoddev.lib.init.Materials;
+import com.mcmoddev.lib.data.VanillaMaterialNames;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityTippedArrow;
 import net.minecraft.item.ItemStack;
@@ -25,6 +25,7 @@ public class EntityCustomBolt extends EntityTippedArrow {
 	 */
 	public EntityCustomBolt(final World worldIn) {
 		super(worldIn);
+		this.itemStack = ItemStack.EMPTY;
 	}
 
 	/**
@@ -40,6 +41,7 @@ public class EntityCustomBolt extends EntityTippedArrow {
 	 */
 	public EntityCustomBolt(final World worldIn, final double x, final double y, final double z) {
 		super(worldIn, x, y, z);
+		this.itemStack = ItemStack.EMPTY;
 	}
 
 	/**
@@ -51,7 +53,8 @@ public class EntityCustomBolt extends EntityTippedArrow {
 	 * @param shooter
 	 *            The Shooter
 	 */
-	public EntityCustomBolt(final World worldIn, final ItemStack stack, final EntityPlayer shooter) {
+	public EntityCustomBolt(final World worldIn, final ItemStack stack,
+			final EntityPlayer shooter) {
 		super(worldIn, shooter);
 		this.itemStack = stack;
 	}
@@ -64,12 +67,12 @@ public class EntityCustomBolt extends EntityTippedArrow {
 	protected ItemStack getBoltStack() {
 		if (this.itemStack.isEmpty()) {
 			// FIXME - this is potentially unreliable
-			this.itemStack = new ItemStack(Materials.getMaterialByName(MaterialNames.WOOD).getItem(Names.BOLT));
+			this.itemStack = new ItemStack(com.mcmoddev.lib.init.Materials
+					.getMaterialByName(VanillaMaterialNames.WOOD).getItem(Names.BOLT));
 		}
 
 		return new ItemStack(this.itemStack.getItem(), 1, this.itemStack.getItemDamage());
 	}
-
 
 	@Override
 	public int hashCode() {

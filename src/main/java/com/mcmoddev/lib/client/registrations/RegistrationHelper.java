@@ -1,11 +1,12 @@
 package com.mcmoddev.lib.client.registrations;
 
 import javax.annotation.Nonnull;
+
 import com.mcmoddev.lib.client.renderer.FluidStateMapper;
 import com.mcmoddev.lib.data.SharedStrings;
 import com.mcmoddev.lib.init.Blocks;
-import com.mcmoddev.lib.init.Fluids;
 import com.mcmoddev.lib.init.Items;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.BlockSlab;
@@ -22,6 +23,10 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class RegistrationHelper {
 
+	/**
+	 *
+	 * @param item The Item to register
+	 */
 	@SideOnly(Side.CLIENT)
 	public static void registerItemRender(@Nonnull final Item item) {
 		registerRender(item);
@@ -29,7 +34,7 @@ public class RegistrationHelper {
 
 	/**
 	 *
-	 * @param name
+	 * @param name The name of the Item to register
 	 */
 	@SideOnly(Side.CLIENT)
 	public static void registerItemRender(@Nonnull final String name) {
@@ -40,7 +45,7 @@ public class RegistrationHelper {
 
 	/**
 	 *
-	 * @param block
+	 * @param block The Block to register
 	 */
 	@SideOnly(Side.CLIENT)
 	public static void registerBlockRender(@Nonnull final Block block) {
@@ -54,7 +59,7 @@ public class RegistrationHelper {
 
 	/**
 	 *
-	 * @param name
+	 * @param name The name of the Block to register
 	 */
 	@SideOnly(Side.CLIENT)
 	public static void registerBlockRender(@Nonnull final String name) {
@@ -75,19 +80,20 @@ public class RegistrationHelper {
 
 	/**
 	 *
-	 * @param fluid
+	 * @param fluid The Fluid to register
 	 */
 	@SideOnly(Side.CLIENT)
 	public static void registerFluidRender(@Nonnull final Fluid fluid) {
 		// final Block block = fluid.getBlock(); // Unfortunately this breaks when
 		// another mod registered it's fluid before us.
-		final Block block = Fluids.getFluidBlockByName(fluid.getName());
+		final Block block = com.mcmoddev.lib.init.Fluids.getFluidBlockByName(fluid.getName());
 		final Item item = Item.getItemFromBlock(block);
 		final ResourceLocation resourceLocation = block.getRegistryName();
 		final FluidStateMapper mapper = new FluidStateMapper(
 				resourceLocation.getNamespace() + ":" + fluid.getName());
 
-		if (!resourceLocation.getNamespace().equals(Loader.instance().activeModContainer().getModId())) {
+		if (!resourceLocation.getNamespace()
+				.equals(Loader.instance().activeModContainer().getModId())) {
 			return;
 		}
 
@@ -100,17 +106,19 @@ public class RegistrationHelper {
 
 	/**
 	 *
-	 * @param item
+	 * @param item The Item to register
 	 */
 	@SideOnly(Side.CLIENT)
 	public static void registerRender(@Nonnull final Item item) {
 		final ResourceLocation resourceLocation = item.getRegistryName();
 
-		if (!resourceLocation.getNamespace().equals(Loader.instance().activeModContainer().getModId())) {
+		if (!resourceLocation.getNamespace()
+				.equals(Loader.instance().activeModContainer().getModId())) {
 			return;
 		}
 
-		ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(resourceLocation, "inventory"));
+		ModelLoader.setCustomModelResourceLocation(item, 0,
+				new ModelResourceLocation(resourceLocation, "inventory"));
 	}
 
 	private RegistrationHelper() {
