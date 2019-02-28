@@ -8,6 +8,7 @@ import com.mcmoddev.lib.util.MMDLibConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
@@ -109,6 +110,9 @@ public class MMDLib {
 
 	@EventHandler
 	public static void init(FMLInitializationEvent event) {
+		if(Loader.isModLoaded("crafttweaker")) {
+			com.mcmoddev.lib.crafttweaker.CrusherRecipes.loadComplete();
+		}
 		proxy.init(event);
 		// if we have anything else to do here, check 'proxy.allsGood' first
 	}

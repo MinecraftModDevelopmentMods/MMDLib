@@ -9,7 +9,6 @@ import com.mcmoddev.lib.events.MMDLibRegisterFluids;
 import com.mcmoddev.lib.events.MMDLibRegisterItems;
 import com.mcmoddev.lib.events.MMDLibRegisterMaterials;
 import com.mcmoddev.lib.events.MMLibPreInitSync;
-import com.mcmoddev.lib.init.MMDLibItemGroups;
 import com.mcmoddev.lib.init.Recipes;
 import com.mcmoddev.lib.init.VillagerTrades;
 import com.mcmoddev.lib.integration.IntegrationManager;
@@ -17,6 +16,7 @@ import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.network.MMDMessages;
 import com.mcmoddev.lib.oregen.FallbackGeneratorData;
 import com.mcmoddev.lib.util.Config;
+import com.mcmoddev.lib.util.MMDLibItemGroups;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -37,7 +37,7 @@ public class CommonProxy {
 	    // despite other comments, most events get fired here
 
 		
-		com.mcmoddev.lib.init.MMDLibItemGroups.init();
+		com.mcmoddev.lib.util.MMDLibItemGroups.init();
 
 		com.mcmoddev.lib.init.Materials.init();
 		com.mcmoddev.lib.init.Blocks.init();

@@ -1,8 +1,10 @@
-package com.mcmoddev.lib.init;
+package com.mcmoddev.lib.util;
 
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.data.SharedStrings;
+import com.mcmoddev.lib.init.ItemGroups;
+import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.MMDMaterial;
 
 public class MMDLibItemGroups extends ItemGroups {
