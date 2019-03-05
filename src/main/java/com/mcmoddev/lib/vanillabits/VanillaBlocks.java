@@ -20,7 +20,7 @@ public class VanillaBlocks extends Blocks {
 	}
 
 	@SubscribeEvent(priority=EventPriority.HIGHEST)
-	private static void registerVanilla(MMDLibRegisterBlocks ev) {
+	public static void registerVanilla(MMDLibRegisterBlocks ev) {
 		// Vanilla Materials get their Ore and Block always
 		final MMDMaterial charcoal = Materials.getMaterialByName(VanillaMaterialNames.CHARCOAL);
 		final MMDMaterial coal = Materials.getMaterialByName(VanillaMaterialNames.COAL);

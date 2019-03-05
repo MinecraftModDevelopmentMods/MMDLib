@@ -28,6 +28,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
@@ -114,6 +115,10 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	private int defaultDimension;
 
+	private boolean customFluid;
+
+	private IFluidBlockGetter fluidBlockGetter;
+	
 	/**
 	 * @param name
 	 *            String used to identify items and blocks using this material
@@ -143,6 +148,12 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 	public MMDMaterial(final String name, final MMDMaterialType type, final float hardness,
 			final float strength, final float magic, final int tintColor,
 			final boolean hasOre, final boolean hasBlend) {
+		this(name, type, hardness, strength, magic, tintColor, hasOre, hasBlend, false);
+	}
+
+	public MMDMaterial(final String name, final MMDMaterialType type, final float hardness,
+			final float strength, final float magic, final int tintColor,
+			final boolean hasOre, final boolean hasBlend, final boolean customFluid) {
 		// material stats
 		this.stats.put(MaterialStats.HARDNESS, hardness);
 		this.stats.put(MaterialStats.STRENGTH, strength);
@@ -161,8 +172,14 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 		this.hasOre = hasOre;
 		this.spawnSize = 8;
 		this.defaultDimension = Integer.MIN_VALUE;
+		this.customFluid = customFluid;
+		this.fluidBlockGetter = new IFluidBlockGetter() {
+			public BlockFluidClassic apply(String fluidName) {
+				return new BlockFluidClassic(FluidRegistry.getFluid(fluidName), Material.LAVA);
+			};
+		};
 	}
-
+	
 	public String getName() {
 		return this.identifier;
 	}
@@ -835,5 +852,15 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	public Map<NameToken, ItemStack> getItemRegistry() {
 		return ImmutableMap.copyOf(this.items);
+	}
+	
+	public boolean hasCustomFluid() { return this.customFluid; };
+	
+	public BlockFluidClassic getCustomFluid() {
+			return this.fluidBlockGetter.apply(this.getName());
+	};
+
+	public void setFluidBlockGetter(IFluidBlockGetter fluidBlockGetter) {
+		this.fluidBlockGetter = fluidBlockGetter;
 	}
 }
