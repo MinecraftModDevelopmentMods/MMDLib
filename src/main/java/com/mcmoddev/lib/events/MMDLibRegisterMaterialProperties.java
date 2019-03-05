@@ -5,12 +5,13 @@ import net.minecraftforge.fml.common.eventhandler.IContextSetter;
 import net.minecraftforge.registries.IForgeRegistry;
 
 import com.mcmoddev.lib.properties.MMDMaterialPropertyBase;
+import com.mcmoddev.lib.properties.MaterialProperties;
 
-public class MMDLibRegisterProperty extends Event implements IContextSetter {
+public class MMDLibRegisterMaterialProperties extends Event implements IContextSetter {
 	private final IForgeRegistry<MMDMaterialPropertyBase> reg;
 	
-	public MMDLibRegisterProperty(IForgeRegistry<MMDMaterialPropertyBase> reg) {
-		this.reg = reg;
+	public MMDLibRegisterMaterialProperties() {
+		this.reg = MaterialProperties.get();
 	}
 
 	public IForgeRegistry<MMDMaterialPropertyBase> getRegistry() {

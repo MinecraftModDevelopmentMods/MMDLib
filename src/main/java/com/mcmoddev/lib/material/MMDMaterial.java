@@ -3,6 +3,7 @@ package com.mcmoddev.lib.material;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 //import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,10 +19,13 @@ import com.mcmoddev.lib.data.MaterialStats;
 import com.mcmoddev.lib.data.NameToken;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.material.MMDMaterialType.MaterialType;
+import com.mcmoddev.lib.properties.MMDMaterialPropertyBase;
+import com.mcmoddev.lib.properties.MaterialProperties;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
@@ -862,5 +866,19 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	public void setFluidBlockGetter(IFluidBlockGetter fluidBlockGetter) {
 		this.fluidBlockGetter = fluidBlockGetter;
+	}
+	
+	private MMDMaterialPropertyBase findEffect(ItemStack stack, EntityPlayer p) {
+		Optional<MMDMaterialPropertyBase> pr = MaterialProperties.get().getEntries().stream().map(ent -> ent.getValue()).filter(prop -> prop.hasEffect(stack, p)).findFirst();
+		return pr.orElseGet(null);
+	}
+	
+	public boolean hasEffect(final ItemStack itemStack, final EntityPlayer player) {
+		return MaterialProperties.get().getEntries().stream().anyMatch(prop -> prop.getValue().hasEffect(itemStack, player));
+	}
+	
+	public void applyEffect(final ItemStack itemStack, final EntityPlayer player) {
+		MMDMaterialPropertyBase pr = findEffect(itemStack, player);
+		if(pr != null) pr.apply(itemStack, player);
 	}
 }

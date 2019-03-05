@@ -7,6 +7,7 @@ import com.mcmoddev.lib.data.VanillaMaterialNames;
 import com.mcmoddev.lib.events.MMDLibRegisterBlocks;
 import com.mcmoddev.lib.events.MMDLibRegisterFluids;
 import com.mcmoddev.lib.events.MMDLibRegisterItems;
+import com.mcmoddev.lib.events.MMDLibRegisterMaterialProperties;
 import com.mcmoddev.lib.events.MMDLibRegisterMaterials;
 import com.mcmoddev.lib.events.MMLibPreInitSync;
 import com.mcmoddev.lib.init.Recipes;
@@ -45,6 +46,7 @@ public class CommonProxy {
 		com.mcmoddev.lib.init.Fluids.init();
 		com.mcmoddev.lib.init.Recipes.init();
 
+		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterMaterialProperties());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterMaterials());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterBlocks());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterItems());
