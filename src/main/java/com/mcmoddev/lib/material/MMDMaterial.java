@@ -908,6 +908,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 		if(pr != null) pr.apply(itemStack, ent);
 	}
 
+	@SuppressWarnings("unchecked")
 	public List<String> getTooltipFor(Names name) {
 		return this.tooltips.getOrDefault(name, Collections.EMPTY_LIST);
 	}

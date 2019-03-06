@@ -4,6 +4,9 @@ import com.mcmoddev.lib.data.VanillaMaterialNames;
 import com.mcmoddev.lib.events.MMDLibRegisterBlocks;
 import com.mcmoddev.lib.init.Blocks;
 import com.mcmoddev.lib.init.Materials;
+
+import java.util.Arrays;
+
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -15,8 +18,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 @Mod.EventBusSubscriber(modid=MMDLib.MODID)
 public class VanillaBlocks extends Blocks {
 
-	public VanillaBlocks() {
-		// TODO Auto-generated constructor stub
+	private VanillaBlocks() {
+		throw new IllegalAccessError("Class cannot be instantiated!");
 	}
 
 	@SubscribeEvent(priority=EventPriority.HIGHEST)
@@ -71,49 +74,16 @@ public class VanillaBlocks extends Blocks {
 			create(Names.BLOCK, charcoal);
 		}
 
-		if (Materials.hasMaterial(VanillaMaterialNames.DIAMOND)) {
-			create(Names.BARS, diamond);
-			create(Names.DOOR, diamond);
-			create(Names.TRAPDOOR, diamond);
+		Arrays.stream(new String[] {VanillaMaterialNames.DIAMOND, VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD,
+				VanillaMaterialNames.OBSIDIAN })
+		.filter(Materials::hasMaterial)
+		.map(Materials::getMaterialByName)
+		.forEach(mat -> {
+			Arrays.stream(new Names[] { Names.BARS, Names.DOOR, Names.TRAPDOOR, Names.BUTTON, Names.SLAB, Names.DOUBLE_SLAB,
+					Names.LEVER, Names.PRESSURE_PLATE, Names.STAIRS, Names.WALL }).forEach(n -> create(n, mat));
+		});
 
-			create(Names.BUTTON, diamond);
-			create(Names.SLAB, diamond);
-			create(Names.DOUBLE_SLAB, diamond);
-			create(Names.LEVER, diamond);
-			create(Names.PRESSURE_PLATE, diamond);
-			create(Names.STAIRS, diamond);
-			create(Names.WALL, diamond);
-		}
-
-		if (Materials.hasMaterial(VanillaMaterialNames.EMERALD)) {
-			create(Names.BARS, emerald);
-			create(Names.DOOR, emerald);
-			create(Names.TRAPDOOR, emerald);
-
-			create(Names.BUTTON, emerald);
-			create(Names.SLAB, emerald);
-			create(Names.DOUBLE_SLAB, emerald);
-			create(Names.LEVER, emerald);
-			create(Names.PRESSURE_PLATE, emerald);
-			create(Names.STAIRS, emerald);
-			create(Names.WALL, emerald);
-		}
-
-		if (Materials.hasMaterial(VanillaMaterialNames.GOLD)) {
-			create(Names.PLATE, gold);
-			create(Names.BARS, gold);
-			create(Names.DOOR, gold);
-			create(Names.TRAPDOOR, gold);
-
-			create(Names.BUTTON, gold);
-			create(Names.SLAB, gold);
-			create(Names.DOUBLE_SLAB, gold);
-			create(Names.LEVER, gold);
-			create(Names.PRESSURE_PLATE, gold);
-			create(Names.STAIRS, gold);
-			create(Names.WALL, gold);
-		}
-
+		
 		if (Materials.hasMaterial(VanillaMaterialNames.IRON)) {
 			create(Names.PLATE, iron);
 
@@ -126,20 +96,6 @@ public class VanillaBlocks extends Blocks {
 			create(Names.WALL, iron);
 		}
 
-		if (Materials.hasMaterial(VanillaMaterialNames.OBSIDIAN)) {
-			create(Names.BARS, obsidian);
-			create(Names.DOOR, obsidian);
-			create(Names.TRAPDOOR, obsidian);
-
-			create(Names.BUTTON, obsidian);
-			create(Names.SLAB, obsidian);
-			create(Names.DOUBLE_SLAB, obsidian);
-			create(Names.LEVER, obsidian);
-			create(Names.PRESSURE_PLATE, obsidian);
-			create(Names.STAIRS, obsidian);
-			create(Names.WALL, obsidian);
-		}
-
 		if (Materials.hasMaterial(VanillaMaterialNames.QUARTZ)) {
 			create(Names.BARS, quartz);
 			create(Names.DOOR, quartz);
@@ -149,14 +105,6 @@ public class VanillaBlocks extends Blocks {
 			create(Names.LEVER, quartz);
 			create(Names.PRESSURE_PLATE, quartz);
 			create(Names.WALL, quartz);
-		}
-
-		if (Materials.hasMaterial(VanillaMaterialNames.STONE)) {
-			// Stub
-		}
-
-		if (Materials.hasMaterial(VanillaMaterialNames.WOOD)) {
-			// Stub
 		}
 	}
 }

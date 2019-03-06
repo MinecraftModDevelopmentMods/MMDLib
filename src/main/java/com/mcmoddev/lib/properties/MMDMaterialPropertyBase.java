@@ -24,28 +24,4 @@ public abstract class MMDMaterialPropertyBase extends IForgeRegistryEntry.Impl<M
 	public boolean hasEffect(ItemStack stack, EntityLivingBase ent) {
 		return false;
 	}
-
-	@Override
-	public void apply(ItemStack stack) {
-		if(hasEffect(stack)) {
-			// only apply if there is an effect
-			// we should always double check here :)
-		}
-	}
-
-	@Override
-	public void apply(ItemStack stack, EntityPlayer player) {
-		if(hasEffect(stack, player)) {
-			// only apply if there is an effect
-			// we should always double check here :)
-		}
-	}
-
-	@Override
-	public void apply(ItemStack stack, EntityLivingBase ent) {
-		if(hasEffect(stack, ent)) {
-			// only apply if there is an effect
-			// we should always double check here :)
-		}
-	}
 }
