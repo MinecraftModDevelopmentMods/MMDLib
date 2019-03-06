@@ -13,7 +13,6 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-@SuppressWarnings("WeakerAccess")
 public class MMDItemWithGui extends Item {
     @Override
     @Nonnull

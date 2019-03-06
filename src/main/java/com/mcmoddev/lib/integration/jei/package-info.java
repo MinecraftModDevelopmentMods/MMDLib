@@ -1,4 +1,4 @@
 @ParametersAreNonnullByDefault
-package com.mcmoddev.lib.jei;
+package com.mcmoddev.lib.integration.jei;
 
 import javax.annotation.ParametersAreNonnullByDefault;

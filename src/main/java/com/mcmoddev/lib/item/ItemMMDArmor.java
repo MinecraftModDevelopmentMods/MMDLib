@@ -58,18 +58,12 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 			playerUpdateCountMap.put(player, new AtomicInteger(0));
 			return;
 		}
-/*		if (!w.isRemote && (w.getTotalWorldTime() > playerUpdateTimestampMap.get(player).get())) {
+		if (!w.isRemote && (w.getTotalWorldTime() > playerUpdateTimestampMap.get(player).get())) {
 			playerUpdateTimestampMap.get(player).set(w.getTotalWorldTime() + UPDATE_INTERVAL);
-			final int updateCount = playerUpdateCountMap.get(player).getAndIncrement();
-			for (int i = 0; i < 4; i++) {
-				final ItemStack armorItemStack = player.inventory.armorInventory.get(i);
-				if ((!armorItemStack.isEmpty())
-						&& (armorItemStack.getItem() instanceof ItemMMDArmor)) {
-					MMDToolEffects.extraEffectsOnArmorUpdate(w, player, this.mmdMaterial,
-							armorItemStack, updateCount);
-				}
+			if(mmdMaterial.hasEffect(armor, player)) {
+				mmdMaterial.applyEffect(armor, player);
 			}
-		}*/
+		}
 	}
 
 	/**
@@ -126,10 +120,22 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 		return this.customTexture;
 	}
 
+	private Names getNameForPiece(ItemStack itemStack) {		
+		if(itemStack.getItem() == this.mmdMaterial.getItem(Names.HELMET)) return Names.HELMET;
+		else if(itemStack.getItem() == this.mmdMaterial.getItem(Names.CHESTPLATE)) return Names.CHESTPLATE;
+		else if(itemStack.getItem() == this.mmdMaterial.getItem(Names.LEGGINGS)) return Names.LEGGINGS;
+		else if(itemStack.getItem() == this.mmdMaterial.getItem(Names.BOOTS)) return Names.BOOTS;
+		else return null;
+	}
+	
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		//MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmdMaterial.getName(), tooltip);
+		Names partName = getNameForPiece(stack);
+		if(partName == null) return;
+		List<String> tt = this.mmdMaterial.getTooltipFor(getNameForPiece(stack));
+		if(tt.isEmpty()) return;
+		tooltip.addAll(tt);
 	}
 
 	/**

@@ -13,7 +13,6 @@ import com.mcmoddev.lib.data.SharedStrings;
 import com.mcmoddev.lib.fluids.CustomFluid;
 import com.mcmoddev.lib.material.MMDMaterial;
 
-import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.util.ResourceLocation;
@@ -114,20 +113,7 @@ public abstract class Fluids {
 			return null;
 		}
 
-		//TODO: what follows should be an override in BaseMetals, not here
-		//possibly a generic override where we say that the material has a potion effect
-		//for the fluid
-		block = new BlockFluidClassic(material.getFluid(), Material.LAVA);
-/*		if (!name.equals(MaterialNames.MERCURY)) {
-			block = new BlockFluidClassic(material.getFluid(), Material.LAVA);
-		} else {
-			block = new InteractiveFluidBlock(getFluidByName(name), false,
-					(final World w, final EntityLivingBase e) -> {
-						if (w.rand.nextInt(32) == 0) {
-							e.addPotionEffect(new PotionEffect(MobEffects.NAUSEA, 30 * 20, 2));
-						}
-					});
-		}*/
+		block = material.getCustomFluid();
 
 		block.setRegistryName(name); // fullName
 		block.setTranslationKey(block.getRegistryName().getNamespace() + "." + name);

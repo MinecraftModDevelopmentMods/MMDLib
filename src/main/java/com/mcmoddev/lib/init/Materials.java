@@ -160,9 +160,16 @@ public class Materials {
 			@Nonnull final MaterialType type, @Nonnull final double hardness,
 			@Nonnull final double strength, @Nonnull final double magic,
 			@Nonnull final int tintColor) {
+		return createMaterial(name, type, hardness, strength, magic, tintColor, false);		
+	}
+
+	protected static MMDMaterial createMaterial(@Nonnull final String name,
+			@Nonnull final MaterialType type, @Nonnull final double hardness,
+			@Nonnull final double strength, @Nonnull final double magic,
+			@Nonnull final int tintColor, @Nonnull final boolean customFluid) {
 		MMDMaterialType matType = new MMDMaterialType("Standard", type, MMDMaterialType.VariantType.NORMAL);
 		final MMDMaterial material = new MMDMaterial(name, matType, (float) hardness, (float) strength,
-				(float) magic, tintColor, true, false);
+				(float) magic, tintColor, true, false, customFluid);
 
 		return registerMaterial(material);
 	}

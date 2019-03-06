@@ -2,6 +2,7 @@ package com.mcmoddev.lib.item;
 
 import java.util.List;
 
+import com.mcmoddev.lib.data.Names;
 //import com.mcmoddev.basemetals.items.MMDToolEffects;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -44,7 +45,7 @@ public class ItemMMDFishingRod extends net.minecraft.item.ItemFishingRod impleme
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-//		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material.getName(), tooltip);
+		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.FISHING_ROD));
 	}
 
 	@Override

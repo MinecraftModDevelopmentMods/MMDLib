@@ -261,14 +261,18 @@ public class ItemMMDCrackHammer extends net.minecraft.item.ItemTool implements I
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target,
 			final EntityLivingBase attacker) {
 		super.hitEntity(item, target, attacker);
-//		MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
+		if(this.getMMDMaterial().hasEffect(item, target)) {
+			this.getMMDMaterial().applyEffect(item, target);
+		}
 		return true;
 	}
 
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-//		MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
+		if(this.getMMDMaterial().hasEffect(item, crafter)) {
+			this.getMMDMaterial().applyEffect(item, crafter);
+		}
 	}
 
 	@Override
@@ -300,7 +304,7 @@ public class ItemMMDCrackHammer extends net.minecraft.item.ItemTool implements I
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-//		MMDToolEffects.addToolSpecialPropertiesToolTip(this.material.getName(), tooltip);
+		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.CRACKHAMMER));
 	}
 
 	@Override

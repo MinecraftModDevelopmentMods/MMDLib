@@ -7,10 +7,9 @@ import com.mcmoddev.lib.data.VanillaMaterialNames;
 import com.mcmoddev.lib.events.MMDLibRegisterBlocks;
 import com.mcmoddev.lib.events.MMDLibRegisterFluids;
 import com.mcmoddev.lib.events.MMDLibRegisterItems;
+import com.mcmoddev.lib.events.MMDLibRegisterMaterialProperties;
 import com.mcmoddev.lib.events.MMDLibRegisterMaterials;
 import com.mcmoddev.lib.events.MMLibPreInitSync;
-import com.mcmoddev.lib.init.Recipes;
-import com.mcmoddev.lib.init.VillagerTrades;
 import com.mcmoddev.lib.integration.IntegrationManager;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.network.MMDMessages;
@@ -44,14 +43,14 @@ public class CommonProxy {
 		com.mcmoddev.lib.init.Items.init();
 		com.mcmoddev.lib.init.Fluids.init();
 		com.mcmoddev.lib.init.Recipes.init();
+		com.mcmoddev.lib.init.VillagerTrades.init();
 
+		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterMaterialProperties());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterMaterials());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterBlocks());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterItems());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterFluids());
 
-		Recipes.init();
-		VillagerTrades.init();
 
 		IntegrationManager.INSTANCE.preInit(event);
 		MinecraftForge.EVENT_BUS.post(new MMLibPreInitSync());
@@ -83,9 +82,8 @@ public class CommonProxy {
 			}
 		}
 
-		MMDLibItemGroups.setupIcons(VanillaMaterialNames.IRON);
+		MMDLibItemGroups.setupIcons(VanillaMaterialNames.IRON);  
 		IntegrationManager.INSTANCE.initPhase();
-		// dumpMaterials()
 	}
 
 	/**
