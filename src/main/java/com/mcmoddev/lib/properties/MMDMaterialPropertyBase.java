@@ -6,10 +6,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
 public abstract class MMDMaterialPropertyBase extends IForgeRegistryEntry.Impl<MMDMaterialPropertyBase> implements IMMDMaterialProperty {
-
-	public MMDMaterialPropertyBase() {
-	}
-
 	@Override
 	public boolean hasEffect(ItemStack stack) {
 		return false;
