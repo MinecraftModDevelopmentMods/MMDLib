@@ -120,10 +120,22 @@ public class ItemMMDArmor extends net.minecraft.item.ItemArmor implements IMMDOb
 		return this.customTexture;
 	}
 
+	private Names getNameForPiece(ItemStack itemStack) {		
+		if(itemStack.getItem() == this.mmdMaterial.getItem(Names.HELMET)) return Names.HELMET;
+		else if(itemStack.getItem() == this.mmdMaterial.getItem(Names.CHESTPLATE)) return Names.CHESTPLATE;
+		else if(itemStack.getItem() == this.mmdMaterial.getItem(Names.LEGGINGS)) return Names.LEGGINGS;
+		else if(itemStack.getItem() == this.mmdMaterial.getItem(Names.BOOTS)) return Names.BOOTS;
+		else return null;
+	}
+	
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		//MMDToolEffects.addArmorSpecialPropertiesToolTip(this.mmdMaterial.getName(), tooltip);
+		Names partName = getNameForPiece(stack);
+		if(partName == null) return;
+		List<String> tt = this.mmdMaterial.getTooltipFor(getNameForPiece(stack));
+		if(tt.isEmpty()) return;
+		tooltip.addAll(tt);
 	}
 
 	/**

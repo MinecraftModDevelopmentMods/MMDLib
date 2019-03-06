@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.mcmoddev.lib.MMDLib;
+import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -19,7 +20,9 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.EntityPlayer;
@@ -254,5 +257,29 @@ public class ItemMMDSickle extends ItemTool implements IMMDObject {
 	public void onUpdate(final ItemStack item, final World world, final Entity player,
 			final int inventoryIndex, final boolean isHeld) {
 		MMDItemHelper.doRegeneration(item, world, isHeld, this.material.regenerates());
+	}
+	
+	@Override
+	public boolean hitEntity(final ItemStack item, final EntityLivingBase target,
+			final EntityLivingBase attacker) {
+		super.hitEntity(item, target, attacker);
+		if(this.getMMDMaterial().hasEffect(item, target)) {
+			this.getMMDMaterial().applyEffect(item, target);
+		}
+		return true;
+	}
+
+	@Override
+	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
+		super.onCreated(item, world, crafter);
+		if(this.getMMDMaterial().hasEffect(item, crafter)) {
+			this.getMMDMaterial().applyEffect(item, crafter);
+		}
+	}
+	
+	@Override
+	public void addInformation(final ItemStack stack, final World worldIn,
+			final List<String> tooltip, final ITooltipFlag flagIn) {
+		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.SCYTHE));
 	}
 }

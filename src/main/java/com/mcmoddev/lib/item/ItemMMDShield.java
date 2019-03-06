@@ -1,9 +1,13 @@
 package com.mcmoddev.lib.item;
 
+import java.util.List;
+
 import com.mcmoddev.lib.data.MaterialStats;
+import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -52,4 +56,11 @@ public class ItemMMDShield extends net.minecraft.item.ItemShield implements IMMD
 		final String name = String.format("%s.name", this.getTranslationKey());
 		return new TextComponentTranslation(name).getFormattedText();
 	}
+	
+	@Override
+	public void addInformation(final ItemStack stack, final World worldIn,
+			final List<String> tooltip, final ITooltipFlag flagIn) {
+		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.SHIELD));
+	}
+	
 }

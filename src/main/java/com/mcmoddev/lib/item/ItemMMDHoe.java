@@ -1,6 +1,7 @@
 package com.mcmoddev.lib.item;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -12,6 +13,7 @@ import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -78,7 +80,9 @@ public class ItemMMDHoe extends net.minecraft.item.ItemHoe implements IMMDObject
 	public boolean hitEntity(final ItemStack item, final EntityLivingBase target,
 			final EntityLivingBase attacker) {
 		super.hitEntity(item, target, attacker);
-//		MMDToolEffects.extraEffectsOnAttack(this.material, item, target, attacker);
+		if(this.getMMDMaterial().hasEffect(item, target)) {
+			this.getMMDMaterial().applyEffect(item, target);
+		}
 		return true;
 	}
 
@@ -93,13 +97,21 @@ public class ItemMMDHoe extends net.minecraft.item.ItemHoe implements IMMDObject
 	@Override
 	public void onCreated(final ItemStack item, final World world, final EntityPlayer crafter) {
 		super.onCreated(item, world, crafter);
-//		MMDToolEffects.extraEffectsOnCrafting(this.material, item, world, crafter);
+		if(this.getMMDMaterial().hasEffect(item, crafter)) {
+			this.getMMDMaterial().applyEffect(item, crafter);
+		}
 	}
 
 	@Override
 	public void onUpdate(final ItemStack item, final World world, final Entity player,
 			final int inventoryIndex, final boolean isHeld) {
 		MMDItemHelper.doRegeneration(item, world, isHeld, this.material.regenerates());
+	}
+
+	@Override
+	public void addInformation(final ItemStack stack, final World worldIn,
+			final List<String> tooltip, final ITooltipFlag flagIn) {
+		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.HOE));
 	}
 
 	@Override

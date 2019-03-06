@@ -1,6 +1,8 @@
 package com.mcmoddev.lib.material;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +27,7 @@ import com.mcmoddev.lib.properties.MaterialProperties;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -119,9 +122,17 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	private int defaultDimension;
 
+	/**
+	 * These cover getting the FluidBlock and whether it has a custom FluidBlock or not
+	 */
 	private boolean customFluid;
 
 	private IFluidBlockGetter fluidBlockGetter;
+	
+	/**
+	 * Tooltip handling
+	 */
+	private Map<Names, List<String>> tooltips;
 	
 	/**
 	 * @param name
@@ -182,6 +193,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 				return new BlockFluidClassic(FluidRegistry.getFluid(fluidName), Material.LAVA);
 			};
 		};
+		this.tooltips = new HashMap<>();
 	}
 	
 	public String getName() {
@@ -873,12 +885,34 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 		return pr.orElseGet(null);
 	}
 	
+	private MMDMaterialPropertyBase findEffect(ItemStack stack, EntityLivingBase b) {
+		Optional<MMDMaterialPropertyBase> pr = MaterialProperties.get().getEntries().stream().map(ent -> ent.getValue()).filter(prop -> prop.hasEffect(stack, b)).findFirst();
+		return pr.orElseGet(null);
+	}
+	
 	public boolean hasEffect(final ItemStack itemStack, final EntityPlayer player) {
 		return MaterialProperties.get().getEntries().stream().anyMatch(prop -> prop.getValue().hasEffect(itemStack, player));
+	}
+	
+	public boolean hasEffect(final ItemStack itemStack, final EntityLivingBase ent) {
+		return MaterialProperties.get().getEntries().stream().anyMatch(prop -> prop.getValue().hasEffect(itemStack, ent));
 	}
 	
 	public void applyEffect(final ItemStack itemStack, final EntityPlayer player) {
 		MMDMaterialPropertyBase pr = findEffect(itemStack, player);
 		if(pr != null) pr.apply(itemStack, player);
+	}
+
+	public void applyEffect(final ItemStack itemStack, final EntityLivingBase ent) {
+		MMDMaterialPropertyBase pr = findEffect(itemStack, ent);
+		if(pr != null) pr.apply(itemStack, ent);
+	}
+
+	public List<String> getTooltipFor(Names name) {
+		return this.tooltips.getOrDefault(name, Collections.EMPTY_LIST);
+	}
+	
+	public void addTooltipFor(Names name, List<String> data) {
+		this.tooltips.put(name, data);
 	}
 }
