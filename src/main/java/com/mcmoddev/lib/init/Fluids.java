@@ -8,7 +8,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.mcmoddev.lib.data.ActiveModData;
 import com.mcmoddev.lib.data.SharedStrings;
 import com.mcmoddev.lib.fluids.CustomFluid;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -21,7 +20,6 @@ import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
 
 /**
  * This class initializes all fluids in Base Metals and provides some utility methods for looking up
@@ -59,31 +57,19 @@ public abstract class Fluids {
 			return material.getFluid();
 		}
 
-		final ModContainer base = Loader.instance().activeModContainer();
-		final ModContainer temp = Loader.instance().getIndexedModList().get(ActiveModData.instance.activeMod());
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(temp);
-		}
-
-		final String modID = temp.getModId();
 		final Fluid fluid = new CustomFluid(material.getName(),
-				new ResourceLocation(modID, "blocks/molten_metal_still"),
-				new ResourceLocation(modID, "blocks/molten_metal_flow"));
+				new ResourceLocation(Loader.instance().activeModContainer().getModId(), "blocks/molten_metal_still"),
+				new ResourceLocation(Loader.instance().activeModContainer().getModId(), "blocks/molten_metal_flow"));
 
 		fluid.setDensity(density);
 		fluid.setViscosity(viscosity);
 		fluid.setTemperature(temperature);
 		fluid.setLuminosity(luminosity);
-		fluid.setUnlocalizedName(modID + "." + material.getName());
+		fluid.setUnlocalizedName(material.getRegistryName().getNamespace() + "." + material.getName());
 		FluidRegistry.registerFluid(fluid);
 		FluidRegistry.addBucketForFluid(fluid);
 
 		material.setFluid(fluid);
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(base);
-		}
 
 		return fluidRegistry.put(material.getName(), fluid);
 	}
@@ -95,13 +81,6 @@ public abstract class Fluids {
 
 	@Nullable
 	protected static BlockFluidClassic addFluidBlock(@Nonnull final MMDMaterial material) {
-		final ModContainer base = Loader.instance().activeModContainer();
-		final ModContainer temp = Loader.instance().getIndexedModList().get(ActiveModData.instance.activeMod());
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(temp);
-		}
-
 		if (material.getFluidBlock() != null) {
 			return material.getFluidBlock();
 		}
@@ -126,10 +105,6 @@ public abstract class Fluids {
 		material.addNewItem("fluidItemBlock", itemBlock);
 
 		material.setFluidBlock(block);
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(base);
-		}
 
 		return fluidBlockRegistry.put(name, block);
 	}

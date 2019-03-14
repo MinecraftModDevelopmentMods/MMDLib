@@ -12,7 +12,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 import com.mcmoddev.lib.MMDLib;
-import com.mcmoddev.lib.data.ActiveModData;
 import com.mcmoddev.lib.data.MaterialStats;
 import com.mcmoddev.lib.data.VanillaMaterialNames;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -26,7 +25,6 @@ import net.minecraft.item.ItemArmor.ArmorMaterial;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.util.EnumHelper;
 import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
 
@@ -355,15 +353,7 @@ public class Materials {
 	 * @return the material
 	 */
 	protected static MMDMaterial registerMaterial(@Nonnull final MMDMaterial material) {
-		final ModContainer base = Loader.instance().activeModContainer();
-		final ModContainer temp = Loader.instance().getIndexedModList().get(ActiveModData.instance.activeMod());
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(temp);
-		}
-
-		final String modId = temp.getModId();
-		final ResourceLocation loc = new ResourceLocation(modId, material.getName());
+		final ResourceLocation loc = new ResourceLocation(Loader.instance().activeModContainer().getModId(), material.getName());
 		if (REGISTRY.containsKey(loc)) {
 			MMDLib.logger.error(
 					"You asked registermaterial() to register an existing material, Don't do that! (Returning pre existing material instead");
@@ -398,10 +388,6 @@ public class Materials {
 			MMDLib.logger.error("Failed to create tool material enum for " + material);
 		}
 		toolMaterialMap.put(material, toolMaterial);
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(base);
-		}
 
 		return material;
 	}

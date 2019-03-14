@@ -1,11 +1,7 @@
 package com.mcmoddev.lib.events;
 
-import com.mcmoddev.lib.data.ActiveModData;
-
 import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.IContextSetter;
 
-public class MMDLibRegisterFluids extends Event {
-	public void setActive(final String name) {
-		ActiveModData.instance.setActive(name);
-	}
+public class MMDLibRegisterFluids extends Event implements IContextSetter {
 }

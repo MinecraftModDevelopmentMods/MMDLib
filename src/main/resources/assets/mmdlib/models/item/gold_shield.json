@@ -1,0 +1,14 @@
+{
+  "parent": "mmdlib:item/shield",
+  "textures": {
+    "shield": "minecraft:blocks/gold_block"
+  },
+    "overrides": [
+        {
+            "predicate": {
+                "blocking": 1
+            },
+            "model": "mmdlib:item/gold_shield_blocking"
+        }
+    ]
+}

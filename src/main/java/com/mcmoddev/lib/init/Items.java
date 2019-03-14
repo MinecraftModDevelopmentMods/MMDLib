@@ -33,7 +33,6 @@ import com.mcmoddev.lib.block.BlockMMDTrapDoor;
 import com.mcmoddev.lib.block.BlockMMDWall;
 import com.mcmoddev.lib.block.BlockMoltenFluid;
 import com.mcmoddev.lib.block.InteractiveFluidBlock;
-import com.mcmoddev.lib.data.ActiveModData;
 import com.mcmoddev.lib.data.ConfigKeys;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.data.SharedStrings;
@@ -78,8 +77,8 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
 
 /**
  * This class initializes all items in Base Metals and provides some utility methods for looking up
@@ -414,14 +413,7 @@ public abstract class Items {
 			fullName = name;
 		}
 
-		final ModContainer base = Loader.instance().activeModContainer();
-		final ModContainer temp = Loader.instance().getIndexedModList().get(ActiveModData.instance.activeMod());
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(temp);
-		}
-
-		item.setRegistryName(fullName);
+		item.setRegistryName(new ResourceLocation(Loader.instance().activeModContainer().getModId(), fullName));
 		item.setTranslationKey(item.getRegistryName().getNamespace() + "." + fullName);
 
 		if (tab != null) {
@@ -434,10 +426,6 @@ public abstract class Items {
 		}
 
 		itemRegistry.put(fullName, item);
-
-		if (!base.equals(temp)) {
-			Loader.instance().setActiveModContainer(base);
-		}
 
 		return item;
 	}

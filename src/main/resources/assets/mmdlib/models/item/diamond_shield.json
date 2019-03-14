@@ -1,0 +1,14 @@
+{
+  "parent": "mmdlib:item/shield",
+  "textures": {
+    "shield": "minecraft:blocks/diamond_block"
+  },
+    "overrides": [
+        {
+            "predicate": {
+                "blocking": 1
+            },
+            "model": "mmdlib:item/diamond_shield_blocking"
+        }
+    ]
+}

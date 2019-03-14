@@ -1,0 +1,10 @@
+{
+    "variants": {
+        "facing=down":  { "model": "mmdlib:iron_plate", "x": 90  },
+        "facing=up":    { "model": "mmdlib:iron_plate", "x": 270 },
+        "facing=north": { "model": "mmdlib:iron_plate"           },
+        "facing=south": { "model": "mmdlib:iron_plate", "y": 180 },
+        "facing=west":  { "model": "mmdlib:iron_plate", "y": 270 },
+        "facing=east":  { "model": "mmdlib:iron_plate", "y": 90  }
+    }
+}

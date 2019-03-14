@@ -11,10 +11,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.mcmoddev.lib.MMDLib;
-import com.mcmoddev.lib.data.ActiveModData;
 import com.mcmoddev.lib.data.SharedStrings;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fml.common.Loader;
 
 /**
  * This class initializes all item groups in Base Metals.
@@ -70,7 +70,7 @@ public class ItemGroups {
 	 */
 	protected static MMDCreativeTab addTab(@Nonnull final String name,
 			@Nonnull final boolean searchable) {
-		final String modName = ActiveModData.instance.activeMod();
+		final String modName = Loader.instance().activeModContainer().getModId();
 		final String internalTabName = String.format("%s.%s", modName, name);
 
 		if (itemGroupsByFullTabName.containsKey(internalTabName)) {
@@ -115,7 +115,7 @@ public class ItemGroups {
 	 */
 	@Nullable
 	public static MMDCreativeTab getTab(@Nonnull final String name) {
-		final String modName = ActiveModData.instance.activeMod();
+		final String modName = Loader.instance().activeModContainer().getModId();
 		return getTab(modName, name);
 	}
 

@@ -1,0 +1,6 @@
+{
+  "parent": "mmdlib:item/shield_blocking",
+  "textures": {
+    "shield": "minecraft:blocks/iron_block"
+    }
+}

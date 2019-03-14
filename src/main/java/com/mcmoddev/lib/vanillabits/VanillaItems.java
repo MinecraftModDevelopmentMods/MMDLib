@@ -1,5 +1,7 @@
 package com.mcmoddev.lib.vanillabits;
 
+import java.util.Arrays;
+
 import javax.annotation.Nonnull;
 
 import com.mcmoddev.lib.MMDLib;
@@ -9,8 +11,11 @@ import com.mcmoddev.lib.events.MMDLibRegisterItems;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDBurnableObject;
 import com.mcmoddev.lib.material.MMDMaterial;
+import com.mcmoddev.lib.util.Oredicts;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -22,6 +27,11 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		// TODO Auto-generated constructor stub
 	}
 	
+	@SubscribeEvent(priority=EventPriority.LOWEST)
+	public static void itemRegistryEvent(RegistryEvent.Register<Item> ev) {
+		Oredicts.registerItemOreDictionaryEntries();
+		Oredicts.registerBlockOreDictionaryEntries();
+	}
 	@SubscribeEvent(priority=EventPriority.HIGHEST)
 	public static void registerItemsEvent(MMDLibRegisterItems ev) {
 		Materials.getMaterialByName(VanillaMaterialNames.CHARCOAL).addNewItemFromItemStack(Names.INGOT,
@@ -43,6 +53,17 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		addStoneBits();
 		addWoodBits();
 		doSpecialMats();
+		Arrays.asList(VanillaMaterialNames.COAL, VanillaMaterialNames.CHARCOAL, VanillaMaterialNames.DIAMOND,
+				VanillaMaterialNames.EMERALD, VanillaMaterialNames.ENDER, VanillaMaterialNames.GOLD,
+				VanillaMaterialNames.IRON, VanillaMaterialNames.LAPIS, VanillaMaterialNames.OBSIDIAN,
+				VanillaMaterialNames.PRISMARINE, VanillaMaterialNames.QUARTZ, VanillaMaterialNames.REDSTONE,
+				VanillaMaterialNames.STONE, VanillaMaterialNames.WOOD).parallelStream()
+		.map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.BLEND, Names.INGOT, Names.NUGGET, 
+				Names.POWDER, Names.SMALLBLEND, Names.SMALLPOWDER, Names.ARROW, Names.AXE, Names.BOLT, Names.BOOTS, 
+				Names.BOW, Names.CHESTPLATE, Names.CRACKHAMMER, Names.CROSSBOW, Names.DOOR, Names.FISHING_ROD, 
+				Names.HELMET, Names.HOE, Names.HORSE_ARMOR, Names.LEGGINGS, Names.PICKAXE, Names.SHEARS, Names.SHIELD, 
+				Names.SHOVEL, Names.SCYTHE, Names.SLAB, Names.SWORD, Names.ROD, Names.GEAR).stream()
+				.filter(n -> material.hasItem(n)).forEach(n -> create(n, material)));
 	}
 	
 	private static void setBurnTimes(@Nonnull final MMDMaterial material) {

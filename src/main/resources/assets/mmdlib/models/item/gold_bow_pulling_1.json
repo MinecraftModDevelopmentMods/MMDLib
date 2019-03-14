@@ -1,0 +1,6 @@
+{
+    "parent": "mmdlib:item/gold_bow",
+    "textures": {
+        "layer0": "mmdlib:items/gold_bow_pulling_1"
+    }
+}

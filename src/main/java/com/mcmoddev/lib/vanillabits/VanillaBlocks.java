@@ -83,8 +83,11 @@ public class VanillaBlocks extends Blocks {
 					Names.LEVER, Names.PRESSURE_PLATE, Names.STAIRS, Names.WALL }).forEach(n -> create(n, mat));
 		});
 
+		if (Materials.hasMaterial(VanillaMaterialNames.GOLD)) {
+			create(Names.PLATE, gold);
+		}
 		
-		if (Materials.hasMaterial(VanillaMaterialNames.IRON)) {
+ 		if (Materials.hasMaterial(VanillaMaterialNames.IRON)) {
 			create(Names.PLATE, iron);
 
 			create(Names.BUTTON, iron);
