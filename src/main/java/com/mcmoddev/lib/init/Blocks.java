@@ -198,7 +198,7 @@ public abstract class Blocks {
 		if ((block != null) && glows) {
 			block.setLightLevel(0.5f);
 		}
-
+		
 		return block;
 	}
 

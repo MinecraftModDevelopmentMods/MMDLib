@@ -304,7 +304,9 @@ public class ItemMMDCrackHammer extends net.minecraft.item.ItemTool implements I
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.CRACKHAMMER));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.CRACKHAMMER);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 
 	@Override

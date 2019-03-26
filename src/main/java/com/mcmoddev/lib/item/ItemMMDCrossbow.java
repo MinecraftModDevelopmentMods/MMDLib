@@ -46,7 +46,9 @@ public class ItemMMDCrossbow extends ItemCrossbow implements IMMDObject {
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.CROSSBOW));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.CROSSBOW);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 
 	@Override

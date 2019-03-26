@@ -98,7 +98,9 @@ public class ItemMMDSword extends net.minecraft.item.ItemSword implements IMMDOb
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.SWORD));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.SWORD);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 
 	@Override

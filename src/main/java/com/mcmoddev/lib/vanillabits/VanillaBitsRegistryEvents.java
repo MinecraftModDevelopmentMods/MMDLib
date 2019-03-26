@@ -25,7 +25,7 @@ public class VanillaBitsRegistryEvents {
 		.forEach(mat -> mat.getBlocks().stream()
 				.filter(bl -> "mmdlib".equals(bl.getRegistryName().getNamespace()))
 				.forEach(bl -> {
-					MMDLib.logger.fatal("Registering block %s (%s)", bl.getRegistryName(), bl);
+					MMDLib.logger.fatal("Registering block {} ({})", bl.getRegistryName(), bl);
 					ev.getRegistry().register(bl);
 				}));
 	}
@@ -42,7 +42,7 @@ public class VanillaBitsRegistryEvents {
 		.map(it -> it.getItem())
 		.filter(it -> "mmdlib".contentEquals(it.getRegistryName().getNamespace()))
 		.forEach(it -> {
-			MMDLib.logger.fatal("Registering %s (%s)", it.getRegistryName(), it);
+			MMDLib.logger.fatal("Registering {} ({})", it.getRegistryName(), it);
 			ev.getRegistry().register(it);
 		});
 	}

@@ -89,6 +89,8 @@ public class ItemMMDAxe extends net.minecraft.item.ItemAxe implements IMMDObject
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.AXE));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.AXE);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 }

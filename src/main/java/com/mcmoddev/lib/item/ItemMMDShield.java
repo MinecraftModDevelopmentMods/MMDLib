@@ -1,5 +1,4 @@
 package com.mcmoddev.lib.item;
-
 import java.util.List;
 
 import com.mcmoddev.lib.data.MaterialStats;
@@ -10,7 +9,8 @@ import com.mcmoddev.lib.material.MMDMaterial;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.translation.I18n;
+//import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 
 /**
@@ -18,6 +18,7 @@ import net.minecraft.world.World;
  * @author Jasmine Iwanek
  *
  */
+@SuppressWarnings("deprecation")
 public class ItemMMDShield extends net.minecraft.item.ItemShield implements IMMDObject {
 
 	private final MMDMaterial material;
@@ -51,16 +52,19 @@ public class ItemMMDShield extends net.minecraft.item.ItemShield implements IMMD
 		return MMDItemHelper.isToolRepairable(repairMaterial, this.material.getCapitalizedName());
 	}
 
-	@Override
-	public String getItemStackDisplayName(final ItemStack stack) {
-		final String name = String.format("%s.name", this.getTranslationKey());
-		return new TextComponentTranslation(name).getFormattedText();
-	}
-	
+	/*
+	 * @Override public String getItemStackDisplayName(final ItemStack stack) {
+	 * final String name = String.format("%s.name", this.getTranslationKey());
+	 * com.mcmoddev.lib.MMDLib.logger.
+	 * fatal("ItemMMDShield.getItemStackDisplayName() -> {}", name); return
+	 * I18n.translateToLocal(name); }
+	 */	
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.SHIELD));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.SHIELD);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 	
 }

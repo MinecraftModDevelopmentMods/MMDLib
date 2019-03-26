@@ -12,7 +12,6 @@ import mcp.MethodsReturnNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-@SuppressWarnings({"unused", "WeakerAccess"})
 public final class FluidUtils {
     // TODO: make fill/drain more generic so they both use the same code... just reversed.
 
@@ -48,7 +47,7 @@ public final class FluidUtils {
         final int actualMin = (minAmount <= 0) ? maxAmount : minAmount;
 
         final FluidStack fluid = source.drain(maxAmount, false);
-        return (fluid != null) && (fluid.amount >= minAmount) && (tank.fill(fluid, false) >= minAmount);
+        return (fluid != null) && (fluid.amount >= actualMin) && (tank.fill(fluid, false) >= actualMin);
     }
 
     public static ItemStack fillFrom(final IFluidTank tank, final ItemStack source) {

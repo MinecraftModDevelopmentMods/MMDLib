@@ -538,7 +538,7 @@ public abstract class Items {
 		for (final Field field : fields) {
 			if (Modifier.isStatic(field.getModifiers()) && field.getType().isArray()
 					&& field.getType().getComponentType().equals(float.class)) {
-				MMDLib.logger.info("%s: Expanding array variable %s.%s to size %d",
+				MMDLib.logger.info("{}: Expanding array variable {}.{} to size {}",
 						Thread.currentThread().getStackTrace()[0].toString(),
 						itemClass.getSimpleName(), field.getName(), expandedSize);
 				field.setAccessible(true); // bypass 'private' key word

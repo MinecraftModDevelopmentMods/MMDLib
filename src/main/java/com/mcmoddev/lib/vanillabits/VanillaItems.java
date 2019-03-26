@@ -53,17 +53,40 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		addStoneBits();
 		addWoodBits();
 		doSpecialMats();
+		
+		// these three are the only ones that need tools and armor
+		Arrays.asList(VanillaMaterialNames.EMERALD, VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.QUARTZ)
+		.stream().map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.AXE, Names.BOOTS, 
+				Names.CHESTPLATE, Names.HELMET, Names.HOE, Names.LEGGINGS, Names.PICKAXE, Names.SHOVEL, Names.HORSE_ARMOR)
+				.stream().filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
+		
+		// shields
+		Arrays.asList(VanillaMaterialNames.DIAMOND, VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD, 
+				VanillaMaterialNames.IRON, VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.QUARTZ)
+		.stream().map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.BOLT, Names.ARROW, Names.BOW, 
+				Names.CROSSBOW, Names.FISHING_ROD, Names.ROD, Names.BARS, Names.SHEARS, Names.BUTTON, Names.SWORD,
+				Names.SHIELD, Names.DOOR, Names.SLAB)
+				.stream().filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
+		
+		// bits that everything should have
+		Arrays.asList(VanillaMaterialNames.DIAMOND, VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD, 
+				VanillaMaterialNames.IRON, VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.QUARTZ, 
+				VanillaMaterialNames.STONE, VanillaMaterialNames.WOOD)
+		.stream().map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.CRACKHAMMER, Names.GEAR, 
+				Names.SCYTHE).stream().filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
+		
+		// last few bits
 		Arrays.asList(VanillaMaterialNames.COAL, VanillaMaterialNames.CHARCOAL, VanillaMaterialNames.DIAMOND,
-				VanillaMaterialNames.EMERALD, VanillaMaterialNames.ENDER, VanillaMaterialNames.GOLD,
-				VanillaMaterialNames.IRON, VanillaMaterialNames.LAPIS, VanillaMaterialNames.OBSIDIAN,
-				VanillaMaterialNames.PRISMARINE, VanillaMaterialNames.QUARTZ, VanillaMaterialNames.REDSTONE,
-				VanillaMaterialNames.STONE, VanillaMaterialNames.WOOD).parallelStream()
-		.map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.BLEND, Names.INGOT, Names.NUGGET, 
-				Names.POWDER, Names.SMALLBLEND, Names.SMALLPOWDER, Names.ARROW, Names.AXE, Names.BOLT, Names.BOOTS, 
-				Names.BOW, Names.CHESTPLATE, Names.CRACKHAMMER, Names.CROSSBOW, Names.DOOR, Names.FISHING_ROD, 
-				Names.HELMET, Names.HOE, Names.HORSE_ARMOR, Names.LEGGINGS, Names.PICKAXE, Names.SHEARS, Names.SHIELD, 
-				Names.SHOVEL, Names.SCYTHE, Names.SLAB, Names.SWORD, Names.ROD, Names.GEAR).stream()
-				.filter(n -> material.hasItem(n)).forEach(n -> create(n, material)));
+				VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD, VanillaMaterialNames.IRON, 
+				VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.REDSTONE, 
+				VanillaMaterialNames.QUARTZ).stream()
+		.map(Materials::getMaterialByName).forEach(material -> 
+		Arrays.asList(Names.NUGGET, Names.SMALLPOWDER, Names.POWDER).stream().filter(n -> !material.hasItem(n))
+		.forEach(n -> create(n, material)));
+		
+		//these bits just are too... specialized to fit the iteration above
+		create(Names.ROD, Materials.getMaterialByName(VanillaMaterialNames.STONE));
+		create(Names.SMALLPOWDER, Materials.getMaterialByName(VanillaMaterialNames.LAPIS));
 	}
 	
 	private static void setBurnTimes(@Nonnull final MMDMaterial material) {
@@ -284,7 +307,7 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		wood.addNewBlock(Names.DOUBLE_SLAB, net.minecraft.init.Blocks.DOUBLE_WOODEN_SLAB);
 		wood.addNewBlock(Names.STAIRS, net.minecraft.init.Blocks.OAK_STAIRS);
 		wood.addNewItem(Names.SHEARS, net.minecraft.init.Items.SHEARS);
-
+		
 		if (Materials.hasMaterial(VanillaMaterialNames.WOOD)) {
 			create(Names.CRACKHAMMER, wood);
 			create(Names.GEAR, wood);

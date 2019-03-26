@@ -45,7 +45,9 @@ public class ItemMMDShears extends net.minecraft.item.ItemShears implements IMMD
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.SHEARS));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.SHEARS);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 
 	@Override

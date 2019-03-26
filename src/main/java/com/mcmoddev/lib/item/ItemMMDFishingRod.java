@@ -45,7 +45,9 @@ public class ItemMMDFishingRod extends net.minecraft.item.ItemFishingRod impleme
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.FISHING_ROD));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.FISHING_ROD);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 
 	@Override
