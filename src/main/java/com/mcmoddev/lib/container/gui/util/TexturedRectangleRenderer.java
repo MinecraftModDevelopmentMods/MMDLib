@@ -8,7 +8,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * Helper class used to "stretch" a sprite over a specified area while keeping a non-stretched margin.
  */
-@SuppressWarnings("WeakerAccess")
 public final class TexturedRectangleRenderer {
     private TexturedRectangleRenderer() {}
 

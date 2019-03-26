@@ -10,7 +10,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * An action widget implementation that handles text messages.
  */
-@SuppressWarnings({"unused", "UnusedReturnValue", "WeakerAccess"})
 public class ActionTextWidget extends ActionWidget {
     /**
      * Key used in nbt tag compound to reference the text to be set in this widget.

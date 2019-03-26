@@ -71,7 +71,6 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
 
     protected void doWork() { }
 
-    @SuppressWarnings("WeakerAccess")
     protected void testForDirtyFeatures() {
         if ((this.dirtyFeatures.size() > 0) && !this.getWorld().isRemote) {
             final NBTTagCompound nbt = this.getFeaturesUpdateTag(FeatureDirtyLevel.TICK,true);

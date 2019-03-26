@@ -3,7 +3,6 @@ package com.mcmoddev.lib.container.widget;
 /**
  * Base implementation of an {@link IWidget}.
  */
-@SuppressWarnings("WeakerAccess")
 public abstract class BaseWidget implements IWidget {
     private final String key;
     private final boolean canBeDirty;

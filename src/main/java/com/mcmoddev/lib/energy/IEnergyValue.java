@@ -7,6 +7,7 @@ import java.util.Objects;
  * @param <T> The type of the value this energy system works with.
  *            (for example: {@link Integer} for RF and ForgeEnergy, {@link Long} for Tesla)
  */
+@SuppressWarnings("rawtypes")
 public interface IEnergyValue<T> extends Comparable<IEnergyValue<T>> {
     /**
      * The {@link IEnergySystem} this energy value stores energy values for.

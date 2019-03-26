@@ -21,7 +21,7 @@ import net.minecraftforge.energy.IEnergyStorage;
  * Base implementation of an {@link IGenericEnergyStorage}.
  * @param <T> The type of energy value this storage stores. (ie. Integer for Forge Energy and RF, Long for Tesla etc)
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings("rawtypes")
 public abstract class BaseGenericEnergyStorage<T> implements IGenericEnergyStorage<T>, INBTSerializable<NBTTagCompound>, ICapabilityProvider {
     private IEnergyValue<T> stored;
     private final IEnergyValue<T> capacity;

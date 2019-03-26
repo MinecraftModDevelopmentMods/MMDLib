@@ -4,6 +4,7 @@ package com.mcmoddev.lib.energy;
  * Represents a common way to handle consumers/providers/holders of different energy from various energy system.
  * This is in most cases attached to a TileEntity or an ItemStack.
  */
+@SuppressWarnings("rawtypes")
 public interface IEnergyAdapter {
     /**
      * Gets the energy system this adapter was created for.

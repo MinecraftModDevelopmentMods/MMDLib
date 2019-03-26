@@ -3,6 +3,7 @@ package com.mcmoddev.lib.energy;
 import com.mcmoddev.lib.energy.util.EnergyValueUtils;
 import net.minecraftforge.energy.IEnergyStorage;
 
+@SuppressWarnings("rawtypes")
 public class ForgeEnergyAdapter implements IEnergyAdapter {
     private final IEnergyStorage storage;
 

@@ -8,7 +8,6 @@ import com.mcmoddev.lib.container.gui.layout.SinglePieceWrapper;
 import com.mcmoddev.lib.energy.ForgeEnergyStorage;
 import com.mcmoddev.lib.feature.ForgeEnergyBatteryFeature;
 
-@SuppressWarnings("WeakerAccess")
 public abstract class MMDEnergyConsumerTileEntity extends MMDStandardTileEntity {
     public static final int DEFAULT_ENERGY_CAPACITY = 50000;
     public static final int DEFAULT_ENERGY_INPUT_RATE = 120;

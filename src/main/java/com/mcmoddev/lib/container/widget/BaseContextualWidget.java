@@ -7,7 +7,6 @@ import net.minecraft.entity.player.EntityPlayer;
 /**
  * Base implementation of an {@link IContextualWidget}.
  */
-@SuppressWarnings("WeakerAccess")
 public class BaseContextualWidget extends BaseWidget implements IContextualWidget {
     private GuiContext context;
 

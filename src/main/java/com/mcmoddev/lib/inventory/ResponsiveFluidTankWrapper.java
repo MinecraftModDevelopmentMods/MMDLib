@@ -12,6 +12,7 @@ import net.minecraftforge.fluids.IFluidTank;
 /**
  * Basic implementation for {@link IResponsiveFluidTank} and {@link IFilteredFluidTank}.
  */
+@SuppressWarnings("unchecked")
 public class ResponsiveFluidTankWrapper implements IFluidTankModifiable, IResponsiveFluidTank, IFluidTank, IFilteredFluidTank {
     private final List<Consumer<IResponsiveFluidTank>> responsiveTargets = new ArrayList<>();
 
@@ -107,7 +108,6 @@ public class ResponsiveFluidTankWrapper implements IFluidTankModifiable, IRespon
     /**
      * Called when the content of this tank changes.
      */
-    @SuppressWarnings("WeakerAccess")
     protected void onChanged() {
         this.responsiveTargets.forEach(t -> t.accept(this));
     }

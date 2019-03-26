@@ -22,7 +22,6 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 
-@SuppressWarnings({"WeakerAccess", "unused"})
 public class ForgeEnergyBatteryFeature extends BaseFeature implements ICapabilityProvider, IClientFeature, IWidgetContainer {
     public static final int DEFAULT_INPUT_OUTPUT_RATE = 120;
 

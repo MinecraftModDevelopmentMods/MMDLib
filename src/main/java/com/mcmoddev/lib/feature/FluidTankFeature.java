@@ -38,7 +38,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 
-@SuppressWarnings({"WeakerAccess", "unused"})
 public class FluidTankFeature extends BaseFeature implements IClientFeature, IWidgetContainer {
     private final IFluidTankModifiable internalTank;
     private final IFluidTank externalTank;

@@ -9,6 +9,7 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 /**
  * Provides a serializable wrapper for a {@link IItemHandlerModifiable} which also has a method to notify about content being changed.
  */
+@SuppressWarnings("unchecked")
 public abstract class ItemHandlerWrapper implements IItemHandlerModifiable, INBTSerializable<NBTTagCompound> {
     private final IItemHandlerModifiable internal;
 

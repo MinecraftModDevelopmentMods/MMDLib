@@ -15,6 +15,7 @@ import mcp.MethodsReturnNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
+@SuppressWarnings("deprecation")
 public class MMDBlockWithTile<T extends MMDTileEntity> extends MMDBlockWithGui implements ITileEntityProvider {
     private final Class<T> tileClass;
     private final Supplier<T> tileClassCreator;

@@ -12,6 +12,7 @@ import cofh.redstoneflux.api.IEnergyContainerItem;
 import cofh.redstoneflux.api.IEnergyProvider;
 import cofh.redstoneflux.api.IEnergyReceiver;
 
+@SuppressWarnings("rawtypes")
 public class RFEnergySystem implements IForgeEnergyCompatible<Integer> {
     @Override
     public String getDependencyModId() {

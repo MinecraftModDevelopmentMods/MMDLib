@@ -14,7 +14,6 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-@SuppressWarnings("WeakerAccess")
 @SideOnly(Side.CLIENT)
 public abstract class BaseLayout implements IWidgetLayout, IWidgetGuiDebugInfo {
     public static final float CHILD_Z_INCREASE = 0.01f;

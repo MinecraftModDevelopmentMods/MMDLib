@@ -11,7 +11,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * An action widget implementation that handles a single int data.
  */
-@SuppressWarnings({"unused", "UnusedReturnValue", "WeakerAccess"})
 public class ActionIntWidget extends ActionWidget {
     /**
      * Key used in nbt tag compound to reference the value to be set in this widget.

@@ -4,6 +4,7 @@ import com.mcmoddev.lib.energy.EnergySystemRegistry;
 import com.mcmoddev.lib.energy.ForgeEnergyValue;
 import com.mcmoddev.lib.energy.IEnergyValue;
 
+@SuppressWarnings("rawtypes")
 public final class EnergyValueUtils {
     protected EnergyValueUtils() {}
 

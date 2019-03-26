@@ -15,7 +15,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
  * Base implementation of a widget than can handle GUI interactions.
  * Can be used to react to interactions on both client and/or server side without having to deal with network packets.
  */
-@SuppressWarnings({"WeakerAccess", "unused"})
 public class ActionWidget extends BaseContextualWidget {
     private static final String ACTION_CALL_TAG_NAME = "_invokeAction";
 

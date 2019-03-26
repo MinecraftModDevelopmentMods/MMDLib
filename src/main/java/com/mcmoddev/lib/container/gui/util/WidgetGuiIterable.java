@@ -10,7 +10,6 @@ import com.mcmoddev.lib.container.gui.IWidgetLayout;
 /**
  * Iterable implementation used to enumerate the entire sub-tree of an {@link IWidgetGui}.
  */
-@SuppressWarnings("WeakerAccess")
 public class WidgetGuiIterable implements Iterable<IWidgetGui> {
     private final IWidgetGui root;
 

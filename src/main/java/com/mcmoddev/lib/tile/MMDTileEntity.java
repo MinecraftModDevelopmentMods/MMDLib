@@ -80,7 +80,6 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
         return compound;
     }
 
-    @SuppressWarnings("WeakerAccess")
     protected void writeToUpdateTag(final NBTTagCompound tag) {
         // just send the entire entity by default
         this.writeToNBT(tag);
@@ -98,12 +97,10 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
         }
     }
 
-    @SuppressWarnings("WeakerAccess")
     protected void readFromUpdateTag(final NBTTagCompound tag) {
         this.readFromNBT(tag);
     }
 
-    @SuppressWarnings("WeakerAccess")
     protected void sendToListeningClients(final NBTTagCompound nbt) {
         final ChunkPos cp = world.getChunk(pos).getPos();
         final PlayerChunkMapEntry entry = ((WorldServer)world).getPlayerChunkMap().getEntry(cp.x, cp.z);

@@ -2,6 +2,7 @@ package com.mcmoddev.lib.energy;
 
 import java.text.NumberFormat;
 
+@SuppressWarnings("rawtypes")
 public class ForgeEnergyValue extends BaseEnergyValue<Integer> {
     public ForgeEnergyValue(final int value) {
         super(EnergySystemRegistry.FORGE_ENERGY, value);

@@ -18,7 +18,6 @@ import mcp.MethodsReturnNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@SuppressWarnings("WeakerAccess")
 public class MMDBlockWithGui extends Block {
     public MMDBlockWithGui(final Material blockMaterialIn, final MapColor blockMapColorIn) {
         super(blockMaterialIn, blockMapColorIn);

@@ -7,6 +7,7 @@ import com.mcmoddev.lib.energy.IEnergyValue;
 import net.minecraft.item.ItemStack;
 import cofh.redstoneflux.api.IEnergyContainerItem;
 
+@SuppressWarnings("rawtypes")
 public class RFEnergyAdapterItem implements IEnergyAdapter {
     private final IEnergyContainerItem container;
     private final ItemStack stack;

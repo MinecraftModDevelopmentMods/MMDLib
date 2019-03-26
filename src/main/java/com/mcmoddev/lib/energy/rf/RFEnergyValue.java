@@ -5,6 +5,7 @@ import com.mcmoddev.lib.energy.BaseEnergyValue;
 import com.mcmoddev.lib.energy.EnergySystemRegistry;
 import com.mcmoddev.lib.energy.IEnergyValue;
 
+@SuppressWarnings("rawtypes")
 public class RFEnergyValue extends BaseEnergyValue<Integer> {
     public RFEnergyValue(final int value) {
         super(EnergySystemRegistry.RF, value);
