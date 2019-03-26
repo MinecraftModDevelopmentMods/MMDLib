@@ -2,7 +2,6 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_slab",
-		"item": "mmdlib:obsidian_slab",
 		"data": 0,
 		"count": 6
 	},
@@ -21,18 +20,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Slab"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

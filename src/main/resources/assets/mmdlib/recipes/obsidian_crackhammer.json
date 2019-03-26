@@ -2,7 +2,6 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_crackhammer",
-		"item": "mmdlib:obsidian_crackhammer",
 		"data": 0
 	},
 	"pattern": [
@@ -26,18 +25,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"
 				},
 				{
-					"type": "mmdlib:hammer"
 					"type": "mmdlib:hammer"
 				}
 			]

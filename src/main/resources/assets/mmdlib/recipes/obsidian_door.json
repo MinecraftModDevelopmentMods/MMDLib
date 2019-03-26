@@ -2,12 +2,10 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_door",
-		"item": "mmdlib:obsidian_door",
 		"data": 0,
 		"count": 3
 	},
 	"pattern": [
-		"xx",
 		"xx",
 		"xx"
 	],
@@ -23,18 +21,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Door"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

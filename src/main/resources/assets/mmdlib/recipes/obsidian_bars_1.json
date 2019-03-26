@@ -2,7 +2,6 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_bars",
-		"item": "mmdlib:obsidian_bars",
 		"data": 0,
 		"count": 16
 	},
@@ -22,18 +21,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Bars"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

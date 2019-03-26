@@ -2,7 +2,6 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_pressure_plate",
-		"item": "mmdlib:obsidian_pressure_plate",
 		"data": 0
 	},
 	"pattern": [
@@ -20,18 +19,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "PressurePlate"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

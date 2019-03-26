@@ -2,7 +2,6 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_button",
-		"item": "mmdlib:obsidian_button",
 		"data": 0
 	},
 	"pattern": [
@@ -21,18 +20,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Button"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

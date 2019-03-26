@@ -2,7 +2,6 @@
 	"type": "forge:ore_shapeless",
 	"result": {
 		"item": "mmdlib:obsidian_nugget",
-		"item": "mmdlib:obsidian_nugget",
 		"data": 0,
 		"count": 9
 	},
@@ -18,12 +17,10 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

@@ -2,7 +2,6 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_arrow",
-		"item": "mmdlib:obsidian_arrow",
 		"data": 0,
 		"count": 4
 	},
@@ -18,7 +17,6 @@
 		},
 		"y": {
 			"item": "mmdlib:obsidian_rod",
-			"item": "mmdlib:obsidian_rod",
 			"data": 0
 		},
 		"z": {
@@ -32,18 +30,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "BowAndArrow"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

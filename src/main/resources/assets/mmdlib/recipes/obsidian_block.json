@@ -6,7 +6,6 @@
 	},
 	"pattern": [
 		"xxx",
-		"xxx",
 		"xxx"
 	],
 	"key": {
@@ -21,12 +20,10 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"

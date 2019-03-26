@@ -2,7 +2,6 @@
 	"type": "forge:ore_shaped",
 	"result": {
 		"item": "mmdlib:obsidian_crossbow",
-		"item": "mmdlib:obsidian_crossbow",
 		"data": 0
 	},
 	"pattern": [
@@ -13,7 +12,6 @@
 	"key": {
 		"x": {
 			"item": "mmdlib:obsidian_rod",
-			"item": "mmdlib:obsidian_rod",
 			"data": 0
 		},
 		"y": {
@@ -21,7 +19,6 @@
 			"data": 0
 		},
 		"z": {
-			"item": "mmdlib:obsidian_gear",
 			"item": "mmdlib:obsidian_gear",
 			"data": 0
 		}
@@ -32,24 +29,20 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "CrossbowAndBolt"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Rod"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Gear"

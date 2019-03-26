@@ -1,8 +1,6 @@
 {
 	"type": "mmdlib:variableOutputOre",
-	"type": "mmdlib:variableOutputOre",
 	"result": {
-		"item": "mmdlib:obsidian_gear",
 		"item": "mmdlib:obsidian_gear",
 		"data": 0
 	},
@@ -18,7 +16,6 @@
 		},
 		"r": {
 			"item": "mmdlib:obsidian_rod",
-			"item": "mmdlib:obsidian_rod",
 			"data": 0
 		}
 	},
@@ -28,18 +25,15 @@
 			"values": [
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "material",
 					"optionValue": "Obsidian"
 				},
 				{
 					"type": "mmdlib:enabled",
-					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Gear"
 				},
 				{
-					"type": "mmdlib:enabled",
 					"type": "mmdlib:enabled",
 					"optionName": "thing",
 					"optionValue": "Basics"
