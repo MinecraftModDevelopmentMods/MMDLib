@@ -1,0 +1,55 @@
+{
+	"type": "forge:ore_shaped",
+	"result": {
+		"item": "mmdlib:obsidian_lever",
+		"item": "mmdlib:obsidian_lever",
+		"data": 0
+	},
+	"pattern": [
+		"x",
+		"y"
+	],
+	"key": {
+		"x": {
+			"item": "mmdlib:obsidian_rod",
+			"item": "mmdlib:obsidian_rod",
+			"data": 0
+		},
+		"y": {
+			"type": "forge:ore_dict",
+			"ore": "ingotObsidian"
+		}
+	},
+	"conditions": [
+		{
+			"type": "forge:and",
+			"values": [
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "material",
+					"optionValue": "Obsidian"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Lever"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Rod"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Basics"
+				}
+			]
+		}
+	],
+	"group": "vanilla"
+}

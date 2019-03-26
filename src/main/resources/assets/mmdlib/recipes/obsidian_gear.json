@@ -1,0 +1,52 @@
+{
+	"type": "mmdlib:variableOutputOre",
+	"type": "mmdlib:variableOutputOre",
+	"result": {
+		"item": "mmdlib:obsidian_gear",
+		"item": "mmdlib:obsidian_gear",
+		"data": 0
+	},
+	"pattern": [
+		" x ",
+		"xrx",
+		" x "
+	],
+	"key": {
+		"x": {
+			"type": "forge:ore_dict",
+			"ore": "ingotObsidian"
+		},
+		"r": {
+			"item": "mmdlib:obsidian_rod",
+			"item": "mmdlib:obsidian_rod",
+			"data": 0
+		}
+	},
+	"conditions": [
+		{
+			"type": "forge:and",
+			"values": [
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "material",
+					"optionValue": "Obsidian"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Gear"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Basics"
+				}
+			]
+		}
+	],
+	"config_key": "gear",
+	"group": "vanilla"
+}

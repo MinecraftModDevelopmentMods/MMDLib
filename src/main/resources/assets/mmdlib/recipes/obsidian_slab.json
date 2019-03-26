@@ -1,0 +1,44 @@
+{
+	"type": "forge:ore_shaped",
+	"result": {
+		"item": "mmdlib:obsidian_slab",
+		"item": "mmdlib:obsidian_slab",
+		"data": 0,
+		"count": 6
+	},
+	"pattern": [
+		"xxx"
+	],
+	"key": {
+		"x": {
+			"type": "forge:ore_dict",
+			"ore": "obsidian"
+		}
+	},
+	"conditions": [
+		{
+			"type": "forge:and",
+			"values": [
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "material",
+					"optionValue": "Obsidian"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Slab"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Basics"
+				}
+			]
+		}
+	],
+	"group": "vanilla"
+}

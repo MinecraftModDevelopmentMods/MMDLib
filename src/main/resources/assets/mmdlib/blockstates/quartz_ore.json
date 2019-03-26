@@ -1,0 +1,5 @@
+{
+    "variants": {
+        "normal": { "model": "mmdlib:quartz_ore" }
+    }
+}
