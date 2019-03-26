@@ -29,3 +29,8 @@ classes
 secret.json
 
 .DS_Store
+
+*.log
+# bits from local use that should never be sync'd
+holding
+holding/*
