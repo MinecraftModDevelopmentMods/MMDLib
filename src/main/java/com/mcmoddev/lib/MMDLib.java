@@ -1,7 +1,6 @@
 package com.mcmoddev.lib;
 
 import com.mcmoddev.lib.data.SharedStrings;
-import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.integration.IntegrationManager;
 import com.mcmoddev.lib.proxy.CommonProxy;
 import com.mcmoddev.lib.util.MMDLibConfig;
@@ -121,14 +120,6 @@ public class MMDLib {
 	@EventHandler
 	public static void postInit(FMLPostInitializationEvent event) {
 		proxy.postInit(event);
-		Materials.getAllMaterials().stream()
-		.forEach(mat -> {
-			logger.fatal("Material {}", mat.getName());
-			mat.getItems().stream()
-				.forEach(is -> logger.fatal("item {} ({} / {})", is.getDisplayName(), is.getItem().getRegistryName(), is.getItem()));
-			mat.getBlocks().stream()
-			.forEach(bl -> logger.fatal("item {} ({} / {})", bl.getLocalizedName(), bl.getRegistryName(), bl));
-		});
 		// if we have anything else to do here, check 'proxy.allsGood' first
 	}
 }

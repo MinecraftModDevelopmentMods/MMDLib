@@ -27,11 +27,6 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		// TODO Auto-generated constructor stub
 	}
 	
-	@SubscribeEvent(priority=EventPriority.LOWEST)
-	public static void itemRegistryEvent(RegistryEvent.Register<Item> ev) {
-		Oredicts.registerItemOreDictionaryEntries();
-		Oredicts.registerBlockOreDictionaryEntries();
-	}
 	@SubscribeEvent(priority=EventPriority.HIGHEST)
 	public static void registerItemsEvent(MMDLibRegisterItems ev) {
 		Materials.getMaterialByName(VanillaMaterialNames.CHARCOAL).addNewItemFromItemStack(Names.INGOT,
@@ -87,6 +82,8 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		//these bits just are too... specialized to fit the iteration above
 		create(Names.ROD, Materials.getMaterialByName(VanillaMaterialNames.STONE));
 		create(Names.SMALLPOWDER, Materials.getMaterialByName(VanillaMaterialNames.LAPIS));
+		create(Names.INGOT, Materials.getMaterialByName(VanillaMaterialNames.OBSIDIAN));
+		create(Names.INGOT, Materials.getMaterialByName(VanillaMaterialNames.REDSTONE));
 	}
 	
 	private static void setBurnTimes(@Nonnull final MMDMaterial material) {

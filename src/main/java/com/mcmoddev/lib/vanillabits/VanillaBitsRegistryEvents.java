@@ -3,6 +3,7 @@ package com.mcmoddev.lib.vanillabits;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.MMDMaterial;
+import com.mcmoddev.lib.util.Oredicts;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
@@ -24,10 +25,7 @@ public class VanillaBitsRegistryEvents {
 		.filter(MMDMaterial::isVanilla)
 		.forEach(mat -> mat.getBlocks().stream()
 				.filter(bl -> "mmdlib".equals(bl.getRegistryName().getNamespace()))
-				.forEach(bl -> {
-					MMDLib.logger.fatal("Registering block {} ({})", bl.getRegistryName(), bl);
-					ev.getRegistry().register(bl);
-				}));
+				.forEach(bl -> ev.getRegistry().register(bl)));
 	}
 	
 	@SubscribeEvent
@@ -41,10 +39,10 @@ public class VanillaBitsRegistryEvents {
 		Materials.DEFAULT.getItems().stream()
 		.map(it -> it.getItem())
 		.filter(it -> "mmdlib".contentEquals(it.getRegistryName().getNamespace()))
-		.forEach(it -> {
-			MMDLib.logger.fatal("Registering {} ({})", it.getRegistryName(), it);
-			ev.getRegistry().register(it);
-		});
+		.forEach(it -> ev.getRegistry().register(it));
+		
+		Oredicts.registerBlockOreDictionaryEntries();
+		Oredicts.registerItemOreDictionaryEntries();
 	}
 	
 	@SubscribeEvent

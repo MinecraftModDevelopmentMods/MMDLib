@@ -46,25 +46,16 @@ public class CommonProxy {
 		com.mcmoddev.lib.init.Recipes.init();
 		com.mcmoddev.lib.init.VillagerTrades.init();
 
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid before events: {}", Loader.instance().activeModContainer().getModId());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterMaterialProperties());
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after MMDLibRegisterMaterialProperties: {}", Loader.instance().activeModContainer().getModId());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterMaterials());
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after MMDLibRegisterMaterials: {}", Loader.instance().activeModContainer().getModId());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterBlocks());
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after MMDLibRegisterBlocks: {}", Loader.instance().activeModContainer().getModId());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterItems());
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after MMDLibRegisterItems: {}", Loader.instance().activeModContainer().getModId());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterFluids());
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after MMDLibRegisterFluids: {}", Loader.instance().activeModContainer().getModId());
 
 
 		IntegrationManager.INSTANCE.preInit(event);
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after Integrations Pre-Init: {}", Loader.instance().activeModContainer().getModId());
 		MinecraftForge.EVENT_BUS.post(new MMLibPreInitSync());
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after MMDLibPreInitSync: {}", Loader.instance().activeModContainer().getModId());
 		IntegrationManager.INSTANCE.preInitPhase();
-		com.mcmoddev.lib.MMDLib.logger.fatal("ActiveModContainer modid after Integrations Pre-Init phase: {}", Loader.instance().activeModContainer().getModId());
 	}
 
 	/**
