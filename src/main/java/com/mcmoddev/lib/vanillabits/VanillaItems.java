@@ -11,11 +11,9 @@ import com.mcmoddev.lib.events.MMDLibRegisterItems;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDBurnableObject;
 import com.mcmoddev.lib.material.MMDMaterial;
-import com.mcmoddev.lib.util.Oredicts;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.event.RegistryEvent;
+
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -76,8 +74,12 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 				VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.REDSTONE, 
 				VanillaMaterialNames.QUARTZ).stream()
 		.map(Materials::getMaterialByName).forEach(material -> 
-		Arrays.asList(Names.NUGGET, Names.SMALLPOWDER, Names.POWDER).stream().filter(n -> !material.hasItem(n))
+		Arrays.asList(Names.SMALLPOWDER, Names.POWDER).stream().filter(n -> !material.hasItem(n))
 		.forEach(n -> create(n, material)));
+		Arrays.asList(VanillaMaterialNames.COAL, VanillaMaterialNames.CHARCOAL, VanillaMaterialNames.DIAMOND,
+				VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD, VanillaMaterialNames.IRON, 
+				VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.QUARTZ).stream()
+		.map(Materials::getMaterialByName).forEach(material -> create(Names.NUGGET, material));
 		
 		//these bits just are too... specialized to fit the iteration above
 		create(Names.ROD, Materials.getMaterialByName(VanillaMaterialNames.STONE));
