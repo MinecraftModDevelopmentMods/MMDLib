@@ -20,7 +20,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * Basic implementation of a {@link IFeatureHolder feature holder} that works with item stacks.
  */
-@SuppressWarnings("WeakerAccess")
 public class BaseItemStackFeatureHolder implements IFeatureHolder, IWidgetContainer {
     private final ItemStack stack;
     private final List<IFeature> features = Lists.newArrayList();

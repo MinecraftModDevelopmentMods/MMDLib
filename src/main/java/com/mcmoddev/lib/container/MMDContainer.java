@@ -23,7 +23,6 @@ import net.minecraftforge.common.util.Constants;
 /**
  * Represents the base implementation of a Container that can handle an {@link IWidgetContainer}.
  */
-@SuppressWarnings("WeakerAccess")
 public class MMDContainer extends Container {
     private final static double MAX_INTERACT_DISTANCE = 64.0;
 

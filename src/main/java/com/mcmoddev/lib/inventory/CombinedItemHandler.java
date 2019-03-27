@@ -11,7 +11,6 @@ import net.minecraftforge.items.IItemHandler;
 /**
  * Class that can be used to combine multiple {@link IItemHandler IItemHandlers} together.
  */
-@SuppressWarnings("WeakerAccess")
 public class CombinedItemHandler implements IItemHandler {
     /**
      * The internal list of item handlers.

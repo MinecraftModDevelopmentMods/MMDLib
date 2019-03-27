@@ -14,7 +14,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * Holds all the information about a MMD GUI.
  */
-@SuppressWarnings({"WeakerAccess", "unused"})
 public class GuiContext {
     private final EntityPlayer player;
     private final MMDContainer container;

@@ -4,7 +4,6 @@ import com.mcmoddev.lib.container.gui.util.Size2D;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-@SuppressWarnings("WeakerAccess")
 @SideOnly(Side.CLIENT)
 public abstract class BaseSpriteGui extends BaseWidgetGui {
     protected final IGuiSprite sprite;

@@ -1,0 +1,6 @@
+{
+    "parent": "mmdlib:item/obsidian_bow",
+    "textures": {
+        "layer0": "mmdlib:items/obsidian_bow_pulling_2"
+    }
+}

@@ -9,6 +9,7 @@ import net.darkhax.tesla.api.ITeslaConsumer;
 import net.darkhax.tesla.api.ITeslaHolder;
 import net.darkhax.tesla.api.ITeslaProducer;
 
+@SuppressWarnings("rawtypes")
 public class TeslaEnergyAdapter implements IEnergyAdapter {
     private final ITeslaConsumer consumer;
     private final ITeslaHolder holder;

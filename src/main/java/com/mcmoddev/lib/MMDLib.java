@@ -66,7 +66,7 @@ public class MMDLib {
 	@SidedProxy(clientSide = PROXY_BASE + "ClientProxy", serverSide = PROXY_BASE + "ServerProxy")
 	public static CommonProxy proxy;
 
-	public static final Logger logger = LogManager.getFormatterLogger(MMDLib.MODID);
+	public static final Logger logger = LogManager.getLogger(MMDLib.MODID);
 
 	static {
 		// Forge says this needs to be statically initialized here.

@@ -17,6 +17,7 @@ import net.darkhax.tesla.api.ITeslaHolder;
 import net.darkhax.tesla.api.ITeslaProducer;
 import net.darkhax.tesla.capability.TeslaCapabilities;
 
+@SuppressWarnings("rawtypes")
 public class TeslaEnergySystem implements IForgeEnergyCompatible<Long> {
     @Override
     public String getDependencyModId() {

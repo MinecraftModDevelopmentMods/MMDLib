@@ -10,6 +10,7 @@ import cofh.redstoneflux.api.IEnergyHandler;
 import cofh.redstoneflux.api.IEnergyProvider;
 import cofh.redstoneflux.api.IEnergyReceiver;
 
+@SuppressWarnings("rawtypes")
 public class RFEnergyAdapter implements IEnergyAdapter {
     private final IEnergyReceiver receiver;
     private final IEnergyHandler handler;

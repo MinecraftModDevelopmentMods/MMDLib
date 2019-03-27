@@ -2,6 +2,7 @@ package com.mcmoddev.lib.container.gui;
 
 import net.minecraft.inventory.Slot;
 
+@SuppressWarnings("unused")
 public class SlotGuiWidget extends SpriteBackgroundGui {
     private final Slot slot;
 

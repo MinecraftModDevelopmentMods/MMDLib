@@ -27,7 +27,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * Base implementation of a gui provider for an item stack that has an item that implements {@link IItemStackFeatureHolder}.
  */
-@SuppressWarnings("WeakerAccess")
 public class BaseItemStackWidgetProvider implements IGuiProvider, IWidgetContainer {
     private final ItemStack stack;
     private final Item item;

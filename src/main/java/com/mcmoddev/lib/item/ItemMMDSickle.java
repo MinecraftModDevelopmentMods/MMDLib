@@ -280,6 +280,8 @@ public class ItemMMDSickle extends ItemTool implements IMMDObject {
 	@Override
 	public void addInformation(final ItemStack stack, final World worldIn,
 			final List<String> tooltip, final ITooltipFlag flagIn) {
-		tooltip.addAll(this.getMMDMaterial().getTooltipFor(Names.SCYTHE));
+		List<String> tt = this.getMMDMaterial().getTooltipFor(Names.SCYTHE);
+		if(!tt.isEmpty())
+			tooltip.addAll(tt);
 	}
 }

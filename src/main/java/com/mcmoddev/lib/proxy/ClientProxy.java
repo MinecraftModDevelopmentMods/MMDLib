@@ -1,6 +1,8 @@
 package com.mcmoddev.lib.proxy;
 
-import com.mcmoddev.lib.material.MMDMaterial;
+import com.mcmoddev.lib.MMDLib;
+import com.mcmoddev.lib.client.registrations.RegistrationHelper;
+import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.init.*;
 
 import net.minecraft.block.Block;
@@ -12,9 +14,9 @@ import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -25,17 +27,30 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  * @author Jasmine Iwanek
  *
  */
+@Mod.EventBusSubscriber(modid=MMDLib.MODID)
 public class ClientProxy extends CommonProxy {
 
 	@Override
 	public void preInit(FMLPreInitializationEvent event) {
 		super.preInit(event);
-		MinecraftForge.EVENT_BUS.register(this);
-		// only client-only events we have are the creative tabs ones...
 	}
-
+	/**
+	 * Registers Block and Item models for this mod.
+	 *
+	 * @param event The Event.
+	 */
 	@SubscribeEvent
-	public void fluidRendering(RegistryEvent.Register<MMDMaterial> ev) {
+	public static void registerModels(final ModelRegistryEvent event) {
+		for (final String name : Items.getItemRegistry().keySet()) {
+			if (!name.endsWith(Names.ANVIL.toString())) {
+				RegistrationHelper.registerItemRender(name);
+			}
+		}
+
+		for (final String name : Blocks.getBlockRegistry().keySet()) {
+			RegistrationHelper.registerBlockRender(name);
+		}
+	
 		for (final String name : Fluids.getFluidBlockRegistry().keySet()) {
 			final Block block = Fluids.getFluidBlockByName(name);
 			final Item item = Item.getItemFromBlock(block);
@@ -50,8 +65,9 @@ public class ClientProxy extends CommonProxy {
 				}
 			});
 		}
+
 	}
-	
+
 	@Override
 	public void init(FMLInitializationEvent event) {
 		super.init(event);

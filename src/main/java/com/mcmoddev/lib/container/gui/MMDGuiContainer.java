@@ -24,7 +24,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings("unused")
 public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
     protected final IWidgetContainer holder;
     protected final EntityPlayer player;

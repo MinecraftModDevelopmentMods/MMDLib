@@ -1,0 +1,6 @@
+{
+    "parent": "mmdlib:item/quartz_bow",
+    "textures": {
+        "layer0": "mmdlib:items/quartz_bow_pulling_0"
+    }
+}

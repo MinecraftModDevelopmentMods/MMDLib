@@ -5,7 +5,6 @@ import com.mcmoddev.lib.util.GuiUtils;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-@SuppressWarnings("WeakerAccess")
 public class ColorOverlayPiece extends BaseWidgetGui {
     private int color;
 

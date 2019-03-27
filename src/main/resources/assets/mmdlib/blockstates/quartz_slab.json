@@ -1,0 +1,6 @@
+{
+    "variants": {
+        "half=bottom,variant=default": { "model": "mmdlib:half_slab_quartz" },
+        "half=top,variant=default": { "model": "mmdlib:upper_slab_quartz" }
+    }
+}

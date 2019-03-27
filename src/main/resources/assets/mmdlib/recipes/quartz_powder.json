@@ -1,0 +1,35 @@
+{
+	"type": "forge:ore_shaped",
+	"result": {
+		"item": "mmdlib:quartz_powder",
+		"data": 0
+	},
+	"pattern": [
+		"xxx",
+		"xxx"
+	],
+	"key": {
+		"x": {
+			"type": "forge:ore_dict",
+			"ore": "dustTinyQuartz"
+		}
+	},
+	"conditions": [
+		{
+			"type": "forge:and",
+			"values": [
+				{
+					"type": "mmdlib:enabled",
+					"optionName": "material",
+					"optionValue": "Quartz"
+				},
+				{
+					"type": "mmdlib:enabled",
+					"optionName": "thing",
+					"optionValue": "Basics"
+				}
+			]
+		}
+	],
+	"group": "vanilla"
+}

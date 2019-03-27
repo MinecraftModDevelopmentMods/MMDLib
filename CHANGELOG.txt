@@ -1,0 +1,7 @@
+1) (@dshadowwolf and others) Sync to latest code in current conjoined BaseMetals to get bugfixes and API updates.
+2) (@faceofcat) Add GUI interface wrappers and layer
+3) (@faceofcat) Add Capabilities wrapper and layers - this is extensible and has hooks for latching all existing power systems equally
+4) (@dshadowwolf) Implement MMDLib specific startup events and ordering properly
+5) (@dshadowwolf) Remove interdependency of MMDToolEffects and some other pieces
+6) (@dshadowwolf) Update MMDMaterial to have hooks for providing a means to get a custom FluidBlock and custom Tooltips on a per-material basis, the tooltips store on a per-item basis
+7) (@dshadowwolf) Move Tool effects and Armor effects to the "MMDMaterialProperty" system - note that the current form is limited to replicating ***EXACTLY*** what existed before and work needs to be done to make it so that it can apply in a generic manner to any item or block

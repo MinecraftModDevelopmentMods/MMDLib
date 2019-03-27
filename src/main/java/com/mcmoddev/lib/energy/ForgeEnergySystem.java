@@ -9,6 +9,7 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 
+@SuppressWarnings("rawtypes")
 public class ForgeEnergySystem implements IForgeEnergyCompatible<Integer> {
     @Override
     public String getDependencyModId() {
@@ -97,13 +98,11 @@ public class ForgeEnergySystem implements IForgeEnergyCompatible<Integer> {
         }
 
         @Override
-        @SuppressWarnings({"ConstantConditions", "unchecked"})
         public int getEnergyStored() {
             return EnergySystemRegistry.FORGE_ENERGY.convertToFE(this.storage.getStoredValue()).getValue();
         }
 
         @Override
-        @SuppressWarnings({"ConstantConditions", "unchecked"})
         public int getMaxEnergyStored() {
             return EnergySystemRegistry.FORGE_ENERGY.convertToFE(this.storage.getCapacityValue()).getValue();
         }

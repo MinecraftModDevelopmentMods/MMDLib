@@ -10,7 +10,6 @@ import net.minecraftforge.items.SlotItemHandler;
 /**
  * A {@link SlotItemHandler} that supports filtering.
  */
-@SuppressWarnings("WeakerAccess")
 public class FilteredSlot extends SlotItemHandler {
     private final int index;
     private final IFilteredItemHandler filterInventory;

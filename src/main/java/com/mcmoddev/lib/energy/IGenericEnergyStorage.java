@@ -5,6 +5,7 @@ package com.mcmoddev.lib.energy;
  * @param <T> The type of the value this energy storage's {@link #getBaseSystem() base energy system} works with.
  *           (for example: {@link Integer} for RF and ForgeEnergy, {@link Long} for Tesla)
  */
+@SuppressWarnings("rawtypes")
 public interface IGenericEnergyStorage<T> {
     /**
      * Gets the base {@link IEnergySystem} that is used for this storage.

@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
  * Provides an easy "automatic" way of converting between two energy system by using Forge Energy as a middle ground.
  * @param <T> The type of the value this energy system works with. See {@link IEnergySystem} for details.
  */
+@SuppressWarnings("rawtypes")
 public interface IForgeEnergyCompatible<T> extends IEnergySystem<T> {
     /**
      * Converts an energy value of this energy system into Forge Energy.

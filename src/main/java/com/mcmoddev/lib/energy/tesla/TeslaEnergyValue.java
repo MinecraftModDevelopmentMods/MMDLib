@@ -5,6 +5,7 @@ import com.mcmoddev.lib.energy.BaseEnergyValue;
 import com.mcmoddev.lib.energy.EnergySystemRegistry;
 import com.mcmoddev.lib.energy.IEnergyValue;
 
+@SuppressWarnings("rawtypes")
 public class TeslaEnergyValue extends BaseEnergyValue<Long> {
     public TeslaEnergyValue(final long value) {
         super(EnergySystemRegistry.TESLA, value);

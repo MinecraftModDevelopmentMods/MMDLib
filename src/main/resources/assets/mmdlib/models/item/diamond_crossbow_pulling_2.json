@@ -1,0 +1,6 @@
+{
+    "parent": "mmdlib:item/diamond_crossbow",
+    "textures": {
+        "layer0": "mmdlib:items/diamond_crossbow_pulling_2"
+    }
+}

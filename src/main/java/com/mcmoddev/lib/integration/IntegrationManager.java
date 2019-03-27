@@ -127,7 +127,7 @@ public enum IntegrationManager {
 								return myRange.toStringFriendly();
 							}
 						});
-						MMDLib.logger.fatal("versions: %s - %s!!%s - %s", entry, bits[0],
+						MMDLib.logger.fatal("versions: {} - {}!!{} - {}", entry, bits[0],
 								bits[1], rv);
 					} else {
 						rv.put(targetModId, match -> true);

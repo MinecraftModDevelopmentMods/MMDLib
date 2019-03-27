@@ -12,7 +12,7 @@ import net.minecraft.util.EnumFacing;
 /**
  * Provides registration support for {@link IEnergySystem energy system}.
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings("rawtypes")
 public final class EnergySystemRegistry {
     public static final ForgeEnergySystem FORGE_ENERGY = new ForgeEnergySystem();
     public static final TeslaEnergySystem TESLA = new TeslaEnergySystem();

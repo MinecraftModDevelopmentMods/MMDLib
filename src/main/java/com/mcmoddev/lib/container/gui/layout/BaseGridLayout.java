@@ -12,7 +12,6 @@ import com.mcmoddev.lib.container.gui.util.Size2D;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-@SuppressWarnings("WeakerAccess")
 @SideOnly(Side.CLIENT)
 public abstract class BaseGridLayout extends BaseLayout implements IWidgetLayoutDebugInfo {
     // TODO: add piece align in the cell

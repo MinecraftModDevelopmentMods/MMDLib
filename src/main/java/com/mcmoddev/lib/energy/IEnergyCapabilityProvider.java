@@ -6,6 +6,7 @@ import net.minecraftforge.common.capabilities.Capability;
 /**
  * Provides a way for an {@link IEnergySystem} to provide capabilities for an {@link IGenericEnergyStorage} instance.
  */
+@SuppressWarnings("rawtypes")
 public interface IEnergyCapabilityProvider {
     /**
      * Determines if this object has support for the capability in question for a specific energy storage.

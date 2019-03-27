@@ -1,0 +1,8 @@
+{
+    "parent": "block/anvil",
+    "textures": {
+        "particle": "mmdlib:blocks/stone_anvil_base",
+        "body": "mmdlib:blocks/stone_anvil_base",
+        "top": "mmdlib:blocks/stone_anvil_top_damaged_2"
+    }
+}

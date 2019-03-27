@@ -8,7 +8,6 @@ import net.minecraft.inventory.Slot;
 /**
  * Basic implementation of {@link IContainerSlot}.
  */
-@SuppressWarnings({"WeakerAccess", "unused"})
 public abstract class BaseContainerSlot implements IContainerSlot {
     private int index;
 

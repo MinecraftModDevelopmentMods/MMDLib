@@ -8,7 +8,6 @@ import net.minecraft.nbt.NBTTagCompound;
 /**
  * Base implementation of a server side only feature.
  */
-@SuppressWarnings("WeakerAccess")
 public abstract class BaseFeature implements IFeature, IServerFeature {
     private final String key;
     private boolean dirty = false;

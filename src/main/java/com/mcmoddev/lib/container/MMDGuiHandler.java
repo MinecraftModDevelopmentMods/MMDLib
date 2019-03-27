@@ -14,7 +14,6 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 /**
  * MMDLib implementation of {@link IGuiHandler}.
  */
-@SuppressWarnings("WeakerAccess")
 public class MMDGuiHandler implements IGuiHandler {
     /**
      * The unique instance of MMDGuiHandler.

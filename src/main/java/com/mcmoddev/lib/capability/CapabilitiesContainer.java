@@ -20,6 +20,7 @@ import net.minecraftforge.items.IItemHandler;
  * Reference implementation of an {@link ICapabilitiesContainer} that will automatically merge all {@link IItemHandler}
  * and {@link IFluidHandler} into just one capability.
  */
+@SuppressWarnings("unchecked")
 public class CapabilitiesContainer implements ICapabilitiesContainer, ICapabilityProvider {
     private class CapabilityInfo<T> implements ICapabilityProvider {
         private final Capability<T> capability;

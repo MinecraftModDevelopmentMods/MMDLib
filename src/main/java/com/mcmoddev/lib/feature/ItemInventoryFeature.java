@@ -25,7 +25,7 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
-@SuppressWarnings({"WeakerAccess", "unused", "UnusedReturnValue"})
+@SuppressWarnings("unchecked")
 public class ItemInventoryFeature extends BaseFeature implements IClientFeature, IWidgetContainer, ICapabilityProvider {
     private final IItemHandlerModifiable internalHandler;
     private final FilteredItemHandler externalHandler;

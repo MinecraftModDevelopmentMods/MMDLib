@@ -11,6 +11,7 @@ import net.minecraftforge.fluids.FluidTank;
 /**
  * Basic implementation of a fluid tank that implements {@link IResponsiveFluidTank}.
  */
+@SuppressWarnings("unchecked")
 public class SimpleFluidTank extends FluidTank implements IFluidTankModifiable, IResponsiveFluidTank {
     private final List<Consumer<IResponsiveFluidTank>> responsiveTargets = new ArrayList<>();
 

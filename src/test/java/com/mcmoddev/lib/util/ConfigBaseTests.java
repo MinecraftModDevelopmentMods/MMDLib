@@ -1,6 +1,6 @@
 package com.mcmoddev.lib.util;
 
-import com.mcmoddev.lib.util.ConfigBase.Options;
+import com.mcmoddev.lib.util.Config.Options;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;

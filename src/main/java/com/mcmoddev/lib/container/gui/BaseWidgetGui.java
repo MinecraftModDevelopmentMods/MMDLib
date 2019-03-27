@@ -54,12 +54,10 @@ public abstract class BaseWidgetGui implements IWidgetGui {
         return this.isVisible();
     }
 
-    @SuppressWarnings("WeakerAccess")
     protected void setVisibilityProtected(final boolean isVisible) {
         this.isVisible = isVisible;
     }
 
-    @SuppressWarnings("WeakerAccess")
     protected boolean canSetVisibility() {
         return true;
     }

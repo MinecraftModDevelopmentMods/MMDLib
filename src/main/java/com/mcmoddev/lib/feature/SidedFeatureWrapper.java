@@ -14,7 +14,6 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 
-@SuppressWarnings("WeakerAccess")
 public class SidedFeatureWrapper implements IFeature, IClientFeature, IServerFeature, ISidedFeature, ICapabilityProvider {
     private EnumFacing[] facings = null;
     private boolean dirty = false;

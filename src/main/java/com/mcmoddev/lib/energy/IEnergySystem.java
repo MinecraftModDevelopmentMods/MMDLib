@@ -12,6 +12,7 @@ import net.minecraftforge.fml.common.Loader;
  * @param <T> The type of the value this energy system works with.
  *           (for example: {@link Integer} for RF and ForgeEnergy, {@link Long} for Tesla)
  */
+@SuppressWarnings("rawtypes")
 public interface IEnergySystem<T> extends IEnergyCapabilityProvider {
     /**
      * Returns the mod id of the mod containing the interfaces for this energy system.

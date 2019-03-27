@@ -26,9 +26,9 @@ import net.minecraftforge.common.util.INBTSerializable;
 /**
  * Annotation based implementation of a widget that provides data.
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializable<NBTTagCompound> {
-    private final List<DataHandler> dataHandlers = new ArrayList<>();
+    private final List<DataHandler<?>> dataHandlers = new ArrayList<>();
 
     /**
      * Initializes a new instance of DataWidget.
@@ -97,7 +97,7 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
         //#endregion
 
         for(final String providerKey: providers.keySet()) {
-            final DataHandler handler = DataWidget.getDataHandler(providers.get(providerKey), providerKey);
+            final DataHandler<?> handler = DataWidget.getDataHandler(providers.get(providerKey), providerKey);
             if (handler == null) {
                 MMDLib.logger.warn("Could not find data handler for data widget field: '" + providerKey + "'.");
                 continue;
@@ -113,7 +113,7 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
      * @param value The value to be set to.
      * @implNote Method will have no effect if key is not found or value type doesn't match.
      */
-    public void setValue(final String valueKey, final Object value) {
+	public void setValue(final String valueKey, final Object value) {
         for(final DataHandler handler: this.dataHandlers) {
             if (handler.providerKey.equals(valueKey) && handler.expectedType.isInstance(value)) {
                 //noinspection unchecked
@@ -145,7 +145,7 @@ public class DataWidget extends BaseWidget implements IProxyWidget, INBTSerializ
      * @param <T> Expected type of the data field's value.
      * @return The value of the data field. Or null if key not found or value has different type.
      */
-    @Nullable
+	@Nullable
     public <T> T getValue(final Class<T> expected, final String valueKey) {
         for(final DataHandler handler: this.dataHandlers) {
             if (handler.providerKey.equals(valueKey) && expected.isAssignableFrom(handler.expectedType)) {
