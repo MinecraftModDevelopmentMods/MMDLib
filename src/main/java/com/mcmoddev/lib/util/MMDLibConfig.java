@@ -75,13 +75,10 @@ public class MMDLibConfig extends Config {
 						+ "material than the ore you are crushing."));
 		Options.setAutoDetectRecipes(configuration.getBoolean("automatic_recipes", GENERAL_CAT,
 				true,
-				"If true, then Base Metals will scan the Ore Dictionary to automatically add a \n"
+				"If true, then MMDLib will scan the Ore Dictionary to automatically add a \n"
 						+ "Crack Hammer recipe for every material that has an ore, dust, and ingot."));
-		Options.setRequireMMDOreSpawn(configuration.getBoolean("using_orespawn", GENERAL_CAT, true,
-				"If false, then Base Metals will not require MMD Ore Spawn mod. \n"
-						+ "Set to false if using another mod to manually handle ore generation."));
 		Options.setEnableAchievements(configuration.getBoolean("achievements", GENERAL_CAT, true,
-				"If false, then Base Metals Achievements will be disabled (This is currently required if you disable any metals"));
+				"If false, then MMDLib Achievements will be disabled (This is currently required if you disable any metals"));
 		Options.setCrackHammerFullStack(
 				configuration.getBoolean("crackhammer_full_stacks", GENERAL_CAT, false,
 						"If true then you can crackhammer full stacks of dropped items."));
@@ -93,12 +90,6 @@ public class MMDLibConfig extends Config {
 		Options.setTwoDustDrop(configuration.getBoolean("hammer_produces_two_dust", GENERAL_CAT,
 				true,
 				"If true, then the crack hammer when crushing ingots/ores two dust will drop"));
-		Options.thingEnabled(ConfigKeys.VILLAGER_TRADES, configuration.getBoolean("Enable Villager Trades", 
-				GENERAL_CAT, true, "No, not the Village People, trades with Villagers.\n" + 
-						"Basically... if you don't want BaseMetals (or other *Metals items and blocks) registered as trades with various villagers, set this to false"));
-		// fallback orespawn can live as a 'thingEnabled' for a bit...
-		Options.setFallbackOreSpawn(configuration.getBoolean("fallback_orespawn", GENERAL_CAT, true,
-				"disable this and using_orespawn to make MMDLib based mods not spawn any ores"));
 		Options.thingEnabled(ConfigKeys.IC2ITEMS_WITHOUT_PLUGIN, 
 				configuration.getBoolean("Enable IC2 Items", GENERAL_CAT, false, 
 						"Enable the items for IC2 support even if the IC2 plugin is disabled"));
