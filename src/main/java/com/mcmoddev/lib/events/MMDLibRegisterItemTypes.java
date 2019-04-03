@@ -9,11 +9,9 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.IContextSetter;
 
 public class MMDLibRegisterItemTypes extends Event implements IContextSetter {
-
+	private static ItemsAPI typeRegistry; 
+	
 	protected static final class ItemsAPI implements IRegAPI<Item> {
-		public ItemsAPI() {
-		}
-
 		@Override
 		public void addType(Class<? extends Item> clazz, Names name, boolean enabled) {
 			addType(clazz, name, enabled, null, null);
@@ -113,8 +111,6 @@ public class MMDLibRegisterItemTypes extends Event implements IContextSetter {
 		}
 	}
 
-	public static ItemsAPI typeRegistry; 
-	
 	public MMDLibRegisterItemTypes() {
 		if(typeRegistry == null) typeRegistry  = new ItemsAPI();
 	}

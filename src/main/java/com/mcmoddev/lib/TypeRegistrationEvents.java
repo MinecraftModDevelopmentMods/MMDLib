@@ -11,6 +11,7 @@ import com.mcmoddev.lib.block.BlockMMDWall;
 import com.mcmoddev.lib.block.BlockMoltenFluid;
 import com.mcmoddev.lib.data.ConfigKeys;
 import com.mcmoddev.lib.data.Names;
+import com.mcmoddev.lib.data.SharedStrings;
 import com.mcmoddev.lib.events.IRegAPI;
 import com.mcmoddev.lib.events.MMDLibRegisterBlockTypes;
 import com.mcmoddev.lib.events.MMDLibRegisterItemTypes;
@@ -29,11 +30,12 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 @Mod.EventBusSubscriber(modid=MMDLib.MODID)
 public class TypeRegistrationEvents {
 
-	public TypeRegistrationEvents() {
+	private TypeRegistrationEvents() {
+		throw new IllegalAccessError(SharedStrings.NOT_INSTANTIABLE);
 	}
 
 	@SubscribeEvent
-	public static void ItemTypeRegistrationEvent(MMDLibRegisterItemTypes ev) {
+	public static void itemTypeRegistrationEvent(MMDLibRegisterItemTypes ev) {
 		MMDLib.logger.fatal("MMDLibRegisterItemTypes");
 		IRegAPI<Item> api = ev.getApi();
 
@@ -93,7 +95,7 @@ public class TypeRegistrationEvents {
 	}
 
 	@SubscribeEvent
-	public static void BlockTypeRegistrationEvent(MMDLibRegisterBlockTypes ev) {
+	public static void blockTypeRegistrationEvent(MMDLibRegisterBlockTypes ev) {
 		MMDLib.logger.fatal("MMDLibRegisterBlockTypes");
 		IRegAPI<Block> api = ev.getApi();
 		api.addType(BlockMMDAnvil.class, Names.ANVIL, Options.isThingEnabled(ConfigKeys.ANVIL));

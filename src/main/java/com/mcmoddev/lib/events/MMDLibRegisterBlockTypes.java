@@ -21,9 +21,6 @@ public class MMDLibRegisterBlockTypes extends Event implements IContextSetter {
 	}
 	
 	private static final class BlocksAPI implements IRegAPI<Block>{
-		public BlocksAPI() {
-		}
-		
 		private static final class BlocksWrapper extends com.mcmoddev.lib.init.Blocks {
 			private static void addType(Class<? extends Block> clazz, String name, boolean enabled, @Nullable String oredict) {
 				addBlockType(name, clazz, enabled, oredict);
