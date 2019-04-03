@@ -15,7 +15,6 @@ import mcp.MethodsReturnNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-@SuppressWarnings("WeakerAccess")
 public final class LoggingUtil {
     private static final String LOGGING_ID = "__logging_id__";
     private static long currentId = 0;

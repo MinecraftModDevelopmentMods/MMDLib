@@ -3,7 +3,6 @@ package com.mcmoddev.lib.init;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,32 +13,12 @@ import javax.annotation.Nullable;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.mcmoddev.lib.MMDLib;
-import com.mcmoddev.lib.block.BlockMMDAnvil;
-import com.mcmoddev.lib.block.BlockMMDBars;
-import com.mcmoddev.lib.block.BlockMMDBlock;
 import com.mcmoddev.lib.block.BlockMMDBookshelf;
-import com.mcmoddev.lib.block.BlockMMDButton;
-import com.mcmoddev.lib.block.BlockMMDDoor;
-import com.mcmoddev.lib.block.BlockMMDFence;
-import com.mcmoddev.lib.block.BlockMMDFenceGate;
-import com.mcmoddev.lib.block.BlockMMDFlowerPot;
-import com.mcmoddev.lib.block.BlockMMDLadder;
-import com.mcmoddev.lib.block.BlockMMDLever;
-import com.mcmoddev.lib.block.BlockMMDNetherOre;
-import com.mcmoddev.lib.block.BlockMMDOre;
-import com.mcmoddev.lib.block.BlockMMDPlate;
-import com.mcmoddev.lib.block.BlockMMDPressurePlate;
 import com.mcmoddev.lib.block.BlockMMDSlab;
-import com.mcmoddev.lib.block.BlockMMDStairs;
-import com.mcmoddev.lib.block.BlockMMDTrapDoor;
-import com.mcmoddev.lib.block.BlockMMDTripWireHook;
-import com.mcmoddev.lib.block.BlockMMDWall;
-import com.mcmoddev.lib.data.ConfigKeys;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.data.SharedStrings;
 import com.mcmoddev.lib.item.ItemMMDBlock;
 import com.mcmoddev.lib.material.MMDMaterial;
-import com.mcmoddev.lib.util.Config.Options;
 import com.mcmoddev.lib.util.Oredicts;
 
 import net.minecraft.block.Block;
@@ -63,10 +42,9 @@ public abstract class Blocks {
 	private static final BiMap<String, Block> blockRegistry = HashBiMap.create(16);
 	private static final Map<MMDMaterial, List<Block>> blocksByMaterial = new HashMap<>();
 
-	private static final EnumMap<Names, Class<? extends Block>> nameToClass = new EnumMap<>(
-			Names.class);
-	private static final EnumMap<Names, String> nameToOredict = new EnumMap<>(Names.class);
-	private static final EnumMap<Names, Boolean> nameToEnabled = new EnumMap<>(Names.class);
+	private static final Map<String, Class<? extends Block>> nameToClass = new HashMap<>();
+	private static final Map<String, String> nameToOredict = new HashMap<>();
+	private static final Map<String, Boolean> nameToEnabled = new HashMap<>();
 
 	protected Blocks() {
 		throw new IllegalAccessError(SharedStrings.NOT_INSTANTIABLE);
@@ -76,49 +54,7 @@ public abstract class Blocks {
 	 *
 	 */
 	public static void init() {
-		addBlockType(Names.ANVIL, BlockMMDAnvil.class, Options.isThingEnabled(ConfigKeys.ANVIL),
-				null);
-		addBlockType(Names.BARS, BlockMMDBars.class, Options.isThingEnabled(ConfigKeys.BARS),
-				Oredicts.BARS);
-		addBlockType(Names.BLOCK, BlockMMDBlock.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.BLOCK);
-		addBlockType(Names.BOOKSHELF, BlockMMDBookshelf.class,
-				Options.isThingEnabled(ConfigKeys.BOOKSHELF), null);
-		addBlockType(Names.BUTTON, BlockMMDButton.class, Options.isThingEnabled(ConfigKeys.BUTTON),
-				Oredicts.BUTTON);
-		addBlockType(Names.DOOR, BlockMMDDoor.class, Options.isThingEnabled(ConfigKeys.DOOR), null);
-		addBlockType(Names.DOUBLE_SLAB, BlockMMDSlab.Double.class,
-				Options.isThingEnabled(ConfigKeys.SLAB), null);
-		addBlockType(Names.FLOWER_POT, BlockMMDFlowerPot.class,
-				Options.isThingEnabled(ConfigKeys.FLOWERPOT), null);
-		addBlockType(Names.LADDER, BlockMMDLadder.class, Options.isThingEnabled(ConfigKeys.LADDER),
-				null);
-		addBlockType(Names.LEVER, BlockMMDLever.class, Options.isThingEnabled(ConfigKeys.LEVER),
-				Oredicts.LEVER);
-		addBlockType(Names.PLATE, BlockMMDPlate.class, Options.isThingEnabled(ConfigKeys.PLATE),
-				Oredicts.PLATE);
-		addBlockType(Names.PRESSURE_PLATE, BlockMMDPressurePlate.class,
-				Options.isThingEnabled(ConfigKeys.PRESSURE_PLATE), null);
-		addBlockType(Names.SLAB, BlockMMDSlab.Half.class, Options.isThingEnabled(ConfigKeys.SLAB),
-				null);
-		addBlockType(Names.STAIRS, BlockMMDStairs.class, Options.isThingEnabled(ConfigKeys.STAIRS),
-				Oredicts.STAIRS);
-		addBlockType(Names.TRAPDOOR, BlockMMDTrapDoor.class,
-				Options.isThingEnabled(ConfigKeys.TRAPDOOR), Oredicts.TRAPDOOR);
-		addBlockType(Names.TRIPWIRE_HOOK, BlockMMDTripWireHook.class,
-				Options.isThingEnabled(ConfigKeys.TRIPWIRE_HOOK), null);
-		addBlockType(Names.WALL, BlockMMDWall.class, Options.isThingEnabled(ConfigKeys.WALL),
-				Oredicts.WALL);
-		addBlockType(Names.FENCE, BlockMMDFence.class, Options.isThingEnabled(ConfigKeys.WALL),
-				null);
-		addBlockType(Names.FENCE_GATE, BlockMMDFenceGate.class,
-				Options.isThingEnabled(ConfigKeys.WALL), null);
-		addBlockType(Names.ENDORE, BlockMMDOre.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.ORE_END);
-		addBlockType(Names.NETHERORE, BlockMMDNetherOre.class,
-				Options.isThingEnabled(ConfigKeys.BASICS), Oredicts.ORE_NETHER);
-		addBlockType(Names.ORE, BlockMMDOre.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.ORE);
+		// do nothing!
 	}
 
 	@Nullable
@@ -352,23 +288,23 @@ public abstract class Blocks {
 	}
 
 	protected static Class<? extends Block> getClassFromName(@Nonnull final Names name) {
-		if (nameToClass.containsKey(name)) {
-			return nameToClass.get(name);
+		if (nameToClass.containsKey(name.toString())) {
+			return nameToClass.get(name.toString());
 		}
 		return net.minecraft.block.Block.class;
 	}
 
 	@Nullable
 	protected static String getOredictFromName(@Nonnull final Names name) {
-		if (nameToOredict.containsKey(name)) {
-			return nameToOredict.get(name);
+		if (nameToOredict.containsKey(name.toString())) {
+			return nameToOredict.get(name.toString());
 		}
 		return null;
 	}
 
 	protected static boolean isNameEnabled(@Nonnull final Names name) {
-		if (nameToEnabled.containsKey(name)) {
-			return nameToEnabled.get(name);
+		if (nameToEnabled.containsKey(name.toString())) {
+			return nameToEnabled.get(name.toString());
 		}
 		return false;
 	}
@@ -381,6 +317,13 @@ public abstract class Blocks {
 	protected static void addBlockType(@Nonnull final Names name,
 			@Nonnull final Class<? extends Block> clazz, @Nonnull final Boolean enabled,
 			@Nullable final String oredict) {
+		addBlockType(name.toString(), clazz, enabled, oredict);
+	}
+	
+	protected static void addBlockType(@Nonnull final String name,
+			@Nonnull final Class<? extends Block> clazz, @Nonnull final Boolean enabled,
+			@Nullable final String oredict) {
+		com.mcmoddev.lib.MMDLib.logger.fatal("Register Block Type: {}/{}/{}/{}", name, clazz.getName(), enabled, oredict==null?"null":"".contentEquals(oredict)?"EMPTY":oredict);
 		if (!nameToClass.containsKey(name)) {
 			nameToClass.put(name, clazz);
 		}

@@ -9,7 +9,6 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 /**
  * Base implementation of an {@link IMessage} that works with NBT Tag Compounds.
  */
-@SuppressWarnings("WeakerAccess")
 public abstract class NBTBasedMessage implements IMessage {
     private NBTTagCompound compound;
 

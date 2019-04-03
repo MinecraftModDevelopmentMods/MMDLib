@@ -5,7 +5,6 @@ import com.mcmoddev.lib.container.gui.IWidgetGui;
 /**
  * Represents the padding around a {@link IWidgetGui}.
  */
-@SuppressWarnings("unused")
 public class Padding {
     /**
      * Left padding.

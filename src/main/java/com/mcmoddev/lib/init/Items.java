@@ -8,7 +8,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,53 +18,11 @@ import javax.annotation.Nullable;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.mcmoddev.lib.MMDLib;
-import com.mcmoddev.lib.block.BlockMMDBars;
-import com.mcmoddev.lib.block.BlockMMDBlock;
-import com.mcmoddev.lib.block.BlockMMDButton;
-import com.mcmoddev.lib.block.BlockMMDDoor;
-import com.mcmoddev.lib.block.BlockMMDLever;
-import com.mcmoddev.lib.block.BlockMMDOre;
-import com.mcmoddev.lib.block.BlockMMDPlate;
-import com.mcmoddev.lib.block.BlockMMDPressurePlate;
-import com.mcmoddev.lib.block.BlockMMDSlab;
-import com.mcmoddev.lib.block.BlockMMDStairs;
-import com.mcmoddev.lib.block.BlockMMDTrapDoor;
-import com.mcmoddev.lib.block.BlockMMDWall;
-import com.mcmoddev.lib.block.BlockMoltenFluid;
-import com.mcmoddev.lib.block.InteractiveFluidBlock;
-import com.mcmoddev.lib.data.ConfigKeys;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.data.SharedStrings;
-import com.mcmoddev.lib.integration.plugins.IC2;
 import com.mcmoddev.lib.integration.plugins.Mekanism;
 import com.mcmoddev.lib.item.GenericMMDItem;
-import com.mcmoddev.lib.item.ItemMMDAnvilBlock;
 import com.mcmoddev.lib.item.ItemMMDArmor;
-import com.mcmoddev.lib.item.ItemMMDArrow;
-import com.mcmoddev.lib.item.ItemMMDAxe;
-import com.mcmoddev.lib.item.ItemMMDBlend;
-import com.mcmoddev.lib.item.ItemMMDBolt;
-import com.mcmoddev.lib.item.ItemMMDBow;
-import com.mcmoddev.lib.item.ItemMMDCrackHammer;
-import com.mcmoddev.lib.item.ItemMMDCrossbow;
-import com.mcmoddev.lib.item.ItemMMDDoor;
-import com.mcmoddev.lib.item.ItemMMDFishingRod;
-import com.mcmoddev.lib.item.ItemMMDGear;
-import com.mcmoddev.lib.item.ItemMMDHoe;
-import com.mcmoddev.lib.item.ItemMMDHorseArmor;
-import com.mcmoddev.lib.item.ItemMMDIngot;
-import com.mcmoddev.lib.item.ItemMMDNugget;
-import com.mcmoddev.lib.item.ItemMMDPickaxe;
-import com.mcmoddev.lib.item.ItemMMDPowder;
-import com.mcmoddev.lib.item.ItemMMDRod;
-import com.mcmoddev.lib.item.ItemMMDShears;
-import com.mcmoddev.lib.item.ItemMMDShield;
-import com.mcmoddev.lib.item.ItemMMDShovel;
-import com.mcmoddev.lib.item.ItemMMDSickle;
-import com.mcmoddev.lib.item.ItemMMDSlab;
-import com.mcmoddev.lib.item.ItemMMDSmallBlend;
-import com.mcmoddev.lib.item.ItemMMDSmallPowder;
-import com.mcmoddev.lib.item.ItemMMDSword;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.material.MMDMaterialType.MaterialType;
@@ -92,10 +49,9 @@ public abstract class Items {
 	private static final BiMap<String, Item> itemRegistry = HashBiMap.create(34);
 	private static final Map<MMDMaterial, List<Item>> itemsByMaterial = new HashMap<>();
 
-	private static final EnumMap<Names, Class<? extends Item>> nameToClass = new EnumMap<>(
-			Names.class);
-	private static final EnumMap<Names, String> nameToOredict = new EnumMap<>(Names.class);
-	private static final EnumMap<Names, Boolean> nameToEnabled = new EnumMap<>(Names.class);
+	private static final Map<String, Class<? extends Item>> nameToClass = new HashMap<>();
+	private static final Map<String, String> nameToOredict = new HashMap<>();
+	private static final Map<String, Boolean> nameToEnabled = new HashMap<>();
 
 	private static final Map<Class<?>, Integer> classSortingValues = new HashMap<>();
 	private static final Map<MMDMaterial, Integer> materialSortingValues = new HashMap<>();
@@ -111,157 +67,31 @@ public abstract class Items {
 		throw new IllegalAccessError(SharedStrings.NOT_INSTANTIABLE);
 	}
 
+	private static int ss = 0;
+	protected static int getMaxSortingValue() {
+		return ss;
+	}
+	
+	protected static void addClassSorting(Class<?> clazz) {
+		classSortingValues.put(clazz, ++ss * 10000);		
+	}
+	
+	protected static void addClassSorting(Class<?> clazz, Class<?> otherClazz) {
+		classSortingValues.put(clazz, classSortingValues.get(otherClazz));
+	}
+
 	/**
 	 *
 	 */
 	public static void init() {
-		addItemType(Names.CRYSTAL, ItemMMDIngot.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.CRYSTAL);
-		addItemType(Names.GEM, ItemMMDIngot.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.GEM);
-		addItemType(Names.ANVIL, ItemMMDAnvilBlock.class, Options.isThingEnabled(ConfigKeys.ANVIL),
-				null);
-		addItemType(Names.ARROW, ItemMMDArrow.class,
-				Options.isThingEnabled(ConfigKeys.BOW_AND_ARROW), Oredicts.ARROW);
-		addItemType(Names.AXE, ItemMMDAxe.class, Options.isThingEnabled(ConfigKeys.BASIC_TOOLS),
-				null);
-		addItemType(Names.BLEND, ItemMMDBlend.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.DUST);
-		addItemType(Names.BOLT, ItemMMDBolt.class,
-				Options.isThingEnabled(ConfigKeys.CROSSBOW_AND_BOLT), null);
-		addItemType(Names.BOOTS, ItemMMDArmor.class, Options.isThingEnabled(ConfigKeys.ARMOR),
-				null);
-		addItemType(Names.BOW, ItemMMDBow.class, Options.isThingEnabled(ConfigKeys.BOW_AND_ARROW),
-				null);
-		addItemType(Names.CHESTPLATE, ItemMMDArmor.class, Options.isThingEnabled(ConfigKeys.ARMOR),
-				null);
-		addItemType(Names.CRACKHAMMER, ItemMMDCrackHammer.class,
-				Options.isThingEnabled(ConfigKeys.CRACKHAMMER), null);
-		addItemType(Names.CROSSBOW, ItemMMDCrossbow.class,
-				Options.isThingEnabled(ConfigKeys.CROSSBOW_AND_BOLT), null);
-		addItemType(Names.DOOR, ItemMMDDoor.class, Options.isThingEnabled(ConfigKeys.DOOR), null);
-		addItemType(Names.FISHING_ROD, ItemMMDFishingRod.class,
-				Options.isThingEnabled(ConfigKeys.FISHING_ROD), null);
-		addItemType(Names.HELMET, ItemMMDArmor.class, Options.isThingEnabled(ConfigKeys.ARMOR),
-				null);
-		addItemType(Names.HOE, ItemMMDHoe.class, Options.isThingEnabled(ConfigKeys.BASIC_TOOLS),
-				null);
-		addItemType(Names.HORSE_ARMOR, ItemMMDHorseArmor.class,
-				Options.isThingEnabled(ConfigKeys.HORSE_ARMOR), null);
-		addItemType(Names.INGOT, ItemMMDIngot.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.INGOT);
-		addItemType(Names.LEGGINGS, ItemMMDArmor.class, Options.isThingEnabled(ConfigKeys.ARMOR),
-				null);
-		addItemType(Names.NUGGET, ItemMMDNugget.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.NUGGET);
-		addItemType(Names.PICKAXE, ItemMMDPickaxe.class,
-				Options.isThingEnabled(ConfigKeys.BASIC_TOOLS), null);
-		addItemType(Names.POWDER, ItemMMDPowder.class, Options.isThingEnabled(ConfigKeys.BASICS),
-				Oredicts.DUST);
-		addItemType(Names.SHEARS, ItemMMDShears.class, Options.isThingEnabled(ConfigKeys.SHEARS),
-				null);
-		addItemType(Names.SHIELD, ItemMMDShield.class, Options.isThingEnabled(ConfigKeys.SHIELD),
-				Oredicts.SHIELD);
-		addItemType(Names.SHOVEL, ItemMMDShovel.class,
-				Options.isThingEnabled(ConfigKeys.BASIC_TOOLS), null);
-		addItemType(Names.SCYTHE, ItemMMDSickle.class, Options.isThingEnabled(ConfigKeys.SCYTHE),
-				null);
-		addItemType(Names.SLAB, ItemMMDSlab.class, Options.isThingEnabled(ConfigKeys.SLAB),
-				Oredicts.SLAB);
-		addItemType(Names.SMALLBLEND, ItemMMDSmallBlend.class,
-				Options.isThingEnabled(ConfigKeys.SMALL_DUST), Oredicts.DUST_TINY);
-		addItemType(Names.SMALLPOWDER, ItemMMDSmallPowder.class,
-				Options.isThingEnabled(ConfigKeys.SMALL_DUST), Oredicts.DUST_TINY);
-		addItemType(Names.SWORD, ItemMMDSword.class, Options.isThingEnabled(ConfigKeys.BASIC_TOOLS),
-				null);
-		addItemType(Names.ROD, ItemMMDRod.class, Options.isThingEnabled(ConfigKeys.ROD),
-				Oredicts.ROD);
-		addItemType(Names.GEAR, ItemMMDGear.class, Options.isThingEnabled(ConfigKeys.GEAR),
-				Oredicts.GEAR);
-
-		addItemType(Names.CASING, GenericMMDItem.class, Options.enableModderSupportThings(),
-				Oredicts.CASING);
-		addItemType(Names.DENSE_PLATE, GenericMMDItem.class, Options.enableModderSupportThings(),
-				Oredicts.PLATE_DENSE);
-
-		addItemType(Names.CRUSHED, GenericMMDItem.class, Options.isModEnabled(IC2.PLUGIN_MODID) ||
-				Options.isThingEnabled(ConfigKeys.IC2ITEMS_WITHOUT_PLUGIN),
-				Oredicts.CRUSHED);
-		addItemType(Names.CRUSHED_PURIFIED, GenericMMDItem.class,
-				Options.isModEnabled(IC2.PLUGIN_MODID) || Options.isThingEnabled(ConfigKeys.IC2ITEMS_WITHOUT_PLUGIN),
-				Oredicts.CRUSHED_PURIFIED);
-
-		addItemType(Names.SHARD, GenericMMDItem.class,
-				Options.isModEnabled(Mekanism.PLUGIN_MODID) ||
-				Options.isThingEnabled(ConfigKeys.MEKITEMS_WITHOUT_PLUGIN), Oredicts.SHARD);
-		addItemType(Names.CLUMP, GenericMMDItem.class,
-				Options.isModEnabled(Mekanism.PLUGIN_MODID) ||
-				Options.isThingEnabled(ConfigKeys.MEKITEMS_WITHOUT_PLUGIN), Oredicts.CLUMP);
-		addItemType(Names.POWDER_DIRTY, GenericMMDItem.class,
-				Options.isModEnabled(Mekanism.PLUGIN_MODID) ||
-				Options.isThingEnabled(ConfigKeys.MEKITEMS_WITHOUT_PLUGIN), Oredicts.DUST_DIRTY);
-
 		try {
 			expandCombatArrays(net.minecraft.item.ItemAxe.class);
 		} catch (IllegalAccessException | NoSuchFieldException ex) {
 			MMDLib.logger.error("Error modifying item classes", ex);
 		}
-
-		setSortingList();
-		addToMetList();
 	}
 
-	private static void setSortingList() {
-		int ss = 0;
-		classSortingValues.put(BlockMMDOre.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDBlock.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDPlate.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDBars.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDDoor.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDTrapDoor.class, ++ss * 10000);
-		classSortingValues.put(InteractiveFluidBlock.class, ++ss * 10000);
-		classSortingValues.put(BlockMoltenFluid.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDIngot.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDNugget.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDPowder.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDBlend.class, classSortingValues.get(ItemMMDPowder.class));
-		classSortingValues.put(ItemMMDSmallPowder.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDSmallBlend.class,
-				classSortingValues.get(ItemMMDSmallPowder.class));
-		classSortingValues.put(ItemMMDCrackHammer.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDPickaxe.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDShovel.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDSickle.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDAxe.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDHoe.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDSword.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDArmor.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDArrow.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDBolt.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDBow.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDCrossbow.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDFishingRod.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDHorseArmor.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDShears.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDShield.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDGear.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDRod.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDDoor.class, classSortingValues.get(BlockMMDDoor.class));
-		classSortingValues.put(GenericMMDItem.class, ++ss * 10000);
-
-		classSortingValues.put(BlockMMDButton.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDSlab.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDSlab.Double.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDSlab.Half.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDLever.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDPressurePlate.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDStairs.class, ++ss * 10000);
-		classSortingValues.put(BlockMMDWall.class, ++ss * 10000);
-		classSortingValues.put(BlockMoltenFluid.class, ++ss * 10000);
-		classSortingValues.put(ItemMMDSlab.class, classSortingValues.get(BlockMMDSlab.class));
-	}
-
-	protected static void addToMetList() {
+	public static void addToMetList() {
 		final List<MMDMaterial> metlist = new ArrayList<>(Materials.getAllMaterials().size());
 		metlist.addAll(Materials.getAllMaterials());
 		metlist.sort((final MMDMaterial a, final MMDMaterial b) -> a.getName()
@@ -585,23 +415,23 @@ public abstract class Items {
 	}
 
 	protected static Class<? extends Item> getClassFromName(@Nonnull final Names name) {
-		if (nameToClass.containsKey(name)) {
-			return nameToClass.get(name);
+		if (nameToClass.containsKey(name.toString())) {
+			return nameToClass.get(name.toString());
 		}
 		return net.minecraft.item.Item.class;
 	}
 
 	@Nullable
 	protected static String getOredictFromName(@Nonnull final Names name) {
-		if (nameToOredict.containsKey(name)) {
-			return nameToOredict.get(name);
+		if (nameToOredict.containsKey(name.toString())) {
+			return nameToOredict.get(name.toString());
 		}
 		return null;
 	}
 
 	protected static boolean isNameEnabled(@Nonnull final Names name) {
-		if (nameToEnabled.containsKey(name)) {
-			return nameToEnabled.get(name);
+		if (nameToEnabled.containsKey(name.toString())) {
+			return nameToEnabled.get(name.toString());
 		}
 		return false;
 	}
@@ -614,6 +444,18 @@ public abstract class Items {
 	protected static void addItemType(@Nonnull final Names name,
 			@Nonnull final Class<? extends Item> clazz, @Nonnull final Boolean enabled,
 			@Nullable final String oredict) {
+		addItemType(name.toString(), clazz, enabled, oredict);
+	}
+	
+	protected static void addItemType(@Nonnull final String name,
+			@Nonnull final Class<? extends Item> clazz, @Nonnull final Boolean enabled) {
+		addItemType(name, clazz, enabled, null);
+	}
+	
+	protected static void addItemType(@Nonnull final String name,
+			@Nonnull final Class<? extends Item> clazz, @Nonnull final Boolean enabled,
+			@Nullable final String oredict) {
+		com.mcmoddev.lib.MMDLib.logger.fatal("Register Item Type: {}/{}/{}/{}", name, clazz.getName(), enabled, oredict==null?"null":"".contentEquals(oredict)?"EMPTY":oredict);
 		if (!nameToClass.containsKey(name)) {
 			nameToClass.put(name, clazz);
 		}
@@ -626,7 +468,6 @@ public abstract class Items {
 			nameToOredict.put(name, oredict);
 		}
 	}
-
 	/**
 	 * Gets an item by its name. The name is the name as it is registered in the GameRegistry, not
 	 * its unlocalized name (the unlocalized name is the registered name plus the prefix

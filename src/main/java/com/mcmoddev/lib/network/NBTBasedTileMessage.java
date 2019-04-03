@@ -7,7 +7,6 @@ import net.minecraft.tileentity.TileEntity;
 /**
  * A message type that contains a reference to a tile entity and a nbt tag compound.
  */
-@SuppressWarnings({"unused", "WeakerAccess"})
 public class NBTBasedTileMessage extends NBTBasedMessage {
     private int dimensionId;
     private int posX;
