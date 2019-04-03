@@ -226,66 +226,79 @@ public class Config {
 		// GENERAL
 
 		private static boolean disableAllHammerRecipes = false;
+		private static boolean enforceHardness = true;
+		private static boolean strongHammers = true;
+		private static boolean twoDustDrop = true;
+		private static boolean autoDetectRecipes = true;
+		private static boolean requireMMDOreSpawn = true;
+		private static boolean enableAchievements = true;
+		private static boolean crackHammerFullStack = false;
+		private static boolean enableShieldUpgrades = true;
+		private static boolean enablePlateRepairs = true;
+		private static boolean enableModderSupportThings = true;
+
+		// RECIPE AMOUNTS
+		private static int gearQuantity = 4;
+		private static int plateQuantity = 3;
+		private static boolean furnaceCheese = true;
+		private static boolean furnace1112 = true; // Overridden by FURNACE_CHEESE
+		private static int rodQuantity = 4;
+		
+		// Shouldn't this and the bits relating to it be in NetherMetals strictly ?
+		private static int explosionChance = 0;
+		private static int angerPigmenRange = 0;
+		
+		// INTEGRATION
+		private static final Map<String, Boolean> modEnabled = new HashMap<>();
+		
+		// MATERIALS
+		private static final Map<String, Boolean> materialEnabled = new HashMap<>();
+		
+		// THINGS
+		private static final Map<String, Boolean> thingEnabled = new HashMap<>();
+		
+		// FLUIDS
+		private static final Map<String, Boolean> fluidEnabled = new HashMap<>();
 
 		public static void setDisableAllHammerRecipes(final boolean bool) {
 			disableAllHammerRecipes = bool;
 		}
 
-		private static boolean enforceHardness = true;
-
 		public static void setEnforceHardness(final boolean bool) {
 			enforceHardness = bool;
 		}
-
-		private static boolean strongHammers = true;
 
 		public static void setStrongHammers(final boolean bool) {
 			strongHammers = bool;
 		}
 
-		private static boolean twoDustDrop = true;
-
 		public static void setTwoDustDrop(final boolean bool) {
 			twoDustDrop = bool;
 		}
-
-		private static boolean autoDetectRecipes = true;
 
 		public static void setAutoDetectRecipes(final boolean bool) {
 			autoDetectRecipes = bool;
 		}
 
-		private static boolean requireMMDOreSpawn = true;
-
 		public static void setRequireMMDOreSpawn(final boolean bool) {
 			requireMMDOreSpawn = bool;
 		}
-
-		private static boolean enableAchievements = true;
 
 		public static void setEnableAchievements(final boolean bool) {
 			enableAchievements = bool;
 		}
 
-		private static boolean crackHammerFullStack = false;
-
 		public static void setCrackHammerFullStack(final boolean bool) {
 			crackHammerFullStack = bool;
 		}
-
-		private static boolean enableShieldUpgrades = true;
 
 		public static void setEnableShieldUpgrades(final boolean bool) {
 			enableShieldUpgrades = bool;
 		}
 
-		private static boolean enablePlateRepairs = true;
-
 		public static void setEnablePlateRepairs(final boolean bool) {
 			enablePlateRepairs = bool;
 		}
-
-		private static boolean enableModderSupportThings = true;
 
 		public static void setEnableModderSupportThings(final boolean bool) {
 			enableModderSupportThings = bool;
@@ -351,9 +364,6 @@ public class Config {
 			return disabledRecipes;
 		}
 
-		// RECIPE AMOUNTS
-		private static int gearQuantity = 4;
-
 		public static void setGearQuantity(final int qty) {
 			gearQuantity = qty;
 		}
@@ -361,8 +371,6 @@ public class Config {
 		public static int gearQuantity() {
 			return gearQuantity;
 		}
-
-		private static int plateQuantity = 3;
 
 		public static void setPlateQuantity(final int qty) {
 			plateQuantity = qty;
@@ -372,8 +380,6 @@ public class Config {
 			return plateQuantity;
 		}
 
-		private static boolean furnaceCheese = true;
-
 		public static void setFurnaceCheese(final boolean bool) {
 			furnaceCheese = bool;
 		}
@@ -381,8 +387,6 @@ public class Config {
 		public static boolean furnaceCheese() {
 			return furnaceCheese;
 		}
-
-		private static boolean furnace1112 = true; // Overridden by FURNACE_CHEESE
 
 		public static void setFurnace1112(final boolean bool) {
 			furnace1112 = bool;
@@ -398,9 +402,6 @@ public class Config {
 			thingEnabled.clear();
 			fluidEnabled.clear();
 		}
-
-		// INTEGRATION
-		private static final Map<String, Boolean> modEnabled = new HashMap<>();
 
 		/**
 		 *
@@ -426,9 +427,6 @@ public class Config {
 			}
 		}
 
-		// MATERIALS
-		private static final Map<String, Boolean> materialEnabled = new HashMap<>();
-
 		/**
 		 *
 		 * @param name
@@ -453,9 +451,6 @@ public class Config {
 			}
 		}
 
-		// THINGS
-		private static final Map<String, Boolean> thingEnabled = new HashMap<>();
-
 		/**
 		 *
 		 * @param name
@@ -479,9 +474,6 @@ public class Config {
 				thingEnabled.put(name.toLowerCase(Locale.ROOT), bool);
 			}
 		}
-
-		// FLUIDS
-		private static final Map<String, Boolean> fluidEnabled = new HashMap<>();
 
 		/**
 		 *
@@ -534,8 +526,6 @@ public class Config {
 			}
 		}
 
-		private static int explosionChance = 0;
-
 		public static int explosionChance() {
 			return explosionChance;
 		}
@@ -543,8 +533,6 @@ public class Config {
 		public static void explosionChance(final int chance) {
 			explosionChance = chance;
 		}
-
-		private static int angerPigmenRange = 0;
 
 		public static int angerPigmenRange() {
 			return angerPigmenRange;
@@ -567,8 +555,6 @@ public class Config {
 		public static boolean fallbackOrespawn() {
 			return fallbackOrespawn;
 		}
-
-		private static int rodQuantity = 4;
 
 		public static void setRodQuantity(final int quantity) {
 			rodQuantity = quantity;

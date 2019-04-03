@@ -15,10 +15,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 @Mod.EventBusSubscriber(modid=MMDLib.MODID)
 public class VanillaBitsRegistryEvents {
 
-	public VanillaBitsRegistryEvents() {
-		// TODO Auto-generated constructor stub
-	}
-
 	@SubscribeEvent
 	public static void registerBlocks(RegistryEvent.Register<Block> ev) {
 		Materials.getAllMaterials().stream()
