@@ -56,7 +56,7 @@ public class NBTBasedTileHandler implements IMessageHandler<NBTBasedTileMessage,
             // process message from client
             FMLCommonHandler.instance().getWorldThread(ctx.netHandler).addScheduledTask(() -> {
                 final int dimensionId = message.getDimensionId();
-                final World world = DimensionManager.getWorld(message.getDimensionId());
+                final World world = DimensionManager.getWorld(dimensionId);
                 if (world != null) {
                     final BlockPos pos = new BlockPos(message.getPosX(), message.getPosY(), message.getPosZ());
                     if (world.isBlockLoaded(pos)) {

@@ -135,7 +135,8 @@ public class ItemInventoryFeature extends BaseFeature implements IClientFeature,
         return this;
     }
 
-    @Override
+    @SuppressWarnings("serial")
+	@Override
     public List<IWidget> getWidgets(final GuiContext context) {
         return new ArrayList<IWidget>() {{
             add(new ItemStackHandlerWidget(

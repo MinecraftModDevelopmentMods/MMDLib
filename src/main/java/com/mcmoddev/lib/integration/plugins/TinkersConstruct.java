@@ -67,7 +67,13 @@ public class TinkersConstruct implements IIntegration {
 			.setType(TinkersMaterial.class).create();
 	private static final TinkerTraitRegistry traitsRegistry = new TinkerTraitRegistry(); // technically does nothing
 	private static final TinkerModifierRegistry modifiersRegistry = new TinkerModifierRegistry(); // technically does nothing
+	// other storage
+	private static final List<Pair<FluidStack,List<FluidStack>>> alloys = Lists.newCopyOnWriteArrayList();
+	private static final List<Pair<ItemStack, FluidStack>> extraMeltings = Lists.newCopyOnWriteArrayList();
+	public static final TinkersConstruct INSTANCE = new TinkersConstruct();
 
+	private static final Deque<Material> materialsToAdd = Queues.newArrayDeque();
+	
 	protected static IForgeRegistry<TinkersMaterial> getMaterialsRegistry() {
 		return materialsRegistry;
 	}
@@ -80,13 +86,6 @@ public class TinkersConstruct implements IIntegration {
 		return modifiersRegistry;
 	}
 
-	// other storage
-	private static final List<Pair<FluidStack,List<FluidStack>>> alloys = Lists.newCopyOnWriteArrayList();
-	private static final List<Pair<ItemStack, FluidStack>> extraMeltings = Lists.newCopyOnWriteArrayList();
-	public static final TinkersConstruct INSTANCE = new TinkersConstruct();
-
-	private static final Deque<Material> materialsToAdd = Queues.newArrayDeque();
-	
 	@Override
 	public void init() {
 		if (!Options.isModEnabled(PLUGIN_MODID) || initDone) {

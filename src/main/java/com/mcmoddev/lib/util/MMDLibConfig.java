@@ -37,11 +37,6 @@ public class MMDLibConfig extends Config {
 		new MaterialConfigOptions(VanillaMaterialNames.REDSTONE,true, true, true, false),
 	};
 
-	public MMDLibConfig() {
-		// TODO Auto-generated constructor stub
-	}
-
-
 	/**
 	 * Fired when the configuration changes.
 	 *

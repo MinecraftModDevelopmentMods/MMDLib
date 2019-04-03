@@ -8,7 +8,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants;
 import mcp.MethodsReturnNonnullByDefault;
 
-@SuppressWarnings("WeakerAccess")
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public final class NBTUtils {

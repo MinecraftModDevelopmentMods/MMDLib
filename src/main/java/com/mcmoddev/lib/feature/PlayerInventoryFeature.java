@@ -42,7 +42,8 @@ public class PlayerInventoryFeature extends BaseFeature implements IWidgetContai
         // nothing else here, the vanilla container code should sort the item stacks out
     }
 
-    @Override
+    @SuppressWarnings("serial")
+	@Override
     public List<IWidget> getWidgets(final GuiContext context) {
         return new ArrayList<IWidget>() {{
             add(new PlayerInventoryWidget(

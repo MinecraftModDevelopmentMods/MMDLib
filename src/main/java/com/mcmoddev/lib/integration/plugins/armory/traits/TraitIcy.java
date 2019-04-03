@@ -1,15 +1,8 @@
 package com.mcmoddev.lib.integration.plugins.armory.traits;
 
 import c4.conarm.lib.traits.AbstractArmorTrait;
-import com.mcmoddev.lib.data.VanillaMaterialNames;
-import com.mcmoddev.lib.data.Names;
-import com.mcmoddev.lib.init.Materials;
-import com.mcmoddev.lib.material.MMDMaterial;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.MobEffects;
-import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
-import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -27,13 +20,13 @@ import net.minecraftforge.event.entity.living.LivingDamageEvent;
  * "mmd-icy"
  */
 public class TraitIcy extends AbstractArmorTrait {
-    private static final int EFFECT_DURATION = 20;
+    // private static final int EFFECT_DURATION = 20;
 
     public TraitIcy() {
         super("mmd-icy", TextFormatting.GRAY);
     }
 
-    private static int getAmountSuitPieces(final EntityPlayer player, final String materialName) {
+    /*private static int getAmountSuitPieces(final EntityPlayer player, final String materialName) {
         final MMDMaterial material = Materials.getMaterialByName(materialName);
         int pieces = 0;
         if (player.getItemStackFromSlot(EntityEquipmentSlot.HEAD).getItem() == material.getItem(Names.HELMET)){
@@ -49,7 +42,7 @@ public class TraitIcy extends AbstractArmorTrait {
             pieces++;
         }
         return pieces;
-    }
+    }*/
 
     //TODO: Fix this
 /*    @SuppressWarnings("unused")
@@ -62,8 +55,9 @@ public class TraitIcy extends AbstractArmorTrait {
     @Override
     public float onDamaged(ItemStack armor, EntityPlayer player, DamageSource source, float damage, float newDamage, LivingDamageEvent evt) {
         float newNewDamage = newDamage;
-        if(source.isFireDamage()){
-            newNewDamage = 0f;
+        if(source.isFireDamage() /*&& armor.getItem() instanceof ItemMMDArmor*/){
+        	//float reductionAmount = 0.25f * getAmountSuitPieces(player, "coldiron");
+            newNewDamage = 0f;//damage - (damage * reductionAmount);
         }
         return newNewDamage;
     }

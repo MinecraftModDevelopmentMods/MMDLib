@@ -9,7 +9,7 @@ import com.mcmoddev.lib.material.MMDMaterial;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.translation.I18n;
+//import net.minecraft.util.text.translation.I18n;
 //import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 
@@ -18,7 +18,7 @@ import net.minecraft.world.World;
  * @author Jasmine Iwanek
  *
  */
-@SuppressWarnings("deprecation")
+//@SuppressWarnings("deprecation")
 public class ItemMMDShield extends net.minecraft.item.ItemShield implements IMMDObject {
 
 	private final MMDMaterial material;

@@ -102,7 +102,7 @@ public final class FluidUtils {
         final int actualMin = (minAmount <= 0) ? maxAmount : minAmount;
 
         final FluidStack fluid = tank.drain(maxAmount, false);
-        return (fluid != null) && (fluid.amount >= minAmount) && (target.fill(fluid, false) >= minAmount);
+        return (fluid != null) && (fluid.amount >= actualMin) && (target.fill(fluid, false) >= actualMin);
     }
 
     public static ItemStack drainInto(final IFluidTank tank, final ItemStack target) {

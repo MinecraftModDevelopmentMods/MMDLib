@@ -15,11 +15,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 @Mod.EventBusSubscriber(modid=MMDLib.MODID)
 public class VanillaFluids extends Fluids {
-
-	public VanillaFluids() {
-		// TODO Auto-generated constructor stub
-	}
-
 	@SubscribeEvent(priority=EventPriority.HIGHEST)
 	public static void registerFluids(MMDLibRegisterFluids ev) {
 		// Vanilla Materials need to always have fluids available in case of tie-in mods
