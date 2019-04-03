@@ -62,12 +62,12 @@ public abstract class Items {
 	protected static final int INGOT_BURN_TIME = 1600;
 	protected static final int NUGGET_BURN_TIME = 200;
 
+	private static int ss = 0;
 
 	protected Items() {
 		throw new IllegalAccessError(SharedStrings.NOT_INSTANTIABLE);
 	}
 
-	private static int ss = 0;
 	protected static int getMaxSortingValue() {
 		return ss;
 	}

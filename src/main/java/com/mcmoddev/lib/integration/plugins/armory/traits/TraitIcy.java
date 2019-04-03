@@ -1,12 +1,7 @@
 package com.mcmoddev.lib.integration.plugins.armory.traits;
 
 import c4.conarm.lib.traits.AbstractArmorTrait;
-import com.mcmoddev.lib.data.Names;
-import com.mcmoddev.lib.init.Materials;
-import com.mcmoddev.lib.item.ItemMMDArmor;
-import com.mcmoddev.lib.material.MMDMaterial;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.text.TextFormatting;

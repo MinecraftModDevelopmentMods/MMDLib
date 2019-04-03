@@ -9,7 +9,7 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.IContextSetter;
 
 public class MMDLibRegisterItemTypes extends Event implements IContextSetter {
-	private static ItemsAPI typeRegistry; 
+	private ItemsAPI typeRegistry; 
 	
 	protected static final class ItemsAPI implements IRegAPI<Item> {
 		@Override
