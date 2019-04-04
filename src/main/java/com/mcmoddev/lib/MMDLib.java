@@ -82,7 +82,7 @@ public class MMDLib {
 		try {
 			IntegrationManager.INSTANCE.doSetupTasks(event);
 		} catch (InvalidVersionSpecificationException e) {
-			logger.error("Error loading version information for plugins: %s", e);
+			logger.error("Error loading version information for plugins: {}", e);
 		}
 
 		MMDLibConfig.init();

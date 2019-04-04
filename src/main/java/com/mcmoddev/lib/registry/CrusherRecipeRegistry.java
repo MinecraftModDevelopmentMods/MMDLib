@@ -211,4 +211,8 @@ public class CrusherRecipeRegistry {
 	public void remove(@Nonnull final ResourceLocation name) {
 		this.registry.remove(name);
 	}
+	
+	public IForgeRegistryModifiable<ICrusherRecipe> getRegistry() {
+		return this.registry;
+	}
 }

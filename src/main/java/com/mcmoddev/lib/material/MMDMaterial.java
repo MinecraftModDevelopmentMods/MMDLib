@@ -541,7 +541,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 		NameToken lookup = new NameToken(name);
 		if (this.blocks.containsKey(lookup)) {
 			MMDLib.logger.warn(
-					"Tried adding block %s to a material (%s) that already has it, don't do that!",
+					"Tried adding block {} to a material ({}) that already has it, don't do that!",
 					name, this.getCapitalizedName());
 			return this;
 		}

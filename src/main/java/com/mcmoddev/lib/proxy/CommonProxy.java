@@ -44,7 +44,6 @@ public class CommonProxy {
 //		com.mcmoddev.lib.init.Blocks.init();
 		com.mcmoddev.lib.init.Items.init();
 		com.mcmoddev.lib.init.Fluids.init();
-		com.mcmoddev.lib.init.Recipes.init();
 		com.mcmoddev.lib.init.VillagerTrades.init();
 
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterBlockTypes());
@@ -55,6 +54,7 @@ public class CommonProxy {
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterBlocks());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterItems());
 		MinecraftForge.EVENT_BUS.post(new MMDLibRegisterFluids());
+		com.mcmoddev.lib.init.Recipes.init();
 
 
 		IntegrationManager.INSTANCE.preInit(event);
