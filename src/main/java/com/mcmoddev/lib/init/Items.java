@@ -455,7 +455,7 @@ public abstract class Items {
 	protected static void addItemType(@Nonnull final String name,
 			@Nonnull final Class<? extends Item> clazz, @Nonnull final Boolean enabled,
 			@Nullable final String oredict) {
-		com.mcmoddev.lib.MMDLib.logger.fatal("Register Item Type: {}/{}/{}/{}", name, clazz.getName(), enabled, oredict==null?"null":"".contentEquals(oredict)?"EMPTY":oredict);
+		com.mcmoddev.lib.MMDLib.logger.debug("Register Item Type: {}/{}/{}/{}", name, clazz.getName(), enabled, oredict==null?"null":"".contentEquals(oredict)?"EMPTY":oredict);
 		if (!nameToClass.containsKey(name)) {
 			nameToClass.put(name, clazz);
 		}

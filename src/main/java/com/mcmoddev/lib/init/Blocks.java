@@ -323,7 +323,7 @@ public abstract class Blocks {
 	protected static void addBlockType(@Nonnull final String name,
 			@Nonnull final Class<? extends Block> clazz, @Nonnull final Boolean enabled,
 			@Nullable final String oredict) {
-		com.mcmoddev.lib.MMDLib.logger.fatal("Register Block Type: {}/{}/{}/{}", name, clazz.getName(), enabled, oredict==null?"null":"".contentEquals(oredict)?"EMPTY":oredict);
+		com.mcmoddev.lib.MMDLib.logger.debug("Register Block Type: {}/{}/{}/{}", name, clazz.getName(), enabled, oredict==null?"null":"".contentEquals(oredict)?"EMPTY":oredict);
 		if (!nameToClass.containsKey(name)) {
 			nameToClass.put(name, clazz);
 		}

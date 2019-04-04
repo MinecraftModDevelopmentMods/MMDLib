@@ -194,7 +194,7 @@ public abstract class Recipes {
 	}
 
 	protected static void initVanillaRecipes() {
-		// stub
+		// nothing to do here, really - should we remove this ?
 	}
 
 	protected static void initGeneralRecipes() {
@@ -293,8 +293,8 @@ public abstract class Recipes {
 					out.setCount(cheeseQty);
 					addFurnaceRecipe(material.getItemStack(Names.ROD), out, xp);
 				} else {
-					MMDLib.logger.fatal(
-							"Rods per craft set to %d - got %d nuggets when trying to generate a cheese recipe, stopping it from happening (material %s)",
+					MMDLib.logger.debug(
+							"Rods per craft set to {} - got {} nuggets when trying to generate a cheese recipe, stopping it from happening (material {})",
 							Options.rodQuantity(), cheeseQty, material.getName());
 				}
 			}
@@ -332,7 +332,7 @@ public abstract class Recipes {
 						material.getItemStack(Names.INGOT, resCount / 9), ingotXP);
 			} else {
 				MMDLib.logger.warn(
-						"Gears Per Craft set to %d - got a result nugget count of %d when trying to make the cheese recipe for Gears (material %s)",
+						"Gears Per Craft set to {} - got a result nugget count of {} when trying to make the cheese recipe for Gears (material {})",
 						Options.gearQuantity(), resCount, material.getName());
 			}
 		}
@@ -383,7 +383,7 @@ public abstract class Recipes {
 						material.getItemStack(Names.NUGGET, nuggetCount), baseXP);
 			} else {
 				MMDLib.logger.warn(
-						"Plates Per Craft set to %d - got a result nugget count of %d when trying to make the cheese recipe for plates (material %s)",
+						"Plates Per Craft set to {} - got a result nugget count of {} when trying to make the cheese recipe for plates (material {})",
 						Options.plateQuantity(), nuggetCount, material.getName());
 			}
 		}
@@ -497,8 +497,8 @@ public abstract class Recipes {
 		smeltingMap.entrySet().forEach(ent -> {
 			final ItemStack res = FurnaceRecipes.instance().getSmeltingResult(ent.getKey());
 			final float exp = FurnaceRecipes.instance().getSmeltingExperience(res);
-			MMDLib.logger.fatal("Furnace Recipe, %s -> %s with %01.2f exp", ent.getKey(),
-					ent.getValue(), exp);
+			MMDLib.logger.debug("Furnace Recipe, {} -> {} with {} exp", ent.getKey(),
+					ent.getValue(), String.format("%01.2f", exp));
 		});
 	}
 
