@@ -34,9 +34,10 @@ public class ModelDataFix {
 		.filter(mapping -> {
 			String[] pathBits = mapping.key.getPath().split("_");
 			String matName = "double".equalsIgnoreCase(pathBits[0])?pathBits[1]:pathBits[0];
-			return vanilla_names.contains(mapping.key.getPath().indexOf("_")!=-1?matName:mapping.key.getPath());
+			return vanilla_names.contains(mapping.key.getPath().indexOf("_")!=-1?matName:mapping.key.getPath()) || "human_detector".equalsIgnoreCase(mapping.key.getPath());
 		})
 		.forEach(mapping -> {
+			MMDLib.logger.fatal("mapping: {}", mapping.key);
 			if(mapping.key.getPath().indexOf("_") != -1) {
 				String p = mapping.key.getPath();
 				int idx = mapping.key.getPath().indexOf("_");
@@ -63,7 +64,6 @@ public class ModelDataFix {
 		})
 		.forEach(mapping ->  {
 			ResourceLocation remap = new ResourceLocation(MMDLib.MODID, mapping.key.getPath());
-			MMDLib.logger.fatal("trying to remap {} to {}", mapping.key, remap);
 			mapping.remap(ForgeRegistries.ITEMS.getValue(remap));
 		});
 	}

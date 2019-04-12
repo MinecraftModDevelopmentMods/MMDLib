@@ -1,0 +1,16 @@
+[
+{
+  "modid": "mmdlib",
+  "name": "MMDLib",
+  "description": "A library mod providing helper functionality - use by the Metals family of mods and some others",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://github.com/MineCraftModDevelopmentMods/MMDLib",
+  "updateUrl": "",
+  "authorList": ["jriwanek", "dshadowwolf", "face of cat" ],
+  "credits": "Cyanobacterium (aka DrCyano) For creating the original BaseMetals mod, which this mod began as part of",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
