@@ -23,18 +23,18 @@ public class MMDLibConfig extends Config {
 	private static final MaterialConfigOptions[] MATERIAL_CONFIG_OPTIONS = new MaterialConfigOptions[]{
 		new MaterialConfigOptions(VanillaMaterialNames.CHARCOAL, false, true, true, true),
 		new MaterialConfigOptions(VanillaMaterialNames.COAL,false, true, true,true),
-		new MaterialConfigOptions(VanillaMaterialNames.DIAMOND,true, true, true, false),
-		new MaterialConfigOptions(VanillaMaterialNames.EMERALD,true, true, true, false),
-		new MaterialConfigOptions(VanillaMaterialNames.GOLD, true,true, true, false),
-		new MaterialConfigOptions(VanillaMaterialNames.IRON, true,true, true, false),
+		new MaterialConfigOptions(VanillaMaterialNames.DIAMOND,true, true, true, true),
+		new MaterialConfigOptions(VanillaMaterialNames.EMERALD,true, true, true, true),
+		new MaterialConfigOptions(VanillaMaterialNames.GOLD, true,true, true, true),
+		new MaterialConfigOptions(VanillaMaterialNames.IRON, true,true, true, true),
 		new MaterialConfigOptions(VanillaMaterialNames.STONE, true,true, false, false),
 		new MaterialConfigOptions(VanillaMaterialNames.WOOD, true,true, false, false),
-		new MaterialConfigOptions(VanillaMaterialNames.ENDER, true,true, false, false),
-		new MaterialConfigOptions(VanillaMaterialNames.QUARTZ, true,true, false, false),
-		new MaterialConfigOptions(VanillaMaterialNames.OBSIDIAN,true, true, true, false),
+		new MaterialConfigOptions(VanillaMaterialNames.ENDER, true,true, true, true),
+		new MaterialConfigOptions(VanillaMaterialNames.QUARTZ, true,true, true, true),
+		new MaterialConfigOptions(VanillaMaterialNames.OBSIDIAN,true, true, true, true),
 		new MaterialConfigOptions(VanillaMaterialNames.LAPIS, true,true, false, false),
 		new MaterialConfigOptions(VanillaMaterialNames.PRISMARINE,true, true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.REDSTONE,true, true, true, false),
+		new MaterialConfigOptions(VanillaMaterialNames.REDSTONE,true, true, true, true),
 	};
 
 	/**

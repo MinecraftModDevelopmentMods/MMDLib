@@ -340,8 +340,8 @@ public abstract class Recipes {
 
 	private static void makeSimpleRecipes(@Nonnull final MMDMaterial material) {
 		final float baseXP = Float
-				.parseFloat(String.format(DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
-		final float nuggetXP = Float.parseFloat(String.format(DEFAULT_ORESMELT_XP, baseXP / 9.0f));
+				.parseFloat(String.format(Locale.US, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
+		final float nuggetXP = Float.parseFloat(String.format(Locale.US, DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
 		if ((material.hasBlock(Names.BLOCK)) && (material.hasItem(Names.SLAB))) {
 			addFurnaceRecipe(material.getItemStack(Names.SLAB),
