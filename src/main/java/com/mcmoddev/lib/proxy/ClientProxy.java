@@ -1,9 +1,9 @@
 package com.mcmoddev.lib.proxy;
 
-import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.client.registrations.RegistrationHelper;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.init.*;
+import com.mcmoddev.lib.network.MMDMessages;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
@@ -16,7 +16,7 @@ import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -27,12 +27,13 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  * @author Jasmine Iwanek
  *
  */
-@Mod.EventBusSubscriber(modid=MMDLib.MODID)
 public class ClientProxy extends CommonProxy {
 
 	@Override
 	public void preInit(FMLPreInitializationEvent event) {
 		super.preInit(event);
+		MMDMessages.client_init();
+		MinecraftForge.EVENT_BUS.register(this);
 	}
 	/**
 	 * Registers Block and Item models for this mod.

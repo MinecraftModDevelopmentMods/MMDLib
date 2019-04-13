@@ -12,16 +12,20 @@ import net.minecraftforge.fml.relauncher.Side;
 public final class MMDMessages {
     private MMDMessages() {}
     private final static SimpleNetworkWrapper wrapper = new SimpleNetworkWrapper(MMDLib.MODID);
-
+    
     /**
      * Registers the message types handled by this class.
      */
-    public static void init() {
+    public static void client_init() {
         MMDMessages.wrapper.registerMessage(NBTBasedPlayerHandler.INSTANCE, NBTBasedPlayerMessage.class, 1, Side.CLIENT);
+
+        MMDMessages.wrapper.registerMessage(NBTBasedTileHandlerClient.INSTANCE, NBTBasedTileMessage.class, 2, Side.CLIENT);
+    }
+
+    public static void server_init() {
         MMDMessages.wrapper.registerMessage(NBTBasedPlayerHandler.INSTANCE, NBTBasedPlayerMessage.class, 1, Side.SERVER);
 
-        MMDMessages.wrapper.registerMessage(NBTBasedTileHandler.INSTANCE, NBTBasedTileMessage.class, 2, Side.CLIENT);
-        MMDMessages.wrapper.registerMessage(NBTBasedTileHandler.INSTANCE, NBTBasedTileMessage.class, 2, Side.SERVER);
+        MMDMessages.wrapper.registerMessage(NBTBasedTileHandlerServer.INSTANCE, NBTBasedTileMessage.class, 2, Side.SERVER);
     }
 
     /**
