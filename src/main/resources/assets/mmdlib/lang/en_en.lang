@@ -199,9 +199,17 @@ tile.mmdlib.charcoal_block.name=Block of Charcoal
 fluid.mmdlib.ender=Molten Ender
 	#Fluid.name
 fluid.mmdlib.charcoal.name=Liquifacted Charcoal
+fluid.mmdlib.coal.name=Liquifacted Coal
 fluid.mmdlib.diamond.name=Molten Diamond
 fluid.mmdlib.prismarine.name=Molten Prismarine
 fluid.mmdlib.redstone.name=Molten Redstone
+fluid.mmdlib.emerald.name=Molten Emerald
+fluid.mmdlib.iron.name=Molten Iron
+fluid.mmdlib.ender.name=Molten Ender Pearl
+fluid.mmdlib.obsidian.name=Molten Obsidian
+fluid.mmdlib.quartz.name=Molten Quartz
+fluid.mmdlib.gold.name=Molten Gold
+
     #Tile
 tile.mmdlib.charcoal.name=Liquifacted Charcoal
 tile.mmdlib.coal.name=Liquifacted Coal
