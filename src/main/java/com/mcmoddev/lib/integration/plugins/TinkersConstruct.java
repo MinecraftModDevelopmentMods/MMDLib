@@ -2,7 +2,7 @@ package com.mcmoddev.lib.integration.plugins;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
-
+import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.integration.IIntegration;
 import com.mcmoddev.lib.integration.IntegrationInitEvent;
@@ -88,6 +88,13 @@ public class TinkersConstruct implements IIntegration {
 
 	@Override
 	public void init() {
+		
+		if(!slimeknights.tconstruct.TConstruct.pulseManager.isPulseLoaded("TinkerSmeltery")) {
+			MMDLib.logger.fatal("module not enabled, not sending any cruft through");
+			initDone = true;
+			return;
+		}
+
 		if (!Options.isModEnabled(PLUGIN_MODID) || initDone) {
 			return;
 		}
