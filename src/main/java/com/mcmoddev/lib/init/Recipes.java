@@ -331,7 +331,7 @@ public abstract class Recipes {
 				addFurnaceRecipe(new ItemStack(material.getItem(Names.GEAR)),
 						material.getItemStack(Names.INGOT, resCount / 9), ingotXP);
 			} else {
-				MMDLib.logger.warn(
+				MMDLib.logger.debug(
 						"Gears Per Craft set to {} - got a result nugget count of {} when trying to make the cheese recipe for Gears (material {})",
 						Options.gearQuantity(), resCount, material.getName());
 			}

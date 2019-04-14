@@ -105,7 +105,9 @@ public enum IntegrationManager {
 			final String addonId = this.getAnnotationItem("addonId", asmDataItem);
 			final String modId = this.getAnnotationItem("pluginId", asmDataItem);
 			final String versions = this.getAnnotationItem("versions", asmDataItem);
+
 			if (!versions.equals("")) {
+				MMDLib.logger.debug("Trying to load integration for {} ({}) - versions {}", addonId, modId, versions);
 				this.plugins.computeIfAbsent(addonId, val -> Maps.newConcurrentMap());
 				Map<String, VersionMatch> rv = this.plugins.get(addonId);
 				for (String entry : versions.split(";")) {
@@ -127,8 +129,6 @@ public enum IntegrationManager {
 								return myRange.toStringFriendly();
 							}
 						});
-						MMDLib.logger.fatal("versions: {} - {}!!{} - {}", entry, bits[0],
-								bits[1], rv);
 					} else {
 						rv.put(targetModId, match -> true);
 					}
