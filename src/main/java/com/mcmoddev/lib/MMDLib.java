@@ -57,7 +57,7 @@ public class MMDLib {
 	 * increased whenever a change is made that has the potential to break
 	 * compatibility with other mods that depend on this one.
 	 */
-	public static final String VERSION = "1.0.0-beta1";
+	public static final String VERSION = "1.0.0-rc1";
 
 	static final String UPDATEJSON = "https://raw.githubusercontent.com/MinecraftModDevelopment/MMDLib/master/update.json";
 
