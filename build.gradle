@@ -322,7 +322,7 @@ curseforge {
         mainArtifact(jar) {
             displayName = "$project.description $displayVersion"
             relations {
-                requiredLibrary 'mmd-orespawn'
+                optionalLibrary 'mmd-orespawn'
                 optionalLibrary 'additional-loot-tables'
             }
         }
