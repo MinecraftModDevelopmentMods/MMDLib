@@ -1,3 +1,5 @@
+Late Addendum: A chunk of client code was being run server-side, causing a server crash. How this was not caught is unknown - fixed in this immediate update.
+
 1) (@dshadowwolf and others) Sync to latest code in current conjoined BaseMetals to get bugfixes and API updates.
 2) (@faceofcat) Add GUI interface wrappers and layer
 3) (@faceofcat) Add Capabilities wrapper and layers - this is extensible and has hooks for latching all existing power systems equally
