@@ -36,7 +36,7 @@ public class TypeRegistrationEvents {
 
 	@SubscribeEvent
 	public static void itemTypeRegistrationEvent(MMDLibRegisterItemTypes ev) {
-		MMDLib.logger.fatal("MMDLibRegisterItemTypes");
+		MMDLib.logger.debug("MMDLibRegisterItemTypes");
 		IRegAPI<Item> api = ev.getApi();
 
 		api.addSorting(BlockMMDOre.class);
@@ -96,7 +96,6 @@ public class TypeRegistrationEvents {
 
 	@SubscribeEvent
 	public static void blockTypeRegistrationEvent(MMDLibRegisterBlockTypes ev) {
-		MMDLib.logger.fatal("MMDLibRegisterBlockTypes");
 		IRegAPI<Block> api = ev.getApi();
 		api.addType(BlockMMDAnvil.class, Names.ANVIL, Options.isThingEnabled(ConfigKeys.ANVIL));
 		api.addType(BlockMMDBars.class, Names.BARS, Options.isThingEnabled(ConfigKeys.BARS), Oredicts.BARS);

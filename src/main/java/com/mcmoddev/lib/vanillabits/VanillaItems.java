@@ -11,6 +11,7 @@ import com.mcmoddev.lib.events.MMDLibRegisterItems;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDBurnableObject;
 import com.mcmoddev.lib.material.MMDMaterial;
+//import com.mcmoddev.lib.util.Config;
 
 import net.minecraft.item.ItemStack;
 

@@ -80,6 +80,10 @@ public abstract class Items {
 		classSortingValues.put(clazz, classSortingValues.get(otherClazz));
 	}
 
+	public static void dumpNameToEnabled() {
+		MMDLib.logger.debug("Dumping nameToEnabled ({} entries)", nameToEnabled.entrySet().size());
+		nameToEnabled.entrySet().stream().forEach(ent -> MMDLib.logger.debug("name {} is {}", ent.getKey(), ent.getValue()?"enabled":"disabled"));
+	}
 	/**
 	 *
 	 */
@@ -449,6 +453,7 @@ public abstract class Items {
 	
 	protected static void addItemType(@Nonnull final String name,
 			@Nonnull final Class<? extends Item> clazz, @Nonnull final Boolean enabled) {
+		com.mcmoddev.lib.MMDLib.logger.debug("Register Item Type: {}/{}/{}/null", name, clazz.getName(), enabled);
 		addItemType(name, clazz, enabled, null);
 	}
 	
@@ -461,7 +466,13 @@ public abstract class Items {
 		}
 
 		if (!nameToEnabled.containsKey(name)) {
+			com.mcmoddev.lib.MMDLib.logger.debug("!nameToEnabled({}) ({})", name, enabled);
 			nameToEnabled.put(name, enabled);
+		} else {
+			com.mcmoddev.lib.MMDLib.logger.debug("nameToEnabled({}) ({} -- {})", name, enabled, nameToEnabled.get(name));			
+			if(nameToEnabled.get(name) != enabled) {
+				nameToEnabled.put(name, enabled);
+			}
 		}
 
 		if ((oredict != null) && (!"".equals(oredict)) && (!nameToOredict.containsKey(name))) {

@@ -58,6 +58,7 @@ public class MMDLibConfig extends Config {
 			MinecraftForge.EVENT_BUS.register(new MMDLibConfig());
 		}
 
+		MMDLib.logger.fatal("MMDLibConfig.init()");
 		// GENERAL
 		Options.setDisableAllHammerRecipes(configuration.getBoolean("disable_crack_hammer",
 				GENERAL_CAT, false, "If true, then the crack hammer cannot be crafted."));
@@ -198,10 +199,15 @@ public class MMDLibConfig extends Config {
 			userRecipeCat.put("custom", prop);
 		}
 
+//		MMDLib.logger.fatal("At end - manageUserHammerRecipes");
 		manageUserHammerRecipes(userRecipeCat.values());
 
 		if (configuration.hasChanged()) {
 			configuration.save();
+//			MMDLib.logger.fatal("Config changed, saving");
 		}
+		
+//		MMDLib.logger.fatal("dumpNameToEnabled");
+//		com.mcmoddev.lib.init.Items.dumpNameToEnabled();
 	}
 }

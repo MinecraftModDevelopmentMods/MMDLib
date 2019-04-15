@@ -106,6 +106,7 @@ public class MMDLib {
 
 		// TODO: this should probably not be here
 //		new TinkersConstructBase().init();
+		//com.mcmoddev.lib.init.Items.dumpNameToEnabled();
 	}
 
 	@EventHandler
