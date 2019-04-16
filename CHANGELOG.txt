@@ -1,3 +1,5 @@
+Even Later Addendum: clean up some log spam by changing the level from "warn" to "debug" and fix some recipe issues pointed out by a user on Github.
+
 Late Addendum: A chunk of client code was being run server-side, causing a server crash. How this was not caught is unknown - fixed in this immediate update.
 
 1) (@dshadowwolf and others) Sync to latest code in current conjoined BaseMetals to get bugfixes and API updates.
