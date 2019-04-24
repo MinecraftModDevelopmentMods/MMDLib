@@ -1,3 +1,5 @@
+Latest Adendum: Fix JEI crackhammer recipe display and restore the ability to turn off extension to vanilla materials.
+
 Even Later Addendum: clean up some log spam by changing the level from "warn" to "debug" and fix some recipe issues pointed out by a user on Github.
 
 Late Addendum: A chunk of client code was being run server-side, causing a server crash. How this was not caught is unknown - fixed in this immediate update.
