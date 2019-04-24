@@ -31,8 +31,8 @@ public class MMDLibConfig extends Config {
 	private static final String MISC_CAT = "Miscelanneous Shared Settings";
 	
 	private static final MaterialConfigOptions[] MATERIAL_CONFIG_OPTIONS = new MaterialConfigOptions[]{
-		new MaterialConfigOptions(VanillaMaterialNames.CHARCOAL, false, true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.COAL,false, true, true,true),
+		new MaterialConfigOptions(VanillaMaterialNames.CHARCOAL, true, true, true, true),
+		new MaterialConfigOptions(VanillaMaterialNames.COAL, true, true, true,true),
 		new MaterialConfigOptions(VanillaMaterialNames.DIAMOND,true, true, true, true),
 		new MaterialConfigOptions(VanillaMaterialNames.EMERALD,true, true, true, true),
 		new MaterialConfigOptions(VanillaMaterialNames.GOLD, true,true, true, true),
