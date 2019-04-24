@@ -166,8 +166,8 @@ public enum IntegrationManager {
 						match -> true);
 
 				if (!matcher.matches(pluginVersion)) {
-					MMDLib.logger.error(
-							"Version %s of mod %s is not valid for this mods (%s) integration with it - %s required",
+					MMDLib.logger.debug(
+							"Version {} of mod {} is not valid for this mods ({}) integration with it - {} required",
 							pluginVersion, pluginId, addonId, matcher.asString());
 					continue;
 				}
