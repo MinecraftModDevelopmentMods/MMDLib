@@ -5,6 +5,15 @@ import java.io.File;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.ConfigKeys;
 import com.mcmoddev.lib.data.VanillaMaterialNames;
+import com.mcmoddev.lib.integration.plugins.ConstructsArmory;
+import com.mcmoddev.lib.integration.plugins.DenseOres;
+import com.mcmoddev.lib.integration.plugins.EnderIO;
+import com.mcmoddev.lib.integration.plugins.IC2;
+import com.mcmoddev.lib.integration.plugins.Mekanism;
+import com.mcmoddev.lib.integration.plugins.Thaumcraft;
+import com.mcmoddev.lib.integration.plugins.ThermalExpansion;
+import com.mcmoddev.lib.integration.plugins.TinkersConstruct;
+import com.mcmoddev.lib.integration.plugins.VeinMiner;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.ConfigCategory;
@@ -19,7 +28,8 @@ public class MMDLibConfig extends Config {
 	private static final String GENERAL_CAT = "General";
 	private static final String HAMMER_RECIPES_CAT = "Crack Hammer Recipes";
 	private static final String TOOLS_CAT = "Tools and Items";
-
+	private static final String MISC_CAT = "Miscelanneous Shared Settings";
+	
 	private static final MaterialConfigOptions[] MATERIAL_CONFIG_OPTIONS = new MaterialConfigOptions[]{
 		new MaterialConfigOptions(VanillaMaterialNames.CHARCOAL, false, true, true, true),
 		new MaterialConfigOptions(VanillaMaterialNames.COAL,false, true, true,true),
@@ -36,6 +46,20 @@ public class MMDLibConfig extends Config {
 		new MaterialConfigOptions(VanillaMaterialNames.PRISMARINE,true, true, true, true),
 		new MaterialConfigOptions(VanillaMaterialNames.REDSTONE,true, true, true, true),
 	};
+
+	private static final IntegrationConfigOptions[] INTEGRATION_CONFIG_OPTIONS = new IntegrationConfigOptions[]{
+			new IntegrationConfigOptions("Ender IO", EnderIO.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("IC2", IC2.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("Mekanism", Mekanism.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("Thaumcraft", Thaumcraft.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("Tinkers Construct", TinkersConstruct.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("Constructs Armory", ConstructsArmory.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("VeinMiner", VeinMiner.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("TAIGA", "taiga", true),
+			new IntegrationConfigOptions("Dense Ores", DenseOres.PLUGIN_MODID, true),
+			new IntegrationConfigOptions("Thermal Expansion", ThermalExpansion.PLUGIN_MODID, true)
+		};
+
 
 	/**
 	 * Fired when the configuration changes.
@@ -58,8 +82,13 @@ public class MMDLibConfig extends Config {
 			MinecraftForge.EVENT_BUS.register(new MMDLibConfig());
 		}
 
-		MMDLib.logger.fatal("MMDLibConfig.init()");
 		// GENERAL
+		Options.setRequireMMDOreSpawn(configuration.getBoolean("using_orespawn", GENERAL_CAT, true,
+				"If false, then Base Metals will not require MMD Ore Spawn mod. \n"
+						+ "Set to false if using another mod to manually handle ore generation."));
+		// fallback orespawn can live as a 'thingEnabled' for a bit...
+		Options.setFallbackOreSpawn(configuration.getBoolean("fallback_orespawn", GENERAL_CAT, true,
+				"disable this and using_orespawn to make MMDLib based mods not spawn any ores"));
 		Options.setDisableAllHammerRecipes(configuration.getBoolean("disable_crack_hammer",
 				GENERAL_CAT, false, "If true, then the crack hammer cannot be crafted."));
 		Options.setEnforceHardness(configuration.getBoolean("enforce_hardness", GENERAL_CAT, true,
@@ -92,6 +121,17 @@ public class MMDLibConfig extends Config {
 		Options.thingEnabled(ConfigKeys.MEKITEMS_WITHOUT_PLUGIN, 
 				configuration.getBoolean("Enable Mekanism Items", GENERAL_CAT, false, 
 						"Enable the items for Mekanism support even if the Mekanism plugin is disabled"));
+		Options.thingEnabled(ConfigKeys.VILLAGER_TRADES, configuration.getBoolean("Enable Villager Trades", 
+				GENERAL_CAT, true, "No, not the Village People, trades with Villagers.\n" + 
+						"Basically... if you don't want BaseMetals (or other *Metals items and blocks) registered as trades with various villagers, set this to false"));
+		Options.thingEnabled(ConfigKeys.IC2ITEMS_WITHOUT_PLUGIN, 
+				configuration.getBoolean("Enable IC2 Items", GENERAL_CAT, false, 
+						"Enable the items for IC2 support even if the IC2 plugin is disabled"));
+		Options.thingEnabled(ConfigKeys.MEKITEMS_WITHOUT_PLUGIN, 
+				configuration.getBoolean("Enable Mekanism Items", GENERAL_CAT, false, 
+						"Enable the items for Mekanism support even if the Mekanism plugin is disabled"));
+
+		configIntegrationOptions(INTEGRATION_CONFIG_OPTIONS, configuration);
 
 		configMaterialOptions(MATERIAL_CONFIG_OPTIONS, configuration);
 
@@ -176,6 +216,11 @@ public class MMDLibConfig extends Config {
 		Options.thingEnabled(ConfigKeys.TRIPWIRE_HOOK, Options.isThingEnabled(ConfigKeys.EXPERIMENTAL));
 		Options.thingEnabled(ConfigKeys.SCYTHE, configuration.getBoolean("Enable Scythe", TOOLS_CAT, false, "Enable Scythe"));
 
+		// Shared by some but not all lib-users
+		Options.thingEnabled("enableFurnaceSmelting", configuration.getBoolean("enableFurnaceSmelting", MISC_CAT, true, "Enable Furnace Smelting"));
+		Options.thingEnabled("smeltToIngots", configuration.getBoolean("smeltToIngots", MISC_CAT, false, "By default some ores (Nether and End at this point) smelt to 2 standard ores - with this option you get 2 ingots"));
+		Options.thingEnabled("makeDusts", configuration.getBoolean("makeDusts", MISC_CAT, false, "Normally hitting a Some Ores with a Crackhammer gives you 2 more standard ores. With this option you get 4 dusts"));
+
 		// DISABLE CRACK HAMMER RECIPES
 		Options.setDisabledRecipes(parseDisabledRecipes(configuration.getString(
 				"DisabledCrackhammerRecipes", GENERAL_CAT, "",
@@ -199,15 +244,11 @@ public class MMDLibConfig extends Config {
 			userRecipeCat.put("custom", prop);
 		}
 
-//		MMDLib.logger.fatal("At end - manageUserHammerRecipes");
 		manageUserHammerRecipes(userRecipeCat.values());
 
 		if (configuration.hasChanged()) {
 			configuration.save();
-//			MMDLib.logger.fatal("Config changed, saving");
 		}
 		
-//		MMDLib.logger.fatal("dumpNameToEnabled");
-//		com.mcmoddev.lib.init.Items.dumpNameToEnabled();
 	}
 }
