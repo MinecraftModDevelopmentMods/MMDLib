@@ -22,7 +22,9 @@ public class VanillaFluids extends Fluids {
 				VanillaMaterialNames.GOLD, VanillaMaterialNames.IRON, VanillaMaterialNames.LAPIS,
 				VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.PRISMARINE, VanillaMaterialNames.QUARTZ,
 				VanillaMaterialNames.WOOD, VanillaMaterialNames.REDSTONE, VanillaMaterialNames.STONE, 
-				VanillaMaterialNames.REDSTONE).stream().filter(Options::isFluidEnabled).forEach(materialName -> {
+				VanillaMaterialNames.REDSTONE).stream()
+		.filter(Options::isMaterialEnabled)
+		.filter(Options::isFluidEnabled).forEach(materialName -> {
 			addFluid(materialName, 2000, 10000, 769, 10);
 			addFluidBlock(materialName);
 		});

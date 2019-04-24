@@ -382,7 +382,7 @@ public abstract class Recipes {
 				addFurnaceRecipe(material.getBlockItemStack(Names.PLATE),
 						material.getItemStack(Names.NUGGET, nuggetCount), baseXP);
 			} else {
-				MMDLib.logger.warn(
+				MMDLib.logger.debug(
 						"Plates Per Craft set to {} - got a result nugget count of {} when trying to make the cheese recipe for plates (material {})",
 						Options.plateQuantity(), nuggetCount, material.getName());
 			}

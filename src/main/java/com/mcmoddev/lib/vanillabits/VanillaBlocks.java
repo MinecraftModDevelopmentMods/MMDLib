@@ -10,6 +10,7 @@ import java.util.Arrays;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.material.MMDMaterial;
+import com.mcmoddev.lib.util.Config.Options;
 
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -76,6 +77,7 @@ public class VanillaBlocks extends Blocks {
 
 		Arrays.stream(new String[] {VanillaMaterialNames.DIAMOND, VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD,
 				VanillaMaterialNames.OBSIDIAN })
+		.filter(n -> Options.isMaterialEnabled(n.toString()))
 		.filter(Materials::hasMaterial)
 		.map(Materials::getMaterialByName)
 		.forEach(mat -> {
@@ -83,11 +85,11 @@ public class VanillaBlocks extends Blocks {
 					Names.LEVER, Names.PRESSURE_PLATE, Names.STAIRS, Names.WALL }).forEach(n -> create(n, mat));
 		});
 
-		if (Materials.hasMaterial(VanillaMaterialNames.GOLD)) {
+		if (Materials.hasMaterial(VanillaMaterialNames.GOLD) && Options.isMaterialEnabled(VanillaMaterialNames.GOLD)) {
 			create(Names.PLATE, gold);
 		}
 		
- 		if (Materials.hasMaterial(VanillaMaterialNames.IRON)) {
+ 		if (Materials.hasMaterial(VanillaMaterialNames.IRON) && Options.isMaterialEnabled(VanillaMaterialNames.IRON)) {
 			create(Names.PLATE, iron);
 
 			create(Names.BUTTON, iron);
@@ -99,7 +101,7 @@ public class VanillaBlocks extends Blocks {
 			create(Names.WALL, iron);
 		}
 
-		if (Materials.hasMaterial(VanillaMaterialNames.QUARTZ)) {
+		if (Materials.hasMaterial(VanillaMaterialNames.QUARTZ) && Options.isMaterialEnabled(VanillaMaterialNames.QUARTZ)) {
 			create(Names.BARS, quartz);
 			create(Names.DOOR, quartz);
 			create(Names.TRAPDOOR, quartz);

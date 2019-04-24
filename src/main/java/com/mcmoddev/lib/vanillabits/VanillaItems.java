@@ -12,6 +12,7 @@ import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.material.IMMDBurnableObject;
 import com.mcmoddev.lib.material.MMDMaterial;
 //import com.mcmoddev.lib.util.Config;
+import com.mcmoddev.lib.util.Config.Options;
 
 import net.minecraft.item.ItemStack;
 
@@ -52,7 +53,9 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		Arrays.asList(VanillaMaterialNames.EMERALD, VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.QUARTZ)
 		.stream().map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.AXE, Names.BOOTS, 
 				Names.CHESTPLATE, Names.HELMET, Names.HOE, Names.LEGGINGS, Names.PICKAXE, Names.SHOVEL, Names.HORSE_ARMOR)
-				.stream().filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
+				.stream()
+				.filter(n -> Options.isMaterialEnabled(n.toString()))
+				.filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
 		
 		// shields
 		Arrays.asList(VanillaMaterialNames.DIAMOND, VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD, 
@@ -60,14 +63,18 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 		.stream().map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.BOLT, Names.ARROW, Names.BOW, 
 				Names.CROSSBOW, Names.FISHING_ROD, Names.ROD, Names.BARS, Names.SHEARS, Names.BUTTON, Names.SWORD,
 				Names.SHIELD, Names.DOOR, Names.SLAB)
-				.stream().filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
+				.stream()
+				.filter(n -> Options.isMaterialEnabled(n.toString()))
+				.filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
 		
 		// bits that everything should have
 		Arrays.asList(VanillaMaterialNames.DIAMOND, VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD, 
 				VanillaMaterialNames.IRON, VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.QUARTZ, 
 				VanillaMaterialNames.STONE, VanillaMaterialNames.WOOD)
 		.stream().map(Materials::getMaterialByName).forEach(material -> Arrays.asList(Names.CRACKHAMMER, Names.GEAR, 
-				Names.SCYTHE).stream().filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
+				Names.SCYTHE).stream()
+				.filter(n -> Options.isMaterialEnabled(n.toString()))
+				.filter(n -> !material.hasItem(n)).forEach(n -> create(n, material)));
 		
 		// last few bits
 		Arrays.asList(VanillaMaterialNames.COAL, VanillaMaterialNames.CHARCOAL, VanillaMaterialNames.DIAMOND,
@@ -75,18 +82,30 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 				VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.REDSTONE, 
 				VanillaMaterialNames.QUARTZ).stream()
 		.map(Materials::getMaterialByName).forEach(material -> 
-		Arrays.asList(Names.SMALLPOWDER, Names.POWDER).stream().filter(n -> !material.hasItem(n))
+		Arrays.asList(Names.SMALLPOWDER, Names.POWDER).stream()
+		.filter(n -> Options.isMaterialEnabled(n.toString()))
+		.filter(n -> !material.hasItem(n))
 		.forEach(n -> create(n, material)));
 		Arrays.asList(VanillaMaterialNames.COAL, VanillaMaterialNames.CHARCOAL, VanillaMaterialNames.DIAMOND,
 				VanillaMaterialNames.EMERALD, VanillaMaterialNames.GOLD, VanillaMaterialNames.IRON, 
 				VanillaMaterialNames.OBSIDIAN, VanillaMaterialNames.QUARTZ).stream()
-		.map(Materials::getMaterialByName).forEach(material -> create(Names.NUGGET, material));
+		.filter(Options::isMaterialEnabled)
+		.map(Materials::getMaterialByName)
+		.filter(m -> !m.hasItem(Names.NUGGET)).forEach(material -> create(Names.NUGGET, material));
 		
 		//these bits just are too... specialized to fit the iteration above
-		create(Names.ROD, Materials.getMaterialByName(VanillaMaterialNames.STONE));
-		create(Names.SMALLPOWDER, Materials.getMaterialByName(VanillaMaterialNames.LAPIS));
-		create(Names.INGOT, Materials.getMaterialByName(VanillaMaterialNames.OBSIDIAN));
-		create(Names.INGOT, Materials.getMaterialByName(VanillaMaterialNames.REDSTONE));
+		if(Options.isMaterialEnabled(VanillaMaterialNames.STONE)) {
+			create(Names.ROD, Materials.getMaterialByName(VanillaMaterialNames.STONE));
+		}
+		if(Options.isMaterialEnabled(VanillaMaterialNames.LAPIS)) {
+			create(Names.SMALLPOWDER, Materials.getMaterialByName(VanillaMaterialNames.LAPIS));
+		}
+		if(Options.isMaterialEnabled(VanillaMaterialNames.OBSIDIAN)) {
+			create(Names.INGOT, Materials.getMaterialByName(VanillaMaterialNames.OBSIDIAN));
+		}
+		if(Options.isMaterialEnabled(VanillaMaterialNames.REDSTONE)) {
+			create(Names.INGOT, Materials.getMaterialByName(VanillaMaterialNames.REDSTONE));
+		}
 	}
 	
 	private static void setBurnTimes(@Nonnull final MMDMaterial material) {
@@ -109,7 +128,8 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 	}
 	
 	private static void doSpecialMats() {
-		if (Materials.hasMaterial(VanillaMaterialNames.CHARCOAL)) {
+		if (Materials.hasMaterial(VanillaMaterialNames.CHARCOAL) && 
+				Options.isMaterialEnabled(VanillaMaterialNames.CHARCOAL)) {
 			final MMDMaterial charcoal = Materials.getMaterialByName(VanillaMaterialNames.CHARCOAL);
 
 			create(Names.NUGGET, charcoal);
@@ -119,7 +139,8 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 			setBurnTimes(charcoal);
 		}
 
-		if (Materials.hasMaterial(VanillaMaterialNames.COAL)) {
+		if (Materials.hasMaterial(VanillaMaterialNames.COAL) && 
+				Options.isMaterialEnabled(VanillaMaterialNames.COAL)) {
 			final MMDMaterial coal = Materials.getMaterialByName(VanillaMaterialNames.COAL);
 
 			create(Names.NUGGET, coal);
@@ -129,14 +150,16 @@ public class VanillaItems extends com.mcmoddev.lib.init.Items {
 			setBurnTimes(coal);
 		}
 
-		if (Materials.hasMaterial(VanillaMaterialNames.REDSTONE)) {
+		if (Materials.hasMaterial(VanillaMaterialNames.REDSTONE) && 
+				Options.isMaterialEnabled(VanillaMaterialNames.REDSTONE)) {
 			final MMDMaterial redstone = Materials.getMaterialByName(VanillaMaterialNames.REDSTONE);
 
 			create(Names.INGOT, redstone);
 			create(Names.SMALLPOWDER, redstone);
 		}
 
-		if (Materials.hasMaterial(VanillaMaterialNames.LAPIS)) {
+		if (Materials.hasMaterial(VanillaMaterialNames.LAPIS) && 
+				Options.isMaterialEnabled(VanillaMaterialNames.LAPIS)) {
 			create(Names.SMALLPOWDER, Materials.getMaterialByName(VanillaMaterialNames.LAPIS));
 		}
 	}
