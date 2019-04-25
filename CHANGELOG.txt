@@ -1,3 +1,5 @@
+Addendum: config options shared by multiple - or all - MMDLib users have been moved into MMDLib. Config will be updated - if you've customized it, you'll need to edit it more.
+
 Latest Adendum: Fix JEI crackhammer recipe display and restore the ability to turn off extension to vanilla materials.
 
 Even Later Addendum: clean up some log spam by changing the level from "warn" to "debug" and fix some recipe issues pointed out by a user on Github.
