@@ -1,6 +1,0 @@
-{
-    "variants": {
-        "powered=false": { "model": "mmdlib:emerald_pressure_plate_up" },
-        "powered=true": { "model": "mmdlib:emerald_pressure_plate_down" }
-    }
-}

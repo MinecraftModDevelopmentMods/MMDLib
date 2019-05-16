@@ -1,6 +1,0 @@
-{
-    "parent": "mmdlib:item/emerald_bow",
-    "textures": {
-        "layer0": "mmdlib:items/emerald_bow_pulling_2"
-    }
-}

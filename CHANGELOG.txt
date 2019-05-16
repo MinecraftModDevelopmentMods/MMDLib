@@ -1,22 +1,2 @@
-Addendum: config options shared by multiple - or all - MMDLib users have been moved into MMDLib. Config will be updated - if you've customized it, you'll need to edit it more.
-
-Latest Adendum: Fix JEI crackhammer recipe display and restore the ability to turn off extension to vanilla materials.
-
-Even Later Addendum: clean up some log spam by changing the level from "warn" to "debug" and fix some recipe issues pointed out by a user on Github.
-
-Late Addendum: A chunk of client code was being run server-side, causing a server crash. How this was not caught is unknown - fixed in this immediate update.
-
-1) (@dshadowwolf and others) Sync to latest code in current conjoined BaseMetals to get bugfixes and API updates.
-2) (@faceofcat) Add GUI interface wrappers and layer
-3) (@faceofcat) Add Capabilities wrapper and layers - this is extensible and has hooks for latching all existing power systems equally
-4) (@dshadowwolf) Implement MMDLib specific startup events and ordering properly
-5) (@dshadowwolf) Remove interdependency of MMDToolEffects and some other pieces
-6) (@dshadowwolf) Update MMDMaterial to have hooks for providing a means to get a custom FluidBlock and custom Tooltips on a per-material basis, the tooltips store on a per-item basis
-7) (@dshadowwolf) Move Tool effects and Armor effects to the "MMDMaterialProperty" system - note that the current form is limited to replicating ***EXACTLY*** what existed before and work needs to be done to make it so that it can apply in a generic manner to any item or block
-8) (@dshadowwolf) Move Vanilla materials and extended items to MMDLib
-9) (@dshadowwolf) Fix mappings so that existing worlds do not break
-10) (@dshadowwolf) Restore missing fluid state mappings
-11) (@dshadowwolf) Restore missing '#inventory' rendering mappings
-12) (@dshadowwolf) Repair client-code-on-server issue in network code
-13) (team, with thanks to public) Repair and fix recipes that had errors
-14) (@YaibaToKen and @dshadowwolf)  Repair Tinkers' Construct interface to not crash if TiC smelter module is turned off
+1) (@dshadowwolf) Various bugfixes
+2) (@dshadowwolf) Undo move of vanilla extensions - this lib should provide some base definitions, but no items or blocks on its own

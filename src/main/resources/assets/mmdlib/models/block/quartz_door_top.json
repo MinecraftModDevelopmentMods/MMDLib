@@ -1,7 +1,0 @@
-{
-    "parent": "block/door_top",
-    "textures": {
-        "bottom": "mmdlib:blocks/quartz_door_lower",
-        "top": "mmdlib:blocks/quartz_door_upper"
-    }
-}

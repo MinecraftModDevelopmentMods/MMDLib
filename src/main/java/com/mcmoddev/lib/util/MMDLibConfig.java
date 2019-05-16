@@ -4,7 +4,6 @@ import java.io.File;
 
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.ConfigKeys;
-import com.mcmoddev.lib.data.VanillaMaterialNames;
 import com.mcmoddev.lib.integration.plugins.ConstructsArmory;
 import com.mcmoddev.lib.integration.plugins.DenseOres;
 import com.mcmoddev.lib.integration.plugins.EnderIO;
@@ -29,23 +28,6 @@ public class MMDLibConfig extends Config {
 	private static final String HAMMER_RECIPES_CAT = "Crack Hammer Recipes";
 	private static final String TOOLS_CAT = "Tools and Items";
 	private static final String MISC_CAT = "Miscelanneous Shared Settings";
-	
-	private static final MaterialConfigOptions[] MATERIAL_CONFIG_OPTIONS = new MaterialConfigOptions[]{
-		new MaterialConfigOptions(VanillaMaterialNames.CHARCOAL, true, true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.COAL, true, true, true,true),
-		new MaterialConfigOptions(VanillaMaterialNames.DIAMOND,true, true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.EMERALD,true, true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.GOLD, true,true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.IRON, true,true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.STONE, true,true, false, false),
-		new MaterialConfigOptions(VanillaMaterialNames.WOOD, true,true, false, false),
-		new MaterialConfigOptions(VanillaMaterialNames.ENDER, true,true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.QUARTZ, true,true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.OBSIDIAN,true, true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.LAPIS, true,true, false, false),
-		new MaterialConfigOptions(VanillaMaterialNames.PRISMARINE,true, true, true, true),
-		new MaterialConfigOptions(VanillaMaterialNames.REDSTONE,true, true, true, true),
-	};
 
 	private static final IntegrationConfigOptions[] INTEGRATION_CONFIG_OPTIONS = new IntegrationConfigOptions[]{
 			new IntegrationConfigOptions("Ender IO", EnderIO.PLUGIN_MODID, true),
@@ -132,8 +114,6 @@ public class MMDLibConfig extends Config {
 						"Enable the items for Mekanism support even if the Mekanism plugin is disabled"));
 
 		configIntegrationOptions(INTEGRATION_CONFIG_OPTIONS, configuration);
-
-		configMaterialOptions(MATERIAL_CONFIG_OPTIONS, configuration);
 
 		// RECIPE AMOUNTS/TOOL&ITEM DISABLING
 		Options.setGearQuantity(configuration.getInt("Gear Quantity", TOOLS_CAT, 4, 1, 64,

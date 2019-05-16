@@ -1,6 +1,0 @@
-{
-    "variants": {
-        "powered=false": { "model": "mmdlib:quartz_pressure_plate_up" },
-        "powered=true": { "model": "mmdlib:quartz_pressure_plate_down" }
-    }
-}
