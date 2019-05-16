@@ -8,10 +8,7 @@ import com.mcmoddev.lib.network.MMDMessages;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.BlockSlab;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.block.model.ModelBakery;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -53,18 +50,7 @@ public class ClientProxy extends CommonProxy {
 		}
 	
 		for (final String name : Fluids.getFluidBlockRegistry().keySet()) {
-			final Block block = Fluids.getFluidBlockByName(name);
-			final Item item = Item.getItemFromBlock(block);
-			
-			final ModelResourceLocation fluidModelLocation = new ModelResourceLocation(item.getRegistryName().getNamespace() + ":" + name, "fluid");
-			ModelBakery.registerItemVariants(item);
-			ModelLoader.setCustomMeshDefinition(item, stack -> fluidModelLocation);
-			ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
-				@Override
-				protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
-					return fluidModelLocation;
-				}
-			});
+			RegistrationHelper.registerFluidRender(name);
 		}
 
 	}

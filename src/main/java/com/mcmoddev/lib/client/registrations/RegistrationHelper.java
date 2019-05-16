@@ -2,7 +2,6 @@ package com.mcmoddev.lib.client.registrations;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.client.renderer.FluidStateMapper;
 import com.mcmoddev.lib.data.SharedStrings;
 import com.mcmoddev.lib.init.Blocks;

@@ -235,7 +235,7 @@ public abstract class Recipes {
 
 	private static void makeBowRecipes(@Nonnull final MMDMaterial material) {
 		final float baseXP = Float
-				.parseFloat(String.format(DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
+				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
 		final float nuggetXP = Float.parseFloat(String.format(DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
 		if (isMMDItem(material, Names.ARROW)) {
@@ -251,7 +251,7 @@ public abstract class Recipes {
 
 	private static void makeCrossbowRecipes(@Nonnull final MMDMaterial material) {
 		final float baseXP = Float
-				.parseFloat(String.format(DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
+				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
 		final float nuggetXP = Float.parseFloat(String.format(DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
 		if ((material.hasItem(Names.GEAR)) && (material.hasItem(Names.CROSSBOW))) {
@@ -320,9 +320,9 @@ public abstract class Recipes {
 			final int resCount = CheeseMath.getNuggetCount(material,
 					material.getItemStack(Names.GEAR));
 			final float ingotXP = Float
-					.parseFloat(String.format(DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
+					.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
 			final float nuggetXP = Float
-					.parseFloat(String.format(DEFAULT_ORESMELT_XP, ingotXP / 9.0f));
+					.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, ingotXP / 9.0f));
 
 			if (resCount < 9 && resCount > 0) {
 				addFurnaceRecipe(new ItemStack(material.getItem(Names.GEAR)),
@@ -340,8 +340,8 @@ public abstract class Recipes {
 
 	private static void makeSimpleRecipes(@Nonnull final MMDMaterial material) {
 		final float baseXP = Float
-				.parseFloat(String.format(Locale.US, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
-		final float nuggetXP = Float.parseFloat(String.format(Locale.US, DEFAULT_ORESMELT_XP, baseXP / 9.0f));
+				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
+		final float nuggetXP = Float.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
 		if ((material.hasBlock(Names.BLOCK)) && (material.hasItem(Names.SLAB))) {
 			addFurnaceRecipe(material.getItemStack(Names.SLAB),

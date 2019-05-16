@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
 
@@ -303,36 +302,34 @@ public class Oredicts {
 	 *
 	 */
 	public static void registerItemOreDictionaryEntries() {
-		for (final Entry<String, List<Item>> ent : oreDictItemMap.entrySet()) {
-			for (final Item i : ent.getValue()) {
-				if (i.getRegistryName().getNamespace()
-						.equals(Loader.instance().activeModContainer().getModId())) {
-					OreDictionary.registerOre(ent.getKey(), i);
-				}
-			}
-		}
-		for (final Entry<String, List<ItemStack>> ent : oreDictItemStackMap.entrySet()) {
-			for (final ItemStack is : ent.getValue()) {
-				if (is.getItem().getRegistryName().getNamespace()
-						.equals(Loader.instance().activeModContainer().getModId())) {
-					OreDictionary.registerOre(ent.getKey(), is);
-				}
-			}
-		}
+		oreDictItemMap.entrySet().stream()
+		.forEach(ent -> {
+			ent.getValue().stream()
+			.filter(i -> Loader.instance().activeModContainer().getModId().equalsIgnoreCase(i.getRegistryName().getNamespace()))
+			.filter(i -> i != null)
+			.forEach(i -> OreDictionary.registerOre(ent.getKey(), i));
+		});
+		
+		oreDictItemStackMap.entrySet().stream()
+		.forEach(ent -> {
+			ent.getValue().stream()
+			.filter(is -> Loader.instance().activeModContainer().getModId().equalsIgnoreCase(is.getItem().getRegistryName().getNamespace()))
+			.filter(is -> is.getItem() != net.minecraft.init.Items.AIR && is.getItem() != null)
+			.forEach(is -> OreDictionary.registerOre(ent.getKey(), is));
+		});
 	}
 
 	/**
 	 *
 	 */
 	public static void registerBlockOreDictionaryEntries() {
-		for (final Entry<String, List<Block>> ent : oreDictBlockMap.entrySet()) {
-			for (final Block b : ent.getValue()) {
-				if (b.getRegistryName().getNamespace()
-						.equals(Loader.instance().activeModContainer().getModId())) {
-					OreDictionary.registerOre(ent.getKey(), b);
-				}
-			}
-		}
+		oreDictBlockMap.entrySet().stream()
+		.forEach(ent -> {
+			ent.getValue().stream()
+			.filter(bl -> Loader.instance().activeModContainer().getModId().equalsIgnoreCase(bl.getRegistryName().getNamespace()))
+			.filter(bl -> bl != null)
+			.forEach(bl -> OreDictionary.registerOre(ent.getKey(), bl));
+		});
 	}
 
 	private Oredicts() {
