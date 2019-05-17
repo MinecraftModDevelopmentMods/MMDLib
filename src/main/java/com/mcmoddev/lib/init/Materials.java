@@ -13,7 +13,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.MaterialStats;
-import com.mcmoddev.lib.data.VanillaMaterialNames;
+import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.material.MMDMaterial;
 import com.mcmoddev.lib.material.MMDMaterialType;
 import com.mcmoddev.lib.material.MMDMaterialType.MaterialType;
@@ -58,20 +58,20 @@ public class Materials {
 	 *
 	 */
 	public static void init() {
-		createVanillaMaterial(VanillaMaterialNames.WOOD, MaterialType.WOOD, 2, 2, 6, 0xFF695433);
-		createVanillaMaterial(VanillaMaterialNames.STONE, MaterialType.ROCK, 5, 4, 2, 0xFF8F8F8F);
-		createVanillaMaterial(VanillaMaterialNames.IRON, MaterialType.METAL, 8, 8, 4.5, 0xFFD8D8D8);
-		createVanillaMaterial(VanillaMaterialNames.GOLD, MaterialType.METAL, 1, 1, 10, 0xFFFFFF8B);
-		createVanillaMaterial(VanillaMaterialNames.DIAMOND, MaterialType.GEM, 10, 15, 4, 0xFF8CF4E1);
-		createVanillaMaterial(VanillaMaterialNames.COAL, MaterialType.MINERAL, 4, 4, 2, 0xFF151515);
-		createVanillaMaterial(VanillaMaterialNames.CHARCOAL, MaterialType.MINERAL, 4, 4, 2, 0xFF231F18);
-		createVanillaMaterial(VanillaMaterialNames.EMERALD, MaterialType.GEM, 10, 15, 4, 0xFF82F6AC);
-		createVanillaMaterial(VanillaMaterialNames.ENDER, MaterialType.GEM, 2, 2, 6, 0xFF063931);
-		createVanillaMaterial(VanillaMaterialNames.QUARTZ, MaterialType.GEM, 5, 4, 2, 0xFFEAE3DB);
-		createVanillaMaterial(VanillaMaterialNames.OBSIDIAN, MaterialType.ROCK, 10, 15, 4, 0xFF101019);
-		createVanillaMaterial(VanillaMaterialNames.LAPIS, MaterialType.MINERAL, 1, 1, 1, 0xFF26619c);
-		createVanillaMaterial(VanillaMaterialNames.PRISMARINE, MaterialType.MINERAL, 1, 1, 1, 0xFF7fb8a4);
-		createVanillaMaterial(VanillaMaterialNames.REDSTONE, MaterialType.MINERAL, 1, 1, 1, 0xFF720000);
+		createVanillaMaterial(MaterialNames.WOOD, MaterialType.WOOD, 2, 2, 6, 0xFF695433);
+		createVanillaMaterial(MaterialNames.STONE, MaterialType.ROCK, 5, 4, 2, 0xFF8F8F8F);
+		createVanillaMaterial(MaterialNames.IRON, MaterialType.METAL, 8, 8, 4.5, 0xFFD8D8D8);
+		createVanillaMaterial(MaterialNames.GOLD, MaterialType.METAL, 1, 1, 10, 0xFFFFFF8B);
+		createVanillaMaterial(MaterialNames.DIAMOND, MaterialType.GEM, 10, 15, 4, 0xFF8CF4E1);
+		createVanillaMaterial(MaterialNames.COAL, MaterialType.MINERAL, 4, 4, 2, 0xFF151515);
+		createVanillaMaterial(MaterialNames.CHARCOAL, MaterialType.MINERAL, 4, 4, 2, 0xFF231F18);
+		createVanillaMaterial(MaterialNames.EMERALD, MaterialType.GEM, 10, 15, 4, 0xFF82F6AC);
+		createVanillaMaterial(MaterialNames.ENDER, MaterialType.GEM, 2, 2, 6, 0xFF063931);
+		createVanillaMaterial(MaterialNames.QUARTZ, MaterialType.GEM, 5, 4, 2, 0xFFEAE3DB);
+		createVanillaMaterial(MaterialNames.OBSIDIAN, MaterialType.ROCK, 10, 15, 4, 0xFF101019);
+		createVanillaMaterial(MaterialNames.LAPIS, MaterialType.MINERAL, 1, 1, 1, 0xFF26619c);
+		createVanillaMaterial(MaterialNames.PRISMARINE, MaterialType.MINERAL, 1, 1, 1, 0xFF7fb8a4);
+		createVanillaMaterial(MaterialNames.REDSTONE, MaterialType.MINERAL, 1, 1, 1, 0xFF720000);
 	}
 
 	public static void dumpRegistry() {

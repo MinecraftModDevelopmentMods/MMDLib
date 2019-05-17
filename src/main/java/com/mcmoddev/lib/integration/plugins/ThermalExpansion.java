@@ -2,7 +2,7 @@ package com.mcmoddev.lib.integration.plugins;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.lib.data.VanillaMaterialNames;
+import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.init.Materials;
 import com.mcmoddev.lib.integration.IIntegration;
@@ -145,7 +145,7 @@ public class ThermalExpansion implements IIntegration {
 		final FluidStack oreFluid;
 		final FluidStack baseFluid;
 		final FluidStack nuggetFluid;
-		if (materialName.equals(VanillaMaterialNames.REDSTONE)) { // Note: Redstone is and should be the only exception. Would more exceptions arise in the future, then this implementation needs to be restructured.
+		if (materialName.equals(MaterialNames.REDSTONE)) { // Note: Redstone is and should be the only exception. Would more exceptions arise in the future, then this implementation needs to be restructured.
 			oreFluid = FluidRegistry.getFluidStack(materialName, 360);
 			baseFluid = FluidRegistry.getFluidStack(materialName, 100);
 			nuggetFluid = FluidRegistry.getFluidStack(materialName, 0); //unused in this case
@@ -175,7 +175,7 @@ public class ThermalExpansion implements IIntegration {
 			ThermalExpansionHelper.addCrucibleRecipe(ENERGY_QTY / 2,	plate, baseFluid);
 		}
 
-		if (!materialName.equals(VanillaMaterialNames.REDSTONE)) { // Note: Redstone is and should be the only exception. Would more exceptions arise in the future, then this implementation needs to be restructured.
+		if (!materialName.equals(MaterialNames.REDSTONE)) { // Note: Redstone is and should be the only exception. Would more exceptions arise in the future, then this implementation needs to be restructured.
 			if (material.hasItem(Names.NUGGET)) {
 				final ItemStack nugget = material.getItemStack(Names.NUGGET);
 				ThermalExpansionHelper.addCrucibleRecipe(ENERGY_QTY / 16, nugget, nuggetFluid);

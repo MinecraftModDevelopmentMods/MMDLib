@@ -2,7 +2,7 @@ package com.mcmoddev.lib.item;
 
 import javax.annotation.Nonnull;
 
-import com.mcmoddev.lib.data.VanillaMaterialNames;
+import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.entity.EntityCustomBolt;
 import com.mcmoddev.lib.init.Materials;
@@ -53,7 +53,7 @@ public class ItemCrossbow extends net.minecraft.item.ItemBow {
 		final Item item = itemStack.getItem();
 		final ItemBolt itemBolt = ((ItemBolt) (item instanceof ItemBolt
 				? item
-				: Materials.getMaterialByName(VanillaMaterialNames.IRON).getItem(Names.BOLT)));
+				: Materials.getMaterialByName(MaterialNames.IRON).getItem(Names.BOLT)));
 		final EntityCustomBolt entityBolt = itemBolt.createBolt(worldIn, itemStack, entityPlayer);
 		entityBolt.shoot(entityPlayer, entityPlayer.rotationPitch, entityPlayer.rotationYaw, 0.0F,
 				f * 3.0F, 1.0F);

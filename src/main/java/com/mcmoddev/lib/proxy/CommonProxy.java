@@ -3,7 +3,7 @@ package com.mcmoddev.lib.proxy;
 import com.mcmoddev.lib.capability.MMDCapabilities;
 import com.mcmoddev.lib.container.MMDGuiHandler;
 import com.mcmoddev.lib.data.Names;
-import com.mcmoddev.lib.data.VanillaMaterialNames;
+import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.events.MMDLibRegisterBlockTypes;
 import com.mcmoddev.lib.events.MMDLibRegisterBlocks;
 import com.mcmoddev.lib.events.MMDLibRegisterFluids;
@@ -87,7 +87,7 @@ public class CommonProxy {
 			}
 		}
 
-		MMDLibItemGroups.setupIcons(VanillaMaterialNames.IRON);  
+		MMDLibItemGroups.setupIcons(MaterialNames.IRON);  
 		IntegrationManager.INSTANCE.initPhase();
 	}
 
