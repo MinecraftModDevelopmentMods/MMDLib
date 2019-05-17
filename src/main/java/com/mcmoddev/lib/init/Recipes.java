@@ -3,7 +3,7 @@ package com.mcmoddev.lib.init;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.Names;
 import com.mcmoddev.lib.data.SharedStrings;
-import com.mcmoddev.lib.data.VanillaMaterialNames;
+import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.integration.plugins.IC2;
 import com.mcmoddev.lib.material.IMMDObject;
 import com.mcmoddev.lib.material.MMDMaterial;
@@ -128,7 +128,7 @@ public abstract class Recipes {
 				new ItemStack(net.minecraft.init.Items.GLOWSTONE_DUST, 4)); // Glowstone to 4
 																			// Glowstone Dust
 
-		final MMDMaterial lapis = Materials.getMaterialByName(VanillaMaterialNames.LAPIS);
+		final MMDMaterial lapis = Materials.getMaterialByName(MaterialNames.LAPIS);
 		// Lapis Ore to 8 Lapis
 		CrusherRecipeRegistry.addNewCrusherRecipe(Oredicts.ORE_LAPIS,
 				lapis.getItemStack(Names.INGOT, 8));
@@ -136,7 +136,7 @@ public abstract class Recipes {
 		CrusherRecipeRegistry.addNewCrusherRecipe(Oredicts.BLOCK_LAPIS,
 				lapis.getItemStack(Names.INGOT, 9));
 
-		final MMDMaterial redstone = Materials.getMaterialByName(VanillaMaterialNames.REDSTONE);
+		final MMDMaterial redstone = Materials.getMaterialByName(MaterialNames.REDSTONE);
 		CrusherRecipeRegistry.addNewCrusherRecipe(Oredicts.ORE_REDSTONE,
 				redstone.getItemStack(Names.POWDER, 8)); // Redstone Ore to 8 Redstone
 		CrusherRecipeRegistry.addNewCrusherRecipe(Oredicts.BLOCK_REDSTONE,
@@ -154,7 +154,7 @@ public abstract class Recipes {
 				new ItemStack(net.minecraft.init.Items.BLAZE_POWDER, 2)); // Blaze Rod to 2 Blaze
 																			// Powder
 
-		final MMDMaterial quartz = Materials.getMaterialByName(VanillaMaterialNames.QUARTZ);
+		final MMDMaterial quartz = Materials.getMaterialByName(MaterialNames.QUARTZ);
 		CrusherRecipeRegistry.addNewCrusherRecipe(Oredicts.ORE_QUARTZ,
 				quartz.getItemStack(Names.INGOT, 2)); // Nether Quartz Ore to 2 Quartz
 		CrusherRecipeRegistry.addNewCrusherRecipe(net.minecraft.init.Blocks.QUARTZ_BLOCK,
@@ -191,7 +191,7 @@ public abstract class Recipes {
 		// Thermal Expansion and others have decided that Obsidian crushes to 4 obsidian dust
 		// Match them instead of being a special snowflake
 		CrusherRecipeRegistry.addNewCrusherRecipe(net.minecraft.init.Blocks.OBSIDIAN,
-				Materials.getMaterialByName(VanillaMaterialNames.OBSIDIAN).getItemStack(Names.POWDER, 4));
+				Materials.getMaterialByName(MaterialNames.OBSIDIAN).getItemStack(Names.POWDER, 4));
 	}
 
 	protected static void initVanillaRecipes() {
@@ -307,8 +307,8 @@ public abstract class Recipes {
 			}
 
 			if ((material.hasItem(Names.POWDER)) && (material.hasItem(Names.SMALLPOWDER))
-					&& (!material.getName().equals(VanillaMaterialNames.COAL))
-					&& (!material.getName().equals(VanillaMaterialNames.CHARCOAL))) {
+					&& (!material.getName().equals(MaterialNames.COAL))
+					&& (!material.getName().equals(MaterialNames.CHARCOAL))) {
 				addFurnaceRecipe(material.getItemStack(Names.SMALLPOWDER),
 						material.getItemStack(Names.NUGGET, 1), nuggetXP);
 
@@ -420,8 +420,8 @@ public abstract class Recipes {
 			}
 
 			if (material.hasItem(Names.POWDER)) {
-				if (material.getName().equals(VanillaMaterialNames.CHARCOAL)
-						|| material.getName().equals(VanillaMaterialNames.COAL)) {
+				if (material.getName().equals(MaterialNames.CHARCOAL)
+						|| material.getName().equals(MaterialNames.COAL)) {
 					return;
 				}
 
@@ -457,8 +457,8 @@ public abstract class Recipes {
 	private static void crushIngot(@Nonnull final MMDMaterial material,
 			@Nonnull final String oreDictName) {
 		if (material.hasItem(Names.INGOT)) {
-			if (material.getName().equals(VanillaMaterialNames.CHARCOAL)
-					|| material.getName().equals(VanillaMaterialNames.COAL)) {
+			if (material.getName().equals(MaterialNames.CHARCOAL)
+					|| material.getName().equals(MaterialNames.COAL)) {
 				CrusherRecipeRegistry.addNewCrusherRecipe(material.getItemStack(Names.INGOT),
 						material.getItemStack(Names.POWDER, 1));
 			} else {
