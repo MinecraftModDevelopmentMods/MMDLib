@@ -75,6 +75,7 @@ public abstract class Recipes {
 	}
 
 	protected static void initPureVanillaCrusherRecipes() {
+		MMDLib.logger.debug("initPureVanillaCrusherRecipes()");
 		CrusherRecipeRegistry.addNewCrusherRecipe(Oredicts.STONE,
 				new ItemStack(net.minecraft.init.Blocks.COBBLESTONE, 1)); // Stone to Cobblestone
 		CrusherRecipeRegistry.addNewCrusherRecipe(net.minecraft.init.Blocks.STONEBRICK,
@@ -198,11 +199,12 @@ public abstract class Recipes {
 	}
 
 	protected static void initGeneralRecipes() {
+		MMDLib.logger.debug("initGeneralRecipes()");
 		for (final MMDMaterial material : Materials.getAllMaterials()) {
-
 			if (material.isEmpty()) {
 				continue;
 			}
+			MMDLib.logger.debug("-> material {}", material.getCapitalizedName());
 
 			// first we handle any recipes possibly involving transformations of an
 			// ore-block
@@ -238,6 +240,7 @@ public abstract class Recipes {
 				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
 		final float nuggetXP = Float.parseFloat(String.format(DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
+		MMDLib.logger.debug("--> makeBowRecipes({})", material);
 		if (isMMDItem(material, Names.ARROW)) {
 			addFurnaceRecipe(material.getItemStack(Names.ARROW),
 					material.getItemStack(Names.NUGGET, 1), nuggetXP); // 0.25 nugget loss
@@ -253,6 +256,8 @@ public abstract class Recipes {
 		final float baseXP = Float
 				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
 		final float nuggetXP = Float.parseFloat(String.format(DEFAULT_ORESMELT_XP, baseXP / 9.0f));
+
+		MMDLib.logger.debug("--> makeCrossbowRecipes({})", material);
 
 		if ((material.hasItem(Names.GEAR)) && (material.hasItem(Names.CROSSBOW))) {
 			final int count = CheeseMath.getIngotCount(material,
@@ -272,6 +277,8 @@ public abstract class Recipes {
 				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
 		final float nuggetXP = Float.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 		final String oreDictName = material.getCapitalizedName();
+
+		MMDLib.logger.debug("--> makeNuggetRecipes({})", material);
 
 		if (material.hasItem(Names.NUGGET)) {
 			if (isMMDBlock(material, Names.BUTTON)) {
@@ -324,6 +331,8 @@ public abstract class Recipes {
 			final float nuggetXP = Float
 					.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, ingotXP / 9.0f));
 
+			MMDLib.logger.debug("--> makeModRecipes({})", material);
+
 			if (resCount < 9 && resCount > 0) {
 				addFurnaceRecipe(new ItemStack(material.getItem(Names.GEAR)),
 						material.getItemStack(Names.NUGGET, resCount), nuggetXP);
@@ -343,6 +352,8 @@ public abstract class Recipes {
 				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
 		final float nuggetXP = Float.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
+		MMDLib.logger.debug("--> makeSimpleRecipes({})", material);
+		
 		if ((material.hasBlock(Names.BLOCK)) && (material.hasItem(Names.SLAB))) {
 			addFurnaceRecipe(material.getItemStack(Names.SLAB),
 					material.getItemStack(Names.NUGGET, 4), nuggetXP); // you lose roughly half a
@@ -397,6 +408,8 @@ public abstract class Recipes {
 	private static void makeIngotRecipes(@Nonnull final MMDMaterial material) {
 		final float oreSmeltXP = material.getOreSmeltXP();
 
+		MMDLib.logger.debug("--> makeIngotRecipes({})", material);
+
 		if (material.hasItem(Names.INGOT)) {
 			if (material.hasOre()) {
 				addFurnaceRecipe(material.getBlockItemStack(Names.ORE),
@@ -422,6 +435,8 @@ public abstract class Recipes {
 
 	private static void makePowderRecipes(@Nonnull final MMDMaterial material) {
 		final String oreDictName = material.getCapitalizedName();
+
+		MMDLib.logger.debug("--> makePowderRecipes({})", material);
 
 		if (material.hasItem(Names.POWDER)) {
 			crushOre(material, oreDictName);
@@ -471,6 +486,7 @@ public abstract class Recipes {
 	}
 
 	private static void generateBaseTools(@Nonnull final MMDMaterial material) {
+		MMDLib.logger.debug("--> generateBaseTools({})", material);
 		if (isMMDItem(material, Names.SHEARS)) {
 			addFurnaceRecipe(material.getItemStack(Names.SHEARS),
 					material.getItemStack(Names.INGOT, 2), material.getOreSmeltXP());
@@ -485,6 +501,9 @@ public abstract class Recipes {
 		}
 		final float actualXP = Math.max(FurnaceRecipes.instance().getSmeltingExperience(output),
 				experience);
+		
+		MMDLib.logger.debug("---> addFurnaceRecipe({}, {}, {})", input, output, experience);
+
 		GameRegistry.addSmelting(input, output, actualXP);
 	}
 
@@ -522,13 +541,14 @@ public abstract class Recipes {
 				smeltingMap.keySet().stream().collect(Collectors.toList()), forItem);
 
 		if (matcher.isEmpty()) {
+			MMDLib.logger.debug(":--> maybeRemoveRecipe({}) - matcher is empty", forItem);
 			return;
 		}
 
 		final ItemStack output = smeltingMap.getOrDefault(matcher, ItemStack.EMPTY);
 
 		if (output.isEmpty()) {
-			return;
+			MMDLib.logger.debug(":--> maybeRemoveRecipe({}) - output is empty", forItem);
 		}
 
 		FurnaceRecipes.instance().getSmeltingList().remove(matcher, output);
@@ -537,6 +557,8 @@ public abstract class Recipes {
 	protected static void furnaceSpecial(@Nonnull final MMDMaterial material) {
 		final float baseXP = Float
 				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
+
+		MMDLib.logger.debug("--> furnaceSpecial({})", material);
 
 		if (Options.furnaceCheese()) {
 			if (material.hasItem(Names.INGOT)) {
@@ -551,6 +573,7 @@ public abstract class Recipes {
 					target.setItemDamage(OreDictionary.WILDCARD_VALUE);
 					maybeRemoveRecipe(target);
 					int outCount = CheeseMath.getIngotCount(material, target);
+					MMDLib.logger.debug("!--> furnace cheese - {} :: {} @ {} :: {}", name, Names.INGOT, outCount, baseXP);
 					addFurnaceRecipe(material.getItemStack(name), material.getItemStack(Names.INGOT, outCount), baseXP);
 				});
 
@@ -567,6 +590,8 @@ public abstract class Recipes {
 			if (material.isEmpty()) {
 				continue;
 			}
+			
+			MMDLib.logger.debug("-> initModSpecificRecipes({})", material);
 
 			if (Options.isModEnabled(IC2.PLUGIN_MODID)) {
 				if ((isMMDItem(material, Names.CRUSHED)) && material.hasItem(Names.INGOT)) {
