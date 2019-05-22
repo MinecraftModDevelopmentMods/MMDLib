@@ -2,6 +2,7 @@ package com.mcmoddev.lib.util;
 
 import java.io.File;
 
+import com.mcmoddev.lib.data.MaterialNames;
 import com.mcmoddev.lib.MMDLib;
 import com.mcmoddev.lib.data.ConfigKeys;
 import com.mcmoddev.lib.integration.plugins.ConstructsArmory;
@@ -42,6 +43,22 @@ public class MMDLibConfig extends Config {
 			new IntegrationConfigOptions("Thermal Expansion", ThermalExpansion.PLUGIN_MODID, true)
 		};
 
+	private static final MaterialConfigOptions[] MATERIAL_CONFIG_OPTIONS = new MaterialConfigOptions[] {
+			new MaterialConfigOptions(MaterialNames.CHARCOAL, true, true, true, true),
+			new MaterialConfigOptions(MaterialNames.COAL, true, true, true,true),
+			new MaterialConfigOptions(MaterialNames.DIAMOND,true, true, true, true),
+			new MaterialConfigOptions(MaterialNames.EMERALD,true, true, true, true),
+			new MaterialConfigOptions(MaterialNames.GOLD, true,true, true, true),
+			new MaterialConfigOptions(MaterialNames.IRON, true,true, true, true),
+			new MaterialConfigOptions(MaterialNames.STONE, true,true, false, false),
+			new MaterialConfigOptions(MaterialNames.WOOD, true,true, false, false),
+			new MaterialConfigOptions(MaterialNames.ENDER, true,true, true, true),
+			new MaterialConfigOptions(MaterialNames.QUARTZ, true,true, true, true),
+			new MaterialConfigOptions(MaterialNames.OBSIDIAN,true, true, true, true),
+			new MaterialConfigOptions(MaterialNames.LAPIS, true,true, false, false),
+			new MaterialConfigOptions(MaterialNames.PRISMARINE,true, true, true, true),
+			new MaterialConfigOptions(MaterialNames.REDSTONE,true, true, true, true)
+	};
 
 	/**
 	 * Fired when the configuration changes.
@@ -114,6 +131,7 @@ public class MMDLibConfig extends Config {
 						"Enable the items for Mekanism support even if the Mekanism plugin is disabled"));
 
 		configIntegrationOptions(INTEGRATION_CONFIG_OPTIONS, configuration);
+		configMaterialOptions(MATERIAL_CONFIG_OPTIONS, configuration);
 
 		// RECIPE AMOUNTS/TOOL&ITEM DISABLING
 		Options.setGearQuantity(configuration.getInt("Gear Quantity", TOOLS_CAT, 4, 1, 64,
