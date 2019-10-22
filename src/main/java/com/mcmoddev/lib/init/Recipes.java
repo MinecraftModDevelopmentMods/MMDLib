@@ -238,7 +238,7 @@ public abstract class Recipes {
 	private static void makeBowRecipes(@Nonnull final MMDMaterial material) {
 		final float baseXP = Float
 				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
-		final float nuggetXP = Float.parseFloat(String.format(DEFAULT_ORESMELT_XP, baseXP / 9.0f));
+		final float nuggetXP = Float.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
 		MMDLib.logger.debug("--> makeBowRecipes({})", material);
 		if (isMMDItem(material, Names.ARROW)) {
@@ -255,7 +255,7 @@ public abstract class Recipes {
 	private static void makeCrossbowRecipes(@Nonnull final MMDMaterial material) {
 		final float baseXP = Float
 				.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, material.getOreSmeltXP()));
-		final float nuggetXP = Float.parseFloat(String.format(DEFAULT_ORESMELT_XP, baseXP / 9.0f));
+		final float nuggetXP = Float.parseFloat(String.format(Locale.ENGLISH, DEFAULT_ORESMELT_XP, baseXP / 9.0f));
 
 		MMDLib.logger.debug("--> makeCrossbowRecipes({})", material);
 

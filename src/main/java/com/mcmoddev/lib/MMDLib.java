@@ -38,7 +38,7 @@ import net.minecraftforge.fml.common.versioning.InvalidVersionSpecificationExcep
 		modid = MMDLib.MODID,
 		name = MMDLib.NAME,
 		version = MMDLib.VERSION,
-		dependencies = "required-after:forge@[14.21.0.2327,);after:tconstruct;after:ic2;before:buildingbricks",
+		dependencies = "required-after:forge@[14.21.0.2327,);after:tconstruct;after:ic2;after:conarm;before:buildingbricks",
 		acceptedMinecraftVersions = "[1.12,)",
 		updateJSON = MMDLib.UPDATEJSON)
 public class MMDLib {
