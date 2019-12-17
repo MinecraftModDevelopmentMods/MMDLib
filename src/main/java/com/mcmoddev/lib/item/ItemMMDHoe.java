@@ -123,6 +123,6 @@ public class ItemMMDHoe extends net.minecraft.item.ItemHoe implements IMMDObject
 
 	@Override
 	public String getMaterialName() {
-		return this.material.getName();
+		return this.toolMaterial.toString();
 	}
 }
