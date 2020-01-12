@@ -597,7 +597,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	@Nullable
 	public Item getItem(final NameToken name) {
-		ItemStack tmp = this.items.get(name);
+		final ItemStack tmp = this.items.get(name);
 		return (tmp != null) ? tmp.getItem() : null;
 	}
 	
