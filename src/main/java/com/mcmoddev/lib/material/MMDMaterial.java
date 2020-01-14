@@ -597,10 +597,8 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	@Nullable
 	public Item getItem(final NameToken name) {
-		if (this.items.containsKey(name)) {
-			return this.items.get(name).getItem();
-		}
-		return null;
+		final ItemStack tmp = this.items.get(name);
+		return (tmp != null) ? tmp.getItem() : null;
 	}
 	
 	public ItemStack getItemStack(final Names name) {
@@ -669,10 +667,7 @@ public class MMDMaterial extends IForgeRegistryEntry.Impl<MMDMaterial> {
 
 	@Nullable
 	public Block getBlock(final NameToken name) {
-		if (this.blocks.containsKey(name)) {
-			return this.blocks.get(name);
-		}
-		return null;
+		return this.blocks.get(name);
 	}
 	
 	public ItemStack getBlockItemStack(final Names name) {
