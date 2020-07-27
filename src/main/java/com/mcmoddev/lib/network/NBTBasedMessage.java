@@ -38,13 +38,13 @@ public abstract class NBTBasedMessage implements IMessage {
     public void fromBytes(final ByteBuf buf) {
         this.compound = ByteBufUtils.readTag(buf);
 
-        LoggingUtil.logNbtMessage("FROM BYTE BUF", this.compound);
+        //LoggingUtil.logNbtMessage("FROM BYTE BUF", this.compound);
     }
 
     @Override
     public void toBytes(final ByteBuf buf) {
         ByteBufUtils.writeTag(buf, this.compound);
 
-        LoggingUtil.logNbtMessage("TO BYTE BUF", this.compound);
+        //LoggingUtil.logNbtMessage("TO BYTE BUF", this.compound);
     }
 }

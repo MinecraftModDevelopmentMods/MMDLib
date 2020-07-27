@@ -55,7 +55,7 @@ public class MMDContainer extends Container {
             slots.addAll(widget.getSlots());
         }
 
-        MMDLib.logger.info("MMD CONTAINER created with " + slots.size() + " slots.");
+        //MMDLib.logger.info("MMD CONTAINER created with " + slots.size() + " slots.");
         for(final IContainerSlot slot: slots) {
             final Slot realSlot = slot.getSlot();
             this.addSlotToContainer(realSlot);

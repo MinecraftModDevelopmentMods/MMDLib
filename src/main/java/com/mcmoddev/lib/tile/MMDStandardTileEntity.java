@@ -9,6 +9,9 @@ import com.mcmoddev.lib.container.gui.layout.VerticalStackLayout;
 import com.mcmoddev.lib.container.gui.util.Padding;
 import com.mcmoddev.lib.feature.PlayerInventoryFeature;
 
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
 public abstract class MMDStandardTileEntity extends MMDFeaturesTileEntity {
     protected MMDStandardTileEntity() {
         super();
@@ -18,6 +21,7 @@ public abstract class MMDStandardTileEntity extends MMDFeaturesTileEntity {
     }
 
     @Override
+    @SideOnly(Side.CLIENT)
     public IWidgetGui getRootWidgetGui(final GuiContext context) {
         return new VerticalStackLayout()
             .addPiece(new SinglePieceWrapper(this.getMainContentWidgetGui(context)))
@@ -29,5 +33,6 @@ public abstract class MMDStandardTileEntity extends MMDFeaturesTileEntity {
             );
     }
 
+    @SideOnly(Side.CLIENT)
     protected abstract IWidgetGui getMainContentWidgetGui(GuiContext context);
 }

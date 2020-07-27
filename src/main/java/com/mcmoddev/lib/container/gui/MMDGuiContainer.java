@@ -136,9 +136,9 @@ public class MMDGuiContainer extends GuiContainer implements IFocusableHandler {
             return;
         }
 
-        MMDLib.logger.info("GUI Opened with:");
-        this.logPiece(null, this.rootPiece, 0);
-        MMDLib.logger.info("End of GUI tree.");
+//        MMDLib.logger.info("GUI Opened with:");
+//        this.logPiece(null, this.rootPiece, 0);
+//        MMDLib.logger.info("End of GUI tree.");
     }
 
     private void logPiece(@Nullable final IWidgetLayout layout, final IWidgetGui piece, final int level) {
