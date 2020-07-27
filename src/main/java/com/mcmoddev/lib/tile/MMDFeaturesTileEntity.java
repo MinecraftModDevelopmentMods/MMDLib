@@ -18,7 +18,7 @@ import com.mcmoddev.lib.feature.FeatureDirtyLevel;
 import com.mcmoddev.lib.feature.IFeature;
 import com.mcmoddev.lib.feature.IFeatureHolder;
 import com.mcmoddev.lib.feature.IServerFeature;
-import com.mcmoddev.lib.util.LoggingUtil;
+//import com.mcmoddev.lib.util.LoggingUtil;
 import com.mcmoddev.lib.util.NBTUtils;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
