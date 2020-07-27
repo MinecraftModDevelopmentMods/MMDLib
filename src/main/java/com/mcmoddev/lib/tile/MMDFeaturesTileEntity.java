@@ -75,7 +75,7 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
         if ((this.dirtyFeatures.size() > 0) && !this.getWorld().isRemote) {
             final NBTTagCompound nbt = this.getFeaturesUpdateTag(FeatureDirtyLevel.TICK,true);
             if (nbt.getSize() > 0) {
-                LoggingUtil.logNbtMessage(this, "TICK UPDATE TAG", nbt);
+                //LoggingUtil.logNbtMessage(this, "TICK UPDATE TAG", nbt);
                 this.sendToListeningClients(nbt);
             }
         }
@@ -120,7 +120,7 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
             }
         }
         if (featuresNBT.getSize() > 0) {
-            LoggingUtil.logNbtMessage(this, "WRITE FEATURES NBT", featuresNBT);
+            //LoggingUtil.logNbtMessage(this, "WRITE FEATURES NBT", featuresNBT);
             compound.setTag("features", featuresNBT);
         }
 
@@ -136,7 +136,7 @@ public class MMDFeaturesTileEntity extends MMDTileEntity implements IFeatureHold
 
         if (compound.hasKey("features", Constants.NBT.TAG_COMPOUND)) {
             final NBTTagCompound featuresNBT = compound.getCompoundTag("features");
-            LoggingUtil.logNbtMessage(this, "READ FEATURES NBT", featuresNBT);
+            //LoggingUtil.logNbtMessage(this, "READ FEATURES NBT", featuresNBT);
             for (final IFeature feature : this.features) {
                 if (featuresNBT.hasKey(feature.getKey(), Constants.NBT.TAG_COMPOUND)) {
                     feature.deserializeNBT(featuresNBT.getCompoundTag(feature.getKey()));

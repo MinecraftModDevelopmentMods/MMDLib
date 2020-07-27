@@ -63,7 +63,7 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
     public SPacketUpdateTileEntity getUpdatePacket() {
         final NBTTagCompound tag = this.getUpdateTag();
         if (!tag.isEmpty()) {
-            LoggingUtil.logNbtMessage(this, "SPacket TAG", tag);
+            //LoggingUtil.logNbtMessage(this, "SPacket TAG", tag);
             return new SPacketUpdateTileEntity(this.getPos(), 42, tag);
         }
         return null;
@@ -75,7 +75,7 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
         this.writeToUpdateTag(compound);
 
         if (!compound.isEmpty()) {
-            LoggingUtil.logNbtMessage(this, "GET UPDATE NBT", compound);
+            //LoggingUtil.logNbtMessage(this, "GET UPDATE NBT", compound);
         }
         return compound;
     }
@@ -87,7 +87,7 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
 
     @Override
     public void handleUpdateTag(final NBTTagCompound tag) {
-        LoggingUtil.logNbtMessage(this, "HANDLE UPDATE NBT", tag);
+        //LoggingUtil.logNbtMessage(this, "HANDLE UPDATE NBT", tag);
 
         if (tag.hasKey(PARTIAL_SYNC_KEY, Constants.NBT.TAG_COMPOUND)) {
             this.readFromUpdateTag(tag.getCompoundTag(PARTIAL_SYNC_KEY));
@@ -107,7 +107,7 @@ public class MMDTileEntity extends TileEntity implements IGuiProvider, IWidgetCo
         if (entry != null) {
             final NBTTagCompound updateTag = new NBTTagCompound();
             updateTag.setTag(PARTIAL_SYNC_KEY, nbt);
-            LoggingUtil.logNbtMessage(this, "SEND TO CLIENT", nbt);
+            //LoggingUtil.logNbtMessage(this, "SEND TO CLIENT", nbt);
             entry.sendPacket(new SPacketUpdateTileEntity(this.getPos(), 42, updateTag));
         }
     }
