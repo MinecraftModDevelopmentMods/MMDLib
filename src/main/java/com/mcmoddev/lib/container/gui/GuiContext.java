@@ -19,7 +19,6 @@ public class GuiContext {
     private final MMDContainer container;
     private final IWidgetContainer provider;
 
-    @SideOnly(Side.CLIENT)
     private MMDGuiContainer guiContainer = null; // too lazy to find a way to make this final
 
     /**

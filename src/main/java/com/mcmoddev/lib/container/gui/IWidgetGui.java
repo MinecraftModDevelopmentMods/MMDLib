@@ -10,7 +10,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * Represents one of the parts that makes a {@link MMDGuiContainer}.
  */
-@SideOnly(Side.CLIENT)
 public interface IWidgetGui {
 	/**
 	 * Gets the layer this widget renders in. This is just a helper for single layer widgets.
