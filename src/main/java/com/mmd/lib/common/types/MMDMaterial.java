@@ -1,7 +1,5 @@
 package com.mmd.lib.common.types;
 
-import com.mmd.lib.util.DataHelpers;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -25,6 +23,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import static com.mmd.lib.MMDLib.LOGGER;
 import static com.mmd.lib.common.codecs.MMDMaterialCodec.MMD_MATERIAL_CODEC;
+import com.mmd.lib.util.DataLoaders;
 
 public class MMDMaterial {
     private final Map<ResourceLocation, Item> items = new ConcurrentHashMap<ResourceLocation, Item>();
@@ -45,11 +44,11 @@ public class MMDMaterial {
     @Nullable
     public MMDMaterial load(final ResourceLocation toLoad) {
         // TODO: Load <resourceLocation> as `material` from `assets/mmdlib-data`
-        String rawData = DataHelpers.loadFile(toLoad, "jslt", LocationType.MATERIAL);
+        String rawData = DataLoaders.loadFile(toLoad, "jslt", LocationType.MATERIAL);
         Expression jslt = Parser.compileString(rawData);
         JsonNode baseParsed = null;
         try {
-            baseParsed = (new ObjectMapper()).readTree(DataHelpers.loadFile(Constants.Locations.materialConfigBase, "json", LocationType.CONFIG)).path(".");
+            baseParsed = (new ObjectMapper()).readTree(DataLoaders.loadFile(Constants.Locations.materialConfigBase, "json", LocationType.CONFIG)).path(".");
             // setup the base "items" and "blocks" bits here ?
             // load a JSLT we can apply after we load in the available set of items&blocks
             // Instead of the above load, we should probably fill this in memory and then _write_ to things using the jackson Mapper bits
