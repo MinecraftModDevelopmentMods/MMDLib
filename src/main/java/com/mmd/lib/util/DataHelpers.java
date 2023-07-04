@@ -45,6 +45,7 @@ public class DataHelpers {
             case MATERIAL -> Constants.PathBits.materials;
             case ITEM -> Constants.PathBits.items;
             case BLOCK -> Constants.PathBits.blocks;
+            case CONFIG -> Constants.PathBits.config;
             case NONE -> "";
             default -> "";
         };
@@ -72,10 +73,10 @@ public class DataHelpers {
         }
     }
 
-    public static String loadFile(ResourceLocation fileLoc, LocationType resourceType) {
+    public static String loadFile(ResourceLocation fileLoc, String extension, LocationType resourceType) {
         ModFile mf = (ModFile) ModList.get().getModFileById(fileLoc.getNamespace()).getFile();
         String pathRoot = getResourcePathBase(resourceType);
-        String base = pathRoot.concat("/").concat(fileLoc.getPath()).concat(".json");
+        String base = pathRoot.concat("/").concat(fileLoc.getPath()).concat(".").concat(extension);
         Path p = mf.getSecureJar().getPath(base);
         StringBuilder buffer = new StringBuilder();
         try(InputStream is = p.toUri().toURL().openStream();
