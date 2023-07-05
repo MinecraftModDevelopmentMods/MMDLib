@@ -145,6 +145,9 @@ public class DataLoaders {
                 .filter(DataLoaders::typeIsItem)
                 // convert to a list here...
                 .collect(Collectors.toList());
+
+        // okay, now we pass this JsonObject to the "Parser" that runs the builder
+
         // call the Item Codec to convert the list of loaded Json's into a List<MMDItem> or a Map<ResourceLocation,MMDItem>
         // in fact... the above should probably pass the RL from the first stage through in the first `map` and all
         // following...
