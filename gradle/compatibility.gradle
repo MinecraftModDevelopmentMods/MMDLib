@@ -1,0 +1,60 @@
+// Generate old compiler signatures from the single canonical implementation.
+// A Forge loading adapter relinks consumer bytecode to the canonical classes.
+sourceSets {
+    buildSupport {
+        compileClasspath = configurations.compileClasspath
+        runtimeClasspath = output + compileClasspath
+    }
+}
+def java8 = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(8)
+    vendor = JvmVendorSpec.ADOPTIUM
+}
+def exports = layout.buildDirectory.dir('generated/legacy-api/classes')
+def aliasResources = layout.buildDirectory.dir('generated/legacy-api/resources')
+
+tasks.register('captureLegacyApiBaseline', JavaExec) {
+    group = 'verification'
+    description = 'Explicit maintainer command to freeze a verified pre-migration API jar.'
+    dependsOn 'buildSupportClasses'
+    javaLauncher = java8
+    classpath = sourceSets.buildSupport.runtimeClasspath
+    mainClass = 'zone.moddev.mc.mmdlib.build.LegacyApiTool'
+    doFirst {
+        if (!providers.gradleProperty('legacyApiBaselineJar').isPresent()) {
+            throw new GradleException('legacyApiBaselineJar is required; this task is never part of a normal build')
+        }
+        args 'capture', file(providers.gradleProperty('legacyApiBaselineJar').get()).absolutePath,
+                file('gradle/verification/legacy-api-baseline.json').absolutePath
+    }
+}
+
+def generateExports = tasks.register('generateLegacyApiExports', JavaExec) {
+    group = 'build'
+    description = 'Preserves every legacy class and public/protected descriptor without copying implementation state.'
+    dependsOn 'compileJava', 'buildSupportClasses'
+    javaLauncher = java8
+    classpath = sourceSets.buildSupport.runtimeClasspath
+    mainClass = 'zone.moddev.mc.mmdlib.build.LegacyApiTool'
+    inputs.files(tasks.named('compileJava').flatMap { it.destinationDirectory })
+    inputs.file('gradle/verification/legacy-api-baseline.json')
+    outputs.dirs(exports, aliasResources)
+    doFirst {
+        [exports, aliasResources].each { location ->
+            File target = location.get().asFile.canonicalFile
+            if (!target.toPath().startsWith(layout.buildDirectory.get().asFile.canonicalFile.toPath())) {
+                throw new GradleException('Legacy API generation must remain inside the build directory')
+            }
+            project.delete(target)
+        }
+        setArgs(['generate', tasks.named('compileJava').get().destinationDirectory.get().asFile.absolutePath,
+                 exports.get().asFile.absolutePath, aliasResources.get().asFile.absolutePath,
+                 file('gradle/verification/legacy-api-baseline.json').absolutePath])
+    }
+}
+sourceSets.main.output.dir([builtBy: generateExports], exports)
+tasks.named('classes') { dependsOn generateExports }
+tasks.named('processResources') {
+    dependsOn generateExports
+    from aliasResources
+}

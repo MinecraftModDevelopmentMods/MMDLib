@@ -1,0 +1,178 @@
+import groovy.json.JsonSlurper
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+
+def buildContract = project.ext.mmdLibBuild
+def dependencySpecs = project.ext.mmdLibDependencies.specs
+def expectedMavenGroup = buildContract.mavenGroup
+def expectedMavenArtifact = buildContract.mavenArtifact
+def expectedMavenCoordinate = buildContract.mavenCoordinate
+
+// Shared checks for release versions, toolchains, dependencies, and resources.
+def java8Launcher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(8)
+    vendor = JvmVendorSpec.ADOPTIUM
+}
+
+def java25Launcher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(25)
+    vendor = JvmVendorSpec.ADOPTIUM
+}
+
+tasks.register('verifyReleaseToolchains') {
+    group = 'verification'
+    description = 'Requires the pinned Gradle, Mavenizer, compilation, and runtime JDKs.'
+    doLast {
+        String gradleVendor = System.getProperty('java.vendor')
+        String gradleRuntime = System.getProperty('java.runtime.version')
+        if (project.gradle_java_version != '17'
+                || gradleVendor != 'Eclipse Adoptium'
+                || gradleRuntime != '17.0.1+12') {
+            throw new GradleException("Expected Gradle on Temurin 17.0.1+12, found "
+                    + "${gradleVendor} ${gradleRuntime} at ${System.getProperty('java.home')}")
+        }
+
+        def metadata = java8Launcher.get().metadata
+        if (project.java_toolchain_version != '8.0.502+7'
+                || metadata.vendor.toString() != 'Eclipse Temurin'
+                || metadata.javaRuntimeVersion != '1.8.0_502-b07') {
+            throw new GradleException("Expected Temurin ${project.java_toolchain_version}, found "
+                    + "${metadata.vendor} ${metadata.javaRuntimeVersion} at ${metadata.installationPath}")
+        }
+
+        def mavenizerMetadata = java25Launcher.get().metadata
+        if (project.mavenizer_java_version != '25.0.3+9'
+                || mavenizerMetadata.vendor.toString() != 'Eclipse Temurin'
+                || mavenizerMetadata.javaRuntimeVersion != '25.0.3+9-LTS') {
+            throw new GradleException("Expected Mavenizer on Temurin ${project.mavenizer_java_version}, found "
+                    + "${mavenizerMetadata.vendor} ${mavenizerMetadata.javaRuntimeVersion} "
+                    + "at ${mavenizerMetadata.installationPath}")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyReleaseToolchains')
+}
+
+def expectedReleaseFiles = providers.provider {
+    def prefix = "${base.archivesName.get()}-${project.version}"
+    [
+            "${prefix}.jar",
+            "${prefix}-sources.jar",
+            "${prefix}-javadoc.jar",
+            "${prefix}-deobf.jar"
+    ]
+}
+def preparedReleaseDir = providers.gradleProperty('preparedReleaseDir')
+
+def sha256 = { File candidate ->
+    MessageDigest digest = MessageDigest.getInstance('SHA-256')
+    candidate.withInputStream { input ->
+        byte[] buffer = new byte[8192]
+        for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
+            if (read > 0) digest.update(buffer, 0, read)
+        }
+    }
+    digest.digest().encodeHex().toString().toUpperCase()
+}
+
+tasks.register('verifyReleaseConfiguration') {
+    group = 'verification'
+    dependsOn tasks.named('verifyReleaseToolchains')
+    doLast {
+        if (project.minecraft_version != '1.12.2' || project.forge_version != '14.23.5.2847'
+                || project.mappings_channel != 'stable' || project.mappings_version != '39-1.12'
+                || project.mod_group != 'zone.moddev.mc.mmdlib' || base.archivesName.get() != 'MMDLib'
+                || project.cf_project_id != '261744' || project.cf_requirements != '') {
+            throw new GradleException('MMDLib target, Maven, or CurseForge identity drifted')
+        }
+        Properties wrapper = new Properties()
+        file('gradle/wrapper/gradle-wrapper.properties').withInputStream { wrapper.load(it) }
+        if (wrapper.distributionUrl != 'https://services.gradle.org/distributions/gradle-9.6.1-bin.zip'
+                || wrapper.distributionSha256Sum != '9c0f7faeeb306cb14e4279a3e084ca6b596894089a0638e68a07c945a32c9e14') {
+            throw new GradleException('Gradle wrapper identity drifted')
+        }
+        String source = file('src/main/java/zone/moddev/mc/mmdlib/MMDLib.java').getText('UTF-8')
+        if (!source.contains('VERSION = "' + project.mod_version + '"')) {
+            throw new GradleException('Source and artifact versions differ')
+        }
+    }
+}
+
+tasks.register('verifyReleaseDependencies') {
+    group = 'verification'
+    dependsOn tasks.named('verifyReleaseConfiguration')
+    doLast {
+        def artifacts = configurations.legacyDependencyArtifacts.resolvedConfiguration.resolvedArtifacts
+        if (artifacts.size() != dependencySpecs.size()) {
+            throw new GradleException('The resolved dependency inventory does not match the pinned manifest')
+        }
+        dependencySpecs.each { name, spec ->
+            def matches = artifacts.findAll { it.moduleVersion.id.toString() == spec.coordinate }
+            if (matches.size() != 1 || sha256(matches.first().file) != spec.sha256) {
+                throw new GradleException("Missing or checksum-mismatched dependency ${name}: ${spec.coordinate}")
+            }
+        }
+    }
+}
+
+tasks.register('verifyJsonResources') {
+    group = 'verification'
+    doLast {
+        sourceSets.main.resources.matching { include '**/*.json', '**/*.mcmeta' }.files.each {
+            new JsonSlurper().parse(it)
+        }
+    }
+}
+
+tasks.register('verifySourceCompatibility') {
+    group = 'verification'
+    description = 'Preserves reviewed production files after namespace relocation and plugin alias discovery.'
+    doLast {
+        Map baseline = new JsonSlurper().parse(file('gradle/verification/source-baseline.json'))
+        Set<String> actual = fileTree('src/main') {
+            include '**/*'
+            exclude 'java/zone/moddev/mc/mmdlib/compat/**'
+        }.files.collect {
+            project.relativePath(it).replace('\\', '/')
+                    .replace('java/zone/moddev/mc/mmdlib/', 'java/com/mcmoddev/lib/')
+        } as Set<String>
+        if (actual != baseline.keySet()) {
+            throw new GradleException('Production source/resource inventory differs from upstream')
+        }
+        baseline.each { path, expected ->
+            File relocated = file(path.replace('java/com/mcmoddev/lib/', 'java/zone/moddev/mc/mmdlib/'))
+            byte[] bytes = relocated.bytes
+            if (path.endsWith(".java") || path.endsWith(".json") || path.endsWith(".info") || path.endsWith(".mcmeta") || path.endsWith(".md")) {
+                String text = new String(bytes, 'UTF-8').replace('\r\n', '\n')
+                        .replace('zone.moddev.mc.mmdlib', 'com.mcmoddev.lib')
+                        .replace('zone/moddev/mc/mmdlib/', 'com/mcmoddev/lib/')
+                if (path.endsWith('/integration/IntegrationManager.java')) {
+                    text = text.replace('import com.mcmoddev.lib.compat.LegacyNamespaceAliases;\n', '')
+                            .replace('LegacyNamespaceAliases.pluginData(event.getASMHarvestedData())',
+                                    'event.getASMHarvestedData()\n\t\t\t\t.getAll(MMDPlugin.class.getCanonicalName())')
+                            .replace('LegacyNamespaceAliases.pluginData(event.getAsmData())',
+                                    'event.getAsmData()\n\t\t\t\t.getAll(MMDPlugin.class.getCanonicalName())')
+                }
+                bytes = text.getBytes('UTF-8')
+            }
+            if (path == 'src/main/java/com/mcmoddev/lib/MMDLib.java') {
+                bytes = new String(bytes, 'UTF-8').replace(
+                        'VERSION = "' + project.mod_version + '"', 'VERSION = "1.0.0-rc2"').getBytes('UTF-8')
+            }
+            String hash = MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+            if (hash != expected) throw new GradleException("Unexpected production change: ${path}")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'verifyReleaseConfiguration', 'verifyReleaseDependencies', 'verifyJsonResources', 'verifySourceCompatibility'
+}
+
+ext.mmdLibVerification = [
+        java8Launcher: java8Launcher, java25Launcher: java25Launcher,
+        expectedReleaseFiles: expectedReleaseFiles, preparedReleaseDir: preparedReleaseDir, sha256: sha256
+].asImmutable()

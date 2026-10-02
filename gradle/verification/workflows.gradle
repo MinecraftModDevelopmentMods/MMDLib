@@ -1,0 +1,26 @@
+tasks.register('verifyWorkflowContracts') {
+    group = 'verification'
+    doLast {
+        Map<String, List<String>> required = [
+                'ci.yml': ['Cold Forge bootstrap', '--offline', 'packagedForgeRuntimeTest',
+                           'packagedForgeCompatRuntimeRoot', 'prepareEclipse', 'Verify reproducible release archives'],
+                'codeql-analysis.yml': ['github/codeql-action/init@', 'clean classes', '--no-build-cache'],
+                'validate-gradle-build.yml': ['gradle/actions/wrapper-validation@'],
+                'release-on-tag.yml': ['deploy-release.yml', '**Nothing has been published.**'],
+                'deploy-release.yml': ['confirm_live_publication', 'default: false', '261744',
+                                      'zone.moddev.mc.mmdlib', 'Publish GitHub Release last',
+                                      '-PpreparedReleaseDir=', 'master-1.12']
+        ]
+        required.each { name, fragments ->
+            String text = file('.github/workflows/' + name).getText('UTF-8').replace('\r\n', '\n')
+            if (!fragments.every { text.contains(it) }) throw new GradleException("Incomplete workflow: ${name}")
+            text.eachLine { line ->
+                def match = line =~ /^\s*uses:\s*([^\s#]+)(?:\s+#.*)?$/
+                if (match.matches() && !(match.group(1) ==~ /[^@]+@[0-9a-f]{40}/)) {
+                    throw new GradleException("Unpinned action in ${name}: ${line}")
+                }
+            }
+        }
+    }
+}
+tasks.named('check') { dependsOn 'verifyWorkflowContracts' }

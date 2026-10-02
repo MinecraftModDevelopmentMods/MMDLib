@@ -1,0 +1,79 @@
+def releaseJar = project.ext.mmdLibBuild.releaseJar
+def expectedReleaseFiles = project.ext.mmdLibVerification.expectedReleaseFiles
+def preparedReleaseDir = project.ext.mmdLibVerification.preparedReleaseDir
+
+// A normal build does not publish anything; publishing needs credentials.
+def mavenUploadUrl = providers.environmentVariable('MAVEN_UPLOAD_URL')
+        .orElse('https://invalid.invalid/missing-maven-upload-url')
+def mavenUploadUsername = providers.environmentVariable('MAVEN_UPLOAD_USERNAME')
+def mavenUploadPassword = providers.environmentVariable('MAVEN_UPLOAD_PASSWORD')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.group.toString()
+            artifactId = base.archivesName.get()
+            version = project.version.toString()
+            if (preparedReleaseDir.isPresent()) {
+                File prepared = file(preparedReleaseDir.get())
+                artifact(new File(prepared, expectedReleaseFiles.get()[0]))
+                artifact(new File(prepared, expectedReleaseFiles.get()[1])) { classifier = 'sources' }
+                artifact(new File(prepared, expectedReleaseFiles.get()[2])) { classifier = 'javadoc' }
+                artifact(new File(prepared, expectedReleaseFiles.get()[3])) { classifier = 'deobf' }
+            } else {
+                artifact(releaseJar)
+                artifact(tasks.named('sourcesJar'))
+                artifact(tasks.named('javadocJar'))
+                artifact(tasks.named('jar')) { classifier = 'deobf' }
+            }
+            pom {
+                name = 'MMDLib'
+                description = 'Library functionality for the Metals family of Minecraft mods.'
+                url = 'https://github.com/MinecraftModDevelopmentMods/MMDLib'
+                licenses {
+                    license {
+                        name = 'GNU Lesser General Public License, Version 2.1'
+                        url = 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/MinecraftModDevelopmentMods/MMDLib.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/MinecraftModDevelopmentMods/MMDLib.git'
+                    url = 'https://github.com/MinecraftModDevelopmentMods/MMDLib'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'release'
+            url = uri(mavenUploadUrl.get())
+            credentials {
+                username = mavenUploadUsername.orNull ?: ''
+                password = mavenUploadPassword.orNull ?: ''
+            }
+        }
+    }
+}
+
+tasks.register('validateMavenReleaseCredentials') {
+    group = 'publishing'
+    doLast {
+        if (!providers.environmentVariable('MAVEN_UPLOAD_URL').isPresent()
+                || !mavenUploadUsername.isPresent() || !mavenUploadPassword.isPresent()) {
+            throw new GradleException('MAVEN_UPLOAD_URL, MAVEN_UPLOAD_USERNAME, and MAVEN_UPLOAD_PASSWORD are required')
+        }
+        if (providers.environmentVariable('MAVEN_UPLOAD_URL').get().startsWith('file:')) {
+            throw new GradleException('Maven release publication must use a remote repository')
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    dependsOn tasks.named('validateMavenReleaseCredentials')
+    if (preparedReleaseDir.isPresent()) {
+        dependsOn tasks.named('verifyPreparedReleaseArtifacts')
+    } else {
+        dependsOn tasks.named('verifyReleaseArtifacts')
+    }
+}

@@ -15,7 +15,7 @@ out
 .idea
 
 # gradle
-build
+/build/
 .gradle
 
 # other
@@ -34,3 +34,32 @@ secret.json
 # bits from local use that should never be sync'd
 holding
 holding/*
+
+# Local assistant notes and settings
+AGENTS.md
+AGENT.md
+CLAUDE.md
+GEMINI.md
+agent-notes/
+agent_notes/
+.agent-notes/
+.agents/
+.agent/
+.codex/
+.claude/
+.github/agents/
+.github/copilot-instructions.md
+
+# Generated verification and Minecraft output
+*.class
+/test-results/
+/test-output/
+/reports/
+/coverage/
+/logs/
+/crash-reports/
+/saves/
+/screenshots/
+/runtime-evidence/
+/release-candidates/
+/release-verification/

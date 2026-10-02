@@ -1,0 +1,95 @@
+import groovy.json.JsonSlurper
+import java.util.jar.Manifest
+import java.util.zip.ZipFile
+
+def contract = project.ext.mmdLibBuild
+def verification = project.ext.mmdLibVerification
+def expected = verification.expectedReleaseFiles
+def sha256 = verification.sha256
+
+tasks.register('verifyReleaseArtifacts') {
+    group = 'verification'
+    dependsOn 'assemble', 'verifyReleaseDependencies', 'verifySourceCompatibility'
+    doLast {
+        File libs = layout.buildDirectory.dir('libs').get().asFile
+        List<String> names = (libs.listFiles() ?: [] as File[]).findAll { it.name.endsWith('.jar') }*.name.sort()
+        if (names != expected.get().sort()) throw new GradleException("Unexpected release jars: ${names}")
+        expected.get().each { name ->
+            File artifact = new File(libs, name)
+            new ZipFile(artifact).withCloseable { zip ->
+                def entries = zip.entries().toList()
+                if (entries.isEmpty()) throw new GradleException("Empty archive: ${name}")
+                Manifest manifest = new Manifest(zip.getInputStream(zip.getEntry('META-INF/MANIFEST.MF')))
+                if (manifest.mainAttributes.getValue('Implementation-Version') != project.mod_version
+                        || manifest.mainAttributes.getValue('Timestamp') != null
+                        || manifest.mainAttributes.getValue('Implementation-Timestamp') != null) {
+                    throw new GradleException("Volatile or incorrect manifest in ${name}")
+                }
+                entries.findAll { it.name.endsWith('.class') }.each { entry ->
+                    if (entry.name.contains('/test/') || entry.name.contains('/mmdlib/build/')
+                            || !(entry.name.startsWith('zone/moddev/mc/mmdlib/')
+                                 || entry.name.startsWith('com/mcmoddev/lib/') || entry.name.startsWith('portablejim/veinminer/api/'))) {
+                        throw new GradleException("Bundled third-party or test class: ${entry.name}")
+                    }
+                    byte[] bytes = zip.getInputStream(entry).bytes
+                    int major = ((bytes[6] & 255) << 8) | (bytes[7] & 255)
+                    if (major != 52) throw new GradleException("Non-Java-8 bytecode: ${entry.name}")
+                }
+                entries.findAll { entry -> contract.archiveTextSuffixes.any { entry.name.endsWith(it) } }.each { entry ->
+                    String text = zip.getInputStream(entry).getText('UTF-8')
+                    if (text =~ /(?i)([A-Z]:[\\\/]Users[\\\/]|[A-Z]:[\\\/]BaseMetals|\/home\/runner\/|\/Users\/)/) {
+                        throw new GradleException("Local path leaked into ${name}:${entry.name}")
+                    }
+                }
+            }
+        }
+        new ZipFile(new File(libs, "MMDLib-${project.version}.jar")).withCloseable { zip ->
+            def mod = new JsonSlurper().parseText(zip.getInputStream(zip.getEntry('mcmod.info')).getText('UTF-8')).first()
+            Manifest manifest = new Manifest(zip.getInputStream(zip.getEntry('META-INF/MANIFEST.MF')))
+            if (mod.modid != 'mmdlib' || mod.version != project.mod_version || mod.mcversion != '1.12.2'
+                    || manifest.mainAttributes.getValue('Maven-Artifact') != contract.mavenCoordinate
+                    || manifest.mainAttributes.getValue('Built-On') != '1.12.2-14.23.5.2847'
+                    || manifest.mainAttributes.getValue('FMLCorePlugin') != 'zone.moddev.mc.mmdlib.compat.LegacyNamespaceBootstrap'
+                    || manifest.mainAttributes.getValue('FMLCorePluginContainsFMLMod') != 'true') {
+                throw new GradleException('MMDLib runtime identity or namespace compatibility bootstrap drifted')
+            }
+            def aliases = zip.getEntry('META-INF/mmdlib-legacy-names.list')
+            if (aliases == null || !zip.getEntry('zone/moddev/mc/mmdlib/MMDLib.class')
+                    || !zip.getEntry('com/mcmoddev/lib/MMDLib.class')) {
+                throw new GradleException('Canonical implementation or legacy API exports are missing')
+            }
+            byte[] bytes = zip.getInputStream(zip.getEntry('zone/moddev/mc/mmdlib/item/ItemMMDAxe.class')).bytes
+            if (!new String(bytes, 'ISO-8859-1').contains('func_')) {
+                throw new GradleException('Main release jar is not reobfuscated to SRG names')
+            }
+        }
+    }
+}
+
+tasks.register('writeReleaseChecksums') {
+    group = 'verification'
+    dependsOn 'verifyReleaseArtifacts'
+    doLast {
+        File output = layout.buildDirectory.file('release/SHA256SUMS').get().asFile
+        output.parentFile.mkdirs()
+        output.setText(expected.get().collect {
+            sha256(layout.buildDirectory.file("libs/${it}").get().asFile) + '  ' + it
+        }.join('\n') + '\n', 'UTF-8')
+    }
+}
+
+tasks.register('verifyPreparedReleaseArtifacts') {
+    group = 'verification'
+    doLast {
+        if (!verification.preparedReleaseDir.isPresent()) throw new GradleException('preparedReleaseDir is required')
+        File root = file(verification.preparedReleaseDir.get())
+        List<String> lines = new File(root, 'SHA256SUMS').readLines('UTF-8')
+        if (lines.size() != expected.get().size()) throw new GradleException('Unexpected prepared checksums')
+        expected.get().each { name ->
+            File jar = new File(root, name)
+            if (!jar.isFile() || !lines.contains(sha256(jar) + '  ' + name)) {
+                throw new GradleException("Prepared release artifact failed checksum: ${name}")
+            }
+        }
+    }
+}
