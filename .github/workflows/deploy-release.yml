@@ -1,0 +1,240 @@
+name: Release MMDLib
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Four-part version matching master-1.12
+        required: true
+        type: string
+      curseforge_release_level:
+        description: CurseForge release level
+        required: true
+        default: beta
+        type: choice
+        options: [release, beta, alpha]
+      confirm_live_publication:
+        description: Publish the audited candidate to Maven, CurseForge and GitHub
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: mmdlib-release-${{ inputs.release_version }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare immutable release candidate
+    if: github.repository == 'MinecraftModDevelopmentMods/MMDLib'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      sha: ${{ steps.validate.outputs.sha }}
+      artifact: ${{ steps.bundle.outputs.artifact }}
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: master-1.12
+          fetch-depth: 0
+
+      - name: Validate target, version, tag and exact-commit checks
+        id: validate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          value() { sed -n "s/^$1=//p" gradle.properties | tr -d '\r'; }
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.112021$ ]]
+          [[ "$(value mod_version)" == "$RELEASE_VERSION" ]]
+          [[ "$(value minecraft_version):$(value loader_name):$(value loader_code)" == '1.12.2:forge:1' ]]
+          [[ "$(value mod_group)" == 'zone.moddev.mc.mmdlib' ]]
+          [[ "$(value curseforge_project_id)" == '261744' ]]
+          sha="$(git rev-parse HEAD)"
+          checks="$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?per_page=100")"
+          for name in 'Cold Forge bootstrap' 'Build, test, and audit' 'Analyze Java' 'Validation'; do
+            jq -e --arg name "$name" '[.check_runs[] | select(.name == $name and .conclusion == "success")] | length > 0' <<<"$checks" >/dev/null
+          done
+          if git rev-parse --verify "refs/tags/$RELEASE_VERSION" >/dev/null 2>&1; then
+            [[ "$(git rev-parse "refs/tags/$RELEASE_VERSION^{commit}")" == "$sha" ]]
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Install pinned Java 25 Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+      - name: Install pinned Java 8 toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+      - name: Install pinned Java 17 Gradle runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17.0.1+12'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+      - name: Build and audit candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mirror="$RUNNER_TEMP/legacy-dependency-mirror"
+          bash gradle/stage-legacy-dependencies.sh "$mirror"
+          chmod +x ./gradlew
+          ./gradlew clean check build javadoc verifyReleaseArtifacts writeReleaseChecksums \
+            -PlegacyDependencyVerificationRepository="$mirror" \
+            --no-daemon --stacktrace --max-workers=2 \
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64" \
+            -Dorg.gradle.java.installations.auto-detect=false \
+            -Dorg.gradle.java.installations.auto-download=false
+      - name: Stage candidate bundle
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-bundle"
+          cp build/libs/*.jar build/release/SHA256SUMS CHANGELOG.txt "$RUNNER_TEMP/release-bundle/"
+          echo "artifact=MMDLib-${{ steps.validate.outputs.sha }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - name: Upload immutable candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ steps.bundle.outputs.artifact }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/release-bundle/*
+      - name: Summarize candidate
+        shell: bash
+        run: |
+          {
+            echo "Prepared MMDLib ${{ inputs.release_version }} from ${{ steps.validate.outputs.sha }}."
+            echo "Live publication requested: ${{ inputs.confirm_live_publication }}"
+            echo 'Publication requires explicit confirmation and all release credentials.'
+            cat build/release/SHA256SUMS
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish confirmed immutable candidate
+    needs: prepare
+    if: inputs.confirm_live_publication && github.repository == 'MinecraftModDevelopmentMods/MMDLib'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Validate release credentials
+        shell: bash
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          MAVEN_UPLOAD_URL: ${{ secrets.MAVEN_UPLOAD_URL }}
+          MAVEN_UPLOAD_USERNAME: ${{ secrets.MAVEN_UPLOAD_USERNAME }}
+          MAVEN_UPLOAD_PASSWORD: ${{ secrets.MAVEN_UPLOAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in CURSEFORGE_TOKEN MAVEN_UPLOAD_URL MAVEN_UPLOAD_USERNAME MAVEN_UPLOAD_PASSWORD; do
+            [[ -n "${!name}" ]] || { echo "Missing release secret: $name" >&2; exit 1; }
+          done
+          [[ "$MAVEN_UPLOAD_URL" == https://* ]]
+      - name: Check out exact candidate SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - name: Install pinned Java 25 Mavenizer runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25.0.3+9.0.LTS'
+      - name: Install pinned Java 8 toolchain
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '8.0.502+7'
+      - name: Install pinned Java 17 Gradle runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17.0.1+12'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+      - name: Download audited candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ${{ needs.prepare.outputs.artifact }}
+          path: ${{ runner.temp }}/release-input
+      - name: Verify candidate and publish prepared Maven artifacts
+        shell: bash
+        env:
+          MAVEN_UPLOAD_URL: ${{ secrets.MAVEN_UPLOAD_URL }}
+          MAVEN_UPLOAD_USERNAME: ${{ secrets.MAVEN_UPLOAD_USERNAME }}
+          MAVEN_UPLOAD_PASSWORD: ${{ secrets.MAVEN_UPLOAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          (cd "$RUNNER_TEMP/release-input" && sha256sum --check SHA256SUMS)
+          mirror="$RUNNER_TEMP/legacy-dependency-mirror"
+          bash gradle/stage-legacy-dependencies.sh "$mirror"
+          chmod +x ./gradlew
+          ./gradlew publishMavenJavaPublicationToReleaseRepository \
+            -PpreparedReleaseDir="$RUNNER_TEMP/release-input" \
+            -PlegacyDependencyVerificationRepository="$mirror" \
+            --no-daemon --stacktrace --max-workers=2 \
+            -Dorg.gradle.java.installations.paths="$JAVA_HOME,$JAVA_HOME_8_X64,$JAVA_HOME_25_X64" \
+            -Dorg.gradle.java.installations.auto-detect=false \
+            -Dorg.gradle.java.installations.auto-download=false
+      - name: Create exact candidate tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          RELEASE_SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify "refs/tags/$RELEASE_VERSION" >/dev/null 2>&1; then
+            [[ "$(git rev-parse "refs/tags/$RELEASE_VERSION^{commit}")" == "$RELEASE_SHA" ]]
+          else
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$RELEASE_VERSION" -f "sha=$RELEASE_SHA"
+          fi
+      - name: Publish CurseForge candidate
+        uses: Kira-NT/mc-publish@52307b03863581dec6b652b83e597aec02ebb075 # v3.3.1
+        with:
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-id: 261744
+          name: MMDLib ${{ inputs.release_version }} for Minecraft 1.12.2 (Forge)
+          version: ${{ inputs.release_version }}
+          version-type: ${{ inputs.curseforge_release_level }}
+          changelog-file: ${{ runner.temp }}/release-input/CHANGELOG.txt
+          loaders: forge
+          game-versions: 1.12.2
+          game-version-filter: none
+          environment: client | server
+          java: Java 8
+          curseforge-dependencies: |
+            245586(optional)
+            243157(optional)
+          fail-mode: fail
+          files: |
+            ${{ runner.temp }}/release-input/MMDLib-${{ inputs.release_version }}.jar
+            ${{ runner.temp }}/release-input/MMDLib-${{ inputs.release_version }}-sources.jar
+            ${{ runner.temp }}/release-input/MMDLib-${{ inputs.release_version }}-javadoc.jar
+            ${{ runner.temp }}/release-input/MMDLib-${{ inputs.release_version }}-deobf.jar
+      - name: Publish GitHub Release last
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          RELEASE_SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_VERSION" --target "$RELEASE_SHA" \
+            --title "MMDLib $RELEASE_VERSION for Minecraft 1.12.2 (Forge)" \
+            --notes-file "$RUNNER_TEMP/release-input/CHANGELOG.txt" \
+            "$RUNNER_TEMP/release-input/"*.jar "$RUNNER_TEMP/release-input/SHA256SUMS"

@@ -1,0 +1,27 @@
+import groovy.json.JsonSlurper
+
+// Original artifacts are verified before remapping; optional APIs stay compile-only.
+def specs = new JsonSlurper().parse(file('gradle/legacy-dependencies.json'))
+        .collectEntries { [(it.name): it] }
+configurations {
+    legacyDependencyArtifacts {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+}
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
+    compileOnly 'org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209'
+    specs.each { name, spec ->
+        legacyDependencyArtifacts spec.coordinate
+        if (spec.compile) {
+            compileOnly renamer.dependency(spec.coordinate)
+        }
+    }
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
+    testImplementation 'org.mockito:mockito-core:2.28.2'
+}
+ext.mmdLibDependencies = [specs: specs].asImmutable()

@@ -1,0 +1,39 @@
+package zone.moddev.mc.mmdlib.data;
+
+import java.util.UUID;
+
+import zone.moddev.mc.mmdlib.util.Version5UUID;
+
+public class NameToken {
+	private final UUID uuid;
+	private final String origData;
+
+	public NameToken(Names name) {
+		this(name.toString());
+	}
+
+	public NameToken(String name) {
+		this.uuid = Version5UUID.mmdlibUUID(name);
+		this.origData = name;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("V5UUID@%s", this.uuid);
+	}
+
+	@Override
+	public int hashCode() {
+		return this.uuid.hashCode();
+	}
+
+	public String asString() {
+		return this.origData;
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		if (!(other instanceof NameToken)) return false;
+		return ((NameToken)other).uuid.equals(this.uuid);
+	}
+}

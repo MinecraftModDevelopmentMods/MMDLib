@@ -1,2 +1,12 @@
+1.0.0.112021 (unreleased)
+- Updated the Minecraft 1.12.2 build to match Base Metals: ForgeGradle 7.0.34, Renamer 1.1.5 and Gradle 9.6.1, with pinned Java 17/25/8 toolchains.
+- Moved the implementation and Maven coordinate to zone.moddev.mc.mmdlib. A Forge adapter and generated compiler exports keep existing com.mcmoddev.lib consumers compatible.
+- Recovered and checksum-pinned optional integration dependencies without bundling them or making them required.
+- Added reproducible production, development, sources and Javadoc jars, plus GitHub Actions checks and manually confirmed release workflows for Maven and CurseForge.
+- Added tests for the 500-class legacy API and packaged client/server compatibility, including Base Metals and optional integrations.
+- Updated build and compatibility documentation, corrected stale comments, and ignored local notes and generated output.
+- Kept mod, registry, configuration and resource identities, integration behavior and the dormant historical gameplay transformers unchanged.
+
+Previous upstream changes
 1) (@dshadowwolf) Various bugfixes
 2) (@dshadowwolf) Undo move of vanilla extensions - this lib should provide some base definitions, but no items or blocks on its own
