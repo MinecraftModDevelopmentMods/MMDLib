@@ -1,11 +1,11 @@
 {
 	"conditions": {
-		"enabled": "com.mcmoddev.lib.recipe.conditions.ConditionEnabled",
-		"hammer": "com.mcmoddev.lib.recipe.conditions.HammerEnabled",
-		"plate": "com.mcmoddev.lib.recipe.conditions.PlateRepairEnabled"
+		"enabled": "zone.moddev.mc.mmdlib.recipe.conditions.ConditionEnabled",
+		"hammer": "zone.moddev.mc.mmdlib.recipe.conditions.HammerEnabled",
+		"plate": "zone.moddev.mc.mmdlib.recipe.conditions.PlateRepairEnabled"
 	},
 	"recipes": {
-		"variableOutputOre": "com.mcmoddev.lib.recipe.factories.ConfigVariedOutput",
-		"armor_repair": "com.mcmoddev.lib.recipe.factories.ArmorRepair"
+		"variableOutputOre": "zone.moddev.mc.mmdlib.recipe.factories.ConfigVariedOutput",
+		"armor_repair": "zone.moddev.mc.mmdlib.recipe.factories.ArmorRepair"
 	}
 }

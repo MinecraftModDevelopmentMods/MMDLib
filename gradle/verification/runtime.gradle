@@ -1,0 +1,233 @@
+import java.util.concurrent.TimeUnit
+import java.util.jar.JarFile
+
+def specs = project.ext.mmdLibDependencies.specs
+def releaseJar = project.ext.mmdLibBuild.releaseJar
+def launcher = project.ext.mmdLibVerification.java8Launcher
+
+sourceSets {
+    runtimeTest {
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+    }
+    legacyRuntimeTest {
+        // Independent historical compilation proves that old descriptors still link.
+        compileClasspath += configurations.compileClasspath
+    }
+    legacySourceTest {
+        java.srcDir 'src/legacyRuntimeTest/java'
+        compileClasspath = sourceSets.main.output + configurations.compileClasspath
+    }
+}
+dependencies { legacyRuntimeTestCompileOnly renamer.dependency(specs.legacy_mmdlib.coordinate) }
+tasks.named('check') { dependsOn 'legacySourceTestClasses', 'legacyRuntimeTestClasses' }
+def probeJar = tasks.register('runtimeProbeJar', Jar) {
+    dependsOn 'runtimeTestClasses', 'legacyRuntimeTestClasses'
+    archiveBaseName = 'mmdlib-runtime-probe'
+    archiveVersion = ''
+    archiveClassifier = 'deobf'
+    destinationDirectory = layout.buildDirectory.dir('runtime-probes-dev')
+    from sourceSets.runtimeTest.output
+    from sourceSets.legacyRuntimeTest.output
+}
+def packagedProbe = renamer.classes(probeJar) {
+    map.from minecraft.dependency.toSrgFile
+    archiveClassifier = null
+    output = layout.buildDirectory.file('runtime-probes/mmdlib-runtime-probe.jar')
+}
+
+def original = { String name ->
+    def matches = configurations.legacyDependencyArtifacts.resolvedConfiguration.resolvedArtifacts.findAll {
+        it.moduleVersion.id.toString() == specs[name].coordinate
+    }
+    if (matches.size() != 1) throw new GradleException("Missing original runtime artifact: ${name}")
+    matches.first().file
+}
+def profiles = [
+        Library: [mods: [], ids: '', base: false],
+        LibraryCompat: [mods: [], ids: '', base: false],
+        BaseMetals: [mods: ['basemetals', 'orespawn4'], ids: 'orespawn', base: true],
+        Tinkers: [mods: ['basemetals', 'orespawn4', 'mantle', 'tconstruct', 'conarm'], ids: 'orespawn,mantle,tconstruct,conarm', base: true],
+        Machines: [mods: ['basemetals', 'orespawn4', 'mekanism', 'tesla', 'redstoneflux', 'cofhcore', 'cofhworld', 'crafttweaker'],
+                   ids: 'orespawn,mekanism,tesla,redstoneflux,cofhcore,cofhworld,crafttweaker', base: true],
+        IC2: [mods: ['ic2'], ids: 'ic2', base: false],
+        Thaumcraft: [mods: ['basemetals', 'orespawn4', 'thaumcraft', 'baubles'], ids: 'orespawn,thaumcraft,baubles', base: true]
+]
+def runtimeTasks = []
+profiles.each { name, profile ->
+    def task = tasks.register("packagedForge${name}RuntimeTest") {
+        group = 'verification'
+        description = "Runs fresh and reload packaged servers for the ${name} profile."
+        dependsOn releaseJar, packagedProbe, 'verifyReleaseDependencies'
+        doLast {
+            String property = name == 'Library' ? 'packagedForgeRuntimeRoot' : 'packagedForgeCompatRuntimeRoot'
+            String version = name == 'Library' ? project.forge_version : project.forge_compat_version
+            if (!providers.gradleProperty(property).isPresent()) throw new GradleException("${property} is required")
+            File source = file(providers.gradleProperty(property).get())
+            File forge = new File(source, "forge-1.12.2-${version}-universal.jar")
+            if (!forge.isFile()) throw new GradleException("Missing packaged Forge runtime: ${forge}")
+            String manifestClasspath
+            new JarFile(forge).withCloseable { manifestClasspath = it.manifest.mainAttributes.getValue('Class-Path') }
+            if (!manifestClasspath) throw new GradleException('Forge manifest is missing its runtime classpath')
+            File run = layout.buildDirectory.dir("packaged-forge-${name.toLowerCase()}-run").get().asFile
+            if (!run.canonicalFile.toPath().startsWith(layout.buildDirectory.get().asFile.canonicalFile.toPath())) {
+                throw new GradleException('Packaged runtime test must stay inside the disposable build directory')
+            }
+            project.delete(run)
+            run.mkdirs()
+            copy { from forge; into run }
+            manifestClasspath.trim().split(/\s+/).each { path ->
+                File dependency = new File(source, path)
+                if (!dependency.isFile()) throw new GradleException("Missing Forge library: ${dependency}")
+                copy { from dependency; into new File(run, path).parentFile }
+            }
+            File mods = new File(run, 'mods')
+            copy { from layout.buildDirectory.file("libs/MMDLib-${project.version}.jar"); into mods }
+            copy { from layout.buildDirectory.file('runtime-probes/mmdlib-runtime-probe.jar'); into mods }
+            profile.mods.each { dependency -> copy { from original(dependency); into mods } }
+            new File(run, 'eula.txt').setText('eula=true\n', 'UTF-8')
+            new File(run, 'server.properties').setText('''level-name=world
+level-seed=mmdlib-fg7-acceptance
+online-mode=false
+server-port=0
+allow-nether=false
+generate-structures=false
+spawn-protection=0
+max-tick-time=-1
+''', 'UTF-8')
+            ['fresh', 'reload'].each { phase ->
+                File marker = new File(run, 'mmdlib-runtime-probe.properties')
+                project.delete(marker)
+                File console = new File(run, "${phase}-console.txt")
+                List<String> command = [launcher.get().executablePath.asFile.absolutePath,
+                        '-Xmx2G', '-Dforge.logging.console.level=info',
+                        '-Dmmdlib.probe.legacyFactory=com.mcmoddev.lib.recipe.conditions.HammerEnabled',
+                        "-Dmmdlib.probe.version=${project.mod_version}",
+                        "-Dmmdlib.probe.phase=${phase}", "-Dmmdlib.probe.basemetals=${profile.base}",
+                        "-Dmmdlib.probe.mods=${profile.ids}", "-Dmmdlib.probe.marker=${marker.absolutePath}",
+                        '-jar', new File(run, forge.name).absolutePath, 'nogui'].collect { it.toString() }
+                Process process = new ProcessBuilder(command).directory(run).redirectErrorStream(true).redirectOutput(console).start()
+                if (!process.waitFor(240, TimeUnit.SECONDS)) {
+                    process.destroyForcibly()
+                    throw new GradleException("${name} ${phase} exceeded the 240-second bound; see ${console}")
+                }
+                if (process.exitValue() != 0 || !marker.isFile()) throw new GradleException("${name} ${phase} failed; see ${console}")
+                Properties result = new Properties()
+                marker.withInputStream { result.load(it) }
+                if (result.version != project.mod_version || result.phase != phase || result.basemetals != profile.base.toString()
+                        || result.mods != profile.ids || result.getProperty('legacy-api') != 'passed'
+                        || result.getProperty('canonical-namespace') != 'zone.moddev.mc.mmdlib') {
+                    throw new GradleException("Invalid ${name} ${phase} acceptance marker")
+                }
+                List<String> fatal = ['NoClassDefFoundError', 'NoSuchMethodError', 'NoSuchFieldError',
+                        'IllegalAccessError', 'LinkageError', 'Encountered an unexpected exception', 'LoaderException']
+                if (fatal.any { console.getText('UTF-8').contains(it) }) throw new GradleException("${name} ${phase} logged a runtime failure")
+                if (!new File(run, 'world/level.dat').isFile()) throw new GradleException("${name} ${phase} did not save its disposable world")
+            }
+        }
+    }
+    if (!runtimeTasks.isEmpty()) {
+        def previous = runtimeTasks.last()
+        task.configure { mustRunAfter previous }
+    }
+    runtimeTasks.add(task)
+}
+tasks.register('packagedForgeRuntimeTest') {
+    group = 'verification'
+    dependsOn runtimeTasks
+}
+
+// Opt-in client qualification uses a previously audited release jar instead of IDE output.
+if (providers.gradleProperty('mmdLibClientSmoke').isPresent()) {
+    String profileName = providers.gradleProperty('mmdLibClientSmoke').get()
+    def profile = profileName == 'Library' ? profiles.Library : profiles.BaseMetals
+    if (profileName == 'Integrations') {
+        profile = [mods: specs.findAll { name, spec -> spec.compile && name != 'ic2' }.keySet().toList() + ['basemetals', 'orespawn4', 'cofhworld'],
+                   ids: 'orespawn,mantle,tconstruct,conarm,thaumcraft,baubles,cofhcore,redstoneflux,jei,waila,tesla,mekanism,crafttweaker', base: true]
+    } else if (profileName == 'IC2') {
+        profile = [mods: ['ic2', 'jei', 'hwyla'], ids: 'ic2,jei,waila', base: false]
+    } else if (!(profileName in ['Library', 'BaseMetals'])) {
+        throw new GradleException('mmdLibClientSmoke must be Library, BaseMetals, Integrations, or IC2')
+    }
+    def clientProfile = profile
+    tasks.matching { it.name == 'runClient' }.configureEach {
+        timeout = java.time.Duration.ofMinutes(4)
+        dependsOn packagedProbe
+        doFirst {
+            File candidate = file(providers.gradleProperty('mmdLibClientCandidateJar')
+                    .getOrElse("build/libs/MMDLib-${project.mod_version}.jar"))
+            if (!candidate.isFile()) throw new GradleException('Build and audit the candidate before client qualification')
+            File run = file(providers.gradleProperty('mmdLibRunDirectory').getOrElse('run'))
+            run.mkdirs()
+            File mods = new File(run, 'mods')
+            copy { from candidate; into mods }
+            copy { from layout.buildDirectory.file('runtime-probes/mmdlib-runtime-probe.jar'); into mods }
+            clientProfile.mods.each { name -> copy { from original(name); into mods } }
+            // Launch the production client: MCP development launches cannot qualify
+            // the access transformers shipped by optional SRG integration jars.
+            if (!providers.gradleProperty('packagedForgeCompatRuntimeRoot').isPresent()
+                    || !providers.gradleProperty('packagedClientAssetsRoot').isPresent()) {
+                throw new GradleException('Client qualification requires packagedForgeCompatRuntimeRoot and packagedClientAssetsRoot')
+            }
+            File forge = new File(file(providers.gradleProperty('packagedForgeCompatRuntimeRoot').get()),
+                    "forge-1.12.2-${project.forge_compat_version}-universal.jar")
+            File vanilla = file(providers.gradleProperty('packagedClientVanillaJar').getOrElse(
+                    new File(gradle.gradleUserHomeDir,
+                            'caches/minecraftforge/forgegradle/mavenizer/caches/minecraft_tasks/1.12.2/client.jar').path))
+            File assets = file(providers.gradleProperty('packagedClientAssetsRoot').get())
+            if (!forge.isFile() || !vanilla.isFile() || !new File(assets, 'indexes/1.12.json').isFile()) {
+                throw new GradleException('Missing installed production Forge, vanilla client, or Minecraft 1.12 assets')
+            }
+            def libraries = classpath.files.findAll { File entry ->
+                entry.name.endsWith('.jar') && !(entry.name.startsWith('forge-')
+                        || entry.name.startsWith('client-extra-') || entry.name.startsWith('slime-launcher-')
+                        || entry.name.startsWith('legacydev-') || entry.name.startsWith('MMDLib-'))
+            }
+            File natives = new File(run, 'natives')
+            String nativeOs = System.getProperty('os.name').toLowerCase().contains('win') ? 'windows'
+                    : (System.getProperty('os.name').toLowerCase().contains('mac') ? 'osx' : 'linux')
+            libraries.findAll { it.name.endsWith("-natives-${nativeOs}.jar") }.each { nativeJar ->
+                copy { from zipTree(nativeJar); include '*.dll', '*.so', '*.dylib', '*.jnilib'; into natives }
+            }
+            // The universal jar's server manifest names minecraft_server.1.12.2.jar.
+            // Isolate this unchanged jar so those relative entries cannot shadow
+            // the vanilla client classes on the explicit client classpath.
+            File clientForge = new File(run, "client-libraries/${forge.name}")
+            copy { from forge; into clientForge.parentFile }
+            setClasspath(project.files(clientForge, vanilla, libraries))
+            mainClass.set('net.minecraft.launchwrapper.Launch')
+            setArgs(['--tweakClass', 'net.minecraftforge.fml.common.launcher.FMLTweaker',
+                     '--version', '1.12.2-forge', '--username', 'MMDLibSmoke',
+                     '--accessToken', '0', '--userType', 'legacy', '--gameDir', run.absolutePath,
+                     '--assetsDir', assets.absolutePath, '--assetIndex', '1.12'])
+            setJvmArgs(['-Xmx3G'])
+            setSystemProperties(['java.library.path': natives.absolutePath,
+                                 'fml.doNotBackup': 'true', 'fml.queryResult': 'confirm'])
+            systemProperty 'mmdlib.probe.client', 'true'
+            systemProperty 'mmdlib.probe.legacyFactory', 'com.mcmoddev.lib.recipe.conditions.HammerEnabled'
+            systemProperty 'mmdlib.probe.version', project.mod_version
+            systemProperty 'mmdlib.probe.basemetals', clientProfile.base.toString()
+            systemProperty 'mmdlib.probe.mods', clientProfile.ids
+            systemProperty 'mmdlib.probe.phase', 'client-integrated'
+            systemProperty 'mmdlib.probe.marker', new File(run, 'mmdlib-client-probe.properties').absolutePath
+        }
+        doLast {
+            File run = file(providers.gradleProperty('mmdLibRunDirectory').getOrElse('run'))
+            File marker = new File(run, 'mmdlib-client-probe.properties')
+            if (!marker.isFile()) throw new GradleException('Client did not complete its integrated-world smoke')
+            Properties result = new Properties()
+            marker.withInputStream { result.load(it) }
+            if (result.version != project.mod_version || result.phase != 'client-integrated'
+                    || result.basemetals != clientProfile.base.toString() || result.mods != clientProfile.ids
+                    || result.getProperty('legacy-api') != 'passed'
+                    || result.getProperty('canonical-namespace') != 'zone.moddev.mc.mmdlib'
+                    || !new File(run, 'saves/mmdlib-smoke/level.dat').isFile()) {
+                throw new GradleException('Client acceptance marker or saved world is incomplete')
+            }
+            String log = new File(run, 'logs/latest.log').getText('UTF-8')
+            if (['NoClassDefFoundError', 'NoSuchMethodError', 'NoSuchFieldError', 'IllegalAccessError',
+                 'LinkageError', 'Encountered an unexpected exception', 'LoaderException'].any { log.contains(it) }) {
+                throw new GradleException('Packaged client logged a runtime failure')
+            }
+        }
+    }
+}
