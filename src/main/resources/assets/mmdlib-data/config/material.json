@@ -1,10 +1,10 @@
 {
   "items": [],
   "blocks": [],
-  "hasFluid": false,
   "color": 0,
   "hardness": 0,
   "level": 0,
   "damage": 0,
-  "special": {}
+  "special": {},
+  "has_fluid": true
 }
