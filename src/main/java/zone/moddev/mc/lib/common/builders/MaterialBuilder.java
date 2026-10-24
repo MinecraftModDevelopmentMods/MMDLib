@@ -27,22 +27,26 @@ public final class MaterialBuilder extends Builder<MMDMaterial, MaterialBuilder>
     public MaterialBuilder setProperties(MaterialProperties properties) { return with(Key.PROPERTIES, properties); }
     public MaterialProperties getProperties() { return value(Key.PROPERTIES, MaterialProperties.DEFAULT); }
     public MaterialBuilder setSelection(MaterialSelection selection) { return with(Key.SELECTION, selection); }
-    public MaterialSelection getSelection() { return value(Key.SELECTION, MaterialSelection.DEFAULT); }
+    public MaterialSelection getSelection() { return value(Key.SELECTION, MaterialSelection.currentDefaults()); }
     public MaterialBuilder setParts(MaterialParts parts) { return setSelection(MaterialSelection.fromParts(parts)); }
     public MaterialBuilder setItems(String expression) {
-        var s = getSelection(); return setSelection(new MaterialSelection(PartSelection.parse(expression, PartSelection.ITEMS), s.blocks(), s.entities(), s.hasFluid()));
+        var s = getSelection();
+        var selected = TypeSelection.parse(expression, PartSelection.ITEMS, zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().items().keySet());
+        return setSelection(new MaterialSelection(selected.standard(), s.blocks(), s.entities(), s.hasFluid(), selected.custom(), s.customBlocks()));
     }
     public MaterialBuilder setItems(String... tokens) { return setItems(String.join(" ", tokens)); }
     public MaterialBuilder setBlocks(String expression) {
-        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), PartSelection.parse(expression, PartSelection.BLOCKS), s.entities(), s.hasFluid()));
+        var s = getSelection();
+        var selected = TypeSelection.parse(expression, PartSelection.BLOCKS, zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().blocks().keySet());
+        return setSelection(new MaterialSelection(s.items(), selected.standard(), s.entities(), s.hasFluid(), s.customItems(), selected.custom()));
     }
     public MaterialBuilder setBlocks(String... tokens) { return setBlocks(String.join(" ", tokens)); }
     public MaterialBuilder setEntities(String expression) {
-        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), PartSelection.parse(expression, PartSelection.ENTITIES), s.hasFluid()));
+        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), PartSelection.parse(expression, PartSelection.ENTITIES), s.hasFluid(), s.customItems(), s.customBlocks()));
     }
     public MaterialBuilder setEntities(String... tokens) { return setEntities(String.join(" ", tokens)); }
     public MaterialBuilder setHasFluid(boolean enabled) {
-        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), s.entities(), enabled));
+        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), s.entities(), enabled, s.customItems(), s.customBlocks()));
     }
     private MaterialBuilder edit(java.util.function.Function<MaterialProperties, MaterialProperties> operation) {
         return setProperties(operation.apply(getProperties()));

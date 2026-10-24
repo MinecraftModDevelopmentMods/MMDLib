@@ -19,7 +19,12 @@ public class MMDLib {
     public MMDLib(IEventBus modBus) {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
+        zone.moddev.mc.lib.common.recipes.CrushingRecipe.TYPES.register(modBus);
+        zone.moddev.mc.lib.common.recipes.CrushingRecipe.SERIALIZERS.register(modBus);
         modBus.addListener(zone.moddev.mc.lib.util.Registries::register);
+        modBus.addListener((net.neoforged.neoforge.registries.RegisterEvent event) ->
+                zone.moddev.mc.lib.api.MaterialRegistration.publishCallbacks(event,
+                        zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL));
         // Material/template discovery remains an explicit, unfinished loading stage.
     }
 }

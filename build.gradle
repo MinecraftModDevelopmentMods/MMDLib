@@ -87,3 +87,25 @@ tasks.register('verifyMaterialParts', JavaExec) {
     mainClass = 'zone.moddev.mc.lib.common.builders.MaterialPartsTest'
 }
 tasks.named('check') { dependsOn tasks.named('verifyMaterialParts') }
+
+tasks.register('verifyMaterialFactory', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.MaterialFactoryTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyMaterialFactory') }
+
+tasks.register('verifyMaterialExtensions', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.MaterialExtensionsTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyMaterialExtensions') }
+
+tasks.register('verifyRuntimeBehavior', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.RuntimeBehaviorTest'
+    systemProperty 'mmdlib.resources', file('src/main/resources').absolutePath
+}
+tasks.named('check') { dependsOn tasks.named('verifyRuntimeBehavior') }

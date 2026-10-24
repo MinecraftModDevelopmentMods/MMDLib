@@ -1,0 +1,243 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#c:ores/adamantine",
+      "required": false
+    },
+    {
+      "id": "#c:ores/antimony",
+      "required": false
+    },
+    {
+      "id": "#c:ores/bismuth",
+      "required": false
+    },
+    {
+      "id": "#c:ores/coldiron",
+      "required": false
+    },
+    {
+      "id": "#c:ores/copper",
+      "required": false
+    },
+    {
+      "id": "#c:ores/lead",
+      "required": false
+    },
+    {
+      "id": "#c:ores/mercury",
+      "required": false
+    },
+    {
+      "id": "#c:ores/nickel",
+      "required": false
+    },
+    {
+      "id": "#c:ores/platinum",
+      "required": false
+    },
+    {
+      "id": "#c:ores/silver",
+      "required": false
+    },
+    {
+      "id": "#c:ores/starsteel",
+      "required": false
+    },
+    {
+      "id": "#c:ores/tin",
+      "required": false
+    },
+    {
+      "id": "#c:ores/zinc",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/adamantine",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/antimony",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/aquarium",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/bismuth",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/brass",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/bronze",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/coldiron",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/copper",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/cupronickel",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/electrum",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/invar",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/lead",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/mithril",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/nickel",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/pewter",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/platinum",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/silver",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/starsteel",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/steel",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/tin",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/zinc",
+      "required": false
+    },
+    {
+      "id": "#c:ores/coal",
+      "required": false
+    },
+    {
+      "id": "#c:ores/diamond",
+      "required": false
+    },
+    {
+      "id": "#c:ores/emerald",
+      "required": false
+    },
+    {
+      "id": "#c:ores/gold",
+      "required": false
+    },
+    {
+      "id": "#c:ores/iron",
+      "required": false
+    },
+    {
+      "id": "#c:ores/lapis",
+      "required": false
+    },
+    {
+      "id": "#c:ores/redstone",
+      "required": false
+    },
+    {
+      "id": "#c:ores/quartz",
+      "required": false
+    },
+    {
+      "id": "#c:ores/netherite_scrap",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/coal",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/charcoal",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/diamond",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/emerald",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/gold",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/iron",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/lapis",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/redstone",
+      "required": false
+    },
+    {
+      "id": "#c:stones",
+      "required": false
+    },
+    {
+      "id": "#c:cobblestones",
+      "required": false
+    },
+    {
+      "id": "#c:gravels",
+      "required": false
+    },
+    "minecraft:stone_bricks",
+    "minecraft:stone_slab",
+    "minecraft:stone_brick_slab",
+    "minecraft:mossy_cobblestone",
+    "minecraft:cobblestone_wall",
+    "minecraft:mossy_cobblestone_wall",
+    "minecraft:sandstone",
+    "minecraft:sandstone_slab",
+    "minecraft:glass",
+    "minecraft:red_sandstone",
+    "minecraft:red_sandstone_slab",
+    "minecraft:glowstone",
+    "minecraft:obsidian",
+    "minecraft:sugar_cane",
+    "minecraft:bone_block",
+    "minecraft:quartz_block",
+    "minecraft:quartz_slab",
+    "minecraft:prismarine",
+    "minecraft:prismarine_bricks",
+    "minecraft:dark_prismarine",
+    "minecraft:sea_lantern",
+    "minecraft:slime_block"
+  ]
+}

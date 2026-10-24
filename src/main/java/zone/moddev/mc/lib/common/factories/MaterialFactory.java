@@ -19,20 +19,25 @@ import java.util.function.UnaryOperator;
 /** Decode material data, bind its identity, then apply it to immutable part templates. */
 public final class MaterialFactory {
     public record Result(MMDMaterial material, MaterialContentPlan content) {}
+    private final zone.moddev.mc.lib.api.MaterialExtensions extensions;
     private final Predicate<String> installed;
     private final UnaryOperator<MaterialContentPlanner> customize;
     public MaterialFactory() { this(id -> ModList.get().isLoaded(id)); }
-    public MaterialFactory(Predicate<String> installed) { this(installed, UnaryOperator.identity()); }
-    private MaterialFactory(Predicate<String> installed, UnaryOperator<MaterialContentPlanner> customize) {
+    public MaterialFactory(Predicate<String> installed) { this(zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL, installed); }
+    public MaterialFactory(zone.moddev.mc.lib.api.MaterialExtensions extensions, Predicate<String> installed) {
+        this(extensions, installed, UnaryOperator.identity());
+    }
+    private MaterialFactory(zone.moddev.mc.lib.api.MaterialExtensions extensions, Predicate<String> installed, UnaryOperator<MaterialContentPlanner> customize) {
+        this.extensions = Objects.requireNonNull(extensions);
         this.installed = Objects.requireNonNull(installed); this.customize = customize;
     }
     /** Custom templates override the material defaults without mutating this factory. */
     public MaterialFactory withTemplates(UnaryOperator<MaterialContentPlanner> overrides) {
         Objects.requireNonNull(overrides);
-        return new MaterialFactory(installed, planner -> overrides.apply(customize.apply(planner)));
+        return new MaterialFactory(extensions, installed, planner -> overrides.apply(customize.apply(planner)));
     }
     public MMDMaterial decode(ResourceLocation id, Reader json) {
-        var spec = MMDMaterialCodec.MMD_MATERIAL_CODEC.parse(JsonOps.INSTANCE, JsonParser.parseReader(json))
+        var spec = MMDMaterialCodec.forExtensions(extensions).parse(JsonOps.INSTANCE, JsonParser.parseReader(json))
                 .getOrThrow(message -> new IllegalArgumentException("Material " + id + ": " + message));
         if (spec.name().isPresent() && !spec.name().get().equals(id))
             throw new IllegalArgumentException("Material name disagrees with resource ID: " + id);
@@ -46,6 +51,7 @@ public final class MaterialFactory {
     public Result create(MMDMaterial material) {
         var id = material.name().orElseThrow(() -> new IllegalArgumentException("Material factory requires a named material"));
         try {
+            extensions.events().validate(material.events());
             var p = material.properties();
             var planner = new MaterialContentPlanner();
             float hardness = (float) p.hardness();
@@ -64,7 +70,7 @@ public final class MaterialFactory {
                 planner = planner.withFluidTemplate(fluid);
             }
             planner = Objects.requireNonNull(customize.apply(planner), "custom planner");
-            return new Result(material, planner.plan(id, material.parts(), installed));
+            return new Result(material, extensions.extend(material, planner.plan(id, material.parts(), installed), installed));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Material " + id + ": " + ex.getMessage(), ex);
         }

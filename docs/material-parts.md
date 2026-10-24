@@ -1,6 +1,6 @@
 # Standard material-part planning
 
-MaterialPart defines all 55 forms supplied in the catalog, preserving ITEM,
+MaterialPart defines all 54 canonical forms (55 historical names, with MEK_CRYSTAL aliasing CRYSTAL) supplied in the catalog, preserving ITEM,
 BLOCK, and ITEM_BLOCK classifications. POWDER serializes as `dust`; `powder` is
 accepted as a legacy alias. Other enum names serialize in lowercase. `end_ore`
 and `nether_ore` are accepted aliases for endore and netherore.
@@ -23,7 +23,7 @@ available for explicit programmatic use.
 
 ## Optional Mekanism content
 
-CRYSTAL, SHARD, CLUMP, POWDER_DIRTY, and MEK_CRYSTAL are gated on the `mekanism`
+CRYSTAL (also accepted as MEK_CRYSTAL), SHARD, CLUMP, and POWDER_DIRTY are gated on the `mekanism`
 mod ID. Selecting them explicitly cannot bypass the gate. ORE, ENDORE, and
 NETHERORE do not depend on Mekanism. No Mekanism classes or dependencies are
 referenced. Definitions are omitted before their builders run, so no standalone
@@ -73,3 +73,28 @@ and runtime object registration remain unfinished.
 verifyMaterialParts runs under check/build, testing all forms with and without
 Mekanism, default/disabled fluids, projectile companions, selection codecs,
 custom templates, and isolation between material plans.
+
+## Runtime handling requirements
+
+MaterialPart.handling() distinguishes basic items/blocks from armor, tools,
+ammunition, ranged weapons, and specialized blocks. armorSlot() identifies HEAD,
+CHEST, LEGS, and FEET for the four wearable armor pieces; horse armor is separate.
+These pieces require a material-specific ArmorMaterial holder and ArmorItem type,
+not ordinary Item instances. requiresSpecializedFactory() and hasPlacementLogic()
+make that requirement explicit for runtime factory dispatch.
+
+Stairs, slabs (including the historical double slab), plates, ladders, levers,
+doors, trapdoors, buttons, connecting blocks, and other stateful blocks need their
+own state/shape/placement/interaction implementations. A plate is the placeable
+crafting plate, distinct from PRESSURE_PLATE. Placement and state handling do not
+by themselves imply a BlockEntity. No listed part is arbitrarily marked as needing
+one; machinery factories must register block-entity types/tickers where required.
+
+This metadata is not a runtime implementation. The generic content planner still
+creates declarations. Actual ArmorItem creation, specialized block subclasses,
+placement states, and block entities remain runtime-factory work.
+
+MEK_CRYSTAL is a source-level constant alias and legacy JSON spelling of CRYSTAL.
+It is an item, retains the Mekanism gate, serializes canonically as crystal, and
+never generates another item or block. In section expressions either name selects
+or excludes the same item. Flat part arrays reject both names together as duplicates.

@@ -15,11 +15,11 @@ public final class Registries {
     public static final ResourceKey<Registry<MMDMaterial>> MATERIALS_KEY = createKey("mmdlib:materials");
     public static final ResourceKey<Registry<MMDItem>> ITEMS_KEY = createKey("mmdlib:items");
     public static final ResourceKey<Registry<MMDBlock>> BLOCKS_KEY = createKey("mmdlib:blocks");
-    public static final ResourceKey<Registry<MMDLibEventCallback>> EVENT_CALLBACK_KEY = createKey("mmdlib:callbacks/events");
+    public static final ResourceKey<Registry<MMDLibEventCallback<?>>> EVENT_CALLBACK_KEY = createKey("mmdlib:callbacks/events");
     public static final Registry<MMDMaterial> MATERIALS_REGISTRY = new RegistryBuilder<>(MATERIALS_KEY).create();
     public static final Registry<MMDItem> ITEMS_REGISTRY = new RegistryBuilder<>(ITEMS_KEY).create();
     public static final Registry<MMDBlock> BLOCKS_REGISTRY = new RegistryBuilder<>(BLOCKS_KEY).create();
-    public static final Registry<MMDLibEventCallback> EVENT_CALLBACK_REGISTRY = new RegistryBuilder<>(EVENT_CALLBACK_KEY).create();
+    public static final Registry<MMDLibEventCallback<?>> EVENT_CALLBACK_REGISTRY = new RegistryBuilder<>(EVENT_CALLBACK_KEY).create();
     public static final ResourceKey<Registry<zone.moddev.mc.lib.common.types.MMDEntity>> ENTITIES_KEY = createKey("mmdlib:entities");
     public static final Registry<zone.moddev.mc.lib.common.types.MMDEntity> ENTITIES_REGISTRY = new RegistryBuilder<>(ENTITIES_KEY).create();
     public static final zone.moddev.mc.lib.common.factories.EntityFactories ENTITY_FACTORIES =

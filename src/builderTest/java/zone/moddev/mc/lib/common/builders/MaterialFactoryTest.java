@@ -36,12 +36,22 @@ public final class MaterialFactoryTest {
         require(!result.content().items().containsKey(MaterialPart.HOE));
         require(!result.content().blocks().containsKey(MaterialPart.DOOR));
         require(!result.content().items().containsKey(MaterialPart.CRYSTAL));
-        require(!result.content().blocks().containsKey(MaterialPart.MEK_CRYSTAL));
+        require(!result.content().items().containsKey(MaterialPart.MEK_CRYSTAL));
         require(result.content().blocks().get(MaterialPart.BLOCK).properties().hardness() == 3.5F);
         require(result.content().blocks().get(MaterialPart.BLOCK).tags().contains(ResourceLocation.parse("minecraft:mineable/pickaxe")));
         require(result.content().fluid().appearance().tint() == 0xFFAA6600);
         require(result.content().fluid().typeProperties().density() == 7000 && result.content().fluid().typeProperties().temperature() == 1100);
         require(new MaterialFactory(mod -> mod.equals("mekanism")).create(copper).content().items().containsKey(MaterialPart.CRYSTAL));
+        var mekFactory = new MaterialFactory(mod -> mod.equals("mekanism"));
+        var aliasCrystal = mekFactory.load(ResourceLocation.parse("test:crystal"), new StringReader(
+                "{\"items\":\"mek_crystal\",\"blocks\":\"\",\"has_fluid\":false}"));
+        require(aliasCrystal.content().items().size() == 1 && aliasCrystal.content().items().containsKey(MaterialPart.CRYSTAL));
+        require(aliasCrystal.content().blocks().isEmpty());
+        var excludedCrystal = mekFactory.load(ResourceLocation.parse("test:excluded"), new StringReader(
+                "{\"items\":\"all !mek_crystal\",\"blocks\":\"\",\"has_fluid\":false}"));
+        require(!excludedCrystal.content().items().containsKey(MaterialPart.CRYSTAL));
+        require(MMDMaterialCodec.MMD_MATERIAL_CODEC.parse(JsonOps.INSTANCE,
+                JsonParser.parseString("{\"blocks\":\"mek_crystal\"}")).error().isPresent());
         var noEntities = MaterialBuilder.from(copper).setEntities("all !bolt").build();
         require(!factory.create(noEntities).content().entities().containsKey(MaterialPart.BOLT));
         require(!factory.create(noEntities).content().items().containsKey(MaterialPart.BOLT));

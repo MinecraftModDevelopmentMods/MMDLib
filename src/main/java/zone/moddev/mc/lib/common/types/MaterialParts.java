@@ -3,7 +3,7 @@ package zone.moddev.mc.lib.common.types;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import java.util.List;
+//import java.util.List;
 import java.util.Set;
 
 /** Default to all available standard parts and a fluid family; a material can restrict either. */

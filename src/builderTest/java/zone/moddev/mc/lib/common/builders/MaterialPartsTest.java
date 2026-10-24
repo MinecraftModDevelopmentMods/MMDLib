@@ -11,15 +11,30 @@ import java.util.Set;
 
 public final class MaterialPartsTest {
     public static void main(String[] args) {
-        require(MaterialPart.values().length == 55);
+        require(MaterialPart.values().length == 54);
         for (var part : MaterialPart.values()) {
             var encoded = MaterialPart.CODEC.encodeStart(JsonOps.INSTANCE, part).getOrThrow();
             require(MaterialPart.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow() == part);
         }
         require(MaterialPart.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("\"powder\"")).getOrThrow() == MaterialPart.POWDER);
         require(MaterialPart.POWDER.id().equals("dust"));
+        require(MaterialPart.MEK_CRYSTAL == MaterialPart.CRYSTAL);
+        require(MaterialPart.MEK_CRYSTAL.kind() == MaterialPart.Kind.ITEM);
+        require(MaterialPart.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("\"mek_crystal\"")).getOrThrow() == MaterialPart.CRYSTAL);
+        require(MaterialPart.CODEC.encodeStart(JsonOps.INSTANCE, MaterialPart.MEK_CRYSTAL).getOrThrow().getAsString().equals("crystal"));
+        for (var part : Set.of(MaterialPart.HELMET, MaterialPart.CHESTPLATE, MaterialPart.LEGGINGS, MaterialPart.BOOTS)) {
+            require(part.handling() == MaterialPart.Handling.ARMOR && part.armorSlot().isPresent());
+            require(part.requiresSpecializedFactory());
+        }
+        require(MaterialPart.HELMET.armorSlot().orElseThrow() == net.minecraft.world.entity.EquipmentSlot.HEAD);
+        require(MaterialPart.CHESTPLATE.armorSlot().orElseThrow() == net.minecraft.world.entity.EquipmentSlot.CHEST);
+        require(MaterialPart.LEGGINGS.armorSlot().orElseThrow() == net.minecraft.world.entity.EquipmentSlot.LEGS);
+        require(MaterialPart.BOOTS.armorSlot().orElseThrow() == net.minecraft.world.entity.EquipmentSlot.FEET);
+        require(MaterialPart.HORSE_ARMOR.handling() == MaterialPart.Handling.ANIMAL_ARMOR);
+        for (var part : Set.of(MaterialPart.STAIRS, MaterialPart.SLAB, MaterialPart.PLATE, MaterialPart.LADDER, MaterialPart.LEVER))
+            require(part.hasPlacementLogic() && part.requiresSpecializedFactory());
         var selection = MaterialParts.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{}")).getOrThrow();
-        require(selection.parts().size() == 55 && selection.hasFluid());
+        require(selection.parts().size() == 54 && selection.hasFluid());
         require(MaterialParts.CODEC.parse(NbtOps.INSTANCE, MaterialParts.CODEC.encodeStart(NbtOps.INSTANCE, selection).getOrThrow())
                 .getOrThrow().equals(selection));
         var planner = new MaterialContentPlanner();
@@ -48,6 +63,15 @@ public final class MaterialPartsTest {
         require(without.blocks().containsKey(MaterialPart.ORE) && without.blocks().containsKey(MaterialPart.ENDORE)
                 && without.blocks().containsKey(MaterialPart.NETHERORE));
         require(!without.blocks().containsKey(MaterialPart.MEK_CRYSTAL));
+        var crystalOnly = MaterialParts.CODEC.parse(JsonOps.INSTANCE,
+                JsonParser.parseString("{\"parts\":[\"mek_crystal\"],\"has_fluid\":false}")).getOrThrow();
+        var crystalPlan = planner.plan(copperId, crystalOnly, mod -> mod.equals("mekanism"));
+        require(crystalPlan.items().size() == 1 && crystalPlan.items().containsKey(MaterialPart.CRYSTAL));
+        require(crystalPlan.blocks().isEmpty());
+        var noCrystal = planner.plan(copperId, crystalOnly, mod -> false);
+        require(noCrystal.items().isEmpty() && noCrystal.blocks().isEmpty());
+        require(MaterialParts.CODEC.parse(JsonOps.INSTANCE,
+                JsonParser.parseString("{\"parts\":[\"crystal\",\"mek_crystal\"]}")).error().isPresent());
         var restricted = MaterialParts.CODEC.parse(JsonOps.INSTANCE,
                 JsonParser.parseString("{\"parts\":[\"arrow\",\"crystal\"],\"has_fluid\":false}")).getOrThrow();
         var plan = planner.plan(copperId, restricted, mod -> false);
@@ -70,7 +94,7 @@ public final class MaterialPartsTest {
         require(new MMDMaterial(restricted).planContent(copperId, planner, mod -> false).fluid() == null);
         for (String invalid : new String[] {"{\"parts\":[\"unknown\"]}", "{\"parts\":[\"powder\",\"dust\"]}", "{\"has_fluid\":\"bad\"}"})
             require(MaterialParts.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(invalid)).error().isPresent());
-        System.out.println("55 material parts, optional Mekanism gating, projectile companions, and default fluid planning passed");
+        System.out.println("54 canonical material parts, optional Mekanism gating, projectile companions, and default fluid planning passed");
     }
     private static void require(boolean condition) {
         if (!condition) throw new AssertionError("Material part assertion failed");

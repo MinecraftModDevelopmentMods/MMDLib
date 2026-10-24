@@ -104,3 +104,11 @@ automatic mod-resource discovery, and the final registry/application stage remai
 separate work. verifyMaterialFactory runs with check/build and covers exclusions,
 section validation, JSON/NBT round trips, material stats, optional-mod gates,
 factory overrides, and identity binding.
+
+## Registered extension types and callbacks
+
+The current material codec includes namespaced item/block extension IDs in the
+same section selections and accepts typed callback bindings under `event`.
+See [the extension API](material-extensions.md). Unknown IDs are errors, so register
+code extensions before decoding. `events` remains a legacy input alias.
+MaterialFactory results also expose custom definitions in extraItems/extraBlocks.
