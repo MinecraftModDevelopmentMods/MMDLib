@@ -33,7 +33,7 @@ public enum MaterialPart {
     public boolean needsEntity() { return this == ARROW || this == BOLT; }
     public String id() { return this == POWDER ? "dust" : name().toLowerCase(Locale.ROOT); }
     public ResourceLocation templateId() { return ResourceLocation.fromNamespaceAndPath("mmdlib", id()); }
-    public static final Codec<MaterialPart> CODEC = Codec.STRING.comapFlatMap(name -> {
+    public static DataResult<MaterialPart> fromName(String name) {
         String normalized = switch (name) {
             case "powder" -> "dust";
             case "end_ore" -> "endore";
@@ -42,5 +42,6 @@ public enum MaterialPart {
         };
         for (MaterialPart part : values()) if (part.id().equals(normalized)) return DataResult.success(part);
         return DataResult.error(() -> "Unknown material part: " + name);
-    }, MaterialPart::id);
+    }
+    public static final Codec<MaterialPart> CODEC = Codec.STRING.comapFlatMap(MaterialPart::fromName, MaterialPart::id);
 }
