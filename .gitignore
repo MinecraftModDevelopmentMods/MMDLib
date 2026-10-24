@@ -4,3 +4,6 @@
 /debugmods/
 /.idea/
 /gradle/
+/bin/
+/.vscode/
+/logs/
