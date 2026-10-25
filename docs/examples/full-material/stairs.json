@@ -1,0 +1,17 @@
+{
+  "type": "stairs",
+  "properties": {
+    "hardness": 8,
+    "blast_resistance": 12,
+    "requires_correct_tool": true,
+    "sound": "metal",
+    "map_color": "metal"
+  },
+  "tags": [
+    "minecraft:mineable/pickaxe",
+    "minecraft:needs_iron_tool"
+  ],
+  "item": {
+    "fire_resistant": true
+  }
+}

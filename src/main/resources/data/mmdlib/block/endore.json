@@ -1,0 +1,19 @@
+{
+  "factory": "mmdlib:ore",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal"
+    },
+    "has_item": true,
+    "tags": [
+      "c:ores"
+    ]
+  },
+  "part": {
+    "aliases": [
+      "end_ore"
+    ]
+  }
+}

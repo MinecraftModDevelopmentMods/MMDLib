@@ -1,0 +1,31 @@
+{
+  "type_properties": {
+    "density": 7500,
+    "viscosity": 4000,
+    "temperature": 1400,
+    "light_level": 8,
+    "can_swim": false,
+    "can_drown": true
+  },
+  "flow_properties": {
+    "tick_rate": 20,
+    "can_convert_to_source": false
+  },
+  "appearance": {
+    "still": "example:block/molten_orichalcum_still",
+    "flowing": "example:block/molten_orichalcum_flow",
+    "tint": -10040150
+  },
+  "block": {
+    "properties": {
+      "hardness": 100,
+      "light_level": 8,
+      "collision": false,
+      "occlusion": false
+    }
+  },
+  "bucket": {
+    "fire_resistant": true,
+    "container": "minecraft:bucket"
+  }
+}

@@ -26,6 +26,9 @@ public final class Registries {
             new zone.moddev.mc.lib.common.factories.EntityFactories();
     public static final ResourceKey<Registry<zone.moddev.mc.lib.common.types.MMDFluid>> FLUIDS_KEY = createKey("mmdlib:fluids");
     public static final Registry<zone.moddev.mc.lib.common.types.MMDFluid> FLUIDS_REGISTRY = new RegistryBuilder<>(FLUIDS_KEY).create();
+    public static final ResourceKey<Registry<zone.moddev.mc.lib.common.types.MMDBlockEntity>> BLOCK_ENTITIES_KEY = createKey("mmdlib:block_entities");
+    public static final Registry<zone.moddev.mc.lib.common.types.MMDBlockEntity> BLOCK_ENTITIES_REGISTRY = new RegistryBuilder<>(BLOCK_ENTITIES_KEY).create();
+    public static final zone.moddev.mc.lib.common.factories.BlockEntityFactories BLOCK_ENTITY_FACTORIES = new zone.moddev.mc.lib.common.factories.BlockEntityFactories();
     private Registries() {}
     private static <T> ResourceKey<Registry<T>> createKey(String name) {
         return ResourceKey.createRegistryKey(ResourceLocation.parse(name));
@@ -36,6 +39,7 @@ public final class Registries {
         event.register(BLOCKS_REGISTRY);
         event.register(EVENT_CALLBACK_REGISTRY);
         event.register(ENTITIES_REGISTRY);
+        event.register(BLOCK_ENTITIES_REGISTRY);
         event.register(FLUIDS_REGISTRY);
     }
 }

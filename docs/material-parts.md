@@ -1,100 +1,92 @@
-# Standard material-part planning
+# Loaded material parts
 
-MaterialPart defines all 54 canonical forms (55 historical names, with MEK_CRYSTAL aliasing CRYSTAL) supplied in the catalog, preserving ITEM,
-BLOCK, and ITEM_BLOCK classifications. POWDER serializes as `dust`; `powder` is
-accepted as a legacy alias. Other enum names serialize in lowercase. `end_ore`
-and `nether_ore` are accepted aliases for endore and netherore.
+`MaterialPart` is an immutable descriptor supplied by the loaded catalog. It has
+no named part constants, behavior enum, placement switch, global registry lookup,
+or global codec. Its item/block kind identifies the owning registry section;
+block-item creation is controlled by the block template's `has_item` setting.
 
-MaterialParts.CODEC is a DFU-coded selection:
+`PartRegistry` resolves IDs and namespace-scoped aliases. `MaterialParts` holds a
+material's chosen descriptors and fluid flag. Resolve and decode against the
+catalog you loaded, including its extensions:
+
+```java
+var parts = extensions.snapshot().parts();
+var machine = parts.resolve("example:machine").getOrThrow();
+var partCodec = parts.codec();
+var selectionCodec = MaterialParts.forRegistry(parts);
+```
+
+Descriptors compare by namespaced module ID. Do not compare object references
+across snapshots. The material codec takes a fresh snapshot for each operation;
+it sees modules registered after the codec object was created. Static default
+selections/codecs on the selection helpers cover the resource-defined baseline;
+use the explicit catalog APIs for extended sets.
+
+The flat `MaterialParts` codec accepts:
+
+```json
+{"parts":["ingot","arrow","example:machine"],"has_fluid":false}
+```
+
+Omitting `parts` selects that codec's entire catalog. An empty array selects none.
+Unknown IDs and duplicates, including aliases of the same part, fail decoding.
+The full material codec exposes section expressions instead: `items`, `blocks`,
+and `entities`, accepting `all` and `!` exclusions. Exclusions win regardless of
+order. See [material factory](material-factory.md).
+
+## Data and behavior
+
+The bundled resource manifest `data/mmdlib/modules.json` indexes the baseline;
+external module directories are scanned without a manifest. The baseline
+currently contains 54 forms, but there is no fixed registry size. An empty
+`MaterialExtensions(false)` has no parts until modules are installed.
+
+A module's `factory` ID selects registered Java behavior. Its `factory_data` is
+interpreted by that factory's codec. For example, armor's slot is data for the
+armor implementation, not a classification inside `MaterialPart`:
 
 ```json
 {
-  "parts": ["ingot", "arrow", "bolt", "block", "slab", "crystal"],
-  "has_fluid": true
+  "factory":"mmdlib:armor",
+  "factory_data":{"slot":"helmet"},
+  "template":{"max_stack_size":1}
 }
 ```
 
-Omitted parts means the full catalog. An explicit empty list selects no parts.
-Omitted has_fluid means true, independently of which parts are selected. False
-suppresses the entire fluid family. Duplicate entries, including aliases, and
-unknown names fail decoding. MaterialSelection and MMDMaterialCodec now provide the full material-stat and
-section-expression schema; see material-factory.md. This flat selection remains
-available for explicit programmatic use.
+The previous `handling`, `armor_slot`, and `item_block` part fields are removed.
+There is no behavior fallback inferred from a part's name. Standard runtime
+helpers dispatch registered implementation IDs, and an unknown implementation
+fails explicitly.
 
-## Optional Mekanism content
+Optional `part` metadata defines aliases and companions:
 
-CRYSTAL (also accepted as MEK_CRYSTAL), SHARD, CLUMP, and POWDER_DIRTY are gated on the `mekanism`
-mod ID. Selecting them explicitly cannot bypass the gate. ORE, ENDORE, and
-NETHERORE do not depend on Mekanism. No Mekanism classes or dependencies are
-referenced. Definitions are omitted before their builders run, so no standalone
-Mekanism item/block references are produced when the mod is absent.
-
-## Applying templates
-
-```java
-var planner = new MaterialContentPlanner();
-var plan = planner.plan(materialId, MaterialParts.DEFAULT);
+```json
+{
+  "factory":"example:projectile_item",
+  "part":{
+    "aliases":["dart"],
+    "entity_factory":"example:projectile_entity",
+    "entity_data":{"lifetime":100}
+  },
+  "template":{"max_stack_size":24}
+}
 ```
 
-The runtime overload checks NeoForge ModList. An overload taking
-Predicate<String> supports tests and explicit loading environments.
-MMDMaterial now owns an immutable MaterialParts selection (defaulting to DEFAULT)
-and exposes planContent(materialId), plus overloads for custom planners and mod
-predicates. These methods are explicit; material discovery is not wired to run
-automatically by the entrypoint.
+In `data/example/item/needle.json`, this defines `example:needle` with alias
+`example:dart`. Aliases cannot shadow another ID or alias, and must stay in the
+module's namespace. Short names resolve in `mmdlib`; added forms use namespaced IDs.
 
-Direct item forms use ItemBuilder with their part ID as type. Block forms use
-BlockBuilder, with paired item definitions by default. ANVIL, DOOR, and SLAB
-retain their historical ITEM_BLOCK classification and use their block's item
-rather than creating another independent item. DOUBLE_SLAB has no separate item.
-Arrow and bolt each run both ItemBuilder and EntityBuilder; their item and entity
-IDs match across separate registries. Default factory IDs are mmdlib:arrow and
-mmdlib:bolt. Factory implementations must still be supplied before preparing types.
-Every material runs FluidBuilder unless has_fluid is false. Default fluid template
-name is mmdlib:molten, producing material_molten and its normal fluid companions.
+`entity_factory` describes a world entity and is allowed on **items or blocks**.
+It enters the material's `entities` selection and receives `entity_data` as its
+factory settings. An excluded required entity also excludes its owning form.
+Projectile item recovery remains the responsibility of the entity implementation.
 
-Plan items() includes direct items and enabled block items. Fluid block/bucket
-companions remain under fluid(), since they are not separate MaterialPart values.
-The plan's maps are immutable and contain definitions, not live game objects.
+A machine's block entity is separate from a world entity. A block module can use
+`part.block_entity` to declare one, with no item or world-entity companion needed.
+See [block entities and machines](block-entities.md) for its schema, typed factory,
+deferred type registration, and ticking hooks.
 
-Use withItemTemplate, withBlockTemplate, withEntityTemplate, and withFluidTemplate
-to customize an immutable planner. Parts keep their standard names so item/entity
-and block/item counterparts retain matching registry IDs. Fluid templates must
-have a name. Custom item settings for a block go through its BlockBuilder item
-template. Separate material plans share no mutable builder state.
-
-The planner supplies concrete *definition types*, not implementations of each
-Minecraft class. Swords, scythes, crackhammers, redstone blocks, projectile entities,
-and other runtime behaviors must be created by the later content-factory stage;
-none are silently replaced with generic objects. MaterialFactory now applies block/fluid defaults from material stats and can
-decode raw JSON. Parent inheritance, resource/tag generation, automatic discovery,
-and runtime object registration remain unfinished.
-
-verifyMaterialParts runs under check/build, testing all forms with and without
-Mekanism, default/disabled fluids, projectile companions, selection codecs,
-custom templates, and isolation between material plans.
-
-## Runtime handling requirements
-
-MaterialPart.handling() distinguishes basic items/blocks from armor, tools,
-ammunition, ranged weapons, and specialized blocks. armorSlot() identifies HEAD,
-CHEST, LEGS, and FEET for the four wearable armor pieces; horse armor is separate.
-These pieces require a material-specific ArmorMaterial holder and ArmorItem type,
-not ordinary Item instances. requiresSpecializedFactory() and hasPlacementLogic()
-make that requirement explicit for runtime factory dispatch.
-
-Stairs, slabs (including the historical double slab), plates, ladders, levers,
-doors, trapdoors, buttons, connecting blocks, and other stateful blocks need their
-own state/shape/placement/interaction implementations. A plate is the placeable
-crafting plate, distinct from PRESSURE_PLATE. Placement and state handling do not
-by themselves imply a BlockEntity. No listed part is arbitrarily marked as needing
-one; machinery factories must register block-entity types/tickers where required.
-
-This metadata is not a runtime implementation. The generic content planner still
-creates declarations. Actual ArmorItem creation, specialized block subclasses,
-placement states, and block entities remain runtime-factory work.
-
-MEK_CRYSTAL is a source-level constant alias and legacy JSON spelling of CRYSTAL.
-It is an item, retains the Mekanism gate, serializes canonically as crystal, and
-never generates another item or block. In section expressions either name selects
-or excludes the same item. Flat part arrays reject both names together as duplicates.
+`requires_mod` stays at module level. When its mod is absent, the form and its
+companions are omitted before their factories run. The bundled Mekanism crystal,
+shard, clump, and dirty-dust modules use this gate without a hard dependency.
+Historical aliases (`powder`, `mek_crystal`, `end_ore`, `nether_ore`) are in data.

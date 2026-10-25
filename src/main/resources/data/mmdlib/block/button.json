@@ -1,0 +1,20 @@
+{
+  "factory": "mmdlib:button",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal",
+      "collision": false,
+      "occlusion": false
+    },
+    "has_item": true,
+    "tags": [
+      "minecraft:buttons"
+    ]
+  },
+  "factory_data": {
+    "block_set_type": "stone",
+    "press_ticks": 20
+  }
+}

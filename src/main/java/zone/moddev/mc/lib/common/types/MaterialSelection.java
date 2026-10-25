@@ -4,49 +4,53 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import zone.moddev.mc.lib.api.MaterialExtensions;
-import java.util.EnumSet;
 import java.util.Set;
 
 public record MaterialSelection(Set<MaterialPart> items, Set<MaterialPart> blocks,
         Set<MaterialPart> entities, boolean hasFluid, Set<net.minecraft.resources.ResourceLocation> customItems,
-        Set<net.minecraft.resources.ResourceLocation> customBlocks) {
+        Set<net.minecraft.resources.ResourceLocation> customBlocks, net.minecraft.resources.ResourceLocation fluidModule) {
     public static final MaterialSelection DEFAULT = new MaterialSelection(PartSelection.ITEMS, PartSelection.BLOCKS, PartSelection.ENTITIES, true);
     public MaterialSelection(Set<MaterialPart> items, Set<MaterialPart> blocks, Set<MaterialPart> entities, boolean hasFluid) {
         this(items, blocks, entities, hasFluid, Set.of(), Set.of());
     }
+    public MaterialSelection(Set<MaterialPart> items, Set<MaterialPart> blocks, Set<MaterialPart> entities,
+            boolean hasFluid, Set<net.minecraft.resources.ResourceLocation> customItems, Set<net.minecraft.resources.ResourceLocation> customBlocks) {
+        this(items, blocks, entities, hasFluid, customItems, customBlocks, net.minecraft.resources.ResourceLocation.parse("mmdlib:molten"));
+    }
     public MaterialSelection {
         items = Set.copyOf(items); blocks = Set.copyOf(blocks); entities = Set.copyOf(entities);
+        java.util.Objects.requireNonNull(fluidModule);
         customItems = Set.copyOf(customItems); customBlocks = Set.copyOf(customBlocks);
-        if (!PartSelection.ITEMS.containsAll(items) || !PartSelection.BLOCKS.containsAll(blocks)
-                || !PartSelection.ENTITIES.containsAll(entities)) throw new IllegalArgumentException("Part is in the wrong section");
+        if (items.stream().anyMatch(p -> p.kind() != MaterialPart.Kind.ITEM)
+                || blocks.stream().anyMatch(p -> p.kind() == MaterialPart.Kind.ITEM)
+                || entities.stream().anyMatch(p -> !p.needsEntity())) throw new IllegalArgumentException("Part is in the wrong section");
     }
     public static MaterialSelection defaults(MaterialExtensions.Snapshot snapshot) {
-        return new MaterialSelection(PartSelection.ITEMS, PartSelection.BLOCKS, PartSelection.ENTITIES, true,
-                snapshot.items().keySet(), snapshot.blocks().keySet());
+        var registry = snapshot.parts();
+        return new MaterialSelection(registry.items(), registry.blocks(), registry.entities(), true);
     }
     public static MaterialSelection currentDefaults() { return defaults(MaterialExtensions.GLOBAL.snapshot()); }
-    public static final MapCodec<MaterialSelection> MAP_CODEC = mapCodec(new MaterialExtensions.Snapshot(java.util.Map.of(), java.util.Map.of()));
+    public static final MapCodec<MaterialSelection> MAP_CODEC = mapCodec(MaterialExtensions.GLOBAL.snapshot());
     public static MapCodec<MaterialSelection> mapCodec(MaterialExtensions.Snapshot snapshot) {
+        var registry = snapshot.parts();
         return RecordCodecBuilder.mapCodec(i -> i.group(
-                TypeSelection.codec(PartSelection.ITEMS, snapshot.items().keySet()).optionalFieldOf("items",
-                        new TypeSelection(PartSelection.ITEMS, snapshot.items().keySet()))
-                        .forGetter((MaterialSelection s) -> new TypeSelection(s.items, s.customItems)),
-                TypeSelection.codec(PartSelection.BLOCKS, snapshot.blocks().keySet()).optionalFieldOf("blocks",
-                        new TypeSelection(PartSelection.BLOCKS, snapshot.blocks().keySet()))
-                        .forGetter((MaterialSelection s) -> new TypeSelection(s.blocks, s.customBlocks)),
-                PartSelection.codec(PartSelection.ENTITIES).optionalFieldOf("entities", PartSelection.ENTITIES).forGetter(MaterialSelection::entities),
-                Codec.BOOL.optionalFieldOf("has_fluid", true).forGetter(MaterialSelection::hasFluid)
-        ).apply(i, (items, blocks, entities, fluid) -> new MaterialSelection(items.standard(), blocks.standard(), entities,
-                fluid, items.custom(), blocks.custom())));
+                PartSelection.codec(registry.items()).optionalFieldOf("items", registry.items()).forGetter(MaterialSelection::items),
+                PartSelection.codec(registry.blocks()).optionalFieldOf("blocks", registry.blocks()).forGetter(MaterialSelection::blocks),
+                PartSelection.codec(registry.entities()).optionalFieldOf("entities", registry.entities()).forGetter(MaterialSelection::entities),
+                Codec.BOOL.optionalFieldOf("has_fluid", true).forGetter(MaterialSelection::hasFluid),
+                net.minecraft.resources.ResourceLocation.CODEC.optionalFieldOf("fluid", net.minecraft.resources.ResourceLocation.parse("mmdlib:molten")).forGetter(MaterialSelection::fluidModule)
+        ).apply(i, (items, blocks, entities, fluid, module) -> new MaterialSelection(items, blocks, entities,
+                fluid, Set.of(), Set.of(), module)));
     }
     public MaterialParts parts() {
-        var parts = EnumSet.noneOf(MaterialPart.class); parts.addAll(items); parts.addAll(blocks);
+        var parts = new java.util.HashSet<MaterialPart>(); parts.addAll(items); parts.addAll(blocks);
         parts.removeIf(part -> part.needsEntity() && !entities.contains(part));
         return new MaterialParts(parts, hasFluid);
     }
     public static MaterialSelection fromParts(MaterialParts selection) {
-        var items = EnumSet.noneOf(MaterialPart.class); var blocks = EnumSet.noneOf(MaterialPart.class);
+        var items = new java.util.HashSet<MaterialPart>(); var blocks = new java.util.HashSet<MaterialPart>();
         for (var part : selection.parts()) if (part.kind() == MaterialPart.Kind.ITEM) items.add(part); else blocks.add(part);
-        return new MaterialSelection(items, blocks, PartSelection.ENTITIES, selection.hasFluid());
+        var entities = selection.parts().stream().filter(MaterialPart::needsEntity).collect(java.util.stream.Collectors.toUnmodifiableSet());
+        return new MaterialSelection(items, blocks, entities, selection.hasFluid());
     }
 }

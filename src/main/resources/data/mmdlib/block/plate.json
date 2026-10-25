@@ -1,0 +1,12 @@
+{
+  "factory": "mmdlib:plate",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal",
+      "occlusion": false
+    },
+    "has_item": true
+  }
+}

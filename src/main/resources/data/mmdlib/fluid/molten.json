@@ -1,0 +1,42 @@
+{
+  "factory": "mmdlib:flowing_fluid",
+  "material_defaults": true,
+  "template": {
+    "type_properties": {
+      "density": 3000,
+      "viscosity": 6000,
+      "temperature": 1300,
+      "can_swim": false,
+      "can_drown": true,
+      "can_extinguish": false,
+      "can_hydrate": false
+    },
+    "flow_properties": {
+      "slope_find_distance": 4,
+      "level_decrease_per_block": 1,
+      "tick_rate": 20,
+      "explosion_resistance": 100,
+      "can_convert_to_source": false
+    },
+    "appearance": {
+      "still": "minecraft:block/lava_still",
+      "flowing": "minecraft:block/lava_flow",
+      "tint": -1
+    },
+    "has_block": true,
+    "block": {
+      "has_item": false,
+      "properties": {
+        "hardness": 100,
+        "collision": false,
+        "occlusion": false
+      }
+    },
+    "has_bucket": true,
+    "bucket": {
+      "max_stack_size": 1,
+      "fire_resistant": true,
+      "container": "minecraft:bucket"
+    }
+  }
+}

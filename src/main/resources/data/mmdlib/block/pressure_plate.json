@@ -1,0 +1,19 @@
+{
+  "factory": "mmdlib:pressure_plate",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal",
+      "collision": false,
+      "occlusion": false
+    },
+    "has_item": true,
+    "tags": [
+      "minecraft:pressure_plates"
+    ]
+  },
+  "factory_data": {
+    "block_set_type": "stone"
+  }
+}

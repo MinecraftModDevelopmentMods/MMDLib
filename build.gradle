@@ -109,3 +109,24 @@ tasks.register('verifyRuntimeBehavior', JavaExec) {
     systemProperty 'mmdlib.resources', file('src/main/resources').absolutePath
 }
 tasks.named('check') { dependsOn tasks.named('verifyRuntimeBehavior') }
+
+ tasks.register('verifyDataModules', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.DataModulesTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyDataModules') }
+
+tasks.register('verifyLoadedParts', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.LoadedPartsTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyLoadedParts') }
+
+tasks.register('verifyBlockEntities', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.BlockEntitiesTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyBlockEntities') }

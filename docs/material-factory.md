@@ -1,5 +1,8 @@
 # Material definitions, builder, and factory
 
+For a mod-author walkthrough with a complete material-data example, see [the mod-author guide](mod-author-guide.md).
+
+
 MMDMaterial is an immutable definition. MaterialBuilder.INSTANCE/create() is its
 shared empty builder; every setter returns a new version. A builder needs a name
 before build(). MMDMaterialCodec.MMD_MATERIAL_CODEC is the standard DFU codec and
@@ -89,7 +92,7 @@ withEntityTemplate/withFluidTemplate methods. For example:
 
 ```java
 var factory = new MaterialFactory().withTemplates(planner ->
-        planner.withBlockTemplate(MaterialPart.BLOCK,
+        planner.withBlockTemplate(zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().parts().resolve("block").getOrThrow(),
                 BlockBuilder.create().setStrength(9, 20)));
 ```
 
@@ -112,3 +115,5 @@ same section selections and accepts typed callback bindings under `event`.
 See [the extension API](material-extensions.md). Unknown IDs are errors, so register
 code extensions before decoding. `events` remains a legacy input alias.
 MaterialFactory results also expose custom definitions in extraItems/extraBlocks.
+
+See [data-defined content modules](data-modules.md) for the bundled baseline, pack schemas, overrides, and current runtime integration limits.

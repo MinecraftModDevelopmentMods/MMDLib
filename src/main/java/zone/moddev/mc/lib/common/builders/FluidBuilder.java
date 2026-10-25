@@ -10,7 +10,7 @@ import java.util.Optional;
 /** Immutable templates for a material's source/flowing fluid, optional liquid block and bucket. */
 public final class FluidBuilder extends Builder<MMDFluid, FluidBuilder> {
     public static final FluidBuilder INSTANCE = new FluidBuilder(Map.of());
-    private enum Key { NAME, MATERIAL, PARENT, TYPE, FLOW, APPEARANCE, HAS_BLOCK, BLOCK, HAS_BUCKET, BUCKET, EVENTS }
+    private enum Key { NAME, MATERIAL, PARENT, TYPE, FLOW, APPEARANCE, HAS_BLOCK, BLOCK, HAS_BUCKET, BUCKET, EVENTS, FACTORY, FACTORY_DATA }
     private final Map<Key, Object> values;
     private FluidBuilder(Map<Key, Object> values) { this.values = Map.copyOf(values); }
     public static FluidBuilder create() { return INSTANCE; }
@@ -33,6 +33,8 @@ public final class FluidBuilder extends Builder<MMDFluid, FluidBuilder> {
                 material.getNamespace(), material.getPath() + "_" + template.getPath());
     }
     @Override public FluidBuilder setParent(ResourceLocation parent) { return with(Key.PARENT, parent); }
+    public FluidBuilder setFactory(ResourceLocation factory) { return with(Key.FACTORY, factory); }
+    public FluidBuilder setFactoryData(zone.moddev.mc.lib.common.types.FactoryData data) { return with(Key.FACTORY_DATA, data); }
     public FluidBuilder setTypeProperties(MMDFluid.TypeProperties properties) { return with(Key.TYPE, properties); }
     public FluidBuilder setFlowProperties(MMDFluid.FlowProperties properties) { return with(Key.FLOW, properties); }
     public FluidBuilder setAppearance(MMDFluid.Appearance appearance) { return with(Key.APPEARANCE, appearance); }
@@ -130,6 +132,8 @@ public final class FluidBuilder extends Builder<MMDFluid, FluidBuilder> {
         var bucket = value(Key.HAS_BUCKET, true) ? value(Key.BUCKET, ItemBuilder.create()).setName(bucketName)
                 .forMaterial(getMaterialName()).setMaxStackSize(1).build() : null;
         return new MMDFluid(getRegistryName(), getTemplateName(), getMaterialName(), value(Key.PARENT, null),
-                getTypeProperties(), getFlowProperties(), getAppearance(), block, bucket, value(Key.EVENTS, Map.of()));
+                getTypeProperties(), getFlowProperties(), getAppearance(), block, bucket, value(Key.EVENTS, Map.of()),
+                value(Key.FACTORY, ResourceLocation.parse("mmdlib:flowing_fluid")),
+                value(Key.FACTORY_DATA, zone.moddev.mc.lib.common.types.FactoryData.EMPTY));
     }
 }

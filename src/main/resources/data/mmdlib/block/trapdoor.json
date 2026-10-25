@@ -1,0 +1,18 @@
+{
+  "factory": "mmdlib:trapdoor",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal",
+      "occlusion": false
+    },
+    "has_item": true,
+    "tags": [
+      "minecraft:trapdoors"
+    ]
+  },
+  "factory_data": {
+    "block_set_type": "iron"
+  }
+}

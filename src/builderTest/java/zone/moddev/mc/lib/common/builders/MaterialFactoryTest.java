@@ -1,5 +1,6 @@
 package zone.moddev.mc.lib.common.builders;
 
+import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
@@ -22,7 +23,7 @@ public final class MaterialFactoryTest {
         var tin = template.setName("test:tin").build();
         require(root.getRegistryName() == null && template.getRegistryName() == null);
         require(copper.properties().magic() == 4.5 && tin.properties().strength() == 8);
-        require(!copper.parts().parts().contains(MaterialPart.HOE));
+        require(!copper.parts().parts().contains(ModuleCatalog.bundled().parts().resolve("hoe").getOrThrow()));
         require(PartSelection.parse("!hoe all", PartSelection.ITEMS).equals(PartSelection.parse("all !hoe", PartSelection.ITEMS)));
         require(PartSelection.parse("all !all hoe", PartSelection.ITEMS).isEmpty());
         require(PartSelection.parse("!hoe", PartSelection.ITEMS).isEmpty());
@@ -33,28 +34,28 @@ public final class MaterialFactoryTest {
         special.clear();
         var factory = new MaterialFactory(mod -> false);
         var result = factory.create(tagged);
-        require(!result.content().items().containsKey(MaterialPart.HOE));
-        require(!result.content().blocks().containsKey(MaterialPart.DOOR));
-        require(!result.content().items().containsKey(MaterialPart.CRYSTAL));
-        require(!result.content().items().containsKey(MaterialPart.MEK_CRYSTAL));
-        require(result.content().blocks().get(MaterialPart.BLOCK).properties().hardness() == 3.5F);
-        require(result.content().blocks().get(MaterialPart.BLOCK).tags().contains(ResourceLocation.parse("minecraft:mineable/pickaxe")));
+        require(!result.content().items().containsKey(ModuleCatalog.bundled().parts().resolve("hoe").getOrThrow()));
+        require(!result.content().blocks().containsKey(ModuleCatalog.bundled().parts().resolve("door").getOrThrow()));
+        require(!result.content().items().containsKey(ModuleCatalog.bundled().parts().resolve("crystal").getOrThrow()));
+        require(!result.content().items().containsKey(ModuleCatalog.bundled().parts().resolve("crystal").getOrThrow()));
+        require(result.content().blocks().get(ModuleCatalog.bundled().parts().resolve("block").getOrThrow()).properties().hardness() == 3.5F);
+        require(result.content().blocks().get(ModuleCatalog.bundled().parts().resolve("block").getOrThrow()).tags().contains(ResourceLocation.parse("minecraft:mineable/pickaxe")));
         require(result.content().fluid().appearance().tint() == 0xFFAA6600);
         require(result.content().fluid().typeProperties().density() == 7000 && result.content().fluid().typeProperties().temperature() == 1100);
-        require(new MaterialFactory(mod -> mod.equals("mekanism")).create(copper).content().items().containsKey(MaterialPart.CRYSTAL));
+        require(new MaterialFactory(mod -> mod.equals("mekanism")).create(copper).content().items().containsKey(ModuleCatalog.bundled().parts().resolve("crystal").getOrThrow()));
         var mekFactory = new MaterialFactory(mod -> mod.equals("mekanism"));
         var aliasCrystal = mekFactory.load(ResourceLocation.parse("test:crystal"), new StringReader(
                 "{\"items\":\"mek_crystal\",\"blocks\":\"\",\"has_fluid\":false}"));
-        require(aliasCrystal.content().items().size() == 1 && aliasCrystal.content().items().containsKey(MaterialPart.CRYSTAL));
+        require(aliasCrystal.content().items().size() == 1 && aliasCrystal.content().items().containsKey(ModuleCatalog.bundled().parts().resolve("crystal").getOrThrow()));
         require(aliasCrystal.content().blocks().isEmpty());
         var excludedCrystal = mekFactory.load(ResourceLocation.parse("test:excluded"), new StringReader(
                 "{\"items\":\"all !mek_crystal\",\"blocks\":\"\",\"has_fluid\":false}"));
-        require(!excludedCrystal.content().items().containsKey(MaterialPart.CRYSTAL));
+        require(!excludedCrystal.content().items().containsKey(ModuleCatalog.bundled().parts().resolve("crystal").getOrThrow()));
         require(MMDMaterialCodec.MMD_MATERIAL_CODEC.parse(JsonOps.INSTANCE,
                 JsonParser.parseString("{\"blocks\":\"mek_crystal\"}")).error().isPresent());
         var noEntities = MaterialBuilder.from(copper).setEntities("all !bolt").build();
-        require(!factory.create(noEntities).content().entities().containsKey(MaterialPart.BOLT));
-        require(!factory.create(noEntities).content().items().containsKey(MaterialPart.BOLT));
+        require(!factory.create(noEntities).content().entities().containsKey(ModuleCatalog.bundled().parts().resolve("bolt").getOrThrow()));
+        require(!factory.create(noEntities).content().items().containsKey(ModuleCatalog.bundled().parts().resolve("bolt").getOrThrow()));
         require(factory.create(MaterialBuilder.from(copper).setHasFluid(false).build()).content().fluid() == null);
         var json = JsonParser.parseString("""
             {"type":"metal","color":-1,"hardness":3.5,"strength":8,"magic":4.5,
@@ -63,18 +64,18 @@ public final class MaterialFactoryTest {
             """);
         var material = MMDMaterialCodec.MMD_MATERIAL_CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
         require(material.name().isEmpty());
-        require(!material.parts().parts().contains(MaterialPart.HOE) && !material.parts().parts().contains(MaterialPart.POWDER));
+        require(!material.parts().parts().contains(ModuleCatalog.bundled().parts().resolve("hoe").getOrThrow()) && !material.parts().parts().contains(ModuleCatalog.bundled().parts().resolve("dust").getOrThrow()));
         var encoded = MMDMaterialCodec.MMD_MATERIAL_CODEC.encodeStart(JsonOps.INSTANCE, material).getOrThrow();
         require(MMDMaterialCodec.MMD_MATERIAL_CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow().equals(material));
         var nbt = MMDMaterialCodec.MMD_MATERIAL_CODEC.encodeStart(NbtOps.INSTANCE, material).getOrThrow();
         require(MMDMaterialCodec.MMD_MATERIAL_CODEC.parse(NbtOps.INSTANCE, nbt).getOrThrow().equals(material));
         var loaded = factory.load(ResourceLocation.parse("test:copper"), new StringReader(json.toString()));
         require(loaded.material().name().orElseThrow().equals(ResourceLocation.parse("test:copper")));
-        require(!loaded.content().items().containsKey(MaterialPart.BOLT));
-        var overridden = factory.withTemplates(planner -> planner.withBlockTemplate(MaterialPart.BLOCK,
+        require(!loaded.content().items().containsKey(ModuleCatalog.bundled().parts().resolve("bolt").getOrThrow()));
+        var overridden = factory.withTemplates(planner -> planner.withBlockTemplate(ModuleCatalog.bundled().parts().resolve("block").getOrThrow(),
                 BlockBuilder.create().setStrength(9, 20)));
-        require(overridden.create(copper).content().blocks().get(MaterialPart.BLOCK).properties().hardness() == 9);
-        require(factory.create(copper).content().blocks().get(MaterialPart.BLOCK).properties().hardness() == 3.5F);
+        require(overridden.create(copper).content().blocks().get(ModuleCatalog.bundled().parts().resolve("block").getOrThrow()).properties().hardness() == 9);
+        require(factory.create(copper).content().blocks().get(ModuleCatalog.bundled().parts().resolve("block").getOrThrow()).properties().hardness() == 3.5F);
         var empty = factory.load(ResourceLocation.parse("test:empty"), new StringReader("{\"items\":\"\",\"blocks\":[],\"has_fluid\":false}"));
         require(empty.content().items().isEmpty() && empty.content().blocks().isEmpty() && empty.content().fluid() == null);
         for (String invalid : new String[] {"{\"items\":\"all !ho\"}", "{\"items\":\"door\"}",

@@ -131,41 +131,34 @@ public final class StandardItems {
         @Override public MMDMaterial material() { return material; }
     }
     public static Class<? extends Item> itemClass(MaterialPart part) {
-        return switch (part) {
-            case PICKAXE -> Pickaxe.class; case AXE -> Axe.class; case SHOVEL -> Shovel.class;
-            case HOE -> Hoe.class; case SWORD -> Sword.class; case SCYTHE -> ScytheItem.class;
-            case CRACKHAMMER -> CrackhammerItem.class; case BOW -> Bow.class; case CROSSBOW -> Crossbow.class;
-            case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> Armor.class; case HORSE_ARMOR -> HorseArmor.class;
-            case SHEARS -> Shears.class; case SHIELD -> Shield.class; case FISHING_ROD -> FishingRod.class;
-            default -> {
-                if (part.handling() != MaterialPart.Handling.BASIC_ITEM)
-                    throw new IllegalArgumentException("No item runtime implementation installed for " + part);
-                yield Basic.class;
-            }
+        return switch (part.factory().toString()) {
+            case "mmdlib:pickaxe" -> Pickaxe.class; case "mmdlib:axe" -> Axe.class; case "mmdlib:shovel" -> Shovel.class;
+            case "mmdlib:hoe" -> Hoe.class; case "mmdlib:sword" -> Sword.class; case "mmdlib:scythe" -> ScytheItem.class;
+            case "mmdlib:crackhammer" -> CrackhammerItem.class; case "mmdlib:bow" -> Bow.class; case "mmdlib:crossbow" -> Crossbow.class;
+            case "mmdlib:armor" -> Armor.class; case "mmdlib:horse_armor" -> HorseArmor.class;
+            case "mmdlib:shears" -> Shears.class; case "mmdlib:shield" -> Shield.class; case "mmdlib:fishing_rod" -> FishingRod.class;
+            case "mmdlib:basic_item" -> Basic.class;
+            default -> throw new IllegalArgumentException("No item runtime implementation installed for " + part.factory());
         };
     }
     public static Item create(MaterialPart part, MaterialToolTier tier, Holder<ArmorMaterial> armor, Item.Properties properties) {
         var material = tier.material();
-        return switch (part) {
-            case PICKAXE -> new Pickaxe(tier, properties); case AXE -> new Axe(tier, properties);
-            case SHOVEL -> new Shovel(tier, properties); case HOE -> new Hoe(tier, properties); case SWORD -> new Sword(tier, properties);
-            case SCYTHE -> new ScytheItem(material, tier, properties);
-            case CRACKHAMMER -> new CrackhammerItem(material, tier, properties);
-            case HELMET -> new Armor(material, Objects.requireNonNull(armor), ArmorItem.Type.HELMET, properties);
-            case CHESTPLATE -> new Armor(material, Objects.requireNonNull(armor), ArmorItem.Type.CHESTPLATE, properties);
-            case LEGGINGS -> new Armor(material, Objects.requireNonNull(armor), ArmorItem.Type.LEGGINGS, properties);
-            case BOOTS -> new Armor(material, Objects.requireNonNull(armor), ArmorItem.Type.BOOTS, properties);
-            case HORSE_ARMOR -> new HorseArmor(material, Objects.requireNonNull(armor), properties);
-            case BOW -> new Bow(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            case CROSSBOW -> new Crossbow(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            case SHIELD -> new Shield(material, tier::getRepairIngredient, properties.durability(
+        return switch (part.factory().toString()) {
+            case "mmdlib:pickaxe" -> new Pickaxe(tier, properties); case "mmdlib:axe" -> new Axe(tier, properties);
+            case "mmdlib:shovel" -> new Shovel(tier, properties); case "mmdlib:hoe" -> new Hoe(tier, properties); case "mmdlib:sword" -> new Sword(tier, properties);
+            case "mmdlib:scythe" -> new ScytheItem(material, tier, properties);
+            case "mmdlib:crackhammer" -> new CrackhammerItem(material, tier, properties);
+            case "mmdlib:armor" -> new Armor(material, Objects.requireNonNull(armor), part.factoryData()
+                    .decode(ArmorItem.Type.CODEC.fieldOf("slot").codec()).getOrThrow(), properties);
+            case "mmdlib:horse_armor" -> new HorseArmor(material, Objects.requireNonNull(armor), properties);
+            case "mmdlib:bow" -> new Bow(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
+            case "mmdlib:crossbow" -> new Crossbow(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
+            case "mmdlib:shield" -> new Shield(material, tier::getRepairIngredient, properties.durability(
                     new MaterialStats(material).integer("shield_durability", Math.max(1, (int) (168 * material.properties().strength())), 1)));
-            case SHEARS -> new Shears(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            case FISHING_ROD -> new FishingRod(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            default -> {
-                if (part.handling() != MaterialPart.Handling.BASIC_ITEM) throw new IllegalArgumentException("No item runtime implementation installed for " + part);
-                yield new Basic(material, tier::getRepairIngredient, properties);
-            }
+            case "mmdlib:shears" -> new Shears(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
+            case "mmdlib:fishing_rod" -> new FishingRod(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
+            case "mmdlib:basic_item" -> new Basic(material, tier::getRepairIngredient, properties);
+            default -> throw new IllegalArgumentException("No item runtime implementation installed for " + part.factory());
         };
     }
 }

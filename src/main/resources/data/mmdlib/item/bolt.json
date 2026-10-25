@@ -1,0 +1,10 @@
+{
+  "factory": "mmdlib:bolt",
+  "template": {
+    "max_stack_size": 64,
+    "fire_resistant": false
+  },
+  "part": {
+    "entity_factory": "mmdlib:bolt"
+  }
+}

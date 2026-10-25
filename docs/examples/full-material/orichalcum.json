@@ -1,0 +1,38 @@
+{
+  "type": "metal",
+  "color": -10040150,
+  "hardness": 8.0,
+  "strength": 10.0,
+  "magic": 6.0,
+  "damage": 3.0,
+  "items": "all",
+  "blocks": "all",
+  "entities": "all",
+  "has_fluid": true,
+  "harvest_tags": [
+    "minecraft:mineable/pickaxe",
+    "minecraft:needs_iron_tool"
+  ],
+  "special": {
+    "blast_resistance": 12,
+    "temperature": 1400,
+    "density": 7500,
+    "viscosity": 4000,
+    "tool_durability": 640,
+    "tool_efficiency": 8,
+    "enchantability": 15,
+    "armor_durability_factor": 20,
+    "armor_toughness": 2,
+    "armor_head": 3,
+    "armor_chest": 8,
+    "armor_legs": 6,
+    "armor_feet": 3,
+    "horse_armor_protection": 11,
+    "crackhammer_durability": 480,
+    "crackhammer_destroy_speed": 4,
+    "shield_durability": 1680
+  },
+  "event": {
+    "example:armor_tick": "example:orichalcum_armor_bonus"
+  }
+}

@@ -1,9 +1,9 @@
 package zone.moddev.mc.lib.common.builders;
 
+import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import zone.moddev.mc.lib.common.types.*;
-import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -16,16 +16,17 @@ public final class MaterialContentPlanner {
     private final FluidBuilder fluid;
 
     public MaterialContentPlanner() {
-        var items = new EnumMap<MaterialPart, ItemBuilder>(MaterialPart.class);
-        var blocks = new EnumMap<MaterialPart, BlockBuilder>(MaterialPart.class);
-        var entities = new EnumMap<MaterialPart, EntityBuilder>(MaterialPart.class);
-        for (MaterialPart part : MaterialPart.values()) {
-            if (part.kind() == MaterialPart.Kind.ITEM) items.put(part, ItemBuilder.create().setType(part.id()));
-            else blocks.put(part, BlockBuilder.create().setType(part.id()).setHasItem(part != MaterialPart.DOUBLE_SLAB));
-            if (part.needsEntity()) entities.put(part, EntityBuilder.create().setFactory(part.templateId()));
-        }
+        var items = new java.util.HashMap<MaterialPart, ItemBuilder>();
+        var blocks = new java.util.HashMap<MaterialPart, BlockBuilder>();
+        var entities = new java.util.HashMap<MaterialPart, EntityBuilder>();
+        var modules = ModuleCatalog.bundled();
+        modules.items().forEach((id, module) -> items.put(module.definition(id), module.template().toBuilder().setType(module.factory().toString())));
+        modules.blocks().forEach((id, module) -> blocks.put(module.definition(id), module.template().toBuilder().setType(module.factory().toString())));
+        for (var part : modules.parts().entities()) entities.put(part, EntityBuilder.create().setFactory(part.entityFactory().orElseThrow()).setFactoryData(part.metadata().entityData()));
         this.items = Map.copyOf(items); this.blocks = Map.copyOf(blocks); this.entities = Map.copyOf(entities);
-        this.fluid = FluidBuilder.create().setName("mmdlib:molten");
+        var fluidEntry = modules.fluids().entrySet().iterator().next();
+        this.fluid = fluidEntry.getValue().template().toBuilder().setName(fluidEntry.getKey())
+                .setFactory(fluidEntry.getValue().factory()).setFactoryData(fluidEntry.getValue().factoryData());
     }
     private MaterialContentPlanner(Map<MaterialPart, ItemBuilder> items, Map<MaterialPart, BlockBuilder> blocks,
                                    Map<MaterialPart, EntityBuilder> entities, FluidBuilder fluid) {
@@ -34,19 +35,19 @@ public final class MaterialContentPlanner {
     }
     public MaterialContentPlanner withItemTemplate(MaterialPart part, ItemBuilder template) {
         if (part.kind() != MaterialPart.Kind.ITEM) throw new IllegalArgumentException("Use the block template for " + part);
-        var copy = new EnumMap<MaterialPart, ItemBuilder>(MaterialPart.class); copy.putAll(items);
+        var copy = new java.util.HashMap<MaterialPart, ItemBuilder>(); copy.putAll(items);
         copy.put(part, Objects.requireNonNull(template));
         return new MaterialContentPlanner(copy, blocks, entities, fluid);
     }
     public MaterialContentPlanner withBlockTemplate(MaterialPart part, BlockBuilder template) {
         if (part.kind() == MaterialPart.Kind.ITEM) throw new IllegalArgumentException("Not a block part: " + part);
-        var copy = new EnumMap<MaterialPart, BlockBuilder>(MaterialPart.class); copy.putAll(blocks);
+        var copy = new java.util.HashMap<MaterialPart, BlockBuilder>(); copy.putAll(blocks);
         copy.put(part, Objects.requireNonNull(template));
         return new MaterialContentPlanner(items, copy, entities, fluid);
     }
     public MaterialContentPlanner withEntityTemplate(MaterialPart part, EntityBuilder template) {
         if (!part.needsEntity()) throw new IllegalArgumentException("No standard entity companion for " + part);
-        var copy = new EnumMap<MaterialPart, EntityBuilder>(MaterialPart.class); copy.putAll(entities);
+        var copy = new java.util.HashMap<MaterialPart, EntityBuilder>(); copy.putAll(entities);
         copy.put(part, Objects.requireNonNull(template));
         return new MaterialContentPlanner(items, blocks, copy, fluid);
     }
@@ -58,23 +59,35 @@ public final class MaterialContentPlanner {
     }
     /** Explicit mod predicate supports deterministic loading/tests without starting NeoForge. */
     public MaterialContentPlan plan(ResourceLocation material, MaterialParts selection, Predicate<String> installed) {
+        return plan(material, selection, installed, part -> part.available(installed));
+    }
+    public MaterialContentPlan plan(ResourceLocation material, MaterialParts selection, Predicate<String> installed,
+                                    Predicate<MaterialPart> available) {
         Objects.requireNonNull(material); Objects.requireNonNull(selection); Objects.requireNonNull(installed);
-        var itemDefinitions = new EnumMap<MaterialPart, MMDItem>(MaterialPart.class);
-        var blockDefinitions = new EnumMap<MaterialPart, MMDBlock>(MaterialPart.class);
-        var entityDefinitions = new EnumMap<MaterialPart, MMDEntity>(MaterialPart.class);
+        var itemDefinitions = new java.util.HashMap<MaterialPart, MMDItem>();
+        var blockDefinitions = new java.util.HashMap<MaterialPart, MMDBlock>();
+        var entityDefinitions = new java.util.HashMap<MaterialPart, MMDEntity>();
+        var blockEntities = new java.util.HashMap<MaterialPart, MMDBlockEntity>();
         for (MaterialPart part : selection.parts().stream().sorted().toList()) {
-            if (!part.available(installed)) continue;
+            if (!available.test(part)) continue;
             if (part.kind() == MaterialPart.Kind.ITEM) {
-                itemDefinitions.put(part, items.get(part).setName(part.templateId()).forMaterial(material).build());
+                itemDefinitions.put(part, requireTemplate(items, part).setName(part.templateId()).forMaterial(material).build());
             } else {
-                var block = blocks.get(part).setName(part.templateId()).forMaterial(material).build();
+                var block = requireTemplate(blocks, part).setName(part.templateId()).forMaterial(material).build();
                 blockDefinitions.put(part, block);
+                part.metadata().blockEntity().ifPresent(template -> blockEntities.put(part, template.bind(block)));
                 if (block.item() != null) itemDefinitions.put(part, block.item());
             }
             if (part.needsEntity()) entityDefinitions.put(part,
-                    entities.get(part).setName(part.templateId()).forMaterial(material).build());
+                    requireTemplate(entities, part).setName(part.templateId()).forMaterial(material).build());
         }
         var fluidDefinition = selection.hasFluid() ? fluid.forMaterial(material).build() : null;
-        return new MaterialContentPlan(material, itemDefinitions, blockDefinitions, entityDefinitions, fluidDefinition);
+        return new MaterialContentPlan(material, itemDefinitions, blockDefinitions, entityDefinitions, fluidDefinition, Map.of(), Map.of(), blockEntities);
     }
+    private static <T> T requireTemplate(Map<MaterialPart, T> templates, MaterialPart part) {
+        var template = templates.get(part);
+        if (template == null) throw new IllegalArgumentException("No template configured for material part: " + part);
+        return template;
+    }
+
 }

@@ -100,3 +100,5 @@ resources. The whole NeoForge project compiles and existing definition/codec/API
 checks run alongside it. Scythe harvesting/protection, crackhammer processing and
 breakage, armor equipment effects, anvil menus, and block placement still require
 in-game verification.
+
+See [block entities and machines](block-entities.md) for data-defined machine companions, typed factories, deferred registration, and tick hooks.

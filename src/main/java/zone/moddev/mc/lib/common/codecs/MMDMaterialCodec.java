@@ -24,7 +24,11 @@ public final class MMDMaterialCodec {
                         EventBindings.MAP_CODEC.forGetter(MMDMaterial::events)
                 ).apply(i, MMDMaterial::new));
                 return fields.validate(material -> {
-                    try { extensions.events().validate(material.events()); return DataResult.success(material); }
+                    try {
+                        extensions.events().validate(material.events());
+                        if (material.selection().hasFluid()) extensions.fluidModule(material.selection().fluidModule());
+                        return DataResult.success(material);
+                    }
                     catch (IllegalArgumentException ex) { return DataResult.error(ex::getMessage); }
                 });
             }

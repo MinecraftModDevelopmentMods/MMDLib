@@ -49,7 +49,7 @@ public final class MaterialExtensionsTest {
             {"hardness":4,"items":"addon:gadget", "blocks":"addon:crusher", "has_fluid":false,
              "event":{"tick":"addon:boost"}}
             """));
-        require(result.content().items().isEmpty() && result.content().blocks().isEmpty());
+        require(result.content().items().size() == 2 && result.content().blocks().size() == 1);
         require(result.content().extraItems().size() == 2 && result.content().extraBlocks().size() == 1);
         require(result.content().extraItems().get(gadget).name().equals(ResourceLocation.parse("test:copper_gadget")));
         require(result.content().extraItems().get(gadget).maxStackSize() == 16);

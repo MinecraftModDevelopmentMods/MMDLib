@@ -13,19 +13,10 @@ public final class MaterialRegistration {
     public static void publishDefinitions(RegisterEvent event, MaterialFactory.Result result) {
         var material = result.material(); var content = result.content();
         event.register(Registries.MATERIALS_KEY, helper -> helper.register(material.name().orElseThrow(), material));
-        event.register(Registries.ITEMS_KEY, helper -> {
-            content.items().values().forEach(item -> helper.register(item.name(), item));
-            content.extraItems().values().forEach(item -> helper.register(item.name(), item));
-            if (content.fluid() != null && content.fluid().bucket() != null)
-                helper.register(content.fluid().bucket().name(), content.fluid().bucket());
-        });
-        event.register(Registries.BLOCKS_KEY, helper -> {
-            content.blocks().values().forEach(block -> helper.register(block.name(), block));
-            content.extraBlocks().values().forEach(block -> helper.register(block.name(), block));
-            if (content.fluid() != null && content.fluid().block() != null)
-                helper.register(content.fluid().block().name(), content.fluid().block());
-        });
+        event.register(Registries.ITEMS_KEY, helper -> content.itemDefinitions().forEach(helper::register));
+        event.register(Registries.BLOCKS_KEY, helper -> content.blockDefinitions().forEach(helper::register));
         event.register(Registries.ENTITIES_KEY, helper -> content.entities().values().forEach(entity -> helper.register(entity.name(), entity)));
+        event.register(Registries.BLOCK_ENTITIES_KEY, helper -> content.blockEntityDefinitions().forEach(helper::register));
         event.register(Registries.FLUIDS_KEY, helper -> {
             if (content.fluid() != null) helper.register(content.fluid().name(), content.fluid());
         });

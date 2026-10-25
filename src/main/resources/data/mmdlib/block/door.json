@@ -1,0 +1,18 @@
+{
+  "factory": "mmdlib:door",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal",
+      "occlusion": false
+    },
+    "has_item": true,
+    "tags": [
+      "minecraft:doors"
+    ]
+  },
+  "factory_data": {
+    "block_set_type": "iron"
+  }
+}

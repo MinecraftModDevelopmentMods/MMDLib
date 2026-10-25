@@ -11,8 +11,15 @@ import java.util.Optional;
 /** Material-bound fluid family definition. No fluid, bucket, or liquid block is registered here. */
 public record MMDFluid(ResourceLocation name, ResourceLocation template, ResourceLocation material,
         ResourceLocation parent, TypeProperties typeProperties, FlowProperties flowProperties,
-        Appearance appearance, MMDBlock block, MMDItem bucket, Map<String, ResourceLocation> events) {
+        Appearance appearance, MMDBlock block, MMDItem bucket, Map<String, ResourceLocation> events, ResourceLocation factory, FactoryData factoryData) {
+    public MMDFluid(ResourceLocation name, ResourceLocation template, ResourceLocation material,
+            ResourceLocation parent, TypeProperties typeProperties, FlowProperties flowProperties,
+            Appearance appearance, MMDBlock block, MMDItem bucket, Map<String, ResourceLocation> events) {
+        this(name, template, material, parent, typeProperties, flowProperties, appearance, block, bucket,
+                events, ResourceLocation.parse("mmdlib:flowing_fluid"), FactoryData.EMPTY);
+    }
     public MMDFluid {
+        Objects.requireNonNull(factory); Objects.requireNonNull(factoryData);
         Objects.requireNonNull(name); Objects.requireNonNull(template); Objects.requireNonNull(material);
         Objects.requireNonNull(typeProperties); Objects.requireNonNull(flowProperties); Objects.requireNonNull(appearance);
         events = Map.copyOf(events);

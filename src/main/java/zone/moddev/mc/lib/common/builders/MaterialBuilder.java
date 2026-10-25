@@ -31,22 +31,26 @@ public final class MaterialBuilder extends Builder<MMDMaterial, MaterialBuilder>
     public MaterialBuilder setParts(MaterialParts parts) { return setSelection(MaterialSelection.fromParts(parts)); }
     public MaterialBuilder setItems(String expression) {
         var s = getSelection();
-        var selected = TypeSelection.parse(expression, PartSelection.ITEMS, zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().items().keySet());
-        return setSelection(new MaterialSelection(selected.standard(), s.blocks(), s.entities(), s.hasFluid(), selected.custom(), s.customBlocks()));
+        var selected = TypeSelection.parse(expression, zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().parts().items(), Set.of());
+        return setSelection(new MaterialSelection(selected.standard(), s.blocks(), s.entities(), s.hasFluid(), selected.custom(), s.customBlocks(), s.fluidModule()));
     }
     public MaterialBuilder setItems(String... tokens) { return setItems(String.join(" ", tokens)); }
     public MaterialBuilder setBlocks(String expression) {
         var s = getSelection();
-        var selected = TypeSelection.parse(expression, PartSelection.BLOCKS, zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().blocks().keySet());
-        return setSelection(new MaterialSelection(s.items(), selected.standard(), s.entities(), s.hasFluid(), s.customItems(), selected.custom()));
+        var selected = TypeSelection.parse(expression, zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().parts().blocks(), Set.of());
+        return setSelection(new MaterialSelection(s.items(), selected.standard(), s.entities(), s.hasFluid(), s.customItems(), selected.custom(), s.fluidModule()));
     }
     public MaterialBuilder setBlocks(String... tokens) { return setBlocks(String.join(" ", tokens)); }
     public MaterialBuilder setEntities(String expression) {
-        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), PartSelection.parse(expression, PartSelection.ENTITIES), s.hasFluid(), s.customItems(), s.customBlocks()));
+        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), PartSelection.parse(expression, zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.snapshot().parts().entities()), s.hasFluid(), s.customItems(), s.customBlocks(), s.fluidModule()));
     }
     public MaterialBuilder setEntities(String... tokens) { return setEntities(String.join(" ", tokens)); }
     public MaterialBuilder setHasFluid(boolean enabled) {
-        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), s.entities(), enabled, s.customItems(), s.customBlocks()));
+        var s = getSelection(); return setSelection(new MaterialSelection(s.items(), s.blocks(), s.entities(), enabled, s.customItems(), s.customBlocks(), s.fluidModule()));
+    }
+    public MaterialBuilder setFluidModule(ResourceLocation id) {
+        var s = getSelection();
+        return setSelection(new MaterialSelection(s.items(), s.blocks(), s.entities(), true, s.customItems(), s.customBlocks(), id));
     }
     private MaterialBuilder edit(java.util.function.Function<MaterialProperties, MaterialProperties> operation) {
         return setProperties(operation.apply(getProperties()));

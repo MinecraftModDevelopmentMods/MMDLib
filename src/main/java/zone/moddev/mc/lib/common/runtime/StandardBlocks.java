@@ -19,39 +19,39 @@ public final class StandardBlocks {
         @Override public float getEnchantPowerBonus(BlockState state, LevelReader level, BlockPos pos) { return 1; }
     }
     public static Class<? extends Block> blockClass(MaterialPart part) {
-        return switch (part) {
-            case BLOCK -> Block.class; case ORE, ENDORE, NETHERORE -> DropExperienceBlock.class;
-            case PLATE -> PlateBlock.class; case BARS -> IronBarsBlock.class; case BOOKSHELF -> Bookshelf.class;
-            case BUTTON -> ButtonBlock.class; case SLAB -> SlabBlock.class; case DOUBLE_SLAB -> CompatibilityDoubleSlabBlock.class;
-            case FLOWER_POT -> FlowerPotBlock.class; case LADDER -> LadderBlock.class; case LEVER -> LeverBlock.class;
-            case PRESSURE_PLATE -> PressurePlateBlock.class; case STAIRS -> StairBlock.class; case TRAPDOOR -> TrapDoorBlock.class;
-            case TRIPWIRE_HOOK -> TripWireHookBlock.class; case WALL -> WallBlock.class; case FENCE -> FenceBlock.class;
-            case FENCE_GATE -> FenceGateBlock.class; case ANVIL -> MaterialAnvilBlock.class; case DOOR -> DoorBlock.class;
+        return switch (part.factory().toString()) {
+            case "mmdlib:block" -> Block.class; case "mmdlib:ore" -> DropExperienceBlock.class;
+            case "mmdlib:plate" -> PlateBlock.class; case "mmdlib:bars" -> IronBarsBlock.class; case "mmdlib:bookshelf" -> Bookshelf.class;
+            case "mmdlib:button" -> ButtonBlock.class; case "mmdlib:slab" -> SlabBlock.class; case "mmdlib:double_slab" -> CompatibilityDoubleSlabBlock.class;
+            case "mmdlib:flower_pot" -> FlowerPotBlock.class; case "mmdlib:ladder" -> LadderBlock.class; case "mmdlib:lever" -> LeverBlock.class;
+            case "mmdlib:pressure_plate" -> PressurePlateBlock.class; case "mmdlib:stairs" -> StairBlock.class; case "mmdlib:trapdoor" -> TrapDoorBlock.class;
+            case "mmdlib:tripwire_hook" -> TripWireHookBlock.class; case "mmdlib:wall" -> WallBlock.class; case "mmdlib:fence" -> FenceBlock.class;
+            case "mmdlib:fence_gate" -> FenceGateBlock.class; case "mmdlib:anvil" -> MaterialAnvilBlock.class; case "mmdlib:door" -> DoorBlock.class;
             default -> throw new IllegalArgumentException("Not a supported standard block: " + part);
         };
     }
     public static Block create(MaterialPart part, BlockBehaviour.Properties properties, BlockSetType setType,
                                WoodType woodType, Supplier<BlockState> stairBase) {
-        return switch (part) {
-            case BLOCK -> new Block(properties);
-            case ORE, ENDORE, NETHERORE -> new DropExperienceBlock(ConstantInt.of(0), properties);
-            case PLATE -> new PlateBlock(properties.noOcclusion());
-            case BARS -> new IronBarsBlock(properties.noOcclusion().dynamicShape());
-            case BOOKSHELF -> new Bookshelf(properties);
-            case BUTTON -> new ButtonBlock(setType, 20, properties.noCollission());
-            case SLAB -> new SlabBlock(properties);
-            case DOUBLE_SLAB -> new CompatibilityDoubleSlabBlock(properties);
-            case FLOWER_POT -> new FlowerPotBlock(Blocks.AIR, properties.noOcclusion());
-            case LADDER -> new LadderBlock(properties.noOcclusion());
-            case LEVER -> new LeverBlock(properties.noCollission());
-            case PRESSURE_PLATE -> new PressurePlateBlock(setType, properties);
-            case STAIRS -> new StairBlock(stairBase.get(), properties);
-            case TRAPDOOR -> new TrapDoorBlock(setType, properties.noOcclusion().dynamicShape());
-            case TRIPWIRE_HOOK -> new TripWireHookBlock(properties.noCollission());
-            case WALL -> new WallBlock(properties); case FENCE -> new FenceBlock(properties);
-            case FENCE_GATE -> new FenceGateBlock(woodType, properties);
-            case ANVIL -> new MaterialAnvilBlock(properties);
-            case DOOR -> new DoorBlock(setType, properties.noOcclusion().dynamicShape());
+        return switch (part.factory().toString()) {
+            case "mmdlib:block" -> new Block(properties);
+            case "mmdlib:ore" -> new DropExperienceBlock(ConstantInt.of(0), properties);
+            case "mmdlib:plate" -> new PlateBlock(properties.noOcclusion());
+            case "mmdlib:bars" -> new IronBarsBlock(properties.noOcclusion().dynamicShape());
+            case "mmdlib:bookshelf" -> new Bookshelf(properties);
+            case "mmdlib:button" -> new ButtonBlock(setType, 20, properties.noCollission());
+            case "mmdlib:slab" -> new SlabBlock(properties);
+            case "mmdlib:double_slab" -> new CompatibilityDoubleSlabBlock(properties);
+            case "mmdlib:flower_pot" -> new FlowerPotBlock(Blocks.AIR, properties.noOcclusion());
+            case "mmdlib:ladder" -> new LadderBlock(properties.noOcclusion());
+            case "mmdlib:lever" -> new LeverBlock(properties.noCollission());
+            case "mmdlib:pressure_plate" -> new PressurePlateBlock(setType, properties);
+            case "mmdlib:stairs" -> new StairBlock(stairBase.get(), properties);
+            case "mmdlib:trapdoor" -> new TrapDoorBlock(setType, properties.noOcclusion().dynamicShape());
+            case "mmdlib:tripwire_hook" -> new TripWireHookBlock(properties.noCollission());
+            case "mmdlib:wall" -> new WallBlock(properties); case "mmdlib:fence" -> new FenceBlock(properties);
+            case "mmdlib:fence_gate" -> new FenceGateBlock(woodType, properties);
+            case "mmdlib:anvil" -> new MaterialAnvilBlock(properties);
+            case "mmdlib:door" -> new DoorBlock(setType, properties.noOcclusion().dynamicShape());
             default -> throw new IllegalArgumentException("Not a supported standard block: " + part);
         };
     }

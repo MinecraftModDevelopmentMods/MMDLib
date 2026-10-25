@@ -100,8 +100,7 @@ old definitions. Register all types before decoding to keep defaults predictable
 Programmatic MaterialBuilder setters use the global catalog; with an independent
 catalog, obtain selections via its codec and MaterialBuilder.from(decoded).
 
-MaterialFactory builds standard definitions and extends the plan with custom
-ones. extraItems()/extraBlocks() are keyed by type ID; blocks contribute their
+MaterialFactory plans all loaded definitions together. extraItems()/extraBlocks() are keyed by type ID; blocks contribute their
 paired item definition unless their BlockBuilder disables it. Each custom type's
 name/material/type are specialized by the factory. IDs follow the existing naming
 rule using the type's path: example:copper_crusher. Custom namespaces do not change

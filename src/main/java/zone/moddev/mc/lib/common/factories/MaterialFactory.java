@@ -52,33 +52,10 @@ public final class MaterialFactory {
         var id = material.name().orElseThrow(() -> new IllegalArgumentException("Material factory requires a named material"));
         try {
             extensions.events().validate(material.events());
-            var p = material.properties();
-            var planner = new MaterialContentPlanner();
-            float hardness = (float) p.hardness();
-            float resistance = (float) p.special().getOrDefault("blast_resistance", 2 * p.hardness()).doubleValue();
-            for (MaterialPart part : material.parts().parts()) {
-                if (part.kind() != MaterialPart.Kind.ITEM) planner = planner.withBlockTemplate(part,
-                        BlockBuilder.create().setType(part.id()).setStrength(hardness, resistance)
-                                .setBlockTags(p.harvestTags()).setRequiresCorrectToolForDrops(!p.harvestTags().isEmpty())
-                                .setHasItem(part != MaterialPart.DOUBLE_SLAB));
-            }
-            if (material.parts().hasFluid()) {
-                var fluid = FluidBuilder.create().setName("mmdlib:molten").setTintColor(p.color());
-                if (p.special().containsKey("temperature")) fluid = fluid.setTemperature(integer(p, "temperature"));
-                if (p.special().containsKey("density")) fluid = fluid.setDensity(integer(p, "density"));
-                if (p.special().containsKey("viscosity")) fluid = fluid.setViscosity(integer(p, "viscosity"));
-                planner = planner.withFluidTemplate(fluid);
-            }
-            planner = Objects.requireNonNull(customize.apply(planner), "custom planner");
-            return new Result(material, extensions.extend(material, planner.plan(id, material.parts(), installed), installed));
+            var planner = Objects.requireNonNull(customize.apply(extensions.planner(material, installed)), "custom planner");
+            return new Result(material, extensions.extend(material, planner.plan(id, extensions.selection(material), installed, part -> extensions.available(part, installed)), installed));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Material " + id + ": " + ex.getMessage(), ex);
         }
-    }
-    private static int integer(MaterialProperties properties, String key) {
-        double value = properties.special().get(key);
-        if (value != Math.rint(value) || value < Integer.MIN_VALUE || value > Integer.MAX_VALUE)
-            throw new IllegalArgumentException("Property '" + key + "' must be an integer");
-        return (int) value;
     }
 }

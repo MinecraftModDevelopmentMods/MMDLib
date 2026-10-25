@@ -1,5 +1,6 @@
 package zone.moddev.mc.lib.common.builders;
 
+import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import com.google.gson.JsonParser;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -32,21 +33,21 @@ public final class RuntimeBehaviorTest {
         require(tier.getIncorrectBlocksForDrops().equals(incorrect));
         require(tier.getUses() == 256 && tier.getAttackDamageBonus() == 2 && tier.getEnchantmentValue() == 11);
         require(repairs.get() == 0);
-        require(StandardItems.itemClass(MaterialPart.SCYTHE) == ScytheItem.class);
-        require(StandardItems.itemClass(MaterialPart.CRACKHAMMER) == CrackhammerItem.class);
-        for (var part : java.util.Set.of(MaterialPart.HELMET, MaterialPart.CHESTPLATE, MaterialPart.LEGGINGS, MaterialPart.BOOTS))
+        require(StandardItems.itemClass(ModuleCatalog.bundled().parts().resolve("scythe").getOrThrow()) == ScytheItem.class);
+        require(StandardItems.itemClass(ModuleCatalog.bundled().parts().resolve("crackhammer").getOrThrow()) == CrackhammerItem.class);
+        for (var part : java.util.Set.of(ModuleCatalog.bundled().parts().resolve("helmet").getOrThrow(), ModuleCatalog.bundled().parts().resolve("chestplate").getOrThrow(), ModuleCatalog.bundled().parts().resolve("leggings").getOrThrow(), ModuleCatalog.bundled().parts().resolve("boots").getOrThrow()))
             require(ArmorItem.class.isAssignableFrom(StandardItems.itemClass(part)));
-        require(StandardBlocks.blockClass(MaterialPart.STAIRS) == StairBlock.class);
-        require(StandardBlocks.blockClass(MaterialPart.SLAB) == SlabBlock.class);
-        require(StandardBlocks.blockClass(MaterialPart.PLATE) == PlateBlock.class);
-        require(StandardBlocks.blockClass(MaterialPart.LADDER) == LadderBlock.class);
-        require(StandardBlocks.blockClass(MaterialPart.LEVER) == LeverBlock.class);
-        for (MaterialPart part : MaterialPart.values()) {
+        require(StandardBlocks.blockClass(ModuleCatalog.bundled().parts().resolve("stairs").getOrThrow()) == StairBlock.class);
+        require(StandardBlocks.blockClass(ModuleCatalog.bundled().parts().resolve("slab").getOrThrow()) == SlabBlock.class);
+        require(StandardBlocks.blockClass(ModuleCatalog.bundled().parts().resolve("plate").getOrThrow()) == PlateBlock.class);
+        require(StandardBlocks.blockClass(ModuleCatalog.bundled().parts().resolve("ladder").getOrThrow()) == LadderBlock.class);
+        require(StandardBlocks.blockClass(ModuleCatalog.bundled().parts().resolve("lever").getOrThrow()) == LeverBlock.class);
+        for (MaterialPart part : ModuleCatalog.bundled().parts().entries().values()) {
             if (part.kind() != MaterialPart.Kind.ITEM) require(StandardBlocks.blockClass(part) != null);
             else if (!part.needsEntity()) require(StandardItems.itemClass(part) != null);
         }
-        expectFailure(() -> StandardItems.itemClass(MaterialPart.ARROW));
-        expectFailure(() -> StandardBlocks.blockClass(MaterialPart.SWORD));
+        expectFailure(() -> StandardItems.itemClass(ModuleCatalog.bundled().parts().resolve("arrow").getOrThrow()));
+        expectFailure(() -> StandardBlocks.blockClass(ModuleCatalog.bundled().parts().resolve("sword").getOrThrow()));
         expectFailure(() -> new MaterialStats(MaterialBuilder.from(material).setSpecial(Map.of("tool_durability", 0D)).build()).toolDurability());
         Path resources = Path.of(System.getProperty("mmdlib.resources"));
         for (String name : java.util.List.of("scythe_harvestable", "crackhammer_crushable")) {

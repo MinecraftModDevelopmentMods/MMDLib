@@ -1,0 +1,14 @@
+{
+  "factory": "mmdlib:slab",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal"
+    },
+    "has_item": true,
+    "tags": [
+      "minecraft:slabs"
+    ]
+  }
+}

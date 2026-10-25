@@ -1,0 +1,13 @@
+{
+  "factory": "mmdlib:basic_item",
+  "template": {
+    "max_stack_size": 64,
+    "fire_resistant": false
+  },
+  "requires_mod": "mekanism",
+  "part": {
+    "aliases": [
+      "mek_crystal"
+    ]
+  }
+}

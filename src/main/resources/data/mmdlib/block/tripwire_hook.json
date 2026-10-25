@@ -1,0 +1,13 @@
+{
+  "factory": "mmdlib:tripwire_hook",
+  "material_defaults": true,
+  "template": {
+    "properties": {
+      "sound": "metal",
+      "map_color": "metal",
+      "collision": false,
+      "occlusion": false
+    },
+    "has_item": true
+  }
+}

@@ -18,19 +18,17 @@ public record TypeSelection(Set<MaterialPart> standard, Set<ResourceLocation> cu
             var target = negated ? excluded : included;
             if (name.equals("all")) { target.addAll(all); continue; }
             ResourceLocation id;
-            if (name.contains(":")) {
-                id = ResourceLocation.tryParse(name);
+            var resolved = new PartRegistry(standard).resolve(name).result();
+            if (resolved.isPresent()) id = resolved.get().templateId();
+            else {
+                id = ResourceLocation.tryParse(name.contains(":") ? name : "mmdlib:" + name);
                 if (id == null) throw new IllegalArgumentException("Invalid type ID: " + name);
-                if (id.getNamespace().equals("mmdlib")) {
-                    var part = MaterialPart.fromName(id.getPath()).result();
-                    if (part.isPresent()) id = part.get().templateId();
-                }
-            } else id = MaterialPart.fromName(name).getOrThrow(message -> new IllegalArgumentException(message)).templateId();
+            }
             if (!all.contains(id)) throw new IllegalArgumentException("Unknown type or wrong section: " + name);
             target.add(id);
         }
         included.removeAll(excluded);
-        var builtins = java.util.EnumSet.noneOf(MaterialPart.class);
+        var builtins = new java.util.HashSet<MaterialPart>();
         for (var part : standard) if (included.remove(part.templateId())) builtins.add(part);
         return new TypeSelection(builtins, included);
     }
