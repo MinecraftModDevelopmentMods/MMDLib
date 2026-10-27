@@ -25,6 +25,37 @@ The existing baseline under `data/mmdlib/{item,block,fluid}` remains loaded thro
 reinterpret unrelated mods' data directories. `ModuleCatalog.load(packRoot)`
 remains available for explicit `data/<namespace>/...` module directories.
 
+## Standalone blocks
+
+`mmdlib/standalone/block/<path>.json` declares one block with its own ID,
+`<namespace>:<path>`, and no material, as MMDLib 1.0 allowed. MMDLib's
+player-only plate is `mmdlib:standalone/block/human_detector.json`, which becomes
+`mmdlib:human_detector`:
+
+```json
+{
+  "module": "mmdlib:pressure_plate",
+  "factory_data": { "detects": "players", "block_set_type": "minecraft:stone" },
+  "template": { "properties": { "hardness": 0.5, "collision": false, "occlusion": false },
+                "tags": ["minecraft:pressure_plates", "minecraft:mineable/pickaxe"] },
+  "runtime": { "base_block": "minecraft:bricks", "block_set_type": "minecraft:stone" }
+}
+```
+
+- `module`: a registered block module. The block is built by that module's factory,
+  so it goes through the same `registerBlockImplementation` path as material blocks.
+- `factory_data`: merged key by key over the module's `factory_data`.
+- `template`: replaces the module's template. No material stats are applied.
+- `runtime`: the settings a material would supply (block set type, sound, map color,
+  base block); same schema as a material's `runtime`.
+
+A module with entity or block-entity companions is rejected. A module whose
+`requires_mod` is missing skips the block. Standalone IDs share the duplicate-ID
+check with material content. `MMDLib.standaloneBlocks()` lists them; their block
+and item definitions are published, and the stats-free host owner is not a material.
+The generator writes their block tags and self-drop loot table; models, lang and
+recipes are static resources.
+
 ## Stages
 
 1. Discover extension files in parallel across mod files and resolve all handlers.

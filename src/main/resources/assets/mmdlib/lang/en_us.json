@@ -255,5 +255,6 @@
   "block.mmdlib.copper_stairs": "Copper Stairs",
   "block.mmdlib.copper_wall": "Copper Wall",
   "item.mmdlib.copper_molten_bucket": "Molten Copper Bucket",
-  "fluid_type.mmdlib.copper_molten": "Molten Copper"
+  "fluid_type.mmdlib.copper_molten": "Molten Copper",
+  "block.mmdlib.human_detector": "Security Pressure Plate"
 }

@@ -1,0 +1,26 @@
+{
+  "module": "mmdlib:pressure_plate",
+  "factory_data": {
+    "detects": "players",
+    "block_set_type": "minecraft:stone"
+  },
+  "template": {
+    "properties": {
+      "hardness": 0.5,
+      "blast_resistance": 0.5,
+      "requires_correct_tool": true,
+      "collision": false,
+      "occlusion": false,
+      "sound": "stone",
+      "map_color": "color_red"
+    },
+    "tags": [
+      "minecraft:pressure_plates",
+      "minecraft:mineable/pickaxe"
+    ]
+  },
+  "runtime": {
+    "base_block": "minecraft:bricks",
+    "block_set_type": "minecraft:stone"
+  }
+}

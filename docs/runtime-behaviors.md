@@ -170,6 +170,8 @@ human detector) is therefore data, not a class:
 "factory_data": { "block_set_type": "stone", "detects": "players" }
 ```
 
+MMDLib ships this as the standalone block `mmdlib:human_detector` (brick-textured; BaseMetals'
+recipe: two bricks over two gears of any material, `#c:bricks/normal` / `#c:gears`); see [standalone blocks](definition-loading.md#standalone-blocks).
 An unknown `detects` value fails when the definition loads.
 
 `mmdlib:weighted_pressure_plate` is vanilla's weighted plate: its signal grows with the

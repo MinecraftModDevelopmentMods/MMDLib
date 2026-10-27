@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "BB",
+    "GG"
+  ],
+  "key": {
+    "B": {
+      "tag": "c:bricks/normal"
+    },
+    "G": {
+      "tag": "c:gears"
+    }
+  },
+  "result": {
+    "id": "mmdlib:human_detector",
+    "count": 1
+  }
+}

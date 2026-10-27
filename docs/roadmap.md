@@ -39,6 +39,10 @@
   [runtime behaviors](runtime-behaviors.md#redstone). Comparator output from a
   block-entity getter waits for block-entity runtime support.
 
+- **Standalone blocks** (`mmdlib/standalone/block/*.json`), material-less as in 1.0, built by
+  any block module's factory; first use is the player-only plate `mmdlib:human_detector`. See
+  [startup definition loading](definition-loading.md#standalone-blocks).
+
 - **Optional JEI integration** for crackhammer recipes; see
   [runtime behaviors](runtime-behaviors.md#optional-jei-integration). Needs an in-game
   check with and without JEI installed.

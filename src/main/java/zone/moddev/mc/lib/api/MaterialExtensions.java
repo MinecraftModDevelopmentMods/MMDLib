@@ -35,6 +35,7 @@ public final class MaterialExtensions {
     private final MaterialEvents events = new MaterialEvents();
     private final ConcurrentHashMap<ResourceLocation, ItemImplementation<?>> itemImplementations = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<ResourceLocation, BlockImplementation<?>> blockImplementations = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ResourceLocation, zone.moddev.mc.lib.common.modules.DataModules.Block> blockModules = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<ResourceLocation, zone.moddev.mc.lib.common.modules.DataModules.Fluid> fluids = new ConcurrentHashMap<>();
     public MaterialExtensions() { this(true); }
     public MaterialExtensions(boolean includeBundledModules) {
@@ -77,6 +78,13 @@ public final class MaterialExtensions {
         var entry = new BlockType(new zone.moddev.mc.lib.common.modules.ModuleFactories.BlockFactory(this, id, module), module.requiredMod());
         if (replace) blocks.put(id, entry);
         else if (blocks.putIfAbsent(id, entry) != null) throw new IllegalArgumentException("Duplicate block module: " + id);
+        blockModules.put(id, module);
+    }
+    /** A registered data block module, e.g. the one a standalone block names. */
+    public zone.moddev.mc.lib.common.modules.DataModules.Block blockModule(ResourceLocation id) {
+        var module = blockModules.get(id);
+        if (module == null) throw new IllegalArgumentException("Unknown block module: " + id);
+        return module;
     }
     public void registerFluidModule(ResourceLocation id, zone.moddev.mc.lib.common.modules.DataModules.Fluid module) { registerFluidModule(id, module, false); }
     public void registerFluidModule(ResourceLocation id, zone.moddev.mc.lib.common.modules.DataModules.Fluid module, boolean replace) {

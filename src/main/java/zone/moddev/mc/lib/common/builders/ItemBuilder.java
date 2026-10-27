@@ -14,7 +14,7 @@ import java.util.Set;
 /** Immutable item template, specialized by the material loader before build(). */
 public final class ItemBuilder extends Builder<MMDItem, ItemBuilder> {
     public static final ItemBuilder INSTANCE = new ItemBuilder(Map.of());
-    private enum Key { NAME, MATERIAL, PARENT, TYPE, STACK_SIZE, DAMAGE, FIRE_RESISTANT,
+    private enum Key { NAME, REGISTRY_NAME, MATERIAL, PARENT, TYPE, STACK_SIZE, DAMAGE, FIRE_RESISTANT,
         FOOD, CONTAINER, USE_TIME, USE_ANIM, USE_FINISH, COLOR, LORE, ACTIONS, EVENTS, CREATIVE, ATTRIBUTES }
     private final Map<Key, Object> values;
 
@@ -37,7 +37,10 @@ public final class ItemBuilder extends Builder<MMDItem, ItemBuilder> {
     public ItemBuilder forMaterial(ResourceLocation material) { return with(Key.MATERIAL, material); }
     public ItemBuilder forMaterial(String material) { return forMaterial(ResourceLocation.parse(material)); }
 
+    /** Fixed registry ID for a standalone definition, instead of {@code <material>_<template>}. */
+    public ItemBuilder setRegistryName(ResourceLocation id) { return with(Key.REGISTRY_NAME, id); }
     @Override public ResourceLocation getRegistryName() {
+        if (values.containsKey(Key.REGISTRY_NAME)) return value(Key.REGISTRY_NAME, null);
         ResourceLocation template = getTemplateName();
         ResourceLocation material = getMaterialName();
         if (template == null || material == null) return null;

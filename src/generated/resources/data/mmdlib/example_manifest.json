@@ -2,5 +2,6 @@
   "materials": 15,
   "items": 233,
   "blocks": 64,
-  "recipes": 275
+  "recipes": 275,
+  "standalone_blocks": 1
 }

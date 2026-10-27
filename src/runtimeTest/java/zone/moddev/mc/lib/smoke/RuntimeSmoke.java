@@ -29,8 +29,11 @@ public final class RuntimeSmoke {
             var level = server.overworld(); var player = FakePlayerFactory.getMinecraft(level);
             int placed = 0, projectiles = 0, fluids = 0;
             if (MMDLib.loadedMaterials().size() != 15) throw new AssertionError("Missing materials");
+            var detector = net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(net.minecraft.resources.ResourceLocation.parse("mmdlib:human_detector"));
+            if (MMDLib.standaloneBlocks().size() != 1 || !(detector instanceof zone.moddev.mc.lib.common.runtime.StandardBlocks.DetectorPressurePlate))
+                throw new AssertionError("Standalone player-only plate missing: " + detector);
             for (var registrar : RuntimeContentRegistrar.instances()) {
-                if (registrar.items().size() != 233) throw new AssertionError("Wrong runtime item count: " + registrar.items().size());
+                if (registrar.items().size() != 234) throw new AssertionError("Wrong runtime item count: " + registrar.items().size());
                 for (var entry : registrar.blocks().entrySet()) {
                     var itemHolder = registrar.items().get(entry.getKey());
                     if (itemHolder == null || !(itemHolder.get() instanceof BlockItem item)) continue;
@@ -108,7 +111,7 @@ public final class RuntimeSmoke {
                     if (stream == null) throw new AssertionError("Horse armor texture not packaged: " + horse.getTexture());
                 }
             }
-            if (projectiles != 14 || fluids != 15 || placed != 58) throw new AssertionError("Wrong smoke counts: " + placed + "/" + projectiles + "/" + fluids);
+            if (projectiles != 14 || fluids != 15 || placed != 59) throw new AssertionError("Wrong smoke counts: " + placed + "/" + projectiles + "/" + fluids);
             MMDLib.LOGGER.info("MMDLIB_RUNTIME_SMOKE_PASS: {} blocks placed; {} arrow/bolt component-preserving save round trips; {} buckets placed/recovered; tag-based tiers, authored armor textures and dropped-item crushing verified", placed, projectiles, fluids);
         } catch (Throwable ex) {
             MMDLib.LOGGER.error("MMDLIB_RUNTIME_SMOKE_FAIL", ex);

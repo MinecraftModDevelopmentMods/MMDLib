@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "#c:gears/copper",
+    "#c:gears/diamond",
+    "#c:gears/emerald",
+    "#c:gears/gold",
+    "#c:gears/iron",
+    "#c:gears/obsidian",
+    "#c:gears/quartz",
+    "#c:gears/stone",
+    "#c:gears/wood"
+  ]
+}

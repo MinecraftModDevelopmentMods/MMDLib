@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "mmdlib:block/human_detector_up"
+    },
+    "powered=true": {
+      "model": "mmdlib:block/human_detector_down"
+    }
+  }
+}

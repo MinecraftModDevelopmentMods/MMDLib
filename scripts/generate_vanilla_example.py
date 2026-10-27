@@ -59,6 +59,7 @@ def main():
             if form in ['pickaxe','axe','shovel','hoe','sword']:tag('item','minecraft:'+form+'s',itemid(full))
             if form in ['helmet','chestplate','leggings','boots']:tag('item','minecraft:enchantable/armor',itemid(full));tag('item','minecraft:enchantable/'+('leg_armor' if form=='leggings' else 'foot_armor' if form=='boots' else 'head_armor' if form=='helmet' else 'chest_armor'),itemid(full))
             if form in ['dust','ingot','nugget','rod','gear']:tag('item','c:'+{'dust':'dusts','ingot':'ingots','nugget':'nuggets','rod':'rods','gear':'gears'}[form]+'/'+name,itemid(full))
+            if form=='gear':tag('item','c:gears','#c:gears/'+name)  # Umbrella tag: any material's gear.
             patterns={'axe':['MM','MR',' R'],'pickaxe':['MMM',' R ',' R '],'shovel':['M','R','R'],'hoe':['MM',' R',' R'],'sword':['M','M','R'],'crackhammer':['MMM','MRM',' R '],'scythe':['MMM','  R','  R'],'helmet':['MMM','M M'],'chestplate':['M M','MMM','MMM'],'leggings':['MMM','M M','M M'],'boots':['M M','M M'],'shears':[' M','M '],'gear':[' M ','M M',' M '],'rod':['M','M']}
             if form in patterns:
                 pattern=patterns[form];key={'M':metal}
@@ -123,6 +124,14 @@ def main():
             fluid=name+'_molten'
             tag('fluid','c:molten_'+name,itemid(fluid));tag('fluid','c:molten_'+name,'mmdlib:flowing_'+fluid)
             counts['items']+=1
+    # Standalone (material-less) blocks: tags from their template (or their module's), and a plain self-drop.
+    for f in sorted((source/'mmdlib/standalone/block').rglob('*.json')):
+        d=json.loads(f.read_text());full=f.relative_to(source/'mmdlib/standalone/block').with_suffix('').as_posix()
+        module=d['module'].removeprefix('mmdlib:');template=d.get('template',modules['block'][module]['template'])
+        counts['standalone_blocks']=counts.get('standalone_blocks',0)+1
+        for tagged in template.get('tags',[]):tag('block',tagged,itemid(full))
+        pool={'rolls':1,'entries':[{'type':'minecraft:item','name':itemid(full)}],'conditions':[{'condition':'minecraft:survives_explosion'}]}
+        write(Path(f'data/mmdlib/loot_table/blocks/{full}.json'),{'type':'minecraft:block','pools':[pool]})
     for (kind,key),values in sorted(tags.items()):
         namespace,path=key.split(':',1);write(Path(f'data/{namespace}/tags/{kind}/{path}.json'),{'replace':False,'values':sorted(values)})
     write(Path('data/mmdlib/example_manifest.json'),counts)

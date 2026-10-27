@@ -41,6 +41,7 @@
     "mmdlib:gold_stairs",
     "mmdlib:gold_trapdoor",
     "mmdlib:gold_wall",
+    "mmdlib:human_detector",
     "mmdlib:iron_button",
     "mmdlib:iron_double_slab",
     "mmdlib:iron_lever",

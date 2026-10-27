@@ -10,7 +10,7 @@ import java.util.Set;
 /** Shared empty root; every operation returns a new material block template. */
 public final class BlockBuilder extends Builder<MMDBlock, BlockBuilder> {
     public static final BlockBuilder INSTANCE = new BlockBuilder(Map.of());
-    private enum Key { NAME, MATERIAL, PARENT, TYPE, PROPERTIES, TAGS, EVENTS, HAS_ITEM, ITEM }
+    private enum Key { NAME, REGISTRY_NAME, MATERIAL, PARENT, TYPE, PROPERTIES, TAGS, EVENTS, HAS_ITEM, ITEM }
     private final Map<Key, Object> values;
     private BlockBuilder(Map<Key, Object> values) { this.values = Map.copyOf(values); }
     public static BlockBuilder create() { return INSTANCE; }
@@ -28,7 +28,10 @@ public final class BlockBuilder extends Builder<MMDBlock, BlockBuilder> {
     public ResourceLocation getMaterialName() { return value(Key.MATERIAL, null); }
     public BlockBuilder forMaterial(ResourceLocation material) { return with(Key.MATERIAL, material); }
     public BlockBuilder forMaterial(String material) { return forMaterial(ResourceLocation.parse(material)); }
+    /** Fixed registry ID for a standalone block, instead of {@code <material>_<template>}. */
+    public BlockBuilder setRegistryName(ResourceLocation id) { return with(Key.REGISTRY_NAME, id); }
     @Override public ResourceLocation getRegistryName() {
+        if (values.containsKey(Key.REGISTRY_NAME)) return value(Key.REGISTRY_NAME, null);
         var material = getMaterialName();
         var template = getTemplateName();
         return material == null || template == null ? null : ResourceLocation.fromNamespaceAndPath(
@@ -109,7 +112,7 @@ public final class BlockBuilder extends Builder<MMDBlock, BlockBuilder> {
         if (getTemplateName() == null) throw new IllegalStateException("Block template needs a name");
         if (getMaterialName() == null) throw new IllegalStateException("Block template must be bound to a material");
         var item = value(Key.HAS_ITEM, true) ? value(Key.ITEM, ItemBuilder.create())
-                .setName(getTemplateName()).forMaterial(getMaterialName()).build() : null;
+                .setName(getTemplateName()).forMaterial(getMaterialName()).setRegistryName(getRegistryName()).build() : null;
         return new MMDBlock(getRegistryName(), getTemplateName(), getMaterialName(), value(Key.PARENT, null),
                 value(Key.TYPE, "block"), getProperties(), value(Key.TAGS, Set.of()), value(Key.EVENTS, Map.of()), item);
     }

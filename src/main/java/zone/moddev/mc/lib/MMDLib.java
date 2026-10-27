@@ -41,6 +41,7 @@ public class MMDLib {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, MODID);
     private final zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar runtime;
     private static volatile Map<ResourceLocation, MaterialFactory.Result> loadedMaterials = Map.of();
+    private static volatile Map<ResourceLocation, MaterialFactory.Result> standaloneBlocks = Map.of();
     private static volatile Map<ResourceLocation, MMDItem> itemDefinitions = Map.of();
     private static volatile Map<ResourceLocation, MMDMaterial> itemMaterials = Map.of();
     private static volatile Map<ResourceLocation, MMDBlock> blockDefinitions = Map.of();
@@ -52,6 +53,8 @@ public class MMDLib {
 
     /** Complete after deferred construction, before definition registry events. */
     public static Map<ResourceLocation, MaterialFactory.Result> loadedMaterials() { return loadedMaterials; }
+    /** Standalone (material-less) blocks by registry ID; each result's material is a stats-free host. */
+    public static Map<ResourceLocation, MaterialFactory.Result> standaloneBlocks() { return standaloneBlocks; }
 
     public MMDLib(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.SERVER, MMDLibConfig.SERVER_SPEC);
@@ -84,7 +87,8 @@ public class MMDLib {
         var materials = new java.util.HashMap<ResourceLocation, MMDMaterial>();
         var blocks = new java.util.HashMap<ResourceLocation, MMDBlock>();
         var blockOwners = new java.util.HashMap<ResourceLocation, MMDMaterial>();
-        for (var result : loaded.materials().values()) {
+        var results = new ArrayList<MaterialFactory.Result>(loaded.materials().values()); results.addAll(loaded.standalone().values());
+        for (var result : results) {
             var plan = result.content(); var material = result.material();
             // Standard parts and registered custom types; custom blocks contribute their paired items.
             var items = new ArrayList<MMDItem>(plan.items().values()); items.addAll(plan.extraItems().values());
@@ -100,14 +104,16 @@ public class MMDLib {
         blockDefinitions = Map.copyOf(blocks);
         blockMaterials = Map.copyOf(blockOwners);
         loadedMaterials = loaded.materials();
-        loadedMaterials.values().stream().filter(result -> result.material().name().orElseThrow().getNamespace().equals(MODID)).forEach(runtime::queue);
-        LOGGER.info("Loaded MMDLib definitions: {} item modules, {} block modules, {} fluid modules, {} extension files, {} materials",
+        standaloneBlocks = loaded.standalone();
+        results.stream().filter(result -> result.material().name().orElseThrow().getNamespace().equals(MODID)).forEach(runtime::queue);
+        LOGGER.info("Loaded MMDLib definitions: {} item modules, {} block modules, {} fluid modules, {} extension files, {} materials, {} standalone blocks",
                 loaded.modules().items().size(), loaded.modules().blocks().size(), loaded.modules().fluids().size(),
-                loaded.extensions().size(), loadedMaterials.size());
+                loaded.extensions().size(), loadedMaterials.size(), standaloneBlocks.size());
     }
 
     private void publishDefinitions(RegisterEvent event) {
         MaterialRegistration.publishCallbacks(event, MaterialExtensions.GLOBAL);
         loadedMaterials.values().forEach(result -> MaterialRegistration.publishDefinitions(event, result));
+        standaloneBlocks.values().forEach(result -> MaterialRegistration.publishStandalone(event, result));
     }
 }

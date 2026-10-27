@@ -9,6 +9,7 @@ import zone.moddev.mc.lib.common.codecs.EventExtension;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.modules.DataModules;
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
+import zone.moddev.mc.lib.common.types.StandaloneBlock;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -19,7 +20,8 @@ import java.util.function.Predicate;
 /** Parallel file discovery/decoding, followed by ordered catalog, handler, and material loading. */
 public final class DefinitionLoader {
     private DefinitionLoader() {}
-    /** root contains extension/, item/, block/, fluid/, material/. The caller owns its filesystem. */
+    private static final String STANDALONE_BLOCKS = "standalone/block";
+    /** root contains extension/, item/, block/, fluid/, material/, standalone/block/. The caller owns its filesystem. */
     public record SourceRoot(String namespace, Path root, ClassLoader classLoader) {
         public SourceRoot {
             ResourceLocation.fromNamespaceAndPath(namespace, "validate");
@@ -27,8 +29,10 @@ public final class DefinitionLoader {
         }
     }
     public record Loaded(ModuleCatalog modules, Map<ResourceLocation, EventExtension> extensions,
-            Map<ResourceLocation, MaterialFactory.Result> materials) {
-        public Loaded { extensions = immutableSorted(extensions); materials = immutableSorted(materials); }
+            Map<ResourceLocation, MaterialFactory.Result> materials, Map<ResourceLocation, MaterialFactory.Result> standalone) {
+        public Loaded {
+            extensions = immutableSorted(extensions); materials = immutableSorted(materials); standalone = immutableSorted(standalone);
+        }
     }
     private record Located<T>(Path path, T value, ClassLoader classLoader) {}
     private static final class Batch {
@@ -37,9 +41,10 @@ public final class DefinitionLoader {
         final Map<ResourceLocation, Located<DataModules.Fluid>> fluids = new TreeMap<>();
         final Map<ResourceLocation, Located<EventExtension>> extensions = new TreeMap<>();
         final Map<ResourceLocation, Located<Path>> materials = new TreeMap<>();
+        final Map<ResourceLocation, Located<StandaloneBlock>> standalone = new TreeMap<>();
         void merge(Batch other) {
             mergeInto(items, other.items); mergeInto(blocks, other.blocks); mergeInto(fluids, other.fluids);
-            mergeInto(extensions, other.extensions); mergeInto(materials, other.materials);
+            mergeInto(extensions, other.extensions); mergeInto(materials, other.materials); mergeInto(standalone, other.standalone);
         }
     }
     public static Loaded load(List<SourceRoot> sources, MaterialExtensions api, Predicate<String> installed) {
@@ -49,7 +54,7 @@ public final class DefinitionLoader {
         var all = new Batch();
         ordered.parallelStream().map(source -> discover(source, List.of("extension"))).toList().forEach(all::merge);
         all.extensions.forEach((id, source) -> api.events().loadExtension(source.value(), source.classLoader(), source.path().toString()));
-        ordered.parallelStream().map(source -> discover(source, List.of("block", "item", "fluid", "material"))).toList().forEach(all::merge);
+        ordered.parallelStream().map(source -> discover(source, List.of("block", "item", "fluid", "material", STANDALONE_BLOCKS))).toList().forEach(all::merge);
         all.items.forEach((id, source) -> install(source, () -> api.registerItemModule(id, source.value())));
         all.blocks.forEach((id, source) -> install(source, () -> api.registerBlockModule(id, source.value())));
         all.fluids.forEach((id, source) -> install(source, () -> api.registerFluidModule(id, source.value())));
@@ -73,8 +78,17 @@ public final class DefinitionLoader {
                 materials.put(id, result);
             } catch (IOException ex) { throw new UncheckedIOException("Cannot read material " + source.path(), ex); }
         });
+        var standalone = new TreeMap<ResourceLocation, MaterialFactory.Result>();
+        all.standalone.forEach((id, source) -> install(source, () -> {
+            var module = api.blockModule(source.value().module());
+            if (module.requiredMod().isPresent() && !installed.test(module.requiredMod().get())) return;
+            var result = source.value().resolve(id, module);
+            validateConcreteIds(result, source.path(), concreteIds);
+            result.content().blocks().values().forEach(block -> api.events().validate(block.events()));
+            standalone.put(id, result);
+        }));
         return new Loaded(new ModuleCatalog(values(all.items), values(all.blocks), values(all.fluids)),
-                values(all.extensions), materials);
+                values(all.extensions), materials, standalone);
     }
     private static Batch discover(SourceRoot source, List<String> sections) {
         var batch = new Batch();
@@ -93,6 +107,7 @@ public final class DefinitionLoader {
                         case "fluid" -> add(batch.fluids, id, new Located<>(file, decode(file, DataModules.Fluid.CODEC), loader));
                         // Selection and callback validation needs the completed catalog: do not decode yet.
                         case "material" -> add(batch.materials, id, new Located<>(file, file, loader));
+                        case STANDALONE_BLOCKS -> add(batch.standalone, id, new Located<>(file, decode(file, StandaloneBlock.CODEC), loader));
                         default -> throw new IllegalStateException("Unhandled definition section: " + section);
                     }
                 }

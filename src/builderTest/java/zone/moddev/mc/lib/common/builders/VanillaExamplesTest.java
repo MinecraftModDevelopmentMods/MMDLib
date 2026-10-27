@@ -20,6 +20,13 @@ public final class VanillaExamplesTest {
                 VanillaExamplesTest.class.getClassLoader())), api, mod -> false);
         require(loaded.materials().keySet().equals(Set.of("wood", "stone", "iron", "gold", "diamond", "coal", "charcoal", "emerald",
                 "ender", "quartz", "obsidian", "lapis", "prismarine", "redstone", "copper").stream().map(name -> id("mmdlib:" + name)).collect(java.util.stream.Collectors.toSet())));
+        // Standalone blocks keep their own ID and are built by the named module's factory, merged factory_data included.
+        require(loaded.standalone().keySet().equals(Set.of(id("mmdlib:human_detector"))));
+        var detector = loaded.standalone().get(id("mmdlib:human_detector")).content().blocks().entrySet().iterator().next();
+        require(detector.getValue().name().equals(id("mmdlib:human_detector")) && detector.getValue().item().name().equals(id("mmdlib:human_detector")));
+        require(detector.getKey().factory().equals(id("mmdlib:pressure_plate")) && detector.getValue().properties().hardness() == .5F);
+        require(zone.moddev.mc.lib.common.runtime.StandardBlocks.Detects.of(detector.getKey()).isPresent());
+        require(Files.isRegularFile(generated.resolve("data/mmdlib/loot_table/blocks/human_detector.json")));
         // Crackhammer right-click is data-bound through the bundled extension, not hard-wired in the item.
         var crush = id("mmdlib:crackhammer_crush");
         require(api.events().resolvedHandler(crush).definition().handler().endsWith("CrackhammerEvents#crush"));
@@ -88,7 +95,8 @@ public final class VanillaExamplesTest {
             require(files.noneMatch(Files::isRegularFile)); // Artwork belongs exclusively to static main resources.
         }
         var manifest = JsonParser.parseString(Files.readString(generated.resolve("data/mmdlib/example_manifest.json"))).getAsJsonObject();
-        require(manifest.get("items").getAsInt() == items && manifest.get("materials").getAsInt() == loaded.materials().size());
+        require(manifest.get("items").getAsInt() == items && manifest.get("materials").getAsInt() == loaded.materials().size()
+                && manifest.get("standalone_blocks").getAsInt() == loaded.standalone().size());
         try (var paths = Files.walk(generated)) {
             for (var file : paths.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".json")).toList()) {
                 var json = JsonParser.parseString(Files.readString(file));
