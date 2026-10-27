@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_shovel",
     "mmdlib:emerald_shovel",
     "mmdlib:obsidian_shovel",
     "mmdlib:quartz_shovel"

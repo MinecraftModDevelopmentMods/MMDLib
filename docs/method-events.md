@@ -39,6 +39,7 @@ IDs must be unique across loaded files and code-registered callbacks.
 | `block-right-click` | `Player player, MaterialEventContexts.BlockUse use` | Yes |
 | `projectile-damage` | `Projectile projectile, LivingEntity target, ItemStack ammo, DamageContainer damage` | Yes |
 | `projectile-hit` | `Projectile projectile, LivingEntity target, ItemStack ammo` | Yes |
+| `redstone-changed` | `MaterialEventContexts.RedstoneChange change` | Yes |
 
 `ItemEventBridge` dispatches every built-in contract; see [item and material
 bindings](#item-and-material-bindings) for the NeoForge events and sides.
@@ -57,6 +58,19 @@ opens the block's own menu provider:
 
 ```json
 {"factory": "mmdlib:anvil", "template": {"events": {"block-right-click": "mmdlib:open_menu"}}}
+```
+
+`redstone-changed` is dispatched by the block itself rather than the bridge: a
+`mmdlib:block` with `factory_data.redstone.input` set stores the power it receives and,
+on the server only, fires once each time that power changes (not on every neighbour
+update). `RedstoneChange` carries the level, position, new state, and the previous and
+new power (0-15). It is keyed by the block's definition, falling back to its material's
+`event` map. See [runtime behaviors](runtime-behaviors.md#redstone).
+
+```java
+public static void lamp(MaterialEventContexts.RedstoneChange change) {
+    if (change.powered() != (change.previous() > 0)) RedstoneBlock.setOutput(change.level(), change.position(), change.power());
+}
 ```
 
 ### Projectile contracts

@@ -1,6 +1,10 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_axe",
+    "mmdlib:copper_crackhammer",
+    "mmdlib:copper_scythe",
+    "mmdlib:copper_sword",
     "mmdlib:diamond_crackhammer",
     "mmdlib:diamond_scythe",
     "mmdlib:emerald_axe",

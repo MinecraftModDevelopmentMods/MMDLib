@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_sword",
     "mmdlib:emerald_sword",
     "mmdlib:obsidian_sword",
     "mmdlib:quartz_sword"

@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_helmet",
     "mmdlib:emerald_helmet",
     "mmdlib:obsidian_helmet",
     "mmdlib:quartz_helmet"

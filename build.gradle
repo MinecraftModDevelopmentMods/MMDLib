@@ -50,17 +50,7 @@ runs {
 sourceSets {
     main.resources.srcDir 'src/generated/resources'
     main.resources.exclude '.cache/**'
-    builderTest {
-        compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
-        runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
-    }
 }
-tasks.register('verifyItemBuilder', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.ItemBuilderTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyItemBuilder') }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 publishing {
     publications { mavenJava(MavenPublication) { from components.java } }
@@ -70,124 +60,6 @@ publishing {
 tasks.withType(Jar).configureEach {
     manifest.attributes('Implementation-Version': project.version.toString())
 }
-tasks.register('verifyItemTemplate', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.ItemTemplateTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyItemTemplate') }
-
-tasks.register('verifyBlockBuilder', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.BlockBuilderTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyBlockBuilder') }
-
-tasks.register('verifyEntityBuilder', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.EntityBuilderTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyEntityBuilder') }
-
-tasks.register('verifyFluidBuilder', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.FluidBuilderTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyFluidBuilder') }
-
-tasks.register('verifyMaterialParts', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.MaterialPartsTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyMaterialParts') }
-
-tasks.register('verifyMaterialFactory', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.MaterialFactoryTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyMaterialFactory') }
-
-tasks.register('verifyMaterialExtensions', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.MaterialExtensionsTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyMaterialExtensions') }
-
-tasks.register('verifyRuntimeBehavior', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.RuntimeBehaviorTest'
-    systemProperty 'mmdlib.resources', file('src/main/resources').absolutePath
-}
-tasks.named('check') { dependsOn tasks.named('verifyRuntimeBehavior') }
-
- tasks.register('verifyDataModules', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.DataModulesTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyDataModules') }
-
-tasks.register('verifyLoadedParts', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.LoadedPartsTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyLoadedParts') }
-
-tasks.register('verifyBlockEntities', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.BlockEntitiesTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyBlockEntities') }
-
-tasks.register('verifyMethodEvents', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.MethodEventsTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyMethodEvents') }
-
-tasks.register('verifyDefinitionLoader', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.DefinitionLoaderTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyDefinitionLoader') }
-
-sourceSets {
-    runtimeTest {
-        compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
-        runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
-    }
-}
-tasks.named('check') { dependsOn tasks.named('compileRuntimeTestJava') }
-tasks.register('verifyVanillaExamples', JavaExec) {
-    dependsOn tasks.named('builderTestClasses')
-    classpath = sourceSets.builderTest.runtimeClasspath
-    mainClass = 'zone.moddev.mc.lib.common.builders.VanillaExamplesTest'
-    systemProperty 'mmdlib.resources', file('src/main/resources').absolutePath
-    systemProperty 'mmdlib.generated', file('src/generated/resources').absolutePath
-}
-tasks.named('check') { dependsOn tasks.named('verifyVanillaExamples') }
-
-tasks.register('verifyReleaseClasses') {
-    dependsOn tasks.named('jar')
-    doLast {
-        new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { archive ->
-            def leaked = archive.entries().findAll { entry -> entry.name.startsWith('zone/moddev/mc/lib/smoke/') }
-            if (!leaked.isEmpty()) throw new GradleException('Runtime smoke-test classes must not be packaged: ' + leaked)
-        }
-    }
-}
-tasks.named('check') { dependsOn tasks.named('verifyReleaseClasses') }
 
 // runData launches from main output, so processResources necessarily precedes it.
 // Refresh that output after generation for combined invocations such as runData build.
@@ -207,8 +79,5 @@ tasks.configureEach { task ->
     }
 }
 
-tasks.register('verifyStaticAssets', Exec) {
-    dependsOn tasks.named('classes')
-    commandLine providers.gradleProperty('mmdlibPython').getOrElse('python3'), file('scripts/validate_static_assets.py').absolutePath
-}
-tasks.named('check') { dependsOn tasks.named('verifyStaticAssets') }
+// Verification tasks (verify*, test source sets); run with `./gradlew check`.
+apply from: 'gradle/verification.gradle'

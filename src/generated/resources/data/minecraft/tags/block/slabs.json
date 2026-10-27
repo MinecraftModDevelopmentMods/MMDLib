@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_double_slab",
+    "mmdlib:copper_slab",
     "mmdlib:diamond_double_slab",
     "mmdlib:diamond_slab",
     "mmdlib:emerald_double_slab",

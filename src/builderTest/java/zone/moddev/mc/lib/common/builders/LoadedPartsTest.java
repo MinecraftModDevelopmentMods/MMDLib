@@ -71,8 +71,8 @@ public final class LoadedPartsTest {
         require(codec.parse(JsonOps.INSTANCE, json).getOrThrow().equals(result.material()));
         var nbt = codec.encodeStart(NbtOps.INSTANCE, result.material()).getOrThrow();
         require(codec.parse(NbtOps.INSTANCE, nbt).getOrThrow().equals(result.material()));
-        require(StandardBlocks.blockClass(registry.resolve("addon:step").getOrThrow()) == net.minecraft.world.level.block.StairBlock.class);
-        require(net.minecraft.world.item.ArmorItem.class.isAssignableFrom(StandardItems.itemClass(registry.resolve("addon:cap").getOrThrow())));
+        require(new MaterialExtensions().blockImplementation(registry.resolve("addon:step").getOrThrow().factory()).blockClass() == net.minecraft.world.level.block.StairBlock.class);
+        require(net.minecraft.world.item.ArmorItem.class.isAssignableFrom(new MaterialExtensions().itemImplementation(registry.resolve("addon:cap").getOrThrow().factory()).itemClass()));
         require(new MaterialFactory(api, mod -> true).load(id("test:enabled"), new StringReader("{\"has_fluid\":false}"))
                 .content().items().containsKey(registry.resolve("addon:gated").getOrThrow()));
         var isolated = new MaterialExtensions(false);

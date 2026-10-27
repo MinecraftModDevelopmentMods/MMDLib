@@ -7,6 +7,40 @@
     "mmdlib:coal_dust",
     "mmdlib:coal_nugget",
     "mmdlib:coal_smallpowder",
+    "mmdlib:copper_arrow",
+    "mmdlib:copper_axe",
+    "mmdlib:copper_bars",
+    "mmdlib:copper_blend",
+    "mmdlib:copper_bolt",
+    "mmdlib:copper_boots",
+    "mmdlib:copper_bow",
+    "mmdlib:copper_button",
+    "mmdlib:copper_chestplate",
+    "mmdlib:copper_crackhammer",
+    "mmdlib:copper_crossbow",
+    "mmdlib:copper_dust",
+    "mmdlib:copper_fishing_rod",
+    "mmdlib:copper_gear",
+    "mmdlib:copper_helmet",
+    "mmdlib:copper_hoe",
+    "mmdlib:copper_horse_armor",
+    "mmdlib:copper_leggings",
+    "mmdlib:copper_lever",
+    "mmdlib:copper_nugget",
+    "mmdlib:copper_pickaxe",
+    "mmdlib:copper_plate",
+    "mmdlib:copper_pressure_plate",
+    "mmdlib:copper_rod",
+    "mmdlib:copper_scythe",
+    "mmdlib:copper_shears",
+    "mmdlib:copper_shield",
+    "mmdlib:copper_shovel",
+    "mmdlib:copper_slab",
+    "mmdlib:copper_smallblend",
+    "mmdlib:copper_smallpowder",
+    "mmdlib:copper_stairs",
+    "mmdlib:copper_sword",
+    "mmdlib:copper_wall",
     "mmdlib:diamond_arrow",
     "mmdlib:diamond_bars",
     "mmdlib:diamond_blend",
@@ -187,6 +221,15 @@
   ],
   "untinted_blocks": [
     "mmdlib:charcoal_block",
+    "mmdlib:copper_bars",
+    "mmdlib:copper_button",
+    "mmdlib:copper_double_slab",
+    "mmdlib:copper_lever",
+    "mmdlib:copper_plate",
+    "mmdlib:copper_pressure_plate",
+    "mmdlib:copper_slab",
+    "mmdlib:copper_stairs",
+    "mmdlib:copper_wall",
     "mmdlib:diamond_bars",
     "mmdlib:diamond_button",
     "mmdlib:diamond_door",
@@ -300,6 +343,10 @@
     },
     "mmdlib:quartz_trapdoor": {
       "texture": "mmdlib:block/quartz_trapdoor"
+    },
+    "mmdlib:copper_bars": {
+      "bars": "mmdlib:block/copper_bars",
+      "edge": "mmdlib:block/copper_bars"
     }
   },
   "sources": {
@@ -470,6 +517,134 @@
     "models/item/coal_smallpowder.json": {
       "source": "models/item/coal_smallpowder.json",
       "sha256": "3e292b5ca92dcc8794d8149689387e28a01b9165e9b0b423d6bf3fb2a6d1d4d9"
+    },
+    "models/item/copper_arrow.json": {
+      "source": "models/item/copper_arrow.json",
+      "sha256": "32a4309bb1519d61963f2c3390bd1725ca3a44bd343f3e67dfd25b1539008e6e"
+    },
+    "models/item/copper_axe.json": {
+      "source": "models/item/copper_axe.json",
+      "sha256": "a47596a7c134e427679cb0ea21797659cfabb7fc8287227be617d5489a7d37ec"
+    },
+    "models/item/copper_bolt.json": {
+      "source": "models/item/copper_bolt.json",
+      "sha256": "d56d6e551e351835f068ef12d0c2104136257f077ea21e095f1a0c4908a443c4"
+    },
+    "models/item/copper_boots.json": {
+      "source": "models/item/copper_boots.json",
+      "sha256": "29ab55135dd764783af279ea759d783ac04b48ff8e397def0e5777984c1b368e"
+    },
+    "models/item/copper_bow.json": {
+      "source": "models/item/copper_bow.json",
+      "sha256": "1a8bacec90571351ebaf89c4dbc916eff2b51a5645b8a1451f4aba4325cfaebf"
+    },
+    "models/item/copper_bow_pulling_0.json": {
+      "source": "models/item/copper_bow_pulling_0.json",
+      "sha256": "17520eefc00e8e67d10a2b34986be52194eb567957c4569b6463cb0aa3cc3fed"
+    },
+    "models/item/copper_bow_pulling_1.json": {
+      "source": "models/item/copper_bow_pulling_1.json",
+      "sha256": "0108531ab233236509e19cab930e1c09ccee647e916540eebe5a842e09cead5c"
+    },
+    "models/item/copper_bow_pulling_2.json": {
+      "source": "models/item/copper_bow_pulling_2.json",
+      "sha256": "e5f23d2647134055fd6547cea919a0cd1b408206f156b2c1ff129a4b26adb568"
+    },
+    "models/item/copper_chestplate.json": {
+      "source": "models/item/copper_chestplate.json",
+      "sha256": "bbb25d747491679faba6078f45901973d1d45ca0182ab2897296b42e7c4350ce"
+    },
+    "models/item/copper_crackhammer.json": {
+      "source": "models/item/copper_crackhammer.json",
+      "sha256": "c26d6dde58977123b292c76b28992b08fa773f1d191636cc7ce159aa4a15df07"
+    },
+    "models/item/copper_crossbow.json": {
+      "source": "models/item/copper_crossbow.json",
+      "sha256": "d794b01e52165577b0bb850937c17070c8ac096dbf0b32077eafdf88bac458ef"
+    },
+    "models/item/copper_crossbow_pulling_0.json": {
+      "source": "models/item/copper_crossbow_pulling_0.json",
+      "sha256": "a619ad3612d23bd6df634ead3b189094d7575de1bfb188e8af47946eac385540"
+    },
+    "models/item/copper_crossbow_pulling_1.json": {
+      "source": "models/item/copper_crossbow_pulling_1.json",
+      "sha256": "ee3f8479a390ef0e379bae45cc07aee206074bf6d37469d3dc2c41dacff06c9f"
+    },
+    "models/item/copper_crossbow_pulling_2.json": {
+      "source": "models/item/copper_crossbow_pulling_2.json",
+      "sha256": "6d8eeb0696c378445de4ad77a470d22a80d7106e87a3be722f6933a33ee0f1db"
+    },
+    "models/item/copper_dust.json": {
+      "source": "models/item/copper_powder.json",
+      "sha256": "920768e22ff77e6f293e7ff2b4fcd364a877e7c3308bfe9f69cc68754ab641b1"
+    },
+    "models/item/copper_fishing_rod.json": {
+      "source": "models/item/copper_fishing_rod.json",
+      "sha256": "4081e41a9ddc336404c1f4b9f687d212b2e942aa1e70ef60edcede0f4860d137"
+    },
+    "models/item/copper_fishing_rod_cast.json": {
+      "source": "models/item/copper_fishing_rod_cast.json",
+      "sha256": "9507ac60684d2951e87aac925b31b9e26326aba1ac69e9231ff1fc39c261beaf"
+    },
+    "models/item/copper_gear.json": {
+      "source": "models/item/copper_gear.json",
+      "sha256": "a989b2b2f4aa51ba947e6b42e509e4658f2b1cc62ad513ed961a62f465e11508"
+    },
+    "models/item/copper_helmet.json": {
+      "source": "models/item/copper_helmet.json",
+      "sha256": "aa5bd96d62b3793c272bc4903c8b5bcbc236b979e1b508c81e27b3eeca2940da"
+    },
+    "models/item/copper_hoe.json": {
+      "source": "models/item/copper_hoe.json",
+      "sha256": "74b3d9f719cce88e2c3a425c4a8102e6d6f3be07b21401fe935ab1994c2eed84"
+    },
+    "models/item/copper_horse_armor.json": {
+      "source": "models/item/copper_horse_armor.json",
+      "sha256": "5650c12b934c53602f6507173f02df300304265f24d75a6d7730cad391998ccc"
+    },
+    "models/item/copper_leggings.json": {
+      "source": "models/item/copper_leggings.json",
+      "sha256": "c77eaa7f7147bab59e1a710e1a2652763ce67b9cab4d20db0217238e34b7fed8"
+    },
+    "models/item/copper_nugget.json": {
+      "source": "models/item/copper_nugget.json",
+      "sha256": "c48a1528ae149fb6d99d7d5b74eed5b636fbb50d6b004bfaebab1bec9d860948"
+    },
+    "models/item/copper_pickaxe.json": {
+      "source": "models/item/copper_pickaxe.json",
+      "sha256": "2401ac5734afc7838b77b110f22000dbc7d55220961ae1e84ede4c3db4022c60"
+    },
+    "models/item/copper_rod.json": {
+      "source": "models/item/copper_rod.json",
+      "sha256": "dafe363ff3569a8beae9c13da133c769af7ec89726bfbee19c74c3ccbd4b9075"
+    },
+    "models/item/copper_scythe.json": {
+      "source": "models/item/copper_scythe.json",
+      "sha256": "65309d80d3dba3c380b5488cd5b05a50407be03803a963c709ca22896c9abb53"
+    },
+    "models/item/copper_shears.json": {
+      "source": "models/item/copper_shears.json",
+      "sha256": "60ecb123b8f51906aa45e335b8d457d148a7d795ecc052d69dceb38503b3f821"
+    },
+    "models/item/copper_shield.json": {
+      "source": "models/item/copper_shield.json",
+      "sha256": "96595650217619bf32e4922b2e9e08aec99c111089733ede599451e4ebd72546"
+    },
+    "models/item/copper_shield_blocking.json": {
+      "source": "models/item/copper_shield_blocking.json",
+      "sha256": "9530bdb6ce321e265e04e79a535312fede271f5c4c4bb672b98b3cd906006ae1"
+    },
+    "models/item/copper_shovel.json": {
+      "source": "models/item/copper_shovel.json",
+      "sha256": "85527dfa794fbd7625c7160e37fbefb2c439fc747a715713865c7b30993b31b6"
+    },
+    "models/item/copper_smallpowder.json": {
+      "source": "models/item/copper_smallpowder.json",
+      "sha256": "2e81a7a683b82b1a96b95d6749d7583304f9c00371d7df3ded94d7afc9d83078"
+    },
+    "models/item/copper_sword.json": {
+      "source": "models/item/copper_sword.json",
+      "sha256": "2618c9860cb7ff22c5c81a4f7167e2a8cccf04deb5197dc62a0937dccc21d25f"
     },
     "models/item/diamond_arrow.json": {
       "source": "models/item/diamond_arrow.json",
@@ -1363,6 +1538,14 @@
       "source": "textures/block/charcoal_block.png",
       "sha256": "d30cf9526e9b8d4ccee870fe9be13511ba3d4bace02bc4a62eabb4097df547c8"
     },
+    "textures/block/copper_bars.png": {
+      "source": "textures/block/copper_bars.png",
+      "sha256": "6b4d48bd21f380a7106d3c021d5a5b3e436b1e713fac6acbb9abcc2bdd1e0654"
+    },
+    "textures/block/copper_block.png": {
+      "source": "textures/block/copper_block.png",
+      "sha256": "55f14675c6bdae6b8f0f205f12572649e794adefc29b80ad4599ae4754dab2a6"
+    },
     "textures/block/diamond_bars.png": {
       "source": "textures/block/diamond_bars.png",
       "sha256": "7a73da6d8ae6a5594c5a5d30dddf30bda3973a708b8e075662fa1798d7e0b783"
@@ -1459,6 +1642,10 @@
       "source": "textures/block/quartz_trapdoor.png",
       "sha256": "5c2a57efa054c668688e9f3a50d2524eea3a46f227506ac627944cf6e3686b0e"
     },
+    "textures/entity/horse/armor/horse_armor_copper.png": {
+      "source": "textures/entity/horse/armor/horse_armor_copper.png",
+      "sha256": "85ba5a1079d1ff576e41f6f233a7def973edcde3c4e5e91fefb00ec466ea071c"
+    },
     "textures/entity/horse/armor/horse_armor_emerald.png": {
       "source": "textures/entity/horse/armor/horse_armor_emerald.png",
       "sha256": "78fcc8a9a0afa948a17b293430ab09bbc405cf1cac921cbbcf0312c373cdd544"
@@ -1486,6 +1673,126 @@
     "textures/item/coal_smallpowder.png": {
       "source": "textures/item/coal_smallpowder.png",
       "sha256": "d36459b05ae3cbcb8f2ebed736b523bd5ee5b715c3e5340bf93835dd53e7c90c"
+    },
+    "textures/item/copper_arrow.png": {
+      "source": "textures/item/copper_arrow.png",
+      "sha256": "f07b04ab3867a092f784ab2a642ff084656cff6600f04905664152f6122a5af8"
+    },
+    "textures/item/copper_axe.png": {
+      "source": "textures/item/copper_axe.png",
+      "sha256": "b45ca49ac19c12abd50f31c40744903578b14df36e6de8b205f6eaa3a9aea029"
+    },
+    "textures/item/copper_bolt.png": {
+      "source": "textures/item/copper_bolt.png",
+      "sha256": "e0f65deff21b9d7b40c99dde62946dfbb929cf089b25f106c8b3e3b751819e9f"
+    },
+    "textures/item/copper_boots.png": {
+      "source": "textures/item/copper_boots.png",
+      "sha256": "b97af3751d7894a3ae52e0455fc3abb83a9ac6f4cbb1561b21a1b72d9ad803c3"
+    },
+    "textures/item/copper_bow_pulling_0.png": {
+      "source": "textures/item/copper_bow_pulling_0.png",
+      "sha256": "b83e5b2ddd98beeb97967a4c76d7632ff72f2ad6a18437e871fd0cbe583bdc92"
+    },
+    "textures/item/copper_bow_pulling_1.png": {
+      "source": "textures/item/copper_bow_pulling_1.png",
+      "sha256": "421a4739edceabd0d50ae559ef39cc39a6cded91ab86c1d7e05ad1d352140475"
+    },
+    "textures/item/copper_bow_pulling_2.png": {
+      "source": "textures/item/copper_bow_pulling_2.png",
+      "sha256": "82e9f9a7e24dc5ca1968e536321712f6d479da5f7bf3723cbab125e585d324cc"
+    },
+    "textures/item/copper_bow_standby.png": {
+      "source": "textures/item/copper_bow_standby.png",
+      "sha256": "cc5eeea7566fc971c6513141149471c4f11f0e94d6a3782791d414d21cd817cb"
+    },
+    "textures/item/copper_chestplate.png": {
+      "source": "textures/item/copper_chestplate.png",
+      "sha256": "642ca475bd44961b90fc163b38325ed1e8dcd1b77e97afc7ecb7e4dd7e4e89ae"
+    },
+    "textures/item/copper_crackhammer.png": {
+      "source": "textures/item/copper_crackhammer.png",
+      "sha256": "799832ebcd8a333c44bb620d6ca7c6a0dbc1a6b090b09add2692a61577a410bd"
+    },
+    "textures/item/copper_crossbow_pulling_0.png": {
+      "source": "textures/item/copper_crossbow_pulling_0.png",
+      "sha256": "361eb1f114b0a073c870499089a45d189770181d3c3f96af7285df2c3a46f665"
+    },
+    "textures/item/copper_crossbow_pulling_1.png": {
+      "source": "textures/item/copper_crossbow_pulling_1.png",
+      "sha256": "c44a6b2ef3307fb9aab39a37597b6993083bb56bfef45eb48e5bc4e50e7e8d88"
+    },
+    "textures/item/copper_crossbow_pulling_2.png": {
+      "source": "textures/item/copper_crossbow_pulling_2.png",
+      "sha256": "b3825329ad346834de59a01376d948ef4495f22113ee4b61cd93176d7383336a"
+    },
+    "textures/item/copper_crossbow_standby.png": {
+      "source": "textures/item/copper_crossbow_standby.png",
+      "sha256": "fc0a0c2be7cbf921de22dd238d79dec6062f49893d909d49795b0967b6cd8aae"
+    },
+    "textures/item/copper_dust.png": {
+      "source": "textures/item/copper_powder.png",
+      "sha256": "775f73c3d971daad8fe282ed4bd8de37b1180e560a7c107eb8ec5f6864bcc7e0"
+    },
+    "textures/item/copper_fishing_rod_cast.png": {
+      "source": "textures/item/copper_fishing_rod_cast.png",
+      "sha256": "436a7b40b7ac71cf615378ce2fa2a7a5876a06e0b0a1232f6108ff5cb078265a"
+    },
+    "textures/item/copper_fishing_rod_uncast.png": {
+      "source": "textures/item/copper_fishing_rod_uncast.png",
+      "sha256": "a2bc152c167d64da3296272278331d68cfa2f5be11237638aa8dc9e4f2da8ac0"
+    },
+    "textures/item/copper_gear.png": {
+      "source": "textures/item/copper_gear.png",
+      "sha256": "8026c6c000be96e8f8be78d1e0fd0aa9cdcfe3b03077c636b5637f96fa1771d9"
+    },
+    "textures/item/copper_helmet.png": {
+      "source": "textures/item/copper_helmet.png",
+      "sha256": "a6fbf9a7b10fe2a19c422dfdff94f1545f2cc43fd804712473e8122113a46476"
+    },
+    "textures/item/copper_hoe.png": {
+      "source": "textures/item/copper_hoe.png",
+      "sha256": "7ab8735082d102d36ce859676b486612858b6f615f25c19d454b7313b78de88c"
+    },
+    "textures/item/copper_horse_armor.png": {
+      "source": "textures/item/copper_horse_armor.png",
+      "sha256": "d2edd1f02ec476ebc57d14f57a4773d630596701b02310644e39c3213ec9ca49"
+    },
+    "textures/item/copper_leggings.png": {
+      "source": "textures/item/copper_leggings.png",
+      "sha256": "e7b8eb680a0ec718d81a86ae4ce95c67a7e7c0d30df09cb898a548c26e806892"
+    },
+    "textures/item/copper_nugget.png": {
+      "source": "textures/item/copper_nugget.png",
+      "sha256": "6a3468e4fb9b12e9f822a3a6be4d1e2a599255c224e78819416601e4634767a4"
+    },
+    "textures/item/copper_pickaxe.png": {
+      "source": "textures/item/copper_pickaxe.png",
+      "sha256": "4dffff8395ce33ed1a925e0260726becbaa3a2ae568cd27aae343183fefa3753"
+    },
+    "textures/item/copper_rod.png": {
+      "source": "textures/item/copper_rod.png",
+      "sha256": "96f462011e2fa63c423941f855e3706dda37c478bf08dff207780b68183f512e"
+    },
+    "textures/item/copper_scythe.png": {
+      "source": "textures/item/copper_scythe.png",
+      "sha256": "c364acb898c1482a46f68e1fcd708daf8c100117b13dbeb74377453f21b41cad"
+    },
+    "textures/item/copper_shears.png": {
+      "source": "textures/item/copper_shears.png",
+      "sha256": "ad495d4275751c6d56643b6340eabafd1d2d4a84dc78352bc73aee1af1133738"
+    },
+    "textures/item/copper_shovel.png": {
+      "source": "textures/item/copper_shovel.png",
+      "sha256": "294492acde951b848e60baaf6bf2ff2854e8cee8d858842831363da5867ca3e5"
+    },
+    "textures/item/copper_smallpowder.png": {
+      "source": "textures/item/copper_smallpowder.png",
+      "sha256": "7076101df08fbd27748ed4801a8e371df23f6f0c231a866cb98b184580f2b68b"
+    },
+    "textures/item/copper_sword.png": {
+      "source": "textures/item/copper_sword.png",
+      "sha256": "07055d7cffb6e80b66c79f67debcc9a23932cb519240aec19dc910a6a2992cc9"
     },
     "textures/item/diamond_arrow.png": {
       "source": "textures/item/diamond_arrow.png",
@@ -2119,6 +2426,14 @@
       "source": "textures/item/wooden_scythe.png",
       "sha256": "c20d7b0da153b89d1883d255b6782a2916fa86d361a7b09bcdd5e9e08d7ba04e"
     },
+    "textures/models/armor/copper_layer_1.png": {
+      "source": "textures/models/armor/copper_layer_1.png",
+      "sha256": "45480a7cdf7200aa9726dc82cce66a6eeb66289d9ca2615c7d94fe494503a524"
+    },
+    "textures/models/armor/copper_layer_2.png": {
+      "source": "textures/models/armor/copper_layer_2.png",
+      "sha256": "ffc0c6207ed6518a18c70257b705dbcfc6be14cdc9fa22f016601165e7b9327f"
+    },
     "textures/models/armor/emerald_layer_1.png": {
       "source": "textures/models/armor/emerald_layer_1.png",
       "sha256": "5010e2e6dedfe21d13c5be9ac7f64a6a899308a6c12f923e3f350c2299cd3dfd"
@@ -2145,6 +2460,10 @@
     }
   },
   "derived": {
+    "models/item/copper_blend.json": "Pure-material blend using supplied dust sprite",
+    "models/item/copper_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/copper_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/copper_smallblend.json": "Pure-material blend using supplied dust sprite",
     "models/item/diamond_blend.json": "Pure-material blend using supplied dust sprite",
     "models/item/diamond_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
     "models/item/diamond_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite",

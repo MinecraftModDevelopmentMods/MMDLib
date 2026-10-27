@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:copper_blend"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:copper_smallblend",
+    "count": 9
+  }
+}

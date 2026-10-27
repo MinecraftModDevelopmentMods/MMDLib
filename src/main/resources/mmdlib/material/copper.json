@@ -1,0 +1,32 @@
+{
+  "type": "metal",
+  "color": -24712,
+  "hardness": 4,
+  "strength": 4,
+  "magic": 4.5,
+  "damage": 1.0,
+  "items": "arrow axe blend bolt boots bow chestplate crackhammer crossbow dust fishing_rod gear helmet hoe horse_armor leggings nugget pickaxe rod scythe shears shield shovel smallblend smallpowder sword",
+  "blocks": "bars button double_slab lever plate pressure_plate slab stairs wall",
+  "entities": "arrow bolt",
+  "has_fluid": true,
+  "special": {
+    "viscosity": 13500,
+    "temperature": 1300,
+    "density": 2000,
+    "block_hardness": 8,
+    "blast_resistance": 10.0
+  },
+  "runtime": {
+    "repair_item": "minecraft:copper_ingot",
+    "base_block": "minecraft:copper_block",
+    "incorrect_blocks": "minecraft:incorrect_for_stone_tool",
+    "armor_texture": "mmdlib:copper",
+    "block_set_type": "minecraft:copper",
+    "block_sound": "copper",
+    "map_color": "color_orange",
+    "tinted_armor": false
+  },
+  "harvest_tags": [
+    "minecraft:mineable/pickaxe"
+  ]
+}

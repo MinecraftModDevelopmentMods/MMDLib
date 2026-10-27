@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:copper_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:copper_wall",
+    "count": 6
+  }
+}

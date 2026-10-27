@@ -64,11 +64,28 @@ public final class CrackhammerEvents {
         if (!ItemStack.isSameItem(hammer, harvest.tool())) return;
         var level = harvest.level();
         int budget = hammer.isDamageableItem() ? Math.max(0, hammer.getMaxDamage() - hammer.getDamageValue()) : Integer.MAX_VALUE;
+        // Ores are crushed whole, without fortune. Ores that drop gems are left alone, so the hammer
+        // is no better than a pickaxe for mining gems; gems are crushed only by right-click.
+        if (budget > 0 && harvest.state().is(net.neoforged.neoforge.common.Tags.Blocks.ORES) && !harvest.drops().isEmpty()
+                && harvest.drops().stream().noneMatch(drop -> isGem(drop.getItem()))) {
+            ItemStack ore = crushResult(level, hammer, new ItemStack(harvest.state().getBlock()));
+            if (!ore.isEmpty()) {
+                ItemEntity first = harvest.drops().getFirst();
+                ItemEntity entity = new ItemEntity(level, first.getX(), first.getY(), first.getZ(), ore);
+                entity.setDeltaMovement(first.getDeltaMovement());
+                entity.setDefaultPickUpDelay();
+                harvest.drops().clear();
+                harvest.drops().add(entity);
+                hammer.hurtAndBreak(1, player, net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+                return;
+            }
+        }
         int used = 0;
         var crushed = new java.util.ArrayList<ItemEntity>();
         for (var drops = harvest.drops().iterator(); drops.hasNext() && used < budget;) {
             ItemEntity drop = drops.next();
             ItemStack input = drop.getItem();
+            if (isGem(input)) continue;
             ItemStack output = crushResult(level, hammer, input);
             if (output.isEmpty()) continue;
             int operations = Math.min(input.getCount(), budget - used);
@@ -141,6 +158,14 @@ public final class CrackhammerEvents {
                     0.5F + (level.random.nextFloat() * 0.3F));
             return;
         }
+    }
+
+    /** A gem is any item tagged {@code gems} or {@code gems/...} in any namespace, e.g. {@code #c:gems/diamond}. */
+    private static boolean isGem(ItemStack stack) {
+        return stack.getTags().anyMatch(tag -> {
+            String path = tag.location().getPath();
+            return path.equals("gems") || path.startsWith("gems/");
+        });
     }
 
     private static boolean canCrushDroppedBlock(ItemStack hammer, ItemStack input) {

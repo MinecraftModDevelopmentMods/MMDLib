@@ -3,6 +3,7 @@ package zone.moddev.mc.lib.api;
 import net.minecraft.world.item.Item;
 import zone.moddev.mc.lib.common.types.MMDItem;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
+import zone.moddev.mc.lib.common.types.MaterialPart;
 
 /** Java behavior implementation selected by a data module's factory ID. */
 public interface ItemImplementation<I extends Item> {
@@ -13,4 +14,10 @@ public interface ItemImplementation<I extends Item> {
             throw new IllegalArgumentException("Implementation must explicitly decode its factory_data");
         return create(material, definition);
     }
+    /** Called by the runtime registrar; override to use the material's tier, armor, projectile, or prepared properties. */
+    default I create(ItemContext context) { return create(context.material(), context.definition(), context.factoryData()); }
+    /** Decode {@code factory_data} eagerly so malformed module data fails at load instead of registry construction. */
+    default void validate(MaterialPart part) {}
+    /** Whether {@link ItemContext#armor()} is needed; the material's armor material is registered only when some part asks. */
+    default boolean usesArmorMaterial() { return false; }
 }

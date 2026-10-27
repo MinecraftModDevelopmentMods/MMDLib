@@ -1,0 +1,73 @@
+// Verification: the builderTest/runtimeTest source sets and every verify* task.
+// All of it runs on `./gradlew check`; `build` only compiles and packages (see the end of this file).
+
+sourceSets {
+    builderTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
+    }
+    runtimeTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
+    }
+}
+tasks.named('check') { dependsOn tasks.named('compileRuntimeTestJava') }
+
+// Standalone checks in src/builderTest, run as plain Java programs: task name -> main class
+// (in zone.moddev.mc.lib.common.builders), plus any system properties the check reads.
+def resources = file('src/main/resources').absolutePath
+def builderChecks = [
+    verifyItemBuilder       : ['ItemBuilderTest'],
+    verifyItemTemplate      : ['ItemTemplateTest'],
+    verifyBlockBuilder      : ['BlockBuilderTest'],
+    verifyEntityBuilder     : ['EntityBuilderTest'],
+    verifyFluidBuilder      : ['FluidBuilderTest'],
+    verifyMaterialParts     : ['MaterialPartsTest'],
+    verifyMaterialFactory   : ['MaterialFactoryTest'],
+    verifyMaterialExtensions: ['MaterialExtensionsTest'],
+    verifyRuntimeBehavior   : ['RuntimeBehaviorTest', ['mmdlib.resources': resources]],
+    verifyDataModules       : ['DataModulesTest'],
+    verifyLoadedParts       : ['LoadedPartsTest'],
+    verifyBlockEntities     : ['BlockEntitiesTest'],
+    verifyMethodEvents      : ['MethodEventsTest'],
+    verifyDefinitionLoader  : ['DefinitionLoaderTest'],
+    verifyVanillaExamples   : ['VanillaExamplesTest', ['mmdlib.resources': resources,
+                                                       'mmdlib.generated': file('src/generated/resources').absolutePath]],
+]
+builderChecks.each { name, spec ->
+    def check = tasks.register(name, JavaExec) {
+        group = 'verification'
+        dependsOn tasks.named('builderTestClasses')
+        classpath = sourceSets.builderTest.runtimeClasspath
+        mainClass = "zone.moddev.mc.lib.common.builders.${spec[0]}"
+        if (spec.size() > 1) systemProperties(spec[1])
+    }
+    tasks.named('check') { dependsOn check }
+}
+
+def verifyReleaseClasses = tasks.register('verifyReleaseClasses') {
+    group = 'verification'
+    dependsOn tasks.named('jar')
+    doLast {
+        new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { archive ->
+            def leaked = archive.entries().findAll { entry -> entry.name.startsWith('zone/moddev/mc/lib/smoke/') }
+            if (!leaked.isEmpty()) throw new GradleException('Runtime smoke-test classes must not be packaged: ' + leaked)
+        }
+    }
+}
+tasks.named('check') { dependsOn verifyReleaseClasses }
+
+def verifyStaticAssets = tasks.register('verifyStaticAssets', Exec) {
+    group = 'verification'
+    dependsOn tasks.named('classes')
+    commandLine providers.gradleProperty('mmdlibPython').getOrElse('python3'), file('scripts/validate_static_assets.py').absolutePath
+}
+tasks.named('check') { dependsOn verifyStaticAssets }
+
+// Gradle's `build` normally runs `check`. Detach it so a build stays fast; run `./gradlew check`
+// (or `./gradlew build check`) to verify.
+tasks.named('build') {
+    setDependsOn(dependsOn.findAll { dep ->
+        !(dep == 'check' || (dep instanceof Task && dep.name == 'check') || (dep instanceof TaskProvider && dep.name == 'check'))
+    })
+}

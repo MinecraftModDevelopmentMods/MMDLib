@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:ores/iron"
+  },
+  "result": {
+    "id": "mmdlib:iron_dust",
+    "count": 2
+  }
+}

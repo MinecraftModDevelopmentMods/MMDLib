@@ -219,39 +219,10 @@ public final class StandardItems {
         }
         @Override public MMDMaterial material() { return material; }
     }
-    public static Class<? extends Item> itemClass(MaterialPart part) {
-        return switch (part.factory().toString()) {
-            case "mmdlib:pickaxe" -> Pickaxe.class; case "mmdlib:axe" -> Axe.class; case "mmdlib:shovel" -> Shovel.class;
-            case "mmdlib:hoe" -> Hoe.class; case "mmdlib:sword" -> Sword.class; case "mmdlib:scythe" -> ScytheItem.class;
-            case "mmdlib:tool" -> Tool.class; case "mmdlib:bow" -> Bow.class; case "mmdlib:crossbow" -> Crossbow.class;
-            case "mmdlib:armor" -> Armor.class; case "mmdlib:horse_armor" -> HorseArmor.class;
-            case "mmdlib:shears" -> Shears.class; case "mmdlib:shield" -> Shield.class; case "mmdlib:fishing_rod" -> FishingRod.class;
-            case "mmdlib:basic_item" -> Basic.class;
-            default -> throw new IllegalArgumentException("No item runtime implementation installed for " + part.factory());
-        };
-    }
-    /** Decodes factory settings eagerly so malformed module data fails at load instead of registry construction. */
-    public static void validate(MaterialPart part) {
-        if (part.factory().toString().equals("mmdlib:tool")) ToolSettings.of(part);
-    }
-    public static Item create(MaterialPart part, MaterialToolTier tier, Holder<ArmorMaterial> armor, Item.Properties properties) {
-        var material = tier.material();
-        return switch (part.factory().toString()) {
-            case "mmdlib:pickaxe" -> new Pickaxe(tier, properties); case "mmdlib:axe" -> new Axe(tier, properties);
-            case "mmdlib:shovel" -> new Shovel(tier, properties); case "mmdlib:hoe" -> new Hoe(tier, properties); case "mmdlib:sword" -> new Sword(tier, properties);
-            case "mmdlib:scythe" -> new ScytheItem(material, tier, properties);
-            case "mmdlib:tool" -> new Tool(tier, ToolSettings.of(part), properties);
-            case "mmdlib:armor" -> new Armor(material, Objects.requireNonNull(armor), part.factoryData()
-                    .decode(ArmorItem.Type.CODEC.fieldOf("slot").codec()).getOrThrow(), properties);
-            case "mmdlib:horse_armor" -> new HorseArmor(material, Objects.requireNonNull(armor), properties);
-            case "mmdlib:bow" -> new Bow(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            case "mmdlib:crossbow" -> new Crossbow(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            case "mmdlib:shield" -> new Shield(material, tier::getRepairIngredient, properties.durability(
-                    new MaterialStats(material).integer("shield_durability", Math.max(1, (int) (168 * material.properties().strength())), 1)));
-            case "mmdlib:shears" -> new Shears(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            case "mmdlib:fishing_rod" -> new FishingRod(material, tier::getRepairIngredient, properties.durability(tier.getUses()));
-            case "mmdlib:basic_item" -> new Basic(material, tier::getRepairIngredient, properties);
-            default -> throw new IllegalArgumentException("No item runtime implementation installed for " + part.factory());
-        };
+    /** A plain material item (ingot, dust, nugget, ...) that burns for the given ticks; 0 means not a fuel. */
+    public static class Fuel extends Basic {
+        private final int burn;
+        public Fuel(MMDMaterial material, int burn, Item.Properties properties) { super(material, () -> net.minecraft.world.item.crafting.Ingredient.EMPTY, properties); this.burn = burn; }
+        @Override public int getBurnTime(ItemStack stack, net.minecraft.world.item.crafting.RecipeType<?> recipe) { return burn; }
     }
 }

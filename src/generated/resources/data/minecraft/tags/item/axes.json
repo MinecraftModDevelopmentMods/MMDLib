@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_axe",
     "mmdlib:emerald_axe",
     "mmdlib:obsidian_axe",
     "mmdlib:quartz_axe"

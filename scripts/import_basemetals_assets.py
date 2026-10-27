@@ -8,9 +8,16 @@ from pathlib import Path
 
 def main():
     repo=Path(__file__).resolve().parents[1]
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--source',type=Path,default=repo/'content');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--source',type=Path,default=repo/'content')
+    parser.add_argument('--material',action='append',help='Import only this material (repeatable) and merge into the existing imported_assets.json')
+    args=parser.parse_args()
     original=args.source;source=repo/'src/main/resources';assets=source/'assets/mmdlib';assets.mkdir(parents=True,exist_ok=True)
     provenance={};derived={};visited=set();untinted_items=set();untinted_blocks=set();block_textures={}
+    if args.material:
+        # Merge mode: keep every other material's records; the source folder may hold only these materials.
+        previous=json.loads((assets/'imported_assets.json').read_text())
+        provenance.update(previous['sources']);derived.update(previous['derived']);block_textures.update(previous['block_textures'])
+        untinted_items.update(previous['untinted_items']);untinted_blocks.update(previous['untinted_blocks'])
     def canonical(path):return re.sub(r'_powder$', '_dust',path)
     def write(relative,value):
         target=assets/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(json.dumps(value,indent=2)+'\n')
@@ -31,7 +38,10 @@ def main():
     def model(path):
         dest=canonical(path)
         if dest in visited:return 'mmdlib:'+dest
-        visited.add(dest);file=original/'models'/f'{path}.json';data=json.loads(file.read_text())
+        visited.add(dest);file=original/'models'/f'{path}.json'
+        # Merge mode: shared parents (e.g. item/shield) may exist only from an earlier full import.
+        if args.material and not file.is_file() and (assets/'models'/f'{dest}.json').is_file():return 'mmdlib:'+dest
+        data=json.loads(file.read_text())
         if 'parent' in data:data['parent']=ref(data['parent'],'model')
         if 'textures' in data:data['textures']={key:ref(value,'texture') for key,value in data['textures'].items()}
         for override in data.get('overrides',[]):override['model']=ref(override['model'],'model')
@@ -50,6 +60,7 @@ def main():
         return 'mmdlib:'+dest
     for file in sorted((source/'mmdlib/material').glob('*.json')):
         material=file.stem;data=json.loads(file.read_text())
+        if args.material and material not in args.material:continue
         for form in data['items'].split():
             old=material+'_'+('powder' if form=='dust' else form);name=material+'_'+form
             if (original/'models/item'/f'{old}.json').is_file():model('item/'+old)
@@ -69,14 +80,15 @@ def main():
             untinted_blocks.add('mmdlib:'+name)
             module=json.loads((source/'data/mmdlib/block'/f'{form}.json').read_text())
             if module.get('template',{}).get('has_item',True):
-                if (original/'models/item'/f'{name}.json').is_file():model('item/'+name)
+                # Block item models already maintained in assets (e.g. cloned with their blockstates) are kept.
+                if (original/'models/item'/f'{name}.json').is_file() and not (args.material and (assets/'models/item'/f'{name}.json').is_file()):model('item/'+name)
                 untinted_items.add('mmdlib:'+name)
         if any(form in data['items'].split() for form in ['helmet','horse_armor']):
             for layer in [1,2]:texture(f'models/armor/{material}_layer_{layer}')
             texture('entity/horse/armor/horse_armor_'+material)
             data['runtime']['armor_texture']='mmdlib:'+material;data['runtime']['tinted_armor']=False
             file.write_text(json.dumps(data,indent=2)+'\n')
-    texture('block/molten_metal_still');texture('block/molten_metal_flow')
+    if not args.material:texture('block/molten_metal_still');texture('block/molten_metal_flow')
     write('imported_assets.json',{'untinted_items':sorted(untinted_items),'untinted_blocks':sorted(untinted_blocks),'block_textures':block_textures,'sources':dict(sorted(provenance.items())),'derived':dict(sorted(derived.items()))})
     print(json.dumps({'source_assets':len(provenance),'derived_models':len(derived),'untinted_items':len(untinted_items),'untinted_blocks':len(untinted_blocks)}))
 if __name__=='__main__':main()

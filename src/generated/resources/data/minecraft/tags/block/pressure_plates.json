@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_pressure_plate",
     "mmdlib:diamond_pressure_plate",
     "mmdlib:emerald_pressure_plate",
     "mmdlib:obsidian_pressure_plate",

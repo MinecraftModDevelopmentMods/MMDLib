@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:copper_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:copper_button",
+    "count": 1
+  }
+}

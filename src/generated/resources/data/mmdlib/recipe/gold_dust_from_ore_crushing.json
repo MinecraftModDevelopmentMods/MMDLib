@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:ores/gold"
+  },
+  "result": {
+    "id": "mmdlib:gold_dust",
+    "count": 2
+  }
+}

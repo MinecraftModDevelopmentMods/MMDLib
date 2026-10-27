@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:storage_blocks/raw_iron"
+  },
+  "result": {
+    "id": "mmdlib:iron_dust",
+    "count": 18
+  }
+}

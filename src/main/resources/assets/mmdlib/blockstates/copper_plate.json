@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "mmdlib:block/copper_plate_down"
+    },
+    "facing=up": {
+      "model": "mmdlib:block/copper_plate_up"
+    },
+    "facing=north": {
+      "model": "mmdlib:block/copper_plate_north"
+    },
+    "facing=south": {
+      "model": "mmdlib:block/copper_plate_south"
+    },
+    "facing=west": {
+      "model": "mmdlib:block/copper_plate_west"
+    },
+    "facing=east": {
+      "model": "mmdlib:block/copper_plate_east"
+    }
+  }
+}

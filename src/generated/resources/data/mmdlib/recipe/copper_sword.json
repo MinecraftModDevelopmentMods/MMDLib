@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "M",
+    "R"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:copper_ingot"
+    },
+    "R": {
+      "item": "mmdlib:copper_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:copper_sword",
+    "count": 1
+  }
+}

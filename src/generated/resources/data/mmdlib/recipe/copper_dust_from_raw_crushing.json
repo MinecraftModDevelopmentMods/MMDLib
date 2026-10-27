@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:raw_materials/copper"
+  },
+  "result": {
+    "id": "mmdlib:copper_dust",
+    "count": 2
+  }
+}

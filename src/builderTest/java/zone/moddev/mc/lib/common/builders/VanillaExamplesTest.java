@@ -19,7 +19,7 @@ public final class VanillaExamplesTest {
         var loaded = DefinitionLoader.load(List.of(new DefinitionLoader.SourceRoot("mmdlib", source.resolve("mmdlib"),
                 VanillaExamplesTest.class.getClassLoader())), api, mod -> false);
         require(loaded.materials().keySet().equals(Set.of("wood", "stone", "iron", "gold", "diamond", "coal", "charcoal", "emerald",
-                "ender", "quartz", "obsidian", "lapis", "prismarine", "redstone").stream().map(name -> id("mmdlib:" + name)).collect(java.util.stream.Collectors.toSet())));
+                "ender", "quartz", "obsidian", "lapis", "prismarine", "redstone", "copper").stream().map(name -> id("mmdlib:" + name)).collect(java.util.stream.Collectors.toSet())));
         // Crackhammer right-click is data-bound through the bundled extension, not hard-wired in the item.
         var crush = id("mmdlib:crackhammer_crush");
         require(api.events().resolvedHandler(crush).definition().handler().endsWith("CrackhammerEvents#crush"));
@@ -38,12 +38,15 @@ public final class VanillaExamplesTest {
         require(anvil != null && openMenu.equals(anvil.template().events().get("block-right-click")));
         api.events().validate(anvil.template().events());
         // Fixed stone crushing chain: smooth stone -> stone -> cobblestone -> gravel -> sand; all but sand are crushable.
+        // Cobblestone and gravel crush by their c: tags, so every variant follows the chain.
         var chain = List.of("smooth_stone", "stone", "cobblestone", "gravel", "sand");
+        var inputs = List.of("item=minecraft:smooth_stone", "item=minecraft:stone", "tag=c:cobblestones", "tag=c:gravels");
         var crushable = Files.readString(source.resolve("data/mmdlib/tags/block/crackhammer_crushable.json"));
         for (int step = 0; step < chain.size() - 1; step++) {
             var recipe = JsonParser.parseString(Files.readString(source.resolve("data/mmdlib/recipe/" + chain.get(step) + "_crushing.json"))).getAsJsonObject();
+            var input = inputs.get(step).split("=");
             require(recipe.get("type").getAsString().equals("mmdlib:crushing")
-                    && recipe.getAsJsonObject("ingredient").get("item").getAsString().equals("minecraft:" + chain.get(step))
+                    && recipe.getAsJsonObject("ingredient").get(input[0]).getAsString().equals(input[1])
                     && recipe.getAsJsonObject("result").get("id").getAsString().equals("minecraft:" + chain.get(step + 1)));
             require(crushable.contains("\"minecraft:" + chain.get(step) + "\""));
         }
@@ -68,7 +71,7 @@ public final class VanillaExamplesTest {
             for (var block : plan.blocks().values()) require(Files.exists(generated.resolve("data/mmdlib/loot_table/blocks/" + block.name().getPath() + ".json")));
             require(plan.blocks().values().stream().noneMatch(block -> Set.of("ore", "endore", "netherore").contains(block.template().getPath())));
         }
-        require(items == 198 && blocks == 69 && fluids == 14 && entities == 12);
+        require(items == 233 && blocks == 79 && fluids == 15 && entities == 14);
         var iron = loaded.materials().get(id("mmdlib:iron"));
         for (var part : List.of("sword", "axe", "pickaxe", "hoe", "helmet", "shears", "ingot", "nugget"))
             require(!iron.content().items().containsKey(api.snapshot().parts().resolve(part).getOrThrow()));
@@ -117,7 +120,7 @@ public final class VanillaExamplesTest {
                 }
             }
         }
-        System.out.println("Shipped vanilla definitions: 14 materials, 198 items, 69 blocks including fluids, 12 projectile types; codec and resource coverage passed");
+        System.out.println("Shipped vanilla definitions: 15 materials, 233 items, 79 blocks including fluids, 14 projectile types; codec and resource coverage passed");
     }
     private static ResourceLocation id(String value) { return ResourceLocation.parse(value); }
     private static void require(boolean value) { if (!value) throw new AssertionError("Vanilla example assertion failed"); }

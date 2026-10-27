@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_bow",
     "mmdlib:diamond_bow",
     "mmdlib:emerald_bow",
     "mmdlib:gold_bow",

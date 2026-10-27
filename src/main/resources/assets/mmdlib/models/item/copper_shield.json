@@ -1,0 +1,14 @@
+{
+  "parent": "mmdlib:item/shield",
+  "textures": {
+    "shield": "mmdlib:block/copper_block"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "blocking": 1
+      },
+      "model": "mmdlib:item/copper_shield_blocking"
+    }
+  ]
+}

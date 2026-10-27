@@ -44,6 +44,7 @@
     "lever",
     "plate",
     "pressure_plate",
+    "weighted_pressure_plate",
     "stairs",
     "trapdoor",
     "tripwire_hook",

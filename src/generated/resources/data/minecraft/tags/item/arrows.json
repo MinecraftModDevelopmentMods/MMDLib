@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_arrow",
+    "mmdlib:copper_bolt",
     "mmdlib:diamond_arrow",
     "mmdlib:diamond_bolt",
     "mmdlib:emerald_arrow",

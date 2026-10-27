@@ -12,7 +12,7 @@ import java.util.Set;
 
 public final class MaterialPartsTest {
     public static void main(String[] args) {
-        require(ModuleCatalog.bundled().parts().entries().size() == 54);
+        require(ModuleCatalog.bundled().parts().entries().size() == 55);
         for (var part : ModuleCatalog.bundled().parts().entries().values()) {
             var encoded = ModuleCatalog.bundled().parts().codec().encodeStart(JsonOps.INSTANCE, part).getOrThrow();
             require(ModuleCatalog.bundled().parts().codec().parse(JsonOps.INSTANCE, encoded).getOrThrow().equals(part));
@@ -29,7 +29,7 @@ public final class MaterialPartsTest {
             require(part.factoryData().decode(net.minecraft.world.item.ArmorItem.Type.CODEC.fieldOf("slot").codec()).getOrThrow() != null);
         }
         var selection = MaterialParts.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{}")).getOrThrow();
-        require(selection.parts().size() == 54 && selection.hasFluid());
+        require(selection.parts().size() == 55 && selection.hasFluid());
         require(MaterialParts.CODEC.parse(NbtOps.INSTANCE, MaterialParts.CODEC.encodeStart(NbtOps.INSTANCE, selection).getOrThrow())
                 .getOrThrow().equals(selection));
         var planner = new MaterialContentPlanner();
@@ -89,7 +89,7 @@ public final class MaterialPartsTest {
         require(new MMDMaterial(restricted).planContent(copperId, planner, mod -> false).fluid() == null);
         for (String invalid : new String[] {"{\"parts\":[\"unknown\"]}", "{\"parts\":[\"powder\",\"dust\"]}", "{\"has_fluid\":\"bad\"}"})
             require(MaterialParts.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(invalid)).error().isPresent());
-        System.out.println("54 canonical material parts, optional Mekanism gating, projectile companions, and default fluid planning passed");
+        System.out.println("55 canonical material parts, optional Mekanism gating, projectile companions, and default fluid planning passed");
     }
     private static void require(boolean condition) {
         if (!condition) throw new AssertionError("Material part assertion failed");

@@ -48,6 +48,17 @@ public final class MaterialEventContexts {
     public record ProjectileHit(Projectile projectile, LivingEntity target, ItemStack ammo) {
         public ProjectileHit { Objects.requireNonNull(projectile); Objects.requireNonNull(target); Objects.requireNonNull(ammo); }
     }
+    /**
+     * The redstone power a block receives changed, server side only. Previous and power are 0-15 (the
+     * strongest neighbouring signal); fired once per change, not for every neighbour update.
+     */
+    public record RedstoneChange(ServerLevel level, BlockPos position, BlockState state, int previous, int power) {
+        public RedstoneChange {
+            Objects.requireNonNull(level); position = Objects.requireNonNull(position).immutable(); Objects.requireNonNull(state);
+            if (previous < 0 || previous > 15 || power < 0 || power > 15) throw new IllegalArgumentException("Redstone power is 0-15");
+        }
+        public boolean powered() { return power > 0; }
+    }
     public record BlockClick(Player player, BlockUse use) {
         public BlockClick { Objects.requireNonNull(player); Objects.requireNonNull(use); }
     }

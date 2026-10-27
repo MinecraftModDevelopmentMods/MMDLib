@@ -11,13 +11,16 @@ import net.minecraft.world.item.*;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockSetType;
-import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.fluids.*;
 import net.neoforged.neoforge.registries.*;
+import zone.moddev.mc.lib.api.BlockContext;
+import zone.moddev.mc.lib.api.ItemContext;
+import zone.moddev.mc.lib.api.MaterialEvents;
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.types.*;
@@ -66,7 +69,10 @@ public final class RuntimeContentRegistrar {
         if (!plan.blockEntities().isEmpty()) throw new IllegalArgumentException("Machine block factory must provide block-entity runtime wiring: " + owner);
         Supplier<Ingredient> repair = () -> material.runtime().repairItem().map(id -> Ingredient.of(RuntimeProperties.required(BuiltInRegistries.ITEM, id))).orElse(Ingredient.EMPTY);
         var tier = new MaterialToolTier(material, TagKey.create(Registries.BLOCK, material.runtime().incorrectBlocks()), repair);
-        boolean needsArmor = plan.items().entrySet().stream().anyMatch(entry -> Set.of("mmdlib:armor", "mmdlib:horse_armor").contains(entry.getKey().factory().toString()));
+        // Every factory is looked up now, so an unregistered one fails at load. The armor material is registered
+        // only when some part's implementation asks for it.
+        boolean needsArmor = plan.items().keySet().stream().filter(part -> part.kind() == MaterialPart.Kind.ITEM)
+                .anyMatch(part -> extensions.itemImplementation(part.factory()).usesArmorMaterial());
         Holder<ArmorMaterial> armorHolder = needsArmor ? MaterialArmor.register(armor, material, repair, material.runtime().armorTexture()) : null;
         plan.entities().forEach((part, definition) -> {
             if (!Set.of("mmdlib:arrow", "mmdlib:bolt").contains(definition.factory().toString()))
@@ -80,64 +86,75 @@ public final class RuntimeContentRegistrar {
                 .thenComparing(entry -> entry.getValue().name())).toList();
         orderedBlocks.forEach(entry -> {
             var part = entry.getKey(); var definition = entry.getValue();
-            var block = blocks.register(definition.name().getPath(), () -> createBlock(part, definition, material));
+            var implementation = extensions.blockImplementation(part.factory());
+            implementation.validate(part);
+            var block = blocks.register(definition.name().getPath(), () -> implementation.create(new BlockContextImpl(part, definition, material, extensions.events())));
             put(blockEntries, definition.name(), block); blockMaterials.put(definition.name(), material);
             if (definition.item() != null) {
-                var item = items.register(definition.name().getPath(), () -> createBlockItem(block.get(), definition.item(), material, part));
+                var item = items.register(definition.name().getPath(), () -> implementation.createItem(block.get(),
+                        new ItemContextImpl(part, definition.item(), material, tier, armorHolder)));
                 put(itemEntries, definition.name(), item); itemMaterials.put(definition.name(), material);
             }
         });
         plan.items().forEach((part, definition) -> {
             if (part.kind() == MaterialPart.Kind.BLOCK) return; // Already queued as the block's actual BlockItem.
             extensions.events().validate(definition.events()); // Fail at load, not during registry construction.
-            StandardItems.validate(part);
-            var item = items.register(definition.name().getPath(), () -> {
-                var properties = RuntimeProperties.item(definition);
-                if (material.runtime().tintedArmor() && Set.of("mmdlib:armor", "mmdlib:horse_armor").contains(part.factory().toString()))
-                    properties.component(net.minecraft.core.component.DataComponents.DYED_COLOR,
-                            new net.minecraft.world.item.component.DyedItemColor(material.properties().color() & 0xFFFFFF, false));
-                var implementation = extensions.findItemImplementation(part.factory());
-                if (implementation.isPresent()) return implementation.get().create(material, definition, part.factoryData());
-                if (part.needsEntity()) return new MaterialAmmoItem(material, projectiles.get(definition.name()), properties);
-                if (part.factory().toString().equals("mmdlib:basic_item")) return new FuelItem(material,
-                        new MaterialStats(material).integer("fuel_" + part.templateId().getPath(), new MaterialStats(material).integer("item_burn_time", 0, 0), 0), properties);
-                if (part.factory().getNamespace().equals("mmdlib")) return StandardItems.create(part, tier, armorHolder, properties);
-                return extensions.itemImplementation(part.factory()).create(material, definition, part.factoryData());
-            });
+            var implementation = extensions.itemImplementation(part.factory());
+            implementation.validate(part);
+            var item = items.register(definition.name().getPath(), () -> implementation.create(new ItemContextImpl(part, definition, material, tier, armorHolder)));
             put(itemEntries, definition.name(), item); itemMaterials.put(definition.name(), material);
         });
         if (plan.fluid() != null) fluidFamilies.add(new FluidFamily(plan.fluid(), material));
     }
-    private Block createBlock(MaterialPart part, MMDBlock definition, MMDMaterial material) {
-        var implementation = extensions.findBlockImplementation(part.factory());
-        if (implementation.isPresent()) return implementation.get().create(material, definition, part.factoryData());
-        var properties = RuntimeProperties.block(definition, material.runtime(), false);
-        var setId = material.runtime().blockSetType();
-        if (!Set.of("mmdlib:door", "mmdlib:trapdoor").contains(part.factory().toString())) {
-            var json = part.factoryData().json();
-            if (json.isJsonObject() && json.getAsJsonObject().has("block_set_type")) setId = ResourceLocation.parse(json.getAsJsonObject().get("block_set_type").getAsString());
+    /** The registrar's {@link ItemContext}: fresh properties per call, shared tier and armor per material. */
+    private final class ItemContextImpl implements ItemContext {
+        private final MaterialPart part; private final MMDItem definition; private final MMDMaterial material;
+        private final MaterialToolTier tier; private final Holder<ArmorMaterial> armor;
+        ItemContextImpl(MaterialPart part, MMDItem definition, MMDMaterial material, MaterialToolTier tier, Holder<ArmorMaterial> armor) {
+            this.part = part; this.definition = definition; this.material = material; this.tier = tier; this.armor = armor;
         }
-        var set = setId;
-        var setType = BlockSetType.values().filter(value -> ResourceLocation.parse(value.name()).equals(set)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown block set type: " + set));
-        Supplier<BlockState> base = () -> RuntimeProperties.required(BuiltInRegistries.BLOCK, material.runtime().baseBlock()).defaultBlockState();
-        return StandardBlocks.create(part, properties, setType, WoodType.OAK, base);
+        @Override public MMDMaterial material() { return material; }
+        @Override public MMDItem definition() { return definition; }
+        @Override public MaterialPart part() { return part; }
+        @Override public Item.Properties properties() { return RuntimeProperties.item(definition); }
+        @Override public MaterialToolTier tier() { return tier; }
+        @Override public Holder<ArmorMaterial> armor() {
+            if (armor == null) throw new IllegalStateException("Armor material not registered; the implementation must report usesArmorMaterial(): " + definition.name());
+            return armor;
+        }
+        @Override public Supplier<EntityType<MaterialProjectile>> projectile() {
+            var type = projectiles.get(definition.name());
+            if (type == null) throw new IllegalStateException("No projectile registered for " + definition.name());
+            return type;
+        }
     }
-    private Item createBlockItem(Block block, MMDItem definition, MMDMaterial material, MaterialPart part) {
-        var properties = RuntimeProperties.item(definition);
-        if (part.factory().toString().equals("mmdlib:door")) return new DoubleHighBlockItem(block, properties);
-        int fuel = new MaterialStats(material).integer("block_burn_time", 0, 0);
-        return new BlockItem(block, properties) {
-            @Override public int getBurnTime(ItemStack stack, RecipeType<?> recipe) { return fuel; }
-        };
+    /** The registrar's {@link BlockContext}. */
+    private static final class BlockContextImpl implements BlockContext {
+        private final MaterialPart part; private final MMDBlock definition; private final MMDMaterial material; private final MaterialEvents events;
+        BlockContextImpl(MaterialPart part, MMDBlock definition, MMDMaterial material, MaterialEvents events) {
+            this.part = part; this.definition = definition; this.material = material; this.events = events;
+        }
+        @Override public MaterialEvents events() { return events; }
+        @Override public MMDMaterial material() { return material; }
+        @Override public MMDBlock definition() { return definition; }
+        @Override public MaterialPart part() { return part; }
+        @Override public BlockBehaviour.Properties properties() { return RuntimeProperties.block(definition, material.runtime(), false); }
+        @Override public BlockSetType blockSetType() {
+            var json = part.factoryData().json();
+            return json.isJsonObject() && json.getAsJsonObject().has("block_set_type")
+                    ? setType(ResourceLocation.parse(json.getAsJsonObject().get("block_set_type").getAsString())) : materialBlockSetType();
+        }
+        @Override public BlockSetType materialBlockSetType() { return setType(material.runtime().blockSetType()); }
+        @Override public Supplier<BlockState> baseBlock() {
+            return () -> RuntimeProperties.required(BuiltInRegistries.BLOCK, material.runtime().baseBlock()).defaultBlockState();
+        }
+        private static BlockSetType setType(ResourceLocation id) {
+            return BlockSetType.values().filter(value -> ResourceLocation.parse(value.name()).equals(id)).findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown block set type: " + id));
+        }
     }
     private static <T> void put(Map<ResourceLocation, T> map, ResourceLocation id, T value) {
         if (map.putIfAbsent(id, value) != null) throw new IllegalArgumentException("Duplicate runtime entry: " + id);
-    }
-    private static final class FuelItem extends StandardItems.Basic {
-        private final int burn;
-        FuelItem(MMDMaterial material, int burn, Item.Properties properties) { super(material, () -> Ingredient.EMPTY, properties); this.burn = burn; }
-        @Override public int getBurnTime(ItemStack stack, RecipeType<?> recipe) { return burn; }
     }
     public final class FluidFamily {
         public final MMDFluid definition;

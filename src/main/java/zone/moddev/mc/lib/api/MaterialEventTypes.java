@@ -19,6 +19,7 @@ public final class MaterialEventTypes {
     public static final MaterialEvent<ProjectileDamage> PROJECTILE_DAMAGE = new MaterialEvent<>("projectile-damage", ProjectileDamage.class);
     public static final MaterialEvent<BlockClick> BLOCK_RIGHT_CLICK = new MaterialEvent<>("block-right-click", BlockClick.class);
     public static final MaterialEvent<ProjectileHit> PROJECTILE_HIT = new MaterialEvent<>("projectile-hit", ProjectileHit.class);
+    public static final MaterialEvent<RedstoneChange> REDSTONE_CHANGED = new MaterialEvent<>("redstone-changed", RedstoneChange.class);
     static void install(MaterialEvents events) {
         events.registerEvent(PLAYER_TICK.name(), Player.class, MethodType.methodType(void.class, Player.class),
                 (method, player) -> { method.invokeExact(player); });
@@ -38,5 +39,7 @@ public final class MaterialEventTypes {
         events.registerEvent(PROJECTILE_HIT.name(), ProjectileHit.class, MethodType.methodType(void.class,
                 Projectile.class, LivingEntity.class, ItemStack.class),
                 (method, context) -> { method.invokeExact(context.projectile(), context.target(), context.ammo()); });
+        events.registerEvent(REDSTONE_CHANGED.name(), RedstoneChange.class, MethodType.methodType(void.class, RedstoneChange.class),
+                (method, context) -> { method.invokeExact(context); });
     }
 }

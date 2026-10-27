@@ -28,9 +28,9 @@ public final class RuntimeSmoke {
         try {
             var level = server.overworld(); var player = FakePlayerFactory.getMinecraft(level);
             int placed = 0, projectiles = 0, fluids = 0;
-            if (MMDLib.loadedMaterials().size() != 14) throw new AssertionError("Missing materials");
+            if (MMDLib.loadedMaterials().size() != 15) throw new AssertionError("Missing materials");
             for (var registrar : RuntimeContentRegistrar.instances()) {
-                if (registrar.items().size() != 198) throw new AssertionError("Wrong runtime item count: " + registrar.items().size());
+                if (registrar.items().size() != 233) throw new AssertionError("Wrong runtime item count: " + registrar.items().size());
                 for (var entry : registrar.blocks().entrySet()) {
                     var itemHolder = registrar.items().get(entry.getKey());
                     if (itemHolder == null || !(itemHolder.get() instanceof BlockItem item)) continue;
@@ -84,10 +84,13 @@ public final class RuntimeSmoke {
                 // to accidentally exercise only the old useOn path.
                 player.setPos(input.getX(), input.getY() + .1 - player.getEyeHeight(), input.getZ() - 2);
                 player.setYRot(0); player.setXRot(0);
-                var hammerResult = hammer.getItem().use(level, player, InteractionHand.MAIN_HAND).getResult();
+                // Crushing is a data-bound tool-right-click handler, so fire the real NeoForge event the bridge listens to.
+                net.neoforged.neoforge.common.CommonHooks.onItemRightClick(player, InteractionHand.MAIN_HAND);
+                var hammerResult = "event";
                 var dust = registrar.items().get(ResourceLocation.parse("mmdlib:iron_dust")).get();
                 var outputs = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(floor.above()), entity -> entity.getItem().getItem() == dust);
-                if (!hammerResult.consumesAction() || input.getItem().getCount() != 1 || outputs.isEmpty() || hammer.getDamageValue() != 1)
+                // The default server config crushes up to 8 per click, 1 wear each: both ingots go.
+                if (input.isAlive() || outputs.isEmpty() || hammer.getDamageValue() != 2)
                     throw new AssertionError("Crackhammer failed: result=" + hammerResult + ", input=" + input.getItem().getCount() + ", outputs=" + outputs.size() + ", wear=" + hammer.getDamageValue() + ", recipes=" + level.getRecipeManager().getAllRecipesFor(zone.moddev.mc.lib.common.recipes.CrushingRecipe.TYPE.get()).size());
                 var emerald = new ItemStack(registrar.items().get(ResourceLocation.parse("mmdlib:emerald_pickaxe")).get());
                 var quartz = new ItemStack(registrar.items().get(ResourceLocation.parse("mmdlib:quartz_pickaxe")).get());
@@ -105,7 +108,7 @@ public final class RuntimeSmoke {
                     if (stream == null) throw new AssertionError("Horse armor texture not packaged: " + horse.getTexture());
                 }
             }
-            if (projectiles != 12 || fluids != 14 || placed != 50) throw new AssertionError("Wrong smoke counts: " + placed + "/" + projectiles + "/" + fluids);
+            if (projectiles != 14 || fluids != 15 || placed != 58) throw new AssertionError("Wrong smoke counts: " + placed + "/" + projectiles + "/" + fluids);
             MMDLib.LOGGER.info("MMDLIB_RUNTIME_SMOKE_PASS: {} blocks placed; {} arrow/bolt component-preserving save round trips; {} buckets placed/recovered; tag-based tiers, authored armor textures and dropped-item crushing verified", placed, projectiles, fluids);
         } catch (Throwable ex) {
             MMDLib.LOGGER.error("MMDLIB_RUNTIME_SMOKE_FAIL", ex);

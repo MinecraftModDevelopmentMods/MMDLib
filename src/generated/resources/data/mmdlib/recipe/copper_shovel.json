@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "R",
+    "R"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:copper_ingot"
+    },
+    "R": {
+      "item": "mmdlib:copper_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:copper_shovel",
+    "count": 1
+  }
+}

@@ -17,7 +17,7 @@ import java.util.Map;
 public final class DataModulesTest {
     public static void main(String[] args) throws Exception {
         var bundled = ModuleCatalog.bundled();
-        require(bundled.items().size() == 32 && bundled.blocks().size() == 22 && bundled.fluids().size() == 1);
+        require(bundled.items().size() == 32 && bundled.blocks().size() == 23 && bundled.fluids().size() == 1);
         bundled.items().values().forEach(v -> roundtrip(DataModules.Item.CODEC, v));
         bundled.blocks().values().forEach(v -> roundtrip(DataModules.Block.CODEC, v));
         bundled.fluids().values().forEach(v -> roundtrip(DataModules.Fluid.CODEC, v));

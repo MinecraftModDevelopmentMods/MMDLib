@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:sandstone/uncolored_blocks"
+  },
+  "result": {
+    "id": "minecraft:sand",
+    "count": 1
+  }
+}

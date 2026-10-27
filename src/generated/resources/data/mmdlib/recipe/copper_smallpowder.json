@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:copper_dust"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:copper_smallpowder",
+    "count": 9
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:ores/diamond"
+  },
+  "result": {
+    "id": "mmdlib:diamond_dust",
+    "count": 2
+  }
+}

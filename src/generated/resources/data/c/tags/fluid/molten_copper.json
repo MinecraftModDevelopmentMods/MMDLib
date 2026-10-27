@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:copper_molten",
+    "mmdlib:flowing_copper_molten"
+  ]
+}

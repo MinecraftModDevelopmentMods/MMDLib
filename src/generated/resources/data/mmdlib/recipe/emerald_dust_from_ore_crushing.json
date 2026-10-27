@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:ores/emerald"
+  },
+  "result": {
+    "id": "mmdlib:emerald_dust",
+    "count": 2
+  }
+}

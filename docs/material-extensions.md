@@ -109,6 +109,51 @@ rule using the type's path: example:copper_crusher. Custom namespaces do not cha
 that rule; conflicting generated IDs, including collisions with fluid companions,
 fail explicitly. Builtin parts cannot be replaced by registration.
 
+## Factory implementations
+
+A data module's `factory` names an `ItemImplementation` or `BlockImplementation`,
+registered with `registerItemImplementation` / `registerBlockImplementation`. MMDLib's
+own factories (`mmdlib:pickaxe`, `mmdlib:armor`, `mmdlib:door`, `mmdlib:pressure_plate`,
+...) are registered exactly this way by `StandardImplementations`, alongside the bundled
+modules; the runtime registrar has no list of built-in IDs, and an unregistered factory
+fails when the definition is queued.
+
+The registrar calls `create(ItemContext)` / `create(BlockContext)`. The contexts carry
+what MMDLib's own items and blocks are built from, so an addon can build the same kind
+of object:
+
+| `ItemContext` | `BlockContext` |
+|---|---|
+| `material()`, `definition()`, `part()`, `factoryData()` | `material()`, `definition()`, `part()`, `factoryData()` |
+| `properties()`: fresh `Item.Properties` from the definition | `properties()`: fresh `BlockBehaviour.Properties` with the material's sound and map colour |
+| `tier()`: the material's tool tier | `blockSetType()`: `factory_data.block_set_type`, else the material's |
+| `armor()`: the material's armor material | `materialBlockSetType()`: always the material's |
+| `projectile()`: the part's registered projectile type | `baseBlock()`: the material's base block, lazily |
+| | `events()`: the event registry, for blocks that dispatch bindings |
+
+Implementations may also override:
+
+- `validate(part)` to decode `factory_data` at load, so bad data fails before registry
+  construction.
+- `usesArmorMaterial()` (items) to have the material's armor material registered; it is
+  registered only when some selected part asks.
+- `createItem(block, context)` (blocks) to choose the block's item, e.g. a door's
+  `DoubleHighBlockItem`; the default is a `MaterialBlockItem` that burns for the
+  material's `block_burn_time`.
+
+```java
+api.registerBlockImplementation(ResourceLocation.parse("example:glowing_plate"), new BlockImplementation<GlowingPlate>() {
+    public Class<GlowingPlate> blockClass() { return GlowingPlate.class; }
+    public GlowingPlate create(MMDMaterial material, MMDBlock definition) { throw new IllegalStateException("needs a context"); }
+    public GlowingPlate create(BlockContext context) { return new GlowingPlate(context.blockSetType(), context.properties().lightLevel(state -> 7)); }
+});
+```
+
+Existing implementations that only override `create(material, definition, data)` keep
+working: the context overload calls it by default. A `MaterialExtensions(false)` has no
+bundled modules or built-in factories; call `StandardImplementations.install(api)` to
+add the factories.
+
 ## Registry hooks
 
 Queue actual custom game objects through a consuming mod's DeferredRegisters:

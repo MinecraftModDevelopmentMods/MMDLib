@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_leggings",
     "mmdlib:emerald_leggings",
     "mmdlib:obsidian_leggings",
     "mmdlib:quartz_leggings"

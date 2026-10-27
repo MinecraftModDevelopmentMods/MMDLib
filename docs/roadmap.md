@@ -10,6 +10,7 @@
   edge that slide out with text. An info tab (blue, left) explains the screen; a problems tab
   (amber/red, right, below the upgrades) lists live block-entity issues synced from the server.
   These pop-outs need JEI exclusion areas.
+  See [GUI screens](gui-screens.md) for the current plan with a full example.
   Direction: screens are declarative **XML** (`mmdlib/screen/*.xml`), loaded into a typed screen
   model with load-time validation and an XSD for editor support. The parser must be hardened
   (no DTDs or external entities). Every element can take `on-click` / `on-right-click`
@@ -20,18 +21,44 @@
 - **Block-entity right-click connection** for that GUI system. This should build on
   the existing `block-right-click` contract ([method events](method-events.md#block-contracts))
   rather than a separate mechanism.
-- **Config-file crackhammer recipes**, alongside the datapack `mmdlib:crushing` recipes.
 - **Capability wrappers**: easy-to-use helpers around the Item, Fluid, and Energy capabilities.
+  Decided: slot numbering is the same on every face, side configuration only allows or refuses
+  operations, and out-of-range indices are refused without throwing; see
+  [GUI screens](gui-screens.md#edge-cases-reviewed).
 
 ## Done since the parity list was written
+
+- **Built-in factories through the public API.** Every `mmdlib:*` item and block factory
+  is registered with `registerItemImplementation` / `registerBlockImplementation` and
+  built from the `ItemContext` / `BlockContext` addons receive; see
+  [material extensions](material-extensions.md#factory-implementations). Still special-cased:
+  the arrow/bolt entity factories and the `mmdlib:flowing_fluid` fluid factory.
+- **Redstone.** `redstone-changed` contract, signal and comparator output for
+  `mmdlib:block` via `factory_data.redstone`, `detects` filters for pressure plates
+  (player-only plates), and `mmdlib:weighted_pressure_plate`; see
+  [runtime behaviors](runtime-behaviors.md#redstone). Comparator output from a
+  block-entity getter waits for block-entity runtime support.
 
 - **Optional JEI integration** for crackhammer recipes; see
   [runtime behaviors](runtime-behaviors.md#optional-jei-integration). Needs an in-game
   check with and without JEI installed.
 
+## Decided against
+
+- **Config-file crackhammer recipes.** Crushing recipes are a normal datapack recipe type
+  (`mmdlib:crushing`), which datapacks, KubeJS (`event.custom`, `event.remove`), and
+  CraftTweaker (`<recipetype:mmdlib:crushing>.addJsonRecipe`) can already add and remove.
+  The config stays NeoForge's standard TOML server config for tuning values only.
+
 ## Possible future expansions
 
 These are flagged for consideration, not committed work.
+
+### KubeJS and CraftTweaker recipe integrations
+
+Optional polish over the generic support above, each loaded only when that mod is present: a
+KubeJS recipe schema (`event.recipes.mmdlib.crushing(output, input)`) and a typed CraftTweaker
+recipe manager (`addRecipe(name, output, input)`).
 
 ### Global data pack loader
 

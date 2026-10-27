@@ -28,6 +28,7 @@ def main():
             elif name in modules[section]:target.add(name)
             else:raise ValueError(f'Unknown {section}: {token}')
         return sorted(yes-no)
+    ORE_TAGS={'coal','copper','diamond','emerald','gold','iron','lapis','netherite_scrap','quartz','redstone'};RAW_TAGS={'copper','gold','iron'}
     tags={};counts={'materials':0,'items':0,'blocks':0,'recipes':0}
     def tag(kind,name,value):tags.setdefault((kind,name),set()).add(value)
     def itemid(name):return 'mmdlib:'+name
@@ -79,7 +80,17 @@ def main():
                         if obsolete.exists(): raise SystemExit(f'Obsolete generated recipe: {obsolete}')
                     else: obsolete.unlink(missing_ok=True)
                 smelt(full+'_smelting',itemid(full),repair)
+                def crushing(suffix,ingredient,count):
+                    recipe(name+'_dust_from_'+suffix+'_crushing',{'type':'mmdlib:crushing','ingredient':ingredient,'result':{'id':itemid(full),'count':count}})
                 recipe(full+'_crushing',{'type':'mmdlib:crushing','ingredient':{'item':repair},'result':{'id':itemid(full),'count':1}})
+                # Ores and raw ores give 2 dust; storage blocks give back the dust they hold
+                # (special.storage_block_dust, default 9). Only tags NeoForge actually defines are used.
+                if name in ORE_TAGS:crushing('ore',{'tag':'c:ores/'+name},2)
+                if name in RAW_TAGS:
+                    crushing('raw',{'tag':'c:raw_materials/'+name},2)
+                    crushing('raw_block',{'tag':'c:storage_blocks/raw_'+name},18)
+                storage=itemid(name+'_block') if 'block' in bs else base
+                if storage!=repair:crushing('block',{'item':storage},int(d.get('special',{}).get('storage_block_dust',9)))
             elif form=='smallpowder':
                 dust=itemid(name+'_dust') if 'dust' in its else repair
                 shapeless(full,[dust],9);shaped(name+'_from_smallpowder',['NNN']*3,{'N':itemid(full)},result=dust)

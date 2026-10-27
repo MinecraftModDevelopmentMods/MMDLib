@@ -38,7 +38,11 @@ public final class MaterialExtensions {
     private final ConcurrentHashMap<ResourceLocation, zone.moddev.mc.lib.common.modules.DataModules.Fluid> fluids = new ConcurrentHashMap<>();
     public MaterialExtensions() { this(true); }
     public MaterialExtensions(boolean includeBundledModules) {
-        if (includeBundledModules) ModuleCatalog.bundled().install(this);
+        if (includeBundledModules) {
+            ModuleCatalog.bundled().install(this);
+            // MMDLib's own factories, through the same public registration calls an addon uses.
+            zone.moddev.mc.lib.common.runtime.StandardImplementations.install(this);
+        }
     }
     public <I extends Item> void registerItemImplementation(ResourceLocation id, ItemImplementation<I> implementation) {
         Objects.requireNonNull(implementation.itemClass());

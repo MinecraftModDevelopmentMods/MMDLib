@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " RS",
+    "R S",
+    " RS"
+  ],
+  "key": {
+    "R": {
+      "item": "mmdlib:copper_rod"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
+  },
+  "result": {
+    "id": "mmdlib:copper_bow",
+    "count": 1
+  }
+}

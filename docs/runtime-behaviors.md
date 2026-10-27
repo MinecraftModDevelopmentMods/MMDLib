@@ -75,10 +75,25 @@ nor mine faster than bare hands, so a wooden-tier crackhammer cannot mine iron o
 
 While mining, the `tool-harvest` binding `mmdlib:crackhammer_harvest` replaces every
 drop that has a crushing recipe with its crushed output (Fortune multiplies first).
-Each crushed item costs 1 durability on top of the block break, so an iron ore whose
-raw iron is crushed costs 2; when durability runs short, the rest drop uncrushed.
-Crushed outputs are not crushed again. Right-click crushing also costs 1 per item.
-Ores are covered through their drops (e.g. raw metal or gems), not separate ore recipes.
+Each crushed item costs 1 durability on top of the block break; when durability runs
+short, the rest drop uncrushed. Crushed outputs are not crushed again. Right-click
+crushing also costs 1 per item.
+
+Blocks in `#c:ores` are the exception: the ore block itself is crushed, replacing all
+of its drops. Fortune does not apply, and the crush costs 1 durability.
+
+Gems are never crushed while mining, so the crackhammer stays a processing tool rather
+than the best way to mine gems. A gem is any item with a tag whose path is `gems` or
+starts with `gems/` (e.g. `#c:gems/diamond`), in any namespace. An ore that drops a gem
+therefore drops normally, Fortune included. Gems are still crushed by right-click, and a
+silk-touched gem ore block still crushes to 2 dust.
+
+The shipped recipes cover:
+- **Per material:** `#c:ores/<m>` and `#c:raw_materials/<m>` give 2 dust; a raw storage
+  block gives 18. The storage block gives 9 dust, or `special.storage_block_dust`
+  (4 for quartz); the repair item (ingot or gem) gives 1.
+- **Fixed:** `#c:cobblestones` → gravel, `#c:gravels` → sand, uncoloured and red
+  sandstone → sand and red sand, bricks and nether bricks → 4 brick items.
 
 Both handlers are declared in `mmdlib/extension/crackhammer.json` and implemented by
 `CrackhammerEvents`. Right-click (`crush`) runs on the server only and processes
@@ -127,9 +142,11 @@ in `neoforge.mods.toml`, and only JEI loads the `@JeiPlugin` class
 
 ## Blocks
 
-StandardBlocks.create accepts fresh BlockBehaviour.Properties, BlockSetType,
-WoodType, and a lazy stair-base BlockState supplier. Its dispatcher uses actual
-StairBlock, SlabBlock, LadderBlock, LeverBlock, and other vanilla subclasses.
+Every `mmdlib:*` block and item factory is registered by `StandardImplementations`
+through the public `registerBlockImplementation` / `registerItemImplementation`, and
+built from the same `BlockContext` / `ItemContext` an addon receives (see
+[material extensions](material-extensions.md#factory-implementations)). The block
+factories use actual StairBlock, SlabBlock, LadderBlock, LeverBlock, and other vanilla subclasses.
 These provide their native states, placement, waterlogging, redstone, shapes,
 and interaction logic rather than relying on a generic Block substitute.
 
@@ -141,6 +158,49 @@ slab. Bookshelf overrides NeoForge enchant power. Flowers/potted variants requir
 their own registrations; this creates only the empty flower-pot block. Ores use
 DropExperienceBlock with zero default XP. The caller chooses door/button/pressure
 plate set type and fence-gate wood type and supplies the stair base explicitly.
+
+A pressure-plate module may narrow what presses it with `factory_data.detects`:
+`everything`, `mobs`, `players`, or an entity-type tag (`#example:detectable`).
+Spectators and entities that ignore block triggers never press it. Without `detects`
+the plate follows its block set type, as vanilla does. A player-only plate (BaseMetals'
+human detector) is therefore data, not a class:
+
+```json
+"factory": "mmdlib:pressure_plate",
+"factory_data": { "block_set_type": "stone", "detects": "players" }
+```
+
+An unknown `detects` value fails when the definition loads.
+
+`mmdlib:weighted_pressure_plate` is vanilla's weighted plate: its signal grows with the
+number of entities on it, up to `factory_data.max_weight` (1-1024; vanilla uses 15 for
+the light gold plate and 150 for the heavy iron plate). The bundled module defaults to
+150; no shipped material selects it yet.
+
+### Redstone
+
+A `mmdlib:block` with `factory_data.redstone` reacts to and/or produces redstone.
+Only the block-state properties its settings use are added.
+
+```json
+"factory": "mmdlib:block",
+"factory_data": {
+  "redstone": { "input": true, "output": "state", "strong": false, "faces": ["up", "down"], "comparator": "input" }
+}
+```
+
+| Key | Values | Effect |
+|---|---|---|
+| `input` | `true` / `false` | Store the received power (`input`, 0-15) and fire `redstone-changed` on each change, server side |
+| `output` | `0`-`15` or `"state"` | Emit a constant, or the power stored in the `output` property, set by handlers with `RedstoneBlock.setOutput(level, pos, power)` |
+| `strong` | `true` / `false` | Also power through the touching block, like a lever's attached face (default weak) |
+| `faces` | list of `down`, `up`, `north`, `south`, `west`, `east` | Faces that emit (default all) |
+| `comparator` | `0`-`15`, `"input"`, or `"output"` | Comparator reading; `"input"` needs `input`, `"output"` needs `output: "state"` |
+
+Unknown keys and out-of-range values fail when the definition loads. A block that
+both reads and emits can latch itself on through neighbouring dust; that is a wiring
+choice for the author. Comparator readings from a block-entity getter wait for
+block-entity runtime support.
 
 The native blocks still need the appropriate tags, blockstate models, loot tables,
 recipes, textures, and registration wiring from the consuming content factory.

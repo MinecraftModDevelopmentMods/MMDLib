@@ -1,6 +1,10 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_boots",
+    "mmdlib:copper_chestplate",
+    "mmdlib:copper_helmet",
+    "mmdlib:copper_leggings",
     "mmdlib:emerald_boots",
     "mmdlib:emerald_chestplate",
     "mmdlib:emerald_helmet",

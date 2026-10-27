@@ -14,7 +14,8 @@
     "temperature": 1300,
     "density": 2000,
     "block_hardness": 10,
-    "blast_resistance": 10.0
+    "blast_resistance": 10.0,
+    "storage_block_dust": 4
   },
   "runtime": {
     "repair_item": "minecraft:quartz",

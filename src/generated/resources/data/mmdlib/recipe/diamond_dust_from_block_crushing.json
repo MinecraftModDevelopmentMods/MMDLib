@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "item": "minecraft:diamond_block"
+  },
+  "result": {
+    "id": "mmdlib:diamond_dust",
+    "count": 9
+  }
+}

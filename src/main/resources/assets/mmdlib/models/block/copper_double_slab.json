@@ -1,0 +1,54 @@
+{
+  "parent": "minecraft:block/quartz_block",
+  "textures": {
+    "particle": "minecraft:block/copper_block",
+    "down": "minecraft:block/copper_block",
+    "up": "minecraft:block/copper_block",
+    "north": "minecraft:block/copper_block",
+    "east": "minecraft:block/copper_block",
+    "south": "minecraft:block/copper_block",
+    "west": "minecraft:block/copper_block",
+    "end": "minecraft:block/copper_block",
+    "side": "minecraft:block/copper_block"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#down",
+          "cullface": "down"
+        },
+        "up": {
+          "texture": "#up",
+          "cullface": "up"
+        },
+        "north": {
+          "texture": "#north",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#south",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#west",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#east",
+          "cullface": "east"
+        }
+      }
+    }
+  ]
+}

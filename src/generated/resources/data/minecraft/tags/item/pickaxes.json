@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_pickaxe",
     "mmdlib:emerald_pickaxe",
     "mmdlib:obsidian_pickaxe",
     "mmdlib:quartz_pickaxe"

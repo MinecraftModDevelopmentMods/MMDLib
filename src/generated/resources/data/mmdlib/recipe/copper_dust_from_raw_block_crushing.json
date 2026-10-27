@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:storage_blocks/raw_copper"
+  },
+  "result": {
+    "id": "mmdlib:copper_dust",
+    "count": 18
+  }
+}

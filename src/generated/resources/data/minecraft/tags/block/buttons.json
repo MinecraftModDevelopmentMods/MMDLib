@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_button",
     "mmdlib:diamond_button",
     "mmdlib:emerald_button",
     "mmdlib:gold_button",

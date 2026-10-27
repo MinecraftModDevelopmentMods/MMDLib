@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_crossbow",
     "mmdlib:diamond_crossbow",
     "mmdlib:emerald_crossbow",
     "mmdlib:gold_crossbow",

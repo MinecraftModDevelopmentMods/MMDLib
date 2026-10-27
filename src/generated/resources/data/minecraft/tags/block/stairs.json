@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_stairs",
     "mmdlib:diamond_stairs",
     "mmdlib:emerald_stairs",
     "mmdlib:gold_stairs",

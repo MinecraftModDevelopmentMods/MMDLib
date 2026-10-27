@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_hoe",
     "mmdlib:emerald_hoe",
     "mmdlib:obsidian_hoe",
     "mmdlib:quartz_hoe"

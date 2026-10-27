@@ -6,7 +6,7 @@ to extend vanilla materials. The definitions live in
 per-material registration loop. The imported `content/ModContent.java` is a
 reference only and remains outside the production source tree.
 
-The fourteen shipped materials are wood, stone, iron, gold, diamond, coal,
+The fifteen shipped materials are wood, stone, iron, gold, copper, diamond, coal,
 charcoal, emerald, ender, quartz, obsidian, lapis, prismarine, and redstone. Their
 hardness, strength, magic affinity, and ARGB colors preserve the historical 1.x
 table supplied for this rewrite. Repair items, mining restriction tags, base
@@ -22,12 +22,18 @@ The JSON selections follow the reference's `registerVanillaBits` behavior:
 - Additional ranged/utility equipment for those six materials, including arrows
   and bolts. Iron shears and existing vanilla tools/armor are not duplicated.
 - Full tools/armor for emerald, obsidian, and quartz, which lack vanilla equipment.
+- Copper, which 1.21.1 has only as ores, raw copper, ingots, blocks, doors, and
+  trapdoors: full tools and armor, nuggets, ranged/utility equipment, and bars,
+  buttons, levers, plates, pressure plates, slabs, stairs, and walls. Vanilla's own
+  copper door, trapdoor, ingot, and block are used, not duplicated. Its artwork is
+  imported from BaseMetals; the block models and blockstates follow gold's (the
+  pressure plate follows diamond's), textured with vanilla's copper block.
 - Crackhammers, scythes, gears, dusts, small dusts, nuggets, blends, and rods where
   the reference selected them. `dust` is the current canonical spelling of powder.
-- Fourteen fluid families: source, flowing fluid, liquid block, and bucket.
+- Fifteen fluid families: source, flowing fluid, liquid block, and bucket.
 
-The resulting example has 198 items (including block items and buckets), 55
-ordinary blocks plus 14 liquid blocks, 12 projectile entity types, and 14 fluid
+The resulting example has 233 items (including block items and buckets), 64
+ordinary blocks plus 15 liquid blocks, 14 projectile entity types, and 15 fluid
 types/families. Ender and prismarine currently add fluids only, matching the
 reference's fluid list. No vanilla material adds ores.
 
@@ -87,6 +93,12 @@ are not multiplied into the artwork again. Six pure-material blends reuse their
 material's supplied dust sprites. Loaded crossbow states use the supplied fully
 drawn sprite, since separate loaded-projectile sprites were not supplied.
 
+`--material <name>` (repeatable) imports only the named materials and merges into the
+existing `imported_assets.json`, so the `content` tree needs only that material's art.
+Shared parents imported earlier (such as `item/shield`) and block item models already
+in assets are kept. Copper was added this way:
+`python3 scripts/import_basemetals_assets.py --material copper`.
+
 The static inventory models include the original bow, crossbow, fishing-rod, and
 shield variants. Blockstates retain the existing 1.21.1 geometry with material
 textures. Armor and horse armor reference the supplied material-specific layers;
@@ -135,13 +147,13 @@ bucket recovery, actual mining tags, and packaged armor texture references:
 
 ```sh
 ./gradlew runServer --offline --stacktrace -I scripts/runtime-smoke.init.gradle
-./gradlew build --offline --stacktrace
+./gradlew build check --offline --stacktrace
 ```
 
 The smoke run uses `build/runtime-smoke/server`, loopback networking, and a random
 port. It stops itself and the Gradle task fails if the success marker is absent.
-Its entrypoint lives in `src/runtimeTest/java`, outside release sources; normal
-build checks compile it to prevent API drift. The second command restores regular
+Its entrypoint lives in `src/runtimeTest/java`, outside release sources; `./gradlew check`
+compiles it to prevent API drift. The second command restores regular
 main class output after the opt-in test run. The release JAR must contain no
 `zone/moddev/mc/lib/smoke` classes.
 

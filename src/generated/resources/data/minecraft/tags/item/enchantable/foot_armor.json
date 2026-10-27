@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_boots",
     "mmdlib:emerald_boots",
     "mmdlib:obsidian_boots",
     "mmdlib:quartz_boots"

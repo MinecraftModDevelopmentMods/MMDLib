@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "item": "minecraft:emerald_block"
+  },
+  "result": {
+    "id": "mmdlib:emerald_dust",
+    "count": 9
+  }
+}

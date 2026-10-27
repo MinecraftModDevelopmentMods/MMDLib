@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:crushing",
+  "ingredient": {
+    "tag": "c:storage_blocks/raw_gold"
+  },
+  "result": {
+    "id": "mmdlib:gold_dust",
+    "count": 18
+  }
+}

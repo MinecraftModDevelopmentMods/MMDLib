@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_fishing_rod",
     "mmdlib:diamond_fishing_rod",
     "mmdlib:emerald_fishing_rod",
     "mmdlib:gold_fishing_rod",

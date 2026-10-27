@@ -43,5 +43,5 @@ No legacy numeric harvest level has been added. Future tool/block factories must
 use the target Minecraft version's tag-based mining rules.
 
 The checkout now targets Java 21 and NeoForge 21.1.247 for Minecraft 1.21.1.
-`./gradlew build` runs verifyItemBuilder and verifyItemTemplate. StackContext NBT
+`./gradlew check` runs verifyItemBuilder and verifyItemTemplate. StackContext NBT
 is stored in the CUSTOM_DATA component; it is not interpreted as legacy item NBT.

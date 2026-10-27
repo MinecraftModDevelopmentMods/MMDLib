@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "mmdlib:copper_wall",
     "mmdlib:diamond_wall",
     "mmdlib:emerald_wall",
     "mmdlib:gold_wall",
