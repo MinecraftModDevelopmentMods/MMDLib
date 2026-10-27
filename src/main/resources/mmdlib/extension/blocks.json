@@ -1,0 +1,10 @@
+{
+  "events": [
+    {
+      "type": "block-right-click",
+      "handler": "zone.moddev.mc.lib.common.runtime.BlockEvents#openMenu",
+      "id": "mmdlib:open_menu",
+      "name": "Open the block's menu"
+    }
+  ]
+}

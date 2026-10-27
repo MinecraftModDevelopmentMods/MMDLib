@@ -64,3 +64,10 @@ This mod provides a complete JSON-based configuration system and a means for mod
     versionRange="[1.21.1,1.21.2)"
     ordering="NONE"
     side="BOTH"
+# Optional: JEI shows crackhammer crushing recipes when installed; never required.
+[[dependencies.mmdlib]]
+    modId="jei"
+    type="optional"
+    versionRange="[19,)"
+    ordering="NONE"
+    side="CLIENT"

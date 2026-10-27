@@ -32,9 +32,13 @@ remains available for explicit `data/<namespace>/...` module directories.
    parallel across mod files. Collect material paths without decoding them.
 3. Merge results in a defined order and install the modules, rejecting duplicate IDs.
 4. Decode materials against the completed module/callback catalog, bind their IDs,
-   build content plans, and check generated registry IDs for collisions.
-5. Retain results, queue MMDLib's playable example content, and publish definitions
-   during NeoForge registry events.
+   build content plans, and check generated registry IDs for collisions. Every
+   planned item and block definition's `events` bindings, custom types included,
+   are validated against the callback catalog; an unknown event or callback fails
+   loading with the material file and definition named.
+5. Retain results, index their item and block definitions (and owning materials)
+   for the runtime event bridge, queue MMDLib's playable example content, and
+   publish definitions during NeoForge registry events.
 
 Missing folders and non-JSON files are skipped. Nested JSON files are supported.
 Unknown top-level folders are ignored. Malformed data, invalid resource paths,

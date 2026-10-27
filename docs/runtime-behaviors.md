@@ -106,6 +106,25 @@ the fixed stone chain in `data/mmdlib/recipe`: smooth stone → stone → cobble
 The harvest/crushable tags are adapted from BMe. Optional common-tag references
 avoid requiring another mod's tag definitions. The consuming mod can extend them.
 
+## Optional JEI integration
+
+When JEI is installed, a "Crackhammer" category shows every `mmdlib:crushing` recipe:
+input slot, a crackhammer filling from bottom to top, and the output slot, with a
+note that matching drops are also crushed when mining. The texture is
+`assets/mmdlib/textures/gui/jei/crackhammer.png` (a 256x256 sheet: the 168x74 panel,
+the 16x16 tab icon at (169, 1), and the 32x32 fill hammer at (168, 18)).
+
+Catalysts are found by binding, not class: any item whose definition (or material)
+binds `tool-right-click` to `mmdlib:crackhammer_crush` or `tool-harvest` to
+`mmdlib:crackhammer_harvest` is listed, so addon crackhammers appear automatically.
+This covers definitions loaded by MMDLib's startup loader.
+
+JEI stays optional. MMDLib compiles against the JEI API only (`compileOnly`, version
+`jei_version` in `gradle.properties`), declares JEI as an optional client dependency
+in `neoforge.mods.toml`, and only JEI loads the `@JeiPlugin` class
+(`zone.moddev.mc.lib.client.jei`). Development runs include JEI; launch with
+`-PwithoutJei` to run without it.
+
 ## Blocks
 
 StandardBlocks.create accepts fresh BlockBehaviour.Properties, BlockSetType,
@@ -116,7 +135,8 @@ and interaction logic rather than relying on a generic Block substitute.
 
 PlateBlock preserves BMe's six shapes, center/edge hit placement, rotations, and
 mirroring. MaterialAnvilBlock preserves the three damage states and custom menu
-validity/damage handling. CompatibilityDoubleSlabBlock starts as a dry double
+validity/damage handling. Its GUI opens only through the anvil module's
+`block-right-click` binding to `mmdlib:open_menu`; the block itself passes the click. CompatibilityDoubleSlabBlock starts as a dry double
 slab. Bookshelf overrides NeoForge enchant power. Flowers/potted variants require
 their own registrations; this creates only the empty flower-pot block. Ores use
 DropExperienceBlock with zero default XP. The caller chooses door/button/pressure
@@ -132,7 +152,8 @@ This pass does not turn tag metadata into generated resources for each material.
 arrow/bolt classes, and fluid families to actual registries. Client rendering and
 fluid extensions are installed by the client-only runtime subscriber. MMDLib's
 [vanilla example](vanilla-extensions.md) exercises this route; custom machinery,
-world entities, and effect callback dispatch still need their specific APIs.
+and world entities still need their specific APIs. Event bindings on loaded item,
+block, and material definitions are dispatched by the runtime event bridge.
 `StandardItems` by itself deliberately rejects ammunition instead of substituting
 an item that cannot shoot.
 
@@ -140,7 +161,8 @@ verifyRuntimeBehavior checks dispatch classes without instantiating game objects
 material stat formulas, explicit tier tags, lazy repair resolution, and bundled tag
 resources. The whole NeoForge project compiles and existing definition/codec/API
 checks run alongside it. Scythe harvesting/protection, crackhammer processing and
-breakage, armor equipment effects, anvil menus, and block placement still require
-in-game verification.
+breakage, armor equipment effects, anvil menus (opened through the `block-right-click`
+binding, including not placing the held item and sneak-use passthrough), projectile
+effects, and block placement still require in-game verification.
 
 See [block entities and machines](block-entities.md) for data-defined machine companions, typed factories, deferred registration, and tick hooks.

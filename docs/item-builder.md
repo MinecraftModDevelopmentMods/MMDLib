@@ -20,7 +20,9 @@ root or the parsed template and produces a new MMDItem definition each time.
 `MMDItem` is an immutable definition rather than a registered Minecraft Item.
 Properties, parent/type references, food/container references, use action IDs,
 lore, tool action names, event action references, and creative-stack declarations
-are retained for the material loader/content factory to resolve later. Parent
+are retained for the material loader/content factory to resolve later. Event
+references in a template's `events` map are dispatched at runtime by MMDLib's event
+bridge (see [item and material bindings](method-events.md#item-and-material-bindings)). Parent
 resolution and Minecraft object registration are not performed by ItemBuilder.
 Automatic material discovery and runtime registration remain unfinished; this is not a complete load-to-registry
 pipeline. ItemParser now decodes through ItemTemplate.CODEC instead of the old

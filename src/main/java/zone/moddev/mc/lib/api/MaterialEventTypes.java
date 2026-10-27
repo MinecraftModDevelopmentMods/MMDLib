@@ -17,6 +17,7 @@ public final class MaterialEventTypes {
     public static final MaterialEvent<ToolUse> TOOL_RIGHT_CLICK = new MaterialEvent<>("tool-right-click", ToolUse.class);
     public static final MaterialEvent<ToolHarvest> TOOL_HARVEST = new MaterialEvent<>("tool-harvest", ToolHarvest.class);
     public static final MaterialEvent<ProjectileDamage> PROJECTILE_DAMAGE = new MaterialEvent<>("projectile-damage", ProjectileDamage.class);
+    public static final MaterialEvent<BlockClick> BLOCK_RIGHT_CLICK = new MaterialEvent<>("block-right-click", BlockClick.class);
     public static final MaterialEvent<ProjectileHit> PROJECTILE_HIT = new MaterialEvent<>("projectile-hit", ProjectileHit.class);
     static void install(MaterialEvents events) {
         events.registerEvent(PLAYER_TICK.name(), Player.class, MethodType.methodType(void.class, Player.class),
@@ -29,6 +30,8 @@ public final class MaterialEventTypes {
                 (method, context) -> { method.invokeExact(context.player(), context.target()); });
         events.registerEvent(TOOL_HARVEST.name(), ToolHarvest.class, MethodType.methodType(void.class, Player.class, Harvest.class),
                 (method, context) -> { method.invokeExact(context.player(), context.harvest()); });
+        events.registerEvent(BLOCK_RIGHT_CLICK.name(), BlockClick.class, MethodType.methodType(void.class, Player.class, BlockUse.class),
+                (method, context) -> { method.invokeExact(context.player(), context.use()); });
         events.registerEvent(PROJECTILE_DAMAGE.name(), ProjectileDamage.class, MethodType.methodType(void.class,
                 Projectile.class, LivingEntity.class, ItemStack.class, DamageContainer.class), (method, context) -> {
                     method.invokeExact(context.projectile(), context.target(), context.ammo(), context.damage()); });

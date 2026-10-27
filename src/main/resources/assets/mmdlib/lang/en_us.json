@@ -216,5 +216,7 @@
   "item.mmdlib.wood_gear": "Wood Gear",
   "item.mmdlib.wood_scythe": "Wood Scythe",
   "item.mmdlib.wood_molten_bucket": "Molten Wood Bucket",
-  "fluid_type.mmdlib.wood_molten": "Molten Wood"
+  "fluid_type.mmdlib.wood_molten": "Molten Wood",
+  "jei.mmdlib.crushing": "Crackhammer",
+  "jei.mmdlib.crushing.mined": "Also crushes drops when mining"
 }

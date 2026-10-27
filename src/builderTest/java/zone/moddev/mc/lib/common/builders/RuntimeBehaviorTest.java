@@ -30,9 +30,9 @@ public final class RuntimeBehaviorTest {
                 "projectile-hit", ResourceLocation.parse("test:material_hit"))).build();
         var arrow = ItemBuilder.create().setName("test:arrow").setEventMap(Map.of("projectile-hit", ResourceLocation.parse("test:item_hit")))
                 .buildFor(ResourceLocation.parse("test:metal"));
-        require(ItemEventBridge.binding(arrow, bound, "projectile-hit").toString().equals("test:item_hit"));
-        require(ItemEventBridge.binding(arrow, bound, "player-tick").toString().equals("test:material_tick"));
-        require(ItemEventBridge.binding(arrow, bound, "projectile-damage") == null && ItemEventBridge.binding(arrow, null, "player-tick") == null);
+        require(ItemEventBridge.binding(arrow.events(), bound, "projectile-hit").toString().equals("test:item_hit"));
+        require(ItemEventBridge.binding(arrow.events(), bound, "player-tick").toString().equals("test:material_tick"));
+        require(ItemEventBridge.binding(arrow.events(), bound, "projectile-damage") == null && ItemEventBridge.binding(arrow.events(), null, "player-tick") == null);
         var tuned = MaterialBuilder.from(material).setSpecial(Map.of("tool_durability", 500D, "crackhammer_destroy_speed", 7D)).build();
         require(new MaterialStats(tuned).toolDurability() == 500 && new MaterialStats(tuned).scaledEfficiency("crackhammer_destroy_speed", .5, 1) == 7);
         AtomicInteger repairs = new AtomicInteger();

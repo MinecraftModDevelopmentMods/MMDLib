@@ -138,8 +138,44 @@ available independently. Actual Mekanism processing recipes are not generated.
 
 ## 3. Register event callbacks before decoding
 
-The example JSON references a callback, so register its key and implementation
-first. These imports are used by the following snippets:
+The example JSON references a callback, so the callback must exist before the
+material decodes. There are two routes.
+
+### Data-driven route (recommended)
+
+Declare a public static handler for a **built-in** contract in an extension file
+under your mod's root `mmdlib/extension/` folder, then bind it by ID. MMDLib loads
+the file before decoding materials and its event bridge runs the handler; no
+registration code or event subscription is needed:
+
+```json
+{"events": [{"type": "player-tick", "id": "example:orichalcum_armor_bonus",
+  "handler": "com.example.OrichalcumEvents#armorBonus"}]}
+```
+
+```java
+public static void armorBonus(Player player) {
+    if (player.level().isClientSide() || player.tickCount % 20 != 0) return;
+    // Count equipped orichalcum pieces and apply the effect, as in the code route below.
+}
+```
+
+Bind it in the material as `"event": {"player-tick": "example:orichalcum_armor_bonus"}`.
+`player-tick` runs once per tick per callback for a player wearing or holding any
+item of the material. The same route covers tool clicks, mining (`tool-harvest`),
+melee hits, projectile damage/effects, and block right-clicks such as opening a GUI;
+see [method events](method-events.md) for every contract, its side, and its handler
+parameters. Bindings may also go on a single item or block module's `template.events`,
+which wins over the material's binding.
+
+Bridge dispatch covers materials loaded by MMDLib's startup loader from root
+`mmdlib/` folders. Materials you decode yourself (as in the code route below) are
+not indexed; construct and register your own `ItemEventBridge` for them, or use the
+code route.
+
+### Code route
+
+Register a custom event key and implementation first. These imports are used by the following snippets:
 
 ```java
 import zone.moddev.mc.lib.api.MaterialExtensions;
@@ -204,8 +240,9 @@ var armorSubscription = api.events().listen(NeoForge.EVENT_BUS, armorTick,
 
 The callback guards side/tick frequency and checks actual armor. The resolver
 above supplies just this mod's material; a multi-material mod can select only the
-materials represented by equipped items. MMDLib does not invoke callbacks merely
-because their IDs appear in JSON.
+materials represented by equipped items. A custom key such as `example:armor_tick`
+is not one of the built-in contracts, so MMDLib's event bridge never dispatches it;
+the explicit `listen` subscription above is what runs it.
 
 `publishDefinitions` registers MMDLib's **definition records**, not the actual
 Minecraft objects. Queue those separately before the relevant registry events.
@@ -305,10 +342,13 @@ material's harvest_tags instead define block tag memberships to emit. They are
 not interchangeable, and neither is a legacy numeric harvest level.
 
 Use StandardItems.create for supported basic/tool/armor forms, including SCYTHE
-and CRACKHAMMER. Use StandardBlocks.create for specialized block classes. Supply
+and the data-configured `mmdlib:tool` factory (the crackhammer's form; its
+right-click and mining behavior come from event bindings, not the item class). Use StandardBlocks.create for specialized block classes. Supply
 fresh properties, an appropriate BlockSetType/WoodType, and a lazy base-block state
 for stairs. Queue the storage block before dependent stair creation. Queue block
 items separately; do not register a second independent item for anvil/door/slab.
+Anvils open their GUI only through the anvil module's `block-right-click` binding;
+the block class itself passes the click.
 Apply any extra item-definition components/settings in your runtime factory.
 
 **Remaining all-features work:**
@@ -320,7 +360,7 @@ Apply any extra item-definition components/settings in your runtime factory.
 | Fluid rendering | Install client fluid extensions with still/flowing/overlay textures and tint. JSON appearance alone does not install them. |
 | Flower pots | Register potted counterparts; the helper creates an empty pot. |
 | Other placement-sensitive blocks | Supply blockstates/models, connection/mining tags, and the native/helper subclass selected by StandardBlocks. |
-| Callbacks | Attach the event bridge or invoke dispatch at the actual behavior hook. |
+| Callbacks | Built-in contracts on startup-loaded definitions are dispatched by MMDLib's event bridge. Custom contracts, or materials decoded outside the startup loader, need your own `ItemEventBridge`, `listen` subscription, or direct dispatch. |
 
 For entity factory setup see [entity builder](entity-builder.md). For fluid data
 see [fluid builder](fluid-builder.md). For the supported built-in forms,
@@ -419,7 +459,7 @@ See [data-defined content modules](data-modules.md) for the bundled baseline, pa
 
 See [block entities and machines](block-entities.md) for data-defined machine companions, typed factories, deferred registration, and tick hooks.
 
-See [load-time method events](method-events.md) for `events` extension arrays, public static method resolution, and player/weapon/tool handler signatures.
+See [load-time method events](method-events.md) for `events` extension arrays, public static method resolution, every built-in contract (player, weapon, tool, harvest, block, projectile) with its handler signature, and the runtime event bridge.
 
 See [startup definition loading](definition-loading.md) for folder dispatch, IDs, loading stages, and access to loaded material plans.
 

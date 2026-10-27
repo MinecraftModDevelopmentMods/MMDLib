@@ -59,7 +59,10 @@ def main():
         raw=file.read_bytes();assert raw[:8]==b'\x89PNG\r\n\x1a\n',file
         width,height=struct.unpack('>II',raw[16:24]);assert width>0 and height>0,file
         metadata=file.with_name(file.name+'.mcmeta')
-        if metadata.is_file():assert isinstance(json.loads(metadata.read_text())['animation'],dict),metadata
+        if metadata.is_file():
+            meta=json.loads(metadata.read_text())
+            # Animated textures declare 'animation'; GUI sprites declare 'gui' scaling (nine_slice/tile/stretch).
+            assert isinstance(meta.get('animation'),dict) or isinstance(meta.get('gui'),dict),metadata
     assert not any('Zone.Identifier' in p.name for p in assets.rglob('*'))
     print(f'Static assets validated: {len(models)} models, {len(pngs)} textures; no legacy namespace dependencies')
 if __name__=='__main__':main()

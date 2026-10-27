@@ -48,6 +48,32 @@ public final class MaterialEventContexts {
     public record ProjectileHit(Projectile projectile, LivingEntity target, ItemStack ammo) {
         public ProjectileHit { Objects.requireNonNull(projectile); Objects.requireNonNull(target); Objects.requireNonNull(ammo); }
     }
+    public record BlockClick(Player player, BlockUse use) {
+        public BlockClick { Objects.requireNonNull(player); Objects.requireNonNull(use); }
+    }
+    /**
+     * A right-click on a block, keyed by the block's own definition. Call-scoped like the other contexts.
+     * A handler that acts on the click calls {@link #consume()} on both sides, so the held item is not
+     * also used (e.g. placed against the block); the bridge then cancels the interaction as handled.
+     */
+    public static final class BlockUse {
+        private final Level level; private final BlockPos position; private final BlockState state;
+        private final Direction face; private final InteractionHand hand; private final ItemStack stack;
+        private boolean consumed;
+        public BlockUse(Level level, BlockPos position, BlockState state, Direction face, InteractionHand hand, ItemStack stack) {
+            this.level = Objects.requireNonNull(level); this.position = Objects.requireNonNull(position).immutable();
+            this.state = Objects.requireNonNull(state); this.face = Objects.requireNonNull(face);
+            this.hand = Objects.requireNonNull(hand); this.stack = Objects.requireNonNull(stack);
+        }
+        public Level level() { return level; }
+        public BlockPos position() { return position; }
+        public BlockState state() { return state; }
+        public Direction face() { return face; }
+        public InteractionHand hand() { return hand; }
+        public ItemStack stack() { return stack; }
+        public void consume() { consumed = true; }
+        public boolean consumed() { return consumed; }
+    }
     public sealed interface ToolTarget permits BlockTarget, EntityTarget, AirTarget {
         InteractionHand hand();
         ItemStack stack();

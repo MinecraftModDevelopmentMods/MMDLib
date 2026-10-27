@@ -30,6 +30,13 @@ public final class VanillaExamplesTest {
         require(!hammers.isEmpty() && hammers.stream().allMatch(item -> crush.equals(item.events().get("tool-right-click"))
                 && harvest.equals(item.events().get("tool-harvest"))));
         hammers.forEach(item -> api.events().validate(item.events()));
+        // Anvils open their GUI only through the bundled block-right-click binding.
+        var openMenu = id("mmdlib:open_menu");
+        require(api.events().resolvedHandler(openMenu).definition().handler().endsWith("BlockEvents#openMenu"));
+        // The vanilla example materials select no anvils, so check the bundled module that any material would use.
+        var anvil = zone.moddev.mc.lib.common.modules.ModuleCatalog.bundled().blocks().get(id("mmdlib:anvil"));
+        require(anvil != null && openMenu.equals(anvil.template().events().get("block-right-click")));
+        api.events().validate(anvil.template().events());
         // Fixed stone crushing chain: smooth stone -> stone -> cobblestone -> gravel -> sand; all but sand are crushable.
         var chain = List.of("smooth_stone", "stone", "cobblestone", "gravel", "sand");
         var crushable = Files.readString(source.resolve("data/mmdlib/tags/block/crackhammer_crushable.json"));

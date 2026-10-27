@@ -36,11 +36,28 @@ IDs must be unique across loaded files and code-registered callbacks.
 | `tool-left-click` | `Player player, MaterialEventContexts.ToolTarget target` | Yes |
 | `tool-right-click` | `Player player, MaterialEventContexts.ToolTarget target` | Yes |
 | `tool-harvest` | `Player player, MaterialEventContexts.Harvest harvest` | Yes |
+| `block-right-click` | `Player player, MaterialEventContexts.BlockUse use` | Yes |
 | `projectile-damage` | `Projectile projectile, LivingEntity target, ItemStack ammo, DamageContainer damage` | Yes |
 | `projectile-hit` | `Projectile projectile, LivingEntity target, ItemStack ammo` | Yes |
 
 `ItemEventBridge` dispatches every built-in contract; see [item and material
 bindings](#item-and-material-bindings) for the NeoForge events and sides.
+
+### Block contracts
+
+`block-right-click` is keyed by the **clicked block's** definition (a block module's
+`template.events`), not the held item. `BlockUse` carries the level, position, state,
+clicked face, hand, and held stack. A handler that acts on the click calls
+`use.consume()` on both sides; the bridge then cancels the interaction as handled, so
+neither the held item's binding nor vanilla item use (e.g. placing a block) follows.
+It does not require a block entity: anvils and crafting-table-style blocks build their
+menu on demand. MMDLib's anvils dogfood this, binding the generic `mmdlib:open_menu`
+handler (`BlockEvents#openMenu`, declared in `mmdlib/extension/blocks.json`), which
+opens the block's own menu provider:
+
+```json
+{"factory": "mmdlib:anvil", "template": {"events": {"block-right-click": "mmdlib:open_menu"}}}
+```
 
 ### Projectile contracts
 
@@ -189,8 +206,8 @@ Item templates bind handlers by event name in `events`:
 ```
 
 `ItemEventBridge`, registered by MMDLib on the NeoForge game bus, dispatches these
-for any registered item whose ID has a loaded MMDLib definition, whatever its Java
-class. The item definition's binding wins; otherwise the item's material binding
+for any registered item or block whose ID has a loaded MMDLib definition (including
+custom types registered through the extension API), whatever its Java class. The item definition's binding wins; otherwise the item's material binding
 applies. Click and tick events fire on both logical sides; world-changing handlers
 must check the side. It never cancels the NeoForge event.
 
@@ -203,6 +220,7 @@ must check the side. It never cancels the NeoForge event.
 | `LeftClickEmpty` (client only) | `tool-left-click` | `AirTarget` |
 | `AttackEntityEvent` | `tool-left-click`, plus `weapon-hit` for living targets | `EntityTarget` |
 | `BlockDropsEvent` (server only, player breaker) | `tool-harvest` | `Harvest` |
+| `RightClickBlock` (clicked block's definition; skipped when sneaking with an item, as vanilla) | `block-right-click`, before the item's `tool-right-click` | `BlockUse` |
 | `PlayerTickEvent.Post` (worn armor and both hands) | `player-tick` | `Player` |
 | `LivingIncomingDamageEvent` (server, projectile direct source) | `projectile-damage` | `ProjectileDamage` |
 | `LivingDamageEvent.Post` (server, projectile direct source) | `projectile-hit` | `ProjectileHit` |

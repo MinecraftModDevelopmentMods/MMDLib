@@ -33,6 +33,12 @@ import net.minecraft.world.phys.Vec3;
 public final class CrackhammerEvents {
     private CrackhammerEvents() {}
 
+    /** Handler IDs declared in {@code mmdlib/extension/crackhammer.json}; an item bound to either is a crackhammer. */
+    public static final net.minecraft.resources.ResourceLocation CRUSH =
+            net.minecraft.resources.ResourceLocation.parse("mmdlib:crackhammer_crush");
+    public static final net.minecraft.resources.ResourceLocation HARVEST =
+            net.minecraft.resources.ResourceLocation.parse("mmdlib:crackhammer_harvest");
+
     public static void crush(Player player, ToolTarget target) {
         Level level = player.level();
         if (level.isClientSide) return;

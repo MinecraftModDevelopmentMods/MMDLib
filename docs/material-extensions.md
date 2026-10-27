@@ -38,8 +38,8 @@ or dispatch within the callback if several actions are needed.
 api.events().dispatch(materialDefinition, tick, context);
 ```
 
-Built-in contracts bound in a material's `event` map are dispatched through its items
-by MMDLib's item event bridge (see [method events](method-events.md#item-and-material-bindings)).
+Built-in contracts bound in a material's `event` map are dispatched through its items and blocks
+by MMDLib's event bridge (see [method events](method-events.md#item-and-material-bindings)).
 There is no blanket execution for other events. To bridge another NeoForge gameplay
 event, register a key with that event class and attach a resolver:
 
@@ -142,4 +142,4 @@ codec round trips, typed callback validation/dispatch, listener cleanup, deferre
 creation boundaries, registry validation, and ID collisions. Actual game-object
 registration, behaviors, and renderer effects require an in-game test.
 
-See [load-time method events](method-events.md) for `events` extension arrays, public static method resolution, and player/weapon/tool handler signatures.
+See [load-time method events](method-events.md) for `events` extension arrays, public static method resolution, every built-in contract (player, weapon, tool, harvest, block, projectile) with its handler signature, and the runtime event bridge.

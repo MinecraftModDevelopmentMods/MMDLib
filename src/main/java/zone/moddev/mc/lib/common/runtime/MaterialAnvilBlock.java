@@ -4,6 +4,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.core.BlockPos;
 
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -18,6 +19,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.phys.BlockHitResult;
 
 /** A single registry ID retaining the 1.12 anvil damage states. */
 public final class MaterialAnvilBlock extends AnvilBlock {
@@ -32,6 +34,12 @@ public final class MaterialAnvilBlock extends AnvilBlock {
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
         builder.add(DAMAGE);
+    }
+
+    /** The GUI opens only through the definition's block-right-click binding (mmdlib:open_menu by default). */
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return InteractionResult.PASS;
     }
 
     @Nullable

@@ -9,6 +9,9 @@
     "has_item": true,
     "tags": [
       "minecraft:anvil"
-    ]
+    ],
+    "events": {
+      "block-right-click": "mmdlib:open_menu"
+    }
   }
 }

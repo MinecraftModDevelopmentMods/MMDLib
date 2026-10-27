@@ -29,6 +29,7 @@ import zone.moddev.mc.lib.api.MaterialRegistration;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader;
 import zone.moddev.mc.lib.common.runtime.ItemEventBridge;
+import zone.moddev.mc.lib.common.types.MMDBlock;
 import zone.moddev.mc.lib.common.types.MMDItem;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
 
@@ -42,6 +43,12 @@ public class MMDLib {
     private static volatile Map<ResourceLocation, MaterialFactory.Result> loadedMaterials = Map.of();
     private static volatile Map<ResourceLocation, MMDItem> itemDefinitions = Map.of();
     private static volatile Map<ResourceLocation, MMDMaterial> itemMaterials = Map.of();
+    private static volatile Map<ResourceLocation, MMDBlock> blockDefinitions = Map.of();
+    private static volatile Map<ResourceLocation, MMDMaterial> blockMaterials = Map.of();
+
+    /** Item registry ID to its loaded definition / owning material; complete with {@link #loadedMaterials()}. */
+    public static Map<ResourceLocation, MMDItem> itemDefinitions() { return itemDefinitions; }
+    public static Map<ResourceLocation, MMDMaterial> itemMaterials() { return itemMaterials; }
 
     /** Complete after deferred construction, before definition registry events. */
     public static Map<ResourceLocation, MaterialFactory.Result> loadedMaterials() { return loadedMaterials; }
@@ -56,8 +63,8 @@ public class MMDLib {
         modBus.addListener(zone.moddev.mc.lib.util.Registries::register);
         modBus.addListener(this::publishDefinitions);
         modBus.addListener((FMLConstructModEvent event) -> event.enqueueWork(this::loadDefinitions));
-        new ItemEventBridge(MaterialExtensions.GLOBAL.events(), id -> itemDefinitions.get(id), id -> itemMaterials.get(id))
-                .register(NeoForge.EVENT_BUS);
+        new ItemEventBridge(MaterialExtensions.GLOBAL.events(), id -> itemDefinitions.get(id), id -> itemMaterials.get(id),
+                id -> blockDefinitions.get(id), id -> blockMaterials.get(id)).register(NeoForge.EVENT_BUS);
     }
 
     private void loadDefinitions() {
@@ -75,11 +82,23 @@ public class MMDLib {
         var loaded = DefinitionLoader.load(roots, MaterialExtensions.GLOBAL, id -> ModList.get().isLoaded(id));
         var definitions = new java.util.HashMap<ResourceLocation, MMDItem>();
         var materials = new java.util.HashMap<ResourceLocation, MMDMaterial>();
-        loaded.materials().values().forEach(result -> result.content().items().values().forEach(item -> {
-            definitions.put(item.name(), item); materials.put(item.name(), result.material());
-        }));
+        var blocks = new java.util.HashMap<ResourceLocation, MMDBlock>();
+        var blockOwners = new java.util.HashMap<ResourceLocation, MMDMaterial>();
+        for (var result : loaded.materials().values()) {
+            var plan = result.content(); var material = result.material();
+            // Standard parts and registered custom types; custom blocks contribute their paired items.
+            var items = new ArrayList<MMDItem>(plan.items().values()); items.addAll(plan.extraItems().values());
+            var allBlocks = new ArrayList<MMDBlock>(plan.blocks().values()); allBlocks.addAll(plan.extraBlocks().values());
+            for (var block : allBlocks) {
+                blocks.put(block.name(), block); blockOwners.put(block.name(), material);
+                if (block.item() != null) items.add(block.item());
+            }
+            for (var item : items) { definitions.put(item.name(), item); materials.put(item.name(), material); }
+        }
         itemDefinitions = Map.copyOf(definitions);
         itemMaterials = Map.copyOf(materials);
+        blockDefinitions = Map.copyOf(blocks);
+        blockMaterials = Map.copyOf(blockOwners);
         loadedMaterials = loaded.materials();
         loadedMaterials.values().stream().filter(result -> result.material().name().orElseThrow().getNamespace().equals(MODID)).forEach(runtime::queue);
         LOGGER.info("Loaded MMDLib definitions: {} item modules, {} block modules, {} fluid modules, {} extension files, {} materials",

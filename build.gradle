@@ -9,7 +9,11 @@ version = '2.0.0-alpha'
 group = 'zone.moddev.mc.lib'
 base { archivesName = 'mmdlib' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-repositories { mavenCentral() }
+repositories {
+    mavenCentral()
+    // JEI (optional integration; compile-time API only)
+    maven { url = 'https://maven.blamejared.com' }
+}
 dependencies {
     implementation 'net.neoforged:neoforge:21.1.247'
     implementation 'com.schibsted.spt.data:jslt:0.1.14'
@@ -18,6 +22,13 @@ dependencies {
     jarJar 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
     jarJar 'com.fasterxml.jackson.core:jackson-core:2.13.4'
     jarJar 'com.fasterxml.jackson.core:jackson-annotations:2.13.4'
+    // Optional JEI integration: compiled against the API only, never bundled or required.
+    compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
+    // Dev runs include JEI; pass -PwithoutJei to launch without it.
+    if (!providers.gradleProperty('withoutJei').isPresent()) {
+        runtimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
+    }
 }
 runs {
     configureEach {

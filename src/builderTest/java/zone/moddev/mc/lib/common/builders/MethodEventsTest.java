@@ -34,6 +34,7 @@ public final class MethodEventsTest {
                 net.minecraft.world.item.ItemStack ammo, net.neoforged.neoforge.common.damagesource.DamageContainer damage) { projectileCalls++; }
         public static void projectileHit(net.minecraft.world.entity.projectile.Projectile projectile, LivingEntity target,
                 net.minecraft.world.item.ItemStack ammo) { projectileCalls++; }
+        public static void blockUse(Player player, MaterialEventContexts.BlockUse use) { projectileCalls++; }
         public static void badTool(Player player, LivingEntity target) {}
         public static void checked(String value) throws java.io.IOException { throw new java.io.IOException("handler failure"); }
         public static void runtime(String value) { throw new UnsupportedOperationException("runtime failure"); }
@@ -119,7 +120,10 @@ public final class MethodEventsTest {
                 (LivingEntity) null, (net.minecraft.world.item.ItemStack) null, (net.neoforged.neoforge.common.damagesource.DamageContainer) null);
         events.resolvedHandler(id("test:projectile_hit")).methodHandle().invokeExact((net.minecraft.world.entity.projectile.Projectile) null,
                 (LivingEntity) null, (net.minecraft.world.item.ItemStack) null);
-        require(projectileCalls == 2);
+        events.loadExtension(extension(List.of(binding("block-right-click", owner + "#blockUse", "test:block_use"))), loader);
+        events.resolvedHandler(id("test:block_use")).methodHandle().invokeExact((Player) null, (MaterialEventContexts.BlockUse) null);
+        require(projectileCalls == 3);
+        expectFailure(() -> events.loadExtension(extension(List.of(binding("block-right-click", owner + "#tool", "test:badblock"))), loader));
         // Projectile handlers must take the projectile contract's parameters, not the tool contract's.
         expectFailure(() -> events.loadExtension(extension(List.of(binding("projectile-hit", owner + "#tool", "test:badprojectile"))), loader));
         expectFailure(() -> events.loadExtension(extension(List.of(binding("tool-right-click", owner + "#badTool", "test:badtool"))), loader));

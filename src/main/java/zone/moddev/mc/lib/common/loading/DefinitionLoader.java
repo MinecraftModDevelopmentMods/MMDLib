@@ -60,10 +60,16 @@ public final class DefinitionLoader {
             try {
                 var result = factory.load(id, source.path());
                 validateConcreteIds(result, source.path(), concreteIds);
-                for (var item : result.content().items().values()) {
-                    try { api.events().validate(item.events()); }
-                    catch (IllegalArgumentException ex) { throw new IllegalArgumentException(source.path() + ": " + item.name() + ": " + ex.getMessage(), ex); }
-                }
+                var plan = result.content();
+                var bindings = new java.util.LinkedHashMap<ResourceLocation, Map<String, ResourceLocation>>();
+                java.util.stream.Stream.of(plan.items().values(), plan.extraItems().values()).flatMap(java.util.Collection::stream)
+                        .forEach(item -> bindings.put(item.name(), item.events()));
+                java.util.stream.Stream.of(plan.blocks().values(), plan.extraBlocks().values()).flatMap(java.util.Collection::stream)
+                        .forEach(block -> bindings.put(block.name(), block.events()));
+                bindings.forEach((name, events) -> {
+                    try { api.events().validate(events); }
+                    catch (IllegalArgumentException ex) { throw new IllegalArgumentException(source.path() + ": " + name + ": " + ex.getMessage(), ex); }
+                });
                 materials.put(id, result);
             } catch (IOException ex) { throw new UncheckedIOException("Cannot read material " + source.path(), ex); }
         });

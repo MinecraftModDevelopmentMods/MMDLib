@@ -28,8 +28,15 @@ Light must be 0..15. Event maps and block tag sets are defensively copied.
 Harvest requirements use block tag memberships, such as mineable/pickaxe and
 needs_iron_tool, together with requires_correct_tool. There is no numeric harvest
 level. The builder declares tags; a later registration/datagen stage must emit
-those memberships. Setting random_ticks or an event reference declares behavior;
-content factories/callback implementations still have to implement it.
+those memberships. Setting random_ticks declares behavior that the block's
+implementation still has to provide. Event references are dispatched at runtime:
+a block module binds them in `template.events`, and MMDLib's event bridge runs them
+for the block whatever its Java class (see [block contracts](method-events.md#block-contracts)).
+For example, MMDLib's anvil opens its GUI only through this binding:
+
+```json
+{"factory": "mmdlib:anvil", "template": {"events": {"block-right-click": "mmdlib:open_menu"}}}
+```
 
 A block item definition is created by default with the same registry ID/material.
 `setItemTemplate(itemBuilder)` supplies its settings and enables it. The source
