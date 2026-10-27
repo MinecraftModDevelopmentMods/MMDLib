@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M M",
+    "MLM",
+    "M M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_horse_armor",
+    "count": 1
+  }
+}

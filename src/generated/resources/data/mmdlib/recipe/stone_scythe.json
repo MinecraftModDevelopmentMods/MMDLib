@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "  R",
+    "  R"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:cobblestone"
+    },
+    "R": {
+      "item": "mmdlib:stone_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:stone_scythe",
+    "count": 1
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MM",
+    "MM",
+    "MM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:diamond"
+    }
+  },
+  "result": {
+    "id": "mmdlib:diamond_door",
+    "count": 3
+  }
+}

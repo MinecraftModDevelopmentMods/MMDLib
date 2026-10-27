@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:emerald_sword",
+    "mmdlib:obsidian_sword",
+    "mmdlib:quartz_sword"
+  ]
+}

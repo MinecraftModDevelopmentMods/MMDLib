@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "NNN",
+    "NNN",
+    "NNN"
+  ],
+  "key": {
+    "N": {
+      "item": "mmdlib:emerald_smallpowder"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_dust",
+    "count": 1
+  }
+}

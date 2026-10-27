@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:emerald_dust"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:emerald_smallpowder",
+    "count": 9
+  }
+}

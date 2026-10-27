@@ -38,8 +38,10 @@ or dispatch within the callback if several actions are needed.
 api.events().dispatch(materialDefinition, tick, context);
 ```
 
-There is no blanket callback execution for every event/material. To bridge a
-NeoForge gameplay event, register a key with that event class and attach a resolver:
+Built-in contracts bound in a material's `event` map are dispatched through its items
+by MMDLib's item event bridge (see [method events](method-events.md#item-and-material-bindings)).
+There is no blanket execution for other events. To bridge another NeoForge gameplay
+event, register a key with that event class and attach a resolver:
 
 ```java
 var playerTick = api.events().registerEvent("example:player_tick", PlayerTickEvent.Post.class);
@@ -139,3 +141,5 @@ verifyMaterialExtensions tests dynamic type selections, excludes, optional mods,
 codec round trips, typed callback validation/dispatch, listener cleanup, deferred
 creation boundaries, registry validation, and ID collisions. Actual game-object
 registration, behaviors, and renderer effects require an in-game test.
+
+See [load-time method events](method-events.md) for `events` extension arrays, public static method resolution, and player/weapon/tool handler signatures.

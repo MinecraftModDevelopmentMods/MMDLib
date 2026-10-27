@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MRM",
+    " R "
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:gold_ingot"
+    },
+    "R": {
+      "item": "mmdlib:gold_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:gold_crackhammer",
+    "count": 1
+  }
+}

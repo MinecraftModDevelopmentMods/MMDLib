@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "mmdlib:block/diamond_double_slab"
+    }
+  }
+}

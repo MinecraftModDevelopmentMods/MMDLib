@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_trapdoor",
+    "mmdlib:emerald_trapdoor",
+    "mmdlib:gold_trapdoor",
+    "mmdlib:obsidian_trapdoor",
+    "mmdlib:quartz_trapdoor"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_pressure_plate",
+    "mmdlib:emerald_pressure_plate",
+    "mmdlib:obsidian_pressure_plate",
+    "mmdlib:quartz_pressure_plate"
+  ]
+}

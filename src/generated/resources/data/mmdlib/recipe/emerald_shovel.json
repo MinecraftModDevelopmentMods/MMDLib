@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "R",
+    "R"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald"
+    },
+    "R": {
+      "item": "mmdlib:emerald_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_shovel",
+    "count": 1
+  }
+}

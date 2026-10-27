@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MM",
+    "MR",
+    " R"
+  ],
+  "key": {
+    "M": {
+      "item": "mmdlib:obsidian_ingot"
+    },
+    "R": {
+      "item": "mmdlib:obsidian_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_axe",
+    "count": 1
+  }
+}

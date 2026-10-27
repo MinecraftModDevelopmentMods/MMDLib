@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:cobblestone"
+    }
+  },
+  "result": {
+    "id": "mmdlib:stone_rod",
+    "count": 4
+  }
+}

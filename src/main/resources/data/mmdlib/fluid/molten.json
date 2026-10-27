@@ -19,8 +19,8 @@
       "can_convert_to_source": false
     },
     "appearance": {
-      "still": "minecraft:block/lava_still",
-      "flowing": "minecraft:block/lava_flow",
+      "still": "mmdlib:block/molten_metal_still",
+      "flowing": "mmdlib:block/molten_metal_flow",
       "tint": -1
     },
     "has_block": true,

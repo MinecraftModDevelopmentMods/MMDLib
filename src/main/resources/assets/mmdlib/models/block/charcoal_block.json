@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "mmdlib:block/charcoal_block"
+  }
+}

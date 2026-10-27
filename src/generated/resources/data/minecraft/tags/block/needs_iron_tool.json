@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:iron_button",
+    "mmdlib:iron_double_slab",
+    "mmdlib:iron_lever",
+    "mmdlib:iron_plate",
+    "mmdlib:iron_slab",
+    "mmdlib:iron_stairs",
+    "mmdlib:iron_wall"
+  ]
+}

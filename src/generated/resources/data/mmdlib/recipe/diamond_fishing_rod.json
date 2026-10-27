@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "  R",
+    " RS",
+    "R S"
+  ],
+  "key": {
+    "R": {
+      "item": "mmdlib:diamond_rod"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
+  },
+  "result": {
+    "id": "mmdlib:diamond_fishing_rod",
+    "count": 1
+  }
+}

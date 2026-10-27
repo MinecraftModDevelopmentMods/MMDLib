@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " RS",
+    "R S",
+    " RS"
+  ],
+  "key": {
+    "R": {
+      "item": "mmdlib:diamond_rod"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
+  },
+  "result": {
+    "id": "mmdlib:diamond_bow",
+    "count": 1
+  }
+}

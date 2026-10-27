@@ -1,0 +1,16 @@
+{
+  "events": [
+    {
+      "type": "tool-right-click",
+      "handler": "zone.moddev.mc.lib.common.runtime.CrackhammerEvents#crush",
+      "id": "mmdlib:crackhammer_crush",
+      "name": "Crackhammer crushing"
+    },
+    {
+      "type": "tool-harvest",
+      "handler": "zone.moddev.mc.lib.common.runtime.CrackhammerEvents#harvest",
+      "id": "mmdlib:crackhammer_harvest",
+      "name": "Crackhammer drop crushing"
+    }
+  ]
+}

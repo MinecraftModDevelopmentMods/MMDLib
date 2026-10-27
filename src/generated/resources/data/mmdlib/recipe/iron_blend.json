@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:iron_dust"
+    },
+    {
+      "item": "mmdlib:iron_dust"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:iron_blend",
+    "count": 2
+  }
+}

@@ -117,3 +117,5 @@ code extensions before decoding. `events` remains a legacy input alias.
 MaterialFactory results also expose custom definitions in extraItems/extraBlocks.
 
 See [data-defined content modules](data-modules.md) for the bundled baseline, pack schemas, overrides, and current runtime integration limits.
+
+See [the maintained vanilla extensions](vanilla-extensions.md) for a complete, playable use of the same data and runtime APIs.

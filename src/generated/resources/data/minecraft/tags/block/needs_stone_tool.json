@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:quartz_bars",
+    "mmdlib:quartz_button",
+    "mmdlib:quartz_door",
+    "mmdlib:quartz_lever",
+    "mmdlib:quartz_pressure_plate",
+    "mmdlib:quartz_trapdoor",
+    "mmdlib:quartz_wall"
+  ]
+}

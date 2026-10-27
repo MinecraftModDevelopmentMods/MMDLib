@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:diamond_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:diamond_slab",
+    "count": 6
+  }
+}

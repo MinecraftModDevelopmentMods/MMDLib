@@ -68,7 +68,7 @@ FLUID_TYPE, FLUID, BLOCK, and ITEM registries. A later material content factory
 must create/register the type, source, flowing variant, liquid block, and bucket
 using deferred suppliers for their circular references. This builder does not
 register fluids, provide runtime flow behavior, install renderers, generate tags,
-or implement interaction callbacks. The overall material loader remains unfinished.
+or implement interaction callbacks. The startup loader now loads material plans, and RuntimeContentRegistrar applies their fluid families; see [the vanilla example](vanilla-extensions.md).
 
 verifyFluidBuilder runs under check/build and covers material isolation, family
 IDs, validation, optional companion definitions, and JSON/NBT round trips.

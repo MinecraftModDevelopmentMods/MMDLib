@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MM",
+    "MM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_trapdoor",
+    "count": 1
+  }
+}

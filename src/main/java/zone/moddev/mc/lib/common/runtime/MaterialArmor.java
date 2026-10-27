@@ -27,6 +27,6 @@ public final class MaterialArmor {
         return new ArmorMaterial(Map.of(ArmorItem.Type.HELMET, s.armorProtection(EquipmentSlot.HEAD),
                 ArmorItem.Type.CHESTPLATE, s.armorProtection(EquipmentSlot.CHEST), ArmorItem.Type.LEGGINGS, s.armorProtection(EquipmentSlot.LEGS),
                 ArmorItem.Type.BOOTS, s.armorProtection(EquipmentSlot.FEET), ArmorItem.Type.BODY, s.horseArmorProtection()),
-                s.enchantability(), SoundEvents.ARMOR_EQUIP_IRON, repair, List.of(new ArmorMaterial.Layer(textureLayer)), s.armorToughness(), 0);
+                s.enchantability(), SoundEvents.ARMOR_EQUIP_IRON, repair, List.of(new ArmorMaterial.Layer(textureLayer, "", material.runtime().tintedArmor())), s.armorToughness(), 0);
     }
 }

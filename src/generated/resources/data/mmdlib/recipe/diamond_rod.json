@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:diamond"
+    }
+  },
+  "result": {
+    "id": "mmdlib:diamond_rod",
+    "count": 4
+  }
+}

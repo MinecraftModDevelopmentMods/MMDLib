@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "  R",
+    "  R"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:iron_ingot"
+    },
+    "R": {
+      "item": "mmdlib:iron_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:iron_scythe",
+    "count": 1
+  }
+}

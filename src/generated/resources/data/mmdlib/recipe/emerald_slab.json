@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_slab",
+    "count": 6
+  }
+}

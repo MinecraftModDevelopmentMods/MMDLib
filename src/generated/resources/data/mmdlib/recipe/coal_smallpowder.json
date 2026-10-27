@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:coal_dust"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:coal_smallpowder",
+    "count": 9
+  }
+}

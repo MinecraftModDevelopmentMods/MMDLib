@@ -217,6 +217,22 @@
       "id": "#c:gravels",
       "required": false
     },
+    {
+      "id": "#c:storage_blocks/raw_copper",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/raw_gold",
+      "required": false
+    },
+    {
+      "id": "#c:storage_blocks/raw_iron",
+      "required": false
+    },
+    "minecraft:smooth_stone",
+    "minecraft:stone",
+    "minecraft:cobblestone",
+    "minecraft:gravel",
     "minecraft:stone_bricks",
     "minecraft:stone_slab",
     "minecraft:stone_brick_slab",

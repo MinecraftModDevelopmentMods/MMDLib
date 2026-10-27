@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_crossbow",
+    "mmdlib:emerald_crossbow",
+    "mmdlib:gold_crossbow",
+    "mmdlib:iron_crossbow",
+    "mmdlib:obsidian_crossbow",
+    "mmdlib:quartz_crossbow"
+  ]
+}

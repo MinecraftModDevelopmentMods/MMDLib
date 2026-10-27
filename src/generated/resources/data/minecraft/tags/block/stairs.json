@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_stairs",
+    "mmdlib:emerald_stairs",
+    "mmdlib:gold_stairs",
+    "mmdlib:iron_stairs",
+    "mmdlib:obsidian_stairs"
+  ]
+}

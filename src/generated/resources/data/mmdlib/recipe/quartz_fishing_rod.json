@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "  R",
+    " RS",
+    "R S"
+  ],
+  "key": {
+    "R": {
+      "item": "mmdlib:quartz_rod"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
+  },
+  "result": {
+    "id": "mmdlib:quartz_fishing_rod",
+    "count": 1
+  }
+}

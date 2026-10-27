@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:emerald_boots",
+    "mmdlib:emerald_chestplate",
+    "mmdlib:emerald_helmet",
+    "mmdlib:emerald_leggings",
+    "mmdlib:obsidian_boots",
+    "mmdlib:obsidian_chestplate",
+    "mmdlib:obsidian_helmet",
+    "mmdlib:obsidian_leggings",
+    "mmdlib:quartz_boots",
+    "mmdlib:quartz_chestplate",
+    "mmdlib:quartz_helmet",
+    "mmdlib:quartz_leggings"
+  ]
+}

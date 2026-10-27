@@ -16,8 +16,9 @@ public record MaterialStats(MMDMaterial material) {
         return integer("armor_" + slot.getName(), Math.max(0, Math.min(30, (int) Math.round((1.25 * material.properties().hardness() + 5) * fraction))), 0);
     }
     public int horseArmorProtection() { return integer("horse_armor_protection", Math.max(0, Math.min(30, (int) (material.properties().hardness() / 10 * 11))), 0); }
-    public int crackhammerDurability() { return integer("crackhammer_durability", Math.max(1, (int) (.75 * toolDurability())), 1); }
-    public float crackhammerDestroySpeed() { return scalar("crackhammer_destroy_speed", Math.max(1, .5 * toolEfficiency()), 0); }
+    /** Tool durability scaled by a data-supplied factor; the key, when present, overrides it per material. */
+    public int scaledDurability(String key, double factor) { return integer(key, Math.max(1, (int) (factor * toolDurability())), 1); }
+    public float scaledEfficiency(String key, double factor, double floor) { return scalar(key, Math.max(floor, factor * toolEfficiency()), 0); }
     public float axeAttackSpeed() { return scalar("axe_attack_speed", -3.5 + Math.min(.5, .05 * material.properties().strength()), -Float.MAX_VALUE); }
     public int integer(String key, int fallback, int minimum) {
         double value = material.properties().special().getOrDefault(key, (double) fallback);
@@ -25,7 +26,7 @@ public record MaterialStats(MMDMaterial material) {
             throw new IllegalArgumentException("Invalid integer material stat: " + key);
         return (int) value;
     }
-    private float scalar(String key, double fallback, float minimum) {
+    public float scalar(String key, double fallback, float minimum) {
         double value = material.properties().special().getOrDefault(key, fallback);
         if (!Double.isFinite(value) || value < minimum || value > Float.MAX_VALUE)
             throw new IllegalArgumentException("Invalid material stat: " + key);

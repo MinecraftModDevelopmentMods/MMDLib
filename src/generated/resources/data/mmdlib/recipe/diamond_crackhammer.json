@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MRM",
+    " R "
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:diamond"
+    },
+    "R": {
+      "item": "mmdlib:diamond_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:diamond_crackhammer",
+    "count": 1
+  }
+}

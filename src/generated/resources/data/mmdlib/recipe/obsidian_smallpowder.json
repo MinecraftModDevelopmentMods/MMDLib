@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:obsidian_dust"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:obsidian_smallpowder",
+    "count": 9
+  }
+}

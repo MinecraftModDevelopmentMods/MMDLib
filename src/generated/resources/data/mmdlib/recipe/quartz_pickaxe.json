@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    " R ",
+    " R "
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "mmdlib:quartz_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:quartz_pickaxe",
+    "count": 1
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_crackhammer",
+    "mmdlib:diamond_scythe",
+    "mmdlib:emerald_axe",
+    "mmdlib:emerald_crackhammer",
+    "mmdlib:emerald_scythe",
+    "mmdlib:emerald_sword",
+    "mmdlib:gold_crackhammer",
+    "mmdlib:gold_scythe",
+    "mmdlib:iron_crackhammer",
+    "mmdlib:iron_scythe",
+    "mmdlib:obsidian_axe",
+    "mmdlib:obsidian_crackhammer",
+    "mmdlib:obsidian_scythe",
+    "mmdlib:obsidian_sword",
+    "mmdlib:quartz_axe",
+    "mmdlib:quartz_crackhammer",
+    "mmdlib:quartz_scythe",
+    "mmdlib:quartz_sword",
+    "mmdlib:stone_crackhammer",
+    "mmdlib:stone_scythe",
+    "mmdlib:wood_crackhammer",
+    "mmdlib:wood_scythe"
+  ]
+}

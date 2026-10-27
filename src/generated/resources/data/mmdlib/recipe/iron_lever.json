@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "R",
+    "M"
+  ],
+  "key": {
+    "R": {
+      "item": "mmdlib:iron_rod"
+    },
+    "M": {
+      "item": "minecraft:iron_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:iron_lever",
+    "count": 1
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M M",
+    "MLM",
+    "M M"
+  ],
+  "key": {
+    "M": {
+      "item": "mmdlib:obsidian_ingot"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_horse_armor",
+    "count": 1
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:diamond"
+    }
+  },
+  "result": {
+    "id": "mmdlib:diamond_bars",
+    "count": 16
+  }
+}

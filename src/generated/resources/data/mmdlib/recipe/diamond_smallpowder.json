@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:diamond_dust"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:diamond_smallpowder",
+    "count": 9
+  }
+}

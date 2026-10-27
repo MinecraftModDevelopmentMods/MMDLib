@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "M M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_helmet",
+    "count": 1
+  }
+}

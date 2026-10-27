@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:emerald_chestplate",
+    "mmdlib:obsidian_chestplate",
+    "mmdlib:quartz_chestplate"
+  ]
+}

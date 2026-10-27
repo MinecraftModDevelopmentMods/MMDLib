@@ -47,7 +47,7 @@ public final class DataModules {
             if (materialDefaults) {
                 var p = material.properties();
                 var tags = new java.util.HashSet<>(template.tags()); tags.addAll(p.harvestTags());
-                b = b.setStrength((float) p.hardness(), (float) p.special().getOrDefault("blast_resistance", 2 * p.hardness()).doubleValue())
+                b = b.setStrength((float) p.special().getOrDefault("block_hardness", p.hardness()).doubleValue(), (float) p.special().getOrDefault("blast_resistance", 2 * p.hardness()).doubleValue())
                         .setBlockTags(tags).setRequiresCorrectToolForDrops(template.properties().requiresCorrectTool() || !p.harvestTags().isEmpty());
             }
             return b;

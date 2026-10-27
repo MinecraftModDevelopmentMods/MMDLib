@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "NNN",
+    "NNN",
+    "NNN"
+  ],
+  "key": {
+    "N": {
+      "item": "mmdlib:iron_smallblend"
+    }
+  },
+  "result": {
+    "id": "mmdlib:iron_blend",
+    "count": 1
+  }
+}

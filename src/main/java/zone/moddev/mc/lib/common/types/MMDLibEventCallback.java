@@ -4,7 +4,7 @@ import zone.moddev.mc.lib.api.MaterialEvent;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-/** Code-owned callback with an explicit event/context contract. */
+/** A code-registered or load-time method-backed callback with an explicit event/context contract. */
 public final class MMDLibEventCallback<C> {
     private final MaterialEvent<C> event;
     private final Consumer<? super C> callback;

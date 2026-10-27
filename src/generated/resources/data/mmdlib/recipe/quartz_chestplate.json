@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M M",
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:quartz"
+    }
+  },
+  "result": {
+    "id": "mmdlib:quartz_chestplate",
+    "count": 1
+  }
+}

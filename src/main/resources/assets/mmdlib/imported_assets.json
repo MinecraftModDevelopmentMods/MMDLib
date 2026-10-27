@@ -1,0 +1,2167 @@
+{
+  "untinted_items": [
+    "mmdlib:charcoal_block",
+    "mmdlib:charcoal_dust",
+    "mmdlib:charcoal_nugget",
+    "mmdlib:charcoal_smallpowder",
+    "mmdlib:coal_dust",
+    "mmdlib:coal_nugget",
+    "mmdlib:coal_smallpowder",
+    "mmdlib:diamond_arrow",
+    "mmdlib:diamond_bars",
+    "mmdlib:diamond_blend",
+    "mmdlib:diamond_bolt",
+    "mmdlib:diamond_bow",
+    "mmdlib:diamond_button",
+    "mmdlib:diamond_crackhammer",
+    "mmdlib:diamond_crossbow",
+    "mmdlib:diamond_door",
+    "mmdlib:diamond_dust",
+    "mmdlib:diamond_fishing_rod",
+    "mmdlib:diamond_gear",
+    "mmdlib:diamond_lever",
+    "mmdlib:diamond_nugget",
+    "mmdlib:diamond_pressure_plate",
+    "mmdlib:diamond_rod",
+    "mmdlib:diamond_scythe",
+    "mmdlib:diamond_shears",
+    "mmdlib:diamond_shield",
+    "mmdlib:diamond_slab",
+    "mmdlib:diamond_smallblend",
+    "mmdlib:diamond_smallpowder",
+    "mmdlib:diamond_stairs",
+    "mmdlib:diamond_trapdoor",
+    "mmdlib:diamond_wall",
+    "mmdlib:emerald_arrow",
+    "mmdlib:emerald_axe",
+    "mmdlib:emerald_bars",
+    "mmdlib:emerald_bolt",
+    "mmdlib:emerald_boots",
+    "mmdlib:emerald_bow",
+    "mmdlib:emerald_button",
+    "mmdlib:emerald_chestplate",
+    "mmdlib:emerald_crackhammer",
+    "mmdlib:emerald_crossbow",
+    "mmdlib:emerald_door",
+    "mmdlib:emerald_dust",
+    "mmdlib:emerald_fishing_rod",
+    "mmdlib:emerald_gear",
+    "mmdlib:emerald_helmet",
+    "mmdlib:emerald_hoe",
+    "mmdlib:emerald_horse_armor",
+    "mmdlib:emerald_leggings",
+    "mmdlib:emerald_lever",
+    "mmdlib:emerald_nugget",
+    "mmdlib:emerald_pickaxe",
+    "mmdlib:emerald_pressure_plate",
+    "mmdlib:emerald_rod",
+    "mmdlib:emerald_scythe",
+    "mmdlib:emerald_shears",
+    "mmdlib:emerald_shield",
+    "mmdlib:emerald_shovel",
+    "mmdlib:emerald_slab",
+    "mmdlib:emerald_smallpowder",
+    "mmdlib:emerald_stairs",
+    "mmdlib:emerald_sword",
+    "mmdlib:emerald_trapdoor",
+    "mmdlib:emerald_wall",
+    "mmdlib:gold_arrow",
+    "mmdlib:gold_bars",
+    "mmdlib:gold_blend",
+    "mmdlib:gold_bolt",
+    "mmdlib:gold_bow",
+    "mmdlib:gold_button",
+    "mmdlib:gold_crackhammer",
+    "mmdlib:gold_crossbow",
+    "mmdlib:gold_door",
+    "mmdlib:gold_dust",
+    "mmdlib:gold_fishing_rod",
+    "mmdlib:gold_gear",
+    "mmdlib:gold_lever",
+    "mmdlib:gold_plate",
+    "mmdlib:gold_rod",
+    "mmdlib:gold_scythe",
+    "mmdlib:gold_shears",
+    "mmdlib:gold_shield",
+    "mmdlib:gold_slab",
+    "mmdlib:gold_smallblend",
+    "mmdlib:gold_smallpowder",
+    "mmdlib:gold_stairs",
+    "mmdlib:gold_trapdoor",
+    "mmdlib:gold_wall",
+    "mmdlib:iron_arrow",
+    "mmdlib:iron_blend",
+    "mmdlib:iron_bolt",
+    "mmdlib:iron_bow",
+    "mmdlib:iron_button",
+    "mmdlib:iron_crackhammer",
+    "mmdlib:iron_crossbow",
+    "mmdlib:iron_dust",
+    "mmdlib:iron_fishing_rod",
+    "mmdlib:iron_gear",
+    "mmdlib:iron_lever",
+    "mmdlib:iron_plate",
+    "mmdlib:iron_rod",
+    "mmdlib:iron_scythe",
+    "mmdlib:iron_shield",
+    "mmdlib:iron_slab",
+    "mmdlib:iron_smallblend",
+    "mmdlib:iron_smallpowder",
+    "mmdlib:iron_stairs",
+    "mmdlib:iron_wall",
+    "mmdlib:lapis_smallpowder",
+    "mmdlib:obsidian_arrow",
+    "mmdlib:obsidian_axe",
+    "mmdlib:obsidian_bars",
+    "mmdlib:obsidian_bolt",
+    "mmdlib:obsidian_boots",
+    "mmdlib:obsidian_bow",
+    "mmdlib:obsidian_button",
+    "mmdlib:obsidian_chestplate",
+    "mmdlib:obsidian_crackhammer",
+    "mmdlib:obsidian_crossbow",
+    "mmdlib:obsidian_door",
+    "mmdlib:obsidian_dust",
+    "mmdlib:obsidian_fishing_rod",
+    "mmdlib:obsidian_gear",
+    "mmdlib:obsidian_helmet",
+    "mmdlib:obsidian_hoe",
+    "mmdlib:obsidian_horse_armor",
+    "mmdlib:obsidian_ingot",
+    "mmdlib:obsidian_leggings",
+    "mmdlib:obsidian_lever",
+    "mmdlib:obsidian_nugget",
+    "mmdlib:obsidian_pickaxe",
+    "mmdlib:obsidian_pressure_plate",
+    "mmdlib:obsidian_rod",
+    "mmdlib:obsidian_scythe",
+    "mmdlib:obsidian_shears",
+    "mmdlib:obsidian_shield",
+    "mmdlib:obsidian_shovel",
+    "mmdlib:obsidian_slab",
+    "mmdlib:obsidian_smallpowder",
+    "mmdlib:obsidian_stairs",
+    "mmdlib:obsidian_sword",
+    "mmdlib:obsidian_trapdoor",
+    "mmdlib:obsidian_wall",
+    "mmdlib:quartz_arrow",
+    "mmdlib:quartz_axe",
+    "mmdlib:quartz_bars",
+    "mmdlib:quartz_bolt",
+    "mmdlib:quartz_boots",
+    "mmdlib:quartz_bow",
+    "mmdlib:quartz_button",
+    "mmdlib:quartz_chestplate",
+    "mmdlib:quartz_crackhammer",
+    "mmdlib:quartz_crossbow",
+    "mmdlib:quartz_door",
+    "mmdlib:quartz_dust",
+    "mmdlib:quartz_fishing_rod",
+    "mmdlib:quartz_gear",
+    "mmdlib:quartz_helmet",
+    "mmdlib:quartz_hoe",
+    "mmdlib:quartz_horse_armor",
+    "mmdlib:quartz_leggings",
+    "mmdlib:quartz_lever",
+    "mmdlib:quartz_nugget",
+    "mmdlib:quartz_pickaxe",
+    "mmdlib:quartz_pressure_plate",
+    "mmdlib:quartz_rod",
+    "mmdlib:quartz_scythe",
+    "mmdlib:quartz_shears",
+    "mmdlib:quartz_shield",
+    "mmdlib:quartz_shovel",
+    "mmdlib:quartz_smallpowder",
+    "mmdlib:quartz_sword",
+    "mmdlib:quartz_trapdoor",
+    "mmdlib:quartz_wall",
+    "mmdlib:redstone_ingot",
+    "mmdlib:redstone_smallpowder",
+    "mmdlib:stone_crackhammer",
+    "mmdlib:stone_gear",
+    "mmdlib:stone_rod",
+    "mmdlib:stone_scythe",
+    "mmdlib:wood_crackhammer",
+    "mmdlib:wood_gear",
+    "mmdlib:wood_scythe"
+  ],
+  "untinted_blocks": [
+    "mmdlib:charcoal_block",
+    "mmdlib:diamond_bars",
+    "mmdlib:diamond_button",
+    "mmdlib:diamond_door",
+    "mmdlib:diamond_double_slab",
+    "mmdlib:diamond_lever",
+    "mmdlib:diamond_pressure_plate",
+    "mmdlib:diamond_slab",
+    "mmdlib:diamond_stairs",
+    "mmdlib:diamond_trapdoor",
+    "mmdlib:diamond_wall",
+    "mmdlib:emerald_bars",
+    "mmdlib:emerald_button",
+    "mmdlib:emerald_door",
+    "mmdlib:emerald_double_slab",
+    "mmdlib:emerald_lever",
+    "mmdlib:emerald_pressure_plate",
+    "mmdlib:emerald_slab",
+    "mmdlib:emerald_stairs",
+    "mmdlib:emerald_trapdoor",
+    "mmdlib:emerald_wall",
+    "mmdlib:gold_bars",
+    "mmdlib:gold_button",
+    "mmdlib:gold_door",
+    "mmdlib:gold_double_slab",
+    "mmdlib:gold_lever",
+    "mmdlib:gold_plate",
+    "mmdlib:gold_slab",
+    "mmdlib:gold_stairs",
+    "mmdlib:gold_trapdoor",
+    "mmdlib:gold_wall",
+    "mmdlib:iron_button",
+    "mmdlib:iron_double_slab",
+    "mmdlib:iron_lever",
+    "mmdlib:iron_plate",
+    "mmdlib:iron_slab",
+    "mmdlib:iron_stairs",
+    "mmdlib:iron_wall",
+    "mmdlib:obsidian_bars",
+    "mmdlib:obsidian_button",
+    "mmdlib:obsidian_door",
+    "mmdlib:obsidian_double_slab",
+    "mmdlib:obsidian_lever",
+    "mmdlib:obsidian_pressure_plate",
+    "mmdlib:obsidian_slab",
+    "mmdlib:obsidian_stairs",
+    "mmdlib:obsidian_trapdoor",
+    "mmdlib:obsidian_wall",
+    "mmdlib:quartz_bars",
+    "mmdlib:quartz_button",
+    "mmdlib:quartz_door",
+    "mmdlib:quartz_lever",
+    "mmdlib:quartz_pressure_plate",
+    "mmdlib:quartz_trapdoor",
+    "mmdlib:quartz_wall"
+  ],
+  "block_textures": {
+    "mmdlib:charcoal_block": {
+      "all": "mmdlib:block/charcoal_block"
+    },
+    "mmdlib:diamond_bars": {
+      "bars": "mmdlib:block/diamond_bars",
+      "edge": "mmdlib:block/diamond_bars"
+    },
+    "mmdlib:diamond_door": {
+      "top": "mmdlib:block/diamond_door_upper",
+      "bottom": "mmdlib:block/diamond_door_lower"
+    },
+    "mmdlib:diamond_trapdoor": {
+      "texture": "mmdlib:block/diamond_trapdoor"
+    },
+    "mmdlib:emerald_bars": {
+      "bars": "mmdlib:block/emerald_bars",
+      "edge": "mmdlib:block/emerald_bars"
+    },
+    "mmdlib:emerald_door": {
+      "top": "mmdlib:block/emerald_door_upper",
+      "bottom": "mmdlib:block/emerald_door_lower"
+    },
+    "mmdlib:emerald_trapdoor": {
+      "texture": "mmdlib:block/emerald_trapdoor"
+    },
+    "mmdlib:gold_bars": {
+      "bars": "mmdlib:block/gold_bars",
+      "edge": "mmdlib:block/gold_bars"
+    },
+    "mmdlib:gold_door": {
+      "top": "mmdlib:block/gold_door_upper",
+      "bottom": "mmdlib:block/gold_door_lower"
+    },
+    "mmdlib:gold_trapdoor": {
+      "texture": "mmdlib:block/gold_trapdoor"
+    },
+    "mmdlib:obsidian_bars": {
+      "bars": "mmdlib:block/obsidian_bars",
+      "edge": "mmdlib:block/obsidian_bars"
+    },
+    "mmdlib:obsidian_door": {
+      "top": "mmdlib:block/obsidian_door_upper",
+      "bottom": "mmdlib:block/obsidian_door_lower"
+    },
+    "mmdlib:obsidian_trapdoor": {
+      "texture": "mmdlib:block/obsidian_trapdoor"
+    },
+    "mmdlib:quartz_bars": {
+      "bars": "mmdlib:block/quartz_bars",
+      "edge": "mmdlib:block/quartz_bars"
+    },
+    "mmdlib:quartz_door": {
+      "top": "mmdlib:block/quartz_door_upper",
+      "bottom": "mmdlib:block/quartz_door_lower"
+    },
+    "mmdlib:quartz_trapdoor": {
+      "texture": "mmdlib:block/quartz_trapdoor"
+    }
+  },
+  "sources": {
+    "models/block/charcoal_block.json": {
+      "source": "models/block/charcoal_block.json",
+      "sha256": "2dd9266e53db450bb5dc46946d7069dcff3cd93c28379197c514ce68b7ada422"
+    },
+    "models/block/diamond_button_inventory.json": {
+      "source": "models/block/diamond_button_inventory.json",
+      "sha256": "d828386bd02113303e10625cf3cc2021857ce847a362ec27d0c0fa01dc397526"
+    },
+    "models/block/diamond_pressure_plate_up.json": {
+      "source": "models/block/diamond_pressure_plate_up.json",
+      "sha256": "9c8e526f0da40819fdaed42113f80a0842126c5806a45a1d493d4b801bfc91fa"
+    },
+    "models/block/diamond_stairs.json": {
+      "source": "models/block/diamond_stairs.json",
+      "sha256": "c7ef2766ef2de5efdf3961cf02884d755f91306430f185956dd4dcf1d2e77f0f"
+    },
+    "models/block/diamond_trapdoor_bottom.json": {
+      "source": "models/block/diamond_trapdoor_bottom.json",
+      "sha256": "68df9c97c7aa5f4a3b9caf8f7d1bcb960009ccc4c7de7cd08c000fa8c10f7c44"
+    },
+    "models/block/diamond_wall_inventory.json": {
+      "source": "models/block/diamond_wall_inventory.json",
+      "sha256": "735e9bde3de5033a59814b6e96191d6c6fee0c59e354395899a17431f3434a56"
+    },
+    "models/block/emerald_button_inventory.json": {
+      "source": "models/block/emerald_button_inventory.json",
+      "sha256": "7224a8574e34ffa849da026d6c909fb62240fc8e47b8f243c4b8ef492c16c9c9"
+    },
+    "models/block/emerald_pressure_plate_up.json": {
+      "source": "models/block/emerald_pressure_plate_up.json",
+      "sha256": "fc787f61b5af00f8d8a260330bc984c88632a688ba0aca4f645d30fb878283b8"
+    },
+    "models/block/emerald_stairs.json": {
+      "source": "models/block/emerald_stairs.json",
+      "sha256": "229e72e7d040cc5317c14b66737646b00f43c81501ec2083a9705e40d3850c6b"
+    },
+    "models/block/emerald_trapdoor_bottom.json": {
+      "source": "models/block/emerald_trapdoor_bottom.json",
+      "sha256": "c6fb4cea6b446c93409a71ade2344391a309572e34970f3adae434957e791ad9"
+    },
+    "models/block/emerald_wall_inventory.json": {
+      "source": "models/block/emerald_wall_inventory.json",
+      "sha256": "f010d6e6290dd5a15f28870bb433976f3c63ebddc046434f1638881bc3f25318"
+    },
+    "models/block/gold_button_inventory.json": {
+      "source": "models/block/gold_button_inventory.json",
+      "sha256": "09d6b3fa91bd4b78741adbe847dc726c8715118aaf05524d83b732a661a1526e"
+    },
+    "models/block/gold_plate.json": {
+      "source": "models/block/gold_plate.json",
+      "sha256": "dd7ae1ff701ea0aa7fd1f85a7d311d9c5a45202148664c3764abb2e2b3c1722c"
+    },
+    "models/block/gold_stairs.json": {
+      "source": "models/block/gold_stairs.json",
+      "sha256": "fa819b1ae5c77ebc0366abc3f2c464fe476c5c245f096234eae977a5508e4711"
+    },
+    "models/block/gold_trapdoor_bottom.json": {
+      "source": "models/block/gold_trapdoor_bottom.json",
+      "sha256": "ecf7a8eb81291f8494030f38ed1770b2ee05f8326cc8345d22899c5f10b91482"
+    },
+    "models/block/gold_wall_inventory.json": {
+      "source": "models/block/gold_wall_inventory.json",
+      "sha256": "82bb6299e2322134a73906fac307307d888686860cfe797c4b18048f0234f0a0"
+    },
+    "models/block/half_slab_diamond.json": {
+      "source": "models/block/half_slab_diamond.json",
+      "sha256": "45c6a0f4959844403707f177a235ea6c20d4a03e54b20be3bf58fd2df9694190"
+    },
+    "models/block/half_slab_emerald.json": {
+      "source": "models/block/half_slab_emerald.json",
+      "sha256": "4053f0e8abc1e8ed6b48e248170c7c596f07af820c475cb6a716a995fcf4182c"
+    },
+    "models/block/half_slab_gold.json": {
+      "source": "models/block/half_slab_gold.json",
+      "sha256": "90d11f530c1b793824dbd30cb7741fef3fdf16104b0c2c44c85792acb4ee71d2"
+    },
+    "models/block/half_slab_iron.json": {
+      "source": "models/block/half_slab_iron.json",
+      "sha256": "0621259a0e70fac53a43573440cc7c8080cb26b8d383693e286f5f66fbb9cd12"
+    },
+    "models/block/half_slab_obsidian.json": {
+      "source": "models/block/half_slab_obsidian.json",
+      "sha256": "a807828d7c1e3c0c8040ca80bf7ef193675530b9500b2a460e1d917ebfbcf6de"
+    },
+    "models/block/iron_button_inventory.json": {
+      "source": "models/block/iron_button_inventory.json",
+      "sha256": "3f8333c5cfe569c8f05468feb2f4475354bdda2a951eba9c804a388c30a5a8c4"
+    },
+    "models/block/iron_plate.json": {
+      "source": "models/block/iron_plate.json",
+      "sha256": "8958bf01f57707ff0a28a1300bedca3e7db4167d05e46ceffa677b2f0d28ccd2"
+    },
+    "models/block/iron_stairs.json": {
+      "source": "models/block/iron_stairs.json",
+      "sha256": "211b48f91877d888c53cac11052d6f3f17a39a186ef27a44f2be47109474b19d"
+    },
+    "models/block/iron_wall_inventory.json": {
+      "source": "models/block/iron_wall_inventory.json",
+      "sha256": "a883e0bba5d8ae5c75692c721ecbf2327fac7e6d4a09a472edb9b79ed582a045"
+    },
+    "models/block/obsidian_button_inventory.json": {
+      "source": "models/block/obsidian_button_inventory.json",
+      "sha256": "3ca459dca18a6879514289b760aa9118c036e2b8dcdebcb2a0c0881f055e123a"
+    },
+    "models/block/obsidian_pressure_plate_up.json": {
+      "source": "models/block/obsidian_pressure_plate_up.json",
+      "sha256": "275d868c1bf37f7715bca842bf1a9bdea61181899266800121ce946f042175b6"
+    },
+    "models/block/obsidian_stairs.json": {
+      "source": "models/block/obsidian_stairs.json",
+      "sha256": "dbd208b9af36af095c8d05c9e851d7b93b05e72fdb9f646ad044f43eb1d5059c"
+    },
+    "models/block/obsidian_trapdoor_bottom.json": {
+      "source": "models/block/obsidian_trapdoor_bottom.json",
+      "sha256": "505b137d024589f0d3c81eb30c1cee8edc75d69af453dc597aa5ed71c640379b"
+    },
+    "models/block/obsidian_wall_inventory.json": {
+      "source": "models/block/obsidian_wall_inventory.json",
+      "sha256": "587d95cb54e367f9b0f179d9b897c0d67910b472910ab539df380276aaef7f95"
+    },
+    "models/block/plate.json": {
+      "source": "models/block/plate.json",
+      "sha256": "7b8af8b067178aaa634a616a3e579ddc0ff72631008517eb20621be789701451"
+    },
+    "models/block/quartz_button_inventory.json": {
+      "source": "models/block/quartz_button_inventory.json",
+      "sha256": "26ab29ba9ce662cc7cc2abf645a2d0c18836e8ecacf0ce86a312acf3be223e2f"
+    },
+    "models/block/quartz_pressure_plate_up.json": {
+      "source": "models/block/quartz_pressure_plate_up.json",
+      "sha256": "9fadfec9b414f70b9e68596083c69f113a0d3faaa9108c5f6f5b53d55c0bcf03"
+    },
+    "models/block/quartz_trapdoor_bottom.json": {
+      "source": "models/block/quartz_trapdoor_bottom.json",
+      "sha256": "1f5d9e268259cacd7890719b6b55c7f0d07eaf5204a203c2d9c3527211cdc328"
+    },
+    "models/block/quartz_wall_inventory.json": {
+      "source": "models/block/quartz_wall_inventory.json",
+      "sha256": "dcfe03dd13c366b0b7077104c838397fcbf7bd2c6f06547535c215b7a5ad3000"
+    },
+    "models/item/charcoal_block.json": {
+      "source": "models/item/charcoal_block.json",
+      "sha256": "148a9093c84b6f3ea1b4f904990288c9dad115618b4a73d178233313f46bd85c"
+    },
+    "models/item/charcoal_dust.json": {
+      "source": "models/item/charcoal_powder.json",
+      "sha256": "ef817cd466486174dd9d927b88cbe062f38c1a9391911c82ce25056d508876c0"
+    },
+    "models/item/charcoal_nugget.json": {
+      "source": "models/item/charcoal_nugget.json",
+      "sha256": "f459177521f274fb597aeb841e2939204d02d3d374235bbe288a39cb0c985d38"
+    },
+    "models/item/charcoal_smallpowder.json": {
+      "source": "models/item/charcoal_smallpowder.json",
+      "sha256": "3e292b5ca92dcc8794d8149689387e28a01b9165e9b0b423d6bf3fb2a6d1d4d9"
+    },
+    "models/item/coal_dust.json": {
+      "source": "models/item/coal_powder.json",
+      "sha256": "ef817cd466486174dd9d927b88cbe062f38c1a9391911c82ce25056d508876c0"
+    },
+    "models/item/coal_nugget.json": {
+      "source": "models/item/coal_nugget.json",
+      "sha256": "97886ccab9c3fa4e3ad43dfb7379f2cf2e7d5e1c92d75dedd972e23750fb4eee"
+    },
+    "models/item/coal_smallpowder.json": {
+      "source": "models/item/coal_smallpowder.json",
+      "sha256": "3e292b5ca92dcc8794d8149689387e28a01b9165e9b0b423d6bf3fb2a6d1d4d9"
+    },
+    "models/item/diamond_arrow.json": {
+      "source": "models/item/diamond_arrow.json",
+      "sha256": "8c8e56985922d3bf1025c5560e75cd7b323939ea50d7b954360ab2fdb5017039"
+    },
+    "models/item/diamond_bars.json": {
+      "source": "models/item/diamond_bars.json",
+      "sha256": "0f222a6b4e19901ec2eabb1cb2801530a1ba73af532442da125b9858700de626"
+    },
+    "models/item/diamond_bolt.json": {
+      "source": "models/item/diamond_bolt.json",
+      "sha256": "72b03e34d6f239f9ac04457adce275692b1495fbb5d790acdb561fb0bee0c445"
+    },
+    "models/item/diamond_bow.json": {
+      "source": "models/item/diamond_bow.json",
+      "sha256": "f793347b7e4d1836403f5b59c429ee4f54e8499c1d982f6f87f4513871d59994"
+    },
+    "models/item/diamond_bow_pulling_0.json": {
+      "source": "models/item/diamond_bow_pulling_0.json",
+      "sha256": "0cf8793fc09d68d82b8e95b771cd54348d043802f12ae9ff2664c0834c4d1900"
+    },
+    "models/item/diamond_bow_pulling_1.json": {
+      "source": "models/item/diamond_bow_pulling_1.json",
+      "sha256": "57fcdc74805b3e6306e07c6ebd19c90b2097778f5d79f673706ace7a39d394d0"
+    },
+    "models/item/diamond_bow_pulling_2.json": {
+      "source": "models/item/diamond_bow_pulling_2.json",
+      "sha256": "6812c94506e116cbbcf857148f7d9b18e30475b4d6126291ef984662ed7e7b49"
+    },
+    "models/item/diamond_button.json": {
+      "source": "models/item/diamond_button.json",
+      "sha256": "2afd067aecbc46daafa07e827930ad25a231200b4b154c83db271eec7a2f10ad"
+    },
+    "models/item/diamond_crackhammer.json": {
+      "source": "models/item/diamond_crackhammer.json",
+      "sha256": "228875bb32c406dc0cfe2f77cadf0489b610b02c845b253105fc290bd2f2f6cd"
+    },
+    "models/item/diamond_crossbow.json": {
+      "source": "models/item/diamond_crossbow.json",
+      "sha256": "71963c1caf2a307c7cea2f48e90c7978464a9da9a63ce103756e9be3aa907388"
+    },
+    "models/item/diamond_crossbow_pulling_0.json": {
+      "source": "models/item/diamond_crossbow_pulling_0.json",
+      "sha256": "6ef2c981d4e5d189fce64efcb398e70d8ccfb88ddbb7a0bd34726727a5a6406a"
+    },
+    "models/item/diamond_crossbow_pulling_1.json": {
+      "source": "models/item/diamond_crossbow_pulling_1.json",
+      "sha256": "a3713bcaad991d321bb8751180fa1c5da3f12ddfebf9d47ee23e73d0471cd0ef"
+    },
+    "models/item/diamond_crossbow_pulling_2.json": {
+      "source": "models/item/diamond_crossbow_pulling_2.json",
+      "sha256": "03957e33c4f19e6b16a0ff3fa21cde876ed9d60a2f0c413a4082c98320fa4f1e"
+    },
+    "models/item/diamond_door.json": {
+      "source": "models/item/diamond_door.json",
+      "sha256": "889a2d9fd2f8942912835c4eb5919b8fff1df23c0e8fa25bd4ed168afc160852"
+    },
+    "models/item/diamond_dust.json": {
+      "source": "models/item/diamond_powder.json",
+      "sha256": "8b95e90a1a83978c6ea49528cad53be2b055fb4c46796046bc989018a942bc89"
+    },
+    "models/item/diamond_fishing_rod.json": {
+      "source": "models/item/diamond_fishing_rod.json",
+      "sha256": "970b8845587eca92b1b0e4da3221818355c7a91ee5c66a02fafc8410e71c74a7"
+    },
+    "models/item/diamond_fishing_rod_cast.json": {
+      "source": "models/item/diamond_fishing_rod_cast.json",
+      "sha256": "1bfc0acbef71bf6b56f25e4a225602aa319b7956b0953dae904a55938be580ba"
+    },
+    "models/item/diamond_gear.json": {
+      "source": "models/item/diamond_gear.json",
+      "sha256": "54c1c3077acd64032810047fc7b77d4158ad5f1c399fbf8d1ed0168cd7ac4aee"
+    },
+    "models/item/diamond_lever.json": {
+      "source": "models/item/diamond_lever.json",
+      "sha256": "9b749b57c01eef1c168e351ac7973c05694b4d80becaac6e2f1549ef494540e5"
+    },
+    "models/item/diamond_nugget.json": {
+      "source": "models/item/diamond_nugget.json",
+      "sha256": "c8967b3c0bba268587656c161791c545a75f6ff19c1abc90ee1c1482ff09c517"
+    },
+    "models/item/diamond_pressure_plate.json": {
+      "source": "models/item/diamond_pressure_plate.json",
+      "sha256": "3ce67b9b721b61a43c021d75332fac73429411779e9b69172154a3c48d89f6e0"
+    },
+    "models/item/diamond_rod.json": {
+      "source": "models/item/diamond_rod.json",
+      "sha256": "44007b64aec8bc7c2179f57a39fd24c78758fc43c055085e61d5a8147c7401d8"
+    },
+    "models/item/diamond_scythe.json": {
+      "source": "models/item/diamond_scythe.json",
+      "sha256": "e092d958e6b4028d4be8b6488cbe1e7aa1a26cecd9b75df1058900f26bf927a2"
+    },
+    "models/item/diamond_shears.json": {
+      "source": "models/item/diamond_shears.json",
+      "sha256": "ac2521e7ad12463d0efa51e85d8680527b9bb90cdde2f9268160ddbd7290c9b4"
+    },
+    "models/item/diamond_shield.json": {
+      "source": "models/item/diamond_shield.json",
+      "sha256": "da092e07979d09d57ab4de1a9901ea836ecfd1cf4179eee4f3a68dba6b430599"
+    },
+    "models/item/diamond_shield_blocking.json": {
+      "source": "models/item/diamond_shield_blocking.json",
+      "sha256": "fa834dff544040e1c42405623b3e8b7d07c168f3166e2c87736ba6dabb6da75e"
+    },
+    "models/item/diamond_slab.json": {
+      "source": "models/item/diamond_slab.json",
+      "sha256": "87d4f3d0de9c41c84fe39d103078c209fb9ee004028a49e9edb49820c86ef5bd"
+    },
+    "models/item/diamond_smallpowder.json": {
+      "source": "models/item/diamond_smallpowder.json",
+      "sha256": "2d1df187ccacd8c76b63a2073fcc43a9b22b1495366be8079dd2ca37b8303fd2"
+    },
+    "models/item/diamond_stairs.json": {
+      "source": "models/item/diamond_stairs.json",
+      "sha256": "5502e5cfda5ba680e94e891cc0e93f0cbad021de18eb8ee6390fad2e4b1869cb"
+    },
+    "models/item/diamond_trapdoor.json": {
+      "source": "models/item/diamond_trapdoor.json",
+      "sha256": "3b24fb43c0a85d55f64349ef412862e5ee713197bd6a1792be002c4c578eb808"
+    },
+    "models/item/diamond_wall.json": {
+      "source": "models/item/diamond_wall.json",
+      "sha256": "842b1d65e99c71422939d0c06fbd5a811f0889a7bdafbaa42c329b06907556b2"
+    },
+    "models/item/door_item.json": {
+      "source": "models/item/door_item.json",
+      "sha256": "d395a07806f5615d6c27997687d88968315b0c0cc3eb7926cce3df5749440eec"
+    },
+    "models/item/emerald_arrow.json": {
+      "source": "models/item/emerald_arrow.json",
+      "sha256": "6f3b5eed42d1b3706babad693f1c038d9a44887ccf9d07f5fe86c30b6ca86b4f"
+    },
+    "models/item/emerald_axe.json": {
+      "source": "models/item/emerald_axe.json",
+      "sha256": "9f87b5a22d1452c5c1cf86a20d89957e70ee6fd6eb522e7192fc8cf4d607597c"
+    },
+    "models/item/emerald_bars.json": {
+      "source": "models/item/emerald_bars.json",
+      "sha256": "28edfba10693dd8f17eec5af8822441d2fb3575536dd7b16309b2b0c5c4f6f0b"
+    },
+    "models/item/emerald_bolt.json": {
+      "source": "models/item/emerald_bolt.json",
+      "sha256": "42c520f5bbb159d394a9e437935d82d684f9b4ee6fecfbea4f7e3d1ec05244b5"
+    },
+    "models/item/emerald_boots.json": {
+      "source": "models/item/emerald_boots.json",
+      "sha256": "837e31e983edaa31583abb89906b213933fdd26c517e8e9a5f26d6f845fa87d2"
+    },
+    "models/item/emerald_bow.json": {
+      "source": "models/item/emerald_bow.json",
+      "sha256": "2d0817535d9a074b8bf455042427dce8d86208eef8fa19f874cb59b3220ed085"
+    },
+    "models/item/emerald_bow_pulling_0.json": {
+      "source": "models/item/emerald_bow_pulling_0.json",
+      "sha256": "bc5f5f3798fc298e60fc7c3bd37563679db85dffa4bb35549795df7d9d1c8a07"
+    },
+    "models/item/emerald_bow_pulling_1.json": {
+      "source": "models/item/emerald_bow_pulling_1.json",
+      "sha256": "b3000927ee48a7abda08cd271a036a1a362a7bc034799c9a4221a6cafcae3d60"
+    },
+    "models/item/emerald_bow_pulling_2.json": {
+      "source": "models/item/emerald_bow_pulling_2.json",
+      "sha256": "c89484c5433b036bc8c34a98f6a050b856a3605f64a0b39a3abd4ba0ae6ce641"
+    },
+    "models/item/emerald_button.json": {
+      "source": "models/item/emerald_button.json",
+      "sha256": "54e25e1a866037ef926c76f1f7bd574ddc841011057d18091e86636afffda10a"
+    },
+    "models/item/emerald_chestplate.json": {
+      "source": "models/item/emerald_chestplate.json",
+      "sha256": "540a68efa70538903639c8d1fee2dbc807db608ed4e8513fef53f182c6754059"
+    },
+    "models/item/emerald_crackhammer.json": {
+      "source": "models/item/emerald_crackhammer.json",
+      "sha256": "477024799b3c224002b745b9c9bd96ed94ca0208178b5677a7a753f49f5034fb"
+    },
+    "models/item/emerald_crossbow.json": {
+      "source": "models/item/emerald_crossbow.json",
+      "sha256": "8bb1a67211712ced30a4823ae8216d22c1056e535984963c529e26e4a1b436ef"
+    },
+    "models/item/emerald_crossbow_pulling_0.json": {
+      "source": "models/item/emerald_crossbow_pulling_0.json",
+      "sha256": "6a82df29fe9ddcc0c94e011acf5ebca40f9aedc2673a9ff11a914a5c650ada95"
+    },
+    "models/item/emerald_crossbow_pulling_1.json": {
+      "source": "models/item/emerald_crossbow_pulling_1.json",
+      "sha256": "f6126507d580e714dbf3062dab87e779a5f458a306d532ab43da50f1db9e1a31"
+    },
+    "models/item/emerald_crossbow_pulling_2.json": {
+      "source": "models/item/emerald_crossbow_pulling_2.json",
+      "sha256": "884a55104f2e80d14719f0971be59c0b33e848a74862f191d2253f87a367f4cf"
+    },
+    "models/item/emerald_door.json": {
+      "source": "models/item/emerald_door.json",
+      "sha256": "2c4901ef1ae692af7b428f52a52feca0e1486fae382d1163993a905f10a8f0f2"
+    },
+    "models/item/emerald_dust.json": {
+      "source": "models/item/emerald_powder.json",
+      "sha256": "55e2e20c32f1eb2ba3ace679b129fccfcf45d951d267f2070d51182a98fd995f"
+    },
+    "models/item/emerald_fishing_rod.json": {
+      "source": "models/item/emerald_fishing_rod.json",
+      "sha256": "6bec582d4cbee8a066150c6081234a612ce69c202e1574406057646758112a52"
+    },
+    "models/item/emerald_fishing_rod_cast.json": {
+      "source": "models/item/emerald_fishing_rod_cast.json",
+      "sha256": "3ec81f45c6c85a62dda57ffeed8d886d35b1cd5c8240af45bacbbc07ad212435"
+    },
+    "models/item/emerald_gear.json": {
+      "source": "models/item/emerald_gear.json",
+      "sha256": "94bc95532aed5bd656ec5c20d03391266295c60d8ec90ee643a7c33eece7fccc"
+    },
+    "models/item/emerald_helmet.json": {
+      "source": "models/item/emerald_helmet.json",
+      "sha256": "a309e407d6ce9730f3cd7d8200294879e719b7fcead3b6a4edf4c64d82e2b785"
+    },
+    "models/item/emerald_hoe.json": {
+      "source": "models/item/emerald_hoe.json",
+      "sha256": "523c87321ae795a7d266b431c2702812180da9164c9807a71c98594f306dac4b"
+    },
+    "models/item/emerald_horse_armor.json": {
+      "source": "models/item/emerald_horse_armor.json",
+      "sha256": "ec8cc2284803b0db1490e7ddbea5ecb13994dc0efcc8db1e1cc121bded201fdf"
+    },
+    "models/item/emerald_leggings.json": {
+      "source": "models/item/emerald_leggings.json",
+      "sha256": "1f8e2a924a71a341cec37b0e1e5ac1cb97fb2977900acc3f97fdfb218c507185"
+    },
+    "models/item/emerald_lever.json": {
+      "source": "models/item/emerald_lever.json",
+      "sha256": "9b749b57c01eef1c168e351ac7973c05694b4d80becaac6e2f1549ef494540e5"
+    },
+    "models/item/emerald_nugget.json": {
+      "source": "models/item/emerald_nugget.json",
+      "sha256": "34f8c93fefbfcfc3e19178359f11278b5bf36816bcb61a4537628355503e577c"
+    },
+    "models/item/emerald_pickaxe.json": {
+      "source": "models/item/emerald_pickaxe.json",
+      "sha256": "d1f552159df714b3df27c013762ad172e12fd3c011013ecd57aa8f1e90e613ac"
+    },
+    "models/item/emerald_pressure_plate.json": {
+      "source": "models/item/emerald_pressure_plate.json",
+      "sha256": "7eedc60f3288597892f3b665b1c49bad09434c301d6d5c2b90a04a386e335346"
+    },
+    "models/item/emerald_rod.json": {
+      "source": "models/item/emerald_rod.json",
+      "sha256": "4b627acd55f876e1d4ab66782eeaa3656b43d7320192bc4a685ccefa09d47d9c"
+    },
+    "models/item/emerald_scythe.json": {
+      "source": "models/item/emerald_scythe.json",
+      "sha256": "5e47f35b9e0f766824156b8f5b14c5b52877921a9ca743991994f6e9ce5b6735"
+    },
+    "models/item/emerald_shears.json": {
+      "source": "models/item/emerald_shears.json",
+      "sha256": "32dde46a498edf994cef82c513f008ee0f1e5fddbd8109fb2fd7b9f0b33cab2e"
+    },
+    "models/item/emerald_shield.json": {
+      "source": "models/item/emerald_shield.json",
+      "sha256": "4a47e1338872a12c4a661d0df19606405c87cfd6caf96b6e3d8b0d9ab65207ee"
+    },
+    "models/item/emerald_shield_blocking.json": {
+      "source": "models/item/emerald_shield_blocking.json",
+      "sha256": "ba48b874e63e28d25e07000b6e4aac3164a4e6674fed0dc5ca4bd9bd8cfe8995"
+    },
+    "models/item/emerald_shovel.json": {
+      "source": "models/item/emerald_shovel.json",
+      "sha256": "c3741b8c3f0d113f48ddcb9d414cfc7bff662f3e53a63141362dd953fe9fb858"
+    },
+    "models/item/emerald_slab.json": {
+      "source": "models/item/emerald_slab.json",
+      "sha256": "eea71fd00825626afd33bed8e842d44fa148323fbdbbfe4151bb6fd91a9ff218"
+    },
+    "models/item/emerald_smallpowder.json": {
+      "source": "models/item/emerald_smallpowder.json",
+      "sha256": "928cbce40b3b095ba529db34323978d90102451a9046a91687c99357236955ce"
+    },
+    "models/item/emerald_stairs.json": {
+      "source": "models/item/emerald_stairs.json",
+      "sha256": "d534272e1d94a5bb733a9404549c23b118bacc2848cb666d805c45b738bc7ffd"
+    },
+    "models/item/emerald_sword.json": {
+      "source": "models/item/emerald_sword.json",
+      "sha256": "1b11ab1b54ebfbd6d1be7ea36f88294f8908e4c1f2a07dcaaab721ff8a704342"
+    },
+    "models/item/emerald_trapdoor.json": {
+      "source": "models/item/emerald_trapdoor.json",
+      "sha256": "ab0c8ab24ef12f645f3832398d99653b1f95ffe639d3171743c0c82a8e76cff8"
+    },
+    "models/item/emerald_wall.json": {
+      "source": "models/item/emerald_wall.json",
+      "sha256": "557dc9b625a9da37a2b6d3682b634311c74be0ffe7fc9e910435677c1d2294c5"
+    },
+    "models/item/gold_arrow.json": {
+      "source": "models/item/gold_arrow.json",
+      "sha256": "c586674c096aacfe6b768c5c97bfa2c1a914e6aa867ba26a618ff747bf141489"
+    },
+    "models/item/gold_bars.json": {
+      "source": "models/item/gold_bars.json",
+      "sha256": "0c5b96628d460269d6824aa228ecef652cff43be9c0dbcdf49450ca2eaf31fa3"
+    },
+    "models/item/gold_bolt.json": {
+      "source": "models/item/gold_bolt.json",
+      "sha256": "fd16e036974985965f83bf1c12ca994d200da200612f8a5694815a3a13e57446"
+    },
+    "models/item/gold_bow.json": {
+      "source": "models/item/gold_bow.json",
+      "sha256": "405e5e906c602e46049da9f3e82646e422318025041dff3f7d1c8062c04ba160"
+    },
+    "models/item/gold_bow_pulling_0.json": {
+      "source": "models/item/gold_bow_pulling_0.json",
+      "sha256": "b1ac869844054352cc99fb4d367c68432306193a067dc7ed70c97b58ae2381d8"
+    },
+    "models/item/gold_bow_pulling_1.json": {
+      "source": "models/item/gold_bow_pulling_1.json",
+      "sha256": "25cdac94a3bf56669a833fe78e1dc2a8dcd2b4280854776510ea27a12f676001"
+    },
+    "models/item/gold_bow_pulling_2.json": {
+      "source": "models/item/gold_bow_pulling_2.json",
+      "sha256": "855c300dd90ac31c333576b97733be18ede030b72cdce82bd94126d2136d16a2"
+    },
+    "models/item/gold_button.json": {
+      "source": "models/item/gold_button.json",
+      "sha256": "905c5aed9b36e448c5ced32cbd5b5828421d5c50306819685bc1df7d04615340"
+    },
+    "models/item/gold_crackhammer.json": {
+      "source": "models/item/gold_crackhammer.json",
+      "sha256": "9cf9e4a2549d6dda304160deb6fc3b6490764c64c1723a40a45ca87bd59ecd75"
+    },
+    "models/item/gold_crossbow.json": {
+      "source": "models/item/gold_crossbow.json",
+      "sha256": "a9854021c4986e494113c94d3e05020204acc8760804287e929e7e724ba0e75b"
+    },
+    "models/item/gold_crossbow_pulling_0.json": {
+      "source": "models/item/gold_crossbow_pulling_0.json",
+      "sha256": "e87e04f0c385da7f1e9652d3cd7c1ec81ffc079772c498152d4ae1e2f6127ae6"
+    },
+    "models/item/gold_crossbow_pulling_1.json": {
+      "source": "models/item/gold_crossbow_pulling_1.json",
+      "sha256": "e94265988010900531a4f46726c9314ca43a5fd92ed1fcb1cfea3855cbc0acf9"
+    },
+    "models/item/gold_crossbow_pulling_2.json": {
+      "source": "models/item/gold_crossbow_pulling_2.json",
+      "sha256": "b49b6d0d6830b44fabfdfa835d6a443d1d07e08881b86a2db6473e68289c3442"
+    },
+    "models/item/gold_door.json": {
+      "source": "models/item/gold_door.json",
+      "sha256": "dfd09d22bb8579458cb878c9a8743bfb55b68c9d840c1b894be8e5e2d9b49ca7"
+    },
+    "models/item/gold_dust.json": {
+      "source": "models/item/gold_powder.json",
+      "sha256": "3d968c74d22d72585a269296cfb8cfe78881bf35648b84b628f83015fb8723dc"
+    },
+    "models/item/gold_fishing_rod.json": {
+      "source": "models/item/gold_fishing_rod.json",
+      "sha256": "5412ca3fd568073ddf38a98dfb99181743ffbbe548bc274b77ce1d3012cb62d7"
+    },
+    "models/item/gold_fishing_rod_cast.json": {
+      "source": "models/item/gold_fishing_rod_cast.json",
+      "sha256": "23379685abe88f43f33ba7eeb130dfa49fbb4c8be9bb2ea82fc0f88220aaea20"
+    },
+    "models/item/gold_gear.json": {
+      "source": "models/item/gold_gear.json",
+      "sha256": "26dcaa7eeac8d867ff5f47bb78e3cd23d909e2c6679e425a6288619c88d80bc8"
+    },
+    "models/item/gold_lever.json": {
+      "source": "models/item/gold_lever.json",
+      "sha256": "9b749b57c01eef1c168e351ac7973c05694b4d80becaac6e2f1549ef494540e5"
+    },
+    "models/item/gold_plate.json": {
+      "source": "models/item/gold_plate.json",
+      "sha256": "0d301dd93a820922fbef2e227e79918589d6b65e95e6c085ad0d5c6878760afc"
+    },
+    "models/item/gold_rod.json": {
+      "source": "models/item/gold_rod.json",
+      "sha256": "a28f923c7169dd24c51133f2b6d8c6a015a735ad6618260e42b91bee7ebb097c"
+    },
+    "models/item/gold_scythe.json": {
+      "source": "models/item/gold_scythe.json",
+      "sha256": "cc1049a972a4b79b2f95477472295179c62ffb9aab70adebcd297ee7672f9889"
+    },
+    "models/item/gold_shears.json": {
+      "source": "models/item/gold_shears.json",
+      "sha256": "b0e3b8824a5d6cfa03e31690ab39aae9232bd1ed963c9439cdb398c806ff240c"
+    },
+    "models/item/gold_shield.json": {
+      "source": "models/item/gold_shield.json",
+      "sha256": "2795d53995ec353930b8cacd9e68c148bf5b55ff75a7d984f27b9f73ec9a06a9"
+    },
+    "models/item/gold_shield_blocking.json": {
+      "source": "models/item/gold_shield_blocking.json",
+      "sha256": "d60d774819f525461052ce2f5c12dc581f2ad9f7c7e0839eeba8cdc0c9c9c430"
+    },
+    "models/item/gold_slab.json": {
+      "source": "models/item/gold_slab.json",
+      "sha256": "b26fe2d3f236b346702619f19ba5e86ec337ea01154b69645a034d1761a58860"
+    },
+    "models/item/gold_smallpowder.json": {
+      "source": "models/item/gold_smallpowder.json",
+      "sha256": "84fb49ca25674fc707ab68ea41ec04bb722bbed96f46ff6fdbfb029622e2779a"
+    },
+    "models/item/gold_stairs.json": {
+      "source": "models/item/gold_stairs.json",
+      "sha256": "7bd01020ebbf1c39cd2eb5da2f36f9847365b06456766a8fa4f22895195fea2e"
+    },
+    "models/item/gold_trapdoor.json": {
+      "source": "models/item/gold_trapdoor.json",
+      "sha256": "4fe2893b96f7f35e4f4b3ffc3def4d190053f805223b4cb9a210034662e1767f"
+    },
+    "models/item/gold_wall.json": {
+      "source": "models/item/gold_wall.json",
+      "sha256": "f11407a1a56f42d6a9b38b2262e5784f6404c94e320377ebef4fb4054308b81b"
+    },
+    "models/item/iron_arrow.json": {
+      "source": "models/item/iron_arrow.json",
+      "sha256": "266ac1d2546c308267a34efbc78ded8157c3007667a48c696c2811bc736bd9b7"
+    },
+    "models/item/iron_bolt.json": {
+      "source": "models/item/iron_bolt.json",
+      "sha256": "7b73f134838998ab28c7483b06dfdcae1303a46fbabbb864b2fde6235c1d3044"
+    },
+    "models/item/iron_bow.json": {
+      "source": "models/item/iron_bow.json",
+      "sha256": "97ccc23eed21a9ef336d8890ccc63f67b93d3680f55a277af8dc717e02f8f108"
+    },
+    "models/item/iron_bow_pulling_0.json": {
+      "source": "models/item/iron_bow_pulling_0.json",
+      "sha256": "db51b2b7a067347a1797f605f67b14ed8fa9e3be71bc1e2eddf333550c4e4c0d"
+    },
+    "models/item/iron_bow_pulling_1.json": {
+      "source": "models/item/iron_bow_pulling_1.json",
+      "sha256": "c8d4c04c372d24bd8dbb907597d0be9992015b86574a9c925be63725762e5cc0"
+    },
+    "models/item/iron_bow_pulling_2.json": {
+      "source": "models/item/iron_bow_pulling_2.json",
+      "sha256": "3f8567df9f8cb7b0ead2d29f0dfdd437c987767abc76e849d7a6a78830104c80"
+    },
+    "models/item/iron_button.json": {
+      "source": "models/item/iron_button.json",
+      "sha256": "6945dcb5377d040c7036303e691ea7c91278e6b857aa87f776bfd81b237bed4c"
+    },
+    "models/item/iron_crackhammer.json": {
+      "source": "models/item/iron_crackhammer.json",
+      "sha256": "c4e131bf87616a1f7ce35d8a19c8220a5dbe30abec310755c3d2789d5acb5303"
+    },
+    "models/item/iron_crossbow.json": {
+      "source": "models/item/iron_crossbow.json",
+      "sha256": "34411cf67b1aaa5dc46c415b77fec7407381934ece03081646a4f0851f160dd9"
+    },
+    "models/item/iron_crossbow_pulling_0.json": {
+      "source": "models/item/iron_crossbow_pulling_0.json",
+      "sha256": "f6481905a747049b23703b8bcec4edd7d9cb65faf9b46aa8198378a4da6bc0cb"
+    },
+    "models/item/iron_crossbow_pulling_1.json": {
+      "source": "models/item/iron_crossbow_pulling_1.json",
+      "sha256": "7476d891fa4b4eff49b712d6ed2c7fce7e392cea6685502d5e89b906092380b5"
+    },
+    "models/item/iron_crossbow_pulling_2.json": {
+      "source": "models/item/iron_crossbow_pulling_2.json",
+      "sha256": "7b742009114a22d76e6f4a711cb284d8c6852af0f0f69d9a22423818750c163c"
+    },
+    "models/item/iron_dust.json": {
+      "source": "models/item/iron_powder.json",
+      "sha256": "afc8dde4b94e79739bc231dc3e06d8d884d9dd9df78bf2eb8c13c6a0c2902b23"
+    },
+    "models/item/iron_fishing_rod.json": {
+      "source": "models/item/iron_fishing_rod.json",
+      "sha256": "1cfd90b3b63d00f17809049b40717c517431b064d4babd12d872379c5c8ad4aa"
+    },
+    "models/item/iron_fishing_rod_cast.json": {
+      "source": "models/item/iron_fishing_rod_cast.json",
+      "sha256": "a87029fb09f0f9eac80ae566ed8d79ab441e79c2166994a2073c285e83f982ea"
+    },
+    "models/item/iron_gear.json": {
+      "source": "models/item/iron_gear.json",
+      "sha256": "d726fdfef2354ddb0d8b6134f8cd2772e4194c5d0f6117f0d46db94cadaffd40"
+    },
+    "models/item/iron_lever.json": {
+      "source": "models/item/iron_lever.json",
+      "sha256": "9b749b57c01eef1c168e351ac7973c05694b4d80becaac6e2f1549ef494540e5"
+    },
+    "models/item/iron_plate.json": {
+      "source": "models/item/iron_plate.json",
+      "sha256": "cd5c03585c120ef1350bb510d50eb240e9139649df102172364f638a33629e95"
+    },
+    "models/item/iron_rod.json": {
+      "source": "models/item/iron_rod.json",
+      "sha256": "7db7ab79e8adfd9da5a5587415ff2444ca970b658448995137f9512d8df93114"
+    },
+    "models/item/iron_scythe.json": {
+      "source": "models/item/iron_scythe.json",
+      "sha256": "f650b4734a43ab75540f0f3c322140ee941b8bc166488fa6cfc314e4ff68b348"
+    },
+    "models/item/iron_shield.json": {
+      "source": "models/item/iron_shield.json",
+      "sha256": "cbc2971c6c320cb74f97adf4eb9b9b5cf0fcebee392cbbb34ebe079a76cc51b2"
+    },
+    "models/item/iron_shield_blocking.json": {
+      "source": "models/item/iron_shield_blocking.json",
+      "sha256": "bd0845f6ad0bf24dfbf720efb602c46684274f3940cf4d7b74e40f39ab716fda"
+    },
+    "models/item/iron_slab.json": {
+      "source": "models/item/iron_slab.json",
+      "sha256": "7543c2cdcb78105a995a97543a54fcb9e85c7a379d626590c9d6d771783fba68"
+    },
+    "models/item/iron_smallpowder.json": {
+      "source": "models/item/iron_smallpowder.json",
+      "sha256": "302732024ec49dc3e3f75eea2bfbedd61cfeb5251a4fbb010f77bf91fd80d9a4"
+    },
+    "models/item/iron_stairs.json": {
+      "source": "models/item/iron_stairs.json",
+      "sha256": "24edbc487d6993e0adaa8c1aefb482134c3b7157bdc478d8b00db3dd0e5e388b"
+    },
+    "models/item/iron_wall.json": {
+      "source": "models/item/iron_wall.json",
+      "sha256": "d0e063884b9d3bb386e5c63f565c559d12ae6a1f71b1782caa6941636425f079"
+    },
+    "models/item/lapis_smallpowder.json": {
+      "source": "models/item/lapis_smallpowder.json",
+      "sha256": "f225d55cf7fcb257191f83578e837815b4d027b5f2e53afbb4e066fc64c94547"
+    },
+    "models/item/obsidian_arrow.json": {
+      "source": "models/item/obsidian_arrow.json",
+      "sha256": "6c239c317efd9d2730d8a7d2aceb26a2b24e934286ebb574a535e5ad88ad9f49"
+    },
+    "models/item/obsidian_axe.json": {
+      "source": "models/item/obsidian_axe.json",
+      "sha256": "9e658def467f024331887cf4190148f29a0db7287f5ece383177c91c447e40b1"
+    },
+    "models/item/obsidian_bars.json": {
+      "source": "models/item/obsidian_bars.json",
+      "sha256": "057057bc3b7be66c5f9485b568fb137890f6cd1b67fac36ef812f358c6c1c7c4"
+    },
+    "models/item/obsidian_bolt.json": {
+      "source": "models/item/obsidian_bolt.json",
+      "sha256": "6cce95b2cdc84f6e2e6f7ee7e1842e89be99b87d87d4efbeb5fca4e93a8a32b4"
+    },
+    "models/item/obsidian_boots.json": {
+      "source": "models/item/obsidian_boots.json",
+      "sha256": "2961e717aeff09f9f4a8568c63f6c50ca51c470b430062501119174598a37467"
+    },
+    "models/item/obsidian_bow.json": {
+      "source": "models/item/obsidian_bow.json",
+      "sha256": "45bffa95581e36c63e5d2fd6d6db919d42fdf7effd8f9e93ace88ef6aae43782"
+    },
+    "models/item/obsidian_bow_pulling_0.json": {
+      "source": "models/item/obsidian_bow_pulling_0.json",
+      "sha256": "53ed8170a2aa9f16737231ee94eed3d1897afea3820fba3d16e2c468d9f5ff90"
+    },
+    "models/item/obsidian_bow_pulling_1.json": {
+      "source": "models/item/obsidian_bow_pulling_1.json",
+      "sha256": "8dbbfff5739b1dddb5fe4fb87d6e3e43ac185cc7641355b55d7e6b86cab1e6e3"
+    },
+    "models/item/obsidian_bow_pulling_2.json": {
+      "source": "models/item/obsidian_bow_pulling_2.json",
+      "sha256": "be58cc0e4d7f5e87394b184ef5a33a940a8f3ed0ce64133e290ba508653e4f60"
+    },
+    "models/item/obsidian_button.json": {
+      "source": "models/item/obsidian_button.json",
+      "sha256": "de3ccb4dcbffafcb935ecc84f09a21dd074aa1e1baf0db4f0140d672df90980e"
+    },
+    "models/item/obsidian_chestplate.json": {
+      "source": "models/item/obsidian_chestplate.json",
+      "sha256": "b7179b7199237c3ef58be649ede7c65f5c1caf11f345ea07a4acf3ef3b623380"
+    },
+    "models/item/obsidian_crackhammer.json": {
+      "source": "models/item/obsidian_crackhammer.json",
+      "sha256": "29e21c061ea0a5dbf693f4cae50dc0136de0c4b3b9efbb172160f7af3b7a6756"
+    },
+    "models/item/obsidian_crossbow.json": {
+      "source": "models/item/obsidian_crossbow.json",
+      "sha256": "47d3ec02344e93636d1e9a1e0cdc487891af1fa0539c5a5562d36c48f833d0cd"
+    },
+    "models/item/obsidian_crossbow_pulling_0.json": {
+      "source": "models/item/obsidian_crossbow_pulling_0.json",
+      "sha256": "d72ad946faeef9fd7567ea94b7c4f72621e1566dc0f29e83594331c1e4542434"
+    },
+    "models/item/obsidian_crossbow_pulling_1.json": {
+      "source": "models/item/obsidian_crossbow_pulling_1.json",
+      "sha256": "1b5d2d80385e301eb1f4b6a1fb9e5bab4cceb3cb45338ea49c0b6c02605c80f1"
+    },
+    "models/item/obsidian_crossbow_pulling_2.json": {
+      "source": "models/item/obsidian_crossbow_pulling_2.json",
+      "sha256": "08a0a5d74f1ffceae1b013dd58c1d57882be35496b37810a14f78c3fb263ab6e"
+    },
+    "models/item/obsidian_door.json": {
+      "source": "models/item/obsidian_door.json",
+      "sha256": "da2581dde88802d1c437871a46a1481c89c8e9a8c4321fc0c97a1e3f63a8f608"
+    },
+    "models/item/obsidian_dust.json": {
+      "source": "models/item/obsidian_powder.json",
+      "sha256": "5bc7bbc74600cb740cedda4323b7ddaaee48886de72f97f01a3b7877a1e573df"
+    },
+    "models/item/obsidian_fishing_rod.json": {
+      "source": "models/item/obsidian_fishing_rod.json",
+      "sha256": "e421319b7b63f53c91fbdb50cf4dc3f4f1e199080a038c957bc01f0a4daf6ff9"
+    },
+    "models/item/obsidian_fishing_rod_cast.json": {
+      "source": "models/item/obsidian_fishing_rod_cast.json",
+      "sha256": "5757144dd60cc22f2807966b889397a0b1b8ba0ba319cf28abc0f07c967c2b00"
+    },
+    "models/item/obsidian_gear.json": {
+      "source": "models/item/obsidian_gear.json",
+      "sha256": "f505faf472bc2d800bed5625f7e2b94014514a9ace98660d956a24f66f9179aa"
+    },
+    "models/item/obsidian_helmet.json": {
+      "source": "models/item/obsidian_helmet.json",
+      "sha256": "ab2a26b99f46d50096cd27acf729242a98f9697ca6163e77308f9a4f7ff1427f"
+    },
+    "models/item/obsidian_hoe.json": {
+      "source": "models/item/obsidian_hoe.json",
+      "sha256": "92655b68df304baa46cd873327ea9b212e25c145e881429d95b9ad2228170a98"
+    },
+    "models/item/obsidian_horse_armor.json": {
+      "source": "models/item/obsidian_horse_armor.json",
+      "sha256": "18503e07da6d61b04655ccae9771ef050ef36230dfebe38b439675b846c01359"
+    },
+    "models/item/obsidian_ingot.json": {
+      "source": "models/item/obsidian_ingot.json",
+      "sha256": "353f82cad74c51af2f42125281dbeeb45894b9c6191a3c61f58ec0b1d70b116e"
+    },
+    "models/item/obsidian_leggings.json": {
+      "source": "models/item/obsidian_leggings.json",
+      "sha256": "ac417dc5ac9d1eb9f339273e8fbf8b867a7c5779fd6f7da8b22e48e05e701bf7"
+    },
+    "models/item/obsidian_lever.json": {
+      "source": "models/item/obsidian_lever.json",
+      "sha256": "9b749b57c01eef1c168e351ac7973c05694b4d80becaac6e2f1549ef494540e5"
+    },
+    "models/item/obsidian_nugget.json": {
+      "source": "models/item/obsidian_nugget.json",
+      "sha256": "b525d88121d5d839e416a7fb9722c294d9a747bd2f82252a174b9932a017861b"
+    },
+    "models/item/obsidian_pickaxe.json": {
+      "source": "models/item/obsidian_pickaxe.json",
+      "sha256": "d12314a189d0d70f08f867af8e96baacdf92eadefe31ca40950dc93c5953a54d"
+    },
+    "models/item/obsidian_pressure_plate.json": {
+      "source": "models/item/obsidian_pressure_plate.json",
+      "sha256": "a1e1c6212f1610c0a2f832d05a68f918b9c637607cfc424db0695e79272378e2"
+    },
+    "models/item/obsidian_rod.json": {
+      "source": "models/item/obsidian_rod.json",
+      "sha256": "73f7ea33737ea9721880c1d40a48fd5a51c5a51a12f516d4613a109485a283ce"
+    },
+    "models/item/obsidian_scythe.json": {
+      "source": "models/item/obsidian_scythe.json",
+      "sha256": "b88bf20dcf695c3a29438df24faa2b4e3ae35ede543f11fd6930037d5ac0d5d6"
+    },
+    "models/item/obsidian_shears.json": {
+      "source": "models/item/obsidian_shears.json",
+      "sha256": "fbfff46a5f72fc5811acc58a0abf5a4d01477830c65d796d4ea40d5721e0693d"
+    },
+    "models/item/obsidian_shield.json": {
+      "source": "models/item/obsidian_shield.json",
+      "sha256": "b9e2e9cbfaf522183be6cae855e6db4927ba4594e6409dc5bd96527345714671"
+    },
+    "models/item/obsidian_shield_blocking.json": {
+      "source": "models/item/obsidian_shield_blocking.json",
+      "sha256": "670aba187b699c17ab203a6bbbaf3459ce5bbcaf722ae36a538df8c8f26e1fbe"
+    },
+    "models/item/obsidian_shovel.json": {
+      "source": "models/item/obsidian_shovel.json",
+      "sha256": "a8d8e5486cf4370dd3c25d42d94f756431ad9c63b3409370e5e0c21fa2655c9d"
+    },
+    "models/item/obsidian_slab.json": {
+      "source": "models/item/obsidian_slab.json",
+      "sha256": "5834b18a56724b2f9d29167c8c8cba9261fea4802d19637739c2ab8109a0b7d4"
+    },
+    "models/item/obsidian_smallpowder.json": {
+      "source": "models/item/obsidian_smallpowder.json",
+      "sha256": "891bbb370ec8c1aade82baa7db9d3b9514cedfbd1d0931eb9427e2fef430105f"
+    },
+    "models/item/obsidian_stairs.json": {
+      "source": "models/item/obsidian_stairs.json",
+      "sha256": "7459916ac44f6252bc70f516a07fe75caf85349580df6099be8782b34b6a568d"
+    },
+    "models/item/obsidian_sword.json": {
+      "source": "models/item/obsidian_sword.json",
+      "sha256": "8f1a48f3cda3406dfa641f033b80d94808ed410b9ed51b5b5ae239e814069993"
+    },
+    "models/item/obsidian_trapdoor.json": {
+      "source": "models/item/obsidian_trapdoor.json",
+      "sha256": "b8fca6e5b33c9b08f091cf0a41a8eb52c5547186932210274a9222c0f2bb7f46"
+    },
+    "models/item/obsidian_wall.json": {
+      "source": "models/item/obsidian_wall.json",
+      "sha256": "75a0e11ee2274c365c97e2bd1094fe4326d25ce95a5c6c6bbe84665bc374c9ae"
+    },
+    "models/item/quartz_arrow.json": {
+      "source": "models/item/quartz_arrow.json",
+      "sha256": "a363c4b6874c6c64daf1c84c3a6dbfa5e7b1bf55d0c389c8866a5348c37ad398"
+    },
+    "models/item/quartz_axe.json": {
+      "source": "models/item/quartz_axe.json",
+      "sha256": "a12805111e66dbd41e6726266fdd9989e4bbb83f4c821b5aceb698626b5ac181"
+    },
+    "models/item/quartz_bars.json": {
+      "source": "models/item/quartz_bars.json",
+      "sha256": "edf3ad8b04ba8d0e6fc6bd29848bbfb9e783a09d09af835b0cc74128893a91ac"
+    },
+    "models/item/quartz_bolt.json": {
+      "source": "models/item/quartz_bolt.json",
+      "sha256": "5ab0187bd2dea4c7a013b15836b624c9d91e668fc91cf118ca5196598974aa86"
+    },
+    "models/item/quartz_boots.json": {
+      "source": "models/item/quartz_boots.json",
+      "sha256": "f7492b220d832b53d6ab010b3c83391b6e213a7d8c9e40d7afa2676fe12099c5"
+    },
+    "models/item/quartz_bow.json": {
+      "source": "models/item/quartz_bow.json",
+      "sha256": "dbe4311476669946c4225dd9094cb0f1a2d4aa04c0dca09163593fb3a09c84f6"
+    },
+    "models/item/quartz_bow_pulling_0.json": {
+      "source": "models/item/quartz_bow_pulling_0.json",
+      "sha256": "c237dbb3960eabdba81c5c8b4bc8934034f588a47367e943a8be78cd64e96925"
+    },
+    "models/item/quartz_bow_pulling_1.json": {
+      "source": "models/item/quartz_bow_pulling_1.json",
+      "sha256": "f2defb199c403a02b49f9e41c7b5e6e6772fb968da47fbe13a22a0b71a34cffb"
+    },
+    "models/item/quartz_bow_pulling_2.json": {
+      "source": "models/item/quartz_bow_pulling_2.json",
+      "sha256": "064c5ceeacc955fc25a36eaf31620cc1e88e07428e831d6fd94ba9dbba0c973b"
+    },
+    "models/item/quartz_button.json": {
+      "source": "models/item/quartz_button.json",
+      "sha256": "2f2784da9b97d3b37fecc3d879be48dec57d955e9fa135879e1f88ed3b329c8c"
+    },
+    "models/item/quartz_chestplate.json": {
+      "source": "models/item/quartz_chestplate.json",
+      "sha256": "644648a7c770e5b5c17f5ba0218469a5ace43f4ed6a7c9cc61717be5df8fe7a4"
+    },
+    "models/item/quartz_crackhammer.json": {
+      "source": "models/item/quartz_crackhammer.json",
+      "sha256": "fe8d7fa40fde35c5dc957cd30629aaac66c8bc9caef80578644ca16c73370852"
+    },
+    "models/item/quartz_crossbow.json": {
+      "source": "models/item/quartz_crossbow.json",
+      "sha256": "10152ab053853cf5db8ccafe5dde1a3cff3d64525b0e54dc2df0c2b578740cef"
+    },
+    "models/item/quartz_crossbow_pulling_0.json": {
+      "source": "models/item/quartz_crossbow_pulling_0.json",
+      "sha256": "916692b207e1b8afe881ed3cbcda4e467d7b86ece2ba025c3251de04e8cb5e12"
+    },
+    "models/item/quartz_crossbow_pulling_1.json": {
+      "source": "models/item/quartz_crossbow_pulling_1.json",
+      "sha256": "f6c9b2ba013771cd5d7b618b38912e6845343c9214bf7a888fca159f6ddcf5ac"
+    },
+    "models/item/quartz_crossbow_pulling_2.json": {
+      "source": "models/item/quartz_crossbow_pulling_2.json",
+      "sha256": "c2fa2b1d711d813362c344fc0052a07d55b97188c742ad15c651c42cf9a31335"
+    },
+    "models/item/quartz_door.json": {
+      "source": "models/item/quartz_door.json",
+      "sha256": "0ff00db28f9c1c2560a659c14599323d4cd0ff0da900140fc16db478a6715574"
+    },
+    "models/item/quartz_dust.json": {
+      "source": "models/item/quartz_powder.json",
+      "sha256": "6cbf1727ad2d06899c90733f409e8014c4892d75f7dbe269d37698db3229e6f0"
+    },
+    "models/item/quartz_fishing_rod.json": {
+      "source": "models/item/quartz_fishing_rod.json",
+      "sha256": "d5c95508c404e7dbfbf3c5c9442cfceda92484ed3e5d9b7b941e83a412b1b6e3"
+    },
+    "models/item/quartz_fishing_rod_cast.json": {
+      "source": "models/item/quartz_fishing_rod_cast.json",
+      "sha256": "f9ed5d22c590d93248f5ec57d319f4bfd9469782ed8338c869858e8b4d1a4759"
+    },
+    "models/item/quartz_gear.json": {
+      "source": "models/item/quartz_gear.json",
+      "sha256": "42e4bb5306363918232f1ed9016f13e7f16a18af80a1ae1847a9b1e4edbeeae2"
+    },
+    "models/item/quartz_helmet.json": {
+      "source": "models/item/quartz_helmet.json",
+      "sha256": "10ac88e5aead78373d1bab5475e2eb9147c1bc52d55ec259393b679628170f54"
+    },
+    "models/item/quartz_hoe.json": {
+      "source": "models/item/quartz_hoe.json",
+      "sha256": "4c5a2d8429dce6874f2b91d5260438d6a221a452e6a85f573cb2102af2fd8212"
+    },
+    "models/item/quartz_horse_armor.json": {
+      "source": "models/item/quartz_horse_armor.json",
+      "sha256": "b08959eba43cd23b2d2d1d0165639df73ce6869bd111ffdcb8552ebdd0c79277"
+    },
+    "models/item/quartz_leggings.json": {
+      "source": "models/item/quartz_leggings.json",
+      "sha256": "f147e1c8c4d7ac59961294392e5fe7cdc5388b4686e3be9ff3c1152bf217900b"
+    },
+    "models/item/quartz_lever.json": {
+      "source": "models/item/quartz_lever.json",
+      "sha256": "9b749b57c01eef1c168e351ac7973c05694b4d80becaac6e2f1549ef494540e5"
+    },
+    "models/item/quartz_nugget.json": {
+      "source": "models/item/quartz_nugget.json",
+      "sha256": "09d1d09060a9b2f8c286241ab45f75cfbe253476a74f131a114bb3e94a12eb8b"
+    },
+    "models/item/quartz_pickaxe.json": {
+      "source": "models/item/quartz_pickaxe.json",
+      "sha256": "2148c6f26c27ac562cc2f5131733bb04cd3f6c22beb3f9a524bfbb79ba0e468b"
+    },
+    "models/item/quartz_pressure_plate.json": {
+      "source": "models/item/quartz_pressure_plate.json",
+      "sha256": "b5fc808eec7d62c829cfcd7d67f795274eeed362ab75b32c4504f46936857fac"
+    },
+    "models/item/quartz_rod.json": {
+      "source": "models/item/quartz_rod.json",
+      "sha256": "2c27fe2dc91863e6f4a616cbe271115b97fb853935bcbaabd79585a52dccbdea"
+    },
+    "models/item/quartz_scythe.json": {
+      "source": "models/item/quartz_scythe.json",
+      "sha256": "671c6b6454a38126b1f4c8fada69f1609a8f5aa5ada61f2175ea0a28ea27a6cf"
+    },
+    "models/item/quartz_shears.json": {
+      "source": "models/item/quartz_shears.json",
+      "sha256": "1b9de4a2d2e80a6244af15070543984f903cd162aa07f1147831640e1d4bb5d6"
+    },
+    "models/item/quartz_shield.json": {
+      "source": "models/item/quartz_shield.json",
+      "sha256": "77c216731557db22463fa3d0e2233db145068c7cbbac8b9144a1d4eb7f5852d1"
+    },
+    "models/item/quartz_shield_blocking.json": {
+      "source": "models/item/quartz_shield_blocking.json",
+      "sha256": "3b955b6633166fd59d419c35cb741021ca2a088a0ca84f524eac25e595fe42ff"
+    },
+    "models/item/quartz_shovel.json": {
+      "source": "models/item/quartz_shovel.json",
+      "sha256": "64e6fb3e03974f942349652410a8fb30c964538e15fc464a91a99ace95314c49"
+    },
+    "models/item/quartz_smallpowder.json": {
+      "source": "models/item/quartz_smallpowder.json",
+      "sha256": "5453a2852b2c6f5668d8f6d773a9b87a12fff8b36e824e4551d73a382fd54a4a"
+    },
+    "models/item/quartz_sword.json": {
+      "source": "models/item/quartz_sword.json",
+      "sha256": "38eb45c9011df05227e13532fb740480be64d73db54d4cb39a31c00ba85686e1"
+    },
+    "models/item/quartz_trapdoor.json": {
+      "source": "models/item/quartz_trapdoor.json",
+      "sha256": "d9bceb8c1b8b586830c3482bde6358453bdf9edcb35a0feff0603ab5d5faffd3"
+    },
+    "models/item/quartz_wall.json": {
+      "source": "models/item/quartz_wall.json",
+      "sha256": "4febc8d1f9f4533b006b087bcb9881519c2f7e38b7125d8110da6160a8708c6f"
+    },
+    "models/item/redstone_ingot.json": {
+      "source": "models/item/redstone_ingot.json",
+      "sha256": "afd680c7613faa0132ca7b2ee6835f3ffdc5cab52d7c4645304900d13878afef"
+    },
+    "models/item/redstone_smallpowder.json": {
+      "source": "models/item/redstone_smallpowder.json",
+      "sha256": "b35a20b86873443a3ddab250a9827ef36de312d33d5445a73a7f774c4fdf32bd"
+    },
+    "models/item/shield.json": {
+      "source": "models/item/shield.json",
+      "sha256": "b8eeb78adb77818476973f434259383b71a6dc8c40ef8799eae5aa620f7b248c"
+    },
+    "models/item/shield_blocking.json": {
+      "source": "models/item/shield_blocking.json",
+      "sha256": "7adce859048daee1f92b5654c30af58e3c3b96227e04767f57d6896235b78af1"
+    },
+    "models/item/stone_crackhammer.json": {
+      "source": "models/item/stone_crackhammer.json",
+      "sha256": "b946aac4f75538a07ef7242ee40e83ed329a1a6819c16090b552484daa1c8eb4"
+    },
+    "models/item/stone_gear.json": {
+      "source": "models/item/stone_gear.json",
+      "sha256": "ff0163e4fd4791b75bcc8c5b764ee0ed0cb55bddfda2bc64ae9b4615a441c2b1"
+    },
+    "models/item/stone_rod.json": {
+      "source": "models/item/stone_rod.json",
+      "sha256": "76302ef5a56659033194e422a05957ddbf3e1ccd7e0ddd514b31dbeee28f0f25"
+    },
+    "models/item/stone_scythe.json": {
+      "source": "models/item/stone_scythe.json",
+      "sha256": "00be26bd1a1f531ad8b7c35e6ec1f0b55d7c8e5e34e75adb5d4088f41b0b874f"
+    },
+    "models/item/wood_crackhammer.json": {
+      "source": "models/item/wood_crackhammer.json",
+      "sha256": "7a6130e245cfedea1f9981024badb63efd550588169c0b902680afb04b4f78a5"
+    },
+    "models/item/wood_gear.json": {
+      "source": "models/item/wood_gear.json",
+      "sha256": "e4331e87df988a1bda8920f02388673e7c58922888340702c2a72a90280b8865"
+    },
+    "models/item/wood_scythe.json": {
+      "source": "models/item/wood_scythe.json",
+      "sha256": "047bf184de188e327163e0a4efba2b2da849c55f589b8dc35b8e0dc5fa41ed58"
+    },
+    "textures/block/charcoal_block.png": {
+      "source": "textures/block/charcoal_block.png",
+      "sha256": "d30cf9526e9b8d4ccee870fe9be13511ba3d4bace02bc4a62eabb4097df547c8"
+    },
+    "textures/block/diamond_bars.png": {
+      "source": "textures/block/diamond_bars.png",
+      "sha256": "7a73da6d8ae6a5594c5a5d30dddf30bda3973a708b8e075662fa1798d7e0b783"
+    },
+    "textures/block/diamond_door_lower.png": {
+      "source": "textures/block/diamond_door_lower.png",
+      "sha256": "a563d79ebbc3eddeb307b099e8bb0024f716c51d2ac6bb56b6e7e1fc66c78d5a"
+    },
+    "textures/block/diamond_door_upper.png": {
+      "source": "textures/block/diamond_door_upper.png",
+      "sha256": "564d33a7ec7ce9476e8193b6778d9bb2a5a4739f7d9bfc6ea838ff9624b23272"
+    },
+    "textures/block/diamond_trapdoor.png": {
+      "source": "textures/block/diamond_trapdoor.png",
+      "sha256": "134f015d4c0f8620dc9aa05edea84fb455566ef6a40a63ad69993c4e57d9c51d"
+    },
+    "textures/block/emerald_bars.png": {
+      "source": "textures/block/emerald_bars.png",
+      "sha256": "36368255ced057376a5e3d76419920a9e50a388379fbfa3b6b9e489198231c48"
+    },
+    "textures/block/emerald_door_lower.png": {
+      "source": "textures/block/emerald_door_lower.png",
+      "sha256": "c7a117ea8f2be55de25ba434bd7c491ebc97f230d969225c24a113d82a080c0a"
+    },
+    "textures/block/emerald_door_upper.png": {
+      "source": "textures/block/emerald_door_upper.png",
+      "sha256": "f48e46fde0c8749caa358d722eff616e94443c1251a98c5a2db48f80448b0130"
+    },
+    "textures/block/emerald_trapdoor.png": {
+      "source": "textures/block/emerald_trapdoor.png",
+      "sha256": "f4c6861908b876937e4137092ad3892c41c90bd55e9243581e1ba2cd94f866cc"
+    },
+    "textures/block/gold_bars.png": {
+      "source": "textures/block/gold_bars.png",
+      "sha256": "264704c3c28d0958e44545a6d1abecf151ae7c823e6bd9c5dfb73461c6dd47b3"
+    },
+    "textures/block/gold_door_lower.png": {
+      "source": "textures/block/gold_door_lower.png",
+      "sha256": "b1ea3f0f60b522bf624ae65021169ff095da13362d689a168e083e9275749268"
+    },
+    "textures/block/gold_door_upper.png": {
+      "source": "textures/block/gold_door_upper.png",
+      "sha256": "5f436845e0d9b36de527b94076a7f4c866f778a44b4619d01b8fde67cee701df"
+    },
+    "textures/block/gold_trapdoor.png": {
+      "source": "textures/block/gold_trapdoor.png",
+      "sha256": "72751a00abc941ff38be2c3fbdb4a70c1d2357ff52b3a0579cbd8281c82bc26b"
+    },
+    "textures/block/molten_metal_flow.png": {
+      "source": "textures/block/molten_metal_flow.png",
+      "sha256": "c364e0c69e4f55f56a793b3111f4d20110f2bb57f9b2c8a69077b4e6c03cca3f"
+    },
+    "textures/block/molten_metal_flow.png.mcmeta": {
+      "source": "textures/block/molten_metal_flow.png.mcmeta",
+      "sha256": "9b53d9769418604cb936e1e76b0a8264741f7229dcc4674d5343d484925b1c4b"
+    },
+    "textures/block/molten_metal_still.png": {
+      "source": "textures/block/molten_metal_still.png",
+      "sha256": "35e7f3b60f04bb96944375b1c87ceeb2c2f91ce8cd62249ccdd832ccd9028ca4"
+    },
+    "textures/block/molten_metal_still.png.mcmeta": {
+      "source": "textures/block/molten_metal_still.png.mcmeta",
+      "sha256": "7c4d19adfd0c5b2dc6b8d9fd3459f3c96b250e6c631495d9f3c67bb845d2684f"
+    },
+    "textures/block/obsidian_bars.png": {
+      "source": "textures/block/obsidian_bars.png",
+      "sha256": "e49e55357c91c322bfdb3f21dd896eb0e6ce64854d8605fd36549ba894b3c3d5"
+    },
+    "textures/block/obsidian_door_lower.png": {
+      "source": "textures/block/obsidian_door_lower.png",
+      "sha256": "f85c17f976bbbbda97c30af5d9949f4654a8701bd1098a46df59017a204a7974"
+    },
+    "textures/block/obsidian_door_upper.png": {
+      "source": "textures/block/obsidian_door_upper.png",
+      "sha256": "f58f0845497f7cf02b1528783db61984928952d4785047e17062692425b7dff3"
+    },
+    "textures/block/obsidian_trapdoor.png": {
+      "source": "textures/block/obsidian_trapdoor.png",
+      "sha256": "afa178f9870b7065ca14641b663c651e32122410df01365f8fece7c54767e3af"
+    },
+    "textures/block/quartz_bars.png": {
+      "source": "textures/block/quartz_bars.png",
+      "sha256": "8e57dbcd54b1e8d60ff7282a1b6b4bf33d6f9b3fd910d860c853cffea0ee3e14"
+    },
+    "textures/block/quartz_door_lower.png": {
+      "source": "textures/block/quartz_door_lower.png",
+      "sha256": "c91bbbcda10c12aa13ce5a036860f6d5ff6de533943e701ebdf24a96c9c6fdc4"
+    },
+    "textures/block/quartz_door_upper.png": {
+      "source": "textures/block/quartz_door_upper.png",
+      "sha256": "a5d0da2012f07002475954e1902bd337f4da2971e0be04b223694d893b38f5a8"
+    },
+    "textures/block/quartz_trapdoor.png": {
+      "source": "textures/block/quartz_trapdoor.png",
+      "sha256": "5c2a57efa054c668688e9f3a50d2524eea3a46f227506ac627944cf6e3686b0e"
+    },
+    "textures/entity/horse/armor/horse_armor_emerald.png": {
+      "source": "textures/entity/horse/armor/horse_armor_emerald.png",
+      "sha256": "78fcc8a9a0afa948a17b293430ab09bbc405cf1cac921cbbcf0312c373cdd544"
+    },
+    "textures/entity/horse/armor/horse_armor_obsidian.png": {
+      "source": "textures/entity/horse/armor/horse_armor_obsidian.png",
+      "sha256": "d01f0ae732272a715fa6dd0521dbb7f3dd28302742cd0984f3f12dcd6a9768b8"
+    },
+    "textures/entity/horse/armor/horse_armor_quartz.png": {
+      "source": "textures/entity/horse/armor/horse_armor_quartz.png",
+      "sha256": "b7d3bc18412dc2f0a8dc8c07f872b8f4c91b883939803ee7ffc9dcd6efc244f9"
+    },
+    "textures/item/carbon_dust.png": {
+      "source": "textures/item/carbon_powder.png",
+      "sha256": "8186a7174724f7fc073f1ee6e31f4baf1557b51be9f23f4499611f249010a8ac"
+    },
+    "textures/item/charcoal_nugget.png": {
+      "source": "textures/item/charcoal_nugget.png",
+      "sha256": "142526289dccc61ac4ae64cf5a5095cf96dfcfbdfb84469aa40fef97ad328628"
+    },
+    "textures/item/coal_nugget.png": {
+      "source": "textures/item/coal_nugget.png",
+      "sha256": "ab6d585734eec741385c4916d4f982d087ba8c1b770d52b41ac83fe141ba96cf"
+    },
+    "textures/item/coal_smallpowder.png": {
+      "source": "textures/item/coal_smallpowder.png",
+      "sha256": "d36459b05ae3cbcb8f2ebed736b523bd5ee5b715c3e5340bf93835dd53e7c90c"
+    },
+    "textures/item/diamond_arrow.png": {
+      "source": "textures/item/diamond_arrow.png",
+      "sha256": "7783e526e1fdc260595324f5e006380476b5625d52af4a452f22cc88c88b332a"
+    },
+    "textures/item/diamond_bolt.png": {
+      "source": "textures/item/diamond_bolt.png",
+      "sha256": "c78017b133d46ef2c36aafb0ad04f15b79222b09b516ac9113c165a5462f1ece"
+    },
+    "textures/item/diamond_bow_pulling_0.png": {
+      "source": "textures/item/diamond_bow_pulling_0.png",
+      "sha256": "0b6b657827ad340c83beb7b5917446dd26dd823e68b15cf1cc55fa9e511fe15e"
+    },
+    "textures/item/diamond_bow_pulling_1.png": {
+      "source": "textures/item/diamond_bow_pulling_1.png",
+      "sha256": "2005e82082a0658b395e70a866b8f084e38d2031a51f4847742f331d22d0fdff"
+    },
+    "textures/item/diamond_bow_pulling_2.png": {
+      "source": "textures/item/diamond_bow_pulling_2.png",
+      "sha256": "851a534699c089d7bdfec430bca933b87922286bf84f44eb56cca9db9055fa8d"
+    },
+    "textures/item/diamond_bow_standby.png": {
+      "source": "textures/item/diamond_bow_standby.png",
+      "sha256": "d8c59bd53662a0f8b61d9aa6c1bd7f75e657a24e3a1f011bba542543b8003bdb"
+    },
+    "textures/item/diamond_crackhammer.png": {
+      "source": "textures/item/diamond_crackhammer.png",
+      "sha256": "2f2c2648791cb5767b515fb357e013af1dbb0f6b7c5a1621164883c227445843"
+    },
+    "textures/item/diamond_crossbow_pulling_0.png": {
+      "source": "textures/item/diamond_crossbow_pulling_0.png",
+      "sha256": "ff5178e26bcd2d377edbd42aa729c1d4a292d670cb7984d9ff81ac076245ff0b"
+    },
+    "textures/item/diamond_crossbow_pulling_1.png": {
+      "source": "textures/item/diamond_crossbow_pulling_1.png",
+      "sha256": "d5c584a33ffafdd718cc300ddc22811fea37640153cff7f0b4b29390f190955e"
+    },
+    "textures/item/diamond_crossbow_pulling_2.png": {
+      "source": "textures/item/diamond_crossbow_pulling_2.png",
+      "sha256": "e4f0b822d68216bc69030e09806db9bfd7c9bb1292860087a4b7b603d3ea151a"
+    },
+    "textures/item/diamond_crossbow_standby.png": {
+      "source": "textures/item/diamond_crossbow_standby.png",
+      "sha256": "592c37e41d30e645ce22716f3b74af820231be3315c0dca127da62b7a61c625b"
+    },
+    "textures/item/diamond_dust.png": {
+      "source": "textures/item/diamond_powder.png",
+      "sha256": "58f41f8e37ecd2cbca34ec4666f57e8ff3656fad887174fc2948b357f2141070"
+    },
+    "textures/item/diamond_fishing_rod_cast.png": {
+      "source": "textures/item/diamond_fishing_rod_cast.png",
+      "sha256": "14ef4e941191d4f50528c205a5c016ef496394b07c2fdc261ddcbe1d06b30bcd"
+    },
+    "textures/item/diamond_fishing_rod_uncast.png": {
+      "source": "textures/item/diamond_fishing_rod_uncast.png",
+      "sha256": "e4ee8ee52442d2365f127e97b75ecfd5b1dc9aa36e0e306b62f73b4a2fce6b30"
+    },
+    "textures/item/diamond_gear.png": {
+      "source": "textures/item/diamond_gear.png",
+      "sha256": "89adf9f83f00553fdb9add95bdc40e28568c9ccf0e110c7944eee6cd7e8fb7c8"
+    },
+    "textures/item/diamond_nugget.png": {
+      "source": "textures/item/diamond_nugget.png",
+      "sha256": "24b2c67f0237947869e88c189bdb4da89035efa151ca9caeb468807ea1ea64de"
+    },
+    "textures/item/diamond_rod.png": {
+      "source": "textures/item/diamond_rod.png",
+      "sha256": "34404441ff0c695b8ada298fc56b5d5f29a88a88b1fc183852976f7c7d91eb81"
+    },
+    "textures/item/diamond_scythe.png": {
+      "source": "textures/item/diamond_scythe.png",
+      "sha256": "19cd7f30708b4bfe12d58d7a55d876e8a8986e9a6fc1fb38dc2eee1b14b4d935"
+    },
+    "textures/item/diamond_shears.png": {
+      "source": "textures/item/diamond_shears.png",
+      "sha256": "299659cab3773774881abd7b24309f18a123393567946992cfd37a83d908b9b9"
+    },
+    "textures/item/diamond_smallpowder.png": {
+      "source": "textures/item/diamond_smallpowder.png",
+      "sha256": "f243f3ca790604f12b302e7c6ee92409928b5e2b8e1bcf07e6c181b40fe6c6ef"
+    },
+    "textures/item/emerald_arrow.png": {
+      "source": "textures/item/emerald_arrow.png",
+      "sha256": "99197299c5dedab57ab80d1ea0238612ee1efc09f178f821f397cf55e69d210d"
+    },
+    "textures/item/emerald_axe.png": {
+      "source": "textures/item/emerald_axe.png",
+      "sha256": "f5dc0417fb258773ea7834e8e6221f5314d7ebd91ca424b749f4dcb21da68c90"
+    },
+    "textures/item/emerald_bolt.png": {
+      "source": "textures/item/emerald_bolt.png",
+      "sha256": "f67f62c3b5156f5445dd1fae5e5c56b05c22db9588a204663d64852ad3b09644"
+    },
+    "textures/item/emerald_boots.png": {
+      "source": "textures/item/emerald_boots.png",
+      "sha256": "2bb772ce67dfd9ede6c0eddca438c155e19f911ce362f0a64cc16a9d59251cf2"
+    },
+    "textures/item/emerald_bow_pulling_0.png": {
+      "source": "textures/item/emerald_bow_pulling_0.png",
+      "sha256": "c91fc424d6beee293df6c89a439c0ada260ef64c5c4e03bdce89fe6eb8c099a9"
+    },
+    "textures/item/emerald_bow_pulling_1.png": {
+      "source": "textures/item/emerald_bow_pulling_1.png",
+      "sha256": "2cc0c5ac57042dc7e8203373d70a188987d5cf4fa03bf9432660c3c4a8cedbfe"
+    },
+    "textures/item/emerald_bow_pulling_2.png": {
+      "source": "textures/item/emerald_bow_pulling_2.png",
+      "sha256": "a5e57b677fc2bfbe0ee7effc09888368ebd7f848cf9e80bbacc21f08526aed7a"
+    },
+    "textures/item/emerald_bow_standby.png": {
+      "source": "textures/item/emerald_bow_standby.png",
+      "sha256": "f65db9aed60520b516c9cd3ba5eb144424ad773877b3a457037f791350d18a6f"
+    },
+    "textures/item/emerald_chestplate.png": {
+      "source": "textures/item/emerald_chestplate.png",
+      "sha256": "c845a2a043d7988b2643ab74d7363fec5615a7da32c0de83859532e929173526"
+    },
+    "textures/item/emerald_crackhammer.png": {
+      "source": "textures/item/emerald_crackhammer.png",
+      "sha256": "c0f197bca535735df0dc42287032f45a6dc8f2f7f0765d10fc3da5032c0a475e"
+    },
+    "textures/item/emerald_crossbow_pulling_0.png": {
+      "source": "textures/item/emerald_crossbow_pulling_0.png",
+      "sha256": "a7cb360f20e275cbbeb1780f208242d95b53eb4832d82af26b564595e3c839c8"
+    },
+    "textures/item/emerald_crossbow_pulling_1.png": {
+      "source": "textures/item/emerald_crossbow_pulling_1.png",
+      "sha256": "c85c886a3b89bb68dd1b345690590a58fb474e99f345c97cc2c4ba2fbbba8289"
+    },
+    "textures/item/emerald_crossbow_pulling_2.png": {
+      "source": "textures/item/emerald_crossbow_pulling_2.png",
+      "sha256": "ec48888df9b4337387acda0b5a7b077a030bb88b1a28978852f3ff932c3a7462"
+    },
+    "textures/item/emerald_crossbow_standby.png": {
+      "source": "textures/item/emerald_crossbow_standby.png",
+      "sha256": "faec298bdf0ba3f9e2bc1a8c29c872a5991eb8dbcb44b1e8b64267d3801b6e02"
+    },
+    "textures/item/emerald_dust.png": {
+      "source": "textures/item/emerald_powder.png",
+      "sha256": "afc634d8a7c825fa01d10b3e8e75b389927f7309620bf072c70a5ce572519bed"
+    },
+    "textures/item/emerald_fishing_rod_cast.png": {
+      "source": "textures/item/emerald_fishing_rod_cast.png",
+      "sha256": "11e1e7ce1335bdac5848951a32cd62a71ec962cfcdf66ae9a2d8cf34f0b887ef"
+    },
+    "textures/item/emerald_fishing_rod_uncast.png": {
+      "source": "textures/item/emerald_fishing_rod_uncast.png",
+      "sha256": "189e9d5d5d64b00e4aaeed491176131ed9485ba5f94b12e9931f7e1df6369eda"
+    },
+    "textures/item/emerald_gear.png": {
+      "source": "textures/item/emerald_gear.png",
+      "sha256": "30063691217fdff35282e159bf166db9e1750508f5d8a4c1281449fdc945418e"
+    },
+    "textures/item/emerald_helmet.png": {
+      "source": "textures/item/emerald_helmet.png",
+      "sha256": "e097d715ba6112e677f5ff2587dbdacc712a6a3a7f787f11b016444ff605fa9d"
+    },
+    "textures/item/emerald_hoe.png": {
+      "source": "textures/item/emerald_hoe.png",
+      "sha256": "3cd4d483cae1a68721c9586f3899aed0ff8f40dc78187d7218731cd6dcbb3553"
+    },
+    "textures/item/emerald_horse_armor.png": {
+      "source": "textures/item/emerald_horse_armor.png",
+      "sha256": "ca491017b96f8d97f8cee5f97dd2d2841b883c27c685c98ef93c05bd100aaa9b"
+    },
+    "textures/item/emerald_leggings.png": {
+      "source": "textures/item/emerald_leggings.png",
+      "sha256": "67ffdda0fe15828c970ddf4deb97ba493b9f2a92be5e1b461a81c296e85dea87"
+    },
+    "textures/item/emerald_nugget.png": {
+      "source": "textures/item/emerald_nugget.png",
+      "sha256": "f6eabdfaf93b7ed96f2f60da4cef19250050720c6ddd922863e8353e4f34026f"
+    },
+    "textures/item/emerald_pickaxe.png": {
+      "source": "textures/item/emerald_pickaxe.png",
+      "sha256": "d93c8d71dcb74a0fe0005284ca252c11fb36f7d55a390500348cd7abd342549f"
+    },
+    "textures/item/emerald_rod.png": {
+      "source": "textures/item/emerald_rod.png",
+      "sha256": "33ffe4a17ed2df5d34b94ec4be078fa9b85e34ec26be2c1d6eb901b7c1a1edcd"
+    },
+    "textures/item/emerald_scythe.png": {
+      "source": "textures/item/emerald_scythe.png",
+      "sha256": "d7c35e577aeb00ac74ec9f6a403096e9b0c795cfef0830f6976418543818c7ba"
+    },
+    "textures/item/emerald_shears.png": {
+      "source": "textures/item/emerald_shears.png",
+      "sha256": "f1578974b749e23b6e24230a1b6968f998afcc57a5018c67fc3485b7bdb250bd"
+    },
+    "textures/item/emerald_shovel.png": {
+      "source": "textures/item/emerald_shovel.png",
+      "sha256": "1d4241b50686894d998e06b5c2a5779ca9ba7a23f5c2b62779d5f2f7002c8b3d"
+    },
+    "textures/item/emerald_smallpowder.png": {
+      "source": "textures/item/emerald_smallpowder.png",
+      "sha256": "6bcdb4e080aaae34ce01588e00a4d8a74f96f511657ac4cb3c32d67dcba045fc"
+    },
+    "textures/item/emerald_sword.png": {
+      "source": "textures/item/emerald_sword.png",
+      "sha256": "9711291cda53e53a0a1eec2558ed951cf0cee8fd9b7542a0a4583e576f20a627"
+    },
+    "textures/item/gold_arrow.png": {
+      "source": "textures/item/gold_arrow.png",
+      "sha256": "beb2e03cf5388aca9a1db9cefbcbb5cbe6e53953cf4382414ec8f9f08b02cf90"
+    },
+    "textures/item/gold_bolt.png": {
+      "source": "textures/item/gold_bolt.png",
+      "sha256": "1a14c3293b911a2a1c2c42a63ee34e0ad9af160e42483eac6fd20e7e01ccb8e2"
+    },
+    "textures/item/gold_bow_pulling_0.png": {
+      "source": "textures/item/gold_bow_pulling_0.png",
+      "sha256": "6c478f5902b0c7bf378c422601b0bdd80749fd567540d45384d4d9facf865baa"
+    },
+    "textures/item/gold_bow_pulling_1.png": {
+      "source": "textures/item/gold_bow_pulling_1.png",
+      "sha256": "b8d644eb1e7e546932aac265d8fda7d025164f278dec324860ad642c7fc0e2d1"
+    },
+    "textures/item/gold_bow_pulling_2.png": {
+      "source": "textures/item/gold_bow_pulling_2.png",
+      "sha256": "8ce8323ad225432e9c789f6af4e04c4e5d9d0f91b539da8e0c480c1df4edcbf1"
+    },
+    "textures/item/gold_bow_standby.png": {
+      "source": "textures/item/gold_bow_standby.png",
+      "sha256": "12323714175f24a9081aa8c012b57cc2f9a437ac751f3479f086aa3c39aaffc4"
+    },
+    "textures/item/gold_crackhammer.png": {
+      "source": "textures/item/gold_crackhammer.png",
+      "sha256": "a5d80ae0a6bc43c19924b107281596687c63df37f2475768d5e09e9169fd1b33"
+    },
+    "textures/item/gold_crossbow_pulling_0.png": {
+      "source": "textures/item/gold_crossbow_pulling_0.png",
+      "sha256": "d81d0d6fba739c5946183e5f1894e2f18755d14e75baede2a577c88b8839e60b"
+    },
+    "textures/item/gold_crossbow_pulling_1.png": {
+      "source": "textures/item/gold_crossbow_pulling_1.png",
+      "sha256": "62530baa34c42fecdfa66255537b5dce800bea0d3797d1185f9015ce09f9d8f9"
+    },
+    "textures/item/gold_crossbow_pulling_2.png": {
+      "source": "textures/item/gold_crossbow_pulling_2.png",
+      "sha256": "0095437b00f734a52b666afa1d7a535669fb68d0c0c1e3131f9d28d09d064b6e"
+    },
+    "textures/item/gold_crossbow_standby.png": {
+      "source": "textures/item/gold_crossbow_standby.png",
+      "sha256": "0052a5382af344b37c66b4a7d110f4bf2f0e02533a10d9642786b6c919d7bca1"
+    },
+    "textures/item/gold_dust.png": {
+      "source": "textures/item/gold_powder.png",
+      "sha256": "0165ea9601d5dca91936e39e00b8ef8d585beb3f05c7965282201f4630db0c9c"
+    },
+    "textures/item/gold_fishing_rod_cast.png": {
+      "source": "textures/item/gold_fishing_rod_cast.png",
+      "sha256": "cbf325244a30d27cea74cd550d38d052427bf13e1a69de3c174a3711cea7bf95"
+    },
+    "textures/item/gold_fishing_rod_uncast.png": {
+      "source": "textures/item/gold_fishing_rod_uncast.png",
+      "sha256": "4221b26939e5201790f9bb223137c74b989641e61c0ed9feb00e0f6f5c7a263b"
+    },
+    "textures/item/gold_gear.png": {
+      "source": "textures/item/gold_gear.png",
+      "sha256": "d9c61544f17d5a2e679f47109bf4fb36960665397d3fbd83139ec55b67e0fb15"
+    },
+    "textures/item/gold_rod.png": {
+      "source": "textures/item/gold_rod.png",
+      "sha256": "a2bb14d8d4cf26789a653550e702222343842d4ae90c8cfc06539ae5f5b37a23"
+    },
+    "textures/item/gold_scythe.png": {
+      "source": "textures/item/gold_scythe.png",
+      "sha256": "21571ca111ffa6c85795a914a0256aea51d1ac7bfbc5f73df328525f435f7fd1"
+    },
+    "textures/item/gold_shears.png": {
+      "source": "textures/item/gold_shears.png",
+      "sha256": "a3d0683f413ec080ffba94913c0eb8c2bfd6832d809fce1a1b322504d341331b"
+    },
+    "textures/item/gold_smallpowder.png": {
+      "source": "textures/item/gold_smallpowder.png",
+      "sha256": "f0dbda8fb8ae06ef58f5e9a2ecd2487b7561e1ff7c2e2fe5ec9abe352e4425a4"
+    },
+    "textures/item/iron_arrow.png": {
+      "source": "textures/item/iron_arrow.png",
+      "sha256": "d20776e57530bc91bc7f68e4c1ba11f7763852008ae1335651c85eccf87dcead"
+    },
+    "textures/item/iron_bolt.png": {
+      "source": "textures/item/iron_bolt.png",
+      "sha256": "a1522eed7adac4e5fd715445ea2feea8e8a958c99d535fb91017edf630e4518a"
+    },
+    "textures/item/iron_bow_pulling_0.png": {
+      "source": "textures/item/iron_bow_pulling_0.png",
+      "sha256": "f6e2c6ac336b9c4810e537758ca56479b9510f1070ff9f1a5b679a30eb7dd104"
+    },
+    "textures/item/iron_bow_pulling_1.png": {
+      "source": "textures/item/iron_bow_pulling_1.png",
+      "sha256": "13ce99abf7532ad7cb93b11da42199cb0be61a3a97bfddd32eb3068cfcb9ff5b"
+    },
+    "textures/item/iron_bow_pulling_2.png": {
+      "source": "textures/item/iron_bow_pulling_2.png",
+      "sha256": "d8ac13baf7f865f87969cc8e7faff9351448791bad08e4b1eb025d0c636a5686"
+    },
+    "textures/item/iron_bow_standby.png": {
+      "source": "textures/item/iron_bow_standby.png",
+      "sha256": "c6bd21de6faeca6030baecaf222ae76b647b119ececf8d15ae585508abbefa99"
+    },
+    "textures/item/iron_crackhammer.png": {
+      "source": "textures/item/iron_crackhammer.png",
+      "sha256": "9b552691cdae8b07b7ffbe84417296cb936bb88718e23da9f43d66ff47e39851"
+    },
+    "textures/item/iron_crossbow_pulling_0.png": {
+      "source": "textures/item/iron_crossbow_pulling_0.png",
+      "sha256": "509826b2ac0a4c0a177d61a14306e329bbc1358ddcf4d632a987ed6150e4730a"
+    },
+    "textures/item/iron_crossbow_pulling_1.png": {
+      "source": "textures/item/iron_crossbow_pulling_1.png",
+      "sha256": "5c75cb822046efafbba300be48c2788a8933110a7938a997ac938767ca522f8c"
+    },
+    "textures/item/iron_crossbow_pulling_2.png": {
+      "source": "textures/item/iron_crossbow_pulling_2.png",
+      "sha256": "d3f2fb0ea6e74ea8d0dfc85919cf56659124522331da8a9d0b128245f2898498"
+    },
+    "textures/item/iron_crossbow_standby.png": {
+      "source": "textures/item/iron_crossbow_standby.png",
+      "sha256": "8fde5013b59b8e94aab2d24baede6028ca3b059eea79f04c6e30bbca6a7dedcc"
+    },
+    "textures/item/iron_dust.png": {
+      "source": "textures/item/iron_powder.png",
+      "sha256": "5b9fa3f1c34c4df8a8c5c2b20aba3fd68931e72f628ae4cf4c77dd101fe97bf9"
+    },
+    "textures/item/iron_fishing_rod_cast.png": {
+      "source": "textures/item/iron_fishing_rod_cast.png",
+      "sha256": "2b6fd942a6ed131c209813f77851e4d38c7fa9f884ed34dcf1670633eae1fea5"
+    },
+    "textures/item/iron_fishing_rod_uncast.png": {
+      "source": "textures/item/iron_fishing_rod_uncast.png",
+      "sha256": "c3304ba334f935626b93cccca832e6000631460e93dfa65bb5e0e6d11985d8d7"
+    },
+    "textures/item/iron_gear.png": {
+      "source": "textures/item/iron_gear.png",
+      "sha256": "b289c60fd7a27ff5fccb341a05e0d70bd0a98c1574eb610abcada028728a42cc"
+    },
+    "textures/item/iron_rod.png": {
+      "source": "textures/item/iron_rod.png",
+      "sha256": "e229a14655459c29c852d54f7212bc368219d5183a1feb2623feb69925d7a4d5"
+    },
+    "textures/item/iron_scythe.png": {
+      "source": "textures/item/iron_scythe.png",
+      "sha256": "04610a6378e6a7bd7de819013342b0c760e776788e452c735c683c7faf1b0437"
+    },
+    "textures/item/iron_smallpowder.png": {
+      "source": "textures/item/iron_smallpowder.png",
+      "sha256": "59e61f9518fd664a875e019391061e2512852725942d2fe68f2504309d32f4d1"
+    },
+    "textures/item/lapis_smallpowder.png": {
+      "source": "textures/item/lapis_smallpowder.png",
+      "sha256": "f039d7f2e051d2d7fde4a286c09f5ca586640cb9c28c23356f32c8fb7897c14f"
+    },
+    "textures/item/obsidian_arrow.png": {
+      "source": "textures/item/obsidian_arrow.png",
+      "sha256": "5ee4ef64f4b5f9278aad301f0f1a09ac2eaf458a5546efdf2ad2c64d3654ba73"
+    },
+    "textures/item/obsidian_axe.png": {
+      "source": "textures/item/obsidian_axe.png",
+      "sha256": "ce52cc1b66d63c0636cd6e100335aa970e46a9cdfd02e891cc723bc584e323e9"
+    },
+    "textures/item/obsidian_bolt.png": {
+      "source": "textures/item/obsidian_bolt.png",
+      "sha256": "6553ec8f708f209a5ce24ec45c6ccabb1c546f21d3af377adadb1782292f3b97"
+    },
+    "textures/item/obsidian_boots.png": {
+      "source": "textures/item/obsidian_boots.png",
+      "sha256": "97af2b26333f4cbce5a0f9be45b864ae56b1f7d2be057d6f3efde3638d46fbbd"
+    },
+    "textures/item/obsidian_bow_pulling_0.png": {
+      "source": "textures/item/obsidian_bow_pulling_0.png",
+      "sha256": "5af2c1bd78c1ba3677524ee9d41d60d6d4e57a846a052bcae6b71c27e1bc1b22"
+    },
+    "textures/item/obsidian_bow_pulling_1.png": {
+      "source": "textures/item/obsidian_bow_pulling_1.png",
+      "sha256": "8efba529085de83d9af7b4ad89e0efdb706d6c4cbf681129e5d682d5b5b452dd"
+    },
+    "textures/item/obsidian_bow_pulling_2.png": {
+      "source": "textures/item/obsidian_bow_pulling_2.png",
+      "sha256": "9dd199894b0386fc1e718a6e1685eca91dd65d5154bf19a72ec75479bf150716"
+    },
+    "textures/item/obsidian_bow_standby.png": {
+      "source": "textures/item/obsidian_bow_standby.png",
+      "sha256": "ecff54227caee0509e68f18c23a220dab4d2861dcca34a122dbf966602d5f88e"
+    },
+    "textures/item/obsidian_chestplate.png": {
+      "source": "textures/item/obsidian_chestplate.png",
+      "sha256": "8c78509ccb113983c3eaa4ccb99a1084f4032c096a792ac58ac71a2226d9b3b9"
+    },
+    "textures/item/obsidian_crackhammer.png": {
+      "source": "textures/item/obsidian_crackhammer.png",
+      "sha256": "8d1d22d55f54948ae2b3d94b21d1c078556a09ac79a8df46b859b22b76484c7a"
+    },
+    "textures/item/obsidian_crossbow_pulling_0.png": {
+      "source": "textures/item/obsidian_crossbow_pulling_0.png",
+      "sha256": "62fbece9041bfe59a1d1aef3d6212f9f8a90ef0bcdc150f506d304473f514b56"
+    },
+    "textures/item/obsidian_crossbow_pulling_1.png": {
+      "source": "textures/item/obsidian_crossbow_pulling_1.png",
+      "sha256": "b26acceddcc4c6d9409ad5fd511aeea85ad33b6f52e4ce38017c35b5a6e24b67"
+    },
+    "textures/item/obsidian_crossbow_pulling_2.png": {
+      "source": "textures/item/obsidian_crossbow_pulling_2.png",
+      "sha256": "4803d6344b0769949c2117a50acc62ed8c653ed60fad8e1d7ddf5b159e70b911"
+    },
+    "textures/item/obsidian_crossbow_standby.png": {
+      "source": "textures/item/obsidian_crossbow_standby.png",
+      "sha256": "5a8e10f29989f0202b6ad71d92d6e8c57dab1b614a8b40c13c3db7328c5b0a83"
+    },
+    "textures/item/obsidian_dust.png": {
+      "source": "textures/item/obsidian_powder.png",
+      "sha256": "4d131f341a68d27824409cb3b172b9bdae99aad9c89e2771b05c81a859fa2618"
+    },
+    "textures/item/obsidian_fishing_rod_cast.png": {
+      "source": "textures/item/obsidian_fishing_rod_cast.png",
+      "sha256": "d4f40674bc213b8a1056b5aef116ff88737954c9af8a31d78e186bc0a1bc1869"
+    },
+    "textures/item/obsidian_fishing_rod_uncast.png": {
+      "source": "textures/item/obsidian_fishing_rod_uncast.png",
+      "sha256": "68891b4b9584ab549ca5c42d1624ac7c20e38a4187cffd9244d433dbd3e61a4d"
+    },
+    "textures/item/obsidian_gear.png": {
+      "source": "textures/item/obsidian_gear.png",
+      "sha256": "f33f71f140eb34c59b0b74bbc3819a6727d207c4712a82ac76a5c412b70cd681"
+    },
+    "textures/item/obsidian_helmet.png": {
+      "source": "textures/item/obsidian_helmet.png",
+      "sha256": "be5a09a3f8fcd10b534660561acf59924c132612ccce113890336ebf9f3041e2"
+    },
+    "textures/item/obsidian_hoe.png": {
+      "source": "textures/item/obsidian_hoe.png",
+      "sha256": "89a5e86dafa85c0bd8dd326ee85a56b06894824449db09ae28b77421803f9263"
+    },
+    "textures/item/obsidian_horse_armor.png": {
+      "source": "textures/item/obsidian_horse_armor.png",
+      "sha256": "00d8f00f974ce8a23407d822cc3410e2eec89e1fffae6cb8e5fbcfd8571c2bf2"
+    },
+    "textures/item/obsidian_ingot.png": {
+      "source": "textures/item/obsidian_ingot.png",
+      "sha256": "cbb8a7e2cffeb9bad0648ed255065adccf35d3df44eaa3abcbf1365e02cf66a4"
+    },
+    "textures/item/obsidian_leggings.png": {
+      "source": "textures/item/obsidian_leggings.png",
+      "sha256": "ee9fcccf1bce15052c07e9760c4f35c2ae3d826f383175fcdd71879e919d8edc"
+    },
+    "textures/item/obsidian_nugget.png": {
+      "source": "textures/item/obsidian_nugget.png",
+      "sha256": "35b3371286d53ec0e6e25952e223541f75987898f2a3adc33db1149724186413"
+    },
+    "textures/item/obsidian_pickaxe.png": {
+      "source": "textures/item/obsidian_pickaxe.png",
+      "sha256": "9102c6c201b499e67db6861d8c9b3aecb40904fd5ed9589fd2b3c421702a0ea8"
+    },
+    "textures/item/obsidian_rod.png": {
+      "source": "textures/item/obsidian_rod.png",
+      "sha256": "9daaf39f723e976caa6dd8e887efc9b9304408ca64b8f57d454e46ba340bf8a9"
+    },
+    "textures/item/obsidian_scythe.png": {
+      "source": "textures/item/obsidian_scythe.png",
+      "sha256": "cf741183e55098b30509100982a58ab4b4d44d9af6ab90d85951f0510a106f4b"
+    },
+    "textures/item/obsidian_shears.png": {
+      "source": "textures/item/obsidian_shears.png",
+      "sha256": "d25843292c87d9c20b0f43158e1856d624bf14330c63f331fe788ffe0cedf620"
+    },
+    "textures/item/obsidian_shovel.png": {
+      "source": "textures/item/obsidian_shovel.png",
+      "sha256": "28fa93dfc8e45f631b29cdd27d5d71b76745a1dfb370d43b73c325041d726702"
+    },
+    "textures/item/obsidian_smallpowder.png": {
+      "source": "textures/item/obsidian_smallpowder.png",
+      "sha256": "8c207a85df1038a9f162303206d0efd3f2efab07bd79397763b626b39a990701"
+    },
+    "textures/item/obsidian_sword.png": {
+      "source": "textures/item/obsidian_sword.png",
+      "sha256": "8be79f4728c66757edb7c31b74dbd377e0e9b5cf1940fe55b877f1c8a14cfb00"
+    },
+    "textures/item/quartz_arrow.png": {
+      "source": "textures/item/quartz_arrow.png",
+      "sha256": "5ad210da68f37fb3df5d7d7c4d6c025ac140e67d4ea2460e5a0729de02f44ee2"
+    },
+    "textures/item/quartz_axe.png": {
+      "source": "textures/item/quartz_axe.png",
+      "sha256": "ae5ff1c849ad3d0dcaa6a9500a00e7f5043a5d361445a1883f70eb433736c923"
+    },
+    "textures/item/quartz_bolt.png": {
+      "source": "textures/item/quartz_bolt.png",
+      "sha256": "e117f95df16298d63676f269c17d18dbb9ed9dbb99f92efb680451bc99887949"
+    },
+    "textures/item/quartz_boots.png": {
+      "source": "textures/item/quartz_boots.png",
+      "sha256": "1ed8c4da76e551b02098b332b6ac671b2b653b4c9a87d00ea060b42618d06dd0"
+    },
+    "textures/item/quartz_bow_pulling_0.png": {
+      "source": "textures/item/quartz_bow_pulling_0.png",
+      "sha256": "4d17f91055b37970b7be72f27968833c713a1b231c39e6749651b02f0022082b"
+    },
+    "textures/item/quartz_bow_pulling_1.png": {
+      "source": "textures/item/quartz_bow_pulling_1.png",
+      "sha256": "47a97401bd09438db7bc77ac8b7c7a2116954228c8c88e3bba01f1b3369dcf3e"
+    },
+    "textures/item/quartz_bow_pulling_2.png": {
+      "source": "textures/item/quartz_bow_pulling_2.png",
+      "sha256": "d1059d0bb0f8baafb8c7fee991342bf15622f7279ac0e95fca23092292cb530a"
+    },
+    "textures/item/quartz_bow_standby.png": {
+      "source": "textures/item/quartz_bow_standby.png",
+      "sha256": "7dec353e21f46f869ec2b6e83d5859095a63614fbd5e57722640ea506d3f01ce"
+    },
+    "textures/item/quartz_chestplate.png": {
+      "source": "textures/item/quartz_chestplate.png",
+      "sha256": "a10dd6b6621bb1b4731d49dabc87eeba494141afefc9df5082ac6df7ef129d89"
+    },
+    "textures/item/quartz_crackhammer.png": {
+      "source": "textures/item/quartz_crackhammer.png",
+      "sha256": "0b36e9b01caac025ebd05e35b4bbaa5477af6d5dbcef9d5aa71fee27949e2405"
+    },
+    "textures/item/quartz_crossbow_pulling_0.png": {
+      "source": "textures/item/quartz_crossbow_pulling_0.png",
+      "sha256": "cb102d56d1c442eec0788b167f6c58308310706e95d0c6fd8fa23f51d56a37c3"
+    },
+    "textures/item/quartz_crossbow_pulling_1.png": {
+      "source": "textures/item/quartz_crossbow_pulling_1.png",
+      "sha256": "d9d0cae7210686151b36669a14f2dd2e0034284075b41cc75cadd75075fb280c"
+    },
+    "textures/item/quartz_crossbow_pulling_2.png": {
+      "source": "textures/item/quartz_crossbow_pulling_2.png",
+      "sha256": "bd68e607fae8c8cef88efa90b5018e47d3bbbb843a4550403ea6a2f4c4f66804"
+    },
+    "textures/item/quartz_crossbow_standby.png": {
+      "source": "textures/item/quartz_crossbow_standby.png",
+      "sha256": "2254dd369b57e4a22b9e5b2f382236e19bfd141e8df992ba22a698c2ae9b6dec"
+    },
+    "textures/item/quartz_dust.png": {
+      "source": "textures/item/quartz_powder.png",
+      "sha256": "469fa18a1d2ccadbd68af1dabd4026343bbc16ba40ef936a02417651d7a0e2ae"
+    },
+    "textures/item/quartz_fishing_rod_cast.png": {
+      "source": "textures/item/quartz_fishing_rod_cast.png",
+      "sha256": "79baa814bcf97f7a6a3b21ef87355da864f727fb9fbfe8aa16eddf129d3acd18"
+    },
+    "textures/item/quartz_fishing_rod_uncast.png": {
+      "source": "textures/item/quartz_fishing_rod_uncast.png",
+      "sha256": "0cfb1a4aa72e70d9c8f5eb66544b0aa5dc78c1473f5ff501262d13b658a52dd4"
+    },
+    "textures/item/quartz_gear.png": {
+      "source": "textures/item/quartz_gear.png",
+      "sha256": "c72b780908f9dfb5390f6d19046e0ec57f1baabe4d5f8f1f1a65347148a744b2"
+    },
+    "textures/item/quartz_helmet.png": {
+      "source": "textures/item/quartz_helmet.png",
+      "sha256": "c6d00856a471bb0d8f54009ef16ea04139b3f0331296e3e22e41f9f727e9e70e"
+    },
+    "textures/item/quartz_hoe.png": {
+      "source": "textures/item/quartz_hoe.png",
+      "sha256": "399908170b2513dff3059d84d849c98efefa120888d52c52ba4aeb2d1caf1af1"
+    },
+    "textures/item/quartz_horse_armor.png": {
+      "source": "textures/item/quartz_horse_armor.png",
+      "sha256": "7eee13c9a3614641e4b6ccee35168f02b528cd11b13dd1b838d8a9b4e5a8c398"
+    },
+    "textures/item/quartz_leggings.png": {
+      "source": "textures/item/quartz_leggings.png",
+      "sha256": "810490611651f5d1de30733ab78a2c012eae6d7972a9025649de08a0a7c04bfb"
+    },
+    "textures/item/quartz_nugget.png": {
+      "source": "textures/item/quartz_nugget.png",
+      "sha256": "e005afe307752599376a841d9191c7c59ee37012b4655bc52c377bcecd3d3c1b"
+    },
+    "textures/item/quartz_pickaxe.png": {
+      "source": "textures/item/quartz_pickaxe.png",
+      "sha256": "5ab1cae891ebcd931be450891f1d82035274b07022857f878683c5fa57141957"
+    },
+    "textures/item/quartz_rod.png": {
+      "source": "textures/item/quartz_rod.png",
+      "sha256": "7322d853dddac9f267b6d654b9d7aed51bb1910f4d854aacbf12b9d8a1b44035"
+    },
+    "textures/item/quartz_scythe.png": {
+      "source": "textures/item/quartz_scythe.png",
+      "sha256": "2cdde62cb057c5e86d3e59511c31eaba51a956e9dae5938402cf81546712b35a"
+    },
+    "textures/item/quartz_shears.png": {
+      "source": "textures/item/quartz_shears.png",
+      "sha256": "624b8411b15b70b92cff75f7fa592ef206ec8b2c5d145f343b543471d8d4ae92"
+    },
+    "textures/item/quartz_shovel.png": {
+      "source": "textures/item/quartz_shovel.png",
+      "sha256": "fda13205d20eee2e01b3aa85654cad74a685f2493719e9696389c556d1e0b100"
+    },
+    "textures/item/quartz_smallpowder.png": {
+      "source": "textures/item/quartz_smallpowder.png",
+      "sha256": "526d167558db6e0def01595737fc4d7e282523713ebebb265ac3b9b31ab42fd4"
+    },
+    "textures/item/quartz_sword.png": {
+      "source": "textures/item/quartz_sword.png",
+      "sha256": "c9a37cdbf83450b90404aa04c4e9f43789cc188199d781d9b77a5dda7e1c7a36"
+    },
+    "textures/item/redstone_ingot.png": {
+      "source": "textures/item/redstone_ingot.png",
+      "sha256": "873a61df40ae0d62db85fa35a40b24984fb0661c475302af01f8d1753995bddf"
+    },
+    "textures/item/redstone_smallpowder.png": {
+      "source": "textures/item/redstone_smallpowder.png",
+      "sha256": "98afecdd9845988eaeff2626f24a64771e77690ce558aa8771107d45e9449eb8"
+    },
+    "textures/item/stone_crackhammer.png": {
+      "source": "textures/item/stone_crackhammer.png",
+      "sha256": "d5f1d17334e8b9e5d37c7a68e798761030e06e4537ae573f7d7d2b8b64579684"
+    },
+    "textures/item/stone_gear.png": {
+      "source": "textures/item/stone_gear.png",
+      "sha256": "a6876203de5ba5b44bf4051edbd71b24a0245619740f22e5c1580d1f12ccf24c"
+    },
+    "textures/item/stone_rod.png": {
+      "source": "textures/item/stone_rod.png",
+      "sha256": "4a66908e6165f7a50ecc45d5a0f91ebac535db6d9f0f0b95e9a0bd2614c28182"
+    },
+    "textures/item/stone_scythe.png": {
+      "source": "textures/item/stone_scythe.png",
+      "sha256": "cbe14c53d6ef8e3356da205da17549833025d015157fb966b3e2b2a8e7d427b3"
+    },
+    "textures/item/wood_crackhammer.png": {
+      "source": "textures/item/wood_crackhammer.png",
+      "sha256": "b4a18281f20e2d8096cd447ed24308381fba79705b7b1d4293bcf17a0490c714"
+    },
+    "textures/item/wood_gear.png": {
+      "source": "textures/item/wood_gear.png",
+      "sha256": "fa67bad4585e2b22570d830de1f7e46f7cb0d298c8cba3a9a25dbe1a8a6e9e7b"
+    },
+    "textures/item/wooden_scythe.png": {
+      "source": "textures/item/wooden_scythe.png",
+      "sha256": "c20d7b0da153b89d1883d255b6782a2916fa86d361a7b09bcdd5e9e08d7ba04e"
+    },
+    "textures/models/armor/emerald_layer_1.png": {
+      "source": "textures/models/armor/emerald_layer_1.png",
+      "sha256": "5010e2e6dedfe21d13c5be9ac7f64a6a899308a6c12f923e3f350c2299cd3dfd"
+    },
+    "textures/models/armor/emerald_layer_2.png": {
+      "source": "textures/models/armor/emerald_layer_2.png",
+      "sha256": "cfec61e46621c8ae09584562ad5c78f6b404c01c0e4e04dcf42b0975ac55c8ec"
+    },
+    "textures/models/armor/obsidian_layer_1.png": {
+      "source": "textures/models/armor/obsidian_layer_1.png",
+      "sha256": "b49936e439e50ecdbbac36d152a4d1c5be39db50ef7142ce959a707ad5f1af4b"
+    },
+    "textures/models/armor/obsidian_layer_2.png": {
+      "source": "textures/models/armor/obsidian_layer_2.png",
+      "sha256": "461feca4f0a06db54b3f611d253e37a4ab2d0583e0a7a26f85cc10da5c98bb85"
+    },
+    "textures/models/armor/quartz_layer_1.png": {
+      "source": "textures/models/armor/quartz_layer_1.png",
+      "sha256": "e1ef773dff106a8702e19306620ba747d25c638110336d6b6a7fe03c4cd48ca8"
+    },
+    "textures/models/armor/quartz_layer_2.png": {
+      "source": "textures/models/armor/quartz_layer_2.png",
+      "sha256": "1f4e56ec1732faceb80ce423b386f41db9f2de7c03b4f6c31a230b2d0108e738"
+    }
+  },
+  "derived": {
+    "models/item/diamond_blend.json": "Pure-material blend using supplied dust sprite",
+    "models/item/diamond_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/diamond_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/diamond_smallblend.json": "Pure-material blend using supplied dust sprite",
+    "models/item/emerald_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/emerald_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/gold_blend.json": "Pure-material blend using supplied dust sprite",
+    "models/item/gold_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/gold_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/gold_smallblend.json": "Pure-material blend using supplied dust sprite",
+    "models/item/iron_blend.json": "Pure-material blend using supplied dust sprite",
+    "models/item/iron_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/iron_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/iron_smallblend.json": "Pure-material blend using supplied dust sprite",
+    "models/item/obsidian_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/obsidian_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/quartz_crossbow_arrow.json": "Loaded-state model using supplied fully-drawn crossbow sprite",
+    "models/item/quartz_crossbow_firework.json": "Loaded-state model using supplied fully-drawn crossbow sprite"
+  }
+}

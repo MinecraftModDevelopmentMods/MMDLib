@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:iron_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:iron_wall",
+    "count": 6
+  }
+}

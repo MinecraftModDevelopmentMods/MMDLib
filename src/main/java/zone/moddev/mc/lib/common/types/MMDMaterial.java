@@ -11,10 +11,15 @@ import java.util.function.Predicate;
 
 /** Immutable material definition. File-backed definitions can acquire their name from the factory. */
 public record MMDMaterial(Optional<ResourceLocation> name, Optional<ResourceLocation> parent,
-        MaterialProperties properties, MaterialSelection selection, Map<String, ResourceLocation> events) {
+        MaterialProperties properties, MaterialSelection selection, Map<String, ResourceLocation> events, MaterialRuntimeSettings runtime) {
+    public MMDMaterial(Optional<ResourceLocation> name, Optional<ResourceLocation> parent,
+            MaterialProperties properties, MaterialSelection selection, Map<String, ResourceLocation> events) {
+        this(name, parent, properties, selection, events, MaterialRuntimeSettings.DEFAULT);
+    }
     public MMDMaterial {
         java.util.Objects.requireNonNull(name); java.util.Objects.requireNonNull(parent);
         java.util.Objects.requireNonNull(properties); java.util.Objects.requireNonNull(selection);
+        java.util.Objects.requireNonNull(runtime);
         events = Map.copyOf(events);
         if (events.keySet().stream().anyMatch(String::isBlank)) throw new IllegalArgumentException("Event name must not be blank");
     }

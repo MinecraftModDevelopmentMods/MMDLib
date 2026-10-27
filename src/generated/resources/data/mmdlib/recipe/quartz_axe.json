@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MM",
+    "MR",
+    " R"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "mmdlib:quartz_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:quartz_axe",
+    "count": 1
+  }
+}

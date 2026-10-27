@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_slab",
+    "count": 6
+  }
+}

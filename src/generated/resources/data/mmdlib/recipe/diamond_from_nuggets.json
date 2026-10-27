@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "NNN",
+    "NNN",
+    "NNN"
+  ],
+  "key": {
+    "N": {
+      "item": "mmdlib:diamond_nugget"
+    }
+  },
+  "result": {
+    "id": "minecraft:diamond",
+    "count": 1
+  }
+}

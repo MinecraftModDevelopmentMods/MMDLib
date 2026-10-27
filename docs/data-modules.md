@@ -82,9 +82,9 @@ A material can select those modules through its existing sections:
 
 The `factory` ID selects executable behavior independently of the module ID. Register an `ItemImplementation` or `BlockImplementation` once with `registerItemImplementation` or `registerBlockImplementation`. Its contract supplies the runtime class and creates the object from a material and bound definition; an overload can decode `FactoryData`. New data variants can reuse that behavior without writing another type factory. Existing code-defined `ItemTypeFactory` and `BlockTypeFactory` extensions remain supported.
 
-Planning does not instantiate Minecraft objects or require behavior implementations to be resolved. Runtime queueing resolves the selected implementation and reports missing handlers. The bundled files provide baseline definitions; automatic registration of all their behavior handlers and generated runtime forms is not supplied by this loader. Fluid factory metadata is preserved in the fluid definition for its runtime integration.
+Planning does not instantiate Minecraft objects or require behavior implementations to be resolved. Runtime queueing resolves the selected implementation and reports missing handlers. The bundled files provide baseline definitions. RuntimeContentRegistrar applies supported built-in forms (and registered custom item/block implementations) after loading; MMDLib queues its own vanilla examples through it. The catalog loader itself does not construct game objects.
 
-This is the shared data layer for datapack-defined materials, not yet automatic world datapack discovery. There is no world-pack reload listener here. Minecraft item, block, entity, and fluid registry entries must be created during startup, so introducing new registered forms requires an early pack-loading stage and a restart. Runtime registration, client assets, recipes, and emitted tags still need their respective integration; template tag metadata alone does not publish Minecraft tags. These limits apply equally to bundled and added modules.
+This is the shared data layer for datapack-defined materials, not yet automatic world datapack discovery. There is no world-pack reload listener here. Minecraft item, block, entity, and fluid registry entries must be created during startup, so introducing new registered forms requires an early pack-loading stage and a restart. Runtime registration and resource generation remain distinct stages. The vanilla example includes a shared registrar, static artwork, and a maintained gameplay-data generator; other mods supply their appropriate assets and recipes. Template tag metadata alone does not publish Minecraft tags.
 
 
 The optional `part` object defines form metadata and aliases; see
@@ -98,3 +98,5 @@ For publication or runtime iteration, `MaterialContentPlan.itemDefinitions()` an
 including fluid companions. Compatibility views do not cause duplicate registration.
 
 See [block entities and machines](block-entities.md) for data-defined machine companions, typed factories, deferred registration, and tick hooks.
+
+See [startup definition loading](definition-loading.md) for folder dispatch, IDs, loading stages, and access to loaded material plans.

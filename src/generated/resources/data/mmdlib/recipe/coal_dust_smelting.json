@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "ingredient": {
+    "item": "mmdlib:coal_dust"
+  },
+  "result": {
+    "id": "minecraft:coal",
+    "count": 1
+  },
+  "experience": 0.1,
+  "cookingtime": 200
+}

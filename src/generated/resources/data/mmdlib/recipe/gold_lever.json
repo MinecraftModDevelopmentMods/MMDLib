@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "R",
+    "M"
+  ],
+  "key": {
+    "R": {
+      "item": "mmdlib:gold_rod"
+    },
+    "M": {
+      "item": "minecraft:gold_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:gold_lever",
+    "count": 1
+  }
+}

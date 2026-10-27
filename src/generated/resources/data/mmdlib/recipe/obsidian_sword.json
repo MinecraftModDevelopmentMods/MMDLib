@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "M",
+    "R"
+  ],
+  "key": {
+    "M": {
+      "item": "mmdlib:obsidian_ingot"
+    },
+    "R": {
+      "item": "mmdlib:obsidian_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_sword",
+    "count": 1
+  }
+}

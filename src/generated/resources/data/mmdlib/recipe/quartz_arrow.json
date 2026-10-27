@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "R",
+    "F"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "minecraft:stick"
+    },
+    "F": {
+      "item": "minecraft:feather"
+    }
+  },
+  "result": {
+    "id": "mmdlib:quartz_arrow",
+    "count": 4
+  }
+}

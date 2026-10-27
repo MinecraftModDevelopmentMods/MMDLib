@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_wall",
+    "count": 6
+  }
+}

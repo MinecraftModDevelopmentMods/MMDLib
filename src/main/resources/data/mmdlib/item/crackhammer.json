@@ -1,7 +1,20 @@
 {
-  "factory": "mmdlib:crackhammer",
+  "factory": "mmdlib:tool",
+  "factory_data": {
+    "abilities": ["pickaxe"],
+    "mineable": "minecraft:mineable/pickaxe",
+    "fast_on": "mmdlib:crackhammer_crushable",
+    "attack_damage": 5.0,
+    "attack_speed": -3.5,
+    "durability": {"stat": "crackhammer_durability", "tool_factor": 0.75, "minimum": 1},
+    "speed": {"stat": "crackhammer_destroy_speed", "tool_factor": 0.5, "minimum": 1}
+  },
   "template": {
     "max_stack_size": 1,
-    "fire_resistant": false
+    "fire_resistant": false,
+    "events": {
+      "tool-right-click": "mmdlib:crackhammer_crush",
+      "tool-harvest": "mmdlib:crackhammer_harvest"
+    }
   }
 }

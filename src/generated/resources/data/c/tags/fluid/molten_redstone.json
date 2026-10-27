@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:flowing_redstone_molten",
+    "mmdlib:redstone_molten"
+  ]
+}

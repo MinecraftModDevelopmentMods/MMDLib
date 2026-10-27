@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M",
+    "R",
+    "F"
+  ],
+  "key": {
+    "M": {
+      "item": "mmdlib:obsidian_ingot"
+    },
+    "R": {
+      "item": "minecraft:stick"
+    },
+    "F": {
+      "item": "minecraft:feather"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_arrow",
+    "count": 4
+  }
+}

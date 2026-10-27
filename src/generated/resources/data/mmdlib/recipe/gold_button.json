@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:gold_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:gold_button",
+    "count": 1
+  }
+}

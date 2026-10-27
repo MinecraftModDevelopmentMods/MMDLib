@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "mmdlib:block/iron_slab_quartz_slab"
+    },
+    "type=double": {
+      "model": "mmdlib:block/iron_slab_quartz_block"
+    },
+    "type=top": {
+      "model": "mmdlib:block/iron_slab_quartz_slab_top"
+    }
+  }
+}

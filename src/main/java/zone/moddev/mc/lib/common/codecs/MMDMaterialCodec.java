@@ -21,7 +21,8 @@ public final class MMDMaterialCodec {
                         ResourceLocation.CODEC.optionalFieldOf("parent").forGetter(MMDMaterial::parent),
                         MaterialProperties.MAP_CODEC.forGetter(MMDMaterial::properties),
                         MaterialSelection.mapCodec(extensions.snapshot()).forGetter(MMDMaterial::selection),
-                        EventBindings.MAP_CODEC.forGetter(MMDMaterial::events)
+                        EventBindings.MAP_CODEC.forGetter(MMDMaterial::events),
+                        MaterialRuntimeSettings.CODEC.optionalFieldOf("runtime", MaterialRuntimeSettings.DEFAULT).forGetter(MMDMaterial::runtime)
                 ).apply(i, MMDMaterial::new));
                 return fields.validate(material -> {
                     try {

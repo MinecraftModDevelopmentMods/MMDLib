@@ -20,13 +20,21 @@ public final class RuntimeBehaviorTest {
     public static void main(String[] args) throws Exception {
         var material = MaterialBuilder.create().setName("test:metal").setHardness(8).setStrength(8).setMagic(4.5).setDamage(2).build();
         var stats = new MaterialStats(material);
-        require(stats.toolDurability() == 256 && stats.crackhammerDurability() == 192);
-        require(stats.toolEfficiency() == 8 && stats.crackhammerDestroySpeed() == 4);
+        require(stats.toolDurability() == 256 && stats.scaledDurability("crackhammer_durability", .75) == 192);
+        require(stats.toolEfficiency() == 8 && stats.scaledEfficiency("crackhammer_destroy_speed", .5, 1) == 4);
         require(stats.enchantability() == 11 && stats.armorDurabilityFactor() == 16);
         require(stats.armorProtection(EquipmentSlot.HEAD) == 2 && stats.armorProtection(EquipmentSlot.CHEST) == 6);
         require(stats.armorProtection(EquipmentSlot.LEGS) == 5 && stats.armorProtection(EquipmentSlot.FEET) == 2);
+        // Bridge resolution: an item definition's binding wins; otherwise its material's binding applies.
+        var bound = MaterialBuilder.from(material).setEventMap(Map.of("player-tick", ResourceLocation.parse("test:material_tick"),
+                "projectile-hit", ResourceLocation.parse("test:material_hit"))).build();
+        var arrow = ItemBuilder.create().setName("test:arrow").setEventMap(Map.of("projectile-hit", ResourceLocation.parse("test:item_hit")))
+                .buildFor(ResourceLocation.parse("test:metal"));
+        require(ItemEventBridge.binding(arrow, bound, "projectile-hit").toString().equals("test:item_hit"));
+        require(ItemEventBridge.binding(arrow, bound, "player-tick").toString().equals("test:material_tick"));
+        require(ItemEventBridge.binding(arrow, bound, "projectile-damage") == null && ItemEventBridge.binding(arrow, null, "player-tick") == null);
         var tuned = MaterialBuilder.from(material).setSpecial(Map.of("tool_durability", 500D, "crackhammer_destroy_speed", 7D)).build();
-        require(new MaterialStats(tuned).toolDurability() == 500 && new MaterialStats(tuned).crackhammerDestroySpeed() == 7);
+        require(new MaterialStats(tuned).toolDurability() == 500 && new MaterialStats(tuned).scaledEfficiency("crackhammer_destroy_speed", .5, 1) == 7);
         AtomicInteger repairs = new AtomicInteger();
         var incorrect = TagKey.<Block>create(Registries.BLOCK, ResourceLocation.parse("test:incorrect_for_metal"));
         var tier = new MaterialToolTier(material, incorrect, () -> { repairs.incrementAndGet(); throw new AssertionError("Early repair resolution"); });
@@ -34,7 +42,10 @@ public final class RuntimeBehaviorTest {
         require(tier.getUses() == 256 && tier.getAttackDamageBonus() == 2 && tier.getEnchantmentValue() == 11);
         require(repairs.get() == 0);
         require(StandardItems.itemClass(ModuleCatalog.bundled().parts().resolve("scythe").getOrThrow()) == ScytheItem.class);
-        require(StandardItems.itemClass(ModuleCatalog.bundled().parts().resolve("crackhammer").getOrThrow()) == CrackhammerItem.class);
+        require(StandardItems.itemClass(ModuleCatalog.bundled().parts().resolve("crackhammer").getOrThrow()) == StandardItems.Tool.class);
+        var hammer = StandardItems.ToolSettings.of(ModuleCatalog.bundled().parts().resolve("crackhammer").getOrThrow());
+        require(hammer.fastOn().orElseThrow().location().toString().equals("mmdlib:crackhammer_crushable")
+                && hammer.durability().toolFactor() == .75 && hammer.speed().minimum() == 1 && !hammer.abilities().isEmpty());
         for (var part : java.util.Set.of(ModuleCatalog.bundled().parts().resolve("helmet").getOrThrow(), ModuleCatalog.bundled().parts().resolve("chestplate").getOrThrow(), ModuleCatalog.bundled().parts().resolve("leggings").getOrThrow(), ModuleCatalog.bundled().parts().resolve("boots").getOrThrow()))
             require(ArmorItem.class.isAssignableFrom(StandardItems.itemClass(part)));
         require(StandardBlocks.blockClass(ModuleCatalog.bundled().parts().resolve("stairs").getOrThrow()) == StairBlock.class);

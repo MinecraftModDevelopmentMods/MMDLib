@@ -11,7 +11,7 @@ import java.util.Set;
 /** Immutable material specifications; the factory applies them to content templates. */
 public final class MaterialBuilder extends Builder<MMDMaterial, MaterialBuilder> {
     public static final MaterialBuilder INSTANCE = new MaterialBuilder(Map.of());
-    private enum Key { NAME, PARENT, PROPERTIES, SELECTION, EVENTS }
+    private enum Key { NAME, PARENT, PROPERTIES, SELECTION, EVENTS, RUNTIME }
     private final Map<Key, Object> values;
     private MaterialBuilder(Map<Key, Object> values) { this.values = Map.copyOf(values); }
     public static MaterialBuilder create() { return INSTANCE; }
@@ -83,8 +83,9 @@ public final class MaterialBuilder extends Builder<MMDMaterial, MaterialBuilder>
         if (events.keySet().stream().anyMatch(String::isBlank)) throw new IllegalArgumentException("Event name must not be blank");
         return with(Key.EVENTS, Map.copyOf(events));
     }
+    public MaterialBuilder setRuntime(MaterialRuntimeSettings settings) { return with(Key.RUNTIME, settings); }
     public static MaterialBuilder from(MMDMaterial material) {
-        var builder = create().setProperties(material.properties()).setSelection(material.selection()).setEventMap(material.events());
+        var builder = create().setProperties(material.properties()).setSelection(material.selection()).setEventMap(material.events()).setRuntime(material.runtime());
         if (material.name().isPresent()) builder = builder.setName(material.name().get());
         if (material.parent().isPresent()) builder = builder.setParent(material.parent().get());
         return builder;
@@ -92,6 +93,6 @@ public final class MaterialBuilder extends Builder<MMDMaterial, MaterialBuilder>
     @Override public MMDMaterial build() {
         if (getRegistryName() == null) throw new IllegalStateException("Material needs a name");
         return new MMDMaterial(Optional.of(getRegistryName()), Optional.ofNullable(value(Key.PARENT, null)),
-                getProperties(), getSelection(), value(Key.EVENTS, Map.of()));
+                getProperties(), getSelection(), value(Key.EVENTS, Map.of()), value(Key.RUNTIME, MaterialRuntimeSettings.DEFAULT));
     }
 }

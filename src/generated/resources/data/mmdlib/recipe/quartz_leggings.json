@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "M M",
+    "M M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:quartz"
+    }
+  },
+  "result": {
+    "id": "mmdlib:quartz_leggings",
+    "count": 1
+  }
+}

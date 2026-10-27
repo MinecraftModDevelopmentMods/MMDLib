@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_arrow",
+    "mmdlib:diamond_bolt",
+    "mmdlib:emerald_arrow",
+    "mmdlib:emerald_bolt",
+    "mmdlib:gold_arrow",
+    "mmdlib:gold_bolt",
+    "mmdlib:iron_arrow",
+    "mmdlib:iron_bolt",
+    "mmdlib:obsidian_arrow",
+    "mmdlib:obsidian_bolt",
+    "mmdlib:quartz_arrow",
+    "mmdlib:quartz_bolt"
+  ]
+}

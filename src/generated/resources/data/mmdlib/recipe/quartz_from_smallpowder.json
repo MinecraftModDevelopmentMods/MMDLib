@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "NNN",
+    "NNN",
+    "NNN"
+  ],
+  "key": {
+    "N": {
+      "item": "mmdlib:quartz_smallpowder"
+    }
+  },
+  "result": {
+    "id": "mmdlib:quartz_dust",
+    "count": 1
+  }
+}

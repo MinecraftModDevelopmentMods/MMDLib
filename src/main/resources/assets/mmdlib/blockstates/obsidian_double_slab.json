@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "mmdlib:block/obsidian_double_slab"
+    }
+  }
+}

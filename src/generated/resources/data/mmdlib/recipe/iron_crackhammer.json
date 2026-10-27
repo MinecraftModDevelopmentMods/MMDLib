@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MRM",
+    " R "
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:iron_ingot"
+    },
+    "R": {
+      "item": "mmdlib:iron_rod"
+    }
+  },
+  "result": {
+    "id": "mmdlib:iron_crackhammer",
+    "count": 1
+  }
+}

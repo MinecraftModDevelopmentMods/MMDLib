@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_door",
+    "mmdlib:emerald_door",
+    "mmdlib:gold_door",
+    "mmdlib:obsidian_door",
+    "mmdlib:quartz_door"
+  ]
+}

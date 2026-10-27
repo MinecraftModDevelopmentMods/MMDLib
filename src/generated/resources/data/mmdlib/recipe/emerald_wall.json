@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_wall",
+    "count": 6
+  }
+}

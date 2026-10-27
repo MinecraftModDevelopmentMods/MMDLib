@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "mmdlib:block/gold_plate_down"
+    },
+    "facing=up": {
+      "model": "mmdlib:block/gold_plate_up"
+    },
+    "facing=north": {
+      "model": "mmdlib:block/gold_plate_north"
+    },
+    "facing=south": {
+      "model": "mmdlib:block/gold_plate_south"
+    },
+    "facing=west": {
+      "model": "mmdlib:block/gold_plate_west"
+    },
+    "facing=east": {
+      "model": "mmdlib:block/gold_plate_east"
+    }
+  }
+}

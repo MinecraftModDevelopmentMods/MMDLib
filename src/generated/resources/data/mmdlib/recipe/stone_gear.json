@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " M ",
+    "M M",
+    " M "
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:cobblestone"
+    }
+  },
+  "result": {
+    "id": "mmdlib:stone_gear",
+    "count": 1
+  }
+}

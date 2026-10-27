@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_button",
+    "count": 1
+  }
+}

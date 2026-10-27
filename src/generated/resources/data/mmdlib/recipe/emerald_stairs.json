@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M  ",
+    "MM ",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:emerald_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_stairs",
+    "count": 4
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "mmdlib:diamond_dust"
+    },
+    {
+      "item": "mmdlib:diamond_dust"
+    }
+  ],
+  "result": {
+    "id": "mmdlib:diamond_blend",
+    "count": 2
+  }
+}

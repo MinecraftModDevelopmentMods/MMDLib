@@ -1,0 +1,29 @@
+// Run: ./gradlew runServer --offline -I scripts/runtime-smoke.init.gradle
+// Run a normal ./gradlew build afterward to restore regular main output.
+allprojects {
+    afterEvaluate {
+        if (extensions.findByName('runs') != null) {
+            sourceSets.main.java.srcDir(file('src/runtimeTest/java'))
+            def smokeDir = file('build/runtime-smoke/server')
+            smokeDir.mkdirs()
+            new File(smokeDir, 'server.properties').text = '''server-ip=127.0.0.1
+server-port=0
+online-mode=true
+level-name=runtime-smoke
+spawn-protection=0
+'''
+            runs.server.workingDirectory = smokeDir
+            // NeoGradle creates run tasks in a later evaluation callback.
+            tasks.configureEach { task ->
+                if (task.name == 'runServer') {
+                    task.doLast {
+                        def report = new File(smokeDir, 'logs/latest.log')
+                        if (!report.exists() || !report.text.contains('MMDLIB_RUNTIME_SMOKE_PASS') || report.text.contains('MMDLIB_RUNTIME_SMOKE_FAIL')) {
+                            throw new GradleException('MMDLib runtime smoke test failed; inspect ' + report)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -5,17 +5,18 @@ The example material is `example:orichalcum`. Substitute your mod ID for `exampl
 
 ## What “all features” currently means
 
-A material JSON file can describe every standard item, block, projectile companion,
-and a fluid family. MMDLib decodes it, validates it, and creates an immutable
-`MaterialContentPlan`. It does **not yet automatically discover that file, create
-all the Minecraft objects, or generate their resources**.
+A material JSON file describes item, block, projectile, block-entity, and fluid
+definitions. `MaterialFactory` validates it and creates an immutable content plan.
+The startup loader discovers root-level `mmdlib/` definitions; see
+[loading stages](definition-loading.md). The explicit paths in this guide remain
+available for mods that own their loading stage.
 
-The item/block runtime helpers now cover tools, armor, scythes, crackhammers,
-and specialized blocks. Concrete arrow/bolt implementations, their renderers,
-fluid-family factories/client setup, and an automatic material registrar are
-still outstanding. Consequently this is a working **definition/planning guide**
-plus a guide to the runtime wiring a consuming mod must supply. There is no
-current JSON-only route to a fully playable all-features material.
+`RuntimeContentRegistrar` can apply supported built-in plans to Minecraft
+registries, including ammunition, armor, stateful blocks, fluid families, and
+client hooks. MMDLib uses it for its [playable vanilla extensions](vanilla-extensions.md).
+Mods must still supply their assets/recipes, or a generator appropriate to their
+forms. Machines and custom world entities use their dedicated typed factory APIs.
+The manual wiring below remains an alternative; do not queue objects twice.
 
 ## 1. Lay out the data
 
@@ -322,16 +323,16 @@ Apply any extra item-definition components/settings in your runtime factory.
 | Callbacks | Attach the event bridge or invoke dispatch at the actual behavior hook. |
 
 For entity factory setup see [entity builder](entity-builder.md). For fluid data
-see [fluid builder](fluid-builder.md). The current StandardItems dispatcher
-explicitly rejects arrow/bolt creation until the entity-aware implementation is
-supplied. To run an interim subset, exclude both ammunition forms and disable
-fluids while implementing their runtime layers; that is no longer the full-feature
-configuration shown here.
+see [fluid builder](fluid-builder.md). For the supported built-in forms,
+`RuntimeContentRegistrar` handles arrow/bolt entities, exact ammunition pickup,
+fluid families, and client setup; `StandardItems` alone remains a specialized
+item helper rather than the whole application layer.
 
 ## 6. Add resources and recipes for the registered objects
 
-MMDLib currently does not generate these per-material resources. A mod can supply
-them by hand or through its own datagen providers.
+The vanilla example includes static artwork and a maintained gameplay-data generator. Other mods can
+supply resources by hand or through their own datagen providers; arbitrary mod
+assets are not inferred automatically from a material definition.
 
 * **Item models/textures:** every registered item, including ammunition and block
   items. Bows/crossbows, shields, and fishing rods need appropriate property-based
@@ -379,8 +380,9 @@ A crackhammer recipe, after both items exist:
 ```
 
 MMDLib registers this recipe serializer/type. Right-click the top face of a block
-under a dropped ingredient: ordinary use processes one, shift-use processes as
-many as tool durability allows. The library ships scythe/crackhammer base tags;
+under a dropped ingredient, or the item itself: ordinary use processes the server
+config's `crackhammer.crush_count` (default 8), shift-use processes as many as tool
+durability allows. The library ships scythe/crackhammer base tags;
 your mod can extend them with its harvestable/crushable blocks. For example,
 `data/mmdlib/tags/block/crackhammer_crushable.json` can add
 `"#c:ores/orichalcum"` and `"#c:storage_blocks/orichalcum"` after your mod defines
@@ -416,3 +418,9 @@ MMDLib's registries alone is not evidence that the Minecraft objects were create
 See [data-defined content modules](data-modules.md) for the bundled baseline, pack schemas, overrides, and current runtime integration limits.
 
 See [block entities and machines](block-entities.md) for data-defined machine companions, typed factories, deferred registration, and tick hooks.
+
+See [load-time method events](method-events.md) for `events` extension arrays, public static method resolution, and player/weapon/tool handler signatures.
+
+See [startup definition loading](definition-loading.md) for folder dispatch, IDs, loading stages, and access to loaded material plans.
+
+See [the maintained vanilla extensions](vanilla-extensions.md) for a complete, playable use of the same data and runtime APIs.

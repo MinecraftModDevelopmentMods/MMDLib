@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:charcoal"
+    }
+  },
+  "result": {
+    "id": "mmdlib:charcoal_block",
+    "count": 1
+  }
+}

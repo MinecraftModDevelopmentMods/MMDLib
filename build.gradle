@@ -27,12 +27,18 @@ runs {
     client {}
     server { argument '--nogui' }
     data {
+        systemProperty 'mmdlib.projectDir', project.layout.projectDirectory.asFile.absolutePath
+        systemProperty 'mmdlib.python', providers.gradleProperty('mmdlibPython').getOrElse('python3')
+        if (providers.gradleProperty('mmdlibMinecraftAssets').isPresent()) {
+            systemProperty 'mmdlib.minecraftAssets', providers.gradleProperty('mmdlibMinecraftAssets').get()
+        }
         arguments.addAll '--mod', 'mmdlib', '--all', '--output',
                 file('src/generated/resources').absolutePath, '--existing', file('src/main/resources').absolutePath
     }
 }
 sourceSets {
     main.resources.srcDir 'src/generated/resources'
+    main.resources.exclude '.cache/**'
     builderTest {
         compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
@@ -130,3 +136,68 @@ tasks.register('verifyBlockEntities', JavaExec) {
     mainClass = 'zone.moddev.mc.lib.common.builders.BlockEntitiesTest'
 }
 tasks.named('check') { dependsOn tasks.named('verifyBlockEntities') }
+
+tasks.register('verifyMethodEvents', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.MethodEventsTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyMethodEvents') }
+
+tasks.register('verifyDefinitionLoader', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.DefinitionLoaderTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyDefinitionLoader') }
+
+sourceSets {
+    runtimeTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
+    }
+}
+tasks.named('check') { dependsOn tasks.named('compileRuntimeTestJava') }
+tasks.register('verifyVanillaExamples', JavaExec) {
+    dependsOn tasks.named('builderTestClasses')
+    classpath = sourceSets.builderTest.runtimeClasspath
+    mainClass = 'zone.moddev.mc.lib.common.builders.VanillaExamplesTest'
+    systemProperty 'mmdlib.resources', file('src/main/resources').absolutePath
+    systemProperty 'mmdlib.generated', file('src/generated/resources').absolutePath
+}
+tasks.named('check') { dependsOn tasks.named('verifyVanillaExamples') }
+
+tasks.register('verifyReleaseClasses') {
+    dependsOn tasks.named('jar')
+    doLast {
+        new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { archive ->
+            def leaked = archive.entries().findAll { entry -> entry.name.startsWith('zone/moddev/mc/lib/smoke/') }
+            if (!leaked.isEmpty()) throw new GradleException('Runtime smoke-test classes must not be packaged: ' + leaked)
+        }
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyReleaseClasses') }
+
+// runData launches from main output, so processResources necessarily precedes it.
+// Refresh that output after generation for combined invocations such as runData build.
+def refreshDataResources = tasks.register('refreshDataResources', Sync) {
+    from sourceSets.main.resources
+    into tasks.named('processResources').map { it.destinationDir }
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+tasks.configureEach { task ->
+    if (task.name == 'runData') task.finalizedBy(refreshDataResources)
+    if (task.name == 'jar' || task.name == 'jarJar' || task.name.startsWith('verify')
+            || task.name.startsWith('test')
+            || task.name in ['compileTestJava', 'compileBuilderTestJava', 'compileRuntimeTestJava',
+                    'writeMinecraftClasspathJunit', 'writeMinecraftClasspathClient', 'writeMinecraftClasspathServer',
+                    'runClient', 'runServer']) {
+        task.mustRunAfter(refreshDataResources)
+    }
+}
+
+tasks.register('verifyStaticAssets', Exec) {
+    dependsOn tasks.named('classes')
+    commandLine providers.gradleProperty('mmdlibPython').getOrElse('python3'), file('scripts/validate_static_assets.py').absolutePath
+}
+tasks.named('check') { dependsOn tasks.named('verifyStaticAssets') }

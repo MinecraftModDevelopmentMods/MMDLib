@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_button",
+    "count": 1
+  }
+}

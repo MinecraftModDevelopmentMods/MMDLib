@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_button",
+    "mmdlib:emerald_button",
+    "mmdlib:gold_button",
+    "mmdlib:iron_button",
+    "mmdlib:obsidian_button",
+    "mmdlib:quartz_button"
+  ]
+}

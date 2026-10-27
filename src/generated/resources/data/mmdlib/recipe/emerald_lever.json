@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "R",
+    "M"
+  ],
+  "key": {
+    "R": {
+      "item": "mmdlib:emerald_rod"
+    },
+    "M": {
+      "item": "minecraft:emerald_block"
+    }
+  },
+  "result": {
+    "id": "mmdlib:emerald_lever",
+    "count": 1
+  }
+}

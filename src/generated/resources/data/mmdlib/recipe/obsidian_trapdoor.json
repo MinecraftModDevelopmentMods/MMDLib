@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MM",
+    "MM"
+  ],
+  "key": {
+    "M": {
+      "item": "mmdlib:obsidian_ingot"
+    }
+  },
+  "result": {
+    "id": "mmdlib:obsidian_trapdoor",
+    "count": 1
+  }
+}

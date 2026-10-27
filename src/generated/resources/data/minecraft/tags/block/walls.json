@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib:diamond_wall",
+    "mmdlib:emerald_wall",
+    "mmdlib:gold_wall",
+    "mmdlib:iron_wall",
+    "mmdlib:obsidian_wall",
+    "mmdlib:quartz_wall"
+  ]
+}

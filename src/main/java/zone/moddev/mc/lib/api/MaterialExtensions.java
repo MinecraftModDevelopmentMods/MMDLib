@@ -48,6 +48,8 @@ public final class MaterialExtensions {
         Objects.requireNonNull(implementation.blockClass());
         if (blockImplementations.putIfAbsent(id, implementation) != null) throw new IllegalArgumentException("Duplicate block implementation: " + id);
     }
+    public Optional<ItemImplementation<?>> findItemImplementation(ResourceLocation id) { return Optional.ofNullable(itemImplementations.get(id)); }
+    public Optional<BlockImplementation<?>> findBlockImplementation(ResourceLocation id) { return Optional.ofNullable(blockImplementations.get(id)); }
     public ItemImplementation<?> itemImplementation(ResourceLocation id) {
         var implementation = itemImplementations.get(id);
         if (implementation == null) throw new IllegalStateException("Runtime item implementation not installed: " + id);
