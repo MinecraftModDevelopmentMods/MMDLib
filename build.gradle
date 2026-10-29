@@ -81,3 +81,37 @@ tasks.configureEach { task ->
 
 // Verification tasks (verify*, test source sets); run with `./gradlew check`.
 apply from: 'gradle/verification.gradle'
+
+// Javadoc for extenders and maintainers: `./gradlew javadoc` (output in build/docs/javadoc).
+// Records and fluent builders are described in prose, so per-parameter tags are not required.
+tasks.named('javadoc', Javadoc) {
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:all,-missing', '-quiet')
+    options.links('https://docs.oracle.com/en/java/javase/21/docs/api/')
+}
+
+// Formatting: `./gradlew format` applies Google Java Style with google-java-format, then splits
+// imports into blank-line-separated groups (scripts/group_imports.py). The formatter jar is not
+// committed: put google-java-format's all-deps jar at tools/gjf.jar (or pass -PgjfJar=<path>).
+tasks.register('format') {
+    group = 'formatting'
+    description = 'Formats all Java sources (Google style, grouped imports).'
+    def jar = file(providers.gradleProperty('gjfJar').getOrElse('tools/gjf.jar'))
+    def python = providers.gradleProperty('mmdlibPython').getOrElse('python3')
+    def sources = fileTree('src') { include '**/*.java' }
+    def java = "${System.getProperty('java.home')}/bin/java"
+    doLast {
+        if (!jar.isFile())
+            throw new GradleException("google-java-format not found at ${jar}; see build.gradle")
+        // Imports are left in place here and grouped by the script below instead.
+        providers.exec {
+            commandLine([java, '-jar', jar.absolutePath, '--skip-sorting-imports', '--replace'] +
+                    sources.files.collect { it.absolutePath })
+        }.result.get()
+        def grouping = providers.exec {
+            commandLine python, file('scripts/group_imports.py').absolutePath, file('src').absolutePath
+        }
+        grouping.result.get()
+        logger.lifecycle("Formatted ${sources.files.size()} files. " + grouping.standardOutput.asText.get().trim())
+    }
+}

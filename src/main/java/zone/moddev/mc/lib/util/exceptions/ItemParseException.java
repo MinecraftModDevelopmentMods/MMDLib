@@ -1,11 +1,14 @@
 package zone.moddev.mc.lib.util.exceptions;
 
+/** Invalid item definition data. */
 public class ItemParseException extends ParseException {
-    public ItemParseException(String message) {
-        super(message);
-    }
+  /** An error with {@code message}. */
+  public ItemParseException(String message) {
+    super(message);
+  }
 
-    public ItemParseException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  /** An error with {@code message}, caused by {@code cause}. */
+  public ItemParseException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

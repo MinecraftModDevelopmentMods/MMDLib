@@ -1,16 +1,16 @@
 package zone.moddev.mc.lib.util.parse.value;
 
-import zone.moddev.mc.lib.util.parse.function.BooleanFunction;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 
-public interface BooleanValue
-{
-    void handle(BooleanConsumer value);
+import zone.moddev.mc.lib.util.parse.function.BooleanFunction;
 
-    boolean getAsBoolean();
+/** A JSON boolean. */
+public interface BooleanValue {
+  void handle(BooleanConsumer value);
 
-    default <T> MappedValue<T> map(BooleanFunction<T> mapping)
-    {
-        return MappedValue.of(mapping.apply(getAsBoolean()));
-    }
+  boolean getAsBoolean();
+
+  default <T> MappedValue<T> map(BooleanFunction<T> mapping) {
+    return MappedValue.of(mapping.apply(getAsBoolean()));
+  }
 }

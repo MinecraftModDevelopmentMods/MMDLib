@@ -31,6 +31,7 @@ def builderChecks = [
     verifyBlockEntities     : ['BlockEntitiesTest'],
     verifyMethodEvents      : ['MethodEventsTest'],
     verifyDefinitionLoader  : ['DefinitionLoaderTest'],
+    verifyScreens           : ['zone.moddev.mc.lib.gui.ScreenLoaderTest'],
     verifyVanillaExamples   : ['VanillaExamplesTest', ['mmdlib.resources': resources,
                                                        'mmdlib.generated': file('src/generated/resources').absolutePath]],
 ]
@@ -39,7 +40,7 @@ builderChecks.each { name, spec ->
         group = 'verification'
         dependsOn tasks.named('builderTestClasses')
         classpath = sourceSets.builderTest.runtimeClasspath
-        mainClass = "zone.moddev.mc.lib.common.builders.${spec[0]}"
+        mainClass = spec[0].contains('.') ? spec[0] : "zone.moddev.mc.lib.common.builders.${spec[0]}"
         if (spec.size() > 1) systemProperties(spec[1])
     }
     tasks.named('check') { dependsOn check }

@@ -1,11 +1,9 @@
 package zone.moddev.mc.lib.util.parse.function;
 
-import com.google.gson.JsonObject;
-
 import java.util.function.Consumer;
 
-@FunctionalInterface
-public interface JsonObjectConsumer extends Consumer<JsonObject>
-{
-}
+import com.google.gson.JsonObject;
 
+/** Accepts a raw Gson object. */
+@FunctionalInterface
+public interface JsonObjectConsumer extends Consumer<JsonObject> {}

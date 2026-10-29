@@ -1,77 +1,73 @@
 package zone.moddev.mc.lib.util.parse.value;
 
-import com.google.gson.JsonArray;
-import zone.moddev.mc.lib.util.parse.function.ArrayValueFunction;
-import zone.moddev.mc.lib.util.parse.function.IntObjBiConsumer;
-import zone.moddev.mc.lib.util.parse.function.JsonArrayConsumer;
-import zone.moddev.mc.lib.util.parse.function.JsonArrayFunction;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.stream.Stream;
 
-public interface ArrayValue
-{
-    void forEach(IntObjBiConsumer<Any> visitor);
+import com.google.gson.JsonArray;
 
-    void collect(Consumer<Stream<Any>> collector);
+import zone.moddev.mc.lib.util.parse.function.ArrayValueFunction;
+import zone.moddev.mc.lib.util.parse.function.IntObjBiConsumer;
+import zone.moddev.mc.lib.util.parse.function.JsonArrayConsumer;
+import zone.moddev.mc.lib.util.parse.function.JsonArrayFunction;
 
-    <T> MappedArrayValue<T> map(Function<Any, T> mapping);
+/** A JSON array being walked. */
+public interface ArrayValue {
+  /** Visits every item with its index. */
+  void forEach(IntObjBiConsumer<Any> visitor);
 
-    <T> T flatMap(Function<Stream<Any>, T> collector);
+  void collect(Consumer<Stream<Any>> collector);
 
-    <T> MappedValue<T[]> flatten(Function<Any, T> mapping, IntFunction<T[]> factory);
+  <T> MappedArrayValue<T> map(Function<Any, T> mapping);
 
-    ArrayValue notEmpty();
+  <T> T flatMap(Function<Stream<Any>, T> collector);
 
-    ArrayValue atLeast(int min);
+  <T> MappedValue<T[]> flatten(Function<Any, T> mapping, IntFunction<T[]> factory);
 
-    ArrayValue between(int min, int maxExclusive);
+  /** Throws if the array is empty. */
+  ArrayValue notEmpty();
 
-    JsonArray getAsJsonArray();
+  /** Throws if the array has fewer than {@code min} items. */
+  ArrayValue atLeast(int min);
 
-    void raw(JsonArrayConsumer value);
+  /** Throws unless the array has from {@code min} to {@code maxExclusive - 1} items. */
+  ArrayValue between(int min, int maxExclusive);
 
-    default <T> MappedValue<T> unwrapRaw(JsonArrayFunction<T> mapping)
-    {
-        return MappedValue.of(mapping.apply(getAsJsonArray()));
-    }
+  /** The raw Gson array. */
+  JsonArray getAsJsonArray();
 
-    default <T> MappedValue<T> mapWhole(ArrayValueFunction<T> mapping)
-    {
-        return MappedValue.of(mapping.apply(this));
-    }
+  void raw(JsonArrayConsumer value);
 
-    default MappedArrayValue<IntValue> ints()
-    {
-        return this.map(Any::intValue);
-    }
+  default <T> MappedValue<T> unwrapRaw(JsonArrayFunction<T> mapping) {
+    return MappedValue.of(mapping.apply(getAsJsonArray()));
+  }
 
-    default MappedArrayValue<LongValue> longs()
-    {
-        return this.map(Any::longValue);
-    }
+  default <T> MappedValue<T> mapWhole(ArrayValueFunction<T> mapping) {
+    return MappedValue.of(mapping.apply(this));
+  }
 
-    default MappedArrayValue<FloatValue> floats()
-    {
-        return this.map(Any::floatValue);
-    }
+  default MappedArrayValue<IntValue> ints() {
+    return this.map(Any::intValue);
+  }
 
-    default MappedArrayValue<DoubleValue> doubles()
-    {
-        return this.map(Any::doubleValue);
-    }
+  default MappedArrayValue<LongValue> longs() {
+    return this.map(Any::longValue);
+  }
 
-    default MappedArrayValue<BooleanValue> booleans()
-    {
-        return this.map(Any::bool);
-    }
+  default MappedArrayValue<FloatValue> floats() {
+    return this.map(Any::floatValue);
+  }
 
-    default MappedArrayValue<StringValue> strings()
-    {
-        return this.map(Any::string);
-    }
+  default MappedArrayValue<DoubleValue> doubles() {
+    return this.map(Any::doubleValue);
+  }
+
+  default MappedArrayValue<BooleanValue> booleans() {
+    return this.map(Any::bool);
+  }
+
+  default MappedArrayValue<StringValue> strings() {
+    return this.map(Any::string);
+  }
 }
-
-

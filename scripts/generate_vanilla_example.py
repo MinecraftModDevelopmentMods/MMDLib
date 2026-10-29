@@ -111,6 +111,7 @@ def main():
             functions=[]
             if form=='double_slab':functions=[{'function':'minecraft:set_count','count':2}]
             elif form=='slab':functions=[{'function':'minecraft:set_count','count':2,'conditions':[{'condition':'minecraft:block_state_property','block':itemid(full),'properties':{'type':'double'}}]}]
+            elif definition.get('factory')=='mmdlib:anvil':functions=[{'function':'minecraft:copy_state','block':itemid(full),'properties':['damage']}]
             pool={'rolls':1,'entries':[{'type':'minecraft:item','name':target,**({'functions':functions} if functions else {})}],'conditions':[{'condition':'minecraft:survives_explosion'}]}
             if form=='door':pool['conditions'].append({'condition':'minecraft:block_state_property','block':itemid(full),'properties':{'half':'lower'}})
             write(Path(f'data/mmdlib/loot_table/blocks/{full}.json'),{'type':'minecraft:block','pools':[pool]})

@@ -1,10 +1,9 @@
 package zone.moddev.mc.lib.util.parse.function;
 
-import com.google.gson.JsonObject;
-
 import java.util.function.Function;
 
+import com.google.gson.JsonObject;
+
+/** Maps a raw Gson object. */
 @FunctionalInterface
-public interface JsonObjectFunction<T> extends Function<JsonObject, T>
-{
-}
+public interface JsonObjectFunction<T> extends Function<JsonObject, T> {}

@@ -137,6 +137,35 @@ ICONS = {
 CUBE = ["...####...", ".##....##.", "#..####..#", "#.#....#.#", "#.#....#.#", "#..####..#", ".##....##.", "...####..."]
 
 
+def status_icon(inside, fill, edge, glyph, ink):
+    """Full-colour 16x16 pop-out icon: a shape (inside(x, y) for pixel centres) with a 1 px darker edge and a glyph."""
+    img = canvas(16, 16)
+    for y in range(16):
+        for x in range(16):
+            if not inside(x + 0.5, y + 0.5): continue
+            border = any(not inside(x + 0.5 + dx, y + 0.5 + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+            img[y][x] = edge if border else fill
+    ox = (16 - len(glyph[0])) // 2
+    oy = 4 if glyph is BANG_LOW else 3 if glyph is BANG else (16 - len(glyph)) // 2
+    for dy, row in enumerate(glyph):
+        for dx, ch in enumerate(row):
+            if ch != ".": img[oy + dy][ox + dx] = ink
+    return img
+
+
+def in_circle(x, y): return math.hypot(x - 8, y - 8) <= 7.5
+def in_triangle(x, y): return 0.5 <= y <= 15.5 and abs(x - 8) <= (y - 0.5) * 0.5 + 0.6
+def in_shield(x, y):
+    """Heater shield: flat top, straight sides, curving to a point at the bottom."""
+    if not (0.5 <= y <= 15.5 and 1 <= x <= 15): return False
+    return y <= 7 or abs(x - 8) <= 7 * max(0.0, 1 - (y - 7) / 9) ** 0.8 + 0.2
+
+
+INFO = ["##", "..", "##", "##", "##", "##", "##"]
+BANG = ["##", "##", "##", "##", "..", "##"]
+BANG_LOW = ["##", "##", "##", "##", "##", "..", "##"]  # sits lower, inside the triangle's wide part
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print(f"writing to {OUT}:")
@@ -154,6 +183,10 @@ def main():
     write_png("progress_arrow_filled", arrow(True))
     for name, rows in ICONS.items(): write_png(name, icon(rows, (0x6A, 0x50, 0x20, 255)))
     write_png("icon_sides", icon(CUBE, grey(255)))
+    # Pop-out kinds. Full colour, not for tinting.
+    write_png("icon_info", status_icon(in_circle, (0x2F, 0x6F, 0xD0, 255), (0x1B, 0x3F, 0x80, 255), INFO, grey(255)))
+    write_png("icon_warning", status_icon(in_triangle, (0xF5, 0xC5, 0x18, 255), (0x7A, 0x5A, 0x00, 255), BANG_LOW, (0x20, 0x20, 0x20, 255)))
+    write_png("icon_error", status_icon(in_shield, (0xD0, 0x20, 0x20, 255), (0x70, 0x10, 0x10, 255), BANG, grey(255)))
 
 
 if __name__ == "__main__":

@@ -7,3 +7,6 @@
 /bin/
 /.vscode/
 /logs/
+
+# Local tools (google-java-format for ./gradlew format)
+/tools/*.jar

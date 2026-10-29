@@ -2,13 +2,15 @@
 
 ## Remaining MMDLib 1.0 parity
 
-- **GUI subsystem.** The fill-gauge design and its textures are ready; see
+- **GUI subsystem.** Loading is implemented (schema, hardened reader, typed model, getter
+  binding, layout; `zone.moddev.mc.lib.gui`); menu, sync, rendering and JEI remain. The fill-gauge design and its textures are ready; see
   [gauge textures](gauge-textures.md). The widget sprites (slots, groups, panel, upgrade side
   tab, checkbox, radio, progress arrow, upgrade outlines) are ready; see [GUI sprites](gui-sprites.md).
-  Still open: tabs versus in-place section switching for navigation.
+  Navigation: Industrial Foregoing style context areas, where buttons swap part of the screen
+  in place (`<context>` / `<view>`); every button needs a tooltip.
   Proposed addition: PneumaticCraft-style informational pop-outs, collapsed icon tabs on either
-  edge that slide out with text. An info tab (blue, left) explains the screen; a problems tab
-  (amber/red, right, below the upgrades) lists live block-entity issues synced from the server.
+  edge that slide out with rich text, in three kinds: info (explains the screen), warning and
+  error (live block-entity issues synced from the server). Edge and icon are set per tab.
   These pop-outs need JEI exclusion areas.
   See [GUI screens](gui-screens.md) for the current plan with a full example.
   Direction: screens are declarative **XML** (`mmdlib/screen/*.xml`), loaded into a typed screen
@@ -18,16 +20,21 @@
   button channel. Elements bind to synced values. A `<player-inventory/>` is included by
   default. Optional JEI tie-ins: ghost slots (drag from JEI sets the expected item without
   moving items), recipe click areas, recipe transfer, and automatic exclusion areas.
+- **Block entities for data-defined machines.** The shared runtime registrar still refuses
+  plans with block entities. Decided (hybrid): MMDLib validates the definition, builds the
+  block-entity type and keeps a handle for the wiring (block, screen lookup, capabilities); the
+  implementing mod registers it in its own namespace through that handle, and an unregistered
+  handle is a load error. The GUI does not wait on this: screens find a block
+  entity by its registry name, whoever registered it.
 - **Block-entity right-click connection** for that GUI system. This should build on
   the existing `block-right-click` contract ([method events](method-events.md#block-contracts))
   rather than a separate mechanism.
-- **Capability wrappers**: easy-to-use helpers around the Item, Fluid, and Energy capabilities.
-  Decided: slot numbering is the same on every face, side configuration only allows or refuses
-  operations, and out-of-range indices are refused without throwing; see
-  [GUI screens](gui-screens.md#edge-cases-reviewed).
-
 ## Done since the parity list was written
 
+- **Capability wrappers.** `ItemStorage`, `FluidStorage`, `EnergyBuffer`, `SideConfig`,
+  `MachineCapabilities`, and `Transfer` in `api.capabilities`. Every face shows all slots with
+  the same numbering, side configuration only allows or refuses operations, and out-of-range
+  indices are refused without throwing; see [capability wrappers](capabilities.md).
 - **Built-in factories through the public API.** Every `mmdlib:*` item and block factory
   is registered with `registerItemImplementation` / `registerBlockImplementation` and
   built from the `ItemContext` / `BlockContext` addons receive; see

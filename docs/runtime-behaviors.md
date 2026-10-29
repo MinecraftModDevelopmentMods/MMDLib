@@ -151,9 +151,23 @@ These provide their native states, placement, waterlogging, redstone, shapes,
 and interaction logic rather than relying on a generic Block substitute.
 
 PlateBlock preserves BMe's six shapes, center/edge hit placement, rotations, and
-mirroring. MaterialAnvilBlock preserves the three damage states and custom menu
-validity/damage handling. Its GUI opens only through the anvil module's
-`block-right-click` binding to `mmdlib:open_menu`; the block itself passes the click. CompatibilityDoubleSlabBlock starts as a dry double
+mirroring. MaterialAnvilBlock keeps the vanilla anvil's three wear stages in one block
+per material, as a `damage` property (0-2). Its GUI opens only through the anvil module's
+`block-right-click` binding to `mmdlib:open_menu`; the block itself passes the click.
+Vanilla's anvil code only knows the three vanilla anvil blocks, so the block adapts the two
+places where an anvil wears:
+
+- **Using it.** Taking a result swaps in the matching vanilla anvil while vanilla's code
+  runs (its 12% chance to wear), then puts the material anvil back one stage worse, or leaves
+  it broken.
+- **Falling.** Vanilla's fall-damage roll would destroy any non-vanilla anvil. Instead the
+  anvil lands one stage worse (or drops as an item where it cannot be placed); a fully worn
+  anvil breaks as vanilla's does.
+
+Wear survives as an item: an anvil that drops after a fall carries its `damage` in the
+`minecraft:block_state` component, and the generated loot table copies it with
+`minecraft:copy_state` when the anvil is mined. A mod that ships an anvil needs a
+blockstate with `damage=0..2` variants for each `facing`. CompatibilityDoubleSlabBlock starts as a dry double
 slab. Bookshelf overrides NeoForge enchant power. Flowers/potted variants require
 their own registrations; this creates only the empty flower-pot block. Ores use
 DropExperienceBlock with zero default XP. The caller chooses door/button/pressure

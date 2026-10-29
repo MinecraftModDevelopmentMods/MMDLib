@@ -1,20 +1,20 @@
 package zone.moddev.mc.lib.util.parse.value;
 
-import zone.moddev.mc.lib.util.parse.function.FloatFunction;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 
-public interface FloatValue
-{
-    void handle(FloatConsumer value);
+import zone.moddev.mc.lib.util.parse.function.FloatFunction;
 
-    FloatValue min(float min);
+/** A JSON number read as a {@code float}. */
+public interface FloatValue {
+  void handle(FloatConsumer value);
 
-    FloatValue range(float min, float maxExclusive);
+  FloatValue min(float min);
 
-    float getAsFloat();
+  FloatValue range(float min, float maxExclusive);
 
-    default <T> MappedValue<T> map(FloatFunction<T> mapping)
-    {
-        return MappedValue.of(mapping.apply(getAsFloat()));
-    }
+  float getAsFloat();
+
+  default <T> MappedValue<T> map(FloatFunction<T> mapping) {
+    return MappedValue.of(mapping.apply(getAsFloat()));
+  }
 }

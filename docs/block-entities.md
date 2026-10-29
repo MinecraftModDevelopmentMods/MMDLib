@@ -66,7 +66,8 @@ Here `CrusherEntity` is the mod's `BlockEntity` implementation. Its constructor
 must use the supplied type, position, and block state. `serverTick` has Minecraft's
 `(Level, BlockPos, BlockState, CrusherEntity)` ticker signature. The implementation
 owns inventories, processing, persistence, synchronization, menus, capabilities,
-and any client rendering. Return null for no ticker or for the side that must not
+and any client rendering. [Capability wrappers](capabilities.md) cover
+the inventory, tank, energy, and side-configuration parts. Return null for no ticker or for the side that must not
 tick. A new data variant can reuse this implementation with different settings.
 
 `prepare(definition, CrusherEntity.class)` validates factory ID, class, and typed

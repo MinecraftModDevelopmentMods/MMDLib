@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  MMDLib screen files (mmdlib/screen/*.xml). See docs/gui-screens.md.
+
+  Point an editor at this schema for validation and completion, e.g.
+    <screen xmlns="https://moddev.zone/mmdlib/screen"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="https://moddev.zone/mmdlib/screen screen.xsd" ...>
+
+  MMDLib validates every screen file against this schema at load, then checks what a schema
+  cannot: references between elements, unique IDs and slot indexes, and the Java getters named
+  by value and max.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="https://moddev.zone/mmdlib/screen"
+           targetNamespace="https://moddev.zone/mmdlib/screen"
+           elementFormDefault="qualified">
+
+  <!-- Simple types -->
+
+  <xs:simpleType name="translationKey">
+    <xs:annotation><xs:documentation>A translation key from a lang file, never display text.</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string"><xs:pattern value="[^\s]+"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="resourceId">
+    <xs:annotation><xs:documentation>A namespaced ID such as example:eject_outputs; the namespace defaults to minecraft.</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string"><xs:pattern value="([a-z0-9_.\-]+:)?[a-z0-9_.\-/]+"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="resourceIdList">
+    <xs:list itemType="resourceId"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="elementId">
+    <xs:restriction base="xs:string"><xs:pattern value="[a-z0-9_\-]+"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="elementIdList">
+    <xs:restriction>
+      <xs:simpleType><xs:list itemType="elementId"/></xs:simpleType>
+      <xs:minLength value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="viewRef">
+    <xs:annotation><xs:documentation>context-id:view-id</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string"><xs:pattern value="[a-z0-9_\-]+:[a-z0-9_\-]+"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="valueRef">
+    <xs:annotation><xs:documentation>#method (instance getter on the block entity) or fully.qualified.Class#method (static, taking the block entity).</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="([A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*)?#[A-Za-z_$][A-Za-z0-9_$]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="className">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="color">
+    <xs:annotation><xs:documentation>#RRGGBB or #AARRGGBB</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string"><xs:pattern value="#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="pixels">
+    <xs:annotation><xs:documentation>A size in GUI pixels (12), or in slots with an s suffix (3s = 54 px, 1.5s = 27 px; one slot is 18 px). Rounded to the nearest pixel; at most 1024 px.</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string"><xs:pattern value="[0-9]+(\.[0-9]+)?s|[0-9]+"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="length">
+    <xs:annotation><xs:documentation>A size as for pixels, or fill: as long as the box around it is across (a vertical gauge in an hbox matches the row's height; a horizontal one in a vertical stack matches its width).</xs:documentation></xs:annotation>
+    <xs:union memberTypes="pixels">
+      <xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="fill"/></xs:restriction></xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+
+  <xs:simpleType name="offset">
+    <xs:annotation><xs:documentation>A nudge in GUI pixels or slots, may be negative; at most 64 px either way.</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string"><xs:pattern value="-?([0-9]+(\.[0-9]+)?s|[0-9]+)"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="align">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="start"/><xs:enumeration value="center"/><xs:enumeration value="end"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="orientation">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="vertical"/><xs:enumeration value="horizontal"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="direction">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="right"/><xs:enumeration value="left"/>
+      <xs:enumeration value="up"/><xs:enumeration value="down"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="edge">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="left"/><xs:enumeration value="right"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Attributes every element takes -->
+
+  <xs:attributeGroup name="common">
+    <xs:attribute name="id" type="elementId"/>
+    <xs:attribute name="value" type="valueRef"/>
+    <xs:attribute name="max" type="valueRef"/>
+    <xs:attribute name="tooltip" type="translationKey"/>
+    <xs:attribute name="tooltip-fallback" type="xs:string"/>
+    <xs:attribute name="tooltip-shift" type="translationKey"/>
+    <xs:attribute name="tooltip-shift-fallback" type="xs:string"/>
+    <xs:attribute name="on-click" type="resourceId"/>
+    <xs:attribute name="on-right-click" type="resourceId"/>
+    <xs:attribute name="on-shift-click" type="resourceId"/>
+    <xs:attribute name="on-shift-right-click" type="resourceId"/>
+    <xs:attribute name="on-hover" type="resourceId"/>
+    <xs:attribute name="hover-shows" type="elementId"/>
+    <xs:attribute name="jei-recipes" type="resourceIdList"/>
+    <xs:attribute name="offset-x" type="offset"/>
+    <xs:attribute name="offset-y" type="offset"/>
+  </xs:attributeGroup>
+
+  <!-- Content -->
+
+  <xs:group name="widget">
+    <xs:choice>
+      <xs:element ref="vbox"/>
+      <xs:element ref="hbox"/>
+      <xs:element ref="spacer"/>
+      <xs:element ref="group"/>
+      <xs:element ref="slot"/>
+      <xs:element ref="gauge"/>
+      <xs:element ref="meter"/>
+      <xs:element ref="progress"/>
+      <xs:element ref="label"/>
+      <xs:element ref="button"/>
+      <xs:element ref="checkbox"/>
+      <xs:element ref="radio-group"/>
+      <xs:element ref="context"/>
+      <xs:element ref="side-config"/>
+      <xs:element ref="player-inventory"/>
+    </xs:choice>
+  </xs:group>
+
+  <xs:complexType name="container">
+    <xs:group ref="widget" minOccurs="0" maxOccurs="unbounded"/>
+    <xs:attributeGroup ref="common"/>
+  </xs:complexType>
+
+  <xs:complexType name="leaf">
+    <xs:attributeGroup ref="common"/>
+  </xs:complexType>
+
+  <xs:element name="screen">
+    <xs:annotation><xs:documentation>The root. title is a translation key; block-entity is the class whose getters #method values call.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:group ref="widget" minOccurs="1" maxOccurs="unbounded"/>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element ref="side-tab"/>
+          <xs:element ref="popout"/>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="title" type="translationKey" use="required"/>
+      <xs:attribute name="title-fallback" type="xs:string"/>
+      <xs:attribute name="block-entity" type="className" use="required"/>
+      <xs:attribute name="inventory" default="default">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="default"/><xs:enumeration value="none"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="vbox">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="container">
+          <xs:attribute name="padding" type="pixels" default="0"/>
+          <xs:attribute name="spacing" type="pixels" default="0"/>
+          <xs:attribute name="align" type="align" default="start"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="hbox">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="container">
+          <xs:attribute name="padding" type="pixels" default="0"/>
+          <xs:attribute name="spacing" type="pixels" default="0"/>
+          <xs:attribute name="align" type="align" default="start"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="spacer" type="leaf"/>
+
+  <xs:element name="group">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="container">
+          <xs:attribute name="label" type="translationKey"/>
+          <xs:attribute name="label-fallback" type="xs:string"/>
+          <xs:attribute name="tint" type="color"/>
+          <xs:attribute name="padding" type="pixels" default="4"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="slot">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="index" use="required">
+            <xs:simpleType><xs:restriction base="xs:int"><xs:minInclusive value="0"/></xs:restriction></xs:simpleType>
+          </xs:attribute>
+          <xs:attribute name="size" default="normal">
+            <xs:simpleType>
+              <xs:restriction base="xs:string">
+                <xs:enumeration value="normal"/><xs:enumeration value="large"/>
+              </xs:restriction>
+            </xs:simpleType>
+          </xs:attribute>
+          <xs:attribute name="kind" default="normal">
+            <xs:simpleType>
+              <xs:restriction base="xs:string">
+                <xs:enumeration value="normal"/><xs:enumeration value="upgrade"/><xs:enumeration value="ghost"/>
+              </xs:restriction>
+            </xs:simpleType>
+          </xs:attribute>
+          <xs:attribute name="tint" type="color"/>
+          <xs:attribute name="icon" type="resourceId"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="gauge">
+    <xs:annotation><xs:documentation>Glass graduated gauge, 18 px (one slot) thick; at least 8 px long. With color it fills solid; without, value must return a fluid.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="orientation" type="orientation" default="vertical"/>
+          <xs:attribute name="length" type="length" use="required"/>
+          <xs:attribute name="color" type="color"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="meter">
+    <xs:annotation><xs:documentation>Compact segmented gauge, 5 or 10 px thick; at least 4 px long, segments at least 1 px.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="orientation" type="orientation" default="vertical"/>
+          <xs:attribute name="thickness" default="10">
+            <xs:simpleType>
+              <xs:restriction base="xs:int"><xs:enumeration value="5"/><xs:enumeration value="10"/></xs:restriction>
+            </xs:simpleType>
+          </xs:attribute>
+          <xs:attribute name="length" type="length" use="required"/>
+          <xs:attribute name="color" type="color" use="required"/>
+          <xs:attribute name="segment" type="pixels" default="2"/>
+          <xs:attribute name="gap" type="pixels" default="1"/>
+          <xs:attribute name="gap-color" type="color"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="progress">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="icon" type="resourceId"/>
+          <xs:attribute name="direction" type="direction" default="right"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="label">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="text" type="translationKey" use="required"/>
+          <xs:attribute name="text-fallback" type="xs:string"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="button">
+    <xs:annotation><xs:documentation>Needs text or icon, and always a tooltip saying what it does.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="text" type="translationKey"/>
+          <xs:attribute name="text-fallback" type="xs:string"/>
+          <xs:attribute name="icon" type="resourceId"/>
+          <xs:attribute name="shows" type="viewRef"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="checkbox">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="text" type="translationKey" use="required"/>
+          <xs:attribute name="text-fallback" type="xs:string"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="radio-group">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="radio" minOccurs="2" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="common"/>
+      <xs:attribute name="label" type="translationKey"/>
+      <xs:attribute name="label-fallback" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="radio">
+    <xs:complexType>
+      <xs:attributeGroup ref="common"/>
+      <xs:attribute name="text" type="translationKey" use="required"/>
+      <xs:attribute name="text-fallback" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="context">
+    <xs:annotation><xs:documentation>An area whose content buttons swap; the first view is the default.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="view" minOccurs="2" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="common"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="view">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="container">
+          <xs:attribute name="title" type="translationKey"/>
+          <xs:attribute name="title-fallback" type="xs:string"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="side-config">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="groups" type="elementIdList" use="required"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="player-inventory" type="leaf"/>
+
+  <xs:element name="side-tab">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="container">
+          <xs:attribute name="edge" type="edge" default="right"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="popout">
+    <xs:annotation><xs:documentation>info needs text; warning and error need value (a getter returning what to report).</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="kind" use="required">
+            <xs:simpleType>
+              <xs:restriction base="xs:string">
+                <xs:enumeration value="info"/><xs:enumeration value="warning"/><xs:enumeration value="error"/>
+              </xs:restriction>
+            </xs:simpleType>
+          </xs:attribute>
+          <xs:attribute name="icon" type="resourceId"/>
+          <xs:attribute name="edge" type="edge" default="left"/>
+          <xs:attribute name="text" type="translationKey"/>
+          <xs:attribute name="text-fallback" type="xs:string"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
