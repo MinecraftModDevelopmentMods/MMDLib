@@ -9,6 +9,8 @@ public interface MethodEventInvoker<C> {
    * Calls {@code method} with the arguments this event's signature declares, taken from {@code
    * context}. Use {@code invokeExact} with the exact parameter types so no reflection or boxing
    * happens per call.
+   *
+   * @throws Throwable whatever {@code method} throws
    */
   void invoke(MethodHandle method, C context) throws Throwable;
 }

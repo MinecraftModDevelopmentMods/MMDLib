@@ -7,10 +7,15 @@ import java.util.Locale;
  * to a directory in {@link Constants.PathBits}.
  */
 public enum LocationType {
+  /** No location; nothing is loaded for it. */
   NONE("NONE"),
+  /** Material files. */
   MATERIAL("MATERIAL"),
+  /** Block files. */
   BLOCK("BLOCK"),
+  /** Item files. */
   ITEM("ITEM"),
+  /** Config files. */
   CONFIG("CONFIG");
 
   private final String myTypeName;

@@ -41,6 +41,11 @@ public record MMDMaterial(
     this(name, parent, properties, selection, events, MaterialRuntimeSettings.DEFAULT);
   }
 
+  /**
+   * Requires every component and copies the event bindings.
+   *
+   * @throws IllegalArgumentException if an event name is blank
+   */
   public MMDMaterial {
     java.util.Objects.requireNonNull(name);
     java.util.Objects.requireNonNull(parent);

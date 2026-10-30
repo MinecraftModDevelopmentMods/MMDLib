@@ -18,10 +18,12 @@ public final class FactoryData {
   /** An empty JSON object; what a module without {@code factory_data} has. */
   public static final FactoryData EMPTY = new FactoryData(new JsonObject());
 
+  /** Reads any JSON value as is, and writes it back unchanged. */
   public static final Codec<FactoryData> CODEC =
       Codec.PASSTHROUGH.xmap(
           dynamic -> new FactoryData(dynamic.convert(JsonOps.INSTANCE).getValue()),
           data -> new Dynamic<>(JsonOps.INSTANCE, data.json()));
+
   private final JsonElement value;
 
   /** Wraps a copy of {@code value}. */
@@ -32,6 +34,19 @@ public final class FactoryData {
   /** A copy of the JSON, safe to modify. */
   public JsonElement json() {
     return value.deepCopy();
+  }
+
+  /**
+   * This data with each top-level key of {@code overrides} replacing or adding the same key.
+   *
+   * @throws IllegalArgumentException if either is not a JSON object
+   */
+  public FactoryData overlay(FactoryData overrides) {
+    if (!value.isJsonObject() || !overrides.value.isJsonObject())
+      throw new IllegalArgumentException("Only object factory_data can be merged");
+    var result = value.deepCopy().getAsJsonObject();
+    overrides.value.getAsJsonObject().entrySet().forEach(e -> result.add(e.getKey(), e.getValue()));
+    return new FactoryData(result);
   }
 
   /** Decodes the settings with {@code codec}. */

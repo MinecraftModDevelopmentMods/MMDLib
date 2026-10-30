@@ -106,10 +106,12 @@ public interface Any {
   /** The raw Gson element. */
   JsonElement get();
 
+  /** Maps the raw Gson element. */
   default <T> MappedValue<T> map(JsonElementFunction<T> mapping) {
     return MappedValue.of(mapping.apply(get()));
   }
 
+  /** Maps this value. */
   default <T> MappedValue<T> map(AnyFunction<T> mapping) {
     return MappedValue.of(mapping.apply(this));
   }

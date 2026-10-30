@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 
 /** One section's selection split into bundled parts and code-registered type IDs. */
 public record TypeSelection(Set<MaterialPart> standard, Set<ResourceLocation> custom) {
+  /** Copies both sets. */
   public TypeSelection {
     standard = Set.copyOf(standard);
     custom = Set.copyOf(custom);

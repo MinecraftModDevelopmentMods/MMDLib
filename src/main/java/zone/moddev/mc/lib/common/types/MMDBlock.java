@@ -20,6 +20,12 @@ public record MMDBlock(
     Set<ResourceLocation> tags,
     Map<String, ResourceLocation> events,
     MMDItem item) {
+  /**
+   * Validates the definition and copies the collections.
+   *
+   * @throws IllegalArgumentException if the type or an event name is blank, or the block item does
+   *     not share the block's name and material
+   */
   public MMDBlock {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(template, "template");
@@ -59,6 +65,12 @@ public record MMDBlock(
         new Properties(
             1.5F, 6F, 0.6F, 1F, 1F, 0, false, true, true, false, false, "stone", "stone");
 
+    /**
+     * Validates the values.
+     *
+     * @throws IllegalArgumentException if hardness is negative and not -1, another factor is
+     *     negative, the light level is outside 0-15, or the sound or map color is blank
+     */
     public Properties {
       if (!Float.isFinite(hardness) || (hardness < 0 && hardness != -1))
         throw new IllegalArgumentException("Hardness must be nonnegative, or -1 for unbreakable");

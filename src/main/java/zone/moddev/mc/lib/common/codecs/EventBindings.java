@@ -34,6 +34,11 @@ public final class EventBindings {
                       VALUES.optionalFieldOf("event").forGetter(Fields::event),
                       VALUES.optionalFieldOf("events").forGetter(Fields::events))
                   .apply(i, Fields::new));
+
+  /**
+   * Reads the bindings from either {@code event} or {@code events} (not both), as a map from event
+   * name to handler ID; missing means none. Writes {@code event}, omitted when there are none.
+   */
   public static final MapCodec<Map<String, ResourceLocation>> MAP_CODEC =
       FIELDS.flatXmap(
           fields -> {

@@ -11,7 +11,10 @@ import com.google.gson.JsonObject;
  * @param <B> the builder type
  */
 public abstract class ParserBase<I, B> {
+  /** The JSON being parsed. */
   protected JsonObject baseData;
+
+  /** The builder that parsed values are applied to. */
   protected B builder;
 
   /** Supplies the empty builder a parser starts from. */

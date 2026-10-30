@@ -6,11 +6,16 @@ import net.minecraft.util.StringRepresentable;
 
 /** What one face of a machine lets automation do with one resource (items, fluids or energy). */
 public enum IoMode implements StringRepresentable {
+  /** Automation can neither insert nor extract. */
   DISABLED(false, false),
+  /** Automation can insert only. */
   INPUT(true, false),
+  /** Automation can extract only. */
   OUTPUT(false, true),
+  /** Automation can insert and extract. */
   BOTH(true, true);
 
+  /** Reads and writes the lower-case name, e.g. {@code "input"}. */
   public static final Codec<IoMode> CODEC = StringRepresentable.fromEnum(IoMode::values);
 
   private final boolean insert;

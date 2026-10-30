@@ -23,6 +23,7 @@ public record BlockTemplate(
     Map<String, ResourceLocation> events,
     boolean hasItem,
     Optional<ItemTemplate> item) {
+  /** Copies the tags and event bindings. */
   public BlockTemplate {
     tags = Set.copyOf(tags);
     events = Map.copyOf(events);

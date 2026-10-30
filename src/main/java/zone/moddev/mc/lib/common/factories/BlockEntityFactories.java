@@ -30,6 +30,9 @@ public final class BlockEntityFactories {
   private final ConcurrentHashMap<ResourceLocation, BlockEntityFactory<?, ?>> factories =
       new ConcurrentHashMap<>();
 
+  /** An empty catalog. */
+  public BlockEntityFactories() {}
+
   /**
    * Registers a factory under {@code id}.
    *
@@ -59,7 +62,14 @@ public final class BlockEntityFactories {
   }
 
   /**
-   * Pass RegistryOps for registry-aware factory settings. This performs no Minecraft construction.
+   * As {@link #prepare(MMDBlockEntity, Class)}, decoding the settings with {@code ops}. Pass {@code
+   * RegistryOps} when the factory's settings refer to registry contents. Nothing in Minecraft is
+   * constructed.
+   *
+   * @param expectedClass the block-entity class the caller expects; must match the factory's
+   * @param ops the ops the settings are decoded with
+   * @throws IllegalArgumentException if the factory is unknown, its class differs, or the settings
+   *     are invalid
    */
   public <E extends BlockEntity> Prepared<E> prepare(
       MMDBlockEntity definition, Class<E> expectedClass, DynamicOps<JsonElement> ops) {
@@ -69,6 +79,19 @@ public final class BlockEntityFactories {
     if (factory.blockEntityClass() != Objects.requireNonNull(expectedClass))
       throw new IllegalArgumentException("Wrong block entity class for " + definition.factory());
     return capture(definition, checked(factory, expectedClass), ops);
+  }
+
+  /**
+   * As {@link #prepare(MMDBlockEntity, Class)}, for a caller that takes whatever class the named
+   * factory declares, such as the runtime registrar.
+   *
+   * @throws IllegalArgumentException if the factory is unknown or the settings are invalid
+   */
+  public Prepared<? extends BlockEntity> prepare(MMDBlockEntity definition) {
+    var factory = factories.get(definition.factory());
+    if (factory == null)
+      throw new IllegalArgumentException("Unknown block entity factory: " + definition.factory());
+    return prepare(definition, factory.blockEntityClass());
   }
 
   @SuppressWarnings("unchecked")
@@ -122,7 +145,10 @@ public final class BlockEntityFactories {
 
   /**
    * A block-entity factory with its decoded settings, ready to build the type and to create and
-   * tick block entities.
+   * tick block entities. A block delegates its {@code newBlockEntity} and {@code getTicker} to
+   * {@link #create} and {@link #ticker}, as {@code MaterialEntityBlock} does.
+   *
+   * @param <E> the block-entity class
    */
   public static final class Prepared<E extends BlockEntity> {
     private final MMDBlockEntity definition;
@@ -170,7 +196,13 @@ public final class BlockEntityFactories {
       return entity;
     }
 
-    /** Call only from the BLOCK_ENTITY_TYPE registration supplier, after blocks exist. */
+    /**
+     * Builds the block-entity type for {@code block}; its block entities are created through {@link
+     * #create}. Call only from the {@code BLOCK_ENTITY_TYPE} registration supplier, after blocks
+     * exist; {@link BlockEntityFactories#queue} does this.
+     *
+     * @throws IllegalArgumentException if {@code block} does not implement {@code EntityBlock}
+     */
     public BlockEntityType<E> buildType(Block block) {
       if (!(block instanceof EntityBlock))
         throw new IllegalArgumentException(
@@ -187,8 +219,14 @@ public final class BlockEntityFactories {
     }
 
     /**
-     * The ticker for a block's {@code getTicker}, or null when {@code requested} is not this type
-     * or the factory has no ticker on this side.
+     * The ticker for a block's {@code getTicker}: the factory's {@link BlockEntityFactory#ticker}
+     * for {@code level}, adapted to the requested type. Returns null when {@code requested} is not
+     * {@code actual}, so the ticker is never installed for another block entity, or when the
+     * factory has no ticker on this side.
+     *
+     * @param level the level asking; its side is passed to the factory
+     * @param requested the type Minecraft asks a ticker for
+     * @param actual this definition's registered type
      */
     public <T extends BlockEntity> BlockEntityTicker<T> ticker(
         Level level, BlockEntityType<T> requested, BlockEntityType<E> actual) {

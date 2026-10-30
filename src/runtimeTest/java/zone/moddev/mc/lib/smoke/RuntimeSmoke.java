@@ -27,6 +27,7 @@ import zone.moddev.mc.lib.common.runtime.*;
 public final class RuntimeSmoke {
   @SubscribeEvent
   public static void started(ServerStartedEvent event) {
+    if (Boolean.getBoolean("mmdlib.guiSmoke")) return;
     var server = event.getServer();
     try {
       var level = server.overworld();
@@ -41,6 +42,7 @@ public final class RuntimeSmoke {
               instanceof zone.moddev.mc.lib.common.runtime.StandardBlocks.DetectorPressurePlate))
         throw new AssertionError("Standalone player-only plate missing: " + detector);
       for (var registrar : RuntimeContentRegistrar.instances()) {
+        if (registrar == MachineSmoke.registrar()) continue;
         if (registrar.items().size() != 234)
           throw new AssertionError("Wrong runtime item count: " + registrar.items().size());
         for (var entry : registrar.blocks().entrySet()) {
@@ -189,13 +191,15 @@ public final class RuntimeSmoke {
         }
       }
       CapabilitySmoke.check(level);
+      MachineSmoke.check(level);
       if (projectiles != 14 || fluids != 15 || placed != 59)
         throw new AssertionError(
             "Wrong smoke counts: " + placed + "/" + projectiles + "/" + fluids);
       MMDLib.LOGGER.info(
           "MMDLIB_RUNTIME_SMOKE_PASS: {} blocks placed; {} arrow/bolt component-preserving save"
               + " round trips; {} buckets placed/recovered; tag-based tiers, authored armor"
-              + " textures, dropped-item crushing and capability wrappers verified",
+              + " textures, dropped-item crushing, capability wrappers and a standalone ticking"
+              + " machine and item verified",
           placed,
           projectiles,
           fluids);

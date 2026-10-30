@@ -12,13 +12,20 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
  * front. For a machine facing up or down, the top is the north side.
  */
 public enum RelativeFace implements StringRepresentable {
+  /** The side the machine faces. */
   FRONT,
+  /** The side opposite the front. */
   BACK,
+  /** The left side, as seen looking at the front. */
   LEFT,
+  /** The right side, as seen looking at the front. */
   RIGHT,
+  /** The top; north for a machine facing up or down. */
   TOP,
+  /** The bottom; south for a machine facing up or down. */
   BOTTOM;
 
+  /** Reads and writes the lower-case name, e.g. {@code "front"}. */
   public static final Codec<RelativeFace> CODEC =
       StringRepresentable.fromEnum(RelativeFace::values);
 

@@ -31,12 +31,18 @@ public interface ObjValue {
   /** The raw Gson object. */
   JsonObject getAsJsonObject();
 
+  /**
+   * Passes the raw Gson object to {@code value}; other exceptions it throws are wrapped in a {@link
+   * zone.moddev.mc.lib.util.parse.JParseException} naming this object.
+   */
   void raw(JsonObjectConsumer value);
 
+  /** Maps the raw Gson object. */
   default <T> MappedValue<T> map(JsonObjectFunction<T> mapping) {
     return MappedValue.of(mapping.apply(getAsJsonObject()));
   }
 
+  /** Maps this object. */
   default <T> MappedValue<T> map(ObjValueFunction<T> mapping) {
     return MappedValue.of(mapping.apply(this));
   }

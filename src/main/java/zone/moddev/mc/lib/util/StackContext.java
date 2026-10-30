@@ -16,8 +16,13 @@ import net.minecraft.world.item.component.CustomData;
  * definition is read.
  */
 public class StackContext {
+  /** The item's ID, or null for the item the definition belongs to. */
   public final ResourceLocation item;
+
+  /** The stack's custom data, or null for none. */
   public CompoundTag tag = null;
+
+  /** The stack size; 1 by default. */
   public int count = 1;
 
   private Item theItem;

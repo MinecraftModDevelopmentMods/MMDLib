@@ -62,6 +62,12 @@ public record MaterialSelection(
         net.minecraft.resources.ResourceLocation.parse("mmdlib:molten"));
   }
 
+  /**
+   * Copies every set and checks that each part is in the section for its kind.
+   *
+   * @throws IllegalArgumentException if a block part is in {@code items}, an item part in {@code
+   *     blocks}, or a part without an entity in {@code entities}
+   */
   public MaterialSelection {
     items = Set.copyOf(items);
     blocks = Set.copyOf(blocks);

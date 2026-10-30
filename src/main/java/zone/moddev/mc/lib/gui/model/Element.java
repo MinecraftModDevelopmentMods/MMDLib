@@ -30,28 +30,39 @@ public sealed interface Element {
 
   /** Cross-axis alignment inside a box. */
   enum Align {
+    /** Aligned to the top or left edge. */
     START,
+    /** Centered. */
     CENTER,
+    /** Aligned to the bottom or right edge. */
     END
   }
 
   /** Which way a gauge or meter runs. */
   enum Orientation {
+    /** Runs vertically. */
     VERTICAL,
+    /** Runs horizontally. */
     HORIZONTAL
   }
 
   /** Which way a progress indicator fills. */
   enum Direction {
+    /** Fills from the left edge to the right. */
     RIGHT,
+    /** Fills from the right edge to the left. */
     LEFT,
+    /** Fills from the bottom edge up. */
     UP,
+    /** Fills from the top edge down. */
     DOWN
   }
 
   /** The panel edge a tab grows from. */
   enum Edge {
+    /** Grows from the panel's left edge. */
     LEFT,
+    /** Grows from the panel's right edge. */
     RIGHT
   }
 
@@ -102,7 +113,9 @@ public sealed interface Element {
 
   /** The size of a slot: 18x18, or 26x26 for an output. */
   enum SlotSize {
+    /** 18x18. */
     NORMAL,
+    /** 26x26, for outputs. */
     LARGE
   }
 

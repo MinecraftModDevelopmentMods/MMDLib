@@ -1,6 +1,6 @@
 # GUI sprites
 
-Widget sprites for the planned GUI system. They are 1.21 **GUI sprites**: PNGs under
+Widget sprites for the XML GUI system. They are 1.21 **GUI sprites**: PNGs under
 `assets/mmdlib/textures/gui/sprites/`, loaded into the GUI atlas automatically and drawn with
 `GuiGraphics.blitSprite(ResourceLocation.parse("mmdlib:<name>"), x, y, width, height)`. A
 sprite's `.mcmeta`, where present, tells `blitSprite` how to stretch it. The fill gauge uses

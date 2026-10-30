@@ -24,6 +24,30 @@ import zone.moddev.mc.lib.common.runtime.ItemEventBridge;
  */
 @JeiPlugin
 public final class MMDLibJeiPlugin implements IModPlugin {
+  /** Called by JEI, which finds the plugin through {@link JeiPlugin}. */
+  public MMDLibJeiPlugin() {}
+
+  @Override
+  public void registerGuiHandlers(mezz.jei.api.registration.IGuiHandlerRegistration registration) {
+    MachineJei.gui(registration);
+  }
+
+  @Override
+  public void registerRecipeTransferHandlers(
+      mezz.jei.api.registration.IRecipeTransferRegistration registration) {
+    MachineJei.transfer(registration);
+  }
+
+  @Override
+  public void onRuntimeAvailable(mezz.jei.api.runtime.IJeiRuntime runtime) {
+    MachineJei.runtime(runtime);
+  }
+
+  @Override
+  public void onRuntimeUnavailable() {
+    MachineJei.unavailable();
+  }
+
   @Override
   public ResourceLocation getPluginUid() {
     return ResourceLocation.parse("mmdlib:jei");

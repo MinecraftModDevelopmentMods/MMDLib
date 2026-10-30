@@ -23,6 +23,12 @@ public record MaterialProperties(
   public static final MaterialProperties DEFAULT =
       new MaterialProperties("generic", -1, 0, 0, 0, 0, Set.of(), Map.of());
 
+  /**
+   * Validates the stats and copies the collections.
+   *
+   * @throws IllegalArgumentException if the type is blank; a stat is not finite; hardness, strength
+   *     or magic is negative; or an extra property has a blank name or a non-finite value
+   */
   public MaterialProperties {
     if (type == null || type.isBlank())
       throw new IllegalArgumentException("Material type must not be blank");

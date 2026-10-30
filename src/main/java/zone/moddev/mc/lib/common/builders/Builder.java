@@ -13,6 +13,9 @@ import net.minecraft.resources.ResourceLocation;
  * @param <X> the concrete builder type, returned by the setters
  */
 public abstract class Builder<T, X> {
+  /** For subclasses. */
+  protected Builder() {}
+
   /**
    * Builds the definition.
    *

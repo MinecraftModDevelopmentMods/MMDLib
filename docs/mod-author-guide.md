@@ -438,9 +438,12 @@ block entity. Those IDs participate in the same `all` and `!namespace:type`
 selections. See [material extensions](material-extensions.md) for typed factories,
 queueItem/queueBlock, callback contracts, and registry hooks.
 
-Register any block-entity types, tickers, capabilities, menus, networking, and
-client renderers required by machinery. Placement logic alone does not make a
-block a block entity. Extra factory definitions are not produced for missing
+For data-defined machines, register the prepared block-entity handles with your mod's register;
+MMDLib supplies the factory/ticker binding. Register capabilities against the resulting types.
+XML screens use MMDLib's generic menu, networking, widget renderer and optional JEI integration;
+implement `ScreenHost`, provide the XML file, and bind `block-right-click` to `mmdlib:open_menu`.
+See [block entities](block-entities.md) and [GUI screens](gui-screens.md). Custom machinery may
+still supply its own menus or renderers. Extra factory definitions are not produced for missing
 optional mods when their requiredMod gate is set.
 
 ## 8. Verify in a running mod

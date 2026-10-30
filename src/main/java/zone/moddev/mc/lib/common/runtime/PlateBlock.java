@@ -18,7 +18,9 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 /** {@code mmdlib:plate}: a one-pixel-thick plate attached to the face it was placed on. */
 public final class PlateBlock extends Block {
+  /** The face the plate is attached to, pointing away from the block it rests on. */
   public static final DirectionProperty FACING = BlockStateProperties.FACING;
+
   private static final VoxelShape[] SHAPES = {
     box(0, 15, 0, 16, 16, 16), box(0, 0, 0, 16, 1, 16),
     box(0, 0, 15, 16, 16, 16), box(0, 0, 0, 16, 16, 1),

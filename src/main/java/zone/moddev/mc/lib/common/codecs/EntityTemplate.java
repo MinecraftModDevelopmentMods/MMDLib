@@ -31,6 +31,7 @@ public record EntityTemplate(
     boolean fireImmune,
     FactoryData factoryData,
     Map<String, ResourceLocation> events) {
+  /** Copies the event bindings. */
   public EntityTemplate {
     events = Map.copyOf(events);
   }

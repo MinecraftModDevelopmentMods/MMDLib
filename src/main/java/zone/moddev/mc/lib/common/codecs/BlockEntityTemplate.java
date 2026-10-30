@@ -25,6 +25,7 @@ public record BlockEntityTemplate(ResourceLocation factory, FactoryData factoryD
                           .forGetter(BlockEntityTemplate::factoryData))
                   .apply(i, BlockEntityTemplate::new));
 
+  /** Requires a factory and its data. */
   public BlockEntityTemplate {
     Objects.requireNonNull(factory);
     Objects.requireNonNull(factoryData);

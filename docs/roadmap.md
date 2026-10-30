@@ -2,34 +2,16 @@
 
 ## Remaining MMDLib 1.0 parity
 
-- **GUI subsystem.** Loading is implemented (schema, hardened reader, typed model, getter
-  binding, layout; `zone.moddev.mc.lib.gui`); menu, sync, rendering and JEI remain. The fill-gauge design and its textures are ready; see
-  [gauge textures](gauge-textures.md). The widget sprites (slots, groups, panel, upgrade side
-  tab, checkbox, radio, progress arrow, upgrade outlines) are ready; see [GUI sprites](gui-sprites.md).
-  Navigation: Industrial Foregoing style context areas, where buttons swap part of the screen
-  in place (`<context>` / `<view>`); every button needs a tooltip.
-  Proposed addition: PneumaticCraft-style informational pop-outs, collapsed icon tabs on either
-  edge that slide out with rich text, in three kinds: info (explains the screen), warning and
-  error (live block-entity issues synced from the server). Edge and icon are set per tab.
-  These pop-outs need JEI exclusion areas.
-  See [GUI screens](gui-screens.md) for the current plan with a full example.
-  Direction: screens are declarative **XML** (`mmdlib/screen/*.xml`), loaded into a typed screen
-  model with load-time validation and an XSD for editor support. The parser must be hardened
-  (no DTDs or external entities). Every element can take `on-click` / `on-right-click`
-  handler IDs from extension files. Game-changing clicks run on the server via the menu's
-  button channel. Elements bind to synced values. A `<player-inventory/>` is included by
-  default. Optional JEI tie-ins: ghost slots (drag from JEI sets the expected item without
-  moving items), recipe click areas, recipe transfer, and automatic exclusion areas.
-- **Block entities for data-defined machines.** The shared runtime registrar still refuses
-  plans with block entities. Decided (hybrid): MMDLib validates the definition, builds the
-  block-entity type and keeps a handle for the wiring (block, screen lookup, capabilities); the
-  implementing mod registers it in its own namespace through that handle, and an unregistered
-  handle is a load error. The GUI does not wait on this: screens find a block
-  entity by its registry name, whoever registered it.
-- **Block-entity right-click connection** for that GUI system. This should build on
-  the existing `block-right-click` contract ([method events](method-events.md#block-contracts))
-  rather than a separate mechanism.
+- **GUI gameplay and visual review.** The GUI runtime is implemented; validate addon-specific
+  routing, handlers, translations and JEI recipe transfer in the target modpack. See
+  [GUI screens](gui-screens.md) for the integration API and isolated smoke command.
+
 ## Done since the parity list was written
+
+- **GUI runtime.** Hybrid block-entity registration handles, generic menu and block-right-click
+  opening, exact large-number delta sync, server-checked actions, client widgets/context views/
+  side configuration/pop-outs/tooltips, and optional JEI ghost/click/transfer/exclusion hooks.
+
 
 - **Capability wrappers.** `ItemStorage`, `FluidStorage`, `EnergyBuffer`, `SideConfig`,
   `MachineCapabilities`, and `Transfer` in `api.capabilities`. Every face shows all slots with
@@ -44,11 +26,19 @@
   `mmdlib:block` via `factory_data.redstone`, `detects` filters for pressure plates
   (player-only plates), and `mmdlib:weighted_pressure_plate`; see
   [runtime behaviors](runtime-behaviors.md#redstone). Comparator output from a
-  block-entity getter waits for block-entity runtime support.
+  block-entity getter is not implemented yet; block entities are now registered at runtime.
 
 - **Standalone blocks** (`mmdlib/standalone/block/*.json`), material-less as in 1.0, built by
   any block module's factory; first use is the player-only plate `mmdlib:human_detector`. See
   [startup definition loading](definition-loading.md#standalone-blocks).
+- **Block entities for data-defined machines.** Each mod's `RuntimeContentRegistrar` registers
+  the block-entity type of every planned machine in its own namespace, with the block's ID,
+  and hands the block implementation a `BlockEntityBinding`; settings are decoded at load.
+  Standalone blocks may be machines (`block_entity_data` overrides per block), and
+  `mmdlib:machine` builds a plain machine block from data alone. See
+  [block entities](block-entities.md#runtime-registration).
+- **Standalone items** (`mmdlib/standalone/item/*.json`), material-less items such as wrenches
+  and upgrade cards. See [startup definition loading](definition-loading.md#standalone-items).
 
 - **Optional JEI integration** for crackhammer recipes; see
   [runtime behaviors](runtime-behaviors.md#optional-jei-integration). Needs an in-game

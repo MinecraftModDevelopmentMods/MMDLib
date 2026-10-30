@@ -29,6 +29,7 @@ public final class MaterialEventContexts {
 
   /** Context of {@code weapon-hit}: who hit what. */
   public record WeaponUse(Player player, LivingEntity target) {
+    /** Requires every component. */
     public WeaponUse {
       Objects.requireNonNull(player);
       Objects.requireNonNull(target);
@@ -40,6 +41,7 @@ public final class MaterialEventContexts {
    * what.
    */
   public record ToolUse(Player player, ToolTarget target) {
+    /** Requires every component. */
     public ToolUse {
       Objects.requireNonNull(player);
       Objects.requireNonNull(target);
@@ -48,6 +50,7 @@ public final class MaterialEventContexts {
 
   /** Context of {@code tool-harvest}: who broke the block, and the harvest itself. */
   public record ToolHarvest(Player player, Harvest harvest) {
+    /** Requires every component. */
     public ToolHarvest {
       Objects.requireNonNull(player);
       Objects.requireNonNull(harvest);
@@ -65,6 +68,7 @@ public final class MaterialEventContexts {
       BlockState state,
       ItemStack tool,
       List<ItemEntity> drops) {
+    /** Requires every component; stores an immutable copy of {@code position}. */
     public Harvest {
       Objects.requireNonNull(level);
       position = Objects.requireNonNull(position).immutable();
@@ -79,6 +83,7 @@ public final class MaterialEventContexts {
    */
   public record ProjectileDamage(
       Projectile projectile, LivingEntity target, ItemStack ammo, DamageContainer damage) {
+    /** Requires every component. */
     public ProjectileDamage {
       Objects.requireNonNull(projectile);
       Objects.requireNonNull(target);
@@ -89,6 +94,7 @@ public final class MaterialEventContexts {
 
   /** Server side, after damage was dealt. */
   public record ProjectileHit(Projectile projectile, LivingEntity target, ItemStack ammo) {
+    /** Requires every component. */
     public ProjectileHit {
       Objects.requireNonNull(projectile);
       Objects.requireNonNull(target);
@@ -102,6 +108,11 @@ public final class MaterialEventContexts {
    */
   public record RedstoneChange(
       ServerLevel level, BlockPos position, BlockState state, int previous, int power) {
+    /**
+     * Requires every object component; stores an immutable copy of {@code position}.
+     *
+     * @throws IllegalArgumentException if either power level is outside 0-15
+     */
     public RedstoneChange {
       Objects.requireNonNull(level);
       position = Objects.requireNonNull(position).immutable();
@@ -118,6 +129,7 @@ public final class MaterialEventContexts {
 
   /** Context of {@code block-right-click}: who clicked, and the click itself. */
   public record BlockClick(Player player, BlockUse use) {
+    /** Requires every component. */
     public BlockClick {
       Objects.requireNonNull(player);
       Objects.requireNonNull(use);
@@ -214,6 +226,7 @@ public final class MaterialEventContexts {
       InteractionHand hand,
       ItemStack stack)
       implements ToolTarget {
+    /** Requires every component; stores an immutable copy of {@code position}. */
     public BlockTarget {
       Objects.requireNonNull(level);
       position = Objects.requireNonNull(position).immutable();
@@ -227,6 +240,7 @@ public final class MaterialEventContexts {
   /** A tool used on an entity, including dropped items and other non-living entities. */
   public record EntityTarget(Entity entity, InteractionHand hand, ItemStack stack)
       implements ToolTarget {
+    /** Requires every component. */
     public EntityTarget {
       Objects.requireNonNull(entity);
       Objects.requireNonNull(hand);
@@ -236,6 +250,7 @@ public final class MaterialEventContexts {
 
   /** A tool used on nothing (the air). */
   public record AirTarget(InteractionHand hand, ItemStack stack) implements ToolTarget {
+    /** Requires every component. */
     public AirTarget {
       Objects.requireNonNull(hand);
       Objects.requireNonNull(stack);

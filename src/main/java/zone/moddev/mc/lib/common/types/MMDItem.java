@@ -30,6 +30,12 @@ public record MMDItem(
     Map<String, ResourceLocation> events,
     List<CreativeStack> creativeStacks,
     List<AttributeModifierDefinition> attributeModifiers) {
+  /**
+   * Validates the definition and copies the collections.
+   *
+   * @throws IllegalArgumentException if the stack size is not positive, durability or use time is
+   *     negative, or a damageable item stacks
+   */
   public MMDItem {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(template, "template");
@@ -50,6 +56,12 @@ public record MMDItem(
   /** Snapshot of a creative stack; null item means the material's constructed item. */
   public record CreativeStack(
       ResourceLocation item, CompoundTag tag, int count, List<String> tabs) {
+    /**
+     * Validates the stack and copies its tag and tabs.
+     *
+     * @throws IllegalArgumentException if the count is not positive, or there are no tabs or a tab
+     *     name is blank
+     */
     public CreativeStack {
       if (count < 1) throw new IllegalArgumentException("Stack count must be positive");
       tag = tag == null ? null : tag.copy();
@@ -58,6 +70,7 @@ public record MMDItem(
         throw new IllegalArgumentException("Creative stacks require nonempty tab names");
     }
 
+    /** A copy of the custom data, or null when there is none. */
     @Override
     public CompoundTag tag() {
       return tag == null ? null : tag.copy();

@@ -14,6 +14,9 @@ import net.minecraft.world.level.block.state.BlockState;
  * sees the same storage, and the mode only allows or refuses operations.
  */
 public final class SideConfig {
+  /**
+   * A map from {@link RelativeFace} to {@link IoMode}; faces left out are {@link IoMode#DISABLED}.
+   */
   public static final Codec<SideConfig> CODEC =
       Codec.unboundedMap(RelativeFace.CODEC, IoMode.CODEC)
           .xmap(SideConfig::new, config -> config.modes);
