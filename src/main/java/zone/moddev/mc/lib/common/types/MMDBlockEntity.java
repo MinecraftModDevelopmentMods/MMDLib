@@ -11,6 +11,7 @@ public record MMDBlockEntity(
     ResourceLocation block,
     ResourceLocation factory,
     FactoryData factoryData) {
+  /** Requires every component. */
   public MMDBlockEntity {
     Objects.requireNonNull(name);
     Objects.requireNonNull(material);

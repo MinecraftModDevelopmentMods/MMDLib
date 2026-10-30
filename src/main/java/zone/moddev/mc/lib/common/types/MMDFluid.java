@@ -67,6 +67,13 @@ public record MMDFluid(
         FactoryData.EMPTY);
   }
 
+  /**
+   * Validates the definition and copies the event bindings.
+   *
+   * @throws IllegalArgumentException if an event name is blank; the liquid block does not share the
+   *     fluid's ID and material or has an item; or the bucket does not share the material or is not
+   *     named {@code <name>_bucket}
+   */
   public MMDFluid {
     Objects.requireNonNull(factory);
     Objects.requireNonNull(factoryData);
@@ -162,6 +169,12 @@ public record MMDFluid(
     public static final TypeProperties DEFAULT =
         new TypeProperties(1000, 1000, 300, 0, 0.014, true, true, false, false, false);
 
+    /**
+     * Validates the values.
+     *
+     * @throws IllegalArgumentException if viscosity or temperature is negative, the light level is
+     *     outside 0-15, or the motion scale is negative or not finite
+     */
     public TypeProperties {
       if (viscosity < 0
           || temperature < 0
@@ -225,6 +238,13 @@ public record MMDFluid(
       boolean canConvertToSource) {
     public static final FlowProperties DEFAULT = new FlowProperties(4, 1, 5, 100F, false);
 
+    /**
+     * Validates the values.
+     *
+     * @throws IllegalArgumentException if the slope distance is negative, the level decrease is
+     *     outside 1-8, the tick rate is not positive, or the explosion resistance is negative or
+     *     not finite
+     */
     public FlowProperties {
       if (slopeFindDistance < 0
           || levelDecreasePerBlock < 1
@@ -277,6 +297,7 @@ public record MMDFluid(
             Optional.empty(),
             -1);
 
+    /** Requires the textures; {@code overlay} may be empty but not null. */
     public Appearance {
       Objects.requireNonNull(still);
       Objects.requireNonNull(flowing);

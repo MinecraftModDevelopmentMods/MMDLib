@@ -1,9 +1,8 @@
 # GUI screens (design)
 
-> **Status: partly implemented.** Loading is done: screen files are read, validated against
-> the schema, checked and laid out at startup (`zone.moddev.mc.lib.gui`). Still to come: the
-> menu, value sync, opening a screen from its block, rendering, and the JEI integration.
-> Element and attribute names may still change.
+> **Status: implemented; runtime validation is described below.** Screens load at startup,
+> open through `block-right-click`, and use one generic menu with custom value packets.
+> Rendering and optional JEI integration live exclusively on the client.
 
 ## Implementation map
 
@@ -15,7 +14,10 @@
 | Getter binding | `gui.load.ScreenBinder`: `#method` / `Class#method` resolved to method handles, return kinds checked per element | Done |
 | Discovery | `gui.load.ScreenLoader`, called at startup; results in `gui.Screens` | Done |
 | Layout | `gui.layout.ScreenLayout`: positions in GUI pixels; tab fit checked at load | Done |
-| Menu, sync packets, opening, rendering, JEI | | Not started |
+| Menu and opening | `gui.runtime.MachineMenu`, `ScreenRuntime`, `BlockEvents.openMenu` | Implemented |
+| Value sync | `gui.runtime.ScreenNetwork`, `ScreenValues`, `ScreenSnapshots` | Implemented |
+| Client rendering | `gui.client.MachineScreen`, `GaugeRenderer`, `ScreenText` | Implemented |
+| Optional JEI | `client.jei.MachineJei`, loaded only by the JEI plugin | Implemented |
 
 Checks made at load, beyond the schema: unique `id`s and slot indexes; `shows`, `hover-shows`
 and `side-config groups` name existing elements; buttons have a tooltip and text or an icon; a
@@ -34,6 +36,74 @@ Screens are declared in **XML**, in keeping with MMDLib's data-driven core. Each
 at startup into a typed screen model and validated there, with the file and line number in any
 error. An XSD schema, maintained alongside the model, gives authors validation and
 autocompletion in their editors.
+
+## Wiring a machine
+
+Implement `gui.runtime.ScreenHost` on the block entity. `screenItems()` exposes its player-facing
+modifiable inventory (`IItemHandlerModifiable`); using `ItemStorage` preserves output restrictions and item filters. The menu adds real
+slots by the XML indexes, then the optional player inventory. Upgrade slots additionally limit
+stacks to one item. Sparse machine indexes remain reserved and inactive.
+
+```java
+@Override public IItemHandlerModifiable screenItems() { return items; }
+@Override public int[] screenDestinations(ItemStack stack) {
+    return isFuel(stack) ? new int[] {1} : new int[] {0};
+}
+@Override public Map<String, SideConfig> screenSides() {
+    return Map.of("input", inputSides, "output", outputSides, "energy", energySides);
+}
+@Override public int[] screenRecipeSlots(ResourceLocation category) {
+    return category.equals(MY_RECIPE_CATEGORY) ? new int[] {0} : new int[0];
+}
+```
+
+`screenDestinations` controls shift-click routing into the machine; its default tries all storage
+indexes, subject to their filters. `screenRecipeSlots` explicitly names recipe inputs in recipe
+order; its default disables JEI transfer. Both methods must work on the client as well as the
+server. JEI uses its standard transfer handler with these slots, including its server validation.
+Only visible normal slots participate in recipe transfer. Category IDs must also occur in the
+screen's `jei-recipes` attributes.
+
+Ghost filters are separate from the real inventory. Override `setScreenGhost(player, index, filter)`
+to validate and persist a filter, and `screenGhost(index)` to expose its authoritative value. The
+menu sends at most one item as the filter; an empty stack clears it. Defaults reject changes and
+show empty filters. No real items move through this path.
+
+Bind the block's `block-right-click` event to `mmdlib:open_menu`. This handler first looks for an
+XML screen matching the clicked block entity's type; otherwise it uses the block's own vanilla
+menu provider. It consumes matching clicks on both sides and opens only on the server. A direct
+code caller may use `ScreenRuntime.open(player, blockEntity)`.
+
+Click extension methods use event type `gui-click` and signature `public static void method(ScreenClick click)`.
+The context supplies the player, menu, element, mouse button, Shift/Control/Alt state, and selected
+radio option. Hover extensions use `gui-hover` with `ScreenHover` and run only on the client.
+All handler IDs and their event contracts are checked at startup. A click handler should still
+validate any machine-specific permission or operation it implements.
+
+```json
+{"events": [{"type": "gui-click", "id": "example:eject_outputs",
+             "handler": "example.PressEvents#eject", "name": "Eject outputs"}]}
+```
+
+The owning mod must register every prepared block-entity handle after queuing its definitions;
+see [block entities](block-entities.md). MMDLib uses the resulting type for block construction,
+screen lookup and capability registration.
+
+The button channel supports 4,096 elements and machine slot indexes through 4,095; a side
+configuration offers at most 682 groups. These limits are checked at startup. Whole values use
+signed `BigInteger` byte arrays (up to 1 MiB per decoded integer), decimals use doubles, and fluid
+and rich text values use Minecraft/NeoForge codecs. Snapshots copy mutable values before comparison.
+Repeated references to one getter are evaluated once per machine per tick, shared by viewers.
+Navigation is checked on the server and its selection is synced back to the client. Opening also
+compares a screen-model fingerprint, so differing XML definitions fail explicitly instead of
+assigning values or actions to the wrong elements.
+
+`./gradlew check` includes numeric protocol and layout regression checks. The isolated graphical
+smoke run is `xvfb-run -a ./gradlew runClient --offline -I scripts/gui-smoke.init.gradle`; repeat
+with `-PwithoutJei` for the optional-integration case. It creates a disposable integrated world
+under `build/gui-smoke*`, checks server actions and full codecs, opens the actual menu, verifies
+synced values, and saves `screenshots/gui-smoke.png`. Run a normal build afterward to remove
+injected smoke classes from main output; release verification rejects any leaked smoke classes.
 
 ## Files and IDs
 
@@ -293,7 +363,7 @@ When JEI is installed:
   entity's code defines the groups; `<side-config groups="...">` lists which ones the screen
   offers, each naming the `id` of the element that shows it (a `<group>`, `<gauge>`, ...).
   While a group is selected in the side-configuration view, that element's background is
-  highlighted on the screen, so the player sees which slots or tank they are changing.
+  highlighted when it is visible on the screen, so the player sees which slots or tank they are changing.
   Numbering is unaffected: every face still shows every slot, and a group's setting only
   allows or refuses operations on its own slots.
 - **Block-entity registration is a hybrid.** For a data-defined machine, MMDLib validates the

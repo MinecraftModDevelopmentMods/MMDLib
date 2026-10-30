@@ -42,6 +42,7 @@ public record PartMetadata(
                           () -> "entity_data requires entity_factory")
                       : com.mojang.serialization.DataResult.success(value));
 
+  /** Copies the aliases; the optional components must not be null. */
   public PartMetadata {
     aliases = List.copyOf(aliases);
     Objects.requireNonNull(entityFactory);

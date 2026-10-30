@@ -62,6 +62,24 @@ public final class DefinitionLoaderTest {
 {"events":[{"type":"test:probe","handler":"zone.moddev.mc.lib.common.builders.DefinitionLoaderTest#handler",
  "id":"beta:effect","name":"Loading probe"}]}
 """);
+      write(
+          beta,
+          "standalone/block/press.json",
+          """
+          {"module":"beta:machine","block_entity_data":{"speed":2}}
+          """);
+      write(
+          beta,
+          "standalone/item/tools/wrench.json",
+          """
+          {"module":"beta:components/gear","template":{"max_stack_size":1}}
+          """);
+      write(
+          beta,
+          "standalone/item/gated.json",
+          """
+          {"module":"beta:optional"}
+          """);
       write(beta, "ignored/broken.json", "this is intentionally not JSON");
       write(beta, "item/README.txt", "not a definition");
       var sources =
@@ -101,6 +119,26 @@ public final class DefinitionLoaderTest {
               new zone.moddev.mc.lib.api.MaterialEvent<>("test:probe", String.class),
               "loaded");
       require(calls.get() == 1);
+      // Standalone definitions keep their file IDs, with no material prefix.
+      require(loaded.standalone().keySet().equals(java.util.Set.of(id("beta:press"))));
+      var press = loaded.standalone().get(id("beta:press")).content();
+      require(press.blockDefinitions().containsKey(id("beta:press")));
+      var pressEntity = press.blockEntityDefinitions().get(id("beta:press"));
+      require(
+          pressEntity != null
+              && pressEntity.block().equals(id("beta:press"))
+              && pressEntity.factory().equals(id("beta:machine_entity"))
+              && pressEntity.factoryData().json().getAsJsonObject().get("speed").getAsInt() == 2);
+      require(loaded.standaloneItems().keySet().equals(java.util.Set.of(id("beta:tools/wrench"))));
+      var wrench =
+          loaded.standaloneItems().get(id("beta:tools/wrench")).content().itemDefinitions();
+      require(
+          wrench.keySet().equals(java.util.Set.of(id("beta:tools/wrench")))
+              && wrench.get(id("beta:tools/wrench")).maxStackSize() == 1);
+      require(
+          DefinitionLoader.load(sources, api(), mod -> true)
+              .standaloneItems()
+              .containsKey(id("beta:gated")));
       var reversed =
           DefinitionLoader.load(List.of(sources.get(1), sources.get(0)), api(), mod -> false);
       require(reversed.materials().equals(loaded.materials()));
@@ -167,6 +205,26 @@ public final class DefinitionLoaderTest {
                   List.of(new SourceRoot("bad", broken, loader)), api(), mod -> false),
           "Cannot resolve",
           "bad:handler");
+      var plain = temporary.resolve("plain/mmdlib");
+      write(plain, "block/slab.json", "{\"factory\":\"plain:slab\",\"template\":{}}");
+      write(
+          plain,
+          "standalone/block/odd.json",
+          "{\"module\":\"plain:slab\",\"block_entity_data\":{\"x\":1}}");
+      expectFailure(
+          () ->
+              DefinitionLoader.load(
+                  List.of(new SourceRoot("plain", plain, loader)), api(), mod -> false),
+          "odd.json",
+          "block_entity_data");
+      Files.delete(plain.resolve("standalone/block/odd.json"));
+      write(plain, "standalone/item/stray.json", "{\"module\":\"plain:missing\"}");
+      expectFailure(
+          () ->
+              DefinitionLoader.load(
+                  List.of(new SourceRoot("plain", plain, loader)), api(), mod -> false),
+          "stray.json",
+          "Unknown item module");
       // Different material/part combinations can produce the same generated item ID.
       var collisions = temporary.resolve("collisions/mmdlib");
       for (String part : List.of("a", "b_a"))
@@ -199,7 +257,8 @@ public final class DefinitionLoaderTest {
               .isEmpty());
       System.out.println(
           "Folder dispatch, cross-mod staging, extension handles, IDs, duplicates, optional mods,"
-              + " and mounted ZIP loading passed");
+              + " standalone blocks with block entities, standalone items, and mounted ZIP loading"
+              + " passed");
     } finally {
       try (var paths = Files.walk(temporary)) {
         for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList())

@@ -37,6 +37,7 @@ import net.minecraft.world.phys.BlockHitResult;
  * its wear in the item's {@code minecraft:block_state} component.
  */
 public final class MaterialAnvilBlock extends AnvilBlock {
+  /** The anvil's wear: 0 is intact, 1 chipped, 2 damaged. */
   public static final IntegerProperty DAMAGE = IntegerProperty.create("damage", 0, 2);
 
   /** An anvil at damage 0. */

@@ -19,6 +19,11 @@ public final class BlockEvents {
    * the server and consumes the click; does nothing for blocks without a menu.
    */
   public static void openMenu(Player player, BlockUse use) {
+    if (zone.moddev.mc.lib.gui.runtime.ScreenRuntime.open(
+        player, use.level().getBlockEntity(use.position()))) {
+      use.consume();
+      return;
+    }
     var provider = use.state().getMenuProvider(use.level(), use.position());
     if (provider == null) return;
     // Consumed on both sides so the client does not go on to use the held item.

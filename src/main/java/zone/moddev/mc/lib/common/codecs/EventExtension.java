@@ -74,6 +74,7 @@ public record EventExtension(List<Handler> events) {
                 return DataResult.success(value);
               });
 
+  /** Copies the handler list. */
   public EventExtension {
     events = List.copyOf(events);
   }

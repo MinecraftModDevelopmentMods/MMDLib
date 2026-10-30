@@ -15,6 +15,11 @@ import java.util.Objects;
  * @param <C> the context type
  */
 public record MaterialEvent<C>(String name, Class<C> contextType) {
+  /**
+   * Requires a nonblank name and a context type.
+   *
+   * @throws IllegalArgumentException if {@code name} is null or blank
+   */
   public MaterialEvent {
     if (name == null || name.isBlank()) throw new IllegalArgumentException("Blank event name");
     Objects.requireNonNull(contextType);

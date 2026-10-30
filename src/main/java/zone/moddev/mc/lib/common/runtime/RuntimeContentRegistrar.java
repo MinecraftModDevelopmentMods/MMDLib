@@ -13,6 +13,8 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockSetType;
@@ -23,18 +25,20 @@ import net.neoforged.neoforge.fluids.*;
 import net.neoforged.neoforge.registries.*;
 
 import zone.moddev.mc.lib.api.BlockContext;
+import zone.moddev.mc.lib.api.BlockEntityBinding;
 import zone.moddev.mc.lib.api.ItemContext;
 import zone.moddev.mc.lib.api.MaterialEvents;
 import zone.moddev.mc.lib.api.MaterialExtensions;
+import zone.moddev.mc.lib.common.factories.BlockEntityFactories;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.types.*;
 
 /**
  * Registers loaded material plans as real Minecraft content in one namespace: blocks, items,
- * fluids, fluid types, projectile entities, armor materials and a creative tab. Each object is
- * created through the Java implementation its definition names, when the registry supplier runs.
- * MMDLib creates one for its own namespace; another mod can create its own to register its
- * materials.
+ * block-entity types, fluids, fluid types, projectile entities, armor materials and a creative tab.
+ * Each object is created through the Java implementation its definition names, when the registry
+ * supplier runs. MMDLib creates one for its own namespace; another mod can create its own to
+ * register its materials.
  */
 public final class RuntimeContentRegistrar {
   private static final List<RuntimeContentRegistrar> INSTANCES =
@@ -48,6 +52,9 @@ public final class RuntimeContentRegistrar {
   private final DeferredRegister<EntityType<?>> entities;
   private final DeferredRegister<ArmorMaterial> armor;
   private final DeferredRegister<CreativeModeTab> tabs;
+  private final Map<ResourceLocation, zone.moddev.mc.lib.api.BlockEntityHandle<?>>
+      blockEntityHandles = new TreeMap<>();
+  private final BlockEntityFactories blockEntityFactories;
   private final Map<ResourceLocation, DeferredHolder<Block, ? extends Block>> blockEntries =
       new TreeMap<>();
   private final Map<ResourceLocation, DeferredHolder<Item, ? extends Item>> itemEntries =
@@ -60,11 +67,25 @@ public final class RuntimeContentRegistrar {
 
   /**
    * A registrar for {@code namespace}, with its deferred registers attached to {@code bus} and a
-   * {@code materials} creative tab.
+   * {@code materials} creative tab. Block entities come from the shared {@link
+   * zone.moddev.mc.lib.util.Registries#BLOCK_ENTITY_FACTORIES} catalog.
    */
   public RuntimeContentRegistrar(String namespace, MaterialExtensions extensions, IEventBus bus) {
+    this(namespace, extensions, zone.moddev.mc.lib.util.Registries.BLOCK_ENTITY_FACTORIES, bus);
+  }
+
+  /**
+   * As {@link #RuntimeContentRegistrar(String, MaterialExtensions, IEventBus)}, taking block-entity
+   * factories from {@code blockEntityFactories}.
+   */
+  public RuntimeContentRegistrar(
+      String namespace,
+      MaterialExtensions extensions,
+      BlockEntityFactories blockEntityFactories,
+      IEventBus bus) {
     this.namespace = namespace;
     this.extensions = extensions;
+    this.blockEntityFactories = Objects.requireNonNull(blockEntityFactories);
     blocks = DeferredRegister.create(Registries.BLOCK, namespace);
     items = DeferredRegister.create(Registries.ITEM, namespace);
     fluids = DeferredRegister.create(Registries.FLUID, namespace);
@@ -72,6 +93,13 @@ public final class RuntimeContentRegistrar {
     entities = DeferredRegister.create(Registries.ENTITY_TYPE, namespace);
     armor = DeferredRegister.create(Registries.ARMOR_MATERIAL, namespace);
     tabs = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, namespace);
+    bus.addListener(
+        (net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
+            event.enqueueWork(
+                () ->
+                    blockEntityHandles
+                        .values()
+                        .forEach(zone.moddev.mc.lib.api.BlockEntityHandle::verifyRegistered)));
     blocks.register(bus);
     items.register(bus);
     fluids.register(bus);
@@ -79,6 +107,7 @@ public final class RuntimeContentRegistrar {
     entities.register(bus);
     armor.register(bus);
     tabs.register(bus);
+
     tabs.register(
         "materials",
         () ->
@@ -121,9 +150,29 @@ public final class RuntimeContentRegistrar {
     return Collections.unmodifiableMap(blockMaterials);
   }
 
+  /** Every projectile entity type queued, by ID. */
   public Map<ResourceLocation, DeferredHolder<EntityType<?>, EntityType<MaterialProjectile>>>
       projectiles() {
     return Collections.unmodifiableMap(projectiles);
+  }
+
+  /**
+   * Every block-entity type queued, by ID (the same as its block's). Read a holder's value only
+   * once registration has run.
+   */
+  public Map<ResourceLocation, DeferredHolder<BlockEntityType<?>, ? extends BlockEntityType<?>>>
+      blockEntityTypes() {
+    var entries =
+        new TreeMap<
+            ResourceLocation, DeferredHolder<BlockEntityType<?>, ? extends BlockEntityType<?>>>();
+    blockEntityHandles.forEach(
+        (id, handle) -> handle.holder().ifPresent(holder -> entries.put(id, holder)));
+    return Collections.unmodifiableMap(entries);
+  }
+
+  /** Prepared handles; after queue, the owning mod must register each with its own register. */
+  public Map<ResourceLocation, zone.moddev.mc.lib.api.BlockEntityHandle<?>> blockEntityHandles() {
+    return Collections.unmodifiableMap(blockEntityHandles);
   }
 
   /** Every fluid family queued. */
@@ -132,11 +181,14 @@ public final class RuntimeContentRegistrar {
   }
 
   /**
-   * Queues every item, block, entity and fluid in a planned material. Plans with block entities are
-   * refused; register those through the block-entity API.
+   * Queues every item, block, block entity, entity and fluid in a planned material (or standalone
+   * definition). Each block entity's factory is looked up and its settings decoded now; its type is
+   * exposed as a handle for the mod to register with the same ID as its block. The implementation
+   * receives its binding through {@link BlockContext#blockEntity()}.
    *
    * @throws IllegalArgumentException if the material is in another namespace, an ID is already
-   *     queued, or the plan has block entities
+   *     queued, a block entity's factory is unknown or its settings are invalid, or a block with a
+   *     block entity is created by an implementation whose class is not an {@code EntityBlock}
    */
   public void queue(MaterialFactory.Result result) {
     var material = result.material();
@@ -144,9 +196,6 @@ public final class RuntimeContentRegistrar {
     var owner = material.name().orElseThrow();
     if (!namespace.equals(owner.getNamespace()))
       throw new IllegalArgumentException("Runtime registry namespace differs from " + owner);
-    if (!plan.blockEntities().isEmpty())
-      throw new IllegalArgumentException(
-          "Machine block factory must provide block-entity runtime wiring: " + owner);
     Supplier<Ingredient> repair =
         () ->
             material
@@ -203,13 +252,29 @@ public final class RuntimeContentRegistrar {
           var definition = entry.getValue();
           var implementation = extensions.blockImplementation(part.factory());
           implementation.validate(part);
+          var blockEntity = plan.blockEntities().get(part);
+          if (blockEntity != null
+              && !EntityBlock.class.isAssignableFrom(implementation.blockClass()))
+            throw new IllegalArgumentException(
+                definition.name()
+                    + " has a block entity, but "
+                    + part.factory()
+                    + " does not create an EntityBlock");
+          var pending =
+              blockEntity == null ? null : pending(blockEntityFactories.prepare(blockEntity));
           var block =
               blocks.register(
                   definition.name().getPath(),
                   () ->
                       implementation.create(
-                          new BlockContextImpl(part, definition, material, extensions.events())));
+                          new BlockContextImpl(
+                              part,
+                              definition,
+                              material,
+                              extensions.events(),
+                              pending == null ? null : pending.binding)));
           put(blockEntries, definition.name(), block);
+          if (pending != null) pending.queue(block);
           blockMaterials.put(definition.name(), material);
           if (definition.item() != null) {
             var item =
@@ -313,19 +378,62 @@ public final class RuntimeContentRegistrar {
     }
   }
 
+  private <E extends BlockEntity> PendingBlockEntity<E> pending(
+      BlockEntityFactories.Prepared<E> prepared) {
+    return new PendingBlockEntity<>(prepared);
+  }
+
+  /**
+   * A block entity whose binding is handed to its block before its type is queued; the type
+   * supplier is only read once registration has run.
+   */
+  private final class PendingBlockEntity<E extends BlockEntity> {
+    private final BlockEntityFactories.Prepared<E> prepared;
+    private final java.util.concurrent.atomic.AtomicReference<
+            zone.moddev.mc.lib.api.BlockEntityHandle<E>>
+        holder = new java.util.concurrent.atomic.AtomicReference<>();
+    private final BlockEntityBinding<E> binding;
+
+    PendingBlockEntity(BlockEntityFactories.Prepared<E> prepared) {
+      this.prepared = prepared;
+      this.binding =
+          new BlockEntityBinding<>(
+              prepared,
+              () -> Objects.requireNonNull(holder.get(), "Block entity type not queued yet").get());
+    }
+
+    void queue(Supplier<? extends Block> block) {
+      var handle =
+          new zone.moddev.mc.lib.api.BlockEntityHandle<>(blockEntityFactories, prepared, block);
+      holder.set(handle);
+      put(blockEntityHandles, prepared.definition().name(), handle);
+    }
+  }
+
   /** The registrar's {@link BlockContext}. */
   private static final class BlockContextImpl implements BlockContext {
     private final MaterialPart part;
     private final MMDBlock definition;
     private final MMDMaterial material;
     private final MaterialEvents events;
+    private final BlockEntityBinding<?> blockEntity;
 
     BlockContextImpl(
-        MaterialPart part, MMDBlock definition, MMDMaterial material, MaterialEvents events) {
+        MaterialPart part,
+        MMDBlock definition,
+        MMDMaterial material,
+        MaterialEvents events,
+        BlockEntityBinding<?> blockEntity) {
       this.part = part;
       this.definition = definition;
       this.material = material;
       this.events = events;
+      this.blockEntity = blockEntity;
+    }
+
+    @Override
+    public Optional<BlockEntityBinding<?>> blockEntity() {
+      return Optional.ofNullable(blockEntity);
     }
 
     @Override
@@ -392,11 +500,22 @@ public final class RuntimeContentRegistrar {
    * bucket.
    */
   public final class FluidFamily {
+    /** The fluid's definition. */
     public final MMDFluid definition;
+
+    /** The fluid type. */
     public final DeferredHolder<FluidType, FluidType> type;
+
+    /** The source fluid, registered as the fluid's own ID. */
     public final DeferredHolder<Fluid, BaseFlowingFluid.Source> source;
+
+    /** The flowing fluid, registered as {@code flowing_<name>}. */
     public final DeferredHolder<Fluid, BaseFlowingFluid.Flowing> flowing;
+
+    /** The liquid block, or null when the definition has none. */
     public final DeferredHolder<Block, LiquidBlock> block;
+
+    /** The bucket, or null when the definition has none. */
     public final DeferredHolder<Item, BucketItem> bucket;
 
     FluidFamily(MMDFluid definition, MMDMaterial material) {

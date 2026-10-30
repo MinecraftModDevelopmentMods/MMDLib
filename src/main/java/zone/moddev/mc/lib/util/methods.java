@@ -6,6 +6,8 @@ import net.minecraft.resources.ResourceLocation;
 
 /** Miscellaneous helpers. */
 public class methods {
+  private methods() {}
+
   /** A random 16-character ID in the {@code minecraft} namespace. */
   public static ResourceLocation makeRandomName() {
     Random r = new Random();

@@ -27,6 +27,7 @@ public record ModuleCatalog(
     Map<ResourceLocation, DataModules.Item> items,
     Map<ResourceLocation, DataModules.Block> blocks,
     Map<ResourceLocation, DataModules.Fluid> fluids) {
+  /** Copies every map. */
   public ModuleCatalog {
     items = Map.copyOf(items);
     blocks = Map.copyOf(blocks);

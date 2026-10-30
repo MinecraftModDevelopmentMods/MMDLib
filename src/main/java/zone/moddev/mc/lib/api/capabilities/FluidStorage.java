@@ -29,6 +29,9 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
   private final List<Role> roles = new ArrayList<>();
   private Runnable onChange = () -> {};
 
+  /** A storage with no tanks; add them with {@link #addTank}. */
+  public FluidStorage() {}
+
   /** Runs after every change, typically the block entity's {@code setChanged}. */
   public FluidStorage onChange(Runnable onChange) {
     this.onChange = onChange;

@@ -141,6 +141,7 @@ public final class ScreenLoaderTest {
 """;
 
   public static void main(String[] args) throws Throwable {
+    zone.moddev.mc.lib.gui.runtime.GuiProtocolTest.main(args);
     var bound = bind(EXAMPLE);
     var screen = bound.screen();
     require(screen.playerInventory());

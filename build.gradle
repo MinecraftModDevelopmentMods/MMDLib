@@ -70,7 +70,7 @@ def refreshDataResources = tasks.register('refreshDataResources', Sync) {
 }
 tasks.configureEach { task ->
     if (task.name == 'runData') task.finalizedBy(refreshDataResources)
-    if (task.name == 'jar' || task.name == 'jarJar' || task.name.startsWith('verify')
+    if (task.name == 'jar' || task.name == 'jarJar' || task.name == 'javadoc' || task.name.startsWith('verify')
             || task.name.startsWith('test')
             || task.name in ['compileTestJava', 'compileBuilderTestJava', 'compileRuntimeTestJava',
                     'writeMinecraftClasspathJunit', 'writeMinecraftClasspathClient', 'writeMinecraftClasspathServer',
@@ -81,6 +81,11 @@ tasks.configureEach { task ->
 
 // Verification tasks (verify*, test source sets); run with `./gradlew check`.
 apply from: 'gradle/verification.gradle'
+
+// Runtime GUI smoke tests compile optional JEI hooks without requiring JEI at runtime.
+configurations.named('runtimeTestCompileOnly') {
+    extendsFrom configurations.compileOnly
+}
 
 // Javadoc for extenders and maintainers: `./gradlew javadoc` (output in build/docs/javadoc).
 // Records and fluent builders are described in prose, so per-parameter tags are not required.

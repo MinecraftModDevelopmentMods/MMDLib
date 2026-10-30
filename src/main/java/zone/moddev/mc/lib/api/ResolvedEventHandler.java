@@ -17,6 +17,7 @@ import zone.moddev.mc.lib.common.types.MMDLibEventCallback;
  */
 public record ResolvedEventHandler<C>(
     EventExtension.Handler definition, MethodHandle methodHandle, MMDLibEventCallback<C> callback) {
+  /** Requires every component. */
   public ResolvedEventHandler {
     Objects.requireNonNull(definition);
     Objects.requireNonNull(methodHandle);

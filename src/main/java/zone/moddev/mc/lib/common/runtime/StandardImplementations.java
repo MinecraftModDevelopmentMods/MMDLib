@@ -262,6 +262,24 @@ public final class StandardImplementations {
         FenceGateBlock.class,
         c -> new FenceGateBlock(WoodType.OAK, c.properties()));
     block(api, "anvil", MaterialAnvilBlock.class, c -> new MaterialAnvilBlock(c.properties()));
+    // A plain block for whatever block entity the module's part.block_entity names.
+    api.registerBlockImplementation(
+        id("machine"),
+        new BlockFactory<MaterialEntityBlock<?>>(
+            machineClass(),
+            c ->
+                c.blockEntity()
+                    .orElseThrow(
+                        () ->
+                            new IllegalStateException(
+                                "No block entity queued for " + c.definition().name()))
+                    .newBlock(c.properties()),
+            part -> {
+              if (!part.needsBlockEntity())
+                throw new IllegalArgumentException(
+                    "mmdlib:machine needs part.block_entity: " + part);
+            },
+            null));
     api.registerBlockImplementation(
         id("door"),
         new BlockFactory<>(
@@ -271,6 +289,11 @@ public final class StandardImplementations {
                     c.materialBlockSetType(), c.properties().noOcclusion().dynamicShape()),
             part -> {},
             (block, c) -> new DoubleHighBlockItem(block, c.properties())));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Class<MaterialEntityBlock<?>> machineClass() {
+    return (Class<MaterialEntityBlock<?>>) (Class<?>) MaterialEntityBlock.class;
   }
 
   private static int maxWeight(MaterialPart part) {

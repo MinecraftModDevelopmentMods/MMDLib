@@ -1,4 +1,4 @@
-// 1.21.1	2026-10-27T10:47:20.397832397	MMDLib vanilla extensions
+// 1.21.1	2026-10-30T10:50:22.955252975	MMDLib vanilla extensions
 1c99a1d6b593a89d6af8381379e39ef5a686ae7b data/c/tags/fluid/molten_charcoal.json
 746ebfd3d1a1818dfc0d7b7a298b250479f314f0 data/c/tags/fluid/molten_coal.json
 fe37d5e1cca836cf199e148ab0ba77c6c2ee3ec6 data/c/tags/fluid/molten_copper.json
@@ -24,6 +24,7 @@ c178de2002a3ae3197422659b1bff02312efeab2 data/c/tags/item/dusts/emerald.json
 7010e85f4552fac7000a5a0ad52141ddbc0b208e data/c/tags/item/dusts/iron.json
 b8f74f9b118f5fb9eeb99e1b7b6e4d0fc9c64c9a data/c/tags/item/dusts/obsidian.json
 6995285d0f927928f6de1decc4278de2f84dadd6 data/c/tags/item/dusts/quartz.json
+d73ebd9dbb1003c166c28a0277459edef2dab372 data/c/tags/item/gears.json
 4e37b9fb7e3de0e7c7a238847fcb39448e23e3a1 data/c/tags/item/gears/copper.json
 02260bc7d80adff253f56c81b37e377de87b4802 data/c/tags/item/gears/diamond.json
 3fb4520d37e30c3f084212fd7cf0f36adf96aa32 data/c/tags/item/gears/emerald.json
@@ -52,11 +53,11 @@ f051e6aad887fc1562fef78cc0113b756336b88d data/c/tags/item/rods/obsidian.json
 18c53a7d5e62b794f2cf16815d1c0932be0dd1ff data/c/tags/item/rods/stone.json
 bc5e5796a568dc701e0e9d58c4a3bbee54062a97 data/minecraft/tags/block/buttons.json
 f2db8993170f434f956a041cc16e683ed536e304 data/minecraft/tags/block/doors.json
-ea314c3ad2684fad1f97d20ae8805cb0c2d927b4 data/minecraft/tags/block/mineable/pickaxe.json
+d27d333e6c966e94c78f98bcd9712b42d44ec2fc data/minecraft/tags/block/mineable/pickaxe.json
 03c8f349095556cb4e29b81f9a690638bd347233 data/minecraft/tags/block/needs_diamond_tool.json
 eec3dadb4c4771a00fe9ebbf70043fa1f41610df data/minecraft/tags/block/needs_iron_tool.json
 ddf49d8b36c5df082658f036798dfb93c2bd22d8 data/minecraft/tags/block/needs_stone_tool.json
-5597c839e6edc59b4238b5d8365f60758adf8e68 data/minecraft/tags/block/pressure_plates.json
+a54eb07b09a5856dc03c4b6bd9ddad44c27f8cf2 data/minecraft/tags/block/pressure_plates.json
 8dd00bef25981cad228a52ca718d85c7d7f02742 data/minecraft/tags/block/slabs.json
 21f848fe38634d021257000c6d433aea4a74c5a0 data/minecraft/tags/block/stairs.json
 781eca7c1840ed714a8300b84caa2963a9ccda01 data/minecraft/tags/block/trapdoors.json
@@ -356,7 +357,7 @@ e996192b73a58d5b0001c6ff40fba7b9517c37ce data/mmdlib/advancement/recipes/redston
 2c88148c05cd739e4e8fcd6b61dcf075806a70af data/mmdlib/advancement/recipes/wood_crackhammer.json
 f420ecaef2ef07f171a13dd508900b2b4cd32e1a data/mmdlib/advancement/recipes/wood_gear.json
 9ea92891cddabd265e42a9e34f67772f9b909147 data/mmdlib/advancement/recipes/wood_scythe.json
-9fb6b8f24a9684be5eddee25afbc073e18e39041 data/mmdlib/example_manifest.json
+cf206bac74af2482829ed0958ddacf6d996efec8 data/mmdlib/example_manifest.json
 35a1db856d60ae501677ac1b521c5326900ed6cb data/mmdlib/loot_table/blocks/charcoal_block.json
 39229b2fc99b24ac19922b3d8f90b050782c6f8d data/mmdlib/loot_table/blocks/copper_bars.json
 ee600b68f195ce86274b3eb09fb4e573fb25b9f1 data/mmdlib/loot_table/blocks/copper_button.json
@@ -397,6 +398,7 @@ bf8eef70fd5535395962f184a14781ee11218a14 data/mmdlib/loot_table/blocks/gold_slab
 c27a2ff9c481fbcf8f94615008288cebbc9c317d data/mmdlib/loot_table/blocks/gold_stairs.json
 b422b9496f7b6742557250fb23daeea25736a1c6 data/mmdlib/loot_table/blocks/gold_trapdoor.json
 06c5f8ddd8796969488c1ceb52974c18040cd92c data/mmdlib/loot_table/blocks/gold_wall.json
+036f1cfca2460f10599350fa1fff8489f93710c5 data/mmdlib/loot_table/blocks/human_detector.json
 f027fb460771c204255a167d4cf478869ccdcdb4 data/mmdlib/loot_table/blocks/iron_button.json
 c68fa85e91ab904b1f1aee7733027ba128a7cf13 data/mmdlib/loot_table/blocks/iron_double_slab.json
 1c25192bfe830486cadd4d034b5d0ada7ddbf62b data/mmdlib/loot_table/blocks/iron_lever.json

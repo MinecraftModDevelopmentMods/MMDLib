@@ -36,6 +36,9 @@ import zone.moddev.mc.lib.common.types.LocationType;
  * zone.moddev.mc.lib.common.types.MMDMaterial#load}.
  */
 public class DataLoaders {
+  /** For subclasses; every method is static. */
+  protected DataLoaders() {}
+
   /** Parses {@code inputData} as JSON. */
   protected static JsonElement parseJson(final String inputData) {
     return JsonParser.parseString(inputData);

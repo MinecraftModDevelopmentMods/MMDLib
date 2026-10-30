@@ -20,23 +20,30 @@ import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.modules.DataModules;
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import zone.moddev.mc.lib.common.types.StandaloneBlock;
+import zone.moddev.mc.lib.common.types.StandaloneItem;
 
 /**
  * Loads every definition MMDLib finds in mods' {@code mmdlib/} directories at startup. Files are
  * discovered and decoded in parallel; they are then installed in a fixed order so results do not
  * depend on timing: extension files (event handlers), then modules, then materials, then standalone
- * blocks. See {@code docs/definition-loading.md}.
+ * blocks and items. See {@code docs/definition-loading.md}.
  */
 public final class DefinitionLoader {
   private DefinitionLoader() {}
 
   private static final String STANDALONE_BLOCKS = "standalone/block";
+  private static final String STANDALONE_ITEMS = "standalone/item";
 
   /**
-   * root contains extension/, item/, block/, fluid/, material/, standalone/block/. The caller owns
-   * its filesystem.
+   * root contains extension/, item/, block/, fluid/, material/, standalone/block/,
+   * standalone/item/. The caller owns its filesystem.
    */
   public record SourceRoot(String namespace, Path root, ClassLoader classLoader) {
+    /**
+     * Requires a valid namespace, a root and a class loader.
+     *
+     * @throws net.minecraft.ResourceLocationException if {@code namespace} is not a valid namespace
+     */
     public SourceRoot {
       ResourceLocation.fromNamespaceAndPath(namespace, "validate");
       Objects.requireNonNull(root);
@@ -51,16 +58,29 @@ public final class DefinitionLoader {
    * @param extensions the extension files found, by file ID
    * @param materials the planned materials
    * @param standalone the planned standalone blocks
+   * @param standaloneItems the planned standalone items
    */
   public record Loaded(
       ModuleCatalog modules,
       Map<ResourceLocation, EventExtension> extensions,
       Map<ResourceLocation, MaterialFactory.Result> materials,
-      Map<ResourceLocation, MaterialFactory.Result> standalone) {
+      Map<ResourceLocation, MaterialFactory.Result> standalone,
+      Map<ResourceLocation, MaterialFactory.Result> standaloneItems) {
+    /** Copies each map, sorted by ID. */
     public Loaded {
       extensions = immutableSorted(extensions);
       materials = immutableSorted(materials);
       standalone = immutableSorted(standalone);
+      standaloneItems = immutableSorted(standaloneItems);
+    }
+
+    /** Everything loaded, without standalone items. */
+    public Loaded(
+        ModuleCatalog modules,
+        Map<ResourceLocation, EventExtension> extensions,
+        Map<ResourceLocation, MaterialFactory.Result> materials,
+        Map<ResourceLocation, MaterialFactory.Result> standalone) {
+      this(modules, extensions, materials, standalone, Map.of());
     }
   }
 
@@ -73,6 +93,7 @@ public final class DefinitionLoader {
     final Map<ResourceLocation, Located<EventExtension>> extensions = new TreeMap<>();
     final Map<ResourceLocation, Located<Path>> materials = new TreeMap<>();
     final Map<ResourceLocation, Located<StandaloneBlock>> standalone = new TreeMap<>();
+    final Map<ResourceLocation, Located<StandaloneItem>> standaloneItems = new TreeMap<>();
 
     void merge(Batch other) {
       mergeInto(items, other.items);
@@ -81,12 +102,14 @@ public final class DefinitionLoader {
       mergeInto(extensions, other.extensions);
       mergeInto(materials, other.materials);
       mergeInto(standalone, other.standalone);
+      mergeInto(standaloneItems, other.standaloneItems);
     }
   }
 
   /**
-   * Loads all sources into {@code api}: installs extensions and modules, then plans materials and
-   * standalone blocks. A standalone block whose module needs a missing mod is skipped.
+   * Loads all sources into {@code api}: installs extensions and modules, then plans materials,
+   * standalone blocks and standalone items. A standalone definition whose module needs a missing
+   * mod is skipped.
    *
    * @param sources the {@code mmdlib/} roots to read; order does not matter
    * @param installed tests whether a mod is loaded
@@ -115,7 +138,10 @@ public final class DefinitionLoader {
     ordered.parallelStream()
         .map(
             source ->
-                discover(source, List.of("block", "item", "fluid", "material", STANDALONE_BLOCKS)))
+                discover(
+                    source,
+                    List.of(
+                        "block", "item", "fluid", "material", STANDALONE_BLOCKS, STANDALONE_ITEMS)))
         .toList()
         .forEach(all::merge);
     all.items.forEach(
@@ -173,11 +199,30 @@ public final class DefinitionLoader {
                       .forEach(block -> api.events().validate(block.events()));
                   standalone.put(id, result);
                 }));
+    var standaloneItems = new TreeMap<ResourceLocation, MaterialFactory.Result>();
+    all.standaloneItems.forEach(
+        (id, source) ->
+            install(
+                source,
+                () -> {
+                  var module = api.itemModule(source.value().module());
+                  if (module.requiredMod().isPresent()
+                      && !installed.test(module.requiredMod().get())) return;
+                  var result = source.value().resolve(id, module);
+                  validateConcreteIds(result, source.path(), concreteIds);
+                  result
+                      .content()
+                      .items()
+                      .values()
+                      .forEach(item -> api.events().validate(item.events()));
+                  standaloneItems.put(id, result);
+                }));
     return new Loaded(
         new ModuleCatalog(values(all.items), values(all.blocks), values(all.fluids)),
         values(all.extensions),
         materials,
-        standalone);
+        standalone,
+        standaloneItems);
   }
 
   private static Batch discover(SourceRoot source, List<String> sections) {
@@ -223,6 +268,11 @@ public final class DefinitionLoader {
                     batch.standalone,
                     id,
                     new Located<>(file, decode(file, StandaloneBlock.CODEC), loader));
+            case STANDALONE_ITEMS ->
+                add(
+                    batch.standaloneItems,
+                    id,
+                    new Located<>(file, decode(file, StandaloneItem.CODEC), loader));
             default -> throw new IllegalStateException("Unhandled definition section: " + section);
           }
         }

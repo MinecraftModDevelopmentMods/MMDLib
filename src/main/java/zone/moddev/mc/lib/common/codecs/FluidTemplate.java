@@ -24,6 +24,7 @@ public record FluidTemplate(
     boolean hasBucket,
     Optional<ItemTemplate> bucket,
     Map<String, ResourceLocation> events) {
+  /** Copies the event bindings. */
   public FluidTemplate {
     events = Map.copyOf(events);
   }

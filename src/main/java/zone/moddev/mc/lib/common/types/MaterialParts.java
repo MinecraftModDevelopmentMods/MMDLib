@@ -15,6 +15,7 @@ public record MaterialParts(Set<MaterialPart> parts, boolean hasFluid) {
   public static final MaterialParts DEFAULT =
       new MaterialParts(Set.copyOf(ModuleCatalog.bundled().parts().entries().values()), true);
 
+  /** Copies the parts. */
   public MaterialParts {
     parts = Set.copyOf(parts);
   }

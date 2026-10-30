@@ -28,14 +28,22 @@ import zone.moddev.mc.lib.MMDLib;
  * to blocks and dropped items.
  */
 public final class CrushingRecipe implements Recipe<SingleRecipeInput> {
+  /** MMDLib's recipe-type register; attached to the mod bus by {@link MMDLib}. */
   public static final DeferredRegister<RecipeType<?>> TYPES =
       DeferredRegister.create(Registries.RECIPE_TYPE, MMDLib.MODID);
+
+  /** MMDLib's recipe-serializer register; attached to the mod bus by {@link MMDLib}. */
   public static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS =
       DeferredRegister.create(Registries.RECIPE_SERIALIZER, MMDLib.MODID);
+
+  /** The {@code mmdlib:crushing} recipe type. */
   public static final DeferredHolder<RecipeType<?>, RecipeType<CrushingRecipe>> TYPE =
       TYPES.<RecipeType<CrushingRecipe>>register("crushing", CrushingRecipeType::new);
+
+  /** The {@code mmdlib:crushing} recipe serializer. */
   public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<CrushingRecipe>>
       SERIALIZER = SERIALIZERS.register("crushing", Serializer::new);
+
   private final Ingredient ingredient;
   private final ItemStack result;
 
@@ -102,6 +110,9 @@ public final class CrushingRecipe implements Recipe<SingleRecipeInput> {
    * network.
    */
   public static final class Serializer implements RecipeSerializer<CrushingRecipe> {
+    /** A serializer; use the registered {@link CrushingRecipe#SERIALIZER} instead of another. */
+    public Serializer() {}
+
     // Accept the existing generated results using "item", as well as the
     // 1.21 stack format using "id" and optional data components.
     private static final Codec<ItemStack> LEGACY_RESULT_CODEC =

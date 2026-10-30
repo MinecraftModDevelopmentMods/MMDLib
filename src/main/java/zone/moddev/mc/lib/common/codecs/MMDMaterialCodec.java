@@ -15,6 +15,7 @@ import zone.moddev.mc.lib.common.types.*;
 public final class MMDMaterialCodec {
   private MMDMaterialCodec() {}
 
+  /** A material codec on {@link MaterialExtensions#GLOBAL}. */
   public static final Codec<MMDMaterial> MMD_MATERIAL_CODEC =
       forExtensions(MaterialExtensions.GLOBAL);
 

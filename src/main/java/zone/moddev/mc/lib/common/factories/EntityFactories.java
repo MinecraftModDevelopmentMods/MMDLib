@@ -23,6 +23,9 @@ public final class EntityFactories {
   private final ConcurrentHashMap<ResourceLocation, EntityFactory<?, ?>> factories =
       new ConcurrentHashMap<>();
 
+  /** An empty catalog. */
+  public EntityFactories() {}
+
   /**
    * Registers a factory under {@code id}.
    *
@@ -49,7 +52,15 @@ public final class EntityFactories {
     return prepare(definition, expectedClass, JsonOps.INSTANCE);
   }
 
-  /** Pass RegistryOps when a factory's settings codec needs registry-backed values. */
+  /**
+   * As {@link #prepare(MMDEntity, Class)}, decoding the settings with {@code ops}. Pass {@code
+   * RegistryOps} when the factory's settings refer to registry contents.
+   *
+   * @param expectedClass the entity class the caller expects; must match the factory's
+   * @param ops the ops the settings are decoded with
+   * @throws IllegalArgumentException if the factory is unknown, its class differs, or the settings
+   *     are invalid
+   */
   public <E extends Entity> Prepared<E> prepare(
       MMDEntity definition, Class<E> expectedClass, DynamicOps<JsonElement> ops) {
     var factory = factories.get(definition.factory());
@@ -101,8 +112,10 @@ public final class EntityFactories {
   }
 
   /**
-   * Settings are validated now; buildType is deferred until the consuming mod's registry supplier
-   * runs.
+   * An entity factory with its decoded settings. The settings were validated when it was prepared;
+   * the type is built by {@link #buildType} only when the consuming mod's registry supplier runs.
+   *
+   * @param <E> the entity class
    */
   public static final class Prepared<E extends Entity> {
     private final MMDEntity definition;

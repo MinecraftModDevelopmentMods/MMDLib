@@ -13,7 +13,9 @@ import net.minecraft.resources.ResourceLocation;
 public final class MaterialPart implements Comparable<MaterialPart> {
   /** Whether a part produces an item or a block (whose item, if any, comes with it). */
   public enum Kind {
+    /** The part produces an item. */
     ITEM,
+    /** The part produces a block, and its item if it has one. */
     BLOCK
   }
 

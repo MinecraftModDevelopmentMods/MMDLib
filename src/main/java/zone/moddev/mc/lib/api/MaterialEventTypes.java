@@ -80,7 +80,15 @@ public final class MaterialEventTypes {
   public static final MaterialEvent<RedstoneChange> REDSTONE_CHANGED =
       new MaterialEvent<>("redstone-changed", RedstoneChange.class);
 
+  public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenHover> GUI_HOVER =
+      new MaterialEvent<>("gui-hover", zone.moddev.mc.lib.gui.runtime.ScreenHover.class);
+
+  public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenClick> GUI_CLICK =
+      new MaterialEvent<>("gui-click", zone.moddev.mc.lib.gui.runtime.ScreenClick.class);
+
   static void install(MaterialEvents events) {
+    events.registerEvent(GUI_CLICK.name(), GUI_CLICK.contextType());
+    events.registerEvent(GUI_HOVER.name(), GUI_HOVER.contextType());
     events.registerEvent(
         PLAYER_TICK.name(),
         Player.class,

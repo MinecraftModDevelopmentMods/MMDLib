@@ -222,9 +222,56 @@ public final class BlockEntitiesTest {
                   throw new AssertionError("Early block lookup");
                 }));
     require(creations.get() == 0);
+    // The class-free overload takes the factory's own class, as the runtime registrar does.
+    require(factories.prepare(definition).blockEntityClass() == Machine.class);
+    expectFailure(() -> new BlockEntityFactories().prepare(definition));
+    var binding = new zone.moddev.mc.lib.api.BlockEntityBinding<>(prepared, () -> null);
+    require(binding.as(Machine.class) == binding && binding.blockEntityClass() == Machine.class);
+    expectFailure(() -> binding.as(Other.class));
+    standaloneMachine();
+    require(creations.get() == 0);
     System.out.println(
-        "Machine block entities, block-owned world entities, selection/gating, codecs and deferred"
-            + " typed factory validation passed");
+        "Machine block entities, block-owned world entities, selection/gating, codecs, deferred"
+            + " typed factory validation, and standalone machine planning passed");
+  }
+
+  /**
+   * Plans a standalone machine. Queuing it on a runtime registrar needs a bootstrapped game, so
+   * that is covered by the runtime smoke test.
+   */
+  private static void standaloneMachine() {
+    var machine =
+        DataModules.Block.CODEC
+            .parse(
+                JsonOps.INSTANCE,
+                JsonParser.parseString(
+                    """
+                    {"factory":"test:machine_block","template":{},
+                     "part":{"block_entity":{"factory":"example:machine",
+                       "factory_data":{"capacity":32}}}}
+                    """))
+            .getOrThrow();
+    var standalone =
+        StandaloneBlock.CODEC
+            .parse(
+                JsonOps.INSTANCE,
+                JsonParser.parseString(
+                    "{\"module\":\"test:press_module\",\"block_entity_data\":{\"capacity\":64}}"))
+            .getOrThrow();
+    var press = standalone.resolve(id("test:press"), machine);
+    var entity = press.content().blockEntityDefinitions().get(id("test:press"));
+    require(
+        entity.factoryData().json().getAsJsonObject().get("capacity").getAsInt() == 64
+            && press.content().blockDefinitions().containsKey(id("test:press")));
+    expectFailure(
+        () ->
+            new StandaloneBlock(
+                    standalone.module(),
+                    standalone.factoryData(),
+                    standalone.template(),
+                    standalone.runtime(),
+                    new FactoryData(JsonParser.parseString("[]")))
+                .resolve(id("test:broken"), machine));
   }
 
   private static ResourceLocation id(String value) {

@@ -40,6 +40,7 @@ public final class CrackhammerEvents {
   public static final net.minecraft.resources.ResourceLocation CRUSH =
       net.minecraft.resources.ResourceLocation.parse("mmdlib:crackhammer_crush");
 
+  /** The {@code mmdlib:crackhammer_harvest} handler ID; see {@link #CRUSH}. */
   public static final net.minecraft.resources.ResourceLocation HARVEST =
       net.minecraft.resources.ResourceLocation.parse("mmdlib:crackhammer_harvest");
 

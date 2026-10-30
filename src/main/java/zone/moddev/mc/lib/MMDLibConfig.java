@@ -6,7 +6,13 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public final class MMDLibConfig {
   private MMDLibConfig() {}
 
+  /** The server config spec, registered by {@link MMDLib}. */
   public static final ModConfigSpec SERVER_SPEC;
+
+  /**
+   * {@code crackhammer.crush_count}: how many items of a dropped stack a crackhammer crushes per
+   * right-click (1-99, default 8).
+   */
   public static final ModConfigSpec.IntValue CRACKHAMMER_CRUSH_COUNT;
 
   static {

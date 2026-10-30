@@ -1,0 +1,23 @@
+// Run: xvfb-run -a ./gradlew runClient --offline -I scripts/gui-smoke.init.gradle
+// Add -PwithoutJei to exercise the same menu with JEI absent. Uses build/gui-smoke only.
+// Run a normal build afterward to restore main output without the injected smoke classes.
+allprojects {
+    afterEvaluate {
+        if (extensions.findByName('runs') != null) {
+            sourceSets.main.java.srcDir(file('src/runtimeTest/java'))
+            def smokeDir = file(providers.gradleProperty('withoutJei').isPresent() ? 'build/gui-smoke-without-jei' : 'build/gui-smoke')
+            smokeDir.mkdirs()
+            new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\n'
+            runs.client.arguments.addAll '--width', '1280', '--height', '960'
+            runs.client.workingDirectory = smokeDir
+            runs.client.systemProperty 'mmdlib.guiSmoke', 'true'
+            tasks.configureEach { task ->
+                if (task.name == 'runClient') task.doLast {
+                    def report = new File(smokeDir, 'logs/latest.log')
+                    if (!report.exists() || !report.text.contains('MMDLIB_GUI_RUNTIME_PASS') || !report.text.contains('MMDLIB_GUI_CLIENT_PASS') || !report.text.contains('MMDLIB_GUI_SIDES_PASS') || !report.text.contains('MMDLIB_GUI_GAUGES_PASS') || report.text.contains('MMDLIB_GUI_CLIENT_FAIL'))
+                        throw new GradleException('GUI smoke failed; inspect ' + report)
+                }
+            }
+        }
+    }
+}

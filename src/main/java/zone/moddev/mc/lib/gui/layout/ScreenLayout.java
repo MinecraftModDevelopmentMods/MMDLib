@@ -50,6 +50,8 @@ public final class ScreenLayout {
   public static final int SELECTOR = 20;
 
   private final Map<Element, Rect> bounds = new IdentityHashMap<>();
+  private final java.util.Set<View> alternateViews =
+      java.util.Collections.newSetFromMap(new IdentityHashMap<>());
   private final TextMeasure text;
   private Rect panel;
   private Rect inventory;
@@ -141,7 +143,7 @@ public final class ScreenLayout {
       }
       case View view -> {
         int[] inner = stack(view.children(), GAP);
-        int title = view.title().isPresent() ? TextMeasure.LINE_HEIGHT + GAP : 0;
+        int title = viewHeader(view);
         yield new int[] {
           Math.max(inner[0], view.title().map(text::width).orElse(0) + 12), inner[1] + title
         };
@@ -197,18 +199,30 @@ public final class ScreenLayout {
 
   // Placing
 
+  private int viewHeader(View view) {
+    return view.title().isPresent() || alternateViews.contains(view)
+        ? TextMeasure.LINE_HEIGHT + GAP
+        : 0;
+  }
+
   private void place(Screen screen) {
+    screen.forEach(
+        e -> {
+          if (e instanceof Context context)
+            alternateViews.addAll(context.views().subList(1, context.views().size()));
+        });
     int[] body = stack(screen.body(), GAP);
     boolean addInventory =
         screen.playerInventory()
             && screen.elements().stream().noneMatch(PlayerInventory.class::isInstance);
-    int width = body[0];
-    int height = body[1];
+    int width = Math.max(body[0], text.width(screen.title()) + 2 * PANEL_MARGIN);
+    int titleHeight = PANEL_MARGIN + TextMeasure.LINE_HEIGHT + GAP;
+    int height = body[1] + titleHeight;
     if (addInventory) {
       width = Math.max(width, INVENTORY_WIDTH + 2 * PANEL_MARGIN);
       height += GAP + INVENTORY_HEIGHT + PANEL_MARGIN;
     }
-    int y = 0;
+    int y = titleHeight;
     for (var element : screen.body()) {
       int[] size = size(element);
       // Top-level boxes span the panel, as a vbox's children do.
@@ -219,7 +233,11 @@ public final class ScreenLayout {
     panel = new Rect(0, 0, width, height);
     if (addInventory)
       inventory =
-          new Rect((width - INVENTORY_WIDTH) / 2, body[1] + GAP, INVENTORY_WIDTH, INVENTORY_HEIGHT);
+          new Rect(
+              (width - INVENTORY_WIDTH) / 2,
+              body[1] + titleHeight + GAP,
+              INVENTORY_WIDTH,
+              INVENTORY_HEIGHT);
     for (var element : screen.elements())
       if (element instanceof PlayerInventory) inventory = bounds.get(element);
     placeTabs(screen, Edge.LEFT);
@@ -244,7 +262,7 @@ public final class ScreenLayout {
         for (var view : context.views()) placeAt(view, x, y, width, height);
       }
       case View view -> {
-        int top = y + (view.title().isPresent() ? TextMeasure.LINE_HEIGHT + GAP : 0);
+        int top = y + (viewHeader(view));
         placeStack(view.children(), x, top, width, GAP);
       }
       case SideTab tab -> {

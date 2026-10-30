@@ -52,4 +52,13 @@ public interface BlockContext {
    * redstone-changed}).
    */
   MaterialEvents events();
+
+  /**
+   * The block entity queued for this block, when its part declares one ({@code part.block_entity}).
+   * A block implementation for such a part must create an {@code EntityBlock} wired to it, e.g.
+   * with {@link BlockEntityBinding#newBlock}.
+   */
+  default java.util.Optional<BlockEntityBinding<?>> blockEntity() {
+    return java.util.Optional.empty();
+  }
 }

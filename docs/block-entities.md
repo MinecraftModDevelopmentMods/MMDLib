@@ -76,7 +76,63 @@ settings immediately without constructing game objects. Its overload accepts
 `Registries.BLOCK_ENTITY_FACTORIES` is the library's shared catalog; mods may also
 own independent catalogs, like the existing world-entity factory API.
 
+## Runtime registration
+
+`RuntimeContentRegistrar.queue` registers block entities with the rest of a plan,
+for material machines and [standalone machines](definition-loading.md#standalone-blocks)
+alike. For each block whose part declares `block_entity` it:
+
+- looks up the factory in `Registries.BLOCK_ENTITY_FACTORIES` (or the catalog passed
+  to the registrar's four-argument constructor) and decodes its settings at load, so
+  an unknown factory or bad `factory_data` fails at startup;
+- refuses the block if its implementation's `blockClass()` is not an `EntityBlock`;
+- prepares a `BlockEntityHandle` with the block's ID for the owning mod to register;
+- hands the block implementation a `BlockEntityBinding` through
+  `BlockContext.blockEntity()`.
+
+After `registrar.queue(...)`, the owning mod passes its own block-entity register to each
+prepared handle. MMDLib does not create or attach that register:
+
+```java
+// During construction, before registry events:
+var types = DeferredRegister.<BlockEntityType<?>>create(Registries.BLOCK_ENTITY_TYPE, MODID);
+types.register(modBus);
+// After definitions have been queued, still before registry events:
+registrar.blockEntityHandles().values().forEach(handle -> handle.register(types));
+```
+
+Each handle permits one registration in its definition's namespace. The block receives the
+same handle through its binding; `handle.get()` and `binding.type().get()` resolve the registered
+type. An unregistered handle fails common setup, before a machine can be placed.
+`registrar.blockEntityTypes()` lists registered holders by ID, e.g. for capability registration. The built-in block implementation `mmdlib:machine` builds a plain
+`MaterialEntityBlock` from the binding, so a machine needs no block class of its own:
+
+```json
+{
+  "factory": "mmdlib:machine",
+  "template": {"has_item": true},
+  "part": {"block_entity": {"factory": "example:crusher", "factory_data": {"capacity": 32}}}
+}
+```
+
+A machine that needs its own block (facing, shapes, a menu on right-click) registers a
+block implementation whose `create(BlockContext)` reads the binding:
+
+```java
+public CrusherBlock create(BlockContext context) {
+    var binding = context.blockEntity().orElseThrow().as(CrusherEntity.class);
+    return new CrusherBlock(context.properties(), binding.prepared(), binding.type());
+}
+```
+
+The block delegates `newBlockEntity` and `getTicker` to `binding.prepared()`, as
+`MaterialEntityBlock` does, and reads `binding.type()` only after registration (for
+example when a block entity is created), never in its constructor.
+
 ## Deferred registration and block hooks
+
+The registrar does all of the following for you; it is how to wire a block entity by
+hand, outside a registrar.
 
 `BlockEntityFactories.queue` takes a Minecraft block-entity DeferredRegister, a
 prepared factory, and a lazy block supplier. It checks namespace immediately,

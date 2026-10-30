@@ -48,13 +48,51 @@ player-only plate is `mmdlib:standalone/block/human_detector.json`, which become
 - `template`: replaces the module's template. No material stats are applied.
 - `runtime`: the settings a material would supply (block set type, sound, map color,
   base block); same schema as a material's `runtime`.
+- `block_entity_data`: merged key by key over the `factory_data` of the module's
+  `part.block_entity`, so several standalone machines can share one module. Setting it
+  for a module without a block entity is an error.
 
-A module with entity or block-entity companions is rejected. A module whose
-`requires_mod` is missing skips the block. Standalone IDs share the duplicate-ID
-check with material content. `MMDLib.standaloneBlocks()` lists them; their block
-and item definitions are published, and the stats-free host owner is not a material.
-The generator writes their block tags and self-drop loot table; models, lang and
-recipes are static resources.
+When the module declares a block entity, the block becomes a machine: its block entity
+is planned with the same ID as the block and registered by the runtime registrar (see
+[block entities](block-entities.md#runtime-registration)). A machine for an
+Advantage-style mod, `example:mmdlib/standalone/block/crusher.json`, registers as
+`example:crusher` with a block-entity type of the same ID:
+
+```json
+{ "module": "example:machine_frame", "block_entity_data": { "speed": 2 } }
+```
+
+A module with a world-entity companion is rejected. A module whose `requires_mod` is
+missing skips the block. Standalone IDs share the duplicate-ID check with material
+content. `MMDLib.standaloneBlocks()` lists them; their block, item and block-entity
+definitions are published, and the stats-free host owner is not a material.
+MMDLib's generator writes block tags and the self-drop loot table for its own
+standalone blocks; models, lang and recipes are static resources.
+
+## Standalone items
+
+`mmdlib/standalone/item/<path>.json` declares one item with its own ID,
+`<namespace>:<path>`, and no material: a wrench, an upgrade card, a manual.
+`example:mmdlib/standalone/item/tools/wrench.json` becomes `example:tools/wrench`:
+
+```json
+{ "module": "example:wrench", "template": { "max_stack_size": 1 } }
+```
+
+- `module`: a registered item module, whose factory builds the item.
+- `factory_data`: merged key by key over the module's `factory_data`.
+- `template`: replaces the module's item template.
+- `runtime`: the settings a material would supply (e.g. `repair_item`).
+
+No material stats apply; an implementation that reads them sees the defaults. A
+module with a world-entity companion (an arrow's projectile) is rejected, and a
+module whose `requires_mod` is missing skips the item. `MMDLib.standaloneItems()`
+lists them and their item definitions are published. Models, lang, tags and recipes
+are static resources.
+
+Like materials, standalone blocks and items in another mod's namespace are only
+registered when that mod queues them on its own `RuntimeContentRegistrar`
+(`MMDLib.standaloneBlocks()` / `standaloneItems()`, filtered to its namespace).
 
 ## Stages
 

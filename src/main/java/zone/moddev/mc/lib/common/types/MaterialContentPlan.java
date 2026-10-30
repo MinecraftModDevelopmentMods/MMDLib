@@ -52,6 +52,12 @@ public record MaterialContentPlan(
     this(material, items, blocks, entities, fluid, extraItems, extraBlocks, Map.of());
   }
 
+  /**
+   * Copies every map and checks that each block entity belongs to a planned block of this material.
+   *
+   * @throws IllegalArgumentException if a block entity names a block that is not planned, or
+   *     another material
+   */
   public MaterialContentPlan {
     Objects.requireNonNull(material);
     items = Map.copyOf(items);

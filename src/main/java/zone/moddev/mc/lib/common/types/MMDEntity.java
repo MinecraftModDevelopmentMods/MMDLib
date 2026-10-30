@@ -42,6 +42,12 @@ public record MMDEntity(
     boolean fireImmune,
     FactoryData factoryData,
     Map<String, ResourceLocation> events) {
+  /**
+   * Validates the definition and copies the event bindings.
+   *
+   * @throws IllegalArgumentException if the size is invalid, the tracking range is negative, the
+   *     update interval is not positive, or an event name is blank
+   */
   public MMDEntity {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(template, "template");

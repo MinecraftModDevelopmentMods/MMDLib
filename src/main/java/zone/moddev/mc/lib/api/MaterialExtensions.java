@@ -46,6 +46,7 @@ public final class MaterialExtensions {
    */
   public record Snapshot(
       Map<ResourceLocation, ItemType> items, Map<ResourceLocation, BlockType> blocks) {
+    /** Copies both maps. */
     public Snapshot {
       items = Map.copyOf(items);
       blocks = Map.copyOf(blocks);
@@ -83,6 +84,9 @@ public final class MaterialExtensions {
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<ResourceLocation, BlockImplementation<?>> blockImplementations =
       new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<
+          ResourceLocation, zone.moddev.mc.lib.common.modules.DataModules.Item>
+      itemModules = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<
           ResourceLocation, zone.moddev.mc.lib.common.modules.DataModules.Block>
       blockModules = new ConcurrentHashMap<>();
@@ -196,6 +200,14 @@ public final class MaterialExtensions {
     if (replace) items.put(id, entry);
     else if (items.putIfAbsent(id, entry) != null)
       throw new IllegalArgumentException("Duplicate item module: " + id);
+    itemModules.put(id, module);
+  }
+
+  /** A registered data item module, e.g. the one a standalone item names. */
+  public zone.moddev.mc.lib.common.modules.DataModules.Item itemModule(ResourceLocation id) {
+    var module = itemModules.get(id);
+    if (module == null) throw new IllegalArgumentException("Unknown item module: " + id);
+    return module;
   }
 
   /**
