@@ -9,13 +9,16 @@ import net.minecraft.world.item.ItemStack;
 
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.handlers.*;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.recipe.IFocusFactory;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.*;
 import mezz.jei.api.registration.*;
 import mezz.jei.api.runtime.IJeiRuntime;
+import mezz.jei.api.runtime.IRecipesGui;
 
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
@@ -41,11 +44,13 @@ final class MachineJei {
           runtime.getRecipesGui().showTypes(types);
           return true;
         };
+    MachineScreen.recipeTooltip = (screen, e) -> !types(screen, e).isEmpty();
   }
 
   static void unavailable() {
     runtime = null;
     MachineScreen.recipes = (s, e) -> false;
+    MachineScreen.recipeTooltip = (s, e) -> false;
   }
 
   private static List<RecipeType<?>> types(MachineScreen screen, Element e) {
@@ -59,6 +64,29 @@ final class MachineJei {
             "Unknown JEI category {} in {}", id, screen.getMenu().bound.screen().source());
     }
     return result;
+  }
+
+  // JEI draws its own "Show Recipes" tooltip for the area; merging the element's lines into it
+  // keeps the two from being drawn over each other.
+  private static IGuiClickableArea clickable(
+      IGuiClickableArea basic, MachineScreen screen, Element e, int mx, int my) {
+    return new IGuiClickableArea() {
+      @Override
+      public Rect2i getArea() {
+        return basic.getArea();
+      }
+
+      @Override
+      public void onClick(IFocusFactory focuses, IRecipesGui gui) {
+        basic.onClick(focuses, gui);
+      }
+
+      @Override
+      public void getTooltip(ITooltipBuilder tooltip) {
+        screen.tooltipLines(e, mx, my).forEach(tooltip::add);
+        basic.getTooltip(tooltip);
+      }
+    };
   }
 
   static void gui(IGuiHandlerRegistration registration) {
@@ -78,14 +106,16 @@ final class MachineJei {
               if (screen.visible(e) && !e.common().jeiRecipes().isEmpty()) {
                 var types = types(screen, e);
                 var r = screen.layout.bounds(e);
-                if (!types.isEmpty())
-                  result.add(
+                if (!types.isEmpty()) {
+                  var basic =
                       IGuiClickableArea.createBasic(
                           r.x(),
                           r.y(),
                           r.width(),
                           r.height(),
-                          types.toArray(RecipeType<?>[]::new)));
+                          types.toArray(RecipeType<?>[]::new));
+                  result.add(clickable(basic, screen, e, (int) mx, (int) my));
+                }
               }
             return result;
           }

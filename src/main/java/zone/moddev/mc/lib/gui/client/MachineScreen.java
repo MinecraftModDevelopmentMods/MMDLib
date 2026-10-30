@@ -30,6 +30,13 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   /** Optional integration entry point, installed only by JEI. */
   public static java.util.function.BiPredicate<MachineScreen, Element> recipes = (s, e) -> false;
 
+  /**
+   * Installed only by JEI: whether JEI draws the tooltip of an element's recipe area, in which case
+   * the screen leaves it to JEI (which asks for {@link #tooltipLines}) instead of drawing its own.
+   */
+  public static java.util.function.BiPredicate<MachineScreen, Element> recipeTooltip =
+      (s, e) -> false;
+
   private Element hovered;
   private boolean restored;
 
@@ -463,6 +470,13 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   }
 
   private void tooltip(GuiGraphics g, Element e, int mx, int my) {
+    if (!e.common().jeiRecipes().isEmpty() && recipeTooltip.test(this, e)) return;
+    var lines = tooltipLines(e, mx, my);
+    if (!lines.isEmpty()) g.renderComponentTooltip(font, lines, mx, my);
+  }
+
+  /** The tooltip lines of {@code e} with the mouse at {@code mx, my}; empty for none. */
+  public List<Component> tooltipLines(Element e, int mx, int my) {
     var c = e.common();
     boolean shift = hasShiftDown();
     var text = shift ? c.tooltipShift().or(c::tooltip) : c.tooltip();
@@ -496,7 +510,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                           .getSerializedName()));
         }
     }
-    if (!lines.isEmpty()) g.renderComponentTooltip(font, lines, mx, my);
+    return lines;
   }
 
   private void send(Element e, int kind, int button, int option) {

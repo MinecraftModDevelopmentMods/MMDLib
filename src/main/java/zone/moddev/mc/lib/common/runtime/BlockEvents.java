@@ -4,6 +4,8 @@ import net.minecraft.stats.Stats;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
 
+import net.neoforged.neoforge.capabilities.Capabilities;
+
 import zone.moddev.mc.lib.api.MaterialEventContexts.BlockUse;
 
 /**
@@ -16,9 +18,20 @@ public final class BlockEvents {
 
   /**
    * Handler {@code mmdlib:open_menu} ({@code block-right-click}): opens the clicked block's menu on
-   * the server and consumes the click; does nothing for blocks without a menu.
+   * the server and consumes the click; does nothing for blocks without a menu. A fluid container
+   * held against a block with a fluid handler on the clicked face is left to the block's own item
+   * use, so buckets fill and empty it instead of opening the screen.
    */
   public static void openMenu(Player player, BlockUse use) {
+    if (use.stack().getCapability(Capabilities.FluidHandler.ITEM) != null
+        && use.level()
+                .getCapability(
+                    Capabilities.FluidHandler.BLOCK,
+                    use.position(),
+                    use.state(),
+                    use.level().getBlockEntity(use.position()),
+                    use.face())
+            != null) return;
     if (zone.moddev.mc.lib.gui.runtime.ScreenRuntime.open(
         player, use.level().getBlockEntity(use.position()))) {
       use.consume();
