@@ -16,12 +16,6 @@ repositories {
 }
 dependencies {
     implementation 'net.neoforged:neoforge:21.1.247'
-    implementation 'com.schibsted.spt.data:jslt:0.1.14'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
-    jarJar 'com.schibsted.spt.data:jslt:0.1.14'
-    jarJar 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
-    jarJar 'com.fasterxml.jackson.core:jackson-core:2.13.4'
-    jarJar 'com.fasterxml.jackson.core:jackson-annotations:2.13.4'
     // Optional JEI integration: compiled against the API only, never bundled or required.
     compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
