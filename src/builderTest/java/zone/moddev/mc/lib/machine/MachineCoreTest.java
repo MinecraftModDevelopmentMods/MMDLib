@@ -13,9 +13,12 @@ import com.google.gson.JsonPrimitive;
 
 import com.mojang.serialization.JsonOps;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 import zone.moddev.mc.lib.machine.expr.Expr;
+import zone.moddev.mc.lib.machine.internals.InternalsDefinition;
+import zone.moddev.mc.lib.machine.internals.SwapRule;
 import zone.moddev.mc.lib.machine.stat.MachineStats;
 import zone.moddev.mc.lib.machine.stat.StatDefinition;
 import zone.moddev.mc.lib.machine.stat.StatModifier;
@@ -25,7 +28,8 @@ public final class MachineCoreTest {
   public static void main(String[] args) {
     expressions();
     stats();
-    System.out.println("Machine expressions and stats passed");
+    internalsDefinition();
+    System.out.println("Machine expressions, stats and internals definitions passed");
   }
 
   private static void expressions() {
@@ -87,6 +91,74 @@ public final class MachineCoreTest {
     require(parseStat("{\"base\":900}").min().isEmpty());
     expectFailure(() -> parseStat("{\"base\":1,\"min\":5,\"max\":2}"));
     expectFailure(() -> parseStat("{\"min\":1}"));
+  }
+
+  /** The internals example from machine-ui.md, "Sockets and stats". */
+  static final String INTERNALS =
+      """
+      {
+        "open_with": "#c:tools/wrench",
+        "swap": "when_idle",
+        "sockets": {
+          "gears": { "count": 2, "accepts": "#c:gears" },
+          "motor": { "count": 1, "accepts": "#example:motors" },
+          "coil":  { "count": 1, "accepts": "#example:heating_coils", "optional": true }
+        },
+        "stats": {
+          "speed":           { "base": 1.0, "min": 0.25, "max": 8 },
+          "energy_per_tick": { "base": 40, "min": 1 },
+          "max_temperature": { "base": 900 }
+        }
+      }
+      """;
+
+  private static void internalsDefinition() {
+    var internals = parseInternals(INTERNALS);
+    require(internals.swap() == SwapRule.WHEN_IDLE);
+    require(List.copyOf(internals.sockets().keySet()).equals(List.of("coil", "gears", "motor")));
+    require(internals.slotCount() == 4);
+    require(internals.slots("coil").equals(List.of(0)));
+    require(internals.slots("gears").equals(List.of(1, 2)));
+    require(internals.slots("motor").equals(List.of(3)));
+    require(
+        internals.sockets().get("coil").optional() && !internals.sockets().get("gears").optional());
+    require(
+        internals
+            .openWith()
+            .orElseThrow()
+            .value()
+            .left()
+            .orElseThrow()
+            .location()
+            .equals(ResourceLocation.parse("c:tools/wrench")));
+    require(internals.stats().get("max_temperature").base() == 900);
+    var plain =
+        parseInternals("{\"sockets\":{\"motor\":{\"accepts\":\"example:motor\"}},\"stats\":{}}");
+    require(plain.swap() == SwapRule.WHEN_IDLE && plain.openWith().isEmpty());
+    require(plain.sockets().get("motor").count() == 1);
+    require(
+        plain
+            .sockets()
+            .get("motor")
+            .accepts()
+            .orElseThrow()
+            .value()
+            .right()
+            .orElseThrow()
+            .equals(ResourceLocation.parse("example:motor")));
+    require(SwapRule.WHEN_IDLE.allows(false) && !SwapRule.WHEN_IDLE.allows(true));
+    require(SwapRule.ALWAYS.allows(true) && !SwapRule.NEVER.allows(false));
+    expectFailure(() -> parseInternals(INTERNALS.replace("\"count\": 2", "\"count\": 0")));
+    expectFailure(() -> parseInternals(INTERNALS.replace("when_idle", "sometimes")));
+    expectFailure(() -> parseInternals(INTERNALS.replace("#c:gears", "#")));
+    expectFailure(() -> parseInternals(INTERNALS.replace("#c:gears", "Not An Id")));
+    expectFailure(() -> internals.slots("pump"));
+  }
+
+  static InternalsDefinition parseInternals(String json) {
+    return InternalsDefinition.CODEC
+        .parse(JsonOps.INSTANCE, JsonParser.parseString(json))
+        .getOrThrow();
   }
 
   private static StatDefinition parseStat(String json) {
