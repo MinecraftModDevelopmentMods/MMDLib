@@ -192,6 +192,7 @@ public final class RuntimeSmoke {
       }
       CapabilitySmoke.check(level);
       MachineSmoke.check(level);
+      MachineInternalsSmoke.check(level);
       if (projectiles != 14 || fluids != 15 || placed != 59)
         throw new AssertionError(
             "Wrong smoke counts: " + placed + "/" + projectiles + "/" + fluids);
