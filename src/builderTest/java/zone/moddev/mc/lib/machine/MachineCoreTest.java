@@ -22,6 +22,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 import zone.moddev.mc.lib.common.types.MaterialProperties;
 import zone.moddev.mc.lib.machine.expr.Expr;
+import zone.moddev.mc.lib.machine.ingredient.AmountMatch;
 import zone.moddev.mc.lib.machine.internals.InternalsDefinition;
 import zone.moddev.mc.lib.machine.internals.MachineParts;
 import zone.moddev.mc.lib.machine.internals.PartDefinition;
@@ -38,7 +39,9 @@ public final class MachineCoreTest {
     stats();
     internalsDefinition();
     parts();
-    System.out.println("Machine expressions, stats, internals definitions and part files passed");
+    amountMatch();
+    System.out.println(
+        "Machine expressions, stats, internals definitions, part files and amount matching passed");
   }
 
   private static void expressions() {
@@ -281,6 +284,15 @@ public final class MachineCoreTest {
     MachineParts.install(parts);
     require(MachineParts.current() == parts && parts.generation() > generation);
     MachineParts.install(MachineParts.NONE);
+  }
+
+  private static void amountMatch() {
+    require(AmountMatch.EXACT.test(5, 5) && !AmountMatch.EXACT.test(5, 6));
+    require(AmountMatch.AT_LEAST.test(5, 6) && AmountMatch.AT_LEAST.test(5, 5));
+    require(!AmountMatch.AT_LEAST.test(5, 4));
+    require(AmountMatch.ANY_AMOUNT.test(5, 0));
+    require(AmountMatch.AT_LEAST.test(3_000_000_000L, 3_000_000_001L));
+    require(!AmountMatch.AT_LEAST.test(3_000_000_000L, 2_999_999_999L));
   }
 
   private static PartSubject gear(String item, double hardness, Map<String, Double> special) {
