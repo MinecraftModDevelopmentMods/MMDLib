@@ -1,6 +1,8 @@
-# Machine module (proposed)
+# Machine module
 
-> **Status: design only, nothing here is implemented.** Today's machine support is described in
+> **Status: stage 1 is built** (internals without GUI, and phase 1: ingredients, groups,
+> transactions, matching); see [stage 1](stage-1.md). Everything else here is design. Today's other
+> machine support is described in
 > [machines](../machines.md), [capability wrappers](../capabilities.md) and
 > [GUI screens](../gui-screens.md).
 
@@ -18,4 +20,5 @@ Read in this order:
 | [Recipes](recipes.md) | How ingredients, groups, matching, the processor and transactions work, with a crusher end to end |
 | [Data-only machines](data-only-machines.md) | Ports, targets, actions, the plan → check → commit → apply cycle, four complete JSON machines, phases 9–14 |
 | [Machine UI](machine-ui.md) | The screen pieces those machines need, face config with face cards, internals (parts in sockets that change stats), phases 15–18 |
+| [Stage 1](stage-1.md) | **Built.** The Java API that exists now: internals and part files, ingredients, groups, transactions, `RecipeMatcher`, and what is still missing |
 | [Stage 1 plan](stage-1-plan.md) | Step-by-step implementation plan for the first build: internals without GUI, and phase 1 (ingredients, groups, transactions, matcher) |

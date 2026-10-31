@@ -14,13 +14,17 @@ Data-driven material and machine library for **NeoForge 1.21.1 / Java 21**. Pack
 | XML screens, `ScreenHost`, menu, sync, JEI | [GUI screens](docs/gui-screens.md), [sprites](docs/gui-sprites.md), [gauges](docs/gauge-textures.md) | `gui.*`, `client.jei` |
 | `gui-click` / `gui-hover` and other handlers | [method events](docs/method-events.md) | |
 | `mmdlib:crushing` | [runtime behaviours](docs/runtime-behaviors.md) | `common.recipes` |
-| Proposed machine module: ingredients, recipes, transactions, JSON-only machines, 26.x/Fabric plan | [machine module](docs/machine-module/README.md) | not built |
+| Machine module: internals, ingredients, groups, transactions, matching (stage 1, built) | [stage 1](docs/machine-module/stage-1.md) | `machine.*` |
+| Machine module design: recipe type, processor, JSON-only machines, UI, 26.x/Fabric plan | [machine module](docs/machine-module/README.md) | not built |
 
 ## Facts that are easy to get wrong
 
-- MMDLib has no machine-ingredient or machine-recipe abstraction; recipes are vanilla `Recipe`
-  types with vanilla `Ingredient`s, and processing is the mod's own ticker. Everything under
-  `docs/machine-module/` is a design; none of its types exist yet.
+- The machine module so far is stage 1 only ([stage 1](docs/machine-module/stage-1.md)):
+  `MachineRecipe` is a data shape that `RecipeMatcher` checks, not a registered recipe type, and
+  there is no processor; `mmdlib:crushing` is still a plain vanilla `Recipe`. Everything else
+  under `docs/machine-module/` is design.
+- Only `machine/neoforge` may import NeoForge (`verifyMachineImports`). Machine part files live in
+  `data/<ns>/mmdlib/machine_part/`; MMDLib ships none.
 - Every face exposes every slot with the same numbering; `IoMode` and `Role` only allow or refuse
   operations. Out-of-range indexes are refused, not thrown.
 - The block entity bypasses roles and rates (`insertResult`, `tank(i)`, `consume`); automation
