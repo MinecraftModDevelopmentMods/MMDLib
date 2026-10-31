@@ -2,12 +2,16 @@ package zone.moddev.mc.lib.machine;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
@@ -16,8 +20,12 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
+import zone.moddev.mc.lib.common.types.MaterialProperties;
 import zone.moddev.mc.lib.machine.expr.Expr;
 import zone.moddev.mc.lib.machine.internals.InternalsDefinition;
+import zone.moddev.mc.lib.machine.internals.MachineParts;
+import zone.moddev.mc.lib.machine.internals.PartDefinition;
+import zone.moddev.mc.lib.machine.internals.PartSubject;
 import zone.moddev.mc.lib.machine.internals.SwapRule;
 import zone.moddev.mc.lib.machine.stat.MachineStats;
 import zone.moddev.mc.lib.machine.stat.StatDefinition;
@@ -29,7 +37,8 @@ public final class MachineCoreTest {
     expressions();
     stats();
     internalsDefinition();
-    System.out.println("Machine expressions, stats and internals definitions passed");
+    parts();
+    System.out.println("Machine expressions, stats, internals definitions and part files passed");
   }
 
   private static void expressions() {
@@ -153,6 +162,140 @@ public final class MachineCoreTest {
     expectFailure(() -> parseInternals(INTERNALS.replace("#c:gears", "#")));
     expectFailure(() -> parseInternals(INTERNALS.replace("#c:gears", "Not An Id")));
     expectFailure(() -> internals.slots("pump"));
+  }
+
+  /** The gear template from machine-ui.md, "Part files". */
+  static final String GEAR_TEMPLATE =
+      """
+{
+  "part": "mmdlib:gear",
+  "socket": "gears",
+  "modifiers": [
+    { "stat": "speed",           "op": "add_multiplied_base", "amount": "0.08 * ($material.hardness - 3)" },
+    { "stat": "energy_per_tick", "op": "add_multiplied_base", "amount": "0.03 * $material.hardness" }
+  ],
+  "durability": "500 * $material.hardness"
+}
+""";
+
+  private static void parts() {
+    var subjects =
+        Map.of(
+            id("test:iron_gear"), gear("test:iron_gear", 4, Map.of()),
+            id("test:invar_gear"), gear("test:invar_gear", 6, Map.of("grip", 2.0)),
+            id("test:soft_gear"), gear("test:soft_gear", 0, Map.of()),
+            id("test:diamond_coated_gear"), gear("test:diamond_coated_gear", 10, Map.of()),
+            id("test:plain_rod"),
+                new PartSubject(
+                    id("test:plain_rod"), Optional.of(id("mmdlib:rod")), Optional.empty()),
+            id("test:plain_pipe"),
+                new PartSubject(id("test:plain_pipe"), Optional.empty(), Optional.empty()));
+    var files = new HashMap<ResourceLocation, JsonElement>();
+    files.put(id("test:gear"), JsonParser.parseString(GEAR_TEMPLATE));
+    files.put(
+        id("test:diamond_coated_gear"),
+        JsonParser.parseString(
+            """
+            {
+              "item": "test:diamond_coated_gear",
+              "socket": "gears",
+              "modifiers": [
+                { "stat": "speed", "op": "add_multiplied_total", "amount": 0.4 },
+                { "stat": "energy_per_tick", "op": "add_value", "amount": 12 }
+              ]
+            }
+            """));
+    // A second template for the same part: the lower resource ID (test:gear) wins.
+    files.put(
+        id("test:zz_gear"),
+        JsonParser.parseString(GEAR_TEMPLATE.replace("\"gears\"", "\"other\"")));
+    // An unknown variable: logged and skipped, the rest still load.
+    files.put(
+        id("test:broken"),
+        JsonParser.parseString(
+            GEAR_TEMPLATE
+                .replace("mmdlib:gear", "mmdlib:plate")
+                .replace("$material.hardness - 3", "$material.colour")));
+    files.put(
+        id("test:pipe"),
+        JsonParser.parseString(
+            """
+{"item": "test:plain_pipe", "socket": "pipes",
+ "modifiers": [{"stat": "speed", "op": "add_value", "amount": "$material.special.grip + 1"}]}
+"""));
+    files.put(
+        id("test:grip"),
+        JsonParser.parseString(
+            """
+            {"item": "test:invar_gear", "socket": "gears",
+             "modifiers": [{"stat": "grip", "op": "add_value",
+                            "amount": "$material.special.grip + $material.special.none"}]}
+            """));
+    var parts = MachineParts.parse(files, item -> Optional.ofNullable(subjects.get(item)));
+    var iron = parts.resolve(id("test:iron_gear")).orElseThrow();
+    require(iron.socket().equals("gears"));
+    require(near(iron.modifiers().get(0).amount(), .08));
+    require(near(iron.modifiers().get(1).amount(), .12));
+    require(iron.modifiers().get(0).op() == AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+    require(iron.durability().equals(OptionalInt.of(2000)));
+    // An item file beats the template; missing special keys count as 0.
+    var invar = parts.resolve(id("test:invar_gear")).orElseThrow();
+    require(invar.modifiers().size() == 1 && invar.modifiers().get(0).amount() == 2);
+    require(invar.durability().isEmpty());
+    var coated = parts.resolve(id("test:diamond_coated_gear")).orElseThrow();
+    require(coated.modifiers().get(0).op() == AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+    require(coated.modifiers().get(0).amount() == .4 && coated.durability().isEmpty());
+    // Hardness 0: the template's durability is 0, so this gear is not a part.
+    require(parts.resolve(id("test:soft_gear")).isEmpty());
+    // An item without a material can't use $material.
+    require(parts.resolve(id("test:plain_pipe")).isEmpty());
+    require(parts.resolve(id("test:plain_rod")).isEmpty());
+    require(parts.resolve(id("test:unknown")).isEmpty());
+    require(parts.resolve(id("test:iron_gear")).orElseThrow() == iron); // cached
+    // A non-finite amount (10 / hardness 0) makes the item not a part.
+    var rods =
+        MachineParts.parse(
+            Map.of(
+                id("test:rod"),
+                JsonParser.parseString(
+                    """
+{"part": "mmdlib:rod", "socket": "shafts",
+ "modifiers": [{"stat": "speed", "op": "add_value", "amount": "10 / $material.hardness"}]}
+""")),
+            item ->
+                Optional.of(
+                    new PartSubject(
+                        item,
+                        Optional.of(id("mmdlib:rod")),
+                        gear(item.toString(), item.getPath().equals("zero_rod") ? 0 : 5, Map.of())
+                            .material())));
+    require(rods.resolve(id("test:zero_rod")).isEmpty());
+    require(rods.resolve(id("test:steel_rod")).orElseThrow().modifiers().get(0).amount() == 2);
+    expectFailure(() -> parsePart("{\"socket\":\"gears\",\"modifiers\":[]}"));
+    expectFailure(
+        () ->
+            parsePart(
+                "{\"part\":\"mmdlib:gear\",\"item\":\"test:x\",\"socket\":\"gears\",\"modifiers\":[]}"));
+    expectFailure(() -> parsePart(GEAR_TEMPLATE.replace("$material.hardness - 3", "$speed")));
+    int generation = MachineParts.current().generation();
+    MachineParts.install(parts);
+    require(MachineParts.current() == parts && parts.generation() > generation);
+    MachineParts.install(MachineParts.NONE);
+  }
+
+  private static PartSubject gear(String item, double hardness, Map<String, Double> special) {
+    return new PartSubject(
+        id(item),
+        Optional.of(id("mmdlib:gear")),
+        Optional.of(new MaterialProperties("metal", -1, hardness, 1, 0, 0, Set.of(), special)));
+  }
+
+  private static PartDefinition parsePart(String json) {
+    return PartDefinition.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(json)).getOrThrow();
+  }
+
+  private static ResourceLocation id(String value) {
+    return ResourceLocation.parse(value);
   }
 
   static InternalsDefinition parseInternals(String json) {
