@@ -135,7 +135,7 @@ What `MachineInternals` does:
   `stats(extra)` adds other modifiers, such as upgrade cards.
 - **Wear:** `wear` adds to the `mmdlib:part_wear` component on each part that has a durability,
   and destroys a part when its wear reaches that durability.
-- **Saving:** parts are saved by socket name. If a later version shrinks a socket, the parts that
+- **Saving:** parts are saved by socket name, under `sockets`. If a later version shrinks a socket, the parts that
   no longer fit are kept as `orphans()`, are saved too, and drop with `dropAll` when the block
   breaks.
 

@@ -66,6 +66,13 @@ public final class MachineCoreTest {
         Expr.CODEC.parse(JsonOps.INSTANCE, new JsonPrimitive("$x * 2")).getOrThrow().eval(v("x", 4))
             == 8);
     require(Expr.CODEC.parse(JsonOps.INSTANCE, new JsonPrimitive("2 *")).error().isPresent());
+    // Encoding round-trips, including numbers Double.toString would write in E notation.
+    var big = Expr.parse("10000000 * $x + 0.0001");
+    var encoded = Expr.CODEC.encodeStart(JsonOps.INSTANCE, big).getOrThrow();
+    require(
+        near(
+            Expr.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow().eval(v("x", 2)),
+            20000000.0001));
   }
 
   private static void stats() {

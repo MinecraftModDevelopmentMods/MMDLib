@@ -170,14 +170,31 @@ final class MachineInternalsSmoke {
     speedOnly.install("gears", 0, gear(1), false);
     require(speedOnly.stats().values().size() == 1, "undeclared stats ignored");
     require(near(speedOnly.stats().get("speed"), 1 + 2 * perGear), "declared stat applied");
+
+    // A socket may be called anything, including the key orphans are saved under.
+    var odd = internals("{\"sockets\":{\"orphans\":{\"count\":1}},\"stats\":{}}");
+    var named = new MachineInternals(odd, MachineParts::current);
+    require(
+        named.install("orphans", 0, new ItemStack(Items.OBSERVER), false).isEmpty(), "odd socket");
+    var back = new MachineInternals(odd, MachineParts::current);
+    back.load(provider, named.save(provider));
+    require(
+        back.sockets().getStackInSlot(0).is(Items.OBSERVER) && back.orphans().isEmpty(),
+        "odd socket saved");
   }
 
   private static void installParts(String gear) {
     MachineParts.install(
         MachineParts.parse(
             Map.of(
-                ResourceLocation.parse("smoke:gear"), JsonParser.parseString(gear),
-                ResourceLocation.parse("smoke:motor"), JsonParser.parseString(MOTOR)),
+                ResourceLocation.parse("smoke:gear"),
+                JsonParser.parseString(gear),
+                ResourceLocation.parse("smoke:motor"),
+                JsonParser.parseString(MOTOR),
+                ResourceLocation.parse("smoke:observer"),
+                JsonParser.parseString(
+                    "{\"item\": \"minecraft:observer\", \"socket\": \"orphans\", \"modifiers\":"
+                        + " []}")),
             MachinePartsLoader::subject));
   }
 

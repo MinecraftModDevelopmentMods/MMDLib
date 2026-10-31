@@ -1,5 +1,6 @@
 package zone.moddev.mc.lib.machine.expr;
 
+import java.math.BigDecimal;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.TreeSet;
@@ -85,9 +86,10 @@ public sealed interface Expr {
       return value;
     }
 
+    /** Plain decimal notation, which {@link #parse} reads back (it has no exponents). */
     @Override
     public String toString() {
-      return Double.toString(value);
+      return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
   }
 

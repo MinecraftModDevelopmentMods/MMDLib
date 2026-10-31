@@ -35,6 +35,7 @@ import zone.moddev.mc.lib.machine.stat.StatModifier;
  * change; stats only count those that still resolve to their socket.
  */
 public final class MachineInternals {
+  private static final String SOCKETS = "sockets";
   private static final String ORPHANS = "orphans";
 
   private final InternalsDefinition definition;
@@ -173,17 +174,19 @@ public final class MachineInternals {
   }
 
   /**
-   * Saves the parts by socket name ({@code {"gears": [part, ...]}}), so a later change to the
-   * socket layout can't move a part into the wrong socket.
+   * Saves the parts by socket name ({@code {"sockets": {"gears": [part, ...]}, "orphans": [...]}}),
+   * so a later change to the socket layout can't move a part into the wrong socket.
    */
   public CompoundTag save(HolderLookup.Provider provider) {
-    var tag = new CompoundTag();
+    var saved = new CompoundTag();
     for (var socket : definition.sockets().keySet()) {
       var list = new ListTag();
       for (int slot : definition.slots(socket))
         list.add(saveStack(provider, sockets.getStackInSlot(slot)));
-      tag.put(socket, list);
+      saved.put(socket, list);
     }
+    var tag = new CompoundTag();
+    tag.put(SOCKETS, saved);
     if (!orphans.isEmpty()) {
       var list = new ListTag();
       orphans.forEach(stack -> list.add(saveStack(provider, stack)));
@@ -200,18 +203,22 @@ public final class MachineInternals {
     for (int slot = 0; slot < sockets.getSlots(); slot++)
       sockets.setStackInSlot(slot, ItemStack.EMPTY);
     orphans.clear();
-    for (var key : tag.getAllKeys()) {
-      var list = tag.getList(key, Tag.TAG_COMPOUND);
+    var saved = tag.getCompound(SOCKETS);
+    for (var socket : saved.getAllKeys()) {
+      var list = saved.getList(socket, Tag.TAG_COMPOUND);
       var slots =
-          !key.equals(ORPHANS) && definition.sockets().containsKey(key)
-              ? definition.slots(key)
-              : List.<Integer>of();
+          definition.sockets().containsKey(socket) ? definition.slots(socket) : List.<Integer>of();
       for (int i = 0; i < list.size(); i++) {
         var stack = ItemStack.parseOptional(provider, list.getCompound(i));
         if (stack.isEmpty()) continue;
         if (i < slots.size()) sockets.setStackInSlot(slots.get(i), stack);
         else orphans.add(stack);
       }
+    }
+    var list = tag.getList(ORPHANS, Tag.TAG_COMPOUND);
+    for (int i = 0; i < list.size(); i++) {
+      var stack = ItemStack.parseOptional(provider, list.getCompound(i));
+      if (!stack.isEmpty()) orphans.add(stack);
     }
     changed();
   }
