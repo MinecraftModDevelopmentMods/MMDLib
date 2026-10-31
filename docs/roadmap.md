@@ -55,6 +55,12 @@
 
 These are flagged for consideration, not committed work.
 
+### Machine module
+
+Machine ingredients and recipes across items, fluids and energy, transactions, a processing
+loop, then machines defined entirely in JSON; also the plan for NeoForge 26.1 and Fabric 26.3
+builds. Designed, not started: see [machine module](machine-module/README.md).
+
 ### KubeJS and CraftTweaker recipe integrations
 
 Optional polish over the generic support above, each loaded only when that mod is present: a

@@ -90,10 +90,13 @@ is checked every tick, keep a NeoForge `BlockCapabilityCache` instead.
 
 ## Notes
 
-- **Planned: side configuration per resource group.** The GUI design configures sides per
-  group of slots or tanks (item input, item output, a tank, energy), Industrial Foregoing
-  style. Today a `SideConfig` applies to a whole storage; views will gain a per-slot (and
-  per-tank) mode so each group can have its own `SideConfig` without changing slot numbering.
+- **Side configuration per resource group.** The screen's `<side-config>` view edits one
+  `SideConfig` per group (item input, item output, a tank, energy), Industrial Foregoing style;
+  the block entity returns them from `ScreenHost.screenSides()`. A view still takes one mode per
+  face for the whole storage, so the mod's `sides` function decides how groups combine. When
+  groups differ by `Role`, take insert from the input group and extract from the output group;
+  see [machines](machines.md#side-configuration-with-several-groups-on-one-storage). A per-slot
+  mode in the views, which would remove that step, is not implemented.
 
 - `ItemStorage` keeps the slot count given to its constructor. Loading a save that has more
   slots drops the stacks that no longer fit. `FluidStorage` loads its tanks by index.

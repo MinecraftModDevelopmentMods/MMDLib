@@ -71,8 +71,14 @@ show empty filters. No real items move through this path.
 
 Bind the block's `block-right-click` event to `mmdlib:open_menu`. This handler first looks for an
 XML screen matching the clicked block entity's type; otherwise it uses the block's own vanilla
-menu provider. It consumes matching clicks on both sides and opens only on the server. A direct
-code caller may use `ScreenRuntime.open(player, blockEntity)`.
+menu provider. It consumes matching clicks on both sides and opens only on the server. A click
+holding a fluid container on a face that has a fluid handler is left alone, so the block's own
+item use can fill or empty the tank; MMDLib's `MaterialEntityBlock` does not do that itself (see
+[machines](machines.md#buckets-and-fluid-containers)). A direct code caller may use
+`ScreenRuntime.open(player, blockEntity)`.
+
+`screenSides()` keys must equal the element `id`s named in `<side-config groups="...">`; a group
+with no entry in the map is listed, but shows no modes and ignores clicks.
 
 Click extension methods use event type `gui-click` and signature `public static void method(ScreenClick click)`.
 The context supplies the player, menu, element, mouse button, Shift/Control/Alt state, and selected
@@ -160,10 +166,11 @@ a compact meter, a few controls, an upgrade tab, and a side-configuration view:
 
       <view id="sides" title="screen.mmdlib.side_config">
         <side-config groups="input output water energy"/>
-        <radio-group label="screen.mmdlib.redstone" value="#getRedstoneMode" on-click="mmdlib:set_redstone_mode">
-          <radio text="screen.mmdlib.redstone.ignore"/>
-          <radio text="screen.mmdlib.redstone.high"/>
-          <radio text="screen.mmdlib.redstone.low"/>
+        <!-- Redstone control is the mod's own: MMDLib ships no handler or keys for it. -->
+        <radio-group label="screen.example.redstone" value="#getRedstoneMode" on-click="example:set_redstone_mode">
+          <radio text="screen.example.redstone.ignore"/>
+          <radio text="screen.example.redstone.high"/>
+          <radio text="screen.example.redstone.low"/>
         </radio-group>
       </view>
     </context>

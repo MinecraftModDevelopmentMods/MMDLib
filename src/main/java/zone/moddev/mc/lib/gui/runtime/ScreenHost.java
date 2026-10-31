@@ -11,6 +11,10 @@ import zone.moddev.mc.lib.api.capabilities.SideConfig;
 
 /** Implement on a block entity to expose its inventory and side groups to a data-defined menu. */
 public interface ScreenHost {
+  /**
+   * The inventory behind the screen's {@code <slot index>} elements, numbered as in the XML;
+   * returning an {@code ItemStorage} keeps its output restrictions and filters for players.
+   */
   IItemHandlerModifiable screenItems();
 
   /** Ordered destinations for a player inventory stack; storage still decides what it accepts. */
@@ -23,6 +27,10 @@ public interface ScreenHost {
     return new int[0];
   }
 
+  /**
+   * The side configuration of each group, keyed by the element ids in {@code <side-config
+   * groups>}; a group missing from the map shows no modes and ignores clicks.
+   */
   default Map<String, SideConfig> screenSides() {
     return Map.of();
   }
@@ -32,6 +40,7 @@ public interface ScreenHost {
     return false;
   }
 
+  /** The authoritative filter shown in ghost slot {@code slot}; empty for none. */
   default ItemStack screenGhost(int slot) {
     return ItemStack.EMPTY;
   }
