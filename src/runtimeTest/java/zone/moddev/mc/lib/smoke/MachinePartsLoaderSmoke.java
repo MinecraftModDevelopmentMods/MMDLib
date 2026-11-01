@@ -8,8 +8,8 @@ import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.machine.internals.MachineParts;
 
 /**
- * Checks that part files in a real datapack reach {@link MachineParts#current()} through the reload
- * listener. The smoke init script copies {@code src/runtimeTest/datapack} into the smoke world.
+ * Checks that part files shipped as resources ({@code src/runtimeTest/resources/data/mmdlib_smoke})
+ * reach {@link MachineParts#current()} through the reload listener.
  */
 final class MachinePartsLoaderSmoke {
   private MachinePartsLoaderSmoke() {}

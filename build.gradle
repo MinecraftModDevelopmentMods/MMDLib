@@ -68,7 +68,7 @@ tasks.configureEach { task ->
             || task.name.startsWith('test')
             || task.name in ['compileTestJava', 'compileBuilderTestJava', 'compileRuntimeTestJava',
                     'writeMinecraftClasspathJunit', 'writeMinecraftClasspathClient', 'writeMinecraftClasspathServer',
-                    'runClient', 'runServer']) {
+                    'runClient', 'runServer', 'runGameTestServer']) {
         task.mustRunAfter(refreshDataResources)
     }
 }

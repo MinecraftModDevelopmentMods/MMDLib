@@ -13,6 +13,32 @@ sourceSets {
 }
 tasks.named('check') { dependsOn tasks.named('compileRuntimeTestJava') }
 
+// Server game tests in src/runtimeTest (MMDLibGameTests): `./gradlew runGameTestServer`, part of
+// `check`. The run loads main and runtimeTest as one mod, in a fresh world each time, and exits
+// with the number of failed tests. Release jars never contain runtimeTest (verifyReleaseClasses).
+def gameTestDir = layout.buildDirectory.dir('gametest')
+runs {
+    gameTestServer {
+        workingDirectory gameTestDir
+        modSource project.sourceSets.runtimeTest
+        systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib'
+    }
+}
+// NeoGradle creates the run task late, so it is found by name.
+def gameTestTask = tasks.matching { it.name == 'runGameTestServer' }
+gameTestTask.configureEach { it.doFirst { project.delete(gameTestDir); gameTestDir.get().asFile.mkdirs() } }
+tasks.named('check') { dependsOn gameTestTask }
+
+// Unit tests in src/test: JUnit 5, no running game. `./gradlew test` (part of `check`).
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    testLogging { events 'failed'; exceptionFormat 'full' }
+}
+
 // Standalone checks in src/builderTest, run as plain Java programs: task name -> main class
 // (in zone.moddev.mc.lib.common.builders), plus any system properties the check reads.
 def resources = file('src/main/resources').absolutePath
@@ -32,7 +58,6 @@ def builderChecks = [
     verifyMethodEvents      : ['MethodEventsTest'],
     verifyDefinitionLoader  : ['DefinitionLoaderTest'],
     verifyScreens           : ['zone.moddev.mc.lib.gui.ScreenLoaderTest'],
-    verifyMachineCore       : ['zone.moddev.mc.lib.machine.MachineCoreTest'],
     verifyVanillaExamples   : ['VanillaExamplesTest', ['mmdlib.resources': resources,
                                                        'mmdlib.generated': file('src/generated/resources').absolutePath]],
 ]
@@ -52,8 +77,9 @@ def verifyReleaseClasses = tasks.register('verifyReleaseClasses') {
     dependsOn tasks.named('jar')
     doLast {
         new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { archive ->
-            def leaked = archive.entries().findAll { entry -> entry.name.startsWith('zone/moddev/mc/lib/smoke/') }
-            if (!leaked.isEmpty()) throw new GradleException('Runtime smoke-test classes must not be packaged: ' + leaked)
+            def testOnly = ['zone/moddev/mc/lib/smoke/', 'data/mmdlib_smoke/', 'data/mmdlib/structure/']
+            def leaked = archive.entries().findAll { entry -> testOnly.any { entry.name.startsWith(it) } }
+            if (!leaked.isEmpty()) throw new GradleException('Test classes and data must not be packaged: ' + leaked.collect { it.name })
         }
     }
 }

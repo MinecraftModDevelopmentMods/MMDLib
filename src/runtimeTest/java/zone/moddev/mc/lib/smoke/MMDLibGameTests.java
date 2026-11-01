@@ -1,0 +1,94 @@
+package zone.moddev.mc.lib.smoke;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+
+import net.neoforged.neoforge.gametest.GameTestHolder;
+import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+
+/**
+ * MMDLib's server game tests, run by {@code ./gradlew runGameTestServer}. Each one runs a check in
+ * an empty 5×5×5 structure ({@code mmdlib:empty}) and passes when the check returns; a thrown error
+ * fails it with that error's message. The server exits with the number of failed tests.
+ */
+@GameTestHolder("mmdlib")
+@PrefixGameTestTemplate(false)
+public final class MMDLibGameTests {
+  private static final String EMPTY = "empty";
+
+  private MMDLibGameTests() {}
+
+  @GameTest(template = EMPTY)
+  public static void contentRegistered(GameTestHelper helper) {
+    ContentSmoke.registered();
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void blocksPlace(GameTestHelper helper) {
+    ContentSmoke.blocksPlace(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void ammunitionRecovers(GameTestHelper helper) {
+    ContentSmoke.ammunitionRecovers(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void bucketsPlaceAndRecover(GameTestHelper helper) {
+    ContentSmoke.bucketsPlaceAndRecover(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void crackhammerCrushesDrops(GameTestHelper helper) {
+    ContentSmoke.crackhammerCrushesDrops(
+        helper.getLevel(), helper.absolutePos(new BlockPos(2, 1, 2)));
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void toolsAndArmor(GameTestHelper helper) throws Exception {
+    ContentSmoke.toolsAndArmor();
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void capabilities(GameTestHelper helper) {
+    CapabilitySmoke.check(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void standaloneMachine(GameTestHelper helper) {
+    MachineSmoke.check(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machinePartsLoad(GameTestHelper helper) {
+    MachinePartsLoaderSmoke.check();
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineInternals(GameTestHelper helper) {
+    MachineInternalsSmoke.check(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineInventory(GameTestHelper helper) {
+    MachineInventorySmoke.check(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipes(GameTestHelper helper) {
+    MachineRecipeSmoke.check(helper.getLevel());
+    helper.succeed();
+  }
+}
