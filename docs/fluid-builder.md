@@ -70,5 +70,5 @@ using deferred suppliers for their circular references. This builder does not
 register fluids, provide runtime flow behavior, install renderers, generate tags,
 or implement interaction callbacks. The startup loader now loads material plans, and RuntimeContentRegistrar applies their fluid families; see [the vanilla example](vanilla-extensions.md).
 
-verifyFluidBuilder runs under check/build and covers material isolation, family
+`FluidBuilderTest` (JUnit, part of `./gradlew check`) covers material isolation, family
 IDs, validation, optional companion definitions, and JSON/NBT round trips.

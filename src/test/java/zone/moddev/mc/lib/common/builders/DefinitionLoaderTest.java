@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot;
@@ -18,7 +20,8 @@ public final class DefinitionLoaderTest {
     calls.incrementAndGet();
   }
 
-  public static void main(String[] args) throws Exception {
+  @Test
+  void loadsDefinitionsAcrossMods() throws Exception {
     Path temporary = Files.createTempDirectory("mmdlib-loading");
     var loader = DefinitionLoaderTest.class.getClassLoader();
     try {
@@ -255,10 +258,6 @@ public final class DefinitionLoaderTest {
           DefinitionLoader.load(List.of(), new MaterialExtensions(), mod -> false)
               .materials()
               .isEmpty());
-      System.out.println(
-          "Folder dispatch, cross-mod staging, extension handles, IDs, duplicates, optional mods,"
-              + " standalone blocks with block entities, standalone items, and mounted ZIP loading"
-              + " passed");
     } finally {
       try (var paths = Files.walk(temporary)) {
         for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList())

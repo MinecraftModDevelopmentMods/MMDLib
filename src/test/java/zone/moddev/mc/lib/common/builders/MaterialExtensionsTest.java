@@ -17,6 +17,8 @@ import net.neoforged.bus.api.BusBuilder;
 import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.*;
 import zone.moddev.mc.lib.common.codecs.MMDMaterialCodec;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
@@ -31,7 +33,8 @@ public final class MaterialExtensionsTest {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  @Test
+  void customTypesPlanAndDispatch() throws Exception {
     var api = new MaterialExtensions();
     var codec = MMDMaterialCodec.forExtensions(api); // created before the types are registered
     AtomicInteger templateCalls = new AtomicInteger();
@@ -219,9 +222,6 @@ public final class MaterialExtensionsTest {
             .selection()
             .customItems()
             .isEmpty());
-    System.out.println(
-        "Custom type selection/planning, typed callbacks, NeoForge event bridge, optional mods, and"
-            + " error checks passed");
   }
 
   private static void require(boolean condition) {

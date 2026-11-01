@@ -9,13 +9,16 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
 import zone.moddev.mc.lib.common.types.MaterialPart;
 import zone.moddev.mc.lib.common.types.MaterialParts;
 
 public final class MaterialPartsTest {
-  public static void main(String[] args) {
+  @Test
+  void plansCanonicalParts() {
     require(ModuleCatalog.bundled().parts().entries().size() == 55);
     for (var part : ModuleCatalog.bundled().parts().entries().values()) {
       var encoded =
@@ -227,9 +230,6 @@ public final class MaterialPartsTest {
               .parse(JsonOps.INSTANCE, JsonParser.parseString(invalid))
               .error()
               .isPresent());
-    System.out.println(
-        "55 canonical material parts, optional Mekanism gating, projectile companions, and default"
-            + " fluid planning passed");
   }
 
   private static void require(boolean condition) {

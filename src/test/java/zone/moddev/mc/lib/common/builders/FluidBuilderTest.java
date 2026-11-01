@@ -10,11 +10,14 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.common.codecs.FluidTemplate;
 import zone.moddev.mc.lib.common.parsers.FluidParser;
 
 public final class FluidBuilderTest {
-  public static void main(String[] args) {
+  @Test
+  void buildsFluidFamilies() {
     var root = FluidBuilder.create();
     require(root == FluidBuilder.INSTANCE);
     var template =
@@ -125,9 +128,6 @@ public final class FluidBuilderTest {
               .parse(JsonOps.INSTANCE, JsonParser.parseString(invalid))
               .error()
               .isPresent());
-    System.out.println(
-        "Fluid builder, family IDs, optional block/bucket binding, validation, and JSON/NBT checks"
-            + " passed");
   }
 
   private static void require(boolean condition) {

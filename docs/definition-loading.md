@@ -154,7 +154,7 @@ runtime registrar. Machine and custom world-entity wiring still uses its dedicat
 factory APIs. See [the playable vanilla example](vanilla-extensions.md). This stage does not discover enabled world datapacks or add registry IDs on
 ordinary datapack reload.
 
-`verifyDefinitionLoader` checks cross-mod module and handler references, delayed
+`DefinitionLoaderTest` (JUnit) checks cross-mod module and handler references, delayed
 material decoding, namespace/nested IDs, optional-mod filtering, duplicate IDs,
 malformed files, immutable results, reversed source order, and mounted ZIP paths.
 Lifecycle placement is checked against the pinned loader sources; an actual

@@ -6,11 +6,14 @@ import com.mojang.serialization.JsonOps;
 
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.common.codecs.ItemTemplate;
 import zone.moddev.mc.lib.common.parsers.ItemParser;
 
 public final class ItemTemplateTest {
-  public static void main(String[] args) {
+  @Test
+  void templateRoundTripsAndValidates() {
     var json =
         JsonParser.parseString(
                 """
@@ -66,8 +69,6 @@ public final class ItemTemplateTest {
                 .get(0)
                 .count()
             == 2);
-    System.out.println(
-        "DFU item template round-trip, parser, attributes, and validation checks passed");
   }
 
   private static void require(boolean condition) {

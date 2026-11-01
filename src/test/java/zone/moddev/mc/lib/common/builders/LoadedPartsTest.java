@@ -10,6 +10,8 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.codecs.MMDMaterialCodec;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
@@ -18,7 +20,8 @@ import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import zone.moddev.mc.lib.common.types.*;
 
 public final class LoadedPartsTest {
-  public static void main(String[] args) {
+  @Test
+  void loadedPartsKeepTheirIdentities() {
     var api = new MaterialExtensions(false);
     var codec = MMDMaterialCodec.forExtensions(api); // resolves the catalog at each operation
     var factory = new MaterialFactory(api, mod -> false);
@@ -182,9 +185,6 @@ public final class LoadedPartsTest {
     expectFailure(() -> api.registerItemModule(id("addon:dart"), gated));
     expectFailure(() -> api.registerBlockModule(id("addon:needle"), panel));
     require(api.snapshot().parts().entries().size() == 4);
-    System.out.println(
-        "Loaded part identities, aliases, independent catalogs, projectile companions, behaviors,"
-            + " and scoped codecs passed");
   }
 
   private static ResourceLocation id(String value) {

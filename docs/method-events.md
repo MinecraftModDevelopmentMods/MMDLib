@@ -268,7 +268,7 @@ A simple `registerEvent(name, Context.class)` accepts one `Context` argument by
 default. Event contracts are extensible even though the initial player, weapon,
 and tool contracts are bundled.
 
-`verifyMethodEvents` checks real method resolution and invocation, caller-supplied
+`MethodEventsTest` (JUnit) checks real method resolution and invocation, caller-supplied
 class loaders, ID/material dispatch, multiple handlers for one type, error and
 exception paths, failed-file atomicity, and JSON/NBT round trips. Built-in method
 signatures are resolved without constructing a Minecraft world. In-game armor,

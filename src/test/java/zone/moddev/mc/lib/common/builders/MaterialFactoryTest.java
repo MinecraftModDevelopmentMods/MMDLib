@@ -12,13 +12,16 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.common.codecs.MMDMaterialCodec;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import zone.moddev.mc.lib.common.types.*;
 
 public final class MaterialFactoryTest {
-  public static void main(String[] args) throws Exception {
+  @Test
+  void buildsMaterialsFromSections() throws Exception {
     var root = MaterialBuilder.create();
     require(root == MaterialBuilder.INSTANCE);
     var template =
@@ -251,9 +254,6 @@ public final class MaterialFactoryTest {
     } finally {
       Files.delete(file);
     }
-    System.out.println(
-        "Material builder/factory, section selections, stats, optional mods, and JSON/NBT checks"
-            + " passed");
   }
 
   private static void require(boolean condition) {

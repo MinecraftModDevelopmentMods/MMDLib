@@ -93,7 +93,7 @@ placement rules, goals, and other relevant NeoForge registrations. Arrows/bolts
 can implement this interface, including their own ammunition pickup and spawn
 synchronization; no projectile-specific implementation is installed yet.
 
-verifyEntityBuilder runs with check/build. It covers immutable material branches,
+`EntityBuilderTest` (JUnit, part of `./gradlew check`) covers immutable material branches,
 defensive factory data, codec round trips, factory lookup/class mismatch/errors,
 and factory-specific settings validation. Actual spawning, persistence, rendering,
 and type registration need verification in a running NeoForge instance.

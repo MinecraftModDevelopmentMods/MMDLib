@@ -16,6 +16,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.*;
 import zone.moddev.mc.lib.api.MaterialEventContexts.ToolTarget;
 import zone.moddev.mc.lib.common.codecs.EventExtension;
@@ -97,7 +99,8 @@ public final class MethodEventsTest {
     public static void text(String value) {}
   }
 
-  public static void main(String[] args) throws Throwable {
+  @Test
+  void resolvesAndInvokesMethodEvents() throws Throwable {
     var api = new MaterialExtensions(false);
     var events = api.events();
     var message = events.registerEvent("test:message", String.class);
@@ -347,9 +350,6 @@ public final class MethodEventsTest {
     } finally {
       Files.delete(file);
     }
-    System.out.println(
-        "Load-time MethodHandles, typed signatures, ID/material dispatch, atomic failures, class"
-            + " loaders, and JSON/NBT checks passed");
   }
 
   private static EventExtension.Handler binding(String type, String reference, String id) {

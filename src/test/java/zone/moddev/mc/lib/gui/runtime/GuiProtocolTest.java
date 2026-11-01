@@ -5,7 +5,8 @@ import java.util.*;
 
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.chat.Component;
+
+import org.junit.jupiter.api.Test;
 
 import io.netty.buffer.Unpooled;
 
@@ -13,7 +14,8 @@ import zone.moddev.mc.lib.gui.client.ScreenText;
 
 /** Protocol and snapshot regression checks, including numbers far beyond long or double range. */
 public final class GuiProtocolTest {
-  public static void main(String[] args) {
+  @Test
+  void wireRoundTrips() {
     var access = RegistryAccess.EMPTY;
     var huge = BigInteger.TEN.pow(2000).add(BigInteger.valueOf(43));
     var before = new HashMap<Integer, Object>();
@@ -62,9 +64,6 @@ public final class GuiProtocolTest {
       throw new AssertionError("Out-of-range button accepted");
     } catch (IllegalArgumentException expected) {
     }
-    System.out.println(
-        "GUI wire round trips, arbitrary precision, immutable snapshots, deltas, and button channel"
-            + " passed");
   }
 
   private static void require(boolean condition, String label) {

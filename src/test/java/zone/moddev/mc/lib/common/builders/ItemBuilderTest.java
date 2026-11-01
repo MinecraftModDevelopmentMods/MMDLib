@@ -7,10 +7,13 @@ import java.util.List;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.util.StackContext;
 
 public final class ItemBuilderTest {
-  public static void main(String[] args) {
+  @Test
+  void buildsMaterialItems() {
     require(ItemBuilder.create() == ItemBuilder.INSTANCE);
     var root = ItemBuilder.INSTANCE;
     var template = root.setName("mmdlib:ingot");
@@ -85,7 +88,6 @@ public final class ItemBuilderTest {
     expectFailure(() -> copper.setMaxStackSize(0));
     expectFailure(() -> copper.setMaxDamage(-1));
     expectFailure(() -> copper.setUseTime(-1));
-    System.out.println("Immutable material item template checks passed");
   }
 
   private static void require(boolean value) {

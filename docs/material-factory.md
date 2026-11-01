@@ -104,7 +104,7 @@ to execute the previous incomplete JSLT transform.
 These operations create definitions, not registered Minecraft items/blocks,
 fluids, or entity types. Concrete behavior factories, parent inheritance,
 automatic mod-resource discovery, and the final registry/application stage remain
-separate work. verifyMaterialFactory runs with check/build and covers exclusions,
+separate work. `MaterialFactoryTest` (JUnit, part of `./gradlew check`) covers exclusions,
 section validation, JSON/NBT round trips, material stats, optional-mod gates,
 factory overrides, and identity binding.
 

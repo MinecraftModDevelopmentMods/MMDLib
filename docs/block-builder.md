@@ -65,6 +65,6 @@ conflicting embedded names fail. Properties are nested under `properties`.
 The paired item uses ItemTemplate.CODEC; custom shapes/state-dependent properties
 and specialized block classes remain content-factory concerns.
 
-`verifyBlockBuilder` runs with Gradle check/build, testing chain isolation,
+`BlockBuilderTest` (JUnit, part of `./gradlew check`) tests chain isolation,
 material/item binding, validation, and JSON/NBT round trips. The overall material
 loading and object-registration pipeline remains unfinished.
