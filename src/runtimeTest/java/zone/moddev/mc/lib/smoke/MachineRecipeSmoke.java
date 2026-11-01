@@ -204,6 +204,33 @@ final class MachineRecipeSmoke {
             .map(error -> error.message().contains("'items', 'fluids' or 'energy'"))
             .orElse(false),
         "both keys refused");
+    var bothOut =
+        MachineRecipe.CODEC
+            .codec()
+            .parse(
+                ops,
+                JsonParser.parseString(
+                    "{\"inputs\": {\"energy\": [{\"energy\": 1}]}, \"outputs\": {\"output\":"
+                        + " [{\"item\": {\"id\": \"minecraft:stone\"}, \"fluid\": {\"id\":"
+                        + " \"minecraft:water\", \"amount\": 10}}]}, \"time\": 1}"));
+    require(
+        bothOut.error().map(error -> error.message().contains("'item' or 'fluid'")).orElse(false),
+        "item and fluid on one output refused, got " + bothOut);
+    var neitherOut =
+        MachineRecipe.CODEC
+            .codec()
+            .parse(
+                ops,
+                JsonParser.parseString(
+                    "{\"inputs\": {\"energy\": [{\"energy\": 1}]}, \"outputs\": {\"output\":"
+                        + " [{\"chance\": 0.5}]}, \"time\": 1}"));
+    require(
+        neitherOut
+            .error()
+            .map(error -> error.message().contains("'item' or 'fluid'"))
+            .orElse(false),
+        "output with neither key refused, got " + neitherOut);
+    mixedOutputs(ops);
     require(
         MachineRecipe.CODEC
             .codec()
@@ -216,6 +243,38 @@ final class MachineRecipeSmoke {
             .sameFluid(
                 new FluidAmount(Fluids.WATER.builtInRegistryHolder(), DataComponentPatch.EMPTY, 9)),
         "same fluid");
+  }
+
+  /** One recipe that makes an item and a fluid: both land, or neither does. */
+  private static void mixedOutputs(RegistryOps<com.google.gson.JsonElement> ops) {
+    var mixed =
+        recipe(
+            ops,
+            """
+            {
+              "inputs":  { "input": [{ "items": { "item": "minecraft:copper_ore" } }] },
+              "outputs": {
+                "output": [{ "item":  { "id": "minecraft:raw_copper", "count": 2 } }],
+                "water":  [{ "fluid": { "id": "minecraft:water", "amount": 100 } }]
+              },
+              "time": 10
+            }
+            """);
+    var run = new Crusher(1, 1_000, 0, true);
+    require(RecipeMatcher.check(mixed, run.inventory).ok(), "item and fluid outputs match");
+    require(RecipeMatcher.produce(mixed, run.inventory, fixed(.5F)), "item and fluid produced");
+    require(
+        run.items.getStackInSlot(1).is(Items.RAW_COPPER)
+            && run.items.getStackInSlot(1).getCount() == 2,
+        "item output");
+    require(run.fluids.getFluidInTank(0).getAmount() == 1_100, "fluid output");
+
+    // The tank is full: the item would fit, but nothing is made.
+    var full = new Crusher(1, 4_000, 0, true);
+    expect(RecipeMatcher.check(mixed, full.inventory), Reason.NO_ROOM, "water", 0);
+    require(!RecipeMatcher.produce(mixed, full.inventory, fixed(.5F)), "blocked by the tank");
+    require(full.items.getStackInSlot(1).isEmpty(), "item rolled back when the fluid can't fit");
+    require(full.fluids.getFluidInTank(0).getAmount() == 4_000, "tank untouched");
   }
 
   private static MachineRecipe recipe(RegistryOps<com.google.gson.JsonElement> ops, String json) {

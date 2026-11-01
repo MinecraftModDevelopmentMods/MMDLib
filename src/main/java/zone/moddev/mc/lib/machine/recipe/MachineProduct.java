@@ -1,9 +1,14 @@
 package zone.moddev.mc.lib.machine.recipe;
 
-import com.mojang.datafixers.util.Either;
+import java.util.List;
+import java.util.stream.Stream;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.world.item.ItemStack;
@@ -20,16 +25,8 @@ public sealed interface MachineProduct
   /** The chance this product is made on a run, in (0, 1]. */
   float chance();
 
-  /** The JSON form. */
-  Codec<MachineProduct> CODEC =
-      Codec.either(ItemProduct.CODEC.codec(), FluidProduct.CODEC.codec())
-          .xmap(
-              either -> either.map(item -> (MachineProduct) item, fluid -> fluid),
-              product ->
-                  switch (product) {
-                    case ItemProduct item -> Either.left(item);
-                    case FluidProduct fluid -> Either.right(fluid);
-                  });
+  /** The JSON form: exactly one of {@code item} or {@code fluid}. */
+  Codec<MachineProduct> CODEC = new Dispatch().codec();
 
   /** An item stack. */
   record ItemProduct(ItemStack stack, float chance) implements MachineProduct {
@@ -74,5 +71,37 @@ public sealed interface MachineProduct
                     ? DataResult.success(chance)
                     : DataResult.error(() -> "Product chance must be in (0, 1]: " + chance))
         .optionalFieldOf("chance", 1F);
+  }
+
+  /** Picks the record by its key; none, or both, is an error naming the two keys. */
+  final class Dispatch extends MapCodec<MachineProduct> {
+    private static final List<String> KEYS = List.of("item", "fluid");
+
+    private Dispatch() {}
+
+    @Override
+    public <T> Stream<T> keys(DynamicOps<T> ops) {
+      return KEYS.stream().map(ops::createString);
+    }
+
+    @Override
+    public <T> DataResult<MachineProduct> decode(DynamicOps<T> ops, MapLike<T> input) {
+      var present = KEYS.stream().filter(key -> input.get(key) != null).toList();
+      if (present.size() != 1)
+        return DataResult.error(
+            () -> "A machine product needs exactly one of 'item' or 'fluid'; found " + present);
+      return present.getFirst().equals("item")
+          ? ItemProduct.CODEC.decode(ops, input).map(product -> product)
+          : FluidProduct.CODEC.decode(ops, input).map(product -> product);
+    }
+
+    @Override
+    public <T> RecordBuilder<T> encode(
+        MachineProduct input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+      return switch (input) {
+        case ItemProduct product -> ItemProduct.CODEC.encode(product, ops, prefix);
+        case FluidProduct product -> FluidProduct.CODEC.encode(product, ops, prefix);
+      };
+    }
   }
 }

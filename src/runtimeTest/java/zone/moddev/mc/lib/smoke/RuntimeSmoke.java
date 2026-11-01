@@ -192,6 +192,7 @@ public final class RuntimeSmoke {
       }
       CapabilitySmoke.check(level);
       MachineSmoke.check(level);
+      MachinePartsLoaderSmoke.check();
       MachineInternalsSmoke.check(level);
       MachineInventorySmoke.check(level);
       MachineRecipeSmoke.check(level);

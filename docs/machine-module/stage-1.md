@@ -176,21 +176,26 @@ The JSON shape (registering it as a recipe type is phase 2):
   },
   "outputs": {
     "output":    [{ "item": { "id": "minecraft:raw_copper", "count": 2 } }],
-    "byproduct": [{ "item": { "id": "minecraft:gravel" }, "chance": 0.25 }]
+    "byproduct": [{ "item": { "id": "minecraft:gravel" }, "chance": 0.25 }],
+    "water":     [{ "fluid": { "id": "minecraft:water", "amount": 100 } }]
   },
   "time": 200
 }
 ```
 
 Decode it with `MachineRecipe.CODEC` through `RegistryOps`, because item tags and fluid sets need
-registry access. Each ingredient has exactly one of `items`, `fluids` or `energy`. Energy is a
-`long`.
+registry access.
+
+- **Inputs:** each entry has exactly one of `items`, `fluids` or `energy`. Energy is a `long`.
+- **Outputs:** each entry has exactly one of `item` or `fluid`; an entry with both, or neither, is
+  an error. One recipe can make items and fluids together, each into a group of its kind, as
+  above.
 
 | Call | Does |
 |---|---|
 | `RecipeMatcher.check(recipe, inventory)` | Every input present and room for every product (chance counted as certain). Changes nothing. Returns a `MatchResult` naming the reason, the group key and the list index |
 | `RecipeMatcher.consume(recipe, inventory)` | Takes item and fluid inputs, all or nothing. Energy is not taken |
-| `RecipeMatcher.produce(recipe, inventory, random)` | Rolls chances and inserts the hits, all or nothing |
+| `RecipeMatcher.produce(recipe, inventory, random)` | Rolls chances and inserts the hits, all or nothing: if the fluid doesn't fit, the items aren't made either |
 
 Matching rules:
 
@@ -216,6 +221,9 @@ Matching rules:
   `AmountMatch`, without a running game.
 - `./gradlew verifyMachineImports`: no NeoForge imports outside `machine/neoforge`.
 - The server smoke run, `./gradlew runServer -I scripts/runtime-smoke.init.gradle`, adds
-  `MachineInternalsSmoke`, `MachineInventorySmoke` and `MachineRecipeSmoke`. They use MMDLib's
-  real iron gears and vanilla items. Run `./gradlew build` afterwards to restore the normal main
-  output.
+  `MachinePartsLoaderSmoke`, `MachineInternalsSmoke`, `MachineInventorySmoke` and
+  `MachineRecipeSmoke`. They use MMDLib's real iron gears and vanilla items. Run `./gradlew build`
+  afterwards to restore the normal main output.
+- The init script copies `src/runtimeTest/datapack` into the smoke world's `datapacks` folder.
+  `MachinePartsLoaderSmoke` checks that its part files arrive through the reload listener, and
+  that a file that doesn't decode is skipped.
