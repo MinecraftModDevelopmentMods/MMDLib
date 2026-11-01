@@ -242,12 +242,20 @@ public class MachineMenu extends AbstractContainerMenu {
       if (!moveItemStackTo(stack, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
     } else {
       if (host == null) return ItemStack.EMPTY;
+      var destinations = new ArrayList<Slot>();
       for (int destination : host.screenDestinations(stack))
         if (destination >= 0
             && destination < machineSlots
             && slots.get(destination).isActive()
             && slots.get(destination).mayPlace(stack))
-          moveItemStackTo(stack, destination, destination + 1, false);
+          destinations.add(slots.get(destination));
+      // Like vanilla's moveItemStackTo: top up matching stacks first, then fill empty slots.
+      for (var slot : destinations)
+        if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(slot.getItem(), stack))
+          moveItemStackTo(stack, slot.index, slot.index + 1, false);
+      for (var slot : destinations)
+        if (!stack.isEmpty() && !slot.hasItem())
+          moveItemStackTo(stack, slot.index, slot.index + 1, false);
       if (stack.getCount() == original.getCount()) return ItemStack.EMPTY;
     }
     if (stack.isEmpty()) source.setByPlayer(ItemStack.EMPTY);

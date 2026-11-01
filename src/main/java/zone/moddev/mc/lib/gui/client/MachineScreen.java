@@ -471,8 +471,20 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   private void tooltip(GuiGraphics g, Element e, int mx, int my) {
     if (!e.common().jeiRecipes().isEmpty() && recipeTooltip.test(this, e)) return;
+    // A filled slot's lines ride along in the item's own tooltip (getTooltipFromContainerItem).
+    if (e instanceof Element.Slot && hoveredSlot != null && hoveredSlot.hasItem()) return;
     var lines = tooltipLines(e, mx, my);
     if (!lines.isEmpty()) g.renderComponentTooltip(font, lines, mx, my);
+  }
+
+  @Override
+  protected List<Component> getTooltipFromContainerItem(ItemStack stack) {
+    var lines = super.getTooltipFromContainerItem(stack);
+    if (hovered instanceof Element.Slot slot && menu.slots.get(slot.index()) == hoveredSlot) {
+      lines = new ArrayList<>(lines);
+      lines.addAll(tooltipLines(slot, 0, 0));
+    }
+    return lines;
   }
 
   /** The tooltip lines of {@code e} with the mouse at {@code mx, my}; empty for none. */
