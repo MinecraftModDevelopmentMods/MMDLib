@@ -91,4 +91,34 @@ public final class MMDLibGameTests {
     MachineRecipeSmoke.check(helper.getLevel());
     helper.succeed();
   }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeTypeRegistered(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.registered();
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipesLoad(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.recipesLoad(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeLookup(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.lookupFinds(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeNetworkCodec(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.streamCodecRoundTrips(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeBuilder(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.builderMatchesFile(helper.getLevel());
+    helper.succeed();
+  }
 }

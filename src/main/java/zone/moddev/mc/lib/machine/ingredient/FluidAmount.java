@@ -8,6 +8,10 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 
@@ -38,6 +42,17 @@ public record FluidAmount(Holder<Fluid> fluid, DataComponentPatch components, in
                           .fieldOf("amount")
                           .forGetter(FluidAmount::amount))
                   .apply(instance, FluidAmount::new));
+
+  /** The network form. */
+  public static final StreamCodec<RegistryFriendlyByteBuf, FluidAmount> STREAM_CODEC =
+      StreamCodec.composite(
+          ByteBufCodecs.holderRegistry(Registries.FLUID),
+          FluidAmount::fluid,
+          DataComponentPatch.STREAM_CODEC,
+          FluidAmount::components,
+          ByteBufCodecs.VAR_INT,
+          FluidAmount::amount,
+          FluidAmount::new);
 
   /**
    * @throws IllegalArgumentException if {@code amount} is negative

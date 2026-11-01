@@ -17,6 +17,7 @@ import zone.moddev.mc.lib.api.MaterialEventTypes;
 import zone.moddev.mc.lib.common.recipes.CrushingRecipe;
 import zone.moddev.mc.lib.common.runtime.CrackhammerEvents;
 import zone.moddev.mc.lib.common.runtime.ItemEventBridge;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
 /**
  * Optional JEI integration. Only JEI loads this class (via {@link JeiPlugin}); nothing else in
@@ -57,6 +58,11 @@ public final class MMDLibJeiPlugin implements IModPlugin {
   public void registerCategories(IRecipeCategoryRegistration registration) {
     registration.addRecipeCategories(
         new CrushingCategory(registration.getJeiHelpers().getGuiHelper()));
+    var level = Minecraft.getInstance().level;
+    for (var type : machineRecipeTypes())
+      registration.addRecipeCategories(
+          MachineRecipeCategory.create(
+              type, level == null ? List.of() : type.recipes(level.getRecipeManager())));
   }
 
   @Override
@@ -67,6 +73,18 @@ public final class MMDLibJeiPlugin implements IModPlugin {
         level == null
             ? List.of()
             : level.getRecipeManager().getAllRecipesFor(CrushingRecipe.TYPE.get()));
+    if (level != null)
+      for (var type : machineRecipeTypes())
+        registration.addRecipes(
+            MachineRecipeCategory.recipeType(type), type.recipes(level.getRecipeManager()));
+  }
+
+  /** Every registered machine recipe type, whichever mod registered it. */
+  private static List<MachineRecipeType> machineRecipeTypes() {
+    return BuiltInRegistries.RECIPE_TYPE.stream()
+        .filter(MachineRecipeType.class::isInstance)
+        .map(MachineRecipeType.class::cast)
+        .toList();
   }
 
   /**

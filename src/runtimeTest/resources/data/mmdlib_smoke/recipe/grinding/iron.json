@@ -1,0 +1,13 @@
+{
+  "type": "mmdlib_smoke:grinding",
+  "inputs": {
+    "input":  [{ "items": { "item": "minecraft:iron_ore" } }],
+    "water":  [{ "fluids": "#minecraft:water", "amount": 100 }],
+    "energy": [{ "energy": 2000 }]
+  },
+  "outputs": {
+    "output": [{ "item": { "id": "minecraft:raw_iron", "count": 2 } }],
+    "water":  [{ "fluid": { "id": "minecraft:water", "amount": 50 } }]
+  },
+  "time": 100
+}

@@ -213,6 +213,27 @@ public final class GuiClientSmoke {
       MMDLib.LOGGER.info(
           "MMDLIB_GUI_SIDES_PASS: actual context navigation, hidden slots, side-face click and"
               + " authoritative sync");
+      if (!net.neoforged.fml.ModList.get().isLoaded("jei")) {
+        finished = true;
+        mc.stop();
+        return;
+      }
+      try {
+        GuiJeiSmoke.showMachineRecipes();
+      } catch (Throwable error) {
+        fail(error);
+        return;
+      }
+      frames = 0;
+      stage = 3;
+    }
+    // JEI's recipe screen replaces the machine screen, so wait by frames rather than ticks.
+    if (stage == 3 && ++frames == 30) {
+      Screenshot.grab(
+          mc.gameDirectory,
+          "gui-jei-machine-recipes.png",
+          mc.getMainRenderTarget(),
+          message -> MMDLib.LOGGER.info("JEI machine recipes screenshot: {}", message.getString()));
       finished = true;
       mc.stop();
     }
