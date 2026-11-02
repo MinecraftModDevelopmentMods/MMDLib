@@ -141,21 +141,18 @@ checks every planned item/block has its packaged resources, verifies no unwanted
 vanilla tool/armor duplicates, and round-trips the runtime references through
 JSON/NBT and MaterialBuilder.
 
-An opt-in, self-stopping server smoke test exercises real registration, block
-placement, ammunition stack recovery after entity save/load, fluid placement and
-bucket recovery, actual mining tags, and packaged armor texture references:
+Server game tests exercise real registration, block placement, ammunition stack
+recovery after entity save/load, fluid placement and bucket recovery, actual mining
+tags, and packaged armor texture references. They are part of `./gradlew check`, or
+run them alone:
 
 ```sh
-./gradlew runServer --offline --stacktrace -I scripts/runtime-smoke.init.gradle
-./gradlew build check --offline --stacktrace
+./gradlew runGameTestServer
 ```
 
-The smoke run uses `build/runtime-smoke/server`, loopback networking, and a random
-port. It stops itself and the Gradle task fails if the success marker is absent.
-Its entrypoint lives in `src/runtimeTest/java`, outside release sources; `./gradlew check`
-compiles it to prevent API drift. The second command restores regular
-main class output after the opt-in test run. The release JAR must contain no
-`zone/moddev/mc/lib/smoke` classes.
+Each check is its own game test in `MMDLibGameTests` (`src/runtimeTest/java`, outside
+release sources), and the task fails naming every test that failed. The release JAR
+must contain no `zone/moddev/mc/lib/smoke` classes.
 
 Verified on a dedicated development server: all 50 block items placed, all twelve
 arrow/bolt types preserved the correct pickup item and components across entity

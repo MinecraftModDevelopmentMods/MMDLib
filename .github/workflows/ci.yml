@@ -1,0 +1,68 @@
+name: CI
+
+# Every pull request runs the unit tests, the builder checks and the server game tests
+# (`./gradlew check`), then the client GUI smoke test with and without JEI.
+on:
+  pull_request:
+  push:
+    branches: [master-2.0-1.21.1-neo]
+
+jobs:
+  check:
+    name: Unit tests, checks and game tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Check
+        run: ./gradlew check --stacktrace
+
+      - name: Upload test reports and the game test log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: check-reports
+          path: |
+            build/reports/tests/
+            build/gametest/logs/
+          if-no-files-found: ignore
+
+  gui-smoke:
+    name: Client GUI smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+
+      # No display: Xvfb and Mesa's software OpenGL render the client off screen.
+      - name: Install Xvfb and Mesa
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: GUI smoke test with JEI
+        timeout-minutes: 20
+        run: xvfb-run -a ./gradlew runClient -I scripts/gui-smoke.init.gradle
+
+      - name: GUI smoke test without JEI
+        timeout-minutes: 20
+        run: xvfb-run -a ./gradlew runClient -PwithoutJei -I scripts/gui-smoke.init.gradle
+
+      - name: Upload the client logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gui-smoke-logs
+          path: |
+            build/gui-smoke/logs/
+            build/gui-smoke-without-jei/logs/
+          if-no-files-found: ignore
