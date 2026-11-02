@@ -62,7 +62,10 @@ public final class MMDLibJeiPlugin implements IModPlugin {
     for (var type : machineRecipeTypes())
       registration.addRecipeCategories(
           MachineRecipeCategory.create(
-              type, level == null ? List.of() : type.recipes(level.getRecipeManager())));
+              type,
+              level == null
+                  ? List.of()
+                  : MachineRecipeCategory.shown(type.recipes(level.getRecipeManager()))));
   }
 
   @Override
@@ -76,7 +79,8 @@ public final class MMDLibJeiPlugin implements IModPlugin {
     if (level != null)
       for (var type : machineRecipeTypes())
         registration.addRecipes(
-            MachineRecipeCategory.recipeType(type), type.recipes(level.getRecipeManager()));
+            MachineRecipeCategory.recipeType(type),
+            MachineRecipeCategory.shown(type.recipes(level.getRecipeManager())));
   }
 
   /** Every registered machine recipe type, whichever mod registered it. */

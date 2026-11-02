@@ -63,8 +63,9 @@ public final class GuiJeiSmoke {
   }
 
   /**
-   * The generic category for {@code mmdlib_smoke:grinding} lists both test recipes; the copper one
-   * lays out an ore and a water input and two products.
+   * The generic category for {@code mmdlib_smoke:grinding} lists the two test recipes that can run,
+   * not the two whose inputs name nothing; the copper one lays out an ore and a water input and two
+   * products; the iron one's water tag shows source water, not flowing water.
    */
   private static void checkMachineCategory(IJeiRuntime runtime) {
     var manager = runtime.getRecipeManager();
@@ -89,6 +90,27 @@ public final class GuiJeiSmoke {
     int outputs = slots.getSlotViews(mezz.jei.api.recipe.RecipeIngredientRole.OUTPUT).size();
     if (inputs != 2 || outputs != 2)
       throw new AssertionError("JEI machine slots: " + inputs + " in, " + outputs + " out");
+    var iron =
+        recipes.stream()
+            .filter(holder -> holder.id().getPath().equals("grinding/iron"))
+            .findFirst()
+            .orElseThrow();
+    var ironSlots =
+        manager
+            .createRecipeLayoutDrawable(
+                category, iron, runtime.getJeiHelpers().getFocusFactory().getEmptyFocusGroup())
+            .orElseThrow(() -> new AssertionError("JEI machine layout failed"))
+            .getRecipeSlotsView();
+    var inputFluids =
+        ironSlots.getSlotViews(mezz.jei.api.recipe.RecipeIngredientRole.INPUT).stream()
+            .flatMap(view -> view.getAllIngredients())
+            .map(mezz.jei.api.ingredients.ITypedIngredient::getIngredient)
+            .filter(net.neoforged.neoforge.fluids.FluidStack.class::isInstance)
+            .map(net.neoforged.neoforge.fluids.FluidStack.class::cast)
+            .toList();
+    if (inputFluids.size() != 1
+        || inputFluids.getFirst().getFluid() != net.minecraft.world.level.material.Fluids.WATER)
+      throw new AssertionError("JEI water tag shows: " + inputFluids);
     MMDLib.LOGGER.info(
         "MMDLIB_GUI_JEI_MACHINE_PASS: generic machine recipe category with {}x{} layout",
         category.getWidth(),

@@ -7,8 +7,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.level.material.Fluid;
 
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
@@ -28,7 +31,8 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
  * The JEI category MMDLib registers for every {@link MachineRecipeType}: item and fluid inputs, an
  * arrow, the products, then the energy and the time. It is sized for the largest recipe loaded. Its
  * title is the translation {@code jei.<namespace>.<path>} of the type's ID. A mod adds its machines
- * as catalysts from its own JEI plugin, with {@link #recipeType}.
+ * as catalysts from its own JEI plugin, with {@link #recipeType}. Recipes that can never run, such
+ * as one whose input is an empty tag from an optional mod, are left out.
  */
 public final class MachineRecipeCategory
     extends AbstractRecipeCategory<RecipeHolder<MachineRecipeEntry>> {
@@ -53,6 +57,24 @@ public final class MachineRecipeCategory
   /** The JEI recipe type of {@code type}, for catalysts and recipe lookups. */
   public static RecipeType<RecipeHolder<MachineRecipeEntry>> recipeType(MachineRecipeType type) {
     return RecipeType.createRecipeHolderType(type.id());
+  }
+
+  /** The recipes to show: those whose every input names at least one item or fluid. */
+  static List<RecipeHolder<MachineRecipeEntry>> shown(
+      Collection<RecipeHolder<MachineRecipeEntry>> recipes) {
+    return recipes.stream()
+        .filter(
+            holder ->
+                holder.value().recipe().inputs().values().stream()
+                    .flatMap(List::stream)
+                    .allMatch(
+                        part ->
+                            switch (part) {
+                              case MachineIngredient.ItemPart items -> !items.items().hasNoItems();
+                              case MachineIngredient.FluidPart fluids -> fluids.fluids().size() > 0;
+                              case MachineIngredient.EnergyPart energy -> true;
+                            }))
+        .toList();
   }
 
   /** A category for {@code type}, wide and tall enough for every recipe in {@code recipes}. */
@@ -84,9 +106,8 @@ public final class MachineRecipeCategory
                           .toList());
           case MachineIngredient.FluidPart fluids -> {
             var slot = slot(builder, RecipeIngredientRole.INPUT, 0, index++);
-            fluids
-                .fluids()
-                .forEach(fluid -> slot.addFluidStack(fluid.value(), fluids.millibuckets()));
+            for (var fluid : sources(fluids.fluids()))
+              slot.addFluidStack(fluid.value(), fluids.millibuckets());
             slot.setFluidRenderer(fluids.millibuckets(), false, 16, 16);
           }
           case MachineIngredient.EnergyPart energy -> {}
@@ -129,7 +150,8 @@ public final class MachineRecipeCategory
     if (energy > 0)
       lines.add(
           Component.translatable(
-              "jei.mmdlib.machine.energy", NumberFormat.getIntegerInstance().format(energy)));
+              "jei.mmdlib.machine.energy",
+              NumberFormat.getIntegerInstance(Locale.ROOT).format(energy)));
     lines.add(Component.translatable("jei.mmdlib.machine.time", seconds(recipe.time())));
     builder
         .addText(joined(lines), getWidth(), TEXT)
@@ -142,6 +164,14 @@ public final class MachineRecipeCategory
     return builder
         .addSlot(role, originX + index % COLUMNS * CELL + 1, index / COLUMNS * CELL + 1)
         .setStandardSlotBackground();
+  }
+
+  /** The source fluids of {@code fluids}, as a tag also lists flowing ones; all if none are. */
+  private static List<Holder<Fluid>> sources(HolderSet<Fluid> fluids) {
+    var sources =
+        fluids.stream().filter(fluid -> fluid.value().isSource(fluid.value().defaultFluidState()));
+    var list = sources.toList();
+    return list.isEmpty() ? fluids.stream().toList() : list;
   }
 
   private static int inputSlots(MachineRecipe recipe) {
@@ -167,7 +197,7 @@ public final class MachineRecipeCategory
   }
 
   private static String seconds(int ticks) {
-    var format = NumberFormat.getNumberInstance();
+    var format = NumberFormat.getNumberInstance(Locale.ROOT);
     format.setMaximumFractionDigits(2);
     return format.format(ticks / 20.0);
   }

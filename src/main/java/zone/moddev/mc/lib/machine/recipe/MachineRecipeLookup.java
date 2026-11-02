@@ -1,5 +1,6 @@
 package zone.moddev.mc.lib.machine.recipe;
 
+import java.util.Comparator;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -13,9 +14,13 @@ import zone.moddev.mc.lib.machine.inventory.MachineInventory;
 /**
  * Finds the recipe of one type that a machine can run now. It tries the machine's last recipe
  * first, by ID, so a {@code /reload} that changes or removes it is picked up. When several recipes
- * match, which one wins is unspecified; keep a type's recipes from overlapping.
+ * match, which one wins is unspecified; keep a type's recipes from overlapping. {@link #explain}
+ * says why nothing ran.
  */
 public final class MachineRecipeLookup {
+  /** A recipe and how it does in the machine now. */
+  public record Attempt(RecipeHolder<MachineRecipeEntry> recipe, MatchResult result) {}
+
   private final MachineRecipeType type;
   @Nullable private ResourceLocation last;
 
@@ -29,5 +34,30 @@ public final class MachineRecipeLookup {
         level.getRecipeManager().getRecipeFor(type, new MachineRecipeInput(inventory), level, last);
     found.ifPresent(holder -> last = holder.id());
     return found;
+  }
+
+  /**
+   * The recipe closest to running, for a screen or debugging: one that can run, then one with its
+   * inputs but no room for its products, then one missing an input, then one the machine doesn't
+   * suit. Between equals it picks the machine's last recipe, then the lowest ID. Empty only when
+   * the type has no recipes. It checks every recipe, so call it when the answer will be shown
+   * rather than every tick. Changes nothing.
+   */
+  public Optional<Attempt> explain(Level level, MachineInventory inventory) {
+    return type.recipes(level.getRecipeManager()).stream()
+        .map(holder -> new Attempt(holder, RecipeMatcher.check(holder.value().recipe(), inventory)))
+        .min(
+            Comparator.comparingInt((Attempt attempt) -> rank(attempt.result().reason()))
+                .thenComparing(attempt -> !attempt.recipe().id().equals(last))
+                .thenComparing(attempt -> attempt.recipe().id()));
+  }
+
+  private static int rank(MatchResult.Reason reason) {
+    return switch (reason) {
+      case OK -> 0;
+      case NO_ROOM -> 1;
+      case MISSING_INPUT -> 2;
+      case WRONG_KIND, NO_GROUP -> 3;
+    };
   }
 }

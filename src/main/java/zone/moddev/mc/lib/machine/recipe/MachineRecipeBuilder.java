@@ -91,13 +91,19 @@ public final class MachineRecipeBuilder {
   }
 
   /** {@code millibuckets} of {@code fluid}, every run. */
-  @SuppressWarnings("deprecation")
   public MachineRecipeBuilder outputFluid(String group, Fluid fluid, int millibuckets) {
+    return outputFluid(group, fluid, millibuckets, 1);
+  }
+
+  /** {@code millibuckets} of {@code fluid}, made with {@code chance} in (0, 1]. */
+  @SuppressWarnings("deprecation")
+  public MachineRecipeBuilder outputFluid(
+      String group, Fluid fluid, int millibuckets, float chance) {
     return output(
         group,
         new MachineProduct.FluidProduct(
             new FluidAmount(fluid.builtInRegistryHolder(), DataComponentPatch.EMPTY, millibuckets),
-            1));
+            chance));
   }
 
   /** How long a run takes, in ticks. */
@@ -109,10 +115,10 @@ public final class MachineRecipeBuilder {
   /**
    * The recipe.
    *
-   * @throws IllegalStateException if no time was set or there are no inputs
+   * @throws IllegalStateException if the time isn't at least 1 or there are no inputs
    */
   public MachineRecipe build() {
-    if (time == 0) throw new IllegalStateException("A machine recipe needs a time");
+    if (time < 1) throw new IllegalStateException("A machine recipe needs a time of at least 1");
     if (inputs.isEmpty()) throw new IllegalStateException("A machine recipe needs an input");
     return new MachineRecipe(inputs, outputs, time);
   }

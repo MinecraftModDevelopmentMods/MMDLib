@@ -113,6 +113,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void machineRecipeExplain(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.explainPicksTheClosest(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipeNetworkCodec(GameTestHelper helper) {
     MachineRecipeTypeSmoke.streamCodecRoundTrips(helper.getLevel());
     helper.succeed();

@@ -52,6 +52,7 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeBuilder;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeInput;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
+import zone.moddev.mc.lib.machine.recipe.MatchResult;
 
 /**
  * Registers the {@code mmdlib_smoke:grinding} machine recipe type and checks it against the recipe
@@ -93,11 +94,15 @@ public final class MachineRecipeTypeSmoke {
     require(GRINDING.toString().equals("mmdlib_smoke:grinding"), "type name " + GRINDING);
   }
 
-  /** The two good files load as grinding recipes; the one without inputs is skipped. */
+  /**
+   * The four good files load as grinding recipes, two of them with inputs that name nothing; the one
+   * without inputs is skipped.
+   */
   static void recipesLoad(ServerLevel level) {
     var manager = level.getRecipeManager();
     var all = GRINDING.recipes(manager);
-    require(all.size() == 2, "two grinding recipes, got " + all.stream().map(h -> h.id()).toList());
+    require(
+        all.size() == 4, "four grinding recipes, got " + all.stream().map(h -> h.id()).toList());
     var copper = recipe(level, COPPER);
     require(
         copper.time() == 200 && copper.inputs().size() == 3 && copper.outputs().size() == 2,
@@ -150,6 +155,49 @@ public final class MachineRecipeTypeSmoke {
             .orElseThrow()
             .equals(IRON),
         "vanilla getRecipeFor");
+  }
+
+  /** What explain picks from the recipes, and that it doesn't disturb the lookup. */
+  static void explainPicksTheClosest(ServerLevel level) {
+    var lookup = GRINDING.lookup();
+    var grinder = new Grinder();
+    expectAttempt(lookup, level, grinder, COPPER, MatchResult.Reason.MISSING_INPUT);
+
+    grinder.items.insertResult(0, new ItemStack(Items.IRON_ORE), false);
+    expectAttempt(lookup, level, grinder, IRON, MatchResult.Reason.OK);
+    require(id(lookup.find(level, grinder.inventory)).equals(IRON), "explain left find working");
+
+    // The inputs are there but the raw iron has no room: closer than copper's missing ore.
+    grinder.blockOutputs();
+    expectAttempt(lookup, level, grinder, IRON, MatchResult.Reason.NO_ROOM);
+
+    // Nothing to tell the recipes apart: the machine's last recipe wins over the lowest ID.
+    grinder.items.setStackInSlot(0, ItemStack.EMPTY);
+    expectAttempt(lookup, level, grinder, IRON, MatchResult.Reason.MISSING_INPUT);
+
+    var noGroups = MachineInventory.builder().build();
+    expectAttempt(GRINDING.lookup(), level, noGroups, COPPER, MatchResult.Reason.NO_GROUP);
+  }
+
+  private static void expectAttempt(
+      zone.moddev.mc.lib.machine.recipe.MachineRecipeLookup lookup,
+      ServerLevel level,
+      Grinder grinder,
+      ResourceLocation recipe,
+      MatchResult.Reason reason) {
+    expectAttempt(lookup, level, grinder.inventory, recipe, reason);
+  }
+
+  private static void expectAttempt(
+      zone.moddev.mc.lib.machine.recipe.MachineRecipeLookup lookup,
+      ServerLevel level,
+      MachineInventory inventory,
+      ResourceLocation recipe,
+      MatchResult.Reason reason) {
+    var attempt = lookup.explain(level, inventory).orElseThrow();
+    require(
+        attempt.recipe().id().equals(recipe) && attempt.result().reason() == reason,
+        "expected " + recipe + " " + reason + ", got " + attempt);
   }
 
   /** Every loaded recipe survives the serializer's network codec. */
@@ -230,6 +278,19 @@ public final class MachineRecipeTypeSmoke {
       throw new AssertionError("A recipe without inputs must be refused");
     } catch (IllegalStateException expected) {
     }
+    try {
+      MachineRecipeBuilder.recipe(GRINDING).inputEnergy("energy", 1).time(-5).build();
+      throw new AssertionError("A negative time must be refused");
+    } catch (IllegalStateException expected) {
+    }
+
+    var chance =
+        MachineRecipeBuilder.recipe(GRINDING)
+            .inputEnergy("energy", 1)
+            .outputFluid("water", Fluids.WATER, 50, 0.25F)
+            .time(1)
+            .build();
+    require(chance.outputs().get("water").getFirst().chance() == 0.25F, "fluid output chance");
   }
 
   /** A grinder's storages: ore in slot 0, outputs in 1 and 2, byproduct in 3, a water tank. */
