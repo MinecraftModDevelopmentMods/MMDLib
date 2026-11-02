@@ -4,7 +4,6 @@
  *
  * <p>Everything here except {@code machine.neoforge} imports only vanilla, DataFixerUpper and Gson,
  * so it can be shared by every loader build; {@code verifyMachineImports} enforces that. {@code
- * machine.neoforge} adapts MMDLib's storages and registers the module's game objects. See {@code
- * docs/machine-module/stage-1.md}.
+ * machine.neoforge} adapts MMDLib's storages and registers the module's game objects.
  */
 package zone.moddev.mc.lib.machine;

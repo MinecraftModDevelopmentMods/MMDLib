@@ -73,9 +73,8 @@ Bind the block's `block-right-click` event to `mmdlib:open_menu`. This handler f
 XML screen matching the clicked block entity's type; otherwise it uses the block's own vanilla
 menu provider. It consumes matching clicks on both sides and opens only on the server. A click
 holding a fluid container on a face that has a fluid handler is left alone, so the block's own
-item use can fill or empty the tank; MMDLib's `MaterialEntityBlock` does not do that itself (see
-[machines](machines.md#buckets-and-fluid-containers)). A direct code caller may use
-`ScreenRuntime.open(player, blockEntity)`.
+item use can fill or empty the tank; MMDLib's `MaterialEntityBlock` does not do that itself. A
+direct code caller may use `ScreenRuntime.open(player, blockEntity)`.
 
 `screenSides()` keys must equal the element `id`s named in `<side-config groups="...">`; a group
 with no entry in the map is listed, but shows no modes and ignores clicks.
