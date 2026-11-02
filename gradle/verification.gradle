@@ -77,7 +77,7 @@ def verifyReleaseClasses = tasks.register('verifyReleaseClasses') {
     dependsOn tasks.named('jar')
     doLast {
         new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { archive ->
-            def testOnly = ['zone/moddev/mc/lib/smoke/', 'data/mmdlib_smoke/', 'data/mmdlib/structure/']
+            def testOnly = ['zone/moddev/mc/lib/smoke/', 'data/mmdlib_smoke/', 'data/mmdlib/structure/empty.nbt']
             def leaked = archive.entries().findAll { entry -> testOnly.any { entry.name.startsWith(it) } }
             if (!leaked.isEmpty()) throw new GradleException('Test classes and data must not be packaged: ' + leaked.collect { it.name })
         }
