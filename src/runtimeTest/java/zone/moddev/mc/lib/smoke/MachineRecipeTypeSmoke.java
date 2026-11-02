@@ -177,6 +177,34 @@ public final class MachineRecipeTypeSmoke {
 
     var noGroups = MachineInventory.builder().build();
     expectAttempt(GRINDING.lookup(), level, noGroups, COPPER, MatchResult.Reason.NO_GROUP);
+
+    // Only energy left, which doesn't count as having begun on a recipe: no recipe to name.
+    grinder.fluids.tank(0).drain(1_000, execute());
+    expectNothing(lookup, level, grinder.inventory, "an empty machine");
+
+    // Something no recipe wants is the same as nothing, not "missing copper ore".
+    grinder.items.setStackInSlot(0, new ItemStack(Items.COBBLESTONE));
+    expectNothing(lookup, level, grinder.inventory, "a machine holding only cobblestone");
+
+    // Holding one input of a recipe makes that recipe's missing input worth reporting.
+    grinder.items.setStackInSlot(0, new ItemStack(Items.IRON_ORE));
+    expectAttempt(GRINDING.lookup(), level, grinder, IRON, MatchResult.Reason.MISSING_INPUT);
+
+    // A recipe the machine doesn't suit isn't named over "nothing to work with" for one it does.
+    var water = new FluidStorage();
+    water.addTank(1_000, Role.INPUT);
+    var waterOnly =
+        MachineInventory.builder().group("water", StorageGroups.fluids(water, 0)).build();
+    expectNothing(GRINDING.lookup(), level, waterOnly, "a machine with only an empty tank");
+  }
+
+  private static void expectNothing(
+      zone.moddev.mc.lib.machine.recipe.MachineRecipeLookup lookup,
+      ServerLevel level,
+      MachineInventory inventory,
+      String what) {
+    var attempt = lookup.explain(level, inventory);
+    require(attempt.isEmpty(), "nothing to report for " + what + ", got " + attempt);
   }
 
   private static void expectAttempt(

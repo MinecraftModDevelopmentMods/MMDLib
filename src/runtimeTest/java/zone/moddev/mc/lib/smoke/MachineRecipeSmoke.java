@@ -233,6 +233,7 @@ final class MachineRecipeSmoke {
         "output with neither key refused, got " + neitherOut);
     mixedOutputs(ops);
     consumedInputsMakeRoom(ops);
+    holdingSomeInput(ops);
     require(
         MachineRecipe.CODEC
             .codec()
@@ -322,6 +323,27 @@ final class MachineRecipeSmoke {
     require(!RecipeMatcher.produce(mixed, full.inventory, fixed(.5F)), "blocked by the tank");
     require(full.items.getStackInSlot(1).isEmpty(), "item rolled back when the fluid can't fit");
     require(full.fluids.getFluidInTank(0).getAmount() == 4_000, "tank untouched");
+  }
+
+  /** Item and fluid inputs count as a start on a recipe, however little; energy doesn't. */
+  private static void holdingSomeInput(RegistryOps<com.google.gson.JsonElement> ops) {
+    var crusher = recipe(ops, CRUSHER);
+    require(
+        !RecipeMatcher.holdsSomeInput(crusher, new Crusher(0, 0, 1_000, true).inventory),
+        "energy alone is no start");
+    require(
+        RecipeMatcher.holdsSomeInput(crusher, new Crusher(1, 0, 0, true).inventory),
+        "one ore of the input is a start");
+    require(
+        RecipeMatcher.holdsSomeInput(crusher, new Crusher(0, 1, 0, true).inventory),
+        "1 mB of 250 is a start");
+    require(
+        !RecipeMatcher.holdsSomeInput(crusher, new Crusher(0, 1, 0, false).inventory),
+        "a tank the machine has no group for doesn't count");
+    var energyOnly = recipe(ops, "{\"inputs\": {\"energy\": [{\"energy\": 5}]}, \"time\": 1}");
+    require(
+        RecipeMatcher.holdsSomeInput(energyOnly, new Crusher(0, 0, 0, true).inventory),
+        "energy is all this recipe could be missing");
   }
 
   /** A product may land where its inputs leave room, and only there; checking changes nothing. */

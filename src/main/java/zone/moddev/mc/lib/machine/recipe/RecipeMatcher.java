@@ -63,6 +63,27 @@ public final class RecipeMatcher {
   }
 
   /**
+   * Whether the machine holds at least some of one of {@code recipe}'s item or fluid inputs, which
+   * is what makes a missing input worth reporting. Stored energy doesn't count, because a powered
+   * machine with nothing in it hasn't begun on any recipe. A recipe that needs only energy always
+   * passes. Changes nothing.
+   */
+  public static boolean holdsSomeInput(MachineRecipe recipe, MachineInventory inventory) {
+    boolean energyOnly = true;
+    for (var entry : recipe.inputs().entrySet()) {
+      var group = inventory.group(entry.getKey()).orElse(null);
+      for (var part : entry.getValue()) {
+        if (part instanceof EnergyPart) continue;
+        energyOnly = false;
+        if (group == null) continue;
+        long need = claim(new InputClaims(available(group)), group, part, recipe.time());
+        if (need >= 0 && need < part.amount()) return true;
+      }
+    }
+    return energyOnly;
+  }
+
+  /**
    * Takes the item and fluid inputs in one transaction, all or nothing. Energy is not taken; it is
    * drawn per tick while the recipe runs.
    *
