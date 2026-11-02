@@ -44,24 +44,22 @@ final class ContentSmoke {
       throw new AssertionError("Wrong runtime item count: " + registrar().items().size());
   }
 
-  /** Every block item places its block. */
-  static void blocksPlace(ServerLevel level) {
+  /** Every block item places its block, one at a time on {@code floor}. */
+  static void blocksPlace(ServerLevel level, BlockPos floor) {
     var player = FakePlayerFactory.getMinecraft(level);
     int placed = 0;
     for (var entry : registrar().blocks().entrySet()) {
       var itemHolder = registrar().items().get(entry.getKey());
       if (itemHolder == null || !(itemHolder.get() instanceof BlockItem item)) continue;
-      var pos = new BlockPos((placed % 8) * 4, level.getMaxBuildHeight() - 12, (placed / 8) * 4);
-      level.getChunkAt(pos);
-      level.setBlock(pos, Blocks.STONE.defaultBlockState(), 3);
-      level.setBlock(pos.above(), Blocks.AIR.defaultBlockState(), 3);
-      level.setBlock(pos.above(2), Blocks.AIR.defaultBlockState(), 3);
-      player.setPos(pos.getX() + .5, pos.getY() + 1, pos.getZ() + 2.5);
+      level.setBlock(floor, Blocks.STONE.defaultBlockState(), 3);
+      level.setBlock(floor.above(), Blocks.AIR.defaultBlockState(), 3);
+      level.setBlock(floor.above(2), Blocks.AIR.defaultBlockState(), 3);
+      player.setPos(floor.getX() + .5, floor.getY() + 1, floor.getZ() + 2.5);
       player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(item));
-      var hit = new BlockHitResult(Vec3.atCenterOf(pos).add(0, .5, 0), Direction.UP, pos, false);
+      var hit = new BlockHitResult(Vec3.atCenterOf(floor).add(0, .5, 0), Direction.UP, floor, false);
       var result = item.useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
       if (!result.consumesAction()
-          || level.getBlockState(pos.above()).getBlock() != entry.getValue().get())
+          || level.getBlockState(floor.above()).getBlock() != entry.getValue().get())
         throw new AssertionError("Placement failed: " + entry.getKey() + " result " + result);
       placed++;
     }
@@ -92,15 +90,13 @@ final class ContentSmoke {
     if (projectiles != 14) throw new AssertionError("Wrong projectile count: " + projectiles);
   }
 
-  /** Every bucket places its fluid and picks it back up. */
-  static void bucketsPlaceAndRecover(ServerLevel level) {
+  /** Every bucket places its fluid and picks it back up, one at a time on {@code floor}. */
+  static void bucketsPlaceAndRecover(ServerLevel level, BlockPos floor) {
     var player = FakePlayerFactory.getMinecraft(level);
     int fluids = 0;
     for (var family : registrar().fluidFamilies()) {
-      var pos =
-          new BlockPos((fluids % 8) * 4, level.getMaxBuildHeight() - 12, 48 + (fluids / 8) * 4);
-      level.getChunkAt(pos);
-      level.setBlock(pos.below(), Blocks.STONE.defaultBlockState(), 3);
+      var pos = floor.above();
+      level.setBlock(floor, Blocks.STONE.defaultBlockState(), 3);
       level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
       var bucket = family.bucket.get();
       var stack = new ItemStack(bucket);

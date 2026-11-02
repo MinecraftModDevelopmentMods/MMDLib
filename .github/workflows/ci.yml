@@ -57,12 +57,14 @@ jobs:
         timeout-minutes: 20
         run: xvfb-run -a ./gradlew runClient -PwithoutJei -I scripts/gui-smoke.init.gradle
 
-      - name: Upload the client logs
+      - name: Upload the client logs and screenshots
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: gui-smoke-logs
           path: |
             build/gui-smoke/logs/
+            build/gui-smoke/screenshots/
             build/gui-smoke-without-jei/logs/
+            build/gui-smoke-without-jei/screenshots/
           if-no-files-found: ignore

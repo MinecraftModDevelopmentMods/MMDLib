@@ -96,15 +96,13 @@ public final class MachineSmoke {
   }
 
   /** Places the machine, ticks it through the block's own ticker, and checks the item. */
-  static void check(ServerLevel level) {
+  static void check(ServerLevel level, BlockPos pos) {
     var block = BuiltInRegistries.BLOCK.get(MACHINE);
     if (!(block instanceof MaterialEntityBlock<?>))
       throw new AssertionError("Standalone machine block missing: " + block);
     var holder = registrar.blockEntityTypes().get(MACHINE);
     if (holder == null || BuiltInRegistries.BLOCK_ENTITY_TYPE.get(MACHINE) != holder.get())
       throw new AssertionError("Standalone machine block-entity type missing");
-    var pos = new BlockPos(0, level.getMaxBuildHeight() - 40, 0);
-    level.getChunkAt(pos);
     level.setBlock(pos, block.defaultBlockState(), 3);
     if (!(level.getBlockEntity(pos) instanceof Counter counter))
       throw new AssertionError("Machine has no counter: " + level.getBlockEntity(pos));

@@ -17,6 +17,9 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 public final class MMDLibGameTests {
   private static final String EMPTY = "empty";
 
+  /** Inside the structure, away from its edges. */
+  private static final BlockPos CENTER = new BlockPos(2, 1, 2);
+
   private MMDLibGameTests() {}
 
   @GameTest(template = EMPTY)
@@ -27,7 +30,7 @@ public final class MMDLibGameTests {
 
   @GameTest(template = EMPTY)
   public static void blocksPlace(GameTestHelper helper) {
-    ContentSmoke.blocksPlace(helper.getLevel());
+    ContentSmoke.blocksPlace(helper.getLevel(), helper.absolutePos(CENTER));
     helper.succeed();
   }
 
@@ -39,14 +42,13 @@ public final class MMDLibGameTests {
 
   @GameTest(template = EMPTY)
   public static void bucketsPlaceAndRecover(GameTestHelper helper) {
-    ContentSmoke.bucketsPlaceAndRecover(helper.getLevel());
+    ContentSmoke.bucketsPlaceAndRecover(helper.getLevel(), helper.absolutePos(CENTER));
     helper.succeed();
   }
 
   @GameTest(template = EMPTY)
   public static void crackhammerCrushesDrops(GameTestHelper helper) {
-    ContentSmoke.crackhammerCrushesDrops(
-        helper.getLevel(), helper.absolutePos(new BlockPos(2, 1, 2)));
+    ContentSmoke.crackhammerCrushesDrops(helper.getLevel(), helper.absolutePos(CENTER));
     helper.succeed();
   }
 
@@ -64,7 +66,7 @@ public final class MMDLibGameTests {
 
   @GameTest(template = EMPTY)
   public static void standaloneMachine(GameTestHelper helper) {
-    MachineSmoke.check(helper.getLevel());
+    MachineSmoke.check(helper.getLevel(), helper.absolutePos(CENTER));
     helper.succeed();
   }
 
@@ -89,6 +91,42 @@ public final class MMDLibGameTests {
   @GameTest(template = EMPTY)
   public static void machineRecipes(GameTestHelper helper) {
     MachineRecipeSmoke.check(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeTypeRegistered(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.registered();
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipesLoad(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.recipesLoad(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeLookup(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.lookupFinds(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeExplain(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.explainPicksTheClosest(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeNetworkCodec(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.streamCodecRoundTrips(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void machineRecipeBuilder(GameTestHelper helper) {
+    MachineRecipeTypeSmoke.builderMatchesFile(helper.getLevel());
     helper.succeed();
   }
 }

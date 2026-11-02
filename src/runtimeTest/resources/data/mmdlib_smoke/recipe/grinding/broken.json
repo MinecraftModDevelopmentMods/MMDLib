@@ -1,0 +1,6 @@
+{
+  "type": "mmdlib_smoke:grinding",
+  "inputs": {},
+  "outputs": { "output": [{ "item": { "id": "minecraft:raw_iron" } }] },
+  "time": 100
+}

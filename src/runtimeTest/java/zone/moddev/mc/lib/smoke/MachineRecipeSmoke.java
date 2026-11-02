@@ -232,6 +232,8 @@ final class MachineRecipeSmoke {
             .orElse(false),
         "output with neither key refused, got " + neitherOut);
     mixedOutputs(ops);
+    consumedInputsMakeRoom(ops);
+    holdingSomeInput(ops);
     require(
         MachineRecipe.CODEC
             .codec()
@@ -321,6 +323,106 @@ final class MachineRecipeSmoke {
     require(!RecipeMatcher.produce(mixed, full.inventory, fixed(.5F)), "blocked by the tank");
     require(full.items.getStackInSlot(1).isEmpty(), "item rolled back when the fluid can't fit");
     require(full.fluids.getFluidInTank(0).getAmount() == 4_000, "tank untouched");
+  }
+
+  /** Item and fluid inputs count as a start on a recipe, however little; energy doesn't. */
+  private static void holdingSomeInput(RegistryOps<com.google.gson.JsonElement> ops) {
+    var crusher = recipe(ops, CRUSHER);
+    require(
+        !RecipeMatcher.holdsSomeInput(crusher, new Crusher(0, 0, 1_000, true).inventory),
+        "energy alone is no start");
+    require(
+        RecipeMatcher.holdsSomeInput(crusher, new Crusher(1, 0, 0, true).inventory),
+        "one ore of the input is a start");
+    require(
+        RecipeMatcher.holdsSomeInput(crusher, new Crusher(0, 1, 0, true).inventory),
+        "1 mB of 250 is a start");
+    require(
+        !RecipeMatcher.holdsSomeInput(crusher, new Crusher(0, 1, 0, false).inventory),
+        "a tank the machine has no group for doesn't count");
+    var energyOnly = recipe(ops, "{\"inputs\": {\"energy\": [{\"energy\": 5}]}, \"time\": 1}");
+    require(
+        RecipeMatcher.holdsSomeInput(energyOnly, new Crusher(0, 0, 0, true).inventory),
+        "energy is all this recipe could be missing");
+  }
+
+  /** A product may land where its inputs leave room, and only there; checking changes nothing. */
+  private static void consumedInputsMakeRoom(RegistryOps<com.google.gson.JsonElement> ops) {
+    var ironToGold =
+        recipe(
+            ops,
+            """
+            {"inputs":  {"main": [{"items": {"item": "minecraft:iron_ingot"}}]},
+             "outputs": {"main": [{"item": {"id": "minecraft:gold_ingot"}}]}, "time": 10}
+            """);
+    var changes = new int[1];
+    var slot = new ItemStorage(1).onChange(() -> changes[0]++);
+    var oneSlot = MachineInventory.builder().group("main", StorageGroups.items(slot, 0)).build();
+    slot.setStackInSlot(0, new ItemStack(Items.IRON_INGOT));
+    int before = changes[0];
+    require(RecipeMatcher.check(ironToGold, oneSlot).ok(), "gold fits where the iron was");
+    require(changes[0] == before, "checking room changed nothing");
+    require(RecipeMatcher.consume(ironToGold, oneSlot), "iron taken from the shared slot");
+    require(RecipeMatcher.produce(ironToGold, oneSlot, fixed(.5F)), "gold made in the shared slot");
+    require(slot.getStackInSlot(0).is(Items.GOLD_INGOT), "the slot now holds gold");
+
+    // One iron stays behind, so there's still nowhere for the gold.
+    slot.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 2));
+    expect(RecipeMatcher.check(ironToGold, oneSlot), Reason.NO_ROOM, "main", 0);
+
+    var ironToIron =
+        recipe(
+            ops,
+            """
+            {"inputs":  {"main": [{"items": {"item": "minecraft:iron_ingot"}}]},
+             "outputs": {"main": [{"item": {"id": "minecraft:iron_ingot"}}]}, "time": 10}
+            """);
+    slot.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 64));
+    require(RecipeMatcher.check(ironToIron, oneSlot).ok(), "a full stack makes room for itself");
+
+    // Which slot the input comes from is the one consume will really use.
+    var anyLogToGold =
+        recipe(
+            ops,
+            """
+            {"inputs":  {"main": [{"items": {"tag": "minecraft:logs"}}]},
+             "outputs": {"main": [{"item": {"id": "minecraft:gold_ingot"}}]}, "time": 10}
+            """);
+    var logs = new ItemStorage(2);
+    var twoSlots = MachineInventory.builder().group("main", StorageGroups.items(logs, 0, 1)).build();
+    logs.setStackInSlot(0, new ItemStack(Items.OAK_LOG));
+    logs.setStackInSlot(1, new ItemStack(Items.BIRCH_LOG, 2));
+    require(RecipeMatcher.check(anyLogToGold, twoSlots).ok(), "the first slot empties");
+    require(RecipeMatcher.consume(anyLogToGold, twoSlots), "the log is taken");
+    require(RecipeMatcher.produce(anyLogToGold, twoSlots, fixed(.5F)), "the gold lands");
+
+    var waterToLava =
+        recipe(
+            ops,
+            """
+            {"inputs":  {"tank": [{"fluids": "minecraft:water", "amount": 1000}]},
+             "outputs": {"tank": [{"fluid": {"id": "minecraft:lava", "amount": 1000}}]}, "time": 10}
+            """);
+    var someWaterToLava =
+        recipe(
+            ops,
+            """
+            {"inputs":  {"tank": [{"fluids": "minecraft:water", "amount": 500}]},
+             "outputs": {"tank": [{"fluid": {"id": "minecraft:lava", "amount": 500}}]}, "time": 10}
+            """);
+    var fluids = new FluidStorage();
+    fluids.addTank(1_000, Role.INPUT);
+    fluids
+        .tank(0)
+        .fill(
+            new net.neoforged.neoforge.fluids.FluidStack(Fluids.WATER, 1_000),
+            net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
+    var tank = MachineInventory.builder().group("tank", StorageGroups.fluids(fluids, 0)).build();
+    expect(RecipeMatcher.check(someWaterToLava, tank), Reason.NO_ROOM, "tank", 0);
+    require(RecipeMatcher.check(waterToLava, tank).ok(), "lava fits once the water is gone");
+    require(RecipeMatcher.consume(waterToLava, tank), "water taken");
+    require(RecipeMatcher.produce(waterToLava, tank, fixed(.5F)), "lava made");
+    require(fluids.getFluidInTank(0).is(Fluids.LAVA), "the tank now holds lava");
   }
 
   private static MachineRecipe recipe(RegistryOps<com.google.gson.JsonElement> ops, String json) {

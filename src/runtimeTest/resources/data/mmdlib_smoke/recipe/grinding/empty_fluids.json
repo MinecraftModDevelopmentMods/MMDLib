@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib_smoke:grinding",
+  "inputs": {
+    "water": [{ "fluids": "#mmdlib_smoke:nothing", "amount": 10 }]
+  },
+  "outputs": {
+    "output": [{ "item": { "id": "minecraft:gravel" } }]
+  },
+  "time": 10
+}

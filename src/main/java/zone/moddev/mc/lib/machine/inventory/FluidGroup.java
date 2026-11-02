@@ -19,5 +19,13 @@ public non-sealed interface FluidGroup extends SlotGroup {
   int insert(FluidAmount fluid, MachineTx tx);
 
   /** Whether all of {@code fluids} would fit together. Changes nothing. */
-  boolean fits(List<FluidAmount> fluids);
+  default boolean fits(List<FluidAmount> fluids) {
+    return fits(fluids, new long[tanks()]);
+  }
+
+  /**
+   * Whether all of {@code fluids} would fit together once {@code taken[tank]} mB are gone from each
+   * tank. Changes nothing.
+   */
+  boolean fits(List<FluidAmount> fluids, long[] taken);
 }

@@ -11,7 +11,12 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
+
+import io.netty.handler.codec.DecoderException;
 
 import zone.moddev.mc.lib.machine.ingredient.FluidAmount;
 
@@ -28,6 +33,30 @@ public sealed interface MachineProduct
   /** The JSON form: exactly one of {@code item} or {@code fluid}. */
   Codec<MachineProduct> CODEC = new Dispatch().codec();
 
+  /** The network form: a kind byte, then the record. */
+  StreamCodec<RegistryFriendlyByteBuf, MachineProduct> STREAM_CODEC =
+      StreamCodec.of(
+          (buffer, product) -> {
+            switch (product) {
+              case ItemProduct item -> {
+                buffer.writeByte(0);
+                ItemProduct.STREAM_CODEC.encode(buffer, item);
+              }
+              case FluidProduct fluid -> {
+                buffer.writeByte(1);
+                FluidProduct.STREAM_CODEC.encode(buffer, fluid);
+              }
+            }
+          },
+          buffer -> {
+            int kind = buffer.readByte();
+            return switch (kind) {
+              case 0 -> ItemProduct.STREAM_CODEC.decode(buffer);
+              case 1 -> FluidProduct.STREAM_CODEC.decode(buffer);
+              default -> throw new DecoderException("Unknown machine product kind " + kind);
+            };
+          });
+
   /** An item stack. */
   record ItemProduct(ItemStack stack, float chance) implements MachineProduct {
     static final MapCodec<ItemProduct> CODEC =
@@ -38,6 +67,13 @@ public sealed interface MachineProduct
                         ItemStack.CODEC.fieldOf("item").forGetter(ItemProduct::stack),
                         chanceField().forGetter(ItemProduct::chance))
                     .apply(instance, ItemProduct::new));
+    static final StreamCodec<RegistryFriendlyByteBuf, ItemProduct> STREAM_CODEC =
+        StreamCodec.composite(
+            ItemStack.STREAM_CODEC,
+            ItemProduct::stack,
+            ByteBufCodecs.FLOAT,
+            ItemProduct::chance,
+            ItemProduct::new);
 
     /** Copies the stack. */
     public ItemProduct {
@@ -61,6 +97,13 @@ public sealed interface MachineProduct
                         FluidAmount.CODEC.fieldOf("fluid").forGetter(FluidProduct::fluid),
                         chanceField().forGetter(FluidProduct::chance))
                     .apply(instance, FluidProduct::new));
+    static final StreamCodec<RegistryFriendlyByteBuf, FluidProduct> STREAM_CODEC =
+        StreamCodec.composite(
+            FluidAmount.STREAM_CODEC,
+            FluidProduct::fluid,
+            ByteBufCodecs.FLOAT,
+            FluidProduct::chance,
+            FluidProduct::new);
   }
 
   private static MapCodec<Float> chanceField() {

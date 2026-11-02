@@ -1,7 +1,9 @@
 package zone.moddev.mc.lib.machine.recipe;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
@@ -37,25 +39,48 @@ public final class RecipeMatcher {
   private RecipeMatcher() {}
 
   /**
-   * Whether {@code recipe} can start: every input present and room for every product, counting
-   * chance products as certain. Changes nothing.
+   * Whether {@code recipe} can start: every input present and room for every product once the
+   * inputs are gone, counting chance products as certain. A product may land in the slot or tank
+   * its own input empties. Changes nothing, and no storage's change callback runs.
    */
   public static MatchResult check(MachineRecipe recipe, MachineInventory inventory) {
+    var taken = new HashMap<String, long[]>();
     for (var entry : recipe.inputs().entrySet()) {
       var key = entry.getKey();
       var group = inventory.group(key).orElse(null);
       if (group == null) return new MatchResult(MatchResult.Reason.NO_GROUP, key, -1);
-      var result = checkInputs(key, group, entry.getValue(), recipe.time());
+      var result = checkInputs(key, group, entry.getValue(), recipe.time(), taken);
       if (!result.ok()) return result;
     }
     for (var entry : recipe.outputs().entrySet()) {
       var key = entry.getKey();
       var group = inventory.group(key).orElse(null);
       if (group == null) return new MatchResult(MatchResult.Reason.NO_GROUP, key, -1);
-      var result = checkOutputs(key, group, entry.getValue());
+      var result = checkOutputs(key, group, entry.getValue(), taken.get(key));
       if (!result.ok()) return result;
     }
     return MatchResult.OK;
+  }
+
+  /**
+   * Whether the machine holds at least some of one of {@code recipe}'s item or fluid inputs, which
+   * is what makes a missing input worth reporting. Stored energy doesn't count, because a powered
+   * machine with nothing in it hasn't begun on any recipe. A recipe that needs only energy always
+   * passes. Changes nothing.
+   */
+  public static boolean holdsSomeInput(MachineRecipe recipe, MachineInventory inventory) {
+    boolean energyOnly = true;
+    for (var entry : recipe.inputs().entrySet()) {
+      var group = inventory.group(entry.getKey()).orElse(null);
+      for (var part : entry.getValue()) {
+        if (part instanceof EnergyPart) continue;
+        energyOnly = false;
+        if (group == null) continue;
+        long need = claim(new InputClaims(available(group)), group, part, recipe.time());
+        if (need >= 0 && need < part.amount()) return true;
+      }
+    }
+    return energyOnly;
   }
 
   /**
@@ -97,30 +122,40 @@ public final class RecipeMatcher {
     }
   }
 
+  /** Checks one group's inputs, and records what {@link #take} would take from it. */
   private static MatchResult checkInputs(
-      String key, SlotGroup group, List<MachineIngredient> ingredients, int time) {
-    var claims = new InputClaims(available(group));
+      String key,
+      SlotGroup group,
+      List<MachineIngredient> ingredients,
+      int time,
+      Map<String, long[]> taken) {
+    long[] held = available(group);
+    var claims = new InputClaims(held);
     for (int i = 0; i < ingredients.size(); i++) {
       long need = claim(claims, group, ingredients.get(i), time);
       if (need < 0) return new MatchResult(MatchResult.Reason.WRONG_KIND, key, i);
       if (need > 0) return new MatchResult(MatchResult.Reason.MISSING_INPUT, key, i);
     }
+    var claimed = new long[held.length];
+    for (int entry = 0; entry < held.length; entry++) claimed[entry] = claims.claimed(entry);
+    taken.put(key, claimed);
     return MatchResult.OK;
   }
 
+  /** Checks one group's products; {@code taken} is what its inputs use, null when it has none. */
   private static MatchResult checkOutputs(
-      String key, SlotGroup group, List<MachineProduct> products) {
+      String key, SlotGroup group, List<MachineProduct> products, long[] taken) {
     var stacks = new ArrayList<ItemStack>();
     var fluids = new ArrayList<FluidAmount>();
     for (int i = 0; i < products.size(); i++) {
       boolean fits;
       if (products.get(i) instanceof ItemProduct item && group instanceof ItemGroup items) {
         stacks.add(item.stack());
-        fits = items.fits(stacks);
+        fits = taken == null ? items.fits(stacks) : items.fits(stacks, taken);
       } else if (products.get(i) instanceof FluidProduct fluid
           && group instanceof FluidGroup tanks) {
         fluids.add(fluid.fluid());
-        fits = tanks.fits(fluids);
+        fits = taken == null ? tanks.fits(fluids) : tanks.fits(fluids, taken);
       } else return new MatchResult(MatchResult.Reason.WRONG_KIND, key, i);
       if (!fits) return new MatchResult(MatchResult.Reason.NO_ROOM, key, i);
     }

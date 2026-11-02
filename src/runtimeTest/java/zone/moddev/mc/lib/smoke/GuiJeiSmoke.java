@@ -56,9 +56,79 @@ public final class GuiJeiSmoke {
                 net.minecraft.world.item.crafting.RecipeHolder.class)
             .orElseThrow();
     checkTransfer(runtime, screen, type);
+    checkMachineCategory(runtime);
     MMDLib.LOGGER.info(
         "MMDLIB_GUI_JEI_HOOKS_PASS: registered exclusion areas, recipe click area, ghost drag"
             + " target and recipe transfer request");
+  }
+
+  /**
+   * The generic category for {@code mmdlib_smoke:grinding} lists the two test recipes that can run,
+   * not the two whose inputs name nothing; the copper one lays out an ore and a water input and two
+   * products; the iron one's water tag shows source water, not flowing water.
+   */
+  private static void checkMachineCategory(IJeiRuntime runtime) {
+    var manager = runtime.getRecipeManager();
+    var type =
+        zone.moddev.mc.lib.client.jei.MachineRecipeCategory.recipeType(
+            MachineRecipeTypeSmoke.GRINDING);
+    var category = manager.getRecipeCategory(type);
+    var recipes = manager.createRecipeLookup(type).get().toList();
+    if (recipes.size() != 2) throw new AssertionError("JEI machine recipes: " + recipes.size());
+    var copper =
+        recipes.stream()
+            .filter(holder -> holder.id().getPath().equals("grinding/copper"))
+            .findFirst()
+            .orElseThrow();
+    var slots =
+        manager
+            .createRecipeLayoutDrawable(
+                category, copper, runtime.getJeiHelpers().getFocusFactory().getEmptyFocusGroup())
+            .orElseThrow(() -> new AssertionError("JEI machine layout failed"))
+            .getRecipeSlotsView();
+    int inputs = slots.getSlotViews(mezz.jei.api.recipe.RecipeIngredientRole.INPUT).size();
+    int outputs = slots.getSlotViews(mezz.jei.api.recipe.RecipeIngredientRole.OUTPUT).size();
+    if (inputs != 2 || outputs != 2)
+      throw new AssertionError("JEI machine slots: " + inputs + " in, " + outputs + " out");
+    var iron =
+        recipes.stream()
+            .filter(holder -> holder.id().getPath().equals("grinding/iron"))
+            .findFirst()
+            .orElseThrow();
+    var ironSlots =
+        manager
+            .createRecipeLayoutDrawable(
+                category, iron, runtime.getJeiHelpers().getFocusFactory().getEmptyFocusGroup())
+            .orElseThrow(() -> new AssertionError("JEI machine layout failed"))
+            .getRecipeSlotsView();
+    var inputFluids =
+        ironSlots.getSlotViews(mezz.jei.api.recipe.RecipeIngredientRole.INPUT).stream()
+            .flatMap(view -> view.getAllIngredients())
+            .map(mezz.jei.api.ingredients.ITypedIngredient::getIngredient)
+            .filter(net.neoforged.neoforge.fluids.FluidStack.class::isInstance)
+            .map(net.neoforged.neoforge.fluids.FluidStack.class::cast)
+            .toList();
+    if (inputFluids.size() != 1
+        || inputFluids.getFirst().getFluid() != net.minecraft.world.level.material.Fluids.WATER)
+      throw new AssertionError("JEI water tag shows: " + inputFluids);
+    MMDLib.LOGGER.info(
+        "MMDLIB_GUI_JEI_MACHINE_PASS: generic machine recipe category with {}x{} layout",
+        category.getWidth(),
+        category.getHeight());
+  }
+
+  /** Opens JEI's recipe screen on the grinding category, for the screenshot. */
+  static void showMachineRecipes() throws Exception {
+    var field =
+        Class.forName("zone.moddev.mc.lib.client.jei.MachineJei").getDeclaredField("runtime");
+    field.setAccessible(true);
+    var runtime = (IJeiRuntime) field.get(null);
+    runtime
+        .getRecipesGui()
+        .showTypes(
+            java.util.List.of(
+                zone.moddev.mc.lib.client.jei.MachineRecipeCategory.recipeType(
+                    MachineRecipeTypeSmoke.GRINDING)));
   }
 
   @SuppressWarnings("removal")

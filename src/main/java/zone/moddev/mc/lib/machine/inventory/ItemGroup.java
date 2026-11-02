@@ -22,5 +22,13 @@ public non-sealed interface ItemGroup extends SlotGroup {
   int insert(ItemStack stack, MachineTx tx);
 
   /** Whether all of {@code stacks} would fit together. Works on copies; changes nothing. */
-  boolean fits(List<ItemStack> stacks);
+  default boolean fits(List<ItemStack> stacks) {
+    return fits(stacks, new long[size()]);
+  }
+
+  /**
+   * Whether all of {@code stacks} would fit together once {@code taken[slot]} items are gone from
+   * each slot. Works on copies; changes nothing.
+   */
+  boolean fits(List<ItemStack> stacks, long[] taken);
 }

@@ -13,8 +13,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryCodecs;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
+
+import io.netty.handler.codec.DecoderException;
 
 /**
  * Some amount of something a machine consumes: items, fluid or energy. JSON is one of {@code
@@ -30,6 +35,35 @@ public sealed interface MachineIngredient
    * The JSON form, picked by which of {@code items}, {@code fluids} or {@code energy} is present.
    */
   Codec<MachineIngredient> CODEC = new Dispatch().codec();
+
+  /** The network form: a kind byte, then the record. Item tags arrive as the items in them. */
+  StreamCodec<RegistryFriendlyByteBuf, MachineIngredient> STREAM_CODEC =
+      StreamCodec.of(
+          (buffer, ingredient) -> {
+            switch (ingredient) {
+              case ItemPart part -> {
+                buffer.writeByte(0);
+                ItemPart.STREAM_CODEC.encode(buffer, part);
+              }
+              case FluidPart part -> {
+                buffer.writeByte(1);
+                FluidPart.STREAM_CODEC.encode(buffer, part);
+              }
+              case EnergyPart part -> {
+                buffer.writeByte(2);
+                EnergyPart.STREAM_CODEC.encode(buffer, part);
+              }
+            }
+          },
+          buffer -> {
+            int kind = buffer.readByte();
+            return switch (kind) {
+              case 0 -> ItemPart.STREAM_CODEC.decode(buffer);
+              case 1 -> FluidPart.STREAM_CODEC.decode(buffer);
+              case 2 -> EnergyPart.STREAM_CODEC.decode(buffer);
+              default -> throw new DecoderException("Unknown machine ingredient kind " + kind);
+            };
+          });
 
   /**
    * Items matching a vanilla {@link Ingredient} (an item, a tag or a custom ingredient).
@@ -47,6 +81,13 @@ public sealed interface MachineIngredient
                             .optionalFieldOf("count", 1)
                             .forGetter(ItemPart::count))
                     .apply(instance, ItemPart::new));
+    static final StreamCodec<RegistryFriendlyByteBuf, ItemPart> STREAM_CODEC =
+        StreamCodec.composite(
+            Ingredient.CONTENTS_STREAM_CODEC,
+            ItemPart::items,
+            ByteBufCodecs.VAR_INT,
+            ItemPart::count,
+            ItemPart::new);
 
     @Override
     public long amount() {
@@ -72,6 +113,13 @@ public sealed interface MachineIngredient
                             .fieldOf("amount")
                             .forGetter(FluidPart::millibuckets))
                     .apply(instance, FluidPart::new));
+    static final StreamCodec<RegistryFriendlyByteBuf, FluidPart> STREAM_CODEC =
+        StreamCodec.composite(
+            ByteBufCodecs.holderSet(Registries.FLUID),
+            FluidPart::fluids,
+            ByteBufCodecs.VAR_INT,
+            FluidPart::millibuckets,
+            FluidPart::new);
 
     @Override
     public long amount() {
@@ -94,6 +142,8 @@ public sealed interface MachineIngredient
                         : DataResult.error(() -> "Energy must be at least 1: " + value))
             .fieldOf("energy")
             .xmap(EnergyPart::new, EnergyPart::amount);
+    static final StreamCodec<RegistryFriendlyByteBuf, EnergyPart> STREAM_CODEC =
+        ByteBufCodecs.VAR_LONG.map(EnergyPart::new, EnergyPart::amount).cast();
   }
 
   /** Picks the record by its key; none, or more than one, is an error naming the three keys. */

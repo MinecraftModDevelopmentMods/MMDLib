@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib_smoke:grinding",
+  "inputs": {
+    "input": [{ "items": { "tag": "mmdlib_smoke:nothing" } }]
+  },
+  "outputs": {
+    "output": [{ "item": { "id": "minecraft:gravel" } }]
+  },
+  "time": 10
+}
