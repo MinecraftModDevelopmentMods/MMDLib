@@ -32,6 +32,7 @@ def builderChecks = [
     verifyMethodEvents      : ['MethodEventsTest'],
     verifyDefinitionLoader  : ['DefinitionLoaderTest'],
     verifyScreens           : ['zone.moddev.mc.lib.gui.ScreenLoaderTest'],
+    verifyMachineCore       : ['zone.moddev.mc.lib.machine.MachineCoreTest'],
     verifyVanillaExamples   : ['VanillaExamplesTest', ['mmdlib.resources': resources,
                                                        'mmdlib.generated': file('src/generated/resources').absolutePath]],
 ]
@@ -57,6 +58,20 @@ def verifyReleaseClasses = tasks.register('verifyReleaseClasses') {
     }
 }
 tasks.named('check') { dependsOn verifyReleaseClasses }
+
+// The machine module's core stays loader-neutral: only machine/neoforge may import NeoForge.
+def verifyMachineImports = tasks.register('verifyMachineImports') {
+    group = 'verification'
+    def root = file('src/main/java/zone/moddev/mc/lib/machine')
+    def sources = fileTree(root) { include '**/*.java'; exclude 'neoforge/**' }
+    inputs.files(sources)
+    doLast {
+        def leaked = sources.files.findAll { it.text =~ /(?m)^import\s+(static\s+)?net\.neoforged\./ }
+        if (!leaked.isEmpty())
+            throw new GradleException('Machine core files import NeoForge: ' + leaked.collect { root.relativePath(it) })
+    }
+}
+tasks.named('check') { dependsOn verifyMachineImports }
 
 def verifyStaticAssets = tasks.register('verifyStaticAssets', Exec) {
     group = 'verification'

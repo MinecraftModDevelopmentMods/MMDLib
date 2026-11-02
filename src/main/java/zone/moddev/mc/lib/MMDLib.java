@@ -112,6 +112,9 @@ public class MMDLib {
             MODID, MaterialExtensions.GLOBAL, modBus);
     zone.moddev.mc.lib.common.recipes.CrushingRecipe.TYPES.register(modBus);
     zone.moddev.mc.lib.common.recipes.CrushingRecipe.SERIALIZERS.register(modBus);
+    zone.moddev.mc.lib.machine.neoforge.MachineComponents.TYPES.register(modBus);
+    NeoForge.EVENT_BUS.addListener(
+        zone.moddev.mc.lib.machine.neoforge.MachinePartsLoader::register);
     modBus.addListener(zone.moddev.mc.lib.util.Registries::register);
     modBus.addListener(this::publishDefinitions);
     modBus.addListener((FMLConstructModEvent event) -> event.enqueueWork(this::loadDefinitions));

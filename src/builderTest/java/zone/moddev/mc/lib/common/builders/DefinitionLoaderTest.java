@@ -291,7 +291,9 @@ public final class DefinitionLoaderTest {
     try {
       action.run();
     } catch (IllegalArgumentException ex) {
-      for (var fragment : fragments) require(ex.getMessage().contains(fragment));
+      // Messages name file-system paths, which use backslashes on Windows.
+      var message = ex.getMessage().replace('\\', '/');
+      for (var fragment : fragments) require(message.contains(fragment));
       return;
     }
     throw new AssertionError("Bad definitions accepted");

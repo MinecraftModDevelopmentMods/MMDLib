@@ -1,0 +1,8 @@
+{
+  "part": "mmdlib:gear",
+  "socket": "gears",
+  "modifiers": [
+    { "stat": "speed", "op": "add_multiplied_base", "amount": "0.5 * $material.hardness" }
+  ],
+  "durability": "10 * $material.hardness"
+}

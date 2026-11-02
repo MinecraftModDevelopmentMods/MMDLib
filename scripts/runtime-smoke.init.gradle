@@ -12,6 +12,13 @@ online-mode=true
 level-name=runtime-smoke
 spawn-protection=0
 '''
+            // A real datapack in the smoke world, so reload listeners read files the way packs ship them.
+            def datapack = new File(smokeDir, 'runtime-smoke/datapacks/mmdlib_smoke')
+            project.delete(datapack)
+            project.copy {
+                from file('src/runtimeTest/datapack')
+                into datapack
+            }
             runs.server.workingDirectory = smokeDir
             // NeoGradle creates run tasks in a later evaluation callback.
             tasks.configureEach { task ->

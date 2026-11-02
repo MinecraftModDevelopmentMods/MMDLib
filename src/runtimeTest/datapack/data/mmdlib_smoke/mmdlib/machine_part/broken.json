@@ -1,0 +1,7 @@
+{
+  "item": "minecraft:piston",
+  "socket": "motor",
+  "modifiers": [
+    { "stat": "speed", "op": "multiply_everything", "amount": 2 }
+  ]
+}
