@@ -89,9 +89,12 @@ public final class StorageGroups {
     }
 
     @Override
-    public boolean fits(List<ItemStack> stacks) {
+    public boolean fits(List<ItemStack> stacks, long[] taken) {
       var held = new ArrayList<ItemStack>();
-      for (int index : slots) held.add(storage.getStackInSlot(index).copy());
+      for (int i = 0; i < slots.length; i++) {
+        var stack = storage.getStackInSlot(slots[i]);
+        held.add(stack.copyWithCount(stack.getCount() - (int) taken[i]));
+      }
       for (var stack : stacks) {
         int left = stack.getCount();
         for (boolean merging : new boolean[] {true, false})
@@ -162,9 +165,12 @@ public final class StorageGroups {
     }
 
     @Override
-    public boolean fits(List<FluidAmount> fluids) {
+    public boolean fits(List<FluidAmount> fluids, long[] taken) {
       var held = new ArrayList<FluidStack>();
-      for (int index : indexes) held.add(storage.tank(index).getFluid().copy());
+      for (int i = 0; i < indexes.length; i++) {
+        var fluid = storage.tank(indexes[i]).getFluid();
+        held.add(fluid.copyWithAmount(fluid.getAmount() - (int) taken[i]));
+      }
       for (var fluid : fluids) {
         if (fluid.isEmpty()) continue;
         var stack = stack(fluid);

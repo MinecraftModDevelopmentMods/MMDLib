@@ -130,14 +130,18 @@ public final class MachineRecipeTypeSmoke {
     grinder.items.setStackInSlot(0, new ItemStack(Items.IRON_ORE));
     require(id(lookup.find(level, grinder.inventory)).equals(IRON), "switched to iron");
 
-    // The fluid output can't fit: the iron recipe doesn't match.
+    // A full tank is no obstacle: the recipe drains 100 mB from it before adding 50.
     grinder.fluids.tank(0).fill(new FluidStack(Fluids.WATER, 4_000), execute());
-    require(lookup.find(level, grinder.inventory).isEmpty(), "no room for the water output");
+    require(id(lookup.find(level, grinder.inventory)).equals(IRON), "water makes its own room");
+
+    // The item output can't fit: the iron recipe doesn't match.
+    grinder.blockOutputs();
+    require(lookup.find(level, grinder.inventory).isEmpty(), "no room for the raw iron");
 
     var input = new MachineRecipeInput(grinder.inventory);
     require(input.size() == 4 && input.getItem(0).is(Items.IRON_ORE), "item view");
     require(!input.isEmpty(), "a machine input is never empty to vanilla");
-    grinder.fluids.tank(0).drain(1_000, execute());
+    grinder.unblockOutputs();
     require(
         level
             .getRecipeManager()
@@ -247,6 +251,16 @@ public final class MachineRecipeTypeSmoke {
               .group("water", StorageGroups.fluids(fluids, 0))
               .group("energy", StorageGroups.energy(energy))
               .build();
+    }
+
+    void blockOutputs() {
+      items.setStackInSlot(1, new ItemStack(Items.COBBLESTONE, 64));
+      items.setStackInSlot(2, new ItemStack(Items.COBBLESTONE, 64));
+    }
+
+    void unblockOutputs() {
+      items.setStackInSlot(1, ItemStack.EMPTY);
+      items.setStackInSlot(2, ItemStack.EMPTY);
     }
   }
 
