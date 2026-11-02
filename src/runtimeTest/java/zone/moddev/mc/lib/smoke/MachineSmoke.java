@@ -134,7 +134,10 @@ public final class MachineSmoke {
       implements zone.moddev.mc.lib.gui.runtime.ScreenHost {
     public int clicks, guiReads;
     public final zone.moddev.mc.lib.api.capabilities.ItemStorage items =
-        new zone.moddev.mc.lib.api.capabilities.ItemStorage(4);
+        new zone.moddev.mc.lib.api.capabilities.ItemStorage(4)
+            .role(zone.moddev.mc.lib.api.capabilities.Role.OUTPUT, 1)
+            .filter(stack -> !stack.is(net.minecraft.world.item.Items.DIRT), 0)
+            .limit(16, 0);
     public final java.util.Map<String, zone.moddev.mc.lib.api.capabilities.SideConfig> sides =
         java.util.Map.of(
             "input",

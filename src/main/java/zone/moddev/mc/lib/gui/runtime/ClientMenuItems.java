@@ -1,0 +1,36 @@
+package zone.moddev.mc.lib.gui.runtime;
+
+import net.minecraft.world.item.ItemStack;
+
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
+
+/**
+ * The client's copy of the slots behind a {@link MachineMenu}. Vanilla's menu sync fills it; what
+ * each slot accepts and how much it holds come from the client block entity's own {@link
+ * ScreenHost#screenItems()}, so a click is predicted the way the server will answer it. The server
+ * still decides: a filter that depends on server-only state can mispredict, and the server's answer
+ * replaces the prediction.
+ */
+public final class ClientMenuItems extends ItemStackHandler {
+  private final IItemHandler rules;
+
+  /**
+   * @param size the menu's slot count, which ghost slots can take past the end of {@code rules}
+   * @param rules asked what each slot accepts; its contents aren't read or changed
+   */
+  public ClientMenuItems(int size, IItemHandler rules) {
+    super(size);
+    this.rules = rules;
+  }
+
+  @Override
+  public boolean isItemValid(int slot, ItemStack stack) {
+    return slot < rules.getSlots() && rules.isItemValid(slot, stack);
+  }
+
+  @Override
+  public int getSlotLimit(int slot) {
+    return slot < rules.getSlots() ? rules.getSlotLimit(slot) : 0;
+  }
+}

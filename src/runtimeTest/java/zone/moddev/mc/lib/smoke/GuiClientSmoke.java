@@ -174,6 +174,15 @@ public final class GuiClientSmoke {
             "MMDLIB_GUI_JEI_SERVER_PASS: recipe ingredient moved to input and ghost filter synced"
                 + " from server");
       }
+      var input = screen.getMenu().slots.get(0);
+      var ingot = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_INGOT);
+      if (input.getMaxStackSize(ingot) != 16
+          || !input.mayPlace(ingot)
+          || input.mayPlace(
+              new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIRT))) {
+        fail(new AssertionError("Client menu ignored the input slot's limit or filter"));
+        return;
+      }
       GuiGaugeSmoke.check(screen);
       Screenshot.grab(
           mc.gameDirectory,
@@ -191,6 +200,15 @@ public final class GuiClientSmoke {
     if (stage == 1 && mc.screen instanceof MachineScreen screen && ticks >= 70) {
       if (!screen.getMenu().slots.get(1).isActive() || screen.getMenu().slots.get(0).isActive()) {
         fail(new AssertionError("Rendered context visibility incorrect"));
+        return;
+      }
+      if (screen
+          .getMenu()
+          .slots
+          .get(1)
+          .mayPlace(
+              new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_INGOT))) {
+        fail(new AssertionError("Client menu predicted placing an item in an output slot"));
         return;
       }
       var config = screen.getMenu().bound.screen().find("config").orElseThrow();

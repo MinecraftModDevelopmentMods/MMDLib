@@ -76,10 +76,11 @@ public class MachineMenu extends AbstractContainerMenu {
             .mapToInt(e -> ((Element.Slot) e).index() + 1)
             .max()
             .orElse(0);
-    IItemHandler items =
-        owner.level().isClientSide
-            ? new ItemStackHandler(count)
-            : host == null ? new ItemStackHandler(0) : host.screenItems();
+    IItemHandler items;
+    if (owner.level().isClientSide)
+      items =
+          host == null ? new ItemStackHandler(count) : new ClientMenuItems(count, host.screenItems());
+    else items = host == null ? new ItemStackHandler(0) : host.screenItems();
     machineSlots = count;
     var layout =
         ScreenLayout.of(
