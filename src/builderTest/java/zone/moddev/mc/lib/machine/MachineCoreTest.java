@@ -63,6 +63,9 @@ public final class MachineCoreTest {
     expectFailure(() -> Expr.parse("(1"));
     expectFailure(() -> Expr.parse(""));
     expectFailure(() -> Expr.parse("$missing").eval(none()));
+    expectFailure(() -> Expr.parse("$a..b"));
+    expectFailure(() -> Expr.parse("$a."));
+    expectFailure(() -> Expr.parse("$.a"));
     require(
         Expr.CODEC.parse(JsonOps.INSTANCE, new JsonPrimitive(12)).getOrThrow().eval(none()) == 12);
     require(
@@ -175,6 +178,9 @@ public final class MachineCoreTest {
     expectFailure(() -> parseInternals(INTERNALS.replace("#c:gears", "#")));
     expectFailure(() -> parseInternals(INTERNALS.replace("#c:gears", "Not An Id")));
     expectFailure(() -> internals.slots("pump"));
+    require(internals.socketAt(0).equals("coil") && internals.socketAt(3).equals("motor"));
+    expectFailure(() -> internals.socketAt(-1));
+    expectFailure(() -> internals.socketAt(4));
   }
 
   /** The gear template from machine-ui.md, "Part files". */

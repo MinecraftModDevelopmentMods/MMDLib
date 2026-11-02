@@ -46,6 +46,7 @@ public final class MachineInternals {
   private MachineStats stats;
   private MachineParts statsParts;
   private int statsGeneration;
+  private boolean loading;
 
   /**
    * Empty internals for {@code definition}.
@@ -140,8 +141,10 @@ public final class MachineInternals {
    * wear reaches its durability is destroyed and its position left empty.
    *
    * @return how many parts broke
+   * @throws IllegalArgumentException if {@code points} is negative
    */
   public int wear(String socket, int points) {
+    if (points < 0) throw new IllegalArgumentException("Negative wear: " + points);
     int broke = 0;
     var current = parts.get();
     for (int slot : definition.slots(socket)) {
@@ -200,25 +203,32 @@ public final class MachineInternals {
    * socket's count, become orphans instead of being lost.
    */
   public void load(HolderLookup.Provider provider, CompoundTag tag) {
-    for (int slot = 0; slot < sockets.getSlots(); slot++)
-      sockets.setStackInSlot(slot, ItemStack.EMPTY);
-    orphans.clear();
-    var saved = tag.getCompound(SOCKETS);
-    for (var socket : saved.getAllKeys()) {
-      var list = saved.getList(socket, Tag.TAG_COMPOUND);
-      var slots =
-          definition.sockets().containsKey(socket) ? definition.slots(socket) : List.<Integer>of();
+    loading = true;
+    try {
+      for (int slot = 0; slot < sockets.getSlots(); slot++)
+        sockets.setStackInSlot(slot, ItemStack.EMPTY);
+      orphans.clear();
+      var saved = tag.getCompound(SOCKETS);
+      for (var socket : saved.getAllKeys()) {
+        var list = saved.getList(socket, Tag.TAG_COMPOUND);
+        var slots =
+            definition.sockets().containsKey(socket)
+                ? definition.slots(socket)
+                : List.<Integer>of();
+        for (int i = 0; i < list.size(); i++) {
+          var stack = ItemStack.parseOptional(provider, list.getCompound(i));
+          if (stack.isEmpty()) continue;
+          if (i < slots.size()) sockets.setStackInSlot(slots.get(i), stack);
+          else orphans.add(stack);
+        }
+      }
+      var list = tag.getList(ORPHANS, Tag.TAG_COMPOUND);
       for (int i = 0; i < list.size(); i++) {
         var stack = ItemStack.parseOptional(provider, list.getCompound(i));
-        if (stack.isEmpty()) continue;
-        if (i < slots.size()) sockets.setStackInSlot(slots.get(i), stack);
-        else orphans.add(stack);
+        if (!stack.isEmpty()) orphans.add(stack);
       }
-    }
-    var list = tag.getList(ORPHANS, Tag.TAG_COMPOUND);
-    for (int i = 0; i < list.size(); i++) {
-      var stack = ItemStack.parseOptional(provider, list.getCompound(i));
-      if (!stack.isEmpty()) orphans.add(stack);
+    } finally {
+      loading = false;
     }
     changed();
   }
@@ -262,7 +272,7 @@ public final class MachineInternals {
 
   private void changed() {
     stats = null;
-    onChange.run();
+    if (!loading) onChange.run();
   }
 
   private static Tag saveStack(HolderLookup.Provider provider, ItemStack stack) {

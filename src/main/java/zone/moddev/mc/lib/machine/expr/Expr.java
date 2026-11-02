@@ -197,7 +197,8 @@ public sealed interface Expr {
       int start = ++pos;
       while (pos < text.length()) {
         char c = text.charAt(pos);
-        if (Character.isLetterOrDigit(c) || c == '_' || (c == '.' && pos > start)) pos++;
+        boolean segmentEnd = c == '.' && pos > start && text.charAt(pos - 1) != '.';
+        if (Character.isLetterOrDigit(c) || c == '_' || segmentEnd) pos++;
         else break;
       }
       if (pos == start || text.charAt(pos - 1) == '.') throw error("Bad variable name");

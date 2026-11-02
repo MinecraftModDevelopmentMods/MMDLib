@@ -137,6 +137,13 @@ final class MachineInternalsSmoke {
     require(
         internals.install("motor", 0, new ItemStack(Items.PISTON), false).isEmpty(), "motor back");
     require(internals.wear("motor", 5) == 0, "parts without durability never wear");
+    boolean refused = false;
+    try {
+      internals.wear("gears", -1);
+    } catch (IllegalArgumentException ex) {
+      refused = true;
+    }
+    require(refused, "negative wear refused");
     require(internals.missing().equals(Optional.of("gears")), "motor survives wear");
 
     // Saved by socket name; parts with no room left are kept as orphans, across saves too.
@@ -157,6 +164,11 @@ final class MachineInternalsSmoke {
     same.load(provider, saved);
     require(same.orphans().isEmpty() && same.missing().isEmpty(), "same layout loads in place");
     require(near(same.stats().get("speed"), (1 + 2 * perGear) * 1.15), "loaded stats");
+    var loads = new int[1];
+    new MachineInternals(definition, MachineParts::current)
+        .onChange(() -> loads[0]++)
+        .load(provider, saved);
+    require(loads[0] == 1, "load reports one change, got " + loads[0]);
 
     // A reload changes the numbers without touching the sockets.
     installParts(GEAR.replace("0.08 *", "0.16 *"));

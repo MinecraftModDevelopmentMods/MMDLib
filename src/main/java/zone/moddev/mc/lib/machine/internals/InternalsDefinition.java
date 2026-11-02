@@ -84,10 +84,12 @@ public record InternalsDefinition(
 
   /** The socket that slot {@code slot} belongs to. */
   public String socketAt(int slot) {
-    int first = 0;
-    for (var entry : sockets.entrySet()) {
-      first += entry.getValue().count();
-      if (slot < first) return entry.getKey();
+    if (slot >= 0) {
+      int first = 0;
+      for (var entry : sockets.entrySet()) {
+        first += entry.getValue().count();
+        if (slot < first) return entry.getKey();
+      }
     }
     throw new IllegalArgumentException("Machine has no socket slot " + slot);
   }

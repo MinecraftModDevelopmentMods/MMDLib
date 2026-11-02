@@ -73,7 +73,7 @@ def verifyMachineImports = tasks.register('verifyMachineImports') {
 }
 tasks.named('check') { dependsOn verifyMachineImports }
 
-def verifyStaticAssets =tasks.register('verifyStaticAssets', Exec) {
+def verifyStaticAssets = tasks.register('verifyStaticAssets', Exec) {
     group = 'verification'
     dependsOn tasks.named('classes')
     commandLine providers.gradleProperty('mmdlibPython').getOrElse('python3'), file('scripts/validate_static_assets.py').absolutePath
