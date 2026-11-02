@@ -136,7 +136,7 @@ asset JAR. The legacy `--minecraft-assets` argument is accepted but unused.
 check all static parent/model/texture references, concrete model texture variables,
 PNG headers, and animation metadata. `verifyStaticAssets` runs it during `check`.
 
-`verifyVanillaExamples` loads the actual shipped files through `DefinitionLoader`,
+`VanillaExamplesTest` (JUnit) loads the actual shipped files through `DefinitionLoader`,
 checks every planned item/block has its packaged resources, verifies no unwanted
 vanilla tool/armor duplicates, and round-trips the runtime references through
 JSON/NBT and MaterialBuilder.

@@ -14,6 +14,8 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.level.block.*;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 import zone.moddev.mc.lib.common.runtime.*;
@@ -35,7 +37,8 @@ public final class RuntimeBehaviorTest {
     API.blockImplementation(part.factory()).validate(part);
   }
 
-  public static void main(String[] args) throws Exception {
+  @Test
+  void dispatchesRuntimeBehaviors() throws Exception {
     var material =
         MaterialBuilder.create()
             .setName("test:metal")
@@ -271,9 +274,6 @@ public final class RuntimeBehaviorTest {
         else require(value.getAsString().startsWith("minecraft:"));
       }
     }
-    System.out.println(
-        "BMe-derived runtime class dispatch, material stat formulas, explicit tier tags, and tag"
-            + " resources passed");
   }
 
   private static void require(boolean condition) {

@@ -12,13 +12,16 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.modules.*;
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 
 public final class DataModulesTest {
-  public static void main(String[] args) throws Exception {
+  @Test
+  void loadsBundledAndExternalModules() throws Exception {
     var bundled = ModuleCatalog.bundled();
     require(
         bundled.items().size() == 32
@@ -134,9 +137,6 @@ public final class DataModulesTest {
           Files.delete(path);
       }
     }
-    System.out.println(
-        "Bundled and external data modules, overrides, selections, ZIP paths, and JSON/NBT codecs"
-            + " passed");
   }
 
   private static ResourceLocation id(String value) {

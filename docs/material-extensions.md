@@ -182,7 +182,7 @@ still separate work. Planning and codec use do not instantiate game objects.
 Existing direct MaterialContentPlanner calls plan standard parts; use
 MaterialFactory to include registered extension types.
 
-verifyMaterialExtensions tests dynamic type selections, excludes, optional mods,
+`MaterialExtensionsTest` (JUnit) tests dynamic type selections, excludes, optional mods,
 codec round trips, typed callback validation/dispatch, listener cleanup, deferred
 creation boundaries, registry validation, and ID collisions. Actual game-object
 registration, behaviors, and renderer effects require an in-game test.

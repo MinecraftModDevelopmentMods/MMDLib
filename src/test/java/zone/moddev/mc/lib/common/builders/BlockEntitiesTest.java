@@ -17,6 +17,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.codecs.MMDMaterialCodec;
 import zone.moddev.mc.lib.common.factories.*;
@@ -36,7 +38,8 @@ public final class BlockEntitiesTest {
     }
   }
 
-  public static void main(String[] args) {
+  @Test
+  void plansMachineBlockEntitiesAndWorldEntities() {
     var api = new MaterialExtensions(false);
     var module =
         DataModules.Block.CODEC
@@ -228,18 +231,15 @@ public final class BlockEntitiesTest {
     var binding = new zone.moddev.mc.lib.api.BlockEntityBinding<>(prepared, () -> null);
     require(binding.as(Machine.class) == binding && binding.blockEntityClass() == Machine.class);
     expectFailure(() -> binding.as(Other.class));
-    standaloneMachine();
     require(creations.get() == 0);
-    System.out.println(
-        "Machine block entities, block-owned world entities, selection/gating, codecs, deferred"
-            + " typed factory validation, and standalone machine planning passed");
   }
 
   /**
    * Plans a standalone machine. Queuing it on a runtime registrar needs a bootstrapped game, so
    * that is covered by the runtime smoke test.
    */
-  private static void standaloneMachine() {
+  @Test
+  void standaloneMachinePlans() {
     var machine =
         DataModules.Block.CODEC
             .parse(

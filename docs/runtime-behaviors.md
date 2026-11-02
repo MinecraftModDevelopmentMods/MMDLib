@@ -233,7 +233,7 @@ block, and material definitions are dispatched by the runtime event bridge.
 `StandardItems` by itself deliberately rejects ammunition instead of substituting
 an item that cannot shoot.
 
-verifyRuntimeBehavior checks dispatch classes without instantiating game objects,
+`RuntimeBehaviorTest` (JUnit) checks dispatch classes without instantiating game objects,
 material stat formulas, explicit tier tags, lazy repair resolution, and bundled tag
 resources. The whole NeoForge project compiles and existing definition/codec/API
 checks run alongside it. Scythe harvesting/protection, crackhammer processing and

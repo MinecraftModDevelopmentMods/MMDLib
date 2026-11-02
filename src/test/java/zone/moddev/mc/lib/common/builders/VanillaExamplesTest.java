@@ -10,6 +10,8 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.codecs.MMDMaterialCodec;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader;
@@ -19,7 +21,8 @@ import zone.moddev.mc.lib.common.loading.DefinitionLoader;
  * resources.
  */
 public final class VanillaExamplesTest {
-  public static void main(String[] args) throws Exception {
+  @Test
+  void shippedDefinitionsLoad() throws Exception {
     var source = Path.of(System.getProperty("mmdlib.resources"));
     var generated = Path.of(System.getProperty("mmdlib.generated"));
     var api = new MaterialExtensions();
@@ -297,9 +300,6 @@ public final class VanillaExamplesTest {
         }
       }
     }
-    System.out.println(
-        "Shipped vanilla definitions: 15 materials, 233 items, 79 blocks including fluids, 14"
-            + " projectile types; codec and resource coverage passed");
   }
 
   private static ResourceLocation id(String value) {

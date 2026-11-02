@@ -11,11 +11,14 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.common.codecs.BlockTemplate;
 import zone.moddev.mc.lib.common.parsers.BlockParser;
 
 public final class BlockBuilderTest {
-  public static void main(String[] args) {
+  @Test
+  void buildsMaterialBlocksAndValidates() {
     var root = BlockBuilder.create();
     require(root == BlockBuilder.INSTANCE);
     var template =
@@ -106,9 +109,6 @@ public final class BlockBuilderTest {
               .parse(JsonOps.INSTANCE, JsonParser.parseString(invalid))
               .error()
               .isPresent());
-    System.out.println(
-        "Immutable material block builder, item binding, JSON/NBT codec, and validation checks"
-            + " passed");
   }
 
   private static void require(boolean condition) {

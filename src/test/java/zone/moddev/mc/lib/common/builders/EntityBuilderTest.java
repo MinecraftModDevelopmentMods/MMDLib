@@ -15,6 +15,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.common.codecs.EntityTemplate;
 import zone.moddev.mc.lib.common.factories.EntityFactories;
 import zone.moddev.mc.lib.common.factories.EntityFactory;
@@ -23,7 +25,8 @@ import zone.moddev.mc.lib.common.types.FactoryData;
 import zone.moddev.mc.lib.common.types.MMDEntity;
 
 public final class EntityBuilderTest {
-  public static void main(String[] args) {
+  @Test
+  void buildsEntityTemplates() {
     var root = EntityBuilder.create();
     require(root == EntityBuilder.INSTANCE);
     var settings = JsonParser.parseString("{\"power\":2}").getAsJsonObject();
@@ -134,9 +137,6 @@ public final class EntityBuilderTest {
             .forMaterial("test:copper")
             .build();
     expectFailure(() -> factories.prepare(badSettings, Entity.class));
-    System.out.println(
-        "Entity templates, typed factory resolution, settings validation, and JSON/NBT checks"
-            + " passed");
   }
 
   private static void require(boolean condition) {

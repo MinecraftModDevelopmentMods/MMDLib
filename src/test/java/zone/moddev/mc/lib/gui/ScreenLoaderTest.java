@@ -12,6 +12,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 
+import org.junit.jupiter.api.Test;
+
 import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.load.BoundValue;
@@ -140,8 +142,8 @@ public final class ScreenLoaderTest {
 </screen>
 """;
 
-  public static void main(String[] args) throws Throwable {
-    zone.moddev.mc.lib.gui.runtime.GuiProtocolTest.main(args);
+  @Test
+  void loadsAndBindsScreens() throws Throwable {
     var bound = bind(EXAMPLE);
     var screen = bound.screen();
     require(screen.playerInventory());
@@ -251,9 +253,6 @@ public final class ScreenLoaderTest {
     fails(
         "not a block entity", HEAD.replace("$Press", "$Helpers") + "<label text=\"a\"/></screen>");
     fails("missing static", HEAD + "<label text=\"a\" value=\"java.lang.Math#nope\"/></screen>");
-    System.out.println(
-        "Screen schema, hardened parsing, model, reference checks, getter binding and layout"
-            + " passed");
   }
 
   private static void checkLayout(Screen screen) throws Exception {

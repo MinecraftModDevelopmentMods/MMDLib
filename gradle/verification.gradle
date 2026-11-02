@@ -1,11 +1,7 @@
-// Verification: the builderTest/runtimeTest source sets and every verify* task.
+// Verification: the JUnit tests, the runtimeTest source set and every verify* task.
 // All of it runs on `./gradlew check`; `build` only compiles and packages (see the end of this file).
 
 sourceSets {
-    builderTest {
-        compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
-        runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
-    }
     runtimeTest {
         compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.test.runtimeClasspath
@@ -37,39 +33,9 @@ dependencies {
 tasks.named('test', Test) {
     useJUnitPlatform()
     testLogging { events 'failed'; exceptionFormat 'full' }
-}
-
-// Standalone checks in src/builderTest, run as plain Java programs: task name -> main class
-// (in zone.moddev.mc.lib.common.builders), plus any system properties the check reads.
-def resources = file('src/main/resources').absolutePath
-def builderChecks = [
-    verifyItemBuilder       : ['ItemBuilderTest'],
-    verifyItemTemplate      : ['ItemTemplateTest'],
-    verifyBlockBuilder      : ['BlockBuilderTest'],
-    verifyEntityBuilder     : ['EntityBuilderTest'],
-    verifyFluidBuilder      : ['FluidBuilderTest'],
-    verifyMaterialParts     : ['MaterialPartsTest'],
-    verifyMaterialFactory   : ['MaterialFactoryTest'],
-    verifyMaterialExtensions: ['MaterialExtensionsTest'],
-    verifyRuntimeBehavior   : ['RuntimeBehaviorTest', ['mmdlib.resources': resources]],
-    verifyDataModules       : ['DataModulesTest'],
-    verifyLoadedParts       : ['LoadedPartsTest'],
-    verifyBlockEntities     : ['BlockEntitiesTest'],
-    verifyMethodEvents      : ['MethodEventsTest'],
-    verifyDefinitionLoader  : ['DefinitionLoaderTest'],
-    verifyScreens           : ['zone.moddev.mc.lib.gui.ScreenLoaderTest'],
-    verifyVanillaExamples   : ['VanillaExamplesTest', ['mmdlib.resources': resources,
-                                                       'mmdlib.generated': file('src/generated/resources').absolutePath]],
-]
-builderChecks.each { name, spec ->
-    def check = tasks.register(name, JavaExec) {
-        group = 'verification'
-        dependsOn tasks.named('builderTestClasses')
-        classpath = sourceSets.builderTest.runtimeClasspath
-        mainClass = spec[0].contains('.') ? spec[0] : "zone.moddev.mc.lib.common.builders.${spec[0]}"
-        if (spec.size() > 1) systemProperties(spec[1])
-    }
-    tasks.named('check') { dependsOn check }
+    // VanillaExamplesTest and RuntimeBehaviorTest read the shipped definitions from disk.
+    systemProperty 'mmdlib.resources', file('src/main/resources').absolutePath
+    systemProperty 'mmdlib.generated', file('src/generated/resources').absolutePath
 }
 
 def verifyReleaseClasses = tasks.register('verifyReleaseClasses') {

@@ -1,7 +1,7 @@
 name: CI
 
-# Every pull request runs the unit tests, the builder checks and the server game tests
-# (`./gradlew check`), then the client GUI smoke test with and without JEI.
+# Every pull request runs the unit tests and the server game tests (`./gradlew check`), then the
+# client GUI smoke test with and without JEI.
 on:
   pull_request:
   push:
