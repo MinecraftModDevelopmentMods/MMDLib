@@ -12,3 +12,7 @@
 /tools/*.jar
 
 .claude/settings.local.json
+
+# private agent/design docs live in faceofcat/mod-design
+AGENTS.md
+CLAUDE.md
