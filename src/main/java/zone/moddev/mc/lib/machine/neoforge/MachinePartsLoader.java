@@ -6,6 +6,7 @@ import java.util.Optional;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
@@ -48,6 +49,8 @@ public final class MachinePartsLoader extends SimpleJsonResourceReloadListener {
   @Override
   protected void apply(
       Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-    MachineParts.install(MachineParts.parse(files, MachinePartsLoader::subject));
+    var parts = MachineParts.parse(files, MachinePartsLoader::subject);
+    parts.check(BuiltInRegistries.ITEM.keySet());
+    MachineParts.install(parts);
   }
 }

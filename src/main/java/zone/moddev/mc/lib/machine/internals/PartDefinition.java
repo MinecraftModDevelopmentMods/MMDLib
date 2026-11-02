@@ -33,22 +33,31 @@ public record PartDefinition(
       Set.of("material.hardness", "material.strength", "material.magic", "material.damage");
   private static final String SPECIAL = "material.special.";
 
-  /** The JSON form; exactly one of {@code part} or {@code item}, and only material variables. */
+  /**
+   * The JSON form; exactly one of {@code part} or {@code item}, only material variables, and no
+   * other keys.
+   */
   public static final Codec<PartDefinition> CODEC =
-      RecordCodecBuilder.<Raw>create(
-              instance ->
-                  instance
-                      .group(
-                          ResourceLocation.CODEC.optionalFieldOf("part").forGetter(Raw::part),
-                          ResourceLocation.CODEC.optionalFieldOf("item").forGetter(Raw::item),
-                          Codec.STRING.fieldOf("socket").forGetter(Raw::socket),
-                          PartModifier.CODEC
-                              .listOf()
-                              .fieldOf("modifiers")
-                              .forGetter(Raw::modifiers),
-                          Expr.CODEC.optionalFieldOf("durability").forGetter(Raw::durability))
-                      .apply(instance, Raw::new))
-          .comapFlatMap(Raw::toDefinition, Raw::of);
+      StrictKeys.of(
+          RecordCodecBuilder.<Raw>create(
+                  instance ->
+                      instance
+                          .group(
+                              ResourceLocation.CODEC.optionalFieldOf("part").forGetter(Raw::part),
+                              ResourceLocation.CODEC.optionalFieldOf("item").forGetter(Raw::item),
+                              Codec.STRING.fieldOf("socket").forGetter(Raw::socket),
+                              PartModifier.CODEC
+                                  .listOf()
+                                  .fieldOf("modifiers")
+                                  .forGetter(Raw::modifiers),
+                              Expr.CODEC.optionalFieldOf("durability").forGetter(Raw::durability))
+                          .apply(instance, Raw::new))
+              .comapFlatMap(Raw::toDefinition, Raw::of),
+          "part",
+          "item",
+          "socket",
+          "modifiers",
+          "durability");
 
   /** Copies the modifier list. */
   public PartDefinition {

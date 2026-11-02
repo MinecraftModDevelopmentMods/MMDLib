@@ -1,5 +1,6 @@
 package zone.moddev.mc.lib.smoke;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
@@ -34,6 +35,10 @@ final class MachinePartsLoaderSmoke {
     require(
         parts.resolve(ResourceLocation.parse("minecraft:piston")).isEmpty(),
         "a file that doesn't decode is skipped");
+    var problems = parts.check(BuiltInRegistries.ITEM.keySet());
+    require(
+        problems.size() == 1 && problems.getFirst().contains("mmdlib_smoke:no_such_item"),
+        "only the file naming a missing item is reported, got " + problems);
   }
 
   private static void require(boolean condition, String what) {

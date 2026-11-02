@@ -1,7 +1,10 @@
 package zone.moddev.mc.lib.machine.internals;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -28,12 +31,14 @@ import zone.moddev.mc.lib.machine.stat.StatModifier;
  *
  * <p>An {@code item} file beats a {@code part} template for that item. When two files claim the
  * same item or part, the lower resource ID wins and an error names both. A file that doesn't decode
- * is logged and skipped. An item whose amounts can't be worked out (no material for {@code
- * $material.*}, a result that isn't finite, a durability below 1) is not a part, logged once.
+ * or has an unknown key is logged and skipped. An item whose amounts can't be worked out (no
+ * material for {@code $material.*}, a result that isn't finite, a durability below 1) is not a
+ * part, logged once. {@link #check} reports the rest when a datapack loads.
  */
 public final class MachineParts {
   private static final Logger LOGGER = LogUtils.getLogger();
   private static final AtomicInteger GENERATIONS = new AtomicInteger();
+  private static final String SPECIAL = "material.special.";
 
   /** No part files. */
   public static final MachineParts NONE =
@@ -96,6 +101,60 @@ public final class MachineParts {
     return new MachineParts(Map.copyOf(byItem), Map.copyOf(byPart), subjects);
   }
 
+  /**
+   * Resolves every item now, so an item whose amounts can't be worked out is logged at load instead
+   * of at first use, and logs what would otherwise do nothing: a file naming an item that doesn't
+   * exist or a part no item is made from, and a {@code $material.special.<key>} no material defines
+   * (which counts as 0, so this is only a warning).
+   *
+   * @param items every item ID in the game
+   * @return the messages logged for files, for tests
+   */
+  public List<String> check(Collection<ResourceLocation> items) {
+    var madeParts = new HashSet<ResourceLocation>();
+    var specialKeys = new HashSet<String>();
+    for (var item : items) {
+      resolve(item);
+      subjects
+          .apply(item)
+          .ifPresent(
+              subject -> {
+                subject.part().ifPresent(madeParts::add);
+                subject
+                    .material()
+                    .ifPresent(material -> specialKeys.addAll(material.special().keySet()));
+              });
+    }
+    var problems = new ArrayList<String>();
+    byItem.forEach(
+        (item, located) -> {
+          if (items.contains(item)) return;
+          var problem = "Machine part file " + located.file() + " names unknown item " + item;
+          LOGGER.error(problem);
+          problems.add(problem);
+        });
+    byPart.forEach(
+        (part, located) -> {
+          if (madeParts.contains(part)) return;
+          var problem =
+              "Machine part file " + located.file() + " names part " + part + " but no item is one";
+          LOGGER.error(problem);
+          problems.add(problem);
+        });
+    var files = new ArrayList<>(byItem.values());
+    files.addAll(byPart.values());
+    for (var located : files)
+      for (var name : located.definition().variables()) {
+        if (!name.startsWith(SPECIAL) || specialKeys.contains(name.substring(SPECIAL.length())))
+          continue;
+        var problem =
+            "Machine part file " + located.file() + " uses $" + name + ", which no material has";
+        LOGGER.warn(problem);
+        problems.add(problem);
+      }
+    return problems;
+  }
+
   /** The installed part files; {@link #NONE} until the first datapack load. */
   public static MachineParts current() {
     return current;
@@ -154,9 +213,9 @@ public final class MachineParts {
       case "material.magic" -> OptionalDouble.of(material.magic());
       case "material.damage" -> OptionalDouble.of(material.damage());
       default ->
-          name.startsWith("material.special.")
+          name.startsWith(SPECIAL)
               ? OptionalDouble.of(
-                  material.special().getOrDefault(name.substring("material.special.".length()), 0D))
+                  material.special().getOrDefault(name.substring(SPECIAL.length()), 0D))
               : OptionalDouble.empty();
     };
   }

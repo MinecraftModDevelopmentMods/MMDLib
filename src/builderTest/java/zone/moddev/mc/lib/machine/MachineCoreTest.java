@@ -290,10 +290,63 @@ public final class MachineCoreTest {
             parsePart(
                 "{\"part\":\"mmdlib:gear\",\"item\":\"test:x\",\"socket\":\"gears\",\"modifiers\":[]}"));
     expectFailure(() -> parsePart(GEAR_TEMPLATE.replace("$material.hardness - 3", "$speed")));
+    // A misspelt key is an error, not a part that quietly never wears.
+    expectFailure(() -> parsePart(GEAR_TEMPLATE.replace("\"durability\"", "\"durabilty\"")));
+    expectFailure(() -> parsePart(GEAR_TEMPLATE.replace("\"stat\"", "\"note\": 1, \"stat\"")));
+    checkParts();
     int generation = MachineParts.current().generation();
     MachineParts.install(parts);
     require(MachineParts.current() == parts && parts.generation() > generation);
     MachineParts.install(MachineParts.NONE);
+  }
+
+  /** Files that decode but can't do anything are reported by check, which also resolves early. */
+  private static void checkParts() {
+    var files = new HashMap<ResourceLocation, JsonElement>();
+    files.put(id("test:gear"), JsonParser.parseString(GEAR_TEMPLATE));
+    files.put(
+        id("test:typo_part"),
+        JsonParser.parseString(GEAR_TEMPLATE.replace("mmdlib:gear", "mmdlib:gaer")));
+    files.put(
+        id("test:typo_item"),
+        JsonParser.parseString(
+            "{\"item\": \"test:iron_geer\", \"socket\": \"gears\", \"modifiers\": []}"));
+    files.put(
+        id("test:special"),
+        JsonParser.parseString(
+            """
+            {"item": "test:invar_gear", "socket": "gears",
+             "modifiers": [{"stat": "grip", "op": "add_value",
+                            "amount": "$material.special.grip + $material.special.gripp"}]}
+            """));
+    var subjects =
+        Map.of(
+            id("test:iron_gear"), gear("test:iron_gear", 4, Map.of()),
+            id("test:invar_gear"), gear("test:invar_gear", 6, Map.of("grip", 2.0)),
+            id("test:soft_gear"), gear("test:soft_gear", 0, Map.of()));
+    var lookups = new int[1];
+    var parts =
+        MachineParts.parse(
+            files,
+            item -> {
+              lookups[0]++;
+              return Optional.ofNullable(subjects.get(item));
+            });
+    var problems = parts.check(subjects.keySet());
+    require(problems.size() == 3);
+    require(mentions(problems, "test:typo_part", "mmdlib:gaer"));
+    require(mentions(problems, "test:typo_item", "test:iron_geer"));
+    require(mentions(problems, "test:special", "$material.special.gripp"));
+    // Every item was resolved, so template errors are already logged and nothing looks up again.
+    int after = lookups[0];
+    require(parts.resolve(id("test:iron_gear")).isPresent());
+    require(parts.resolve(id("test:soft_gear")).isEmpty());
+    require(lookups[0] == after);
+  }
+
+  private static boolean mentions(List<String> problems, String... words) {
+    return problems.stream()
+        .anyMatch(problem -> List.of(words).stream().allMatch(problem::contains));
   }
 
   private static void amountMatch() {
