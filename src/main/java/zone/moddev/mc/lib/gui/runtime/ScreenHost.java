@@ -13,7 +13,8 @@ import zone.moddev.mc.lib.api.capabilities.SideConfig;
 public interface ScreenHost {
   /**
    * The inventory behind the screen's {@code <slot index>} elements, numbered as in the XML;
-   * returning an {@code ItemStorage} keeps its output restrictions and filters for players.
+   * returning an {@code ItemStorage} keeps its output restrictions and filters for players. It must
+   * work on the client too, where the menu asks it what each slot accepts to predict clicks.
    */
   IItemHandlerModifiable screenItems();
 

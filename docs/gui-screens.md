@@ -57,6 +57,11 @@ stacks to one item. Sparse machine indexes remain reserved and inactive.
 }
 ```
 
+`screenItems()` must also work on the client. The client's menu keeps its own copy of the slot
+contents, and asks the client block entity's `screenItems()` what each slot accepts and how much it
+holds, so a click is predicted the way the server will answer it. It's only asked about rules, so its
+contents don't need to be synced.
+
 `screenDestinations` controls shift-click routing into the machine; its default tries all storage
 indexes, subject to their filters. `screenRecipeSlots` explicitly names recipe inputs in recipe
 order; its default disables JEI transfer. Both methods must work on the client as well as the

@@ -71,6 +71,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void clientMenuItems(GameTestHelper helper) {
+    ClientMenuItemsSmoke.check();
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machinePartsLoad(GameTestHelper helper) {
     MachinePartsLoaderSmoke.check();
     helper.succeed();
