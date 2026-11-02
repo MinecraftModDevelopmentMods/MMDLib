@@ -2,7 +2,6 @@ package zone.moddev.mc.lib.machine.recipe;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.IntPredicate;
 
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
@@ -26,8 +25,9 @@ import zone.moddev.mc.lib.machine.recipe.MachineProduct.ItemProduct;
  * outputs all or nothing. Groups are joined by key.
  *
  * <ul>
- *   <li>Item parts in one group claim matching items in list order; a later part can't count what
- *       an earlier one claimed.
+ *   <li>Item and fluid parts in one group share its slots and tanks through {@link InputClaims}:
+ *       nothing counts twice, and a recipe matches whenever some sharing meets every part, whatever
+ *       order they're listed in.
  *   <li>Fluids are totalled across the group's tanks of fluids in the part's set.
  *   <li>Energy only needs one tick's share to start, {@code ceil(amount / time)}, because it is
  *       drawn while the recipe runs.
@@ -69,7 +69,7 @@ public final class RecipeMatcher {
       for (var entry : recipe.inputs().entrySet()) {
         var group = inventory.group(entry.getKey()).orElse(null);
         if (group == null) return false;
-        for (var ingredient : entry.getValue()) if (!take(group, ingredient, tx)) return false;
+        if (!take(group, entry.getValue(), tx)) return false;
       }
       tx.commit();
       return true;
@@ -99,22 +99,9 @@ public final class RecipeMatcher {
 
   private static MatchResult checkInputs(
       String key, SlotGroup group, List<MachineIngredient> ingredients, int time) {
-    long[] available = available(group);
+    var claims = new InputClaims(available(group));
     for (int i = 0; i < ingredients.size(); i++) {
-      var ingredient = ingredients.get(i);
-      long need =
-          switch (ingredient) {
-            case ItemPart part when group instanceof ItemGroup items ->
-                claim(available, part.count(), slot -> part.items().test(items.peek(slot)));
-            case FluidPart part when group instanceof FluidGroup fluids ->
-                claim(
-                    available,
-                    part.millibuckets(),
-                    tank -> part.fluids().contains(fluids.peek(tank).fluid()));
-            case EnergyPart part when group instanceof EnergyGroup ->
-                claim(available, Math.ceilDiv(part.amount(), time), any -> true);
-            default -> -1;
-          };
+      long need = claim(claims, group, ingredients.get(i), time);
       if (need < 0) return new MatchResult(MatchResult.Reason.WRONG_KIND, key, i);
       if (need > 0) return new MatchResult(MatchResult.Reason.MISSING_INPUT, key, i);
     }
@@ -158,40 +145,40 @@ public final class RecipeMatcher {
     };
   }
 
-  /**
-   * Claims up to {@code need} from matching entries of {@code available}; returns what's still
-   * needed.
-   */
-  private static long claim(long[] available, long need, IntPredicate matches) {
-    for (int i = 0; i < available.length && need > 0; i++) {
-      if (available[i] <= 0 || !matches.test(i)) continue;
-      long taken = Math.min(available[i], need);
-      available[i] -= taken;
-      need -= taken;
-    }
-    return need;
+  /** Adds {@code ingredient} to {@code claims}; returns what's still needed, -1 if wrong kind. */
+  private static long claim(
+      InputClaims claims, SlotGroup group, MachineIngredient ingredient, int time) {
+    return switch (ingredient) {
+      case ItemPart part when group instanceof ItemGroup items ->
+          claims.claim(part.count(), slot -> part.items().test(items.peek(slot)));
+      case FluidPart part when group instanceof FluidGroup fluids ->
+          claims.claim(
+              part.millibuckets(), tank -> part.fluids().contains(fluids.peek(tank).fluid()));
+      case EnergyPart part when group instanceof EnergyGroup ->
+          claims.claim(Math.ceilDiv(part.amount(), time), any -> true);
+      default -> -1;
+    };
   }
 
-  private static boolean take(SlotGroup group, MachineIngredient ingredient, MachineTx tx) {
-    return switch (ingredient) {
-      case ItemPart part when group instanceof ItemGroup items -> {
-        int need = part.count();
-        for (int slot = 0; slot < items.size() && need > 0; slot++)
-          if (part.items().test(items.peek(slot))) need -= items.extract(slot, need, tx);
-        yield need == 0;
-      }
-      case FluidPart part when group instanceof FluidGroup fluids -> {
-        int need = part.millibuckets();
-        for (int tank = 0; tank < fluids.tanks() && need > 0; tank++) {
-          var held = fluids.peek(tank);
-          if (!held.isEmpty() && part.fluids().contains(held.fluid()))
-            need -= fluids.extract(tank, need, tx);
-        }
-        yield need == 0;
-      }
-      case EnergyPart part when group instanceof EnergyGroup -> true;
-      default -> false;
-    };
+  /** Takes what {@code ingredients} claim from {@code group}. Energy groups give nothing here. */
+  private static boolean take(SlotGroup group, List<MachineIngredient> ingredients, MachineTx tx) {
+    if (group instanceof EnergyGroup)
+      return ingredients.stream().allMatch(EnergyPart.class::isInstance);
+    long[] held = available(group);
+    var claims = new InputClaims(held);
+    for (var ingredient : ingredients) if (claim(claims, group, ingredient, 1) != 0) return false;
+    for (int entry = 0; entry < held.length; entry++) {
+      int amount = (int) claims.claimed(entry);
+      if (amount == 0) continue;
+      int taken =
+          switch (group) {
+            case ItemGroup items -> items.extract(entry, amount, tx);
+            case FluidGroup fluids -> fluids.extract(entry, amount, tx);
+            case EnergyGroup energy -> 0;
+          };
+      if (taken != amount) return false;
+    }
+    return true;
   }
 
   private static boolean put(SlotGroup group, MachineProduct product, MachineTx tx) {

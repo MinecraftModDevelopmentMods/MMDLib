@@ -155,6 +155,7 @@ final class MachineRecipeSmoke {
     expect(RecipeMatcher.check(claims, ingots.inventory), Reason.MISSING_INPUT, "input", 1);
     ingots.items.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 4));
     require(RecipeMatcher.check(claims, ingots.inventory).ok(), "four ingots are enough");
+    sharedInputs(ops);
 
     // Energy costs above 2^31: 6,000,000,000 FE over 2 ticks needs 3,000,000,000 to start.
     var big = recipe(ops, "{\"inputs\": {\"energy\": [{\"energy\": 6000000000}]}, \"time\": 2}");
@@ -243,6 +244,51 @@ final class MachineRecipeSmoke {
             .sameFluid(
                 new FluidAmount(Fluids.WATER.builtInRegistryHolder(), DataComponentPatch.EMPTY, 9)),
         "same fluid");
+  }
+
+  /** A broad ingredient listed first must not use up what only a later ingredient can take. */
+  private static void sharedInputs(RegistryOps<com.google.gson.JsonElement> ops) {
+    var logs =
+        recipe(
+            ops,
+            """
+            {"inputs": {"input": [{"items": {"tag": "minecraft:logs"}},
+                                  {"items": {"item": "minecraft:oak_log"}}]}, "time": 10}
+            """);
+    var items = new ItemStorage(2);
+    items.setStackInSlot(0, new ItemStack(Items.OAK_LOG));
+    items.setStackInSlot(1, new ItemStack(Items.BIRCH_LOG));
+    var logInventory =
+        MachineInventory.builder().group("input", StorageGroups.items(items, 0, 1)).build();
+    require(RecipeMatcher.check(logs, logInventory).ok(), "logs can share oak and birch");
+    require(RecipeMatcher.consume(logs, logInventory), "logs consumed");
+    require(items.getStackInSlot(0).isEmpty() && items.getStackInSlot(1).isEmpty(), "logs taken");
+    // Two birch can't fill the oak ingredient, and nothing is taken.
+    items.setStackInSlot(0, new ItemStack(Items.BIRCH_LOG));
+    items.setStackInSlot(1, new ItemStack(Items.BIRCH_LOG));
+    expect(RecipeMatcher.check(logs, logInventory), Reason.MISSING_INPUT, "input", 1);
+    require(!RecipeMatcher.consume(logs, logInventory), "no oak to consume");
+    require(items.getStackInSlot(0).is(Items.BIRCH_LOG), "birch left alone");
+
+    var liquids =
+        recipe(
+            ops,
+            """
+            {"inputs": {"tanks": [{"fluids": ["minecraft:water", "minecraft:lava"], "amount": 100},
+                                  {"fluids": "minecraft:water", "amount": 100}]}, "time": 10}
+            """);
+    var fluids = new FluidStorage();
+    fluids.addTank(1_000, Role.INPUT);
+    fluids.addTank(1_000, Role.INPUT);
+    var execute = net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE;
+    fluids.tank(0).fill(new net.neoforged.neoforge.fluids.FluidStack(Fluids.WATER, 100), execute);
+    fluids.tank(1).fill(new net.neoforged.neoforge.fluids.FluidStack(Fluids.LAVA, 100), execute);
+    var tanks =
+        MachineInventory.builder().group("tanks", StorageGroups.fluids(fluids, 0, 1)).build();
+    require(RecipeMatcher.check(liquids, tanks).ok(), "fluids can share water and lava");
+    require(RecipeMatcher.consume(liquids, tanks), "fluids consumed");
+    require(
+        fluids.getFluidInTank(0).isEmpty() && fluids.getFluidInTank(1).isEmpty(), "fluids taken");
   }
 
   /** One recipe that makes an item and a fluid: both land, or neither does. */

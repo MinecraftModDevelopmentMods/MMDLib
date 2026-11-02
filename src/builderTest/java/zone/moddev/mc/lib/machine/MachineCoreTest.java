@@ -28,6 +28,7 @@ import zone.moddev.mc.lib.machine.internals.MachineParts;
 import zone.moddev.mc.lib.machine.internals.PartDefinition;
 import zone.moddev.mc.lib.machine.internals.PartSubject;
 import zone.moddev.mc.lib.machine.internals.SwapRule;
+import zone.moddev.mc.lib.machine.recipe.InputClaims;
 import zone.moddev.mc.lib.machine.stat.MachineStats;
 import zone.moddev.mc.lib.machine.stat.StatDefinition;
 import zone.moddev.mc.lib.machine.stat.StatModifier;
@@ -40,8 +41,10 @@ public final class MachineCoreTest {
     internalsDefinition();
     parts();
     amountMatch();
+    inputClaims();
     System.out.println(
-        "Machine expressions, stats, internals definitions, part files and amount matching passed");
+        "Machine expressions, stats, internals definitions, part files, amount matching and input"
+            + " claims passed");
   }
 
   private static void expressions() {
@@ -300,6 +303,54 @@ public final class MachineCoreTest {
     require(AmountMatch.ANY_AMOUNT.test(5, 0));
     require(AmountMatch.AT_LEAST.test(3_000_000_000L, 3_000_000_001L));
     require(!AmountMatch.AT_LEAST.test(3_000_000_000L, 2_999_999_999L));
+  }
+
+  private static void inputClaims() {
+    // A broad part listed first moves off the only entry a later part accepts.
+    var two = new InputClaims(new long[] {1, 1});
+    require(two.claim(1, any -> true) == 0);
+    require(two.claim(1, entry -> entry == 0) == 0);
+    require(two.claimed(0) == 1 && two.claimed(1) == 1);
+    // Listing them the other way round gives the same answer.
+    var swapped = new InputClaims(new long[] {1, 1});
+    require(swapped.claim(1, entry -> entry == 0) == 0);
+    require(swapped.claim(1, any -> true) == 0);
+    require(swapped.claimed(0) == 1 && swapped.claimed(1) == 1);
+    // A chain: the third part moves the second, which moves the first.
+    var chain = new InputClaims(new long[] {1, 1, 1});
+    require(chain.claim(1, entry -> entry != 1) == 0);
+    require(chain.claim(1, entry -> entry != 2) == 0);
+    require(chain.claim(1, entry -> entry == 0) == 0);
+    require(chain.claimed(0) == 1 && chain.claimed(1) == 1 && chain.claimed(2) == 1);
+    // Part of a stack moves, and the rest stays.
+    var stacks = new InputClaims(new long[] {3, 3});
+    require(stacks.claim(4, any -> true) == 0);
+    require(stacks.claim(2, entry -> entry == 0) == 0);
+    require(stacks.claimed(0) == 3 && stacks.claimed(1) == 3);
+    // Nothing counts twice, and a claim that can't be met reports how much it's short.
+    var shared = new InputClaims(new long[] {3});
+    require(shared.claim(2, any -> true) == 0);
+    require(shared.claim(2, any -> true) == 1);
+    require(shared.claimed(0) == 3);
+    // Two parts that only accept one entry can't both be met by moving.
+    var stuck = new InputClaims(new long[] {1, 1});
+    require(stuck.claim(1, entry -> entry == 0) == 0);
+    require(stuck.claim(1, entry -> entry == 0) == 1);
+    require(stuck.claimed(0) == 1 && stuck.claimed(1) == 0);
+    // Empty entries aren't asked about, so an ingredient never tests an empty stack.
+    var empty = new InputClaims(new long[] {0, 2});
+    require(
+        empty.claim(
+                1,
+                entry -> {
+                  require(entry == 1);
+                  return true;
+                })
+            == 0);
+    // Energy amounts don't fit an int.
+    var energy = new InputClaims(new long[] {3_000_000_000L});
+    require(energy.claim(2_999_999_999L, any -> true) == 0);
+    require(energy.claim(2, any -> true) == 1);
   }
 
   private static PartSubject gear(String item, double hardness, Map<String, Double> special) {
