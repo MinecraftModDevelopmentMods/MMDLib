@@ -72,7 +72,7 @@ public final class MMDLibGameTests {
 
   @GameTest(template = EMPTY)
   public static void clientMenuItems(GameTestHelper helper) {
-    ClientMenuItemsSmoke.check();
+    ClientMenuItemsSmoke.check(helper.getLevel().registryAccess());
     helper.succeed();
   }
 

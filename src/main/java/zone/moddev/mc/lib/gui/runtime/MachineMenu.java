@@ -20,9 +20,13 @@ import zone.moddev.mc.lib.gui.*;
 import zone.moddev.mc.lib.gui.layout.*;
 import zone.moddev.mc.lib.gui.load.*;
 import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /** One menu for all XML screens. Slot numbers retain the machine's storage numbering. */
 public class MachineMenu extends AbstractContainerMenu {
+  /** Slot plans sync under this key plus the slot, above every element key. */
+  public static final int PLAN_KEYS = 1 << 20;
+
   public final BlockEntity blockEntity;
   public final ScreenBinder.Bound bound;
   public final List<Element> elements;
@@ -183,6 +187,12 @@ public class MachineMenu extends AbstractContainerMenu {
 
   public void apply(Map<Integer, Object> delta) {
     values.putAll(delta);
+    if (items instanceof ClientMenuItems client)
+      delta.forEach(
+          (key, value) -> {
+            if (key >= PLAN_KEYS && value instanceof SlotPlan plan)
+              client.setPlan(key - PLAN_KEYS, plan);
+          });
     for (int i = 0; i < elements.size(); i++)
       if (elements.get(i) instanceof Element.Context context
           && delta.get(Integer.MIN_VALUE + i) instanceof java.math.BigInteger selection) {
@@ -324,6 +334,9 @@ public class MachineMenu extends AbstractContainerMenu {
               .equals(views.get(context.common().id().orElseThrow()))) selected = view;
         snapshot.put(Integer.MIN_VALUE + i, java.math.BigInteger.valueOf(selected));
       }
+    if (items instanceof ItemStorage storage)
+      for (int slot = 0; slot < Math.min(machineSlots, storage.getSlots()); slot++)
+        snapshot.put(PLAN_KEYS + slot, storage.plan(slot));
     var delta = ScreenValues.changed(values, snapshot, initial);
     if (!delta.isEmpty()) {
       values.putAll(delta);
