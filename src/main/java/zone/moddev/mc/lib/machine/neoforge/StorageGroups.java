@@ -136,7 +136,9 @@ public final class StorageGroups {
 
     @Override
     public FluidAmount peek(int tank) {
-      return valid(tank) ? amount(storage.tank(indexes[tank]).getFluid()) : FluidAmount.EMPTY;
+      return valid(tank)
+          ? FluidStacks.amount(storage.tank(indexes[tank]).getFluid())
+          : FluidAmount.EMPTY;
     }
 
     @Override
@@ -151,7 +153,7 @@ public final class StorageGroups {
     @Override
     public int insert(FluidAmount fluid, MachineTx tx) {
       if (fluid.isEmpty()) return 0;
-      var remaining = stack(fluid);
+      var remaining = FluidStacks.stack(fluid);
       for (boolean merging : new boolean[] {true, false})
         for (int index : indexes) {
           if (remaining.isEmpty()) break;
@@ -173,7 +175,7 @@ public final class StorageGroups {
       }
       for (var fluid : fluids) {
         if (fluid.isEmpty()) continue;
-        var stack = stack(fluid);
+        var stack = FluidStacks.stack(fluid);
         int left = fluid.amount();
         for (boolean merging : new boolean[] {true, false})
           for (int i = 0; i < indexes.length && left > 0; i++) {
@@ -203,16 +205,6 @@ public final class StorageGroups {
             var before = storage.tank(index).getFluid().copy();
             return () -> storage.tank(index).setFluid(before);
           });
-    }
-
-    private static FluidStack stack(FluidAmount fluid) {
-      return new FluidStack(fluid.fluid(), fluid.amount(), fluid.components());
-    }
-
-    private static FluidAmount amount(FluidStack stack) {
-      return stack.isEmpty()
-          ? FluidAmount.EMPTY
-          : new FluidAmount(stack.getFluidHolder(), stack.getComponentsPatch(), stack.getAmount());
     }
   }
 
