@@ -16,5 +16,5 @@
     <label text="screen.mmdlib_companion.energy" text-fallback="Energy"/>
     <meter orientation="horizontal" length="144" color="#E64B38" value="#getEnergy" max="#getEnergyCapacity" tooltip="screen.mmdlib_companion.energy.tip" tooltip-fallback="{value} / {max} FE"/>
   </vbox>
-  <popout kind="warning" value="#getWarnings"/>
+  <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.dual_crusher" value="#getWarnings"/>
 </screen>

@@ -84,6 +84,27 @@ def compact_frame(size=8):
     return img
 
 
+def drawer_bookmark():
+    """22x28 ribbon tab with a V-cut tail; it stays visible beside an open drawer."""
+    w, h = 22, 28
+    def inside(x, y):
+        return (0 <= x < w and 0 <= y < h
+                and not (y == 0 and x in (0, w - 1))
+                and y < 22 + abs(x - (w - 1) / 2) * 6 / ((w - 1) / 2))
+    img = canvas(w, h)
+    for y in range(h):
+        for x in range(w):
+            if not inside(x, y): continue
+            border = any(not inside(x + dx, y + dy)
+                         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+            shade = 0 if border else 0xC6
+            if not border:
+                if not inside(x - 2, y) or not inside(x, y - 2): shade = 0xFF
+                elif not inside(x + 2, y) or not inside(x, y + 2): shade = 0x55
+            img[y][x] = grey(shade)
+    return img
+
+
 def checkbox(on):
     img = bevel_box(10, 10, 0x37, 0x8B, 0xFF)
     if on:
@@ -175,6 +196,7 @@ def main():
     write_png("side_tab", side_tab(16), {"type": "nine_slice", "width": 34, "height": 16,
                                          "border": {"left": 3, "top": 3, "right": 3, "bottom": 3}})
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
+    write_png("drawer_bookmark", drawer_bookmark())
     write_png("checkbox", checkbox(False))
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))

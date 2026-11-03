@@ -262,7 +262,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       }
       case Element.SideTab tab -> sideTab(g, r, tab.edge());
       case Element.Popout pop -> {
-        sideTab(g, r, pop.edge());
+        SideDrawerRenderer.tab(g, r);
         blit(g, pop.iconOrDefault(), r.x() + 3, r.y() + 3, 16, 16);
       }
       case Element.SideConfig config -> drawSides(g, config, r);
@@ -404,20 +404,26 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   private Rect popBounds(Element.Popout p) {
     Rect tab = bounds(p);
-    int w = 150, h = Math.max(22, Math.min(topPos + imageHeight - tab.y(), 120));
+    int room = p.edge() == Element.Edge.LEFT ? tab.x() - 4 : width - tab.right() - 4;
+    int w = Math.max(24, Math.min(150, room));
+    int h = Math.max(28, Math.min(topPos + imageHeight - tab.y(), 120));
     return new Rect(p.edge() == Element.Edge.LEFT ? tab.x() - w : tab.right(), tab.y(), w, h);
   }
 
   private List<net.minecraft.util.FormattedCharSequence> popLines(Element.Popout p) {
     Object value = menu.value(p, false);
     var result = new ArrayList<net.minecraft.util.FormattedCharSequence>();
+    int textWidth = popBounds(p).width() - 12;
     if (p.text().isPresent())
-      result.addAll(font.split(ScreenText.markup(text(p.text().get()).getString()), 138));
-    else if (value instanceof Component c) result.addAll(font.split(c, 138));
+      result.addAll(font.split(ScreenText.markup(text(p.text().get()).getString()), textWidth));
+    if (!result.isEmpty()
+        && (value instanceof Component || value instanceof List<?> list && !list.isEmpty()))
+      result.add(net.minecraft.util.FormattedCharSequence.EMPTY);
+    if (value instanceof Component c) result.addAll(font.split(c, textWidth));
     else if (value instanceof List<?> list)
       for (var c : list)
         if (c instanceof Component text) {
-          result.addAll(font.split(text, 138));
+          result.addAll(font.split(text, textWidth));
           result.add(net.minecraft.util.FormattedCharSequence.EMPTY);
         }
     return result;
@@ -441,7 +447,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
           .ifPresent(e -> draw(g, e, bounds(e), mx, my));
     for (var p : open) {
       Rect r = popBounds(p);
-      sprite(g, "panel", r);
+      Rect tab = bounds(p);
+      SideDrawerRenderer.open(g, tab, r, p.edge());
+      blit(g, p.iconOrDefault(), tab.x() + 3, tab.y() + 3, 16, 16);
       var lines = popLines(p);
       int max = Math.max(0, lines.size() * 10 - (r.height() - 12));
       int offset = Math.clamp(scroll.getOrDefault(p, 0), 0, max);

@@ -441,6 +441,8 @@ When JEI is installed:
     marker.
   - Layout: a blank line starts a new paragraph. Text wraps to the pop-out's width and
     scrolls when it is taller.
+  - A pop-out with both `text` and `value` shows its fixed explanation first, followed by the
+    live component or component list. An info drawer can therefore include current warnings.
 - **Edge tabs are author-placed.** Each pop-out tab
   takes `edge` (`left` or `right`) and `icon`, so a screen author spreads them across the
   two sides instead of crowding one. Each pop-out kind has a default icon
@@ -448,6 +450,9 @@ When JEI is installed:
   [GUI sprites](gui-sprites.md)), which `icon` replaces. Tabs on the same edge stack in document order, below any
   `<side-tab>` there. A screen whose tabs do not fit the panel height on an edge fails at
   load, naming the screen file and edge.
+  Pop-out tabs are 22×28 bookmark shapes. Clicking one opens a joined drawer outward from
+  that edge, retaining the bookmark as the close control. Its body is up to 150×120 pixels
+  and wraps its text to the available width; scroll inside it to read longer content.
 
 - **The screen is display only.** Behaviour belongs to the block entity's own code, which the
   screen is wired to:

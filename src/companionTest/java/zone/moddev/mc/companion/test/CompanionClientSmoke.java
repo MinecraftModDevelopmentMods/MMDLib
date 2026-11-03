@@ -33,7 +33,7 @@ public final class CompanionClientSmoke {
   private static final BlockPos POS = new BlockPos(0, 100, 0);
   private static final long DEADLINE = System.currentTimeMillis() + 180_000;
   private static boolean started, opening, menuRequested, finished;
-  private static int stage, frames, waitingTicks;
+  private static int stage, frames, waitingTicks, drawerStage;
 
   @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {
@@ -125,7 +125,31 @@ public final class CompanionClientSmoke {
         if (menu.getSlot(0).getItem().isEmpty()) throw new AssertionError("Input was not synced");
       }
       String name = menu.bound.screen().id().getPath();
-      Screenshot.grab(mc.gameDirectory, name + ".png", mc.getMainRenderTarget(), message -> {});
+      if (stage < 3) {
+        var info = (zone.moddev.mc.lib.gui.model.Element.Popout)
+            menu.bound.screen().find("info").orElseThrow();
+        var tab = screen.bounds(info);
+        if (!info.iconOrDefault().toString().equals("mmdlib:icon_info"))
+          throw new AssertionError("The information drawer must use the info icon");
+        if (drawerStage == 0) {
+          Screenshot.grab(mc.gameDirectory, name + ".png", mc.getMainRenderTarget(), message -> {});
+          screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
+          var exclusions = screen.exclusions();
+          if (exclusions.size() != 2 || exclusions.get(1).right() != tab.x())
+            throw new AssertionError("The drawer must extend left while retaining its bookmark");
+          drawerStage = 1;
+          frames = 0;
+          return;
+        }
+        Screenshot.grab(mc.gameDirectory, name + "-drawer.png", mc.getMainRenderTarget(), message -> {});
+        screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
+        screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
+        if (screen.exclusions().size() != 1)
+          throw new AssertionError("The bookmark did not close its drawer");
+        drawerStage = 0;
+      } else {
+        Screenshot.grab(mc.gameDirectory, name + ".png", mc.getMainRenderTarget(), message -> {});
+      }
       frames = 0;
       stage++;
       opening = false;

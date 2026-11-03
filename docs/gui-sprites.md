@@ -18,6 +18,7 @@ icons are full colour.
 | `group` | 16×16 | nine-slice, border 1 | Grouping boundary: thin recessed panel, tintable (faint blue inputs, faint orange outputs) |
 | `panel` | 16×16 | nine-slice, border 4 | Vanilla-style screen background at any size |
 | `side_tab` | 34×16 | nine-slice, border 3 | Tab growing out of a panel's right edge, e.g. the upgrade column |
+| `drawer_bookmark` | 22×28 | none | Pop-out drawer tab: bevelled bookmark with a V-cut tail; remains visible when expanded |
 | `compact_frame` | 8×8 | nine-slice, border 1 | Frame of the compact segmented gauge; transparent middle (see [gauge textures](gauge-textures.md#compact-segmented-gauge)) |
 | `checkbox`, `checkbox_selected` | 10×10 | none | Recessed checkbox, unchecked / checked |
 | `radio`, `radio_selected` | 10×10 | none | Bevelled circle: raised when off, pressed in when selected |
@@ -57,6 +58,10 @@ Upgrade outlines are drawn at 45% opacity over their slot.
 - **Progress arrow**: draw `progress_arrow`, then the left `round(24 * progress)` columns of
   `progress_arrow_filled` with the cropping overload
   `blitSprite(sprite, 24, 16, 0, 0, x, y, filledWidth, 16)`.
+- **Information drawer**: the bookmark sits just outside the panel edge, with its 16×16 icon
+  at `(x + 3, y + 3)`. The expanded body grows outward beside it (left on a left-edge tab),
+  joining the bookmark's upper bevel while leaving its notched tail visible. The bookmark
+  stays in place and toggles the drawer closed. The body narrows to the available screen space.
 - **Side configuration**: faces are `slot` stretched to 20×20, tinted with the face's mode colour,
   laid out in a 3×3 grid: Top above Front; Left, Front, Right across; Bottom below Front with Back
   beneath Right. The mode letter and any neighbour's item icon are drawn on top.
