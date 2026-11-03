@@ -3,9 +3,10 @@ package zone.moddev.mc.lib.machine.neoforge;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.minecraft.world.item.ItemStack;
 
-import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 
 import zone.moddev.mc.lib.api.capabilities.EnergyBuffer;
@@ -16,12 +17,16 @@ import zone.moddev.mc.lib.machine.inventory.EnergyGroup;
 import zone.moddev.mc.lib.machine.inventory.FluidGroup;
 import zone.moddev.mc.lib.machine.inventory.ItemGroup;
 import zone.moddev.mc.lib.machine.inventory.MachineTx;
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
+import zone.moddev.mc.lib.machine.inventory.TankPlan;
 
 /**
  * Machine groups over MMDLib's storages. They work as the block entity does: items through {@link
  * ItemStorage#insertResult} and the storage's own extract (so slot roles and filters don't apply),
  * fluids through {@link FluidStorage#tank}, energy ignoring the buffer's transfer rates but not its
- * capacity. Transactions copy a slot, tank or buffer the first time they change it.
+ * capacity. Storages keep their plans, so extract and insert stop short of what is reserved.
+ * Transactions copy a slot, tank or buffer the first time they change it, and a slot's or tank's
+ * plan separately from its contents.
  */
 public final class StorageGroups {
   private StorageGroups() {}
@@ -49,8 +54,11 @@ public final class StorageGroups {
     return new EnergyStore(buffer);
   }
 
-  /** A transaction key for one slot or tank of one storage; storages compare by identity. */
+  /** A transaction key for the contents of one slot or tank; storages compare by identity. */
   private record Key(Object storage, int index) {}
+
+  /** A transaction key for the plan of one slot or tank, kept apart from its contents. */
+  private record PlanKey(Object storage, int index) {}
 
   private record ItemSlots(ItemStorage storage, int[] slots) implements ItemGroup {
     @Override
@@ -61,6 +69,11 @@ public final class StorageGroups {
     @Override
     public ItemStack peek(int slot) {
       return valid(slot) ? storage.getStackInSlot(slots[slot]).copy() : ItemStack.EMPTY;
+    }
+
+    @Override
+    public int free(int slot) {
+      return valid(slot) ? storage.freeToTake(slots[slot]) : 0;
     }
 
     @Override
@@ -76,42 +89,78 @@ public final class StorageGroups {
     public int insert(ItemStack stack, MachineTx tx) {
       var remaining = stack.copy();
       for (boolean merging : new boolean[] {true, false})
-        for (int index : slots) {
+        for (int slot = 0; slot < slots.length; slot++) {
           if (remaining.isEmpty()) break;
-          var held = storage.getStackInSlot(index);
-          if (merging == held.isEmpty()) continue;
-          int fits = remaining.getCount() - storage.insertResult(index, remaining, true).getCount();
-          if (fits <= 0) continue;
-          track(index, tx);
-          remaining = storage.insertResult(index, remaining, false);
+          if (merging == storage.getStackInSlot(slots[slot]).isEmpty()) continue;
+          remaining.shrink(insert(slot, remaining.copy(), tx));
         }
       return stack.getCount() - remaining.getCount();
     }
 
     @Override
-    public boolean fits(List<ItemStack> stacks, long[] taken) {
+    public int insert(int slot, ItemStack stack, MachineTx tx) {
+      if (!valid(slot) || stack.isEmpty()) return 0;
+      int index = slots[slot];
+      if (storage.insertResult(index, stack, true).getCount() == stack.getCount()) return 0;
+      track(index, tx);
+      return stack.getCount() - storage.insertResult(index, stack.copy(), false).getCount();
+    }
+
+    @Override
+    public boolean reserve(int slot, SlotPlan plan, MachineTx tx) {
+      if (!valid(slot)) return false;
+      trackPlan(slots[slot], tx);
+      return storage.reserve(slots[slot], plan);
+    }
+
+    @Override
+    public void restore(int slot, SlotPlan plan, MachineTx tx) {
+      if (!valid(slot)) return;
+      var merged = storage.plan(slots[slot]).plus(plan);
+      if (merged == null) throw new IllegalStateException("Plans cannot be merged in slot " + slot);
+      trackPlan(slots[slot], tx);
+      storage.setPlan(slots[slot], merged);
+    }
+
+    @Override
+    public void release(int slot, SlotPlan plan, MachineTx tx) {
+      if (!valid(slot)) return;
+      trackPlan(slots[slot], tx);
+      storage.release(slots[slot], plan);
+    }
+
+    @Override
+    @Nullable
+    public int[][] place(List<ItemStack> stacks, long[] taken) {
       var held = new ArrayList<ItemStack>();
+      var usable = new boolean[slots.length];
       for (int i = 0; i < slots.length; i++) {
         var stack = storage.getStackInSlot(slots[i]);
-        held.add(stack.copyWithCount(stack.getCount() - (int) taken[i]));
+        var plan = storage.plan(slots[i]);
+        var asked = new SlotPlan(plan.take() + (int) taken[i], plan.add());
+        usable[i] = asked.legal(stack, storage.getSlotLimit(slots[i]));
+        held.add(usable[i] ? asked.endState(stack) : ItemStack.EMPTY);
       }
-      for (var stack : stacks) {
+      var placed = new int[stacks.size()][slots.length];
+      for (int n = 0; n < stacks.size(); n++) {
+        var stack = stacks.get(n);
         int left = stack.getCount();
         for (boolean merging : new boolean[] {true, false})
           for (int i = 0; i < slots.length && left > 0; i++) {
             var slot = held.get(i);
-            if (merging == slot.isEmpty()) continue;
+            if (!usable[i] || merging == slot.isEmpty()) continue;
             if (merging && !ItemStack.isSameItemSameComponents(slot, stack)) continue;
             int limit = Math.min(storage.getSlotLimit(slots[i]), stack.getMaxStackSize());
             int moved = Math.min(left, limit - slot.getCount());
             if (moved <= 0) continue;
             if (slot.isEmpty()) held.set(i, stack.copyWithCount(moved));
             else slot.grow(moved);
+            placed[n][i] = moved;
             left -= moved;
           }
-        if (left > 0) return false;
+        if (left > 0) return null;
       }
-      return true;
+      return placed;
     }
 
     private boolean valid(int slot) {
@@ -124,6 +173,15 @@ public final class StorageGroups {
           () -> {
             var before = storage.getStackInSlot(index).copy();
             return () -> storage.setStackInSlot(index, before);
+          });
+    }
+
+    private void trackPlan(int index, MachineTx tx) {
+      tx.track(
+          new PlanKey(storage, index),
+          () -> {
+            var before = storage.plan(index);
+            return () -> storage.setPlan(index, before);
           });
     }
   }
@@ -142,6 +200,11 @@ public final class StorageGroups {
     }
 
     @Override
+    public int free(int tank) {
+      return valid(tank) ? storage.plan(indexes[tank]).free(peek(tank)) : 0;
+    }
+
+    @Override
     public int extract(int tank, int amount, MachineTx tx) {
       if (!valid(tank) || amount <= 0) return 0;
       var handler = storage.tank(indexes[tank]);
@@ -153,45 +216,83 @@ public final class StorageGroups {
     @Override
     public int insert(FluidAmount fluid, MachineTx tx) {
       if (fluid.isEmpty()) return 0;
-      var remaining = FluidStacks.stack(fluid);
+      var remaining = fluid;
       for (boolean merging : new boolean[] {true, false})
-        for (int index : indexes) {
-          if (remaining.isEmpty()) break;
-          var handler = storage.tank(index);
-          if (merging == handler.isEmpty()) continue;
-          if (handler.fill(remaining, FluidAction.SIMULATE) <= 0) continue;
-          track(index, tx);
-          remaining.shrink(handler.fill(remaining, FluidAction.EXECUTE));
+        for (int tank = 0; tank < indexes.length; tank++) {
+          if (remaining.amount() == 0) break;
+          if (merging == storage.tank(indexes[tank]).isEmpty()) continue;
+          remaining = remaining.withAmount(remaining.amount() - insert(tank, remaining, tx));
         }
-      return fluid.amount() - remaining.getAmount();
+      return fluid.amount() - remaining.amount();
     }
 
     @Override
-    public boolean fits(List<FluidAmount> fluids, long[] taken) {
-      var held = new ArrayList<FluidStack>();
+    public int insert(int tank, FluidAmount fluid, MachineTx tx) {
+      if (!valid(tank) || fluid.isEmpty()) return 0;
+      var handler = storage.tank(indexes[tank]);
+      var stack = FluidStacks.stack(fluid);
+      if (handler.fill(stack, FluidAction.SIMULATE) <= 0) return 0;
+      track(indexes[tank], tx);
+      return handler.fill(stack, FluidAction.EXECUTE);
+    }
+
+    @Override
+    public boolean reserve(int tank, TankPlan plan, MachineTx tx) {
+      if (!valid(tank)) return false;
+      trackPlan(indexes[tank], tx);
+      return storage.reserve(indexes[tank], plan);
+    }
+
+    @Override
+    public void restore(int tank, TankPlan plan, MachineTx tx) {
+      if (!valid(tank)) return;
+      var merged = storage.plan(indexes[tank]).plus(plan);
+      if (merged == null) throw new IllegalStateException("Plans cannot be merged in tank " + tank);
+      trackPlan(indexes[tank], tx);
+      storage.setPlan(indexes[tank], merged);
+    }
+
+    @Override
+    public void release(int tank, TankPlan plan, MachineTx tx) {
+      if (!valid(tank)) return;
+      trackPlan(indexes[tank], tx);
+      storage.release(indexes[tank], plan);
+    }
+
+    @Override
+    @Nullable
+    public int[][] place(List<FluidAmount> fluids, long[] taken) {
+      var held = new ArrayList<FluidAmount>();
+      var usable = new boolean[indexes.length];
       for (int i = 0; i < indexes.length; i++) {
-        var fluid = storage.tank(indexes[i]).getFluid();
-        held.add(fluid.copyWithAmount(fluid.getAmount() - (int) taken[i]));
+        var tank = storage.tank(indexes[i]);
+        var amount = FluidStacks.amount(tank.getFluid());
+        var plan = storage.plan(indexes[i]);
+        var asked = new TankPlan(plan.take() + (int) taken[i], plan.add());
+        usable[i] = asked.legal(amount, tank.getCapacity());
+        held.add(usable[i] ? asked.endState(amount) : FluidAmount.EMPTY);
       }
-      for (var fluid : fluids) {
+      var placed = new int[fluids.size()][indexes.length];
+      for (int n = 0; n < fluids.size(); n++) {
+        var fluid = fluids.get(n);
         if (fluid.isEmpty()) continue;
         var stack = FluidStacks.stack(fluid);
         int left = fluid.amount();
         for (boolean merging : new boolean[] {true, false})
           for (int i = 0; i < indexes.length && left > 0; i++) {
             var tank = held.get(i);
-            if (merging == tank.isEmpty()) continue;
-            if (merging && !FluidStack.isSameFluidSameComponents(tank, stack)) continue;
+            if (!usable[i] || merging == tank.isEmpty()) continue;
+            if (merging && !tank.sameFluid(fluid)) continue;
             if (!merging && !storage.tank(indexes[i]).isFluidValid(stack)) continue;
-            int moved = Math.min(left, storage.tank(indexes[i]).getCapacity() - tank.getAmount());
+            int moved = Math.min(left, storage.tank(indexes[i]).getCapacity() - tank.amount());
             if (moved <= 0) continue;
-            if (tank.isEmpty()) held.set(i, stack.copyWithAmount(moved));
-            else tank.grow(moved);
+            held.set(i, fluid.withAmount(tank.amount() + moved));
+            placed[n][i] = moved;
             left -= moved;
           }
-        if (left > 0) return false;
+        if (left > 0) return null;
       }
-      return true;
+      return placed;
     }
 
     private boolean valid(int tank) {
@@ -204,6 +305,15 @@ public final class StorageGroups {
           () -> {
             var before = storage.tank(index).getFluid().copy();
             return () -> storage.tank(index).setFluid(before);
+          });
+    }
+
+    private void trackPlan(int index, MachineTx tx) {
+      tx.track(
+          new PlanKey(storage, index),
+          () -> {
+            var before = storage.plan(index);
+            return () -> storage.setPlan(index, before);
           });
     }
   }
