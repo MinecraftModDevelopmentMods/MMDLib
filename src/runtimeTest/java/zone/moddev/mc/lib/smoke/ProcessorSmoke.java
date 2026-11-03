@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 
 import net.minecraft.nbt.NbtOps;
@@ -24,6 +26,8 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import zone.moddev.mc.lib.api.capabilities.IoMode;
+import zone.moddev.mc.lib.machine.feature.FeatureHost;
+import zone.moddev.mc.lib.machine.feature.MachineFeature;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.State;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
@@ -250,6 +254,113 @@ final class ProcessorSmoke {
     require(rig.processor.status() == Status.IDLE, "idle");
   }
 
+  /** A feature that marks a sync on every tick, or only on the ticks it is told to. */
+  private static final class Marker implements MachineFeature<Integer> {
+    private final boolean syncs;
+    private final Set<Integer> marks;
+    int tick;
+
+    Marker(boolean syncs, Set<Integer> marks) {
+      this.syncs = syncs;
+      this.marks = marks;
+    }
+
+    @Override
+    public String key() {
+      return "marker";
+    }
+
+    @Override
+    public Codec<Integer> codec() {
+      return Codec.INT;
+    }
+
+    @Override
+    public Integer state() {
+      return tick;
+    }
+
+    @Override
+    public void restore(Integer state) {}
+
+    @Override
+    public boolean syncsToClient() {
+      return syncs;
+    }
+
+    @Override
+    public void tick(FeatureHost host) {
+      tick++;
+      if (marks.isEmpty() || marks.contains(tick)) host.markSync();
+    }
+  }
+
+  /** The ticks, counted from 1, on which {@code host} sent over {@code ticks} ticks. */
+  private static List<Integer> sendTicks(
+      ServerLevel level, boolean syncs, Set<Integer> marks, int ticks) {
+    var sent = new ArrayList<Integer>();
+    int[] now = new int[1];
+    var marker = new Marker(syncs, marks);
+    var host = new FeatureHost(() -> {}, () -> sent.add(now[0])).add(marker);
+    for (int i = 0; i < ticks; i++) {
+      now[0] = i + 1;
+      host.tick(level);
+    }
+    return sent;
+  }
+
+  /** A feature that marks every tick sends on the first tick, then once per interval. */
+  static void syncIsThrottled(ServerLevel level) {
+    var sent = sendTicks(level, true, Set.of(), 25);
+    require(sent.equals(List.of(1, 11, 21)), "sent on ticks " + sent);
+  }
+
+  /** A mark made inside the interval is not lost: it goes out when the interval ends. */
+  static void lastChangeStillArrives(ServerLevel level) {
+    var sent = sendTicks(level, true, Set.of(1, 2), 40);
+    require(sent.equals(List.of(1, 11)), "sent on ticks " + sent);
+  }
+
+  /** Marking does nothing when no feature syncs. */
+  static void noSyncingFeatureNoSend(ServerLevel level) {
+    var sent = sendTicks(level, false, Set.of(), 25);
+    require(sent.isEmpty(), "sent on ticks " + sent);
+  }
+
+  /** The processor sends when its status changes, not for progress. */
+  static void processorSendsOnStatusChange(ServerLevel level) {
+    var idle = ProcessorRig.crusher(0, 1_000, 3_000);
+    idle.ticks(level, 40);
+    require(idle.syncs[0] == 0, "an idle machine sent " + idle.syncs[0]);
+
+    var rig = ProcessorRig.crusher(3, 1_000, 3_000);
+    rig.ticks(level, 1);
+    require(rig.syncs[0] == 1, "starting sent " + rig.syncs[0]);
+    rig.ticks(level, 150);
+    expect(rig, Status.RUNNING, 150, "tick 150");
+    require(rig.syncs[0] == 1, "progress alone sent " + rig.syncs[0]);
+
+    rig.ticks(level, 12);
+    require(rig.processor.status() == Status.STALLED, "stalled");
+    require(rig.syncs[0] == 2, "the stall sent " + rig.syncs[0]);
+    rig.energy.setStored(100_000);
+    rig.ticks(level, 1);
+    require(rig.processor.status() == Status.RUNNING, "recovered");
+    require(rig.syncs[0] == 3, "the recovery sent " + rig.syncs[0]);
+
+    rig.ticks(level, 12);
+    rig.processor.interrupt();
+    require(rig.syncs[0] == 3, "interrupt itself sends nothing");
+    rig.ticks(level, 1);
+    require(rig.syncs[0] == 4, "interrupt sent " + rig.syncs[0] + " on the next tick");
+    rig.ticks(level, 12);
+    require(rig.syncs[0] == 4, "a paused machine sent " + rig.syncs[0]);
+    rig.processor.resume();
+    rig.ticks(level, 1);
+    require(rig.processor.status() == Status.RUNNING, "resumed");
+    require(rig.syncs[0] == 5, "resume sent " + rig.syncs[0] + " on the next tick");
+  }
+
   /** A mid-cycle save and load puts back the same plans and progress, and the same finish. */
   static void reloadResumes(ServerLevel level) {
     var rig = ProcessorRig.crusher(3, 1_000, 100_000);
@@ -353,7 +464,8 @@ final class ProcessorSmoke {
     var outside =
         new CyclePlan(
             gold, 10, List.of(new ItemTake("slot", 1, iron)), List.of(), List.of(), Map.of());
-    fewer.processor.restore(new State(false, 3, Optional.empty(), 0, Optional.of(outside)));
+    fewer.processor.restore(
+        new State(false, 3, Optional.empty(), 0, Optional.of(outside), Status.IDLE));
     cancelled(fewer, false, "fewer slots");
 
     var running = ProcessorRig.oneSlot(true);
@@ -380,7 +492,7 @@ final class ProcessorSmoke {
             List.of(),
             List.of(),
             Map.of());
-    var state = new State(true, 50, Optional.empty(), 0, Optional.of(plan));
+    var state = new State(true, 50, Optional.empty(), 0, Optional.of(plan), Status.IDLE);
     JsonElement json = State.CODEC.encodeStart(ops, state).getOrThrow();
     var broken = JsonParser.parseString(json.toString().replace("cobblestone", "no_such_thing"));
     var decoded = State.CODEC.parse(ops, broken);
@@ -435,8 +547,9 @@ final class ProcessorSmoke {
       var other = rig.lane("other");
       var first = goldFirst ? addsGold : takesIron;
       var second = goldFirst ? takesIron : addsGold;
-      rig.processor.restore(new State(false, 3, Optional.empty(), 0, Optional.of(first)));
-      other.restore(new State(false, 3, Optional.empty(), 0, Optional.of(second)));
+      rig.processor.restore(
+          new State(false, 3, Optional.empty(), 0, Optional.of(first), Status.IDLE));
+      other.restore(new State(false, 3, Optional.empty(), 0, Optional.of(second), Status.IDLE));
       require(rig.items.plan(0).sameAs(merged), "the source has the merged plan");
 
       var copy = rig.reloaded(level);

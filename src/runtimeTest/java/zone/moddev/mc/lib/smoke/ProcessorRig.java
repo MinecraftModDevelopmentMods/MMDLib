@@ -19,15 +19,17 @@ import zone.moddev.mc.lib.machine.neoforge.StorageGroups;
 
 /**
  * A machine's storages, inventory, processor and feature host for the processor smoke test. {@link
- * #changes} counts every change the host or a storage reports.
+ * #changes} counts every change the host or a storage reports, and {@link #syncs} every send to
+ * clients.
  */
 final class ProcessorRig {
   final int[] changes = new int[1];
+  final int[] syncs = new int[1];
   final ItemStorage items;
   final FluidStorage fluids = new FluidStorage().onChange(() -> changes[0]++);
   final EnergyBuffer energy = new EnergyBuffer(10_000_000_000L, 1_000).onChange(() -> changes[0]++);
   final MachineInventory inventory;
-  final FeatureHost host = new FeatureHost(() -> changes[0]++);
+  final FeatureHost host = new FeatureHost(() -> changes[0]++, () -> syncs[0]++);
   final RecipeProcessor processor;
   private final boolean crusher;
   private final boolean withEnergy;

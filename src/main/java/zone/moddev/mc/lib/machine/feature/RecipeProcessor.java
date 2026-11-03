@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.jetbrains.annotations.Nullable;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.resources.ResourceLocation;
@@ -40,6 +41,18 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     PAUSED
   }
 
+  /** A status by name; a name it doesn't know is a decoding error, not an exception. */
+  private static final Codec<Status> STATUS_CODEC =
+      Codec.STRING.comapFlatMap(
+          name -> {
+            try {
+              return DataResult.success(Status.valueOf(name));
+            } catch (IllegalArgumentException ex) {
+              return DataResult.error(() -> "Unknown processor status " + name);
+            }
+          },
+          Status::name);
+
   /**
    * The saved form. A cycle that won't decode, say because an item is gone from the game, is
    * dropped as a whole while the rest of the state is kept.
@@ -49,13 +62,16 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
    * @param resumeRecipe the recipe a pause or a resume is waiting to reserve again
    * @param resumeTime the time that recipe took, so progress is dropped if its time changed
    * @param cycle the running cycle
+   * @param status what the processor was doing; loading works it out again, and only a client
+   *     takes it from here
    */
   public record State(
       boolean paused,
       int progress,
       Optional<ResourceLocation> resumeRecipe,
       int resumeTime,
-      Optional<CyclePlan> cycle) {
+      Optional<CyclePlan> cycle,
+      Status status) {
     /** The save form. */
     public static final Codec<State> CODEC =
         RecordCodecBuilder.create(
@@ -72,7 +88,10 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
                         Codec.intRange(0, Integer.MAX_VALUE)
                             .optionalFieldOf("resume_time", 0)
                             .forGetter(State::resumeTime),
-                        CyclePlan.CODEC.lenientOptionalFieldOf("cycle").forGetter(State::cycle))
+                        CyclePlan.CODEC.lenientOptionalFieldOf("cycle").forGetter(State::cycle),
+                        STATUS_CODEC
+                            .optionalFieldOf("status", Status.IDLE)
+                            .forGetter(State::status))
                     .apply(instance, State::new));
   }
 
@@ -87,6 +106,8 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   private boolean paused;
   private boolean changed;
   private Status status = Status.IDLE;
+  private Status marked = Status.IDLE;
+  private int syncedTime;
 
   /** A processor saved under {@code key} that runs recipes of {@code type} on {@code inventory}. */
   public RecipeProcessor(String key, MachineRecipeType type, MachineInventory inventory) {
@@ -113,7 +134,27 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
         progress,
         Optional.ofNullable(resumeRecipe),
         resumeTime,
-        Optional.ofNullable(cycle));
+        Optional.ofNullable(cycle),
+        status);
+  }
+
+  @Override
+  public boolean syncsToClient() {
+    return true;
+  }
+
+  /**
+   * Takes on the state a client is sent: the status, whether it is paused, the progress as of the
+   * send and the time of the cycle. The reservations are the server's, so the cycle is not put
+   * back and nothing is reserved. While paused, {@link #time} is 0 and {@link #progress} is the
+   * ticks kept, so a progress bar should not divide by {@code time()} without checking it.
+   */
+  @Override
+  public void restoreOnClient(State state) {
+    paused = state.paused();
+    progress = state.progress();
+    status = state.status();
+    syncedTime = state.cycle().map(CyclePlan::time).orElse(0);
   }
 
   /**
@@ -128,6 +169,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   public void restore(State state) {
     if (cycle != null) cycle.release(inventory);
     cycle = null;
+    syncedTime = 0;
     paused = state.paused();
     resumeRecipe = state.resumeRecipe().orElse(null);
     resumeTime = state.resumeTime();
@@ -191,13 +233,25 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     return progress;
   }
 
-  /** Ticks the running cycle takes; 0 when idle. */
+  /**
+   * Ticks the running cycle takes; 0 when idle, and also 0 when paused, though {@link #progress}
+   * then holds the kept ticks. On a client, {@code status} and this are current, and {@code
+   * progress} is as of the last status change.
+   */
   public int time() {
-    return cycle == null ? 0 : cycle.time();
+    return cycle == null ? syncedTime : cycle.time();
   }
 
   @Override
   public void tick(FeatureHost host) {
+    run(host);
+    if (status != marked) {
+      marked = status;
+      host.markSync();
+    }
+  }
+
+  private void run(FeatureHost host) {
     if (changed) {
       changed = false;
       host.markChanged();

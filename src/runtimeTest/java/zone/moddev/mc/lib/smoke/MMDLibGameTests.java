@@ -269,6 +269,30 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorSyncIsThrottled(GameTestHelper helper) {
+    ProcessorSmoke.syncIsThrottled(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorLastChangeStillArrives(GameTestHelper helper) {
+    ProcessorSmoke.lastChangeStillArrives(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorNoSyncingFeatureNoSend(GameTestHelper helper) {
+    ProcessorSmoke.noSyncingFeatureNoSend(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorSendsOnStatusChange(GameTestHelper helper) {
+    ProcessorSmoke.processorSendsOnStatusChange(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipeTypeRegistered(GameTestHelper helper) {
     MachineRecipeTypeSmoke.registered();
     helper.succeed();
