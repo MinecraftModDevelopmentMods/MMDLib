@@ -95,7 +95,8 @@ prepared handle. MMDLib does not create or attach that register:
 
 ```java
 // During construction, before registry events:
-var types = DeferredRegister.<BlockEntityType<?>>create(Registries.BLOCK_ENTITY_TYPE, MODID);
+var types = DeferredRegister.<BlockEntityType<?>>create(
+        net.minecraft.core.registries.Registries.BLOCK_ENTITY_TYPE, MODID);
 types.register(modBus);
 // After definitions have been queued, still before registry events:
 registrar.blockEntityHandles().values().forEach(handle -> handle.register(types));
@@ -153,8 +154,9 @@ features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("f
 final RecipeProcessor processor = new RecipeProcessor("work", MyRecipes.CRUSHING, inventory);
 final FeatureHost features = new FeatureHost(this::setChanged).add(processor);
 
-// in the ticker
-(level, pos, state, entity) -> entity.features.tick(level)
+// The factory's server-side ticker:
+BlockEntityTicker<CrusherEntity> ticker =
+    (level, pos, state, entity) -> entity.features.tick(level);
 ```
 
 `status()` is one of: `IDLE`, no cycle is running; `RUNNING`, a cycle is running; `STALLED`, a
@@ -172,18 +174,26 @@ out. This is the trap for players: an unpowered machine keeps its inputs and out
 the only ways to get them back are an interrupt or breaking the block. A mod should give the
 player a button, an `Element.Button` in the screen XML with a `gui-click` handler (see
 [GUI screens](gui-screens.md)) that calls `interrupt()` or `resume()`. Resuming reserves the paused
-recipe again if it still can, and continues the progress.
+recipe again if it still can. Progress is kept only if that recipe still exists, can reserve its
+inputs and output space again, and has the same `time`; otherwise progress resets.
 
-**Groups.** The processor reaches storage through the inventory's group keys. Two keys must not
-overlap for inputs, since a slot cannot be promised to two cycles. A machine with one slot for both
-input and output must use one key for both: with two keys over the one slot, the processor finds no
-room for the product: the recipe lookup answers `NO_ROOM` forever and the machine never starts.
+**Groups.** The processor reaches storage through the inventory's group keys. Groups in one
+inventory must not overlap: use one key for each set of slots or tanks. Multiple processor lanes
+can share that inventory and reserve the same slot, provided enough unreserved inputs and output
+space remain; each lane holds only its own share of the slot's plan.
 
-**Clearing.** `/setblock` and `/fill` over a block call `Clearable.tryClear` on its block entity
-first, which is how a chest's contents vanish instead of dropping when a command replaces it. A
+A machine with one slot for both input and output must use one key for both. For a different-item
+product, the cycle must also consume the entire stack: a recipe turning 1 iron into 1 gold cannot
+start with 2 iron in the slot, because the leftover iron blocks the gold (`NO_ROOM`). A slot limit
+of 1 makes that recipe usable without asking players to remove surplus iron. A product that stacks
+with the remaining input can share the slot, subject to its limit.
+
+**Clearing.** When replacing a block, `/setblock` and `/fill` normally call `Clearable.tryClear` on
+its block entity first, which is how a chest's contents vanish instead of dropping. A
 block entity with `DropsContents` that should do the same also implements `Clearable`, and
 empties its storages (and their plans) in `clearContent()`. Without it, the command drops the
-contents.
+contents. Both commands' `destroy` mode destroys the old block before clearing, so its contents
+still drop even when the block entity implements `Clearable`.
 
 **Dropping contents.** A block entity of a `MaterialEntityBlock` (which includes `mmdlib:machine`)
 that implements `DropsContents` has `dropContents(level, pos)` called on the server when its block
