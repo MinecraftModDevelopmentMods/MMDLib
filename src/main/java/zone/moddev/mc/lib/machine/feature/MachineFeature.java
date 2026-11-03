@@ -21,6 +21,22 @@ public interface MachineFeature<S> {
   /** Takes on loaded state. */
   void restore(S state);
 
+  /**
+   * Whether nearby clients should hold this feature's state too, so a renderer or tooltip can read
+   * it. The block entity sends it with {@link FeatureHost#saveForClient}.
+   */
+  default boolean syncsToClient() {
+    return false;
+  }
+
+  /**
+   * Takes on state sent to a client. It never saves, so it takes on only what the client can use;
+   * by default that is all of it, as {@link #restore}.
+   */
+  default void restoreOnClient(S state) {
+    restore(state);
+  }
+
   /** Runs once a tick on the server. */
   default void tick(FeatureHost host) {}
 }

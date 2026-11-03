@@ -100,4 +100,110 @@ class FeatureHostTest {
     new FeatureHost(() -> {}).add(a).load(JsonOps.INSTANCE, data);
     assertEquals(2, a.value);
   }
+
+  /** A feature that syncs and counts which way it was restored. */
+  private static final class Synced implements MachineFeature<Integer> {
+    final String key;
+    int value;
+    int restores;
+    int clientRestores;
+
+    Synced(String key, int value) {
+      this.key = key;
+      this.value = value;
+    }
+
+    @Override
+    public String key() {
+      return key;
+    }
+
+    @Override
+    public Codec<Integer> codec() {
+      return Codec.intRange(0, 100);
+    }
+
+    @Override
+    public Integer state() {
+      return value;
+    }
+
+    @Override
+    public void restore(Integer state) {
+      restores++;
+      value = state;
+    }
+
+    @Override
+    public boolean syncsToClient() {
+      return true;
+    }
+
+    @Override
+    public void restoreOnClient(Integer state) {
+      clientRestores++;
+      value = state;
+    }
+  }
+
+  @Test
+  void clientSaveHasOnlySyncingFeatures() {
+    var host = new FeatureHost(() -> {}).add(new Counter("a", 3)).add(new Synced("b", 7));
+    var saved = host.saveForClient(JsonOps.INSTANCE).getAsJsonObject();
+    assertEquals(1, saved.size());
+    assertEquals(7, saved.get("b").getAsInt());
+  }
+
+  @Test
+  void loadUsesRestoreAndClientLoadUsesRestoreOnClient() {
+    var data = new JsonObject();
+    data.addProperty("b", 9);
+    var feature = new Synced("b", 0);
+    var host = new FeatureHost(() -> {}).add(feature);
+    host.load(JsonOps.INSTANCE, data);
+    assertEquals(1, feature.restores);
+    assertEquals(0, feature.clientRestores);
+    host.loadOnClient(JsonOps.INSTANCE, data);
+    assertEquals(1, feature.restores);
+    assertEquals(1, feature.clientRestores);
+    assertEquals(9, feature.value);
+  }
+
+  @Test
+  void restoreOnClientDefaultsToRestore() {
+    var feature = new Counter("a", 0);
+    var data = new JsonObject();
+    data.addProperty("a", 4);
+    feature.restoreOnClient(4);
+    assertEquals(4, feature.value);
+    new FeatureHost(() -> {}).add(feature).loadOnClient(JsonOps.INSTANCE, data);
+    assertEquals(4, feature.value);
+  }
+
+  @Test
+  void badClientDataKeepsState() {
+    var a = new Synced("a", 5);
+    var b = new Synced("b", 6);
+    var data = new JsonObject();
+    data.add("a", new JsonPrimitive("nine"));
+    data.addProperty("b", 8);
+    var host = new FeatureHost(() -> {}).add(a).add(b);
+    host.loadOnClient(JsonOps.INSTANCE, data);
+    assertEquals(5, a.value);
+    assertEquals(8, b.value);
+    host.loadOnClient(JsonOps.INSTANCE, JsonNull.INSTANCE);
+    assertEquals(8, b.value);
+  }
+
+  @Test
+  void clientSaveChangesNothing() {
+    int[] counts = new int[2];
+    var host = new FeatureHost(() -> counts[0]++, () -> counts[1]++).add(new Synced("a", 1));
+    host.saveForClient(JsonOps.INSTANCE);
+    var data = new JsonObject();
+    data.addProperty("a", 2);
+    host.loadOnClient(JsonOps.INSTANCE, data);
+    assertEquals(0, counts[0]);
+    assertEquals(0, counts[1]);
+  }
 }
