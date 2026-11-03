@@ -341,4 +341,10 @@ public final class MMDLibGameTests {
         helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
     helper.succeed();
   }
+
+  @GameTest(template = EMPTY)
+  public static void crusherSyncRoundTrip(GameTestHelper helper) {
+    CrusherSmoke.syncRoundTrip(helper.getLevel(), helper.absolutePos(CENTER));
+    helper.succeed();
+  }
 }

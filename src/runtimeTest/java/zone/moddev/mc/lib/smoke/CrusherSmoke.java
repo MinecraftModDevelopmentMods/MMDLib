@@ -3,6 +3,7 @@ package zone.moddev.mc.lib.smoke;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.mojang.serialization.Codec;
@@ -12,6 +13,9 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -56,8 +60,10 @@ import zone.moddev.mc.lib.gui.runtime.ScreenNetwork;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 import zone.moddev.mc.lib.machine.feature.FeatureHost;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
+import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
 import zone.moddev.mc.lib.machine.inventory.MachineInventory;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
+import zone.moddev.mc.lib.machine.neoforge.FeatureSync;
 import zone.moddev.mc.lib.machine.neoforge.StorageGroups;
 
 /**
@@ -129,7 +135,8 @@ public final class CrusherSmoke {
     public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
     public final EnergyBuffer energy =
         new EnergyBuffer(10_000_000_000L, 1_000).onChange(this::setChanged);
-    public final FeatureHost host = new FeatureHost(this::setChanged);
+    public final FeatureHost host =
+        new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
     public final RecipeProcessor processor;
 
     Crusher(BlockEntityType<Crusher> type, BlockPos pos, BlockState state) {
@@ -180,8 +187,19 @@ public final class CrusherSmoke {
     }
 
     @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+      return FeatureSync.updateTag(host, registries);
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+      return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
       super.loadAdditional(tag, registries);
+      if (FeatureSync.read(host, tag, registries)) return;
       // Storages first: the processor checks the loaded contents against its saved plan.
       items.deserializeNBT(registries, tag.getCompound("items"));
       fluids.deserializeNBT(registries, tag.getCompound("fluids"));
@@ -406,6 +424,108 @@ public final class CrusherSmoke {
     }
     level.setBlock(above, Blocks.AIR.defaultBlockState(), 3);
     require(dropped == 1, "one ore went in and one came out: " + dropped);
+  }
+
+  /** What a player near a crusher is sent, read into a copy that has no level. */
+  static void syncRoundTrip(ServerLevel level, BlockPos pos) {
+    var registries = level.registryAccess();
+
+    // Each status arrives, with the time right and the progress as of the send.
+    var running = fresh(pos, 3, 100_000);
+    for (int tick = 0; tick < 51; tick++) running.host.tick(level);
+    var copy = fresh(pos, 0, 0);
+    // The copy holds the same ore; a running cycle's update still gives it no plans.
+    copy.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 3));
+    copy.fluids.tank(0).fill(new FluidStack(Fluids.WATER, 123), FluidAction.EXECUTE);
+    int water = copy.fluids.getFluidInTank(0).getAmount();
+    copy.energy.setStored(777);
+    var update = update(level, running);
+    for (var storage : List.of("items", "fluids", "energy", "features"))
+      require(!update.contains(storage), "the update has " + storage + ": " + update);
+    copy.loadWithComponents(update, registries);
+    arrived(copy, Status.RUNNING, 50, 200, "running");
+    for (int slot = 0; slot < 4; slot++)
+      require(copy.items.plan(slot).isNone(), "the copy holds a plan on slot " + slot);
+    require(copy.fluids.plan(0).isNone(), "the copy holds a tank plan");
+    require(copy.items.getStackInSlot(0).getCount() == 3, "items were left alone");
+    require(copy.fluids.getFluidInTank(0).getAmount() == water, "fluids were left alone");
+    require(copy.energy.stored() == 777, "energy was left alone");
+
+    var stalled = fresh(pos, 3, 100_000);
+    for (int tick = 0; tick < 31; tick++) stalled.host.tick(level);
+    stalled.energy.setStored(0);
+    stalled.host.tick(level);
+    copy.loadWithComponents(update(level, stalled), registries);
+    arrived(copy, Status.STALLED, 30, 200, "stalled");
+
+    var blocked = fresh(pos, 3, 100_000);
+    for (int tick = 0; tick < 101; tick++) blocked.host.tick(level);
+    blocked.items.setStackInSlot(1, new ItemStack(Items.COBBLESTONE, 64));
+    for (int tick = 0; tick < 100; tick++) blocked.host.tick(level);
+    copy.loadWithComponents(update(level, blocked), registries);
+    arrived(copy, Status.BLOCKED, 200, 200, "blocked");
+
+    var paused = fresh(pos, 3, 100_000);
+    for (int tick = 0; tick < 41; tick++) paused.host.tick(level);
+    paused.processor.interrupt();
+    paused.host.tick(level);
+    copy.loadWithComponents(update(level, paused), registries);
+    arrived(copy, Status.PAUSED, 40, 0, "paused");
+
+    copy.loadWithComponents(update(level, fresh(pos, 0, 0)), registries);
+    arrived(copy, Status.IDLE, 0, 0, "idle");
+
+    // A bad update keeps the last status and doesn't throw.
+    copy.loadWithComponents(update(level, running), registries);
+    var bad = update(level, running);
+    for (var key : bad.getAllKeys())
+      if (bad.get(key) instanceof CompoundTag features && features.contains("work"))
+        features.getCompound("work").putString("status", "NO_SUCH_STATUS");
+    copy.loadWithComponents(bad, registries);
+    arrived(copy, Status.RUNNING, 50, 200, "bad update");
+
+    // A save is still a save: it restores the cycle and its plans.
+    var saved = running.saveWithFullMetadata(registries);
+    var restored = fresh(pos, 0, 0);
+    require(!FeatureSync.read(restored.host, saved, registries), "a save read as an update");
+    restored.loadWithComponents(saved, registries);
+    arrived(restored, Status.RUNNING, 50, 200, "saved");
+    require(restored.items.plan(0).take() == 1, "the saved cycle's plans came back");
+
+    // Making the update runs neither callback.
+    int[] calls = new int[2];
+    var spy = new FeatureHost(() -> calls[0]++, () -> calls[1]++).add(running.processor);
+    FeatureSync.updateTag(spy, registries);
+    require(calls[0] == 0 && calls[1] == 0, "getUpdateTag ran a callback");
+  }
+
+  /** The update as a player is sent it: the tag of the block entity's data packet. */
+  private static CompoundTag update(ServerLevel level, Crusher crusher) {
+    // The packet asks the block entity's level for the registries.
+    crusher.setLevel(level);
+    return ClientboundBlockEntityDataPacket.create(crusher).getTag();
+  }
+
+  private static void arrived(Crusher copy, Status status, int progress, int time, String what) {
+    var processor = copy.processor;
+    boolean right =
+        processor.status() == status
+            && processor.progress() == progress
+            && processor.time() == time;
+    require(
+        right,
+        what + ": " + processor.status() + " at " + processor.progress() + "/" + processor.time());
+  }
+
+  /** A crusher with no level, holding {@code ore} copper ore, water and {@code fe} energy. */
+  @SuppressWarnings("unchecked")
+  private static Crusher fresh(BlockPos pos, int ore, long fe) {
+    var type = (BlockEntityType<Crusher>) MachineSmoke.registrar().blockEntityTypes().get(ID).get();
+    var crusher = new Crusher(type, pos, BuiltInRegistries.BLOCK.get(ID).defaultBlockState());
+    if (ore > 0) crusher.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, ore));
+    crusher.fluids.tank(0).fill(new FluidStack(Fluids.WATER, 1_000), FluidAction.EXECUTE);
+    crusher.energy.setStored(fe);
+    return crusher;
   }
 
   /** What {@code ScreenSnapshots} reads off the crusher for the menu's screen. */
