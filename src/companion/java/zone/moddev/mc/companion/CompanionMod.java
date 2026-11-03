@@ -84,6 +84,7 @@ public final class CompanionMod {
   }
 
   private static void capabilities(RegisterCapabilitiesEvent event) {
+    MachineCapabilities.fluids(event, CRUSHER.type.get(), entity -> ((ProcessorEntity) entity).fluids);
     for (var machine : MACHINES) {
       MachineCapabilities.energy(event, machine.type.get(), entity -> entity.energy,
           (entity, side) -> entity instanceof CreativePowerEntity ? IoMode.OUTPUT : IoMode.INPUT);

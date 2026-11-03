@@ -17,7 +17,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
 
+import net.neoforged.neoforge.fluids.FluidStack;
+
+import zone.moddev.mc.lib.api.capabilities.FluidStorage;
 import zone.moddev.mc.lib.api.capabilities.ItemStorage;
 import zone.moddev.mc.lib.api.capabilities.Role;
 import zone.moddev.mc.lib.common.runtime.DropsContents;
@@ -38,6 +42,7 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   }
 
   public final ItemStorage items;
+  public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
   public final List<RecipeProcessor> lanes;
   public final FeatureHost features = new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
   private final Kind kind;
@@ -45,6 +50,9 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   public ProcessorEntity(BlockEntityType<?> type, BlockPos pos, BlockState state, Kind kind) {
     super(type, pos, state);
     this.kind = kind;
+    if (kind == Kind.CRUSHER)
+      fluids.addTank(4_000, Role.STORAGE,
+          fluid -> fluid.getFluid() == Fluids.WATER || fluid.getFluid() == Fluids.LAVA);
     var inventory = MachineInventory.builder().group("energy", StorageGroups.energy(energy));
     if (kind == Kind.TRANSMUTER) {
       // One key, and one item: the recipe consumes the whole slot before inserting gold.
@@ -80,6 +88,18 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
 
   public int getProgress() {
     return lanes.getFirst().progress();
+  }
+
+  public boolean hasTank() {
+    return fluids.getTanks() > 0;
+  }
+
+  public FluidStack getTankFluid() {
+    return fluids.getFluidInTank(0);
+  }
+
+  public int getTankCapacity() {
+    return fluids.getTankCapacity(0);
   }
 
   public int getTime() {
@@ -138,12 +158,14 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
       items.setStackInSlot(slot, ItemStack.EMPTY);
     }
     energy.setStored(0);
+    if (hasTank()) fluids.tank(0).setFluid(FluidStack.EMPTY);
   }
 
   @Override
   protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
     super.saveAdditional(tag, registries);
     tag.put("items", items.serializeNBT(registries));
+    if (hasTank()) tag.put("fluids", fluids.serializeNBT(registries));
     tag.put("features", features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
   }
 
@@ -152,6 +174,7 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
     if (FeatureSync.read(features, tag, registries)) return;
     super.loadAdditional(tag, registries);
     items.deserializeNBT(registries, tag.getCompound("items"));
+    if (hasTank() && tag.contains("fluids")) fluids.deserializeNBT(registries, tag.getCompound("fluids"));
     features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));
   }
 

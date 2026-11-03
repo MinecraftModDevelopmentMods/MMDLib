@@ -13,7 +13,7 @@ to run without it.
 
 | Block ID (prefix `mmdlib_companion:`) | What it does |
 | --- | --- |
-| `crusher` | One input slot, one output slot, one processor |
+| `crusher` | One input slot, one output slot, one processor, and a water/lava preview tank |
 | `transmuter` | One slot limited to one item; converts an iron ingot into a gold ingot |
 | `dual_crusher` | Two independently pausable processors share the same input and output slots |
 | `creative_power` | Refills its buffer and supplies up to 1,000 FE per adjacent face per tick |
@@ -32,6 +32,14 @@ reusable `<energy-gauge>` XML widget. Its red charge bars fill towards the top t
 The Crusher centers its input, progress arrow and output alongside it.
 Hover the energy display
 for stored and maximum FE; click the first progress arrow to see recipes when JEI is installed.
+
+The Crusher also has a **4,000 mB (four-bucket) tank** on the left. Right-click the block with a
+water or lava bucket to fill it, or an empty bucket to drain it; open the screen with an empty hand
+to see the fluid's animated texture. In creative mode the held bucket stays unchanged while fluid
+transfers. Fluid pipes can fill and drain on any face. The tank holds one fluid at a time: drain it
+fully before switching between water and lava. Rejected bucket transfers leave the contents intact.
+The tank saves with the machine and is only a display example; crushing recipes do not consume it.
+Breaking the machine discards its fluid.
 
 Hoppers and pipes can insert into input slots and extract from output slots on any face. The
 converter's single slot permits both operations, subject to reservations. Its capacity of one is
@@ -57,14 +65,16 @@ Install both `build/libs/mmdlib-2.0.0-alpha.jar` and
 `build/libs/mmdlib-companion-2.0.0-alpha.jar` in a NeoForge instance. JEI is optional.
 `companionJar` contains only the companion; `build` continues to build the library.
 
-`check` includes the companion's six server game tests and checks both jars for leaked classes and
+`check` includes the companion's eight server game tests and checks both jars for leaked classes and
 resources. `runCompanionGameTestServer` runs just those tests. They cover all four registrations and
 menus, recipe loading, adjacent power, the one-slot limit and interruption through the menu, two
-shared lanes across save/load, and command replacement versus destruction.
+shared lanes across save/load, command replacement versus destruction, tank capacity and persistence,
+refusal to mix fluids, and bucket filling/draining through the block interaction.
 
 `runCompanionClientSmoke` creates a separate test world under `build/companion-client-smoke`, opens
 all four menus over the network and captures them under its `screenshots` directory. It is separate
 from `check` because it needs a graphical client. It also accepts `-PwithoutJei`.
+The Crusher capture shows water; `crusher-lava.png` verifies a live change to lava in the same menu.
 
 ## Code to read
 

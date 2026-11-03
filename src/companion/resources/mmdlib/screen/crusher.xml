@@ -2,6 +2,8 @@
         block-entity="zone.moddev.mc.companion.ProcessorEntity">
   <vbox padding="7" spacing="4">
     <hbox spacing="6" align="center">
+      <gauge id="tank" length="3s" value="#getTankFluid" max="#getTankCapacity"
+             tooltip="screen.mmdlib_companion.tank.tip" tooltip-fallback="Water or lava: {value} / {max} mB"/>
       <spacer/>
       <slot index="0"/>
       <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:crushing"/>

@@ -14,10 +14,13 @@ import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.minecraft.world.level.material.Fluids;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 
@@ -33,7 +36,7 @@ public final class CompanionClientSmoke {
   private static final BlockPos POS = new BlockPos(0, 100, 0);
   private static final long DEADLINE = System.currentTimeMillis() + 180_000;
   private static boolean started, opening, menuRequested, finished;
-  private static int stage, frames, waitingTicks, drawerStage;
+  private static int stage, frames, waitingTicks, drawerStage, fluidStage;
 
   @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {
@@ -92,6 +95,7 @@ public final class CompanionClientSmoke {
           var entity = level.getBlockEntity(POS);
           if (entity instanceof ProcessorEntity machine) {
             machine.energy.setStored(current == 0 ? 80_000 : current == 1 ? 40_000 : 10_000);
+            if (current == 0) machine.fluids.fill(new FluidStack(Fluids.WATER, 2_500), FluidAction.EXECUTE);
             machine.items.insertItem(0, new ItemStack(current == 1 ? Items.IRON_INGOT : Items.COPPER_ORE,
                 current == 1 ? 1 : 16), false);
             for (int i = 0; i < 40; i++) machine.serverTick();
@@ -128,6 +132,26 @@ public final class CompanionClientSmoke {
         if (menu.getSlot(0).getItem().isEmpty()) throw new AssertionError("Input was not synced");
       }
       String name = menu.bound.screen().id().getPath();
+      if (stage == 0) {
+        var tank = menu.bound.screen().find("tank").orElseThrow();
+        var expectedFluid = fluidStage == 0 ? Fluids.WATER : Fluids.LAVA;
+        int expectedAmount = fluidStage == 0 ? 2_500 : 1_500;
+        if (!(menu.value(tank, false) instanceof FluidStack fluid)
+            || fluid.getFluid() != expectedFluid || fluid.getAmount() != expectedAmount) {
+          if (fluidStage == 1) return; // Wait for the server's fluid-type change to reach the menu.
+          throw new AssertionError("Water was not synced into the tank gauge");
+        }
+        if (!(menu.value(tank, true) instanceof Number capacity) || capacity.intValue() != 4_000)
+          throw new AssertionError("Tank capacity was not synced");
+        if (fluidStage == 1) {
+          Screenshot.grab(mc.gameDirectory, "crusher-lava.png", mc.getMainRenderTarget(), message -> {});
+          frames = 0;
+          stage++;
+          opening = false;
+          menuRequested = false;
+          return;
+        }
+      }
       if (stage < 3) {
         var info = (zone.moddev.mc.lib.gui.model.Element.Popout)
             menu.bound.screen().find("info").orElseThrow();
@@ -155,6 +179,16 @@ public final class CompanionClientSmoke {
         if (screen.exclusions().size() != 1)
           throw new AssertionError("The icon tab did not close its drawer");
         drawerStage = 0;
+        if (stage == 0) {
+          fluidStage = 1;
+          frames = 0;
+          mc.getSingleplayerServer().execute(() -> {
+            var machine = (ProcessorEntity) mc.getSingleplayerServer().overworld().getBlockEntity(POS);
+            machine.fluids.drain(Integer.MAX_VALUE, FluidAction.EXECUTE);
+            machine.fluids.fill(new FluidStack(Fluids.LAVA, 1_500), FluidAction.EXECUTE);
+          });
+          return;
+        }
       } else {
         Screenshot.grab(mc.gameDirectory, name + ".png", mc.getMainRenderTarget(), message -> {});
       }

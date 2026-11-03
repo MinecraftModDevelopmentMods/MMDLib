@@ -5,14 +5,21 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -179,6 +186,87 @@ public final class CompanionGameTests {
         require(iron == (mode.equals("destroy") ? 1 : 0), command + " " + mode + " dropped " + iron + " iron");
       }
     }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void crusherTankRejectsMixingAndPersists(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var level = helper.getLevel();
+    var pos = machine.getBlockPos();
+    for (var side : Direction.values()) {
+      var handler = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, side);
+      require(handler != null && handler.getTanks() == 1 && handler.getTankCapacity(0) == 4_000,
+          "Crusher exposes one 4-bucket tank on every face");
+      require(handler.fill(new FluidStack(Fluids.WATER, 5_000), FluidAction.SIMULATE) == 4_000,
+          "Simulated fill respects capacity");
+      require(machine.getTankFluid().isEmpty(), "Simulation leaves the tank empty");
+    }
+    var handler = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, Direction.UP);
+    require(handler.fill(new FluidStack(Fluids.WATER, 5_000), FluidAction.EXECUTE) == 4_000,
+        "Water is accepted up to capacity");
+    require(handler.fill(new FluidStack(Fluids.WATER, 1), FluidAction.EXECUTE) == 0, "Full tank refuses overflow");
+    handler.drain(3_999, FluidAction.EXECUTE);
+    require(handler.fill(new FluidStack(Fluids.LAVA, 1_000), FluidAction.EXECUTE) == 0,
+        "Even one mB of water prevents mixing with lava");
+    require(handler.drain(new FluidStack(Fluids.LAVA, 1_000), FluidAction.EXECUTE).isEmpty(),
+        "Draining the wrong fluid does not remove water");
+    handler.drain(1, FluidAction.EXECUTE);
+    require(handler.fill(new FluidStack(Fluids.LAVA, 2_000), FluidAction.EXECUTE) == 2_000,
+        "An emptied tank accepts lava");
+    require(handler.fill(new FluidStack(Fluids.WATER, 1_000), FluidAction.EXECUTE) == 0,
+        "Water cannot mix into lava either");
+    var saved = machine.saveWithFullMetadata(level.registryAccess());
+    var copy = (ProcessorEntity) BlockEntity.loadStatic(pos, machine.getBlockState(), saved, level.registryAccess());
+    require(copy.getTankFluid().getFluid() == Fluids.LAVA && copy.getTankFluid().getAmount() == 2_000,
+        "Fluid type and amount survive save/load");
+    saved.remove("fluids");
+    var legacy = (ProcessorEntity) BlockEntity.loadStatic(pos, machine.getBlockState(), saved, level.registryAccess());
+    require(legacy.getTankFluid().isEmpty(), "Older saves start with an empty tank");
+    machine.clearContent();
+    require(machine.getTankFluid().isEmpty(), "Clearing the machine clears its fluid");
+    for (var other : java.util.List.of(CompanionMod.TRANSMUTER, CompanionMod.DUAL_CRUSHER)) {
+      place(helper, other);
+      require(level.getCapability(Capabilities.FluidHandler.BLOCK, pos, Direction.UP) == null,
+          "Only the single Crusher has a fluid tank");
+    }
+    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void crusherBucketsFillDrainAndRefuseMixing(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var level = helper.getLevel();
+    var pos = machine.getBlockPos();
+    var player = helper.makeMockServerPlayerInLevel();
+    player.getAbilities().instabuild = false;
+    var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+    var state = machine.getBlockState();
+    player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.WATER_BUCKET));
+    require(state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit)
+        == ItemInteractionResult.CONSUME, "Water bucket handled by the block");
+    require(player.getMainHandItem().is(Items.BUCKET) && machine.getTankFluid().getAmount() == 1_000,
+        "Filling consumes the water and returns an empty bucket");
+    player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.LAVA_BUCKET));
+    require(state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit)
+        == ItemInteractionResult.FAIL, "Mixed bucket stops before vanilla can place lava");
+    require(player.getMainHandItem().is(Items.LAVA_BUCKET)
+        && machine.getTankFluid().getFluid() == Fluids.WATER && machine.getTankFluid().getAmount() == 1_000,
+        "Rejected transfer leaves the bucket and tank unchanged");
+    player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BUCKET));
+    state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit);
+    require(player.getMainHandItem().is(Items.WATER_BUCKET) && machine.getTankFluid().isEmpty(),
+        "An empty bucket drains water");
+    player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.LAVA_BUCKET));
+    state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit);
+    require(player.getMainHandItem().is(Items.BUCKET) && machine.getTankFluid().getFluid() == Fluids.LAVA,
+        "Lava can be put in after draining water");
+    player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BUCKET));
+    state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit);
+    require(player.getMainHandItem().is(Items.LAVA_BUCKET) && machine.getTankFluid().isEmpty(),
+        "An empty bucket drains lava");
+    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     helper.succeed();
   }
 

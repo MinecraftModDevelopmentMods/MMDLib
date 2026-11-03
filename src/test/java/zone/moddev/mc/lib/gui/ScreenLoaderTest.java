@@ -319,10 +319,13 @@ public final class ScreenLoaderTest {
     }
     var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
     var energy = layout.bounds(screen.find("energy").orElseThrow());
+    var tank = layout.bounds(screen.find("tank").orElseThrow());
     var arrow = layout.bounds(screen.find("progress").orElseThrow());
     var slots = screen.elements().stream().filter(Element.Slot.class::isInstance).toList();
     var input = layout.bounds(slots.get(0));
     var output = layout.bounds(slots.get(1));
+    require(tank.x() == 7 && tank.right() < input.x());
+    require(tank.y() == energy.y() && tank.height() == energy.height());
     require(input.right() < arrow.x() && arrow.right() < output.x() && output.right() < energy.x());
     require(input.y() + input.height() / 2 == energy.y() + energy.height() / 2);
     require(output.y() == input.y());
