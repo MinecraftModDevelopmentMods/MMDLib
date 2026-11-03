@@ -347,8 +347,9 @@ Any screen can use the standard energy gauge:
 
 It is 18 px wide and 54 px tall (including the top terminal), fills from the bottom, and shows
 `{value} / {max} FE` on hover using `screen.mmdlib.energy`. A dark battery casing surrounds red
-charge bars; the last charged bar fills partially to track the level. Red stays red at every
-charge level. `EnergyGaugeRenderer` draws the battery directly in GUI pixels, without tank glass
+charge bars; the last charged bar fills partially to track the level. Metallic edge highlights
+and shaded, glossy bars give the battery depth. Red stays red at every charge level.
+`EnergyGaugeRenderer` draws the battery directly in GUI pixels, without tank glass
 or scale markings. It uses the same binding validation and synchronization as other numeric
 widgets. Multiple buffers can use separate ids and getters:
 
