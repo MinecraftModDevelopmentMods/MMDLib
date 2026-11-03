@@ -20,6 +20,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Clearable;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.Item;
@@ -149,7 +150,7 @@ public final class CrusherSmoke {
   }
 
   /** Ore in slot 0, products in 1 and 2, the byproduct in 3, water and energy beside them. */
-  public static final class Crusher extends BlockEntity implements ScreenHost, DropsContents {
+  public static final class Crusher extends BlockEntity implements ScreenHost, DropsContents, Clearable {
     public final Capped items = capped(this::setChanged);
     public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
     public final EnergyBuffer energy =
@@ -189,6 +190,14 @@ public final class CrusherSmoke {
     @Override
     public void dropContents(Level level, BlockPos pos) {
       items.dropAll(level, pos);
+    }
+
+    @Override
+    public void clearContent() {
+      for (int slot = 0; slot < items.getSlots(); slot++) {
+        items.setPlan(slot, SlotPlan.NONE);
+        items.setStackInSlot(slot, ItemStack.EMPTY);
+      }
     }
 
     @Override
@@ -379,6 +388,19 @@ public final class CrusherSmoke {
     require(count(items) == 0 && inventoryCount(player, iron) == 50, "whole-stack shift-click");
 
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+  }
+
+  /** A command that clears a block entity before replacing it leaves nothing to drop. */
+  static void clearableDropsNothing(ServerLevel level, BlockPos pos) {
+    var crusher = place(level, pos);
+    crusher.items.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 5));
+    crusher.items.setStackInSlot(1, new ItemStack(Items.GOLD_INGOT, 5));
+    Clearable.tryClear(crusher);
+    level.destroyBlock(pos, false);
+    int dropped = 0;
+    for (var drop : level.getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(2)))
+      dropped += drop.getItem().getCount();
+    require(dropped == 0, "a cleared crusher dropped " + dropped);
   }
 
   /** Shift-clicking a planned slot never gives the player more than the slot lost. */

@@ -385,6 +385,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void crusherClearableDropsNothing(GameTestHelper helper) {
+    CrusherSmoke.clearableDropsNothing(helper.getLevel(), helper.absolutePos(CENTER));
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void crusherClientRows(GameTestHelper helper) {
     CrusherSmoke.clientRows(
         helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
