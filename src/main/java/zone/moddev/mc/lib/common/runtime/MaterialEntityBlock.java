@@ -44,4 +44,13 @@ public class MaterialEntityBlock<E extends BlockEntity> extends Block implements
       Level level, BlockState state, BlockEntityType<T> requested) {
     return factory.ticker(level, requested, type.get());
   }
+
+  @Override
+  protected void onRemove(
+      BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
+    if (!state.is(replacement.getBlock())
+        && !level.isClientSide()
+        && level.getBlockEntity(pos) instanceof DropsContents drops) drops.dropContents(level, pos);
+    super.onRemove(state, level, pos, replacement, moved);
+  }
 }
