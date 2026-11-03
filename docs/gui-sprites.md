@@ -18,14 +18,15 @@ icons are full colour.
 | `group` | 16×16 | nine-slice, border 1 | Grouping boundary: thin recessed panel, tintable (faint blue inputs, faint orange outputs) |
 | `panel` | 16×16 | nine-slice, border 4 | Vanilla-style screen background at any size |
 | `side_tab` | 34×16 | nine-slice, border 3 | Tab growing out of a panel's right edge, e.g. the upgrade column |
-| `drawer_bookmark` | 22×28 | none | Pop-out drawer tab: bevelled bookmark with a V-cut tail; remains visible when expanded |
+| `drawer_tab` | 22×24 | none | Compact rectangular drawer tab, tinted by kind |
+| `drawer_panel` | 16×16 | nine-slice, border 3 | Thin bevelled drawer background, tinted to match its tab |
 | `compact_frame` | 8×8 | nine-slice, border 1 | Frame of the compact segmented gauge; transparent middle (see [gauge textures](gauge-textures.md#compact-segmented-gauge)) |
 | `checkbox`, `checkbox_selected` | 10×10 | none | Recessed checkbox, unchecked / checked |
 | `radio`, `radio_selected` | 10×10 | none | Bevelled circle: raised when off, pressed in when selected |
 | `progress_arrow`, `progress_arrow_filled` | 24×16 | none | Progress indicator, empty / full |
 | `upgrade_speed`, `upgrade_energy`, `upgrade_capacity` | 16×16 | none | Outline shown in an empty upgrade slot |
 | `icon_sides` | 16×16 | none | White cube icon for the side-configuration button |
-| `icon_info` | 16×16 | none | Pop-out `info`: blue disc, white "i". Full colour, not for tinting |
+| `icon_info` | 16×16 | none | Pop-out `info`: white serif "i" with a dark outline and transparent background |
 | `icon_warning` | 16×16 | none | Pop-out `warning`: yellow triangle, black "!" |
 | `icon_error` | 16×16 | none | Pop-out `error`: red heater shield, white "!" |
 
@@ -58,10 +59,10 @@ Upgrade outlines are drawn at 45% opacity over their slot.
 - **Progress arrow**: draw `progress_arrow`, then the left `round(24 * progress)` columns of
   `progress_arrow_filled` with the cropping overload
   `blitSprite(sprite, 24, 16, 0, 0, x, y, filledWidth, 16)`.
-- **Information drawer**: the bookmark sits just outside the panel edge, with its 16×16 icon
-  at `(x + 3, y + 3)`. The expanded body grows outward beside it (left on a left-edge tab),
-  joining the bookmark's upper bevel while leaving its notched tail visible. The bookmark
-  stays in place and toggles the drawer closed. The body narrows to the available screen space.
+- **Information drawer**: a yellow rectangular tab sits just outside the panel edge, with its
+  16×16 icon at `(x + 3, y + 3)`. The matching expanded body grows outward (left on a left-edge
+  tab) and reaches the main panel's bottom. A darker rail retains the tab as the close control.
+  The body narrows to the available screen space. Warning and error drawers use amber and red.
 - **Side configuration**: faces are `slot` stretched to 20×20, tinted with the face's mode colour,
   laid out in a 3×3 grid: Top above Front; Left, Front, Right across; Bottom below Front with Back
   beneath Right. The mode letter and any neighbour's item icon are drawn on top.

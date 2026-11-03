@@ -136,16 +136,21 @@ public final class CompanionClientSmoke {
           screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
           var exclusions = screen.exclusions();
           if (exclusions.size() != 2 || exclusions.get(1).right() != tab.x())
-            throw new AssertionError("The drawer must extend left while retaining its bookmark");
+            throw new AssertionError("The drawer must extend left while retaining its icon tab");
+          if (exclusions.get(0).bottom() != exclusions.get(1).bottom()
+              || exclusions.get(1).bottom() != screen.guiTop() + screen.layout.panel().height())
+            throw new AssertionError("The drawer and its rail must reach the machine panel's bottom");
           drawerStage = 1;
           frames = 0;
           return;
         }
         Screenshot.grab(mc.gameDirectory, name + "-drawer.png", mc.getMainRenderTarget(), message -> {});
+        if (!screen.mouseClicked(tab.x() + 10, screen.exclusions().getFirst().bottom() - 8, 0))
+          throw new AssertionError("Clicks on the drawer rail must not pass through the screen");
         screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
         screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
         if (screen.exclusions().size() != 1)
-          throw new AssertionError("The bookmark did not close its drawer");
+          throw new AssertionError("The icon tab did not close its drawer");
         drawerStage = 0;
       } else {
         Screenshot.grab(mc.gameDirectory, name + ".png", mc.getMainRenderTarget(), message -> {});

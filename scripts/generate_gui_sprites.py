@@ -84,25 +84,38 @@ def compact_frame(size=8):
     return img
 
 
-def drawer_bookmark():
-    """22x28 ribbon tab with a V-cut tail; it stays visible beside an open drawer."""
-    w, h = 22, 28
-    def inside(x, y):
-        return (0 <= x < w and 0 <= y < h
-                and not (y == 0 and x in (0, w - 1))
-                and y < 22 + abs(x - (w - 1) / 2) * 6 / ((w - 1) / 2))
+def drawer_frame(w, h):
+    """Thin raised rectangular frame from the drawer reference; tintable face and bevels."""
     img = canvas(w, h)
-    for y in range(h):
-        for x in range(w):
-            if not inside(x, y): continue
-            border = any(not inside(x + dx, y + dy)
-                         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-            shade = 0 if border else 0xC6
-            if not border:
-                if not inside(x - 2, y) or not inside(x, y - 2): shade = 0xFF
-                elif not inside(x + 2, y) or not inside(x, y + 2): shade = 0x55
-            img[y][x] = grey(shade)
+    rect(img, 1, 0, w - 2, h, grey(0x30))
+    rect(img, 0, 1, w, h - 2, grey(0x30))
+    rect(img, 1, 1, w - 2, h - 2, grey(0xDF))
+    rect(img, 1, 1, w - 3, 1, grey(0xFF))
+    rect(img, 1, 1, 1, h - 3, grey(0xFF))
+    rect(img, 2, h - 2, w - 3, 1, grey(0x80))
+    rect(img, w - 2, 2, 1, h - 3, grey(0x80))
     return img
+
+
+def info_glyph():
+    """White serif i with a dark one-pixel outline; the coloured tab supplies its background."""
+    rows = ["..##..", "..##..", "......", ".###..", "..##..", "..##..",
+            "..##..", "..##..", "..##..", ".####."]
+    ink = {(5 + x, 3 + y) for y, row in enumerate(rows)
+           for x, pixel in enumerate(row) if pixel == '#'}
+    img = canvas(16, 16)
+    for x, y in ink:
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1): img[y + dy][x + dx] = grey(0x36)
+    for x, y in ink: img[y][x] = grey(0xFF)
+    return img
+
+
+def write_drawer_sprites():
+    write_png("drawer_tab", drawer_frame(22, 24))
+    write_png("drawer_panel", drawer_frame(16, 16),
+              {"type": "nine_slice", "width": 16, "height": 16, "border": 3})
+    write_png("icon_info", info_glyph())
 
 
 def checkbox(on):
@@ -174,7 +187,6 @@ def status_icon(inside, fill, edge, glyph, ink):
     return img
 
 
-def in_circle(x, y): return math.hypot(x - 8, y - 8) <= 7.5
 def in_triangle(x, y): return 0.5 <= y <= 15.5 and abs(x - 8) <= (y - 0.5) * 0.5 + 0.6
 def in_shield(x, y):
     """Heater shield: flat top, straight sides, curving to a point at the bottom."""
@@ -182,7 +194,6 @@ def in_shield(x, y):
     return y <= 7 or abs(x - 8) <= 7 * max(0.0, 1 - (y - 7) / 9) ** 0.8 + 0.2
 
 
-INFO = ["##", "..", "##", "##", "##", "##", "##"]
 BANG = ["##", "##", "##", "##", "..", "##"]
 BANG_LOW = ["##", "##", "##", "##", "##", "..", "##"]  # sits lower, inside the triangle's wide part
 
@@ -196,7 +207,7 @@ def main():
     write_png("side_tab", side_tab(16), {"type": "nine_slice", "width": 34, "height": 16,
                                          "border": {"left": 3, "top": 3, "right": 3, "bottom": 3}})
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
-    write_png("drawer_bookmark", drawer_bookmark())
+    write_drawer_sprites()
     write_png("checkbox", checkbox(False))
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))
@@ -206,7 +217,6 @@ def main():
     for name, rows in ICONS.items(): write_png(name, icon(rows, (0x6A, 0x50, 0x20, 255)))
     write_png("icon_sides", icon(CUBE, grey(255)))
     # Pop-out kinds. Full colour, not for tinting.
-    write_png("icon_info", status_icon(in_circle, (0x2F, 0x6F, 0xD0, 255), (0x1B, 0x3F, 0x80, 255), INFO, grey(255)))
     write_png("icon_warning", status_icon(in_triangle, (0xF5, 0xC5, 0x18, 255), (0x7A, 0x5A, 0x00, 255), BANG_LOW, (0x20, 0x20, 0x20, 255)))
     write_png("icon_error", status_icon(in_shield, (0xD0, 0x20, 0x20, 255), (0x70, 0x10, 0x10, 255), BANG, grey(255)))
 

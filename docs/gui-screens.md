@@ -450,9 +450,12 @@ When JEI is installed:
   [GUI sprites](gui-sprites.md)), which `icon` replaces. Tabs on the same edge stack in document order, below any
   `<side-tab>` there. A screen whose tabs do not fit the panel height on an edge fails at
   load, naming the screen file and edge.
-  Pop-out tabs are 22×28 bookmark shapes. Clicking one opens a joined drawer outward from
-  that edge, retaining the bookmark as the close control. Its body is up to 150×120 pixels
-  and wraps its text to the available width; scroll inside it to read longer content.
+  Pop-out tabs are 22×24 rectangles, coloured by kind: yellow information, amber warning,
+  red error. Clicking one opens a matching drawer outward from that edge, with the icon
+  retained on a darker rail as the close control. Its body is up to 150 pixels wide and
+  extends to the main panel's bottom. Text wraps to the available width; scroll inside
+  to read longer content. Opening another drawer on the same edge replaces the open drawer;
+  tabs remain visible and clickable on the rail.
 
 - **The screen is display only.** Behaviour belongs to the block entity's own code, which the
   screen is wired to:

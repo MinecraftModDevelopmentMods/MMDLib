@@ -25,8 +25,8 @@ inputs and output space.
 
 Check **Paused (free items)** to interrupt a lane and release its reservations. Uncheck it to resume.
 This control works without power. The dual crusher releases only the chosen lane's share; the other
-lane can continue. The blue info bookmark opens a drawer to the left with machine guidance and
-any current power-stall or blocked-finish warnings. Click the bookmark again to close it; scroll
+lane can continue. The yellow info tab opens a matching drawer to the left with machine guidance and
+any current power-stall or blocked-finish warnings. Click the icon again to close it; scroll
 inside to read longer text. Hover the energy meter
 for stored and maximum FE; click the first progress arrow to see recipes when JEI is installed.
 

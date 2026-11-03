@@ -5,28 +5,48 @@ import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Element.Edge;
+import zone.moddev.mc.lib.gui.model.Element.PopoutKind;
 
-/** Shared background for a bookmark tab and its outward-opening drawer. */
+/** Coloured edge tabs and full-height drawer backgrounds from the machine GUI reference. */
 public final class SideDrawerRenderer {
-  private static final ResourceLocation BOOKMARK = ResourceLocation.parse("mmdlib:drawer_bookmark");
-  private static final ResourceLocation PANEL = ResourceLocation.parse("mmdlib:panel");
+  private static final ResourceLocation TAB = ResourceLocation.parse("mmdlib:drawer_tab");
+  private static final ResourceLocation PANEL = ResourceLocation.parse("mmdlib:drawer_panel");
 
   private SideDrawerRenderer() {}
 
-  public static void tab(GuiGraphics graphics, Rect tab) {
+  private static int color(PopoutKind kind) {
+    return switch (kind) {
+      case INFO -> 0xf1d462;
+      case WARNING -> 0xe7ac50;
+      case ERROR -> 0xd85c59;
+    };
+  }
+
+  private static void sprite(GuiGraphics graphics, ResourceLocation sprite, Rect rect, int color) {
     com.mojang.blaze3d.systems.RenderSystem.enableBlend();
     com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
-    graphics.blitSprite(BOOKMARK, tab.x(), tab.y(), tab.width(), tab.height());
+    graphics.setColor(((color >> 16) & 255) / 255f,
+        ((color >> 8) & 255) / 255f, (color & 255) / 255f, 1);
+    graphics.blitSprite(sprite, rect.x(), rect.y(), rect.width(), rect.height());
+    graphics.setColor(1, 1, 1, 1);
     com.mojang.blaze3d.systems.RenderSystem.disableBlend();
   }
 
-  public static void open(GuiGraphics graphics, Rect tab, Rect body, Edge edge) {
-    graphics.blitSprite(PANEL, body.x(), body.y(), body.width(), body.height());
-    tab(graphics, tab);
-    // Join the two bevels into one surface, preserving the bookmark's notched tail.
-    int seam = edge == Edge.LEFT ? tab.x() : tab.right();
-    graphics.fill(seam - 3, tab.y(), seam + 3, tab.y() + 1, 0xff000000);
-    graphics.fill(seam - 3, tab.y() + 1, seam + 3, tab.y() + 3, 0xffffffff);
-    graphics.fill(seam - 3, tab.y() + 3, seam + 3, tab.y() + 20, 0xffc6c6c6);
+  public static void tab(GuiGraphics graphics, Rect tab, PopoutKind kind) {
+    sprite(graphics, TAB, tab, color(kind));
+  }
+
+  public static void open(GuiGraphics graphics, Rect tab, Rect body, Edge edge, PopoutKind kind) {
+    int x = Math.min(tab.x(), body.x());
+    var whole = new Rect(x, body.y(), body.width() + tab.width(), body.height());
+    int color = color(kind);
+    sprite(graphics, PANEL, whole, color);
+    // The narrow, darker rail retains the active icon beside the main machine panel.
+    int rail = 0xff000000 | (((color & 0xfefefe) >> 1) + ((color & 0xfcfcfc) >> 2));
+    graphics.fill(tab.x() + 2, tab.bottom() - 1, tab.right() - 2, body.bottom() - 2, rail);
+    int seam = edge == Edge.LEFT ? tab.x() : tab.right() - 1;
+    graphics.fill(seam, tab.bottom() - 1, seam + 1, body.bottom() - 2,
+        0xff000000 | ((color & 0xfefefe) >> 1));
+    tab(graphics, tab, kind);
   }
 }

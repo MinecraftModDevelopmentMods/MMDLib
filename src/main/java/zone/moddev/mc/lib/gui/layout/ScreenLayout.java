@@ -37,11 +37,11 @@ public final class ScreenLayout {
   /** Space around the content of a side tab, and the tab's overlap with the panel. */
   public static final int TAB_PADDING = 4, TAB_OVERLAP = 4, TAB_BORDER = 3;
 
-  /** Width of a pop-out bookmark: a 16 px icon with a 3 px border. */
+  /** Width of a pop-out edge tab: a 16 px icon with a 3 px border. */
   public static final int POPOUT_TAB = 22;
 
-  /** The bookmark's height includes its notched tail below the icon. */
-  public static final int POPOUT_HEIGHT = 28;
+  /** Height of a compact rectangular drawer tab. */
+  public static final int POPOUT_HEIGHT = 24;
 
   /** Gap between tabs stacked on one edge. */
   public static final int TAB_GAP = 2;
