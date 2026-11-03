@@ -14,7 +14,7 @@ icons and progress arrows are full colour.
 
 | Sprite | Size | Scaling | Use |
 |---|---|---|---|
-| `slot` | 18×18 | nine-slice, border 1 | Item slot, tintable; stretch for large slots (26×26 output) and side-configuration faces |
+| `slot` | 18×18 | nine-slice, border 4 | Recessed item well with dark upper/left rim, inner shadows and a light lower/right rim; tintable and scalable |
 | `group` | 16×16 | nine-slice, border 1 | Grouping boundary: thin recessed panel, tintable (faint blue inputs, faint orange outputs) |
 | `panel` | 16×16 | nine-slice, border 4 | Vanilla-style screen background at any size |
 | `side_tab` | 34×16 | nine-slice, border 3 | Tab growing out of a panel's right edge, e.g. the upgrade column |
@@ -52,6 +52,10 @@ Upgrade outlines are drawn at 45% opacity over their slot.
 
 - **Slot**: the item renders at `(x + 1, y + 1)` for an 18×18 slot, matching a vanilla `Slot`
   positioned there; for a 26×26 slot it renders centred at `(x + 5, y + 5)`. Grids are 18 px apart.
+  The four-pixel nine-slice border preserves the outer rim and inner shading on larger slots;
+  the centre remains flat so it can tile without seams. Item positions and hit areas are unchanged.
+  Regenerate just the slot with
+  `python3 -B -c "import scripts.generate_gui_sprites as s; s.write_slot_sprite()"`.
 - **Side tab**: draw the panel first, then the tab at `(panelX + panelWidth - 4, y)`, 34 wide and
   any height of at least 7. Its column 3 lands on the panel's outline column; columns 0–2 cover
   the panel's border so both share one background, and transparent pixels let the panel's own

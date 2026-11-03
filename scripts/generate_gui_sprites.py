@@ -48,6 +48,32 @@ def bevel_box(w, h, dark, fill, light):
     return img
 
 
+def recessed_slot():
+    """18px item well; the outer bevel and inward shadows stay fixed when nine-sliced."""
+    img = canvas(18, 18, grey(128))
+    for y in range(1, 17):
+        for x in range(1, 17):
+            # Light from above-left catches the lower rim of the recessed surface.
+            top_shadow = {1: 34, 2: 18, 3: 7}.get(y, 0)
+            left_shadow = {1: 14, 2: 6, 3: 2}.get(x, 0)
+            bottom_light = {16: 10, 15: 5, 14: 2}.get(y, 0)
+            right_light = {16: 5, 15: 2, 14: 1}.get(x, 0)
+            img[y][x] = grey(128 - top_shadow - left_shadow + bottom_light + right_light)
+    rect(img, 0, 0, 17, 1, grey(62))
+    rect(img, 0, 0, 1, 17, grey(70))
+    rect(img, 1, 17, 17, 1, grey(224))
+    rect(img, 17, 1, 1, 17, grey(205))
+    img[0][0] = grey(53)
+    img[0][17] = img[17][0] = grey(140)
+    img[17][17] = grey(231)
+    return img
+
+
+def write_slot_sprite():
+    write_png("slot", recessed_slot(),
+              {"type": "nine_slice", "width": 18, "height": 18, "border": 4})
+
+
 def panel(w, h):
     """Vanilla container panel: black outline with cut corners, 2 px white highlight, 2 px shadow."""
     img = canvas(w, h)
@@ -225,7 +251,7 @@ BANG_LOW = ["##", "##", "##", "##", "##", "..", "##"]  # sits lower, inside the 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print(f"writing to {OUT}:")
-    write_png("slot", bevel_box(18, 18, 0x37, 0x8B, 0xFF), {"type": "nine_slice", "width": 18, "height": 18, "border": 1})
+    write_slot_sprite()
     write_png("group", bevel_box(16, 16, 0x8B, 0xC6, 0xFF), {"type": "nine_slice", "width": 16, "height": 16, "border": 1})
     write_png("panel", panel(16, 16), {"type": "nine_slice", "width": 16, "height": 16, "border": 4})
     write_png("side_tab", side_tab(16), {"type": "nine_slice", "width": 34, "height": 16,
