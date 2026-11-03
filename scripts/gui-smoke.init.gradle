@@ -15,7 +15,7 @@ allprojects {
             tasks.configureEach { task ->
                 if (task.name == 'runClient') task.doLast {
                     def report = new File(smokeDir, 'logs/latest.log')
-                    if (!report.exists() || !report.text.contains('MMDLIB_GUI_RUNTIME_PASS') || !report.text.contains('MMDLIB_GUI_CLIENT_PASS') || !report.text.contains('MMDLIB_GUI_SIDES_PASS') || !report.text.contains('MMDLIB_GUI_GAUGES_PASS') || !report.text.contains('MMDLIB_GUI_FEATURE_SYNC_PASS') || report.text.contains('MMDLIB_GUI_CLIENT_FAIL'))
+                    if (!report.exists() || !report.text.contains('MMDLIB_GUI_RUNTIME_PASS') || !report.text.contains('MMDLIB_GUI_CLIENT_PASS') || !report.text.contains('MMDLIB_GUI_SIDES_PASS') || !report.text.contains('MMDLIB_GUI_GAUGES_PASS') || !report.text.contains('MMDLIB_GUI_FEATURE_SYNC_PASS') || !report.text.contains('MMDLIB_GUI_PLANS_PASS') || report.text.contains('MMDLIB_GUI_CLIENT_FAIL'))
                         throw new GradleException('GUI smoke failed; inspect ' + report)
                 }
             }

@@ -26,7 +26,9 @@ import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 @EventBusSubscriber(modid = "mmdlib", value = Dist.CLIENT)
 public final class GuiClientSmoke {
   private static boolean started, placed, opening, finished;
-  private static int ticks, frames, stage, syncStage, syncTicks;
+  private static int ticks, frames, stage, syncStage, syncTicks, plansStage, plansTicks;
+  private static net.minecraft.world.item.ItemStack savedInput =
+      net.minecraft.world.item.ItemStack.EMPTY;
   private static long deadline = System.currentTimeMillis() + 180000;
   private static final BlockPos POS = new BlockPos(0, 100, 0);
   private static final BlockPos CRUSHER = POS.offset(3, 0, 0);
@@ -144,6 +146,7 @@ public final class GuiClientSmoke {
                 });
       }
       checkFeatureSync(mc);
+      if (stage == 4) checkPlans(mc);
       if (mc.screen instanceof MachineScreen screen && ++ticks == 30) {
         var energy = screen.getMenu().bound.screen().find("energy").orElseThrow();
         if (!(screen.getMenu().value(energy, false) instanceof java.math.BigInteger number)
@@ -238,6 +241,10 @@ public final class GuiClientSmoke {
       MMDLib.LOGGER.info(
           "MMDLIB_GUI_SIDES_PASS: actual context navigation, hidden slots, side-face click and"
               + " authoritative sync");
+      stage = 4;
+    }
+    // The plans check runs from the tick handler; the JEI-less run ends here once it passes.
+    if (stage == 4 && plansStage == 3) {
       if (!net.neoforged.fml.ModList.get().isLoaded("jei")) {
         finished = true;
         mc.stop();
@@ -300,6 +307,82 @@ public final class GuiClientSmoke {
       } else if (++syncTicks > 30) {
         throw new AssertionError("the client never saw the pause: " + client.processor.status());
       }
+    }
+  }
+
+  /**
+   * With the machine screen open on the menu, reserves one iron of ten on the server and checks
+   * that the client's slot predicts the reservation, then that releasing it clears the prediction.
+   */
+  private static void checkPlans(Minecraft mc) {
+    if (plansStage == 3 || !(mc.player.containerMenu instanceof MachineMenu menu)) return;
+    var server = mc.getSingleplayerServer();
+    var slot = menu.slots.get(0);
+    var iron = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_INGOT);
+    var gold = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLD_INGOT);
+    var handler = ((net.neoforged.neoforge.items.SlotItemHandler) slot).getItemHandler();
+    if (plansStage == 0) {
+      plansStage = 1;
+      server.execute(
+          () -> {
+            try {
+              var items = ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS)).items;
+              savedInput = items.getStackInSlot(0).copy();
+              items.setStackInSlot(0, iron.copyWithCount(10));
+              if (!items.reserve(
+                  0,
+                  new zone.moddev.mc.lib.machine.inventory.SlotPlan(
+                      1, net.minecraft.world.item.ItemStack.EMPTY)))
+                throw new AssertionError("the server refused the reservation");
+            } catch (Throwable error) {
+              fail(error);
+            }
+          });
+    } else if (plansStage == 1) {
+      if (!(handler instanceof ClientMenuItems client))
+        throw new AssertionError("the client menu's slots are not ClientMenuItems");
+      if (!client.hasPlan(0) || slot.getItem().getCount() != 10) {
+        if (++plansTicks > 60) throw new AssertionError("the plan never reached the client");
+        return;
+      }
+      if (slot.mayPlace(gold) || client.isItemValid(0, gold) || !client.isItemValid(0, iron))
+        throw new AssertionError("the client does not hold the slot to the iron it keeps");
+      if (slot.getMaxStackSize(iron) != 16)
+        throw new AssertionError("planned max stack " + slot.getMaxStackSize(iron));
+      int free = client.extractItem(0, 64, true).getCount();
+      if (free != slot.getItem().getCount() - 1)
+        throw new AssertionError("the client predicts " + free + " free to take");
+      plansStage = 2;
+      plansTicks = 0;
+      server.execute(
+          () -> {
+            try {
+              ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS))
+                  .items
+                  .release(
+                      0,
+                      new zone.moddev.mc.lib.machine.inventory.SlotPlan(
+                          1, net.minecraft.world.item.ItemStack.EMPTY));
+            } catch (Throwable error) {
+              fail(error);
+            }
+          });
+    } else if (plansStage == 2) {
+      var client = (ClientMenuItems) handler;
+      if (client.hasPlan(0)) {
+        if (++plansTicks > 60) throw new AssertionError("the release never reached the client");
+        return;
+      }
+      if (client.extractItem(0, 64, true).getCount() != 10)
+        throw new AssertionError("a released slot is not free to take");
+      plansStage = 3;
+      server.execute(
+          () ->
+              ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS))
+                  .items
+                  .setStackInSlot(0, savedInput));
+      MMDLib.LOGGER.info(
+          "MMDLIB_GUI_PLANS_PASS: the client menu held a reserved slot and let it go again");
     }
   }
 
