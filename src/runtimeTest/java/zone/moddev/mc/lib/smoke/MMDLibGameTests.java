@@ -101,6 +101,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void reservedStorage(GameTestHelper helper) {
+    ReservedStorageSmoke.check(helper.getLevel(), helper.absolutePos(CENTER));
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipes(GameTestHelper helper) {
     MachineRecipeSmoke.check(helper.getLevel());
     helper.succeed();
