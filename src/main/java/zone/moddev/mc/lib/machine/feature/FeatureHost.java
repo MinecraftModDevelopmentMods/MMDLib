@@ -63,6 +63,8 @@ public final class FeatureHost {
   /**
    * Gives each feature the state saved under its key. A feature with no data, or data its codec
    * rejects, keeps its current state; data for a key no feature has is ignored.
+   *
+   * <p>Load the storages first: a feature checks the loaded contents against what it saved.
    */
   public <T> void load(DynamicOps<T> ops, T data) {
     var map = ops.getMap(data).result().orElse(null);
