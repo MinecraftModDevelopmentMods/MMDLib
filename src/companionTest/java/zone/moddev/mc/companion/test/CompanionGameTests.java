@@ -19,6 +19,7 @@ import net.minecraft.world.phys.Vec3;
 
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -267,6 +268,68 @@ public final class CompanionGameTests {
     require(player.getMainHandItem().is(Items.LAVA_BUCKET) && machine.getTankFluid().isEmpty(),
         "An empty bucket drains lava");
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void tankGaugeTransfersCursorContainers(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    player.getAbilities().instabuild = false;
+    // Mock players have no negotiated screen channel; the client smoke checks real synchronization.
+    var menu = new MachineMenu(43, player.getInventory(), machine) {
+      @Override
+      public void broadcastChanges() {}
+    };
+    player.containerMenu = menu;
+    int tank = menu.index(menu.bound.screen().find("tank").orElseThrow());
+    int left = new ScreenNetwork.Action(43, tank, 0, 0, 0, 0).pack();
+    int right = new ScreenNetwork.Action(43, tank, 0, 1, 0, 0).pack();
+
+    menu.setCarried(new ItemStack(Items.WATER_BUCKET));
+    menu.clickMenuButton(player, left);
+    require(menu.getCarried().is(Items.BUCKET) && machine.getTankFluid().getAmount() == 1_000,
+        "Clicking the gauge empties a cursor bucket and returns the empty container");
+    menu.setCarried(new ItemStack(Items.LAVA_BUCKET));
+    menu.clickMenuButton(player, left);
+    require(menu.getCarried().is(Items.LAVA_BUCKET) && machine.getTankFluid().getFluid() == Fluids.WATER
+        && machine.getTankFluid().getAmount() == 1_000, "Mixed cursor fluid leaves both sides untouched");
+    menu.setCarried(new ItemStack(Items.BUCKET, 2));
+    menu.clickMenuButton(player, right);
+    require(menu.getCarried().is(Items.BUCKET) && menu.getCarried().getCount() == 1,
+        "A stacked cursor processes exactly one container");
+    require(player.getInventory().countItem(Items.WATER_BUCKET) == 1 && machine.getTankFluid().isEmpty(),
+        "The filled bucket goes to inventory without duplicating water");
+
+    var container = new ItemStack(Items.GLASS_BOTTLE);
+    FluidUtil.getFluidHandler(container).orElseThrow().fill(new FluidStack(Fluids.WATER, 1_500), FluidAction.EXECUTE);
+    machine.fluids.fill(new FluidStack(Fluids.WATER, 3_500), FluidAction.EXECUTE);
+    menu.setCarried(container);
+    menu.clickMenuButton(player, left);
+    require(machine.getTankFluid().getAmount() == 4_000
+        && FluidUtil.getFluidHandler(menu.getCarried()).orElseThrow().getFluidInTank(0).getAmount() == 1_000,
+        "A modded container pours only the available room and retains its remainder");
+    machine.fluids.drain(Integer.MAX_VALUE, FluidAction.EXECUTE);
+    menu.clickMenuButton(player, left);
+    require(machine.getTankFluid().getAmount() == 1_000
+        && FluidUtil.getFluidHandler(menu.getCarried()).orElseThrow().getFluidInTank(0).isEmpty(),
+        "The partial container can be completely emptied");
+    menu.clickMenuButton(player, right);
+    require(machine.getTankFluid().isEmpty()
+        && FluidUtil.getFluidHandler(menu.getCarried()).orElseThrow().getFluidInTank(0).getAmount() == 1_000,
+        "An empty modded container can drain less than its capacity");
+    menu.setCarried(new ItemStack(Items.IRON_INGOT));
+    menu.clickMenuButton(player, left);
+    require(menu.getCarried().is(Items.IRON_INGOT) && machine.getTankFluid().isEmpty(),
+        "Non-container items are unchanged");
+    menu.setCarried(new ItemStack(Items.WATER_BUCKET));
+    player.setPos(pos.getX() + 100, pos.getY(), pos.getZ());
+    menu.clickMenuButton(player, left);
+    require(machine.getTankFluid().isEmpty() && menu.getCarried().is(Items.WATER_BUCKET),
+        "A remote stale menu cannot transfer fluid");
+    helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     helper.succeed();
   }
 

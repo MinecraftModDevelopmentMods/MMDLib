@@ -3,7 +3,8 @@
   <vbox padding="7" spacing="4">
     <hbox spacing="6" align="center">
       <gauge id="tank" length="3s" value="#getTankFluid" max="#getTankCapacity"
-             tooltip="screen.mmdlib_companion.tank.tip" tooltip-fallback="Water or lava: {value} / {max} mB"/>
+             tooltip="screen.mmdlib_companion.tank.tip" tooltip-fallback="Water or lava: {value} / {max} mB. Click with a fluid container to transfer."
+             on-click="mmdlib_companion:tank_container" on-right-click="mmdlib_companion:tank_container"/>
       <spacer/>
       <slot index="0"/>
       <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:crushing"/>

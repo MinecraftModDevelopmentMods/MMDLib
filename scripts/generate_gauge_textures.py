@@ -72,10 +72,13 @@ def main():
             body_row.append((INTERIOR if inside(x, y) else OUTLINE) + (255,))
             if not inside(x, y):
                 glass_row.append((0, 0, 0, 0)); continue
-            layers = [((255, 255, 255), 0.05)]
-            if x == 2: layers.append(((255, 255, 255), 0.32))
-            if x == 3: layers.append(((255, 255, 255), 0.16))
-            if x == inner_w: layers.append(((0, 0, 0), 0.22))
+            # Cylindrical lighting across the tube, independent of fluid and fill height.
+            # Dark curved sides roll into a broad lit face and an off-centre reflection.
+            u = (x - 1) / max(1, inner_w - 1)
+            shade = 0.48 * abs(2 * u - 1) ** 1.6 + 0.12 * u ** 3
+            reflection = 0.48 * math.exp(-((u - 0.27) / 0.105) ** 2)
+            face_light = 0.09 * math.exp(-((u - 0.43) / 0.32) ** 2)
+            layers = [((0, 0, 0), shade), ((255, 255, 255), face_light + reflection)]
             glass_row.append(compose(layers))
         body.append(body_row); glass.append(glass_row)
 

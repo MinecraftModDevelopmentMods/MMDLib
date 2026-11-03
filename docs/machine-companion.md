@@ -35,7 +35,12 @@ for stored and maximum FE; click the first progress arrow to see recipes when JE
 
 The Crusher also has a **4,000 mB (four-bucket) tank** on the left. Right-click the block with a
 water or lava bucket to fill it, or an empty bucket to drain it; open the screen with an empty hand
-to see the fluid's animated texture. In creative mode the held bucket stays unchanged while fluid
+to see the fluid's animated texture. Inside the screen, pick up a fluid container onto the cursor
+and click the tank gauge to transfer: it tries pouring into the tank first, then filling the container.
+This works with buckets and modded items exposing NeoForge's fluid-container capability, including
+partial transfers. One container is handled per click; when carrying a stack, the resulting container
+goes into your inventory (or drops beside you if it is full).
+In creative mode the held or cursor container stays unchanged while fluid
 transfers. Fluid pipes can fill and drain on any face. The tank holds one fluid at a time: drain it
 fully before switching between water and lava. Rejected bucket transfers leave the contents intact.
 The tank saves with the machine and is only a display example; crushing recipes do not consume it.
@@ -65,16 +70,18 @@ Install both `build/libs/mmdlib-2.0.0-alpha.jar` and
 `build/libs/mmdlib-companion-2.0.0-alpha.jar` in a NeoForge instance. JEI is optional.
 `companionJar` contains only the companion; `build` continues to build the library.
 
-`check` includes the companion's eight server game tests and checks both jars for leaked classes and
+`check` includes the companion's nine server game tests and checks both jars for leaked classes and
 resources. `runCompanionGameTestServer` runs just those tests. They cover all four registrations and
 menus, recipe loading, adjacent power, the one-slot limit and interruption through the menu, two
 shared lanes across save/load, command replacement versus destruction, tank capacity and persistence,
-refusal to mix fluids, and bucket filling/draining through the block interaction.
+refusal to mix fluids, bucket filling/draining through the block interaction, and cursor-container
+transfers through the screen (including stacked buckets and partial modded containers).
 
 `runCompanionClientSmoke` creates a separate test world under `build/companion-client-smoke`, opens
 all four menus over the network and captures them under its `screenshots` directory. It is separate
 from `check` because it needs a graphical client. It also accepts `-PwithoutJei`.
 The Crusher capture shows water; `crusher-lava.png` verifies a live change to lava in the same menu.
+It also clicks the gauge to drain a lava bucket and pour it back, verifying cursor and tank sync.
 
 ## Code to read
 

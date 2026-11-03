@@ -17,9 +17,9 @@
   "block.mmdlib_companion.dual_crusher": "Dual Crusher",
   "block.mmdlib_companion.creative_power": "Creative Power Source",
   "screen.mmdlib_companion.energy.tip": "{value} / {max} FE",
-  "screen.mmdlib_companion.tank.tip": "Water or lava: {value} / {max} mB",
+  "screen.mmdlib_companion.tank.tip": "Water or lava: {value} / {max} mB. Click with a fluid container to transfer.",
   "screen.mmdlib_companion.tank.refused": "Cannot transfer fluid. The tank holds water or lava, one type at a time, up to 4 buckets.",
-  "screen.mmdlib_companion.info.crusher": "*Crusher*\n\nCrush ore into raw materials, or stone into gravel and sand.\n\nPlace a power source beside the machine. Pause to release reserved items.\n\nThe left tank holds 4 buckets of water or lava for display. Right-click the block with a bucket to fill or drain it. Empty it before changing fluids. Crushing does not use the fluid.",
+  "screen.mmdlib_companion.info.crusher": "*Crusher*\n\nCrush ore into raw materials, or stone into gravel and sand.\n\nPlace a power source beside the machine. Pause to release reserved items.\n\nThe left tank holds 4 buckets of water or lava for display. Click the gauge with a fluid container on the cursor to fill or drain it, or right-click the block with a bucket. Empty the tank before changing fluids. Crushing does not use the fluid.",
   "screen.mmdlib_companion.info.transmuter": "*Iron to gold*\n\nInsert one iron ingot. The same slot holds the gold when the cycle finishes.\n\nSupply power from an adjacent block. Pause to release the input.",
   "screen.mmdlib_companion.info.dual_crusher": "*Dual crusher*\n\nTwo lanes share the input and output slots. Each lane reserves its own items and space.\n\nPause either lane independently to release its share."
 }

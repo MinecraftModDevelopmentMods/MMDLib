@@ -135,16 +135,45 @@ public final class CompanionClientSmoke {
       if (stage == 0) {
         var tank = menu.bound.screen().find("tank").orElseThrow();
         var expectedFluid = fluidStage == 0 ? Fluids.WATER : Fluids.LAVA;
-        int expectedAmount = fluidStage == 0 ? 2_500 : 1_500;
+        int expectedAmount = fluidStage == 0 ? 2_500 : fluidStage == 3 ? 500 : 1_500;
         if (!(menu.value(tank, false) instanceof FluidStack fluid)
             || fluid.getFluid() != expectedFluid || fluid.getAmount() != expectedAmount) {
-          if (fluidStage == 1) return; // Wait for the server's fluid-type change to reach the menu.
+          if (fluidStage > 0) return; // Wait for fluid changes to reach the menu.
           throw new AssertionError("Water was not synced into the tank gauge");
         }
         if (!(menu.value(tank, true) instanceof Number capacity) || capacity.intValue() != 4_000)
           throw new AssertionError("Tank capacity was not synced");
         if (fluidStage == 1) {
           Screenshot.grab(mc.gameDirectory, "crusher-lava.png", mc.getMainRenderTarget(), message -> {});
+          fluidStage = 2;
+          frames = 0;
+          mc.getSingleplayerServer().execute(() -> {
+            var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
+            player.getAbilities().instabuild = false;
+            player.containerMenu.setCarried(new ItemStack(Items.BUCKET));
+            player.containerMenu.broadcastChanges();
+          });
+          return;
+        }
+        if (fluidStage == 2 || fluidStage == 3) {
+          var expectedItem = fluidStage == 2 ? Items.BUCKET : Items.LAVA_BUCKET;
+          if (!menu.getCarried().is(expectedItem)) return;
+          var bounds = screen.bounds(tank);
+          if (!screen.mouseClicked(bounds.x() + 9, bounds.y() + 24, 0))
+            throw new AssertionError("The tank gauge did not handle the container click");
+          fluidStage++;
+          frames = 0;
+          return;
+        }
+        if (fluidStage == 4) {
+          if (!menu.getCarried().is(Items.BUCKET)) return;
+          Screenshot.grab(mc.gameDirectory, "crusher-container.png", mc.getMainRenderTarget(), message -> {});
+          mc.getSingleplayerServer().execute(() -> {
+            var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
+            player.containerMenu.setCarried(ItemStack.EMPTY);
+            player.getAbilities().instabuild = true;
+            player.containerMenu.broadcastChanges();
+          });
           frames = 0;
           stage++;
           opening = false;

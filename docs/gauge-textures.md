@@ -18,7 +18,7 @@ files rotated 90° clockwise (see below).
 | `body_top.png` | 18×5 | Top cap of the tube: outline and dark glass interior, rounded corners |
 | `body_middle.png` | 18×1 | One row of the tube, repeated to fill the length |
 | `body_bottom.png` | 18×5 | Bottom cap |
-| `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Translucent glass overlay: soft highlight in columns 2–3, faint shade in column 16 |
+| `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Cylindrical lighting: dark curved sides, a broad lit face, and an off-centre vertical reflection |
 | `digits.png` | 39×5 | White 3×5 numeral atlas; not used by the gauge renderer |
 
 Pixels outside the rounded shape are fully transparent, so the GUI background shows through
@@ -36,6 +36,8 @@ For a gauge of length *L* (≥ 10) at (*x*, *y*):
 3. **Glass**: flush preceding buffered GUI draws, enable source-alpha blending, then draw
    the three `glass_*` pieces in the same arrangement as the body. The renderer restores the
    caller's blend enable/function, depth-test state and shader color after drawing the gauge.
+   The overlay shades across the width at every fill level, including the empty portion. Fluid
+   textures remain visible beneath it; the cylinder effect comes from lighting, not a new outline.
 4. **Graduations**, drawn in code: colour `#EEF3F6` at 85% opacity, with a 35% black shadow
    pixel directly below each mark pixel. From the left inside edge (x = 1):
    - every 5%: 2 px; every 10%: 3 px; 25/50/75: 7 px (40% of the 16 px inside width)
