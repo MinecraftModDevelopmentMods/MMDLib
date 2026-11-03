@@ -353,7 +353,7 @@ final class ProcessorSmoke {
     var outside =
         new CyclePlan(
             gold, 10, List.of(new ItemTake("slot", 1, iron)), List.of(), List.of(), Map.of());
-    fewer.processor.restore(new State(false, 3, Optional.empty(), Optional.of(outside)));
+    fewer.processor.restore(new State(false, 3, Optional.empty(), 0, Optional.of(outside)));
     cancelled(fewer, false, "fewer slots");
 
     var running = ProcessorRig.oneSlot(true);
@@ -380,7 +380,7 @@ final class ProcessorSmoke {
             List.of(),
             List.of(),
             Map.of());
-    var state = new State(true, 50, Optional.empty(), Optional.of(plan));
+    var state = new State(true, 50, Optional.empty(), 0, Optional.of(plan));
     JsonElement json = State.CODEC.encodeStart(ops, state).getOrThrow();
     var broken = JsonParser.parseString(json.toString().replace("cobblestone", "no_such_thing"));
     var decoded = State.CODEC.parse(ops, broken);
@@ -435,8 +435,8 @@ final class ProcessorSmoke {
       var other = rig.lane("other");
       var first = goldFirst ? addsGold : takesIron;
       var second = goldFirst ? takesIron : addsGold;
-      rig.processor.restore(new State(false, 3, Optional.empty(), Optional.of(first)));
-      other.restore(new State(false, 3, Optional.empty(), Optional.of(second)));
+      rig.processor.restore(new State(false, 3, Optional.empty(), 0, Optional.of(first)));
+      other.restore(new State(false, 3, Optional.empty(), 0, Optional.of(second)));
       require(rig.items.plan(0).sameAs(merged), "the source has the merged plan");
 
       var copy = rig.reloaded(level);
@@ -621,6 +621,53 @@ final class ProcessorSmoke {
     copy.processor.resume();
     copy.ticks(level, 1);
     expect(copy, Status.RUNNING, 51, "continues from the saved progress");
+  }
+
+  /** Progress survives a pause only for a recipe that takes as long as it did. */
+  static void resumeAfterRedefinition(ServerLevel level) {
+    for (int time : new int[] {20, 400}) {
+      for (boolean saved : new boolean[] {false, true}) {
+        var rig = ProcessorRig.crusher(3, 1_000, 1_000_000);
+        rig.ticks(level, 101);
+        rig.processor.interrupt();
+        var running = saved ? reload(level, rig) : rig;
+        var what = "time " + time + (saved ? " saved" : "");
+        replacingCrushCopper(
+            level,
+            time,
+            () -> {
+              running.processor.resume();
+              running.ticks(level, 1);
+              expect(running, Status.RUNNING, 1, "restarted, " + what);
+              require(running.processor.time() == time, "the new time, " + what);
+              require(countOf(running, Items.DIAMOND) == 0, "nothing finished early, " + what);
+            });
+      }
+    }
+  }
+
+  private static void replacingCrushCopper(ServerLevel level, int time, Runnable body) {
+    var manager = level.getRecipeManager();
+    var id = ResourceLocation.fromNamespaceAndPath("mmdlib_smoke", "refining/crush_copper");
+    var originals = new ArrayList<RecipeHolder<?>>(manager.getRecipes());
+    var recipe =
+        MachineRecipeBuilder.recipe(MachineRecipeTypeSmoke.REFINING)
+            .inputItems("input", Ingredient.of(Items.COPPER_ORE), 1)
+            .inputFluid("water", Fluids.WATER, 250)
+            .inputEnergy("energy", 4_000)
+            .outputItem("output", new ItemStack(Items.DIAMOND, 5))
+            .time(time)
+            .build();
+    var changed = new ArrayList<>(originals);
+    changed.removeIf(holder -> holder.id().equals(id));
+    var entry = new MachineRecipeEntry(MachineRecipeTypeSmoke.REFINING, recipe);
+    changed.add(new RecipeHolder<>(id, entry));
+    try {
+      manager.replaceRecipes(changed);
+      body.run();
+    } finally {
+      manager.replaceRecipes(originals);
+    }
   }
 
   private static void withoutCrushCopper(ServerLevel level, Runnable body) {

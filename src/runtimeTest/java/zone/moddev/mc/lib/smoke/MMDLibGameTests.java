@@ -245,6 +245,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorResumeAfterRedefinition(GameTestHelper helper) {
+    ProcessorSmoke.resumeAfterRedefinition(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void processorPausedStaysPaused(GameTestHelper helper) {
     ProcessorSmoke.pausedStaysPaused(helper.getLevel());
     helper.succeed();

@@ -47,12 +47,14 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
    * @param paused whether an interrupt holds the processor
    * @param progress ticks done of {@code cycle}, or of the recipe to resume
    * @param resumeRecipe the recipe a pause or a resume is waiting to reserve again
+   * @param resumeTime the time that recipe took, so progress is dropped if its time changed
    * @param cycle the running cycle
    */
   public record State(
       boolean paused,
       int progress,
       Optional<ResourceLocation> resumeRecipe,
+      int resumeTime,
       Optional<CyclePlan> cycle) {
     /** The save form. */
     public static final Codec<State> CODEC =
@@ -67,6 +69,9 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
                         ResourceLocation.CODEC
                             .optionalFieldOf("resume_recipe")
                             .forGetter(State::resumeRecipe),
+                        Codec.intRange(0, Integer.MAX_VALUE)
+                            .optionalFieldOf("resume_time", 0)
+                            .forGetter(State::resumeTime),
                         CyclePlan.CODEC.lenientOptionalFieldOf("cycle").forGetter(State::cycle))
                     .apply(instance, State::new));
   }
@@ -78,6 +83,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   @Nullable private CyclePlan cycle;
   private int progress;
   @Nullable private ResourceLocation resumeRecipe;
+  private int resumeTime;
   private boolean paused;
   private boolean changed;
   private Status status = Status.IDLE;
@@ -103,7 +109,11 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   @Override
   public State state() {
     return new State(
-        paused, progress, Optional.ofNullable(resumeRecipe), Optional.ofNullable(cycle));
+        paused,
+        progress,
+        Optional.ofNullable(resumeRecipe),
+        resumeTime,
+        Optional.ofNullable(cycle));
   }
 
   /**
@@ -120,6 +130,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     cycle = null;
     paused = state.paused();
     resumeRecipe = state.resumeRecipe().orElse(null);
+    resumeTime = state.resumeTime();
     progress = resumeRecipe == null ? 0 : state.progress();
     var saved = state.cycle().filter(plan -> !paused && holds(plan)).orElse(null);
     if (saved != null) {
@@ -151,6 +162,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     if (cycle != null) {
       cycle.release(inventory);
       resumeRecipe = cycle.recipe();
+      resumeTime = cycle.time();
       cycle = null;
     }
     paused = true;
@@ -220,7 +232,10 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     }
   }
 
-  /** Reserves the paused recipe again if it still exists and fits; otherwise loses its progress. */
+  /**
+   * Reserves the paused recipe again if it still exists and fits. Progress is kept only if the
+   * recipe takes as long as it did; if it can't be reserved, the processor searches instead.
+   */
   private boolean reserveAgain(Level level, FeatureHost host) {
     var id = resumeRecipe;
     resumeRecipe = null;
@@ -240,7 +255,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
       return false;
     }
     cycle = plan;
-    progress = Math.min(progress, plan.time());
+    if (plan.time() != resumeTime) progress = 0;
     return true;
   }
 
