@@ -144,13 +144,37 @@ def radio(on):
 
 
 def arrow(filled):
-    """24x16 progress arrow; draw the filled sprite over the empty one, cropped to the progress."""
+    """Bevelled blue-grey arrow; both states share a silhouette for clipped progress fills."""
     img = canvas(24, 16)
+    top = (121, 198, 247) if filled else (190, 207, 223)
+    bottom = (35, 101, 162) if filled else (105, 130, 157)
+    outline = (40, 78, 119) if filled else (79, 99, 123)
+    highlight = (196, 237, 255) if filled else (229, 242, 252)
+
+    def inside(x, y):
+        return ((1 <= x <= 16 and 5 <= y <= 10)
+                or (16 <= x <= 23 and abs(y - 7.5) <= (23 - x) * 0.85 + 0.5))
+
+    def mix(a, b, fraction):
+        return tuple(round(v + (w - v) * fraction) for v, w in zip(a, b))
+
     for y in range(16):
         for x in range(24):
-            if (x <= 13 and 6 <= y <= 9) or (x >= 12 and abs(y + 0.5 - 8) <= (24 - x) * 0.72):
-                img[y][x] = grey(255 if filled else 0x8B)
+            if not inside(x, y): continue
+            if any(not inside(x + dx, y + dy) for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0))):
+                color = outline
+            else:
+                color = mix(top, bottom, max(0, min(1, (y - 2) / 11)))
+                if y < 8 and not inside(x, y - 2): color = highlight
+                elif y == 7: color = mix(color, highlight, 0.25)
+                elif y >= 9 and not inside(x, y + 2): color = mix(color, outline, 0.35)
+            img[y][x] = (*color, 255)
     return img
+
+
+def write_progress_sprites():
+    write_png("progress_arrow", arrow(False))
+    write_png("progress_arrow_filled", arrow(True))
 
 
 def icon(rows, color):
@@ -212,8 +236,7 @@ def main():
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))
     write_png("radio_selected", radio(True))
-    write_png("progress_arrow", arrow(False))
-    write_png("progress_arrow_filled", arrow(True))
+    write_progress_sprites()
     for name, rows in ICONS.items(): write_png(name, icon(rows, (0x6A, 0x50, 0x20, 255)))
     write_png("icon_sides", icon(CUBE, grey(255)))
     # Pop-out kinds. Full colour, not for tinting.
