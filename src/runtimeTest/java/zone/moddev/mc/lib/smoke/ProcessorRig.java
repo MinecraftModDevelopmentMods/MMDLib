@@ -31,11 +31,13 @@ final class ProcessorRig {
   final FluidStorage fluids = new FluidStorage().onChange(() -> changes[0]++);
   final EnergyBuffer energy = new EnergyBuffer(10_000_000_000L, 1_000).onChange(() -> changes[0]++);
   final MachineInventory inventory;
-  final FeatureHost host = new FeatureHost(() -> changes[0]++, 
-            () -> {
-              syncs[0]++;
-              onSync.run();
-            });
+  final FeatureHost host =
+      new FeatureHost(
+          () -> changes[0]++,
+          () -> {
+            syncs[0]++;
+            onSync.run();
+          });
   final RecipeProcessor processor;
   private final boolean crusher;
   private final boolean withEnergy;
