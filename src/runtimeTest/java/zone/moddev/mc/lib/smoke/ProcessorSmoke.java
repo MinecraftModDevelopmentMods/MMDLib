@@ -1012,6 +1012,128 @@ final class ProcessorSmoke {
     return copy;
   }
 
+  /**
+   * Two lanes on one set of storages, both running: one is interrupted, the machine is saved and
+   * loaded, the recipes are replaced, the lane resumes, and both run to the end. Nothing is lost
+   * or made twice, and a client told after each step agrees with the server.
+   */
+  static void lanesAcrossInterruptReloadAndRecipeChange(ServerLevel level) {
+    var registries = level.registryAccess();
+    var ops = registries.createSerializationContext(NbtOps.INSTANCE);
+    var client = ProcessorRig.crusher(0, 0, 0);
+    var clientOther = client.lane("other");
+
+    var rig = ProcessorRig.crusher(6, 4_000, 1_000_000_000L);
+    var other = rig.lane("other");
+    rig.ticks(level, 60);
+    require(rig.processor.status() == Status.RUNNING, "lane A runs");
+    require(other.status() == Status.RUNNING, "lane B runs");
+    require(rig.items.plan(0).take() == 2, "both lanes hold an ore: " + rig.items.plan(0));
+    conserved(rig, 6, "running");
+    clientAgrees(level, rig, other, client, clientOther, "running");
+
+    // Interrupting A frees its plan only.
+    int pausedAt = rig.processor.progress();
+    int otherAt = other.progress();
+    rig.processor.interrupt();
+    require(rig.processor.status() == Status.PAUSED, "A paused");
+    require(other.status() == Status.RUNNING, "B still runs");
+    require(rig.items.plan(0).take() == 1, "B's ore is still held: " + rig.items.plan(0));
+    require(rig.fluids.plan(0).take() == 250, "B's water is still held: " + rig.fluids.plan(0));
+    require(!rig.items.plan(1).isNone(), "B's room is still held");
+    rig.ticks(level, 10);
+    require(other.progress() == otherAt + 10, "B carried on: " + other.progress());
+    require(rig.processor.progress() == pausedAt, "A kept its place");
+    conserved(rig, 6, "A interrupted");
+    clientAgrees(level, rig, other, client, clientOther, "A interrupted");
+
+    // Save and load into a fresh rig.
+    var copy = rig.reloaded(level);
+    var copyOther = copy.lane("other");
+    copy.host.load(ops, rig.host.save(ops));
+    require(copy.processor.status() == Status.PAUSED, "A is paused after the load");
+    require(copyOther.status() == Status.RUNNING, "B runs after the load");
+    require(copyOther.progress() == otherAt + 10, "B's place: " + copyOther.progress());
+    require(copy.items.plan(0).take() == 1, "B's plan came back: " + copy.items.plan(0));
+    conserved(copy, 6, "loaded");
+    clientAgrees(level, copy, copyOther, client, clientOther, "loaded");
+
+    // The recipes change; A resumes on the new one, B finishes the cycle it began.
+    replacingCrushCopper(
+        level,
+        20,
+        () -> {
+          copy.processor.resume();
+          copy.ticks(level, 1);
+          expect(copy, Status.RUNNING, 1, "A restarts on the new recipe");
+          require(copy.processor.time() == 20, "A has the new time");
+          require(copyOther.time() == 200, "B keeps its time");
+          require(copy.items.plan(0).take() == 2, "both lanes hold an ore again");
+          conserved(copy, 6, "resumed");
+          clientAgrees(level, copy, copyOther, client, clientOther, "resumed");
+
+          for (int tick = 0; tick < 3_000 && !idle(copy, copyOther); tick++) {
+            copy.ticks(level, 1);
+            if (tick % 25 == 0) {
+              conserved(copy, 6, "tick " + tick);
+              clientAgrees(level, copy, copyOther, client, clientOther, "tick " + tick);
+            }
+          }
+          require(idle(copy, copyOther), "both lanes finish");
+          // The tick that finishes a cycle still shows as running to clients; the next is idle.
+          copy.ticks(level, 1);
+        });
+    conserved(copy, 6, "the end");
+    require(copy.items.getStackInSlot(0).isEmpty(), "all the ore was used");
+    require(rawCopper(copy) > 0 && countOf(copy, Items.DIAMOND) > 0, "both recipes ran");
+    require(unplanned(copy), "every plan is gone");
+    clientAgrees(level, copy, copyOther, client, clientOther, "the end");
+  }
+
+  private static boolean idle(ProcessorRig rig, RecipeProcessor other) {
+    return rig.processor.status() == Status.IDLE && other.status() == Status.IDLE;
+  }
+
+  /** Each finished cycle took one ore and 250 mB and made 2 raw copper or 5 diamonds. */
+  private static void conserved(ProcessorRig rig, int ore, String when) {
+    int finished = ore - rig.items.getStackInSlot(0).getCount();
+    int made = rawCopper(rig) / 2 + countOf(rig, Items.DIAMOND) / 5;
+    require(made == finished, when + ": " + finished + " cycles took ore, " + made + " made");
+    require(
+        rig.fluids.tank(0).getFluidAmount() == 4_000 - 250 * finished,
+        when + ": water " + rig.fluids.tank(0).getFluidAmount());
+  }
+
+  /** Sends the server's update to the client rig and requires both lanes to read the same. */
+  private static void clientAgrees(
+      ServerLevel level,
+      ProcessorRig rig,
+      RecipeProcessor other,
+      ProcessorRig client,
+      RecipeProcessor clientOther,
+      String when) {
+    var registries = level.registryAccess();
+    FeatureSync.read(client.host, FeatureSync.updateTag(rig.host, registries), registries);
+    var pairs = List.of(List.of(rig.processor, client.processor), List.of(other, clientOther));
+    for (var pair : pairs) {
+      var server = pair.get(0);
+      var seen = pair.get(1);
+      require(
+          server.status() == seen.status()
+              && server.time() == seen.time()
+              && server.paused() == seen.paused(),
+          when
+              + ": client saw "
+              + seen.status()
+              + "/"
+              + seen.time()
+              + ", server "
+              + server.status()
+              + "/"
+              + server.time());
+    }
+  }
+
   /** The processor is idle, or paused if it was, with nothing reserved. */
   private static void cancelled(ProcessorRig rig, boolean paused, String why) {
     var expected = paused ? Status.PAUSED : Status.IDLE;

@@ -203,6 +203,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorLanesAcrossInterruptReloadAndRecipeChange(GameTestHelper helper) {
+    ProcessorSmoke.lanesAcrossInterruptReloadAndRecipeChange(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void processorLanesRestoreInEitherOrder(GameTestHelper helper) {
     ProcessorSmoke.lanesRestoreInEitherOrder(helper.getLevel());
     helper.succeed();
