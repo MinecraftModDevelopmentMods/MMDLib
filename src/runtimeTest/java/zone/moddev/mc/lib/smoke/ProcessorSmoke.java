@@ -134,7 +134,9 @@ final class ProcessorSmoke {
     require(rig.processor.progress() == 200, "progress " + rig.processor.progress());
     require(rig.processor.status() == Status.BLOCKED, "blocked " + rig.processor.status());
     long energy = rig.energy.stored();
+    int changes = rig.changes[0];
     rig.ticks(level, 5);
+    require(rig.changes[0] == changes, "a blocked machine marked changed");
     require(rig.processor.status() == Status.BLOCKED, "still blocked");
     require(rig.processor.progress() == 200, "progress held at time");
     require(rig.energy.stored() == energy, "no energy while blocked");
@@ -169,7 +171,9 @@ final class ProcessorSmoke {
     require(rig.fluids.getFluidInTank(0).getAmount() == 1_000, "water unchanged");
     require(rig.items.plan(0).take() == 1 && !rig.items.plan(1).isNone(), "plans in place");
     long energy = rig.energy.stored();
+    int changes = rig.changes[0];
     rig.ticks(level, 5);
+    require(rig.changes[0] == changes, "a blocked machine marked changed");
     require(rig.energy.stored() == energy, "no energy while blocked");
     require(rig.processor.status() == Status.BLOCKED, "still blocked");
 
@@ -179,6 +183,19 @@ final class ProcessorSmoke {
     require(rig.items.getStackInSlot(0).getCount() == 2, "ore taken");
     require(rig.fluids.getFluidInTank(0).getAmount() == 750, "water taken");
     require(rawCopper(rig) == 2, "product made");
+  }
+
+  /** A machine short of energy by part of a tick waits quietly. */
+  static void partialStallIsQuiet(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 3_010);
+    rig.ticks(level, 151);
+    expect(rig, Status.RUNNING, 150, "tick 150");
+    require(rig.energy.stored() == 10, "10 FE left " + rig.energy.stored());
+    int changes = rig.changes[0];
+    rig.ticks(level, 5);
+    expect(rig, Status.STALLED, 150, "stalled");
+    require(rig.energy.stored() == 10, "nothing drawn");
+    require(rig.changes[0] == changes, "a stalled machine marked changed");
   }
 
   /** A recipe without an energy group never waits for power. */

@@ -153,6 +153,11 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
 
   /** Draws this tick's energy from every energy group, or none of it. */
   private boolean draw() {
+    for (var need : cycle.energy().entrySet()) {
+      long share = EnergySchedule.share(need.getValue(), cycle.time(), progress);
+      if (!(inventory.group(need.getKey()).orElse(null) instanceof EnergyGroup group)
+          || group.stored() < share) return false;
+    }
     try (var tx = inventory.begin()) {
       for (var need : cycle.energy().entrySet()) {
         long share = EnergySchedule.share(need.getValue(), cycle.time(), progress);

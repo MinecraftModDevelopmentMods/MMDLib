@@ -161,6 +161,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorPartialStallIsQuiet(GameTestHelper helper) {
+    ProcessorSmoke.partialStallIsQuiet(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void processorNoPowerNeeded(GameTestHelper helper) {
     ProcessorSmoke.noPowerNeeded(helper.getLevel());
     helper.succeed();
