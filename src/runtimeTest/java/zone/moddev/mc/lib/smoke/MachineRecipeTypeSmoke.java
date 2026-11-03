@@ -71,6 +71,10 @@ public final class MachineRecipeTypeSmoke {
   public static final MachineRecipeType GRINDING =
       MachineRecipeTypes.register(TYPES, SERIALIZERS, "grinding");
 
+  /** A second test type, for the processor smoke test. */
+  public static final MachineRecipeType REFINING =
+      MachineRecipeTypes.register(TYPES, SERIALIZERS, "refining");
+
   private static final ResourceLocation COPPER = id("grinding/copper");
   private static final ResourceLocation IRON = id("grinding/iron");
 

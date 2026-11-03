@@ -1,0 +1,11 @@
+{
+  "type": "mmdlib_smoke:refining",
+  "inputs": {
+    "slot":   [{ "items": { "item": "minecraft:iron_ingot" } }],
+    "energy": [{ "energy": 100 }]
+  },
+  "outputs": {
+    "slot": [{ "item": { "id": "minecraft:gold_ingot" } }]
+  },
+  "time": 10
+}

@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib_smoke:refining",
+  "inputs": {
+    "slot": [{ "items": { "item": "minecraft:cobblestone" } }]
+  },
+  "outputs": {
+    "slot": [{ "item": { "id": "minecraft:gravel" } }]
+  },
+  "time": 5
+}
