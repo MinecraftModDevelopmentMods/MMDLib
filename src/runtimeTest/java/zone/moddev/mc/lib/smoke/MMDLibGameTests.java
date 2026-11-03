@@ -125,6 +125,54 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorWorkedRun(GameTestHelper helper) {
+    ProcessorSmoke.workedRun(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorHopperCantJam(GameTestHelper helper) {
+    ProcessorSmoke.hopperCantJam(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorTwoLanes(GameTestHelper helper) {
+    ProcessorSmoke.twoLanes(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorChanceKeepsNothing(GameTestHelper helper) {
+    ProcessorSmoke.chanceKeepsNothing(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorInputRemoved(GameTestHelper helper) {
+    ProcessorSmoke.inputRemoved(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorBlockedByOutput(GameTestHelper helper) {
+    ProcessorSmoke.blockedByOutput(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorNoPowerNeeded(GameTestHelper helper) {
+    ProcessorSmoke.noPowerNeeded(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorIdleDoesNotMarkChanged(GameTestHelper helper) {
+    ProcessorSmoke.idleDoesNotMarkChanged(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipeTypeRegistered(GameTestHelper helper) {
     MachineRecipeTypeSmoke.registered();
     helper.succeed();
