@@ -426,6 +426,21 @@ public final class CrusherSmoke {
     require(dropped == 1, "one ore went in and one came out: " + dropped);
   }
 
+  /** Gives a crusher what it needs to run the copper ore recipe. */
+  static void fill(Crusher crusher) {
+    crusher.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 1));
+    crusher.fluids.tank(0).fill(new FluidStack(Fluids.WATER, 1_000), FluidAction.EXECUTE);
+    crusher.energy.setStored(100_000);
+  }
+
+  /** Requires a client's copy of a running crusher to know the cycle's time and hold no plans. */
+  static void requireClientCopy(Crusher client) {
+    require(client.processor.time() == 200, "client time " + client.processor.time());
+    for (int slot = 0; slot < 4; slot++)
+      require(client.items.plan(slot).isNone(), "the client holds a plan on slot " + slot);
+    require(client.fluids.plan(0).isNone(), "the client holds a tank plan");
+  }
+
   /** What a player near a crusher is sent, read into a copy that has no level. */
   static void syncRoundTrip(ServerLevel level, BlockPos pos) {
     var registries = level.registryAccess();

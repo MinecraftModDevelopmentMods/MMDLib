@@ -20,14 +20,16 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.runtime.*;
+import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 
 /** Creates an isolated integrated world and renders the actual network-opened GUI under Xvfb. */
 @EventBusSubscriber(modid = "mmdlib", value = Dist.CLIENT)
 public final class GuiClientSmoke {
   private static boolean started, placed, opening, finished;
-  private static int ticks, frames, stage;
+  private static int ticks, frames, stage, syncStage, syncTicks;
   private static long deadline = System.currentTimeMillis() + 180000;
   private static final BlockPos POS = new BlockPos(0, 100, 0);
+  private static final BlockPos CRUSHER = POS.offset(3, 0, 0);
 
   @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {
@@ -78,6 +80,8 @@ public final class GuiClientSmoke {
                         POS.offset(0, 0, 2),
                         net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(),
                         3);
+                    level.setBlock(
+                        CRUSHER, BuiltInRegistries.BLOCK.get(CrusherSmoke.ID).defaultBlockState(), 3);
                     player.teleportTo(POS.getX() + .5, POS.getY() + 1, POS.getZ() + 2.5);
                   } catch (Throwable error) {
                     fail(error);
@@ -137,6 +141,7 @@ public final class GuiClientSmoke {
                   }
                 });
       }
+      checkFeatureSync(mc);
       if (mc.screen instanceof MachineScreen screen && ++ticks == 30) {
         var energy = screen.getMenu().bound.screen().find("energy").orElseThrow();
         if (!(screen.getMenu().value(energy, false) instanceof java.math.BigInteger number)
@@ -247,6 +252,7 @@ public final class GuiClientSmoke {
     }
     // JEI's recipe screen replaces the machine screen, so wait by frames rather than ticks.
     if (stage == 3 && ++frames == 30) {
+      if (syncStage != 3) throw new AssertionError("feature sync did not finish: " + syncStage);
       Screenshot.grab(
           mc.gameDirectory,
           "gui-jei-machine-recipes.png",
@@ -254,6 +260,44 @@ public final class GuiClientSmoke {
           message -> MMDLib.LOGGER.info("JEI machine recipes screenshot: {}", message.getString()));
       finished = true;
       mc.stop();
+    }
+  }
+
+  /**
+   * Checks the crusher's own client copy, with no menu open on it: its processor reaches RUNNING
+   * with the cycle's time and no plans, and PAUSED after an interrupt on the server.
+   */
+  private static void checkFeatureSync(Minecraft mc) {
+    if (syncStage == 3 || mc.level == null || mc.player == null) return;
+    if (!(mc.level.getBlockEntity(CRUSHER) instanceof CrusherSmoke.Crusher client)) return;
+    var server = mc.getSingleplayerServer();
+    if (syncStage == 0) {
+      syncStage = 1;
+      server.execute(
+          () -> {
+            try {
+              CrusherSmoke.fill((CrusherSmoke.Crusher) server.overworld().getBlockEntity(CRUSHER));
+            } catch (Throwable error) {
+              fail(error);
+            }
+          });
+    } else if (syncStage == 1 && client.processor.status() == RecipeProcessor.Status.RUNNING) {
+      CrusherSmoke.requireClientCopy(client);
+      syncStage = 2;
+      syncTicks = 0;
+      server.execute(
+          () ->
+              ((CrusherSmoke.Crusher) server.overworld().getBlockEntity(CRUSHER))
+                  .processor
+                  .interrupt());
+    } else if (syncStage == 2) {
+      if (client.processor.status() == RecipeProcessor.Status.PAUSED) {
+        syncStage = 3;
+        MMDLib.LOGGER.info(
+            "MMDLIB_GUI_FEATURE_SYNC_PASS: a nearby client saw the crusher run and pause");
+      } else if (++syncTicks > 30) {
+        throw new AssertionError("the client never saw the pause: " + client.processor.status());
+      }
     }
   }
 
