@@ -46,14 +46,19 @@ public class ItemCrossbow extends net.minecraft.item.ItemBow {
 
 	private void doFireBolt(final ItemStack itemStack, final EntityPlayer entityPlayer,
 			final World worldIn, final float f, final ItemStack stack, final boolean flag1) {
-		if (!(worldIn.isRemote)) {
+		if (worldIn.isRemote) {
 			return;
 		}
 
 		final Item item = itemStack.getItem();
-		final ItemBolt itemBolt = ((ItemBolt) (item instanceof ItemBolt
+		final Item boltItem = item instanceof ItemBolt
 				? item
-				: Materials.getMaterialByName(MaterialNames.IRON).getItem(Names.BOLT)));
+				: Materials.getMaterialByName(MaterialNames.IRON).getItem(Names.BOLT);
+		if (!(boltItem instanceof ItemBolt)) {
+			return;
+		}
+
+		final ItemBolt itemBolt = (ItemBolt) boltItem;
 		final EntityCustomBolt entityBolt = itemBolt.createBolt(worldIn, itemStack, entityPlayer);
 		entityBolt.shoot(entityPlayer, entityPlayer.rotationPitch, entityPlayer.rotationYaw, 0.0F,
 				f * 3.0F, 1.0F);
@@ -170,15 +175,20 @@ public class ItemCrossbow extends net.minecraft.item.ItemBow {
 	public ActionResult<ItemStack> onItemRightClick(final World worldIn,
 			final EntityPlayer playerIn, final EnumHand handIn) {
 		final ItemStack itemStack = playerIn.getHeldItem(handIn);
-		// Check for specific Arrows
+		// Check for specific Bolts
 		final boolean flag = !this.myFindAmmo(playerIn).isEmpty();
+
+		final ActionResult<ItemStack> ret = net.minecraftforge.event.ForgeEventFactory
+				.onArrowNock(itemStack, worldIn, playerIn, handIn, flag);
+		if (ret != null) {
+			return ret;
+		}
 
 		if (!playerIn.capabilities.isCreativeMode && !flag) {
 			return new ActionResult<>(EnumActionResult.FAIL, itemStack);
-		} else {
-			playerIn.setActiveHand(handIn);
-			return flag ? new ActionResult<>(EnumActionResult.PASS, itemStack)
-					: new ActionResult<>(EnumActionResult.FAIL, itemStack);
 		}
+
+		playerIn.setActiveHand(handIn);
+		return new ActionResult<>(EnumActionResult.SUCCESS, itemStack);
 	}
 }
