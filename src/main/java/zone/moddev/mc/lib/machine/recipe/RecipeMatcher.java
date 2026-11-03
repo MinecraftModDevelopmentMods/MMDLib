@@ -163,7 +163,7 @@ public final class RecipeMatcher {
   }
 
   /** What each slot or tank of {@code group} has free, or the stored energy as one entry. */
-  private static long[] available(SlotGroup group) {
+  static long[] available(SlotGroup group) {
     return switch (group) {
       case ItemGroup items -> {
         var counts = new long[items.size()];
@@ -180,7 +180,7 @@ public final class RecipeMatcher {
   }
 
   /** Adds {@code ingredient} to {@code claims}; returns what's still needed, -1 if wrong kind. */
-  private static long claim(
+  static long claim(
       InputClaims claims, SlotGroup group, MachineIngredient ingredient, int time) {
     return switch (ingredient) {
       case ItemPart part when group instanceof ItemGroup items ->
