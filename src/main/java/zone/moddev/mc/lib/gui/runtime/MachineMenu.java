@@ -2,6 +2,8 @@ package zone.moddev.mc.lib.gui.runtime;
 
 import java.util.*;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.*;
@@ -29,6 +31,8 @@ public class MachineMenu extends AbstractContainerMenu {
   private final Map<Integer, Object> values = new HashMap<>();
   private final ScreenHost host;
   private final int machineSlots;
+  private final IItemHandler items;
+  @Nullable private final ReservedSlots reserved;
   private final Player owner;
   private boolean initial = true;
 
@@ -76,12 +80,12 @@ public class MachineMenu extends AbstractContainerMenu {
             .mapToInt(e -> ((Element.Slot) e).index() + 1)
             .max()
             .orElse(0);
-    IItemHandler items;
     if (owner.level().isClientSide)
       items =
           host == null ? new ItemStackHandler(count) : new ClientMenuItems(count, host.screenItems());
     else items = host == null ? new ItemStackHandler(0) : host.screenItems();
     machineSlots = count;
+    reserved = items instanceof ReservedSlots slots ? slots : null;
     var layout =
         ScreenLayout.of(
             bound.screen(),
@@ -128,7 +132,8 @@ public class MachineMenu extends AbstractContainerMenu {
               }
 
               public boolean mayPickup(Player player) {
-                return isActive() && super.mayPickup(player);
+                // A planned slot lets a player merge into it even when nothing is free to take.
+                return isActive() && (planned(index) || super.mayPickup(player));
               }
 
               public int getMaxStackSize() {
@@ -136,7 +141,8 @@ public class MachineMenu extends AbstractContainerMenu {
               }
 
               public int getMaxStackSize(ItemStack stack) {
-                return Math.min(getMaxStackSize(), super.getMaxStackSize(stack));
+                int limit = Math.min(getMaxStackSize(), super.getMaxStackSize(stack));
+                return planned(index) ? Math.min(limit, reserved.maxHeld(index, stack)) : limit;
               }
             });
     }
@@ -228,6 +234,8 @@ public class MachineMenu extends AbstractContainerMenu {
   @Override
   public void clicked(int slot, int button, ClickType type, Player player) {
     if (slot >= 0 && slot < slots.size() && !slots.get(slot).isActive()) return;
+    // Vanilla moves the whole stack out through setByPlayer, which would take reserved items.
+    if (type == ClickType.SWAP && slot >= 0 && slot < machineSlots && planned(slot)) return;
     super.clicked(slot, button, type, player);
   }
 
@@ -239,6 +247,7 @@ public class MachineMenu extends AbstractContainerMenu {
       return ItemStack.EMPTY;
     var stack = source.getItem();
     var original = stack.copy();
+    if (index < machineSlots && planned(index)) return quickMovePlanned(player, source);
     if (index < machineSlots) {
       if (!moveItemStackTo(stack, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
     } else {
@@ -263,6 +272,27 @@ public class MachineMenu extends AbstractContainerMenu {
     else source.setChanged();
     source.onTake(player, stack);
     return original;
+  }
+
+  /** Moves only what the storage says is free, then takes exactly that much out of the slot. */
+  private ItemStack quickMovePlanned(Player player, Slot source) {
+    int free = Math.min(reserved.freeToTake(source.index), source.getItem().getCount());
+    if (free <= 0) return ItemStack.EMPTY;
+    var moving = source.getItem().copyWithCount(free);
+    var original = moving.copy();
+    if (!moveItemStackTo(moving, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
+    int moved = free - moving.getCount();
+    var taken = source.remove(moved);
+    source.onTake(player, taken);
+    return original.copyWithCount(moved);
+  }
+
+  private boolean planned(int index) {
+    return reserved != null
+        && index >= 0
+        && index < machineSlots
+        && slots.get(index) instanceof SlotItemHandler
+        && reserved.hasPlan(index);
   }
 
   @Override

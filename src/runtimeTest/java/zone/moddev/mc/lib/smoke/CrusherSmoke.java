@@ -16,6 +16,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -54,6 +56,7 @@ import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 import zone.moddev.mc.lib.machine.feature.FeatureHost;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.inventory.MachineInventory;
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 import zone.moddev.mc.lib.machine.neoforge.StorageGroups;
 
 /**
@@ -216,6 +219,131 @@ public final class CrusherSmoke {
     }
   }
 
+  /** Every row of the reservations tables, driven through a real menu. */
+  static void menuRows(ServerLevel level, BlockPos pos, ServerPlayer player) {
+    var crusher = place(level, pos);
+    var menu = new MachineMenu(81, player.getInventory(), crusher);
+    var items = crusher.items;
+    var iron = Items.IRON_INGOT;
+    var gold = Items.GOLD_INGOT;
+    var takeOne = new SlotPlan(1, ItemStack.EMPTY);
+    // Menu slots: the machine's four, then the inventory's three rows, then the hotbar.
+    int hotbar = 4 + 27;
+
+    // Taking items out.
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(menu.getCarried().getCount() == 49 && count(items) == 1, "left click");
+
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.clicked(0, 1, ClickType.PICKUP, player);
+    require(menu.getCarried().getCount() == 25 && count(items) == 25, "right click");
+
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.clicked(0, 0, ClickType.THROW, player);
+    require(dropped(level, player) == 1 && count(items) == 49, "Q");
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.clicked(0, 1, ClickType.THROW, player);
+    require(dropped(level, player) == 49 && count(items) == 1, "Ctrl+Q");
+
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.setCarried(stack(iron, 10));
+    menu.clicked(4, 0, ClickType.PICKUP_ALL, player);
+    require(menu.getCarried().getCount() == 59 && count(items) == 1, "double click");
+
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
+    require(inventoryCount(player, iron) == 49 && count(items) == 1, "shift-click");
+    menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
+    require(inventoryCount(player, iron) == 49 && count(items) == 1, "second shift-click");
+
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.setCarried(stack(gold, 5));
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(count(items) == 50 && items.getStackInSlot(0).is(iron), "gold on iron: slot");
+    require(menu.getCarried().is(gold) && menu.getCarried().getCount() == 5, "gold stays carried");
+
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.clicked(0, 2, ClickType.SWAP, player);
+    require(count(items) == 50 && player.getInventory().getItem(2).isEmpty(), "swap, empty hotbar");
+    require(totalIron(player, items) == 50, "swap duplicates nothing");
+    player.getInventory().setItem(2, stack(gold, 3));
+    menu.clicked(0, 2, ClickType.SWAP, player);
+    require(count(items) == 50 && player.getInventory().getItem(2).is(gold), "swap, gold");
+
+    // Putting items in.
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.setCarried(stack(iron, 64));
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(count(items) == 64 && menu.getCarried().getCount() == 50, "top up to 64");
+
+    for (var carried : new Item[] {iron, gold}) {
+      reset(menu, player, items, stack(iron, 1), new SlotPlan(1, stack(gold, 1)));
+      menu.setCarried(stack(carried, 5));
+      menu.clicked(0, 0, ClickType.PICKUP, player);
+      require(count(items) == 1 && menu.getCarried().getCount() == 5, "jam, carrying " + carried);
+      require(items.getStackInSlot(0).is(iron), "jam keeps the iron");
+    }
+
+    reset(menu, player, items, stack(iron, 63), new SlotPlan(1, stack(iron, 2)));
+    menu.setCarried(stack(iron, 5));
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(count(items) == 63 && menu.getCarried().getCount() == 5, "full at the end");
+
+    reset(menu, player, items, ItemStack.EMPTY, new SlotPlan(0, stack(gold, 1)));
+    menu.setCarried(stack(gold, 64));
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(count(items) == 63 && menu.getCarried().getCount() == 1, "empty, gold in");
+    reset(menu, player, items, ItemStack.EMPTY, new SlotPlan(0, stack(gold, 1)));
+    menu.setCarried(stack(iron, 64));
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(items.getStackInSlot(0).isEmpty() && menu.getCarried().getCount() == 64, "empty, iron");
+
+    // Shift-click from the player.
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    player.getInventory().setItem(0, stack(iron, 64));
+    menu.clicked(hotbar, 0, ClickType.QUICK_MOVE, player);
+    require(count(items) == 64 && player.getInventory().getItem(0).getCount() == 50, "shift in");
+    reset(menu, player, items, ItemStack.EMPTY, new SlotPlan(0, stack(gold, 1)));
+    player.getInventory().setItem(0, stack(gold, 64));
+    player.getInventory().setItem(1, stack(iron, 64));
+    menu.clicked(hotbar, 0, ClickType.QUICK_MOVE, player);
+    menu.clicked(hotbar + 1, 0, ClickType.QUICK_MOVE, player);
+    require(count(items) == 63 && items.getStackInSlot(0).is(gold), "shift in, empty slot");
+    require(player.getInventory().getItem(1).getCount() == 64, "iron stays out");
+
+    // A drag across the slot and an inventory slot splits 64 into 32 each.
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    menu.setCarried(stack(iron, 64));
+    menu.clicked(-999, 0, ClickType.QUICK_CRAFT, player);
+    menu.clicked(0, 1, ClickType.QUICK_CRAFT, player);
+    menu.clicked(4, 1, ClickType.QUICK_CRAFT, player);
+    menu.clicked(-999, 2, ClickType.QUICK_CRAFT, player);
+    require(count(items) == 64, "drag, slot " + count(items));
+    require(menu.getSlot(4).getItem().getCount() == 32, "drag, inventory");
+    require(menu.getCarried().getCount() == 18, "drag, carried " + menu.getCarried().getCount());
+
+    // Review focus 4: the reserved item can't be taken, but the same item still merges in.
+    reset(menu, player, items, stack(iron, 1), takeOne);
+    menu.setCarried(stack(iron, 10));
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(count(items) == 11 && menu.getCarried().isEmpty(), "merge onto the reserved one");
+    reset(menu, player, items, stack(iron, 1), takeOne);
+    menu.clicked(0, 0, ClickType.PICKUP, player);
+    require(count(items) == 1 && menu.getCarried().isEmpty(), "nothing free, nothing moves");
+
+    // No plan: swap, number key and whole-stack shift-click work as before.
+    reset(menu, player, items, stack(iron, 50), SlotPlan.NONE);
+    player.getInventory().setItem(2, stack(gold, 3));
+    menu.clicked(0, 2, ClickType.SWAP, player);
+    require(items.getStackInSlot(0).is(gold) && player.getInventory().getItem(2).is(iron), "swap");
+    reset(menu, player, items, stack(iron, 50), SlotPlan.NONE);
+    menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
+    require(count(items) == 0 && inventoryCount(player, iron) == 50, "whole-stack shift-click");
+
+    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+  }
+
   /** A hopper feeds a crusher, which saves, reloads and breaks in the middle of a cycle. */
   static void endToEnd(ServerLevel level, BlockPos pos, ServerPlayer player) {
     var crusher = place(level, pos);
@@ -290,6 +418,48 @@ public final class CrusherSmoke {
   private static Crusher place(ServerLevel level, BlockPos pos) {
     level.setBlock(pos, BuiltInRegistries.BLOCK.get(ID).defaultBlockState(), 3);
     return (Crusher) level.getBlockEntity(pos);
+  }
+
+  /** Puts {@code held} in slot 0 under {@code plan}, with empty hands and no stray drops. */
+  private static void reset(
+      MachineMenu menu, ServerPlayer player, ItemStorage items, ItemStack held, SlotPlan plan) {
+    menu.setCarried(ItemStack.EMPTY);
+    player.getInventory().clearContent();
+    var area = player.getBoundingBox().inflate(8);
+    for (var drop : player.serverLevel().getEntitiesOfClass(ItemEntity.class, area)) drop.discard();
+    items.setPlan(0, SlotPlan.NONE);
+    items.setStackInSlot(0, held);
+    items.setPlan(0, plan);
+  }
+
+  private static ItemStack stack(Item item, int count) {
+    return new ItemStack(item, count);
+  }
+
+  private static int count(ItemStorage items) {
+    return items.getStackInSlot(0).getCount();
+  }
+
+  private static int dropped(ServerLevel level, ServerPlayer player) {
+    int total = 0;
+    var area = player.getBoundingBox().inflate(8);
+    for (var drop : level.getEntitiesOfClass(ItemEntity.class, area))
+      total += drop.getItem().getCount();
+    return total;
+  }
+
+  private static int inventoryCount(ServerPlayer player, Item item) {
+    int total = 0;
+    var inventory = player.getInventory();
+    for (int i = 0; i < inventory.getContainerSize(); i++)
+      if (inventory.getItem(i).is(item)) total += inventory.getItem(i).getCount();
+    return total;
+  }
+
+  /** Every iron ingot the player and the slot hold between them. */
+  private static int totalIron(ServerPlayer player, ItemStorage items) {
+    return inventoryCount(player, Items.IRON_INGOT)
+        + (items.getStackInSlot(0).is(Items.IRON_INGOT) ? count(items) : 0);
   }
 
   private static void require(boolean condition, String what) {
