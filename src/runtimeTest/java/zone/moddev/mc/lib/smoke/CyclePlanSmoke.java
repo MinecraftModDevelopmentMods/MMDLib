@@ -216,6 +216,41 @@ final class CyclePlanSmoke {
     require(limitedPlan.finish(limited.inventory, fixed(.99F)), "finishes with room");
     require(ItemStack.matches(limited.items.getStackInSlot(1), rawCopper), "dust made");
 
+    // The same with a fluid product: the drained input tank comes back and its plan is restored.
+    var lavaMaker =
+        MachineRecipeSmoke.recipe(
+            jsonOps,
+            """
+            {"inputs":  {"water": [{"fluids": "minecraft:water", "amount": 250}]},
+             "outputs": {"out": [{"fluid": {"id": "minecraft:lava", "amount": 500}}]}, "time": 10}
+            """);
+    var tanks = new FluidStorage();
+    tanks.addTank(4_000, Role.INPUT);
+    tanks.addTank(4_000, Role.OUTPUT);
+    tanks.tank(0).fill(new FluidStack(Fluids.WATER, 1_000), FluidAction.EXECUTE);
+    var tankInventory =
+        MachineInventory.builder()
+            .group("water", StorageGroups.fluids(tanks, 0))
+            .group("out", StorageGroups.fluids(tanks, 1))
+            .build();
+    var lava = CyclePlan.of(ID, lavaMaker, tankInventory).orElseThrow();
+    require(lava.reserve(tankInventory), "reserve the lava cycle");
+    // The pre-check ignores capacity, so only the transaction notices the tank has shrunk.
+    tanks.tank(1).setCapacity(100);
+    require(!lava.finish(tankInventory, fixed(0F)), "the output tank takes 100 of 500");
+    require(
+        tanks.tank(0).getFluidAmount() == 1_000 && tanks.tank(1).isEmpty(),
+        "the fluid transaction is undone");
+    require(
+        tanks.plan(0).take() == 250 && tanks.plan(1).add().amount() == 500,
+        "the tank plans are back: " + tanks.plan(0) + " " + tanks.plan(1));
+    tanks.tank(1).setCapacity(4_000);
+    require(lava.finish(tankInventory, fixed(0F)), "finishes with room");
+    require(
+        tanks.tank(0).getFluidAmount() == 750 && tanks.tank(1).getFluidAmount() == 500,
+        "water down, lava made");
+    require(tanks.plan(0).isNone() && tanks.plan(1).isNone(), "tank plans gone");
+
     // Only a hit needs its space: a byproduct slot filled mid-cycle blocks a hit, not a miss.
     var jammed = new Crusher(3, 1_000);
     var jammedPlan = CyclePlan.of(ID, crusher, jammed.inventory).orElseThrow();
