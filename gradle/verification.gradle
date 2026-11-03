@@ -82,10 +82,16 @@ def verifyMachineImports = tasks.register('verifyMachineImports') {
 }
 tasks.named('check') { dependsOn verifyMachineImports }
 
+// Model parents and textures may point into vanilla or NeoForge, so the script also reads their jars.
+def minecraftArtifacts = tasks.named('createMinecraftArtifacts')
 def verifyStaticAssets = tasks.register('verifyStaticAssets', Exec) {
     group = 'verification'
-    dependsOn tasks.named('classes')
+    dependsOn tasks.named('classes'), minecraftArtifacts
+    def minecraftJar = minecraftArtifacts.flatMap { it.resourcesArtifact }
+    def neoforgeJar = minecraftArtifacts.flatMap { it.compiledArtifact }
+    inputs.files(minecraftJar, neoforgeJar)
     commandLine providers.gradleProperty('mmdlibPython').getOrElse('python3'), file('scripts/validate_static_assets.py').absolutePath
+    argumentProviders.add({ [minecraftJar.get().asFile.absolutePath, neoforgeJar.get().asFile.absolutePath] } as CommandLineArgumentProvider)
 }
 tasks.named('check') { dependsOn verifyStaticAssets }
 
