@@ -172,12 +172,17 @@ class FeatureHostTest {
   @Test
   void restoreOnClientDefaultsToRestore() {
     var feature = new Counter("a", 0);
-    var data = new JsonObject();
-    data.addProperty("a", 4);
     feature.restoreOnClient(4);
     assertEquals(4, feature.value);
-    new FeatureHost(() -> {}).add(feature).loadOnClient(JsonOps.INSTANCE, data);
-    assertEquals(4, feature.value);
+  }
+
+  @Test
+  void clientLoadSkipsFeaturesThatDoNotSync() {
+    var quiet = new Counter("a", 1);
+    var data = new JsonObject();
+    data.addProperty("a", 4);
+    new FeatureHost(() -> {}).add(quiet).loadOnClient(JsonOps.INSTANCE, data);
+    assertEquals(1, quiet.value);
   }
 
   @Test
