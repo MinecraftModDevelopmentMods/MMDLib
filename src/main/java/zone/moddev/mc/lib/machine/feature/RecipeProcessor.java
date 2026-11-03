@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
 import zone.moddev.mc.lib.machine.inventory.EnergyGroup;
 import zone.moddev.mc.lib.machine.inventory.MachineInventory;
 import zone.moddev.mc.lib.machine.recipe.CyclePlan;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeLookup;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
@@ -72,17 +73,20 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
 
   private final String key;
   private final MachineInventory inventory;
+  private final MachineRecipeType type;
   private final MachineRecipeLookup lookup;
   @Nullable private CyclePlan cycle;
   private int progress;
   @Nullable private ResourceLocation resumeRecipe;
   private boolean paused;
+  private boolean changed;
   private Status status = Status.IDLE;
 
   /** A processor saved under {@code key} that runs recipes of {@code type} on {@code inventory}. */
   public RecipeProcessor(String key, MachineRecipeType type, MachineInventory inventory) {
     this.key = key;
     this.inventory = inventory;
+    this.type = type;
     lookup = type.lookup();
   }
 
@@ -137,6 +141,34 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     return paused;
   }
 
+  /**
+   * Pauses the processor: stops drawing energy, releases the running cycle's reservations so its
+   * items can be taken, and starts nothing new until {@link #resume}. Works without power and
+   * whatever the status. The recipe and progress are kept for the resume.
+   */
+  public void interrupt() {
+    if (paused) return;
+    if (cycle != null) {
+      cycle.release(inventory);
+      resumeRecipe = cycle.recipe();
+      cycle = null;
+    }
+    paused = true;
+    status = Status.PAUSED;
+    changed = true;
+  }
+
+  /**
+   * Lets a paused processor run again. The next tick reserves the paused recipe again if it still
+   * can, and continues its progress; otherwise progress is lost and the processor searches.
+   */
+  public void resume() {
+    if (!paused) return;
+    paused = false;
+    status = Status.IDLE;
+    changed = true;
+  }
+
   /** What the processor is doing. */
   public Status status() {
     return status;
@@ -154,12 +186,16 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
 
   @Override
   public void tick(FeatureHost host) {
+    if (changed) {
+      changed = false;
+      host.markChanged();
+    }
     if (paused) {
       status = Status.PAUSED;
       return;
     }
     var level = host.level();
-    if (cycle == null) {
+    if (cycle == null && (resumeRecipe == null || !reserveAgain(level, host))) {
       start(level, host);
       return;
     }
@@ -182,6 +218,30 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
         status = Status.BLOCKED;
       }
     }
+  }
+
+  /** Reserves the paused recipe again if it still exists and fits; otherwise loses its progress. */
+  private boolean reserveAgain(Level level, FeatureHost host) {
+    var id = resumeRecipe;
+    resumeRecipe = null;
+    host.markChanged();
+    CyclePlan plan = null;
+    var holder = level.getRecipeManager().byKey(id).orElse(null);
+    if (holder != null
+        && holder.value() instanceof MachineRecipeEntry entry
+        && entry.type() == type) {
+      plan =
+          CyclePlan.of(id, entry.recipe(), inventory)
+              .filter(found -> found.reserve(inventory))
+              .orElse(null);
+    }
+    if (plan == null) {
+      progress = 0;
+      return false;
+    }
+    cycle = plan;
+    progress = Math.min(progress, plan.time());
+    return true;
   }
 
   /** Reserves a cycle if a recipe can run. The starting tick draws no energy. */

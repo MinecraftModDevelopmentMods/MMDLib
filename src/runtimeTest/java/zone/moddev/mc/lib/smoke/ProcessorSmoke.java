@@ -453,6 +453,190 @@ final class ProcessorSmoke {
     }
   }
 
+  /** An interrupt frees every reservation, draws nothing, and lets the items be taken. */
+  static void interruptFrees(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 51);
+    require(rig.items.extractItem(0, 3, true).getCount() == 2, "one ore is locked");
+    long energy = rig.energy.stored();
+    rig.processor.interrupt();
+    require(unplanned(rig), "every plan is NONE");
+    require(rig.processor.paused(), "paused");
+    require(rig.processor.status() == Status.PAUSED, "status " + rig.processor.status());
+    rig.ticks(level, 20);
+    require(rig.energy.stored() == energy, "no energy drawn");
+    require(rig.processor.progress() == 50, "progress kept");
+    require(rig.processor.status() == Status.PAUSED, "still paused");
+    require(rig.items.extractItem(0, 3, false).getCount() == 3, "all the ore can be taken");
+    require(rig.fluids.getFluidInTank(0).getAmount() == 1_000, "water untouched");
+  }
+
+  /** An interrupt needs no power: a stalled machine frees everything. */
+  static void interruptWorksWhileStalled(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 3_000);
+    rig.ticks(level, 156);
+    require(rig.processor.status() == Status.STALLED, "stalled " + rig.processor.status());
+    require(rig.energy.stored() == 0, "no power");
+    rig.processor.interrupt();
+    require(unplanned(rig), "every plan is NONE");
+    require(rig.processor.status() == Status.PAUSED, "paused");
+    require(rig.items.extractItem(0, 3, false).getCount() == 3, "the ore can be taken");
+  }
+
+  /** Interrupting a blocked cycle clears it; resume finds nothing to continue and searches. */
+  static void interruptClearsBlocked(ServerLevel level) {
+    var rig = ProcessorRig.crusher(1, 1_000, 100_000);
+    rig.ticks(level, 101);
+    var ore = rig.items.getStackInSlot(0);
+    rig.items.setStackInSlot(0, ItemStack.EMPTY);
+    rig.ticks(level, 100);
+    require(rig.processor.status() == Status.BLOCKED, "blocked " + rig.processor.status());
+    rig.processor.interrupt();
+    require(unplanned(rig), "plans cleared");
+    require(rig.processor.status() == Status.PAUSED, "paused");
+    rig.processor.resume();
+    rig.ticks(level, 1);
+    expect(rig, Status.IDLE, 0, "resumed without the ore");
+    require(!rig.processor.paused(), "no longer paused");
+    rig.items.setStackInSlot(0, ore);
+    rig.ticks(level, 1);
+    expect(rig, Status.RUNNING, 0, "searching found the ore");
+  }
+
+  /** The same recipe on the same contents continues from its progress. */
+  static void resumeKeepsProgress(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 101);
+    rig.processor.interrupt();
+    rig.ticks(level, 10);
+    rig.processor.resume();
+    rig.ticks(level, 1);
+    expect(rig, Status.RUNNING, 101, "resumed and drew");
+    require(rig.items.plan(0).take() == 1 && rig.fluids.plan(0).take() == 250, "reserved again");
+    rig.ticks(level, 98);
+    expect(rig, Status.RUNNING, 199, "one tick short");
+    rig.ticks(level, 1);
+    require(rig.processor.status() == Status.IDLE, "finished");
+    require(rawCopper(rig) == 2 && rig.items.getStackInSlot(0).getCount() == 2, "products made");
+  }
+
+  /** Resuming without power puts the reservations back and waits. */
+  static void resumeWithoutPower(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 3_000);
+    rig.ticks(level, 151);
+    expect(rig, Status.RUNNING, 150, "tick 150");
+    rig.processor.interrupt();
+    rig.processor.resume();
+    rig.ticks(level, 1);
+    expect(rig, Status.STALLED, 150, "resumed with an empty buffer");
+    require(rig.items.plan(0).take() == 1 && rig.fluids.plan(0).take() == 250, "inputs held");
+    require(!rig.items.plan(1).isNone(), "room held");
+    rig.energy.setStored(200);
+    rig.ticks(level, 1);
+    expect(rig, Status.RUNNING, 151, "power back");
+  }
+
+  /** Progress is lost when the inputs, the room or the recipe are no longer there. */
+  static void resumeResets(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 101);
+    rig.processor.interrupt();
+    rig.items.setStackInSlot(0, ItemStack.EMPTY);
+    rig.processor.resume();
+    rig.ticks(level, 1);
+    expect(rig, Status.IDLE, 0, "inputs taken");
+    require(unplanned(rig), "nothing reserved");
+    rig.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 3));
+    rig.ticks(level, 1);
+    expect(rig, Status.RUNNING, 0, "searching again");
+
+    rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 101);
+    rig.processor.interrupt();
+    rig.items.setStackInSlot(1, new ItemStack(Items.COBBLESTONE, 64));
+    rig.items.setStackInSlot(2, new ItemStack(Items.COBBLESTONE, 64));
+    rig.processor.resume();
+    rig.ticks(level, 1);
+    expect(rig, Status.IDLE, 0, "the room filled");
+    require(unplanned(rig), "nothing reserved");
+    rig.items.setStackInSlot(2, ItemStack.EMPTY);
+    rig.ticks(level, 1);
+    expect(rig, Status.RUNNING, 0, "searching again with room");
+
+    var withdrawn = ProcessorRig.crusher(3, 1_000, 100_000);
+    withdrawn.ticks(level, 101);
+    withdrawn.processor.interrupt();
+    withoutCrushCopper(
+        level,
+        () -> {
+          withdrawn.processor.resume();
+          withdrawn.ticks(level, 1);
+        });
+    expect(withdrawn, Status.IDLE, 0, "the recipe is gone");
+    require(unplanned(withdrawn), "nothing reserved");
+  }
+
+  /** A pause holds an idle machine too, through a save and load. */
+  static void pausedStaysPaused(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.processor.interrupt();
+    rig.ticks(level, 20);
+    expect(rig, Status.PAUSED, 0, "idle and paused");
+    require(unplanned(rig), "nothing started");
+
+    var copy = reload(level, rig);
+    require(copy.processor.paused(), "paused after the load");
+    copy.ticks(level, 20);
+    expect(copy, Status.PAUSED, 0, "still paused after the load");
+    require(unplanned(copy), "nothing started after the load");
+    copy.processor.resume();
+    copy.ticks(level, 1);
+    expect(copy, Status.RUNNING, 0, "starts once resumed");
+
+    var quiet = ProcessorRig.crusher(0, 0, 0);
+    quiet.processor.interrupt();
+    quiet.ticks(level, 1);
+    require(quiet.changes[0] == 1, "an interrupt asks to be saved: " + quiet.changes[0]);
+    quiet.processor.resume();
+    quiet.ticks(level, 1);
+    require(quiet.changes[0] == 2, "a resume asks to be saved: " + quiet.changes[0]);
+    quiet.ticks(level, 5);
+    require(quiet.changes[0] == 2, "and only once");
+  }
+
+  /** A paused machine saves which recipe and how far, with no cycle, and resumes after a load. */
+  static void pausedSavesItsPlace(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 51);
+    rig.processor.interrupt();
+    var state = rig.processor.state();
+    var recipe = ResourceLocation.fromNamespaceAndPath("mmdlib_smoke", "refining/crush_copper");
+    require(state.paused() && state.progress() == 50, "paused at 50: " + state);
+    require(state.resumeRecipe().equals(Optional.of(recipe)), "the recipe: " + state);
+    require(state.cycle().isEmpty(), "no cycle");
+
+    var copy = reload(level, rig);
+    expect(copy, Status.PAUSED, 50, "after the load");
+    require(unplanned(copy), "nothing reserved");
+    copy.processor.resume();
+    copy.ticks(level, 1);
+    expect(copy, Status.RUNNING, 51, "continues from the saved progress");
+  }
+
+  private static void withoutCrushCopper(ServerLevel level, Runnable body) {
+    var manager = level.getRecipeManager();
+    var id = ResourceLocation.fromNamespaceAndPath("mmdlib_smoke", "refining/crush_copper");
+    var originals = new ArrayList<RecipeHolder<?>>(manager.getRecipes());
+    var removed = new ArrayList<>(originals);
+    removed.removeIf(holder -> holder.id().equals(id));
+    try {
+      manager.replaceRecipes(removed);
+      body.run();
+    } finally {
+      manager.replaceRecipes(originals);
+    }
+  }
+
   private static ProcessorRig reload(ServerLevel level, ProcessorRig rig) {
     var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
     var copy = rig.reloaded(level);

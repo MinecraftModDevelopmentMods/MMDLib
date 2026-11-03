@@ -209,6 +209,54 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorInterruptFrees(GameTestHelper helper) {
+    ProcessorSmoke.interruptFrees(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorInterruptWorksWhileStalled(GameTestHelper helper) {
+    ProcessorSmoke.interruptWorksWhileStalled(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorInterruptClearsBlocked(GameTestHelper helper) {
+    ProcessorSmoke.interruptClearsBlocked(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorResumeKeepsProgress(GameTestHelper helper) {
+    ProcessorSmoke.resumeKeepsProgress(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorResumeWithoutPower(GameTestHelper helper) {
+    ProcessorSmoke.resumeWithoutPower(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorResumeResets(GameTestHelper helper) {
+    ProcessorSmoke.resumeResets(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorPausedStaysPaused(GameTestHelper helper) {
+    ProcessorSmoke.pausedStaysPaused(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorPausedSavesItsPlace(GameTestHelper helper) {
+    ProcessorSmoke.pausedSavesItsPlace(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void processorIdleDoesNotMarkChanged(GameTestHelper helper) {
     ProcessorSmoke.idleDoesNotMarkChanged(helper.getLevel());
     helper.succeed();
