@@ -313,6 +313,11 @@ public record CyclePlan(
    */
   public boolean finish(MachineInventory inventory, RandomSource random) {
     if (plans() == null) return false;
+    var hits = new ArrayList<Placed>();
+    for (var placed : products)
+      if (placed.product.chance() >= 1 || random.nextFloat() < placed.product.chance())
+        hits.add(placed);
+    if (!canFinish(inventory, hits)) return false;
     try (var tx = inventory.begin()) {
       release(inventory, tx);
       for (var take : items) {
@@ -331,15 +336,65 @@ public record CyclePlan(
         if (!held.sameFluid(take.fluid) || held.amount() < take.fluid.amount()) return false;
         if (group.extract(take.tank, take.fluid.amount(), tx) != take.fluid.amount()) return false;
       }
-      for (var placed : products) {
-        var product = placed.product;
-        if (product.chance() < 1 && random.nextFloat() >= product.chance()) continue;
+      for (var placed : hits)
         for (var at : placed.at)
           if (!insert(inventory, placed, at, tx)) return false;
-      }
       tx.commit();
       return true;
     }
+  }
+
+  /**
+   * Whether the inputs are still there and the rolled {@code hits} could still go where they were
+   * placed, looking only at what the slots and tanks hold, with this cycle's takes gone. Changes
+   * nothing and fires nothing, so a cycle that can't finish costs no transaction. A tank's
+   * capacity is left to the transaction.
+   */
+  private boolean canFinish(MachineInventory inventory, List<Placed> hits) {
+    var left = new HashMap<Spot, Integer>();
+    for (var take : items) {
+      var group = items(inventory, take.group);
+      if (group == null) return false;
+      var held = group.peek(take.slot);
+      var spot = new Spot(take.group, take.slot);
+      int rest = left.getOrDefault(spot, held.getCount()) - take.stack.getCount();
+      if (!ItemStack.isSameItemSameComponents(held, take.stack) || rest < 0) return false;
+      left.put(spot, rest);
+    }
+    for (var take : fluids) {
+      var group = fluids(inventory, take.group);
+      if (group == null) return false;
+      var held = group.peek(take.tank);
+      var spot = new Spot(take.group, take.tank);
+      int rest = left.getOrDefault(spot, held.amount()) - take.fluid.amount();
+      if (!held.sameFluid(take.fluid) || rest < 0) return false;
+      left.put(spot, rest);
+    }
+    var added = new HashMap<Spot, Integer>();
+    for (var placed : hits)
+      for (var at : placed.at) {
+        var spot = new Spot(placed.group, at.index);
+        int total = added.merge(spot, at.amount, Integer::sum);
+        switch (placed.product) {
+          case ItemProduct item -> {
+            var group = items(inventory, placed.group);
+            if (group == null) return false;
+            var held = group.peek(at.index);
+            int remaining = left.getOrDefault(spot, held.getCount());
+            var stack = item.stack();
+            if (remaining > 0 && !ItemStack.isSameItemSameComponents(held, stack)) return false;
+            if (remaining + total > stack.getMaxStackSize()) return false;
+          }
+          case FluidProduct fluid -> {
+            var group = fluids(inventory, placed.group);
+            if (group == null) return false;
+            var held = group.peek(at.index);
+            int remaining = left.getOrDefault(spot, held.amount());
+            if (remaining > 0 && !held.sameFluid(fluid.fluid())) return false;
+          }
+        }
+      }
+    return true;
   }
 
   private boolean insert(MachineInventory inventory, Placed placed, At at, MachineTx tx) {

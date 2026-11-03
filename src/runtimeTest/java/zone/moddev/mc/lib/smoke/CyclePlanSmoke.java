@@ -194,6 +194,21 @@ final class CyclePlanSmoke {
     require(dirt.items.getStackInSlot(1).isEmpty(), "nothing inserted");
     require(dirt.items.plan(0).sameAs(new SlotPlan(1, none)), "the plan stays on the slot");
 
+    // Only a hit needs its space: a byproduct slot filled mid-cycle blocks a hit, not a miss.
+    var jammed = new Crusher(3, 1_000);
+    var jammedPlan = CyclePlan.of(ID, crusher, jammed.inventory).orElseThrow();
+    jammedPlan.reserve(jammed.inventory);
+    jammed.items.setStackInSlot(3, new ItemStack(Items.COBBLESTONE, 64));
+    require(!jammedPlan.finish(jammed.inventory, fixed(0F)), "a hit has no room");
+    require(
+        jammed.items.getStackInSlot(0).getCount() == 3
+            && jammed.items.getStackInSlot(1).isEmpty()
+            && jammed.items.plan(0).sameAs(new SlotPlan(1, none)),
+        "a blocked finish changes nothing");
+    require(jammedPlan.finish(jammed.inventory, fixed(.5F)), "a miss needs no room");
+    require(jammed.items.getStackInSlot(3).getCount() == 64, "the cobblestone stays");
+    require(ItemStack.matches(jammed.items.getStackInSlot(1), rawCopper), "the dust is made");
+
     // release: this plan goes, another lane's plan on the same slot stays.
     var shared = new Crusher(3, 1_000);
     var other = new SlotPlan(1, none);
