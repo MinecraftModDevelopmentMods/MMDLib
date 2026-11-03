@@ -119,6 +119,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void cyclePlan(GameTestHelper helper) {
+    CyclePlanSmoke.check(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipeTypeRegistered(GameTestHelper helper) {
     MachineRecipeTypeSmoke.registered();
     helper.succeed();
