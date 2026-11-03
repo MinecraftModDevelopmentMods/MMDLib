@@ -139,6 +139,7 @@
       <xs:element ref="group"/>
       <xs:element ref="slot"/>
       <xs:element ref="gauge"/>
+      <xs:element ref="energy-gauge"/>
       <xs:element ref="meter"/>
       <xs:element ref="progress"/>
       <xs:element ref="label"/>
@@ -258,6 +259,19 @@
           <xs:attribute name="orientation" type="orientation" default="vertical"/>
           <xs:attribute name="length" type="length" use="required"/>
           <xs:attribute name="color" type="color"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="energy-gauge">
+    <xs:annotation><xs:documentation>Reusable red energy gauge. Defaults to #getEnergy / #getEnergyCapacity and an FE tooltip; common attributes override these bindings.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="orientation" type="orientation" default="vertical"/>
+          <xs:attribute name="length" type="length" default="54"/>
+          <xs:attribute name="color" type="color" default="#E64B38"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>

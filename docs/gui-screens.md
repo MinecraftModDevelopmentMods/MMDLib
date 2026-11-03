@@ -287,9 +287,9 @@ instance to call and is rejected at load.
 Getters run only on the server, each tick while the screen is open. The client never calls
 them; it only receives the values.
 
-MMDLib provides no built-in value names. Generic names could only cover the simplest cases
-(a single energy buffer, a single tank) and would need rules for every ambiguous one, while the
-block entity's author can always expose exactly the value a screen should show.
+Values name Java getters, not storage handles. The `energy-gauge` convenience widget defaults
+to `#getEnergy` and `#getEnergyCapacity`; the block entity must expose these public getters,
+or the screen must override `value` and `max` to name its own.
 
 The loader checks at startup that each method exists, belongs to the right class, and returns
 a supported type. A fluid gauge's getter returns the fluid itself (its type and amount); energy
@@ -324,6 +324,7 @@ player, menu, and element before running the handler. Hover never reaches the se
 | `group` | Recessed grouping panel | `label`, `tint`, `padding` |
 | `slot` | Item slot from the menu | `index`, `size` (`normal`/`large`), `kind` (`normal`/`upgrade`/`ghost`; `upgrade` holds one item), `tint`, `icon` |
 | `gauge` | Glass graduated gauge ([gauge textures](gauge-textures.md)) | `orientation`, `length` (size or `fill`), `color` (solid fill) or a fluid value |
+| `energy-gauge` | Reusable red FE gauge, using the same glass renderer | Defaults: vertical, `length="54"`, `color="#E64B38"`, `value="#getEnergy"`, `max="#getEnergyCapacity"`; all can be overridden |
 | `meter` | Compact segmented gauge | `orientation`, `thickness` (5 or 10), `length` (size or `fill`), `color`, `segment`, `gap`, `gap-color` |
 | `progress` | Fill-in progress indicator | `icon` (default arrow), `direction`, `jei-recipes` |
 | `label` | Text | `text` |
@@ -335,6 +336,27 @@ player, menu, and element before running the handler. Hover never reaches the se
 | `popout` | Information pop-out on an edge tab | `kind` (`info`/`warning`/`error`), `icon`, `edge`, `text` |
 | `side-config` | Six-face IO configuration, one resource group at a time | `groups` (element IDs) |
 | `player-inventory` | Explicit placement of the player inventory | |
+
+### Reusable energy gauge
+
+Any screen can use the standard energy gauge:
+
+```xml
+<energy-gauge id="energy"/>
+```
+
+It is 18 px wide and 54 px tall, fills from the bottom, and shows `{value} / {max} FE`
+on hover using `screen.mmdlib.energy`. It uses the same binding validation, synchronization,
+layout and rendering as `gauge`. Multiple buffers can use separate ids and getters:
+
+```xml
+<energy-gauge id="reserve" length="4s" color="#D23838"
+              value="#getReserveEnergy" max="#getReserveCapacity"
+              tooltip="screen.example.reserve" tooltip-fallback="Reserve: {value} / {max} FE"/>
+```
+
+`orientation="horizontal"` and `length="fill"` follow the ordinary gauge rules. A custom
+`tooltip` replaces the built-in tooltip; its fallback is optional.
 
 ## JEI (optional)
 

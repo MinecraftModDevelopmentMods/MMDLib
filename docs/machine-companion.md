@@ -27,7 +27,9 @@ Check **Paused (free items)** to interrupt a lane and release its reservations. 
 This control works without power. The dual crusher releases only the chosen lane's share; the other
 lane can continue. The yellow info tab opens a matching drawer to the left with machine guidance and
 any current power-stall or blocked-finish warnings. Click the icon again to close it; scroll
-inside to read longer text. Hover the energy meter
+inside to read longer text. The Crusher centers its input, progress arrow and output beside a
+vertical energy gauge on the right, using the reusable `<energy-gauge>` XML widget.
+Hover the energy display
 for stored and maximum FE; click the first progress arrow to see recipes when JEI is installed.
 
 Hoppers and pipes can insert into input slots and extract from output slots on any face. The

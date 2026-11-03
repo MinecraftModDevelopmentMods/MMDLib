@@ -192,6 +192,7 @@ public final class ScreenReader {
     }
 
     private Element element(Node node) {
+      if (node.name().equals("energy-gauge")) node = energyDefaults(node);
       var c = common(node);
       return switch (node.name()) {
         case "vbox", "hbox" ->
@@ -218,7 +219,7 @@ public final class ScreenReader {
                 enumValue(SlotKind.class, node, "kind"),
                 color(node, "tint"),
                 id(node, "icon"));
-        case "gauge" ->
+        case "gauge", "energy-gauge" ->
             new Gauge(
                 c,
                 enumValue(Orientation.class, node, "orientation"),
@@ -266,6 +267,18 @@ public final class ScreenReader {
                 text(node, "text"));
         default -> throw error(node, "Unknown element <" + node.name() + ">");
       };
+    }
+
+    /** An energy gauge shares the regular gauge's layout, rendering and synchronization. */
+    private Node energyDefaults(Node node) {
+      var attributes = new LinkedHashMap<>(node.attributes());
+      attributes.putIfAbsent("value", "#getEnergy");
+      attributes.putIfAbsent("max", "#getEnergyCapacity");
+      if (!attributes.containsKey("tooltip")) {
+        attributes.put("tooltip", "screen.mmdlib.energy");
+        attributes.putIfAbsent("tooltip-fallback", "{value} / {max} FE");
+      }
+      return new Node(node.name(), attributes, node.children(), node.line());
     }
 
     private Common common(Node node) {

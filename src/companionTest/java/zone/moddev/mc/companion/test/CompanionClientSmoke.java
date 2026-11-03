@@ -115,7 +115,8 @@ public final class CompanionClientSmoke {
     var expected = CompanionMod.MACHINES.get(stage).type.get();
     if (menu.blockEntity.getType() != expected || ++frames < 25) return;
     try {
-      var energy = menu.elements.stream().filter(e -> e instanceof zone.moddev.mc.lib.gui.model.Element.Meter)
+      var energy = menu.elements.stream().filter(e -> e instanceof zone.moddev.mc.lib.gui.model.Element.Meter
+          || e instanceof zone.moddev.mc.lib.gui.model.Element.Gauge)
           .findFirst().orElseThrow();
       if (!(menu.value(energy, false) instanceof Number)) throw new AssertionError("Energy was not synced");
       if (stage < 3) {

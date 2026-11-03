@@ -1,4 +1,5 @@
 {
+  "screen.mmdlib.energy": "{value} / {max} FE",
   "itemGroup.mmdlib.materials": "MMDLib: Vanilla Extensions",
   "item.mmdlib.charcoal_dust": "Charcoal Dust",
   "item.mmdlib.charcoal_nugget": "Charcoal Nugget",
