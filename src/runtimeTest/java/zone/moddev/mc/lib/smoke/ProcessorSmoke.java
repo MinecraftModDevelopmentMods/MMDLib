@@ -160,7 +160,7 @@ final class ProcessorSmoke {
     require(rawCopper(rig) == 0, "no product from dirt");
   }
 
-  /** A product slot filled mid-cycle blocks the finish, and the extract is undone. */
+  /** A product slot filled mid-cycle blocks the finish, and nothing is taken. */
   static void blockedByOutput(ServerLevel level) {
     var rig = ProcessorRig.crusher(3, 1_000, 10_000);
     rig.ticks(level, 101);

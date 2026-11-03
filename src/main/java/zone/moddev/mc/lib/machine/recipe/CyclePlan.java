@@ -304,7 +304,7 @@ public record CyclePlan(
   }
 
   /**
-   * In one transaction: releases this plan, takes the inputs, rolls each product's chance and
+   * Rolls each product's chance, then in one transaction releases this plan, takes the inputs and
    * inserts the hits where they were placed. A product that misses leaves its space free, and
    * nothing is kept of the roll, so a retry rolls again.
    *
@@ -348,7 +348,7 @@ public record CyclePlan(
    * Whether the inputs are still there and the rolled {@code hits} could still go where they were
    * placed, looking only at what the slots and tanks hold, with this cycle's takes gone. Changes
    * nothing and fires nothing, so a cycle that can't finish costs no transaction. A tank's
-   * capacity is left to the transaction.
+   * capacity and a slot's limit are left to the transaction.
    */
   private boolean canFinish(MachineInventory inventory, List<Placed> hits) {
     var left = new HashMap<Spot, Integer>();

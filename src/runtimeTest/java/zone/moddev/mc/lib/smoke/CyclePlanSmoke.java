@@ -11,6 +11,7 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
@@ -193,6 +194,27 @@ final class CyclePlanSmoke {
         "the dirt is untouched");
     require(dirt.items.getStackInSlot(1).isEmpty(), "nothing inserted");
     require(dirt.items.plan(0).sameAs(new SlotPlan(1, none)), "the plan stays on the slot");
+
+    // A product the pre-check lets through but the slot refuses fails inside the transaction,
+    // after the inputs were taken and part of the products went in; all of it is undone.
+    var limited = new Crusher(3, 1_000);
+    var limitedPlan = CyclePlan.of(ID, crusher, limited.inventory).orElseThrow();
+    limitedPlan.reserve(limited.inventory);
+    limited.items.limit(1, 1);
+    require(!limitedPlan.finish(limited.inventory, fixed(.99F)), "the slot takes 1 of 2");
+    require(
+        limited.items.getStackInSlot(0).getCount() == 3
+            && limited.fluids.tank(0).getFluidAmount() == 1_000
+            && limited.items.getStackInSlot(1).isEmpty(),
+        "the failed transaction is undone");
+    require(
+        limited.items.plan(0).sameAs(new SlotPlan(1, none))
+            && limited.items.plan(1).sameAs(new SlotPlan(0, rawCopper))
+            && limited.fluids.plan(0).take() == 250,
+        "the plans are back");
+    limited.items.limit(Item.ABSOLUTE_MAX_STACK_SIZE, 1);
+    require(limitedPlan.finish(limited.inventory, fixed(.99F)), "finishes with room");
+    require(ItemStack.matches(limited.items.getStackInSlot(1), rawCopper), "dust made");
 
     // Only a hit needs its space: a byproduct slot filled mid-cycle blocks a hit, not a miss.
     var jammed = new Crusher(3, 1_000);
