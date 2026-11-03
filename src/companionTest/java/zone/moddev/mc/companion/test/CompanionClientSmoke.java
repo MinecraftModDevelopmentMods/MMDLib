@@ -135,9 +135,9 @@ public final class CompanionClientSmoke {
       if (stage == 0) {
         var tank = menu.bound.screen().find("tank").orElseThrow();
         var expectedFluid = fluidStage == 0 ? Fluids.WATER : Fluids.LAVA;
-        int expectedAmount = fluidStage == 0 ? 2_500 : fluidStage == 3 ? 500 : 1_500;
+        int expectedAmount = fluidStage == 0 ? 2_500 : fluidStage == 3 ? 500 : fluidStage == 5 ? 0 : 1_500;
         if (!(menu.value(tank, false) instanceof FluidStack fluid)
-            || fluid.getFluid() != expectedFluid || fluid.getAmount() != expectedAmount) {
+            || (expectedAmount > 0 && fluid.getFluid() != expectedFluid) || fluid.getAmount() != expectedAmount) {
           if (fluidStage > 0) return; // Wait for fluid changes to reach the menu.
           throw new AssertionError("Water was not synced into the tank gauge");
         }
@@ -168,12 +168,22 @@ public final class CompanionClientSmoke {
         if (fluidStage == 4) {
           if (!menu.getCarried().is(Items.BUCKET)) return;
           Screenshot.grab(mc.gameDirectory, "crusher-container.png", mc.getMainRenderTarget(), message -> {});
+          fluidStage = 5;
+          frames = 0;
           mc.getSingleplayerServer().execute(() -> {
             var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
+            var machine = (ProcessorEntity) player.serverLevel().getBlockEntity(POS);
+            machine.fluids.drain(Integer.MAX_VALUE, FluidAction.EXECUTE);
+            machine.energy.setStored(0);
             player.containerMenu.setCarried(ItemStack.EMPTY);
             player.getAbilities().instabuild = true;
             player.containerMenu.broadcastChanges();
           });
+          return;
+        }
+        if (fluidStage == 5) {
+          if (!menu.getCarried().isEmpty() || ((Number) menu.value(energy, false)).longValue() != 0) return;
+          Screenshot.grab(mc.gameDirectory, "crusher-empty.png", mc.getMainRenderTarget(), message -> {});
           frames = 0;
           stage++;
           opening = false;

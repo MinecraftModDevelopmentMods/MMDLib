@@ -21,6 +21,22 @@ import zone.moddev.mc.lib.gui.model.Element;
 final class GaugeRenderer {
   private GaugeRenderer() {}
 
+  /** Shared slim casing and lit empty interior for fluid and energy gauges. */
+  static void background(GuiGraphics g, Rect r, boolean vertical) {
+    var state = RenderState.capture();
+    try {
+      int length = vertical ? r.height() : r.width();
+      shell(g, r, vertical, length, "body");
+      shell(g, r, vertical, length, "glass");
+    } finally {
+      try {
+        g.flush();
+      } finally {
+        state.restore();
+      }
+    }
+  }
+
   static void draw(GuiGraphics g, Rect r, Element.Gauge gauge, Object value, Object max) {
     var state = RenderState.capture();
     try {

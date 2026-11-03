@@ -5,8 +5,8 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 (standard library only; run `python3 scripts/generate_gauge_textures.py [thickness]`, default 18).
 `gui.client.GaugeRenderer` draws them; this page describes its texture contract.
 
-These textures belong to `<gauge>`. The reusable `<energy-gauge>` uses a separate pixel battery
-renderer with a terminal and red charge bars; it does not use the glass textures.
+These textures supply `<gauge>` and the matching slim background of `<energy-gauge>`. The energy
+renderer draws glossy red charge bars over that background, without a terminal or graduations.
 
 ## Files
 
@@ -15,7 +15,7 @@ files rotated 90° clockwise (see below).
 
 | File | Size | Contents |
 |---|---|---|
-| `body_top.png` | 18×5 | Top cap of the tube: outline and dark glass interior, rounded corners |
+| `body_top.png` | 18×5 | Top cap of the tube: thin outline and light grey interior, rounded corners |
 | `body_middle.png` | 18×1 | One row of the tube, repeated to fill the length |
 | `body_bottom.png` | 18×5 | Bottom cap |
 | `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Cylindrical lighting: dark curved sides, a broad lit face, and an off-centre vertical reflection |

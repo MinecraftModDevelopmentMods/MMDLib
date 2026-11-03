@@ -2,7 +2,7 @@
 """Generates the graduated-cylinder gauge textures (stdlib only).
 
 Writes to src/main/resources/assets/mmdlib/textures/gui/gauge/:
-  body_top.png, body_middle.png, body_bottom.png    tube body: outline + dark glass interior
+  body_top.png, body_middle.png, body_bottom.png    shared casing: outline + light grey interior
   glass_top.png, glass_middle.png, glass_bottom.png  translucent highlight drawn over the contents
   digits.png                                         white 3x5 digits 0-9, 4 px apart
 and prints the per-row content clip table for the caps (see docs/gauge-textures.md).
@@ -17,7 +17,7 @@ import zlib
 from pathlib import Path
 
 OUTLINE = (0x1E, 0x22, 0x26)
-INTERIOR = (0x2A, 0x31, 0x37)
+INTERIOR = (0x85, 0x8C, 0x94)
 DIGITS = {
     "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
     "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],

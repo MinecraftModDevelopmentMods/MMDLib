@@ -28,7 +28,8 @@ This control works without power. The dual crusher releases only the chosen lane
 lane can continue. The yellow info tab opens a matching drawer to the left with machine guidance and
 any current power-stall or blocked-finish warnings. Click the icon again to close it; scroll
 inside to read longer text. All four screens place a vertical battery on the right, using the
-reusable `<energy-gauge>` XML widget. Its red charge bars fill towards the top terminal.
+reusable `<energy-gauge>` XML widget. Its red charge bars fill upwards inside a slim casing.
+The energy and fluid gauges share matching edges and lighter empty backgrounds.
 The Crusher centers its input, progress arrow and output alongside it.
 Hover the energy display
 for stored and maximum FE; click the first progress arrow to see recipes when JEI is installed.

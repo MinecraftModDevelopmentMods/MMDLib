@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Element;
 
-/** Pixel battery silhouette with charge bars; no tank glass, fluid texture or graduations. */
+/** Glossy charge bars inside the same slim casing as the fluid gauge, without graduations. */
 final class EnergyGaugeRenderer {
   // A narrow reflection rolls into a shaded edge, like Tesla Core Lib's RF meter artwork.
   private static final int[] BAR_LIGHT = {-30, 10, 48, 24, 8, 0, -4, -10, -18, -28, -40, -52};
@@ -15,23 +15,8 @@ final class EnergyGaugeRenderer {
   static void draw(GuiGraphics g, Rect r, Element.EnergyGauge gauge, double ratio) {
     boolean vertical = gauge.orientation() == Element.Orientation.VERTICAL;
     int length = vertical ? r.height() : r.width();
-    int body = length - 3;
-    // The terminal and chamfered casing fit entirely inside the element's bounds.
-    fill(g, r, vertical, 6, body, 6, 3, 0xff50565f);
-    fill(g, r, vertical, 7, body, 2, 3, 0xffd8dfe5);
-    fill(g, r, vertical, 9, body, 2, 3, 0xff929da8);
-    fill(g, r, vertical, 7, body + 2, 4, 1, 0xfff0f3f6);
-    fill(g, r, vertical, 0, 1, 18, body - 2, 0xff242830);
-    fill(g, r, vertical, 1, 0, 16, body, 0xff454c55);
-    fill(g, r, vertical, 1, 1, 1, body - 2, 0xffd5dde5);
-    fill(g, r, vertical, 2, body - 1, 14, 1, 0xffecf0f4);
-    fill(g, r, vertical, 16, 1, 1, body - 2, 0xff707b88);
-    fill(g, r, vertical, 2, 0, 14, 1, 0xff343b45);
-    int inside = body - 4;
-    fill(g, r, vertical, 2, 2, 14, inside, 0xff202226);
-    fill(g, r, vertical, 3, 2, 2, inside, 0xff30353c);
-    fill(g, r, vertical, 5, 2, 2, inside, 0xff282d34);
-    fill(g, r, vertical, 14, 2, 2, inside, 0xff15181e);
+    GaugeRenderer.background(g, r, vertical);
+    int inside = length - 4;
 
     // Clip the last charged bar to the actual level, keeping empty and full exact.
     int charged = (int) Math.round(inside * ratio);
@@ -65,7 +50,7 @@ final class EnergyGaugeRenderer {
     return result;
   }
 
-  /** Coordinates run from the battery's negative end towards its terminal. */
+  /** Coordinates run from the bottom upwards, or left to right for a horizontal gauge. */
   private static void fill(
       GuiGraphics g, Rect r, boolean vertical, int cross, int along, int width, int length, int color) {
     if (width <= 0 || length <= 0) return;
