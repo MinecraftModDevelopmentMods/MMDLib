@@ -4,7 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
+import com.mojang.logging.LogUtils;
 import com.mojang.serialization.DynamicOps;
 
 import net.minecraft.world.level.Level;
@@ -14,6 +16,8 @@ import net.minecraft.world.level.Level;
  * its own data; a feature calls {@link #markChanged} when its state changes.
  */
 public final class FeatureHost {
+  private static final Logger LOGGER = LogUtils.getLogger();
+
   /** The fewest ticks between two sends to clients. */
   public static final int SYNC_INTERVAL = 10;
 
@@ -89,8 +93,10 @@ public final class FeatureHost {
   /** Every feature's state, as a map from key to the state its codec writes. */
   public <T> T save(DynamicOps<T> ops) {
     var map = new LinkedHashMap<T, T>();
-    for (var feature : features.values())
-      map.put(ops.createString(feature.key()), encode(ops, feature));
+    for (var feature : features.values()) {
+      var encoded = encode(ops, feature, false);
+      if (encoded != null) map.put(ops.createString(feature.key()), encoded);
+    }
     return ops.createMap(map);
   }
 
@@ -112,9 +118,11 @@ public final class FeatureHost {
   /** The {@link MachineFeature#clientState} of the features that sync, written as {@link #save}. */
   public <T> T saveForClient(DynamicOps<T> ops) {
     var map = new LinkedHashMap<T, T>();
-    for (var feature : features.values())
-      if (feature.syncsToClient())
-        map.put(ops.createString(feature.key()), encodeClient(ops, feature));
+    for (var feature : features.values()) {
+      if (!feature.syncsToClient()) continue;
+      var encoded = encode(ops, feature, true);
+      if (encoded != null) map.put(ops.createString(feature.key()), encoded);
+    }
     return ops.createMap(map);
   }
 
@@ -132,20 +140,32 @@ public final class FeatureHost {
     }
   }
 
-  private static <T, S> T encode(DynamicOps<T> ops, MachineFeature<S> feature) {
-    return feature.codec().encodeStart(ops, feature.state()).getOrThrow();
-  }
-
-  private static <T, S> T encodeClient(DynamicOps<T> ops, MachineFeature<S> feature) {
-    return feature.codec().encodeStart(ops, feature.clientState()).getOrThrow();
+  @Nullable
+  private static <T, S> T encode(DynamicOps<T> ops, MachineFeature<S> feature, boolean client) {
+    var result = feature.codec().encodeStart(ops, client ? feature.clientState() : feature.state());
+    if (result.error().isPresent())
+      LOGGER.error(
+          "Machine feature {} could not be saved: {}",
+          feature.key(),
+          result.error().get().message());
+    return result.result().orElse(null);
   }
 
   private static <T, S> void decode(DynamicOps<T> ops, MachineFeature<S> feature, T saved) {
-    feature.codec().parse(ops, saved).result().ifPresent(feature::restore);
+    var result = feature.codec().parse(ops, saved);
+    result.result().ifPresent(feature::restore);
+    result.error().ifPresent(e -> logBad(feature, e.message()));
   }
 
   private static <T, S> void decodeOnClient(
       DynamicOps<T> ops, MachineFeature<S> feature, T saved) {
-    feature.codec().parse(ops, saved).result().ifPresent(feature::restoreOnClient);
+    var result = feature.codec().parse(ops, saved);
+    result.result().ifPresent(feature::restoreOnClient);
+    result.error().ifPresent(e -> logBad(feature, e.message()));
+  }
+
+  private static void logBad(MachineFeature<?> feature, String message) {
+    LOGGER.error(
+        "Machine feature {} has bad saved data, keeping its state: {}", feature.key(), message);
   }
 }

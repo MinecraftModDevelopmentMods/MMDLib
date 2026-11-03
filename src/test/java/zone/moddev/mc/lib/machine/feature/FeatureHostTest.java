@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.machine.feature;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.gson.JsonElement;
@@ -224,5 +225,43 @@ class FeatureHostTest {
     var host = new FeatureHost(() -> {}).add(feature);
     assertEquals(9, host.saveForClient(JsonOps.INSTANCE).getAsJsonObject().get("a").getAsInt());
     assertEquals(1, host.save(JsonOps.INSTANCE).getAsJsonObject().get("a").getAsInt());
+  }
+
+  @Test
+  void aBadEncoderDoesNotStopTheOthersSaving() {
+    var host =
+        new FeatureHost(() -> {})
+            .add(new Counter("a", 1))
+            .add(new Counter("bad", 1000))
+            .add(new Counter("c", 3));
+    var saved = host.save(JsonOps.INSTANCE).getAsJsonObject();
+    assertEquals(1, saved.get("a").getAsInt());
+    assertEquals(3, saved.get("c").getAsInt());
+    assertFalse(saved.has("bad"));
+  }
+
+  @Test
+  void aBadClientEncoderDoesNotStopTheOthersSaving() {
+    var host =
+        new FeatureHost(() -> {})
+            .add(new Synced("a", 1))
+            .add(new Synced("bad", 1000))
+            .add(new Synced("c", 3));
+    var saved = host.saveForClient(JsonOps.INSTANCE).getAsJsonObject();
+    assertEquals(1, saved.get("a").getAsInt());
+    assertEquals(3, saved.get("c").getAsInt());
+    assertFalse(saved.has("bad"));
+  }
+
+  @Test
+  void aBadEntryDoesNotStopTheOthersLoading() {
+    var a = new Counter("a", 5);
+    var b = new Counter("b", 6);
+    var data = new JsonObject();
+    data.add("a", new JsonPrimitive("nine"));
+    data.addProperty("b", 8);
+    new FeatureHost(() -> {}).add(a).add(b).load(JsonOps.INSTANCE, data);
+    assertEquals(5, a.value);
+    assertEquals(8, b.value);
   }
 }
