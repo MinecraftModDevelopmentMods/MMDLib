@@ -490,14 +490,20 @@ public final class CrusherSmoke {
     copy.loadWithComponents(update(level, fresh(pos, 0, 0)), registries);
     arrived(copy, Status.IDLE, 0, 0, "idle");
 
-    // A bad update keeps the last status and doesn't throw.
-    copy.loadWithComponents(update(level, running), registries);
+    // A bad update keeps the last status and doesn't throw. The copy is stalled, the update says
+    // running, and the status name in it is garbage.
+    copy.loadWithComponents(update(level, stalled), registries);
+    arrived(copy, Status.STALLED, 30, 200, "before the bad update");
     var bad = update(level, running);
+    boolean mutated = false;
     for (var key : bad.getAllKeys())
-      if (bad.get(key) instanceof CompoundTag features && features.contains("work"))
+      if (bad.get(key) instanceof CompoundTag features && features.contains("work")) {
         features.getCompound("work").putString("status", "NO_SUCH_STATUS");
+        mutated = true;
+      }
+    require(mutated, "the update had no processor state to spoil");
     copy.loadWithComponents(bad, registries);
-    arrived(copy, Status.RUNNING, 50, 200, "bad update");
+    arrived(copy, Status.STALLED, 50, 200, "bad update");
 
     // A save is still a save: it restores the cycle and its plans.
     var saved = running.saveWithFullMetadata(registries);
