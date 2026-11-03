@@ -378,6 +378,13 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void crusherShiftClickShortfalls(GameTestHelper helper) {
+    CrusherSmoke.shiftClickShortfalls(
+        helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void crusherClientRows(GameTestHelper helper) {
     CrusherSmoke.clientRows(
         helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());

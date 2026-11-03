@@ -63,10 +63,12 @@ public class MachineMenu extends AbstractContainerMenu {
   }
 
   /**
-   * @param client whether the slots are the client's copy, as on a client; the menu does not
-   *     otherwise tell the two apart, so a test can run both against one server
+   * For tests only.
+   *
+   * @param client whether the slots are the client's copy, as on a client; the menu still reads the
+   *     level's side for layout, so this is only meaningful for running both against one server
    */
-  public MachineMenu(int id, Inventory inventory, BlockEntity entity, boolean client) {
+  protected MachineMenu(int id, Inventory inventory, BlockEntity entity, boolean client) {
     super(ScreenRuntime.MENUS.get(), id);
     owner = inventory.player;
     blockEntity = entity;
@@ -294,7 +296,8 @@ public class MachineMenu extends AbstractContainerMenu {
 
   /** Moves only what the storage says is free, then takes exactly that much out of the slot. */
   private ItemStack quickMovePlanned(Player player, Slot source) {
-    int free = Math.min(reserved.freeToTake(source.index), source.getItem().getCount());
+    // Ask the storage what it would give: a subclass may give less than the plan frees.
+    int free = items.extractItem(source.index, reserved.freeToTake(source.index), true).getCount();
     if (free <= 0) return ItemStack.EMPTY;
     var moving = source.getItem().copyWithCount(free);
     var original = moving.copy();

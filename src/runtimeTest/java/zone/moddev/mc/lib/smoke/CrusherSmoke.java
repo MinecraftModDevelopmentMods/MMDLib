@@ -128,13 +128,29 @@ public final class CrusherSmoke {
     }
   }
 
+  /** Item storage whose extraction a test can cap, like a subclass that gives less than asked. */
+  public static final class Capped extends ItemStorage {
+    int cap = Integer.MAX_VALUE;
+
+    Capped(int slots) {
+      super(slots);
+    }
+
+    @Override
+    public ItemStack extractItem(int slot, int amount, boolean simulate) {
+      return super.extractItem(slot, Math.min(amount, cap), simulate);
+    }
+  }
+
+  private static Capped capped(Runnable onChange) {
+    var items = new Capped(4);
+    items.role(Role.INPUT, 0).role(Role.OUTPUT, 1, 2, 3).onChange(onChange);
+    return items;
+  }
+
   /** Ore in slot 0, products in 1 and 2, the byproduct in 3, water and energy beside them. */
   public static final class Crusher extends BlockEntity implements ScreenHost, DropsContents {
-    public final ItemStorage items =
-        new ItemStorage(4)
-            .role(Role.INPUT, 0)
-            .role(Role.OUTPUT, 1, 2, 3)
-            .onChange(this::setChanged);
+    public final Capped items = capped(this::setChanged);
     public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
     public final EnergyBuffer energy =
         new EnergyBuffer(10_000_000_000L, 1_000).onChange(this::setChanged);
@@ -365,6 +381,38 @@ public final class CrusherSmoke {
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
   }
 
+  /** Shift-clicking a planned slot never gives the player more than the slot lost. */
+  static void shiftClickShortfalls(ServerLevel level, BlockPos pos, ServerPlayer player) {
+    var crusher = place(level, pos);
+    var menu = new MachineMenu(84, player.getInventory(), crusher);
+    var items = crusher.items;
+    var iron = Items.IRON_INGOT;
+    var takeOne = new SlotPlan(1, ItemStack.EMPTY);
+
+    // Only part of the 49 fits: 24 more iron on a stack of 40, every other slot full of gold.
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    for (int i = 0; i < 36; i++) player.getInventory().setItem(i, stack(Items.GOLD_INGOT, 64));
+    player.getInventory().setItem(7, stack(iron, 40));
+    menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
+    require(inventoryCount(player, iron) == 64, "24 moved: " + inventoryCount(player, iron));
+    require(count(items) == 26, "the slot kept the rest: " + count(items));
+    require(totalIron(player, items) == 90, "partial fit conserves iron");
+
+    // A storage that gives 10 at a time: the click repeats, and the player gets what the slot lost.
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    items.cap = 10;
+    try {
+      menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
+    } finally {
+      items.cap = Integer.MAX_VALUE;
+    }
+    require(inventoryCount(player, iron) == 49, "49 moved: " + inventoryCount(player, iron));
+    require(count(items) == 1, "the slot kept the reserved one: " + count(items));
+    require(totalIron(player, items) == 50, "a short extract duplicates nothing");
+
+    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+  }
+
   /** One click on slot 0 with a given slot, plan, carried stack and hotbar. */
   private record Row(
       String name,
@@ -381,8 +429,8 @@ public final class CrusherSmoke {
    */
   static void clientRows(ServerLevel level, BlockPos pos, ServerPlayer player) {
     var crusher = place(level, pos);
-    var server = new MachineMenu(82, player.getInventory(), crusher, false);
-    var client = new MachineMenu(83, player.getInventory(), crusher, true);
+    var server = new MachineMenu(82, player.getInventory(), crusher);
+    var client = new MachineMenu(83, player.getInventory(), crusher, true) {};
     var clientItems = (ClientMenuItems) ((SlotItemHandler) client.getSlot(0)).getItemHandler();
     var iron = Items.IRON_INGOT;
     var gold = Items.GOLD_INGOT;
