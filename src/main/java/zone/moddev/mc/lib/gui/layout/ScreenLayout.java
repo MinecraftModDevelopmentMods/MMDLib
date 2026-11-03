@@ -115,6 +115,7 @@ public final class ScreenLayout {
       case Slot slot -> slot.size() == SlotSize.LARGE ? new int[] {26, 26} : new int[] {18, 18};
       // A fill length counts as its minimum here; placement stretches it.
       case Gauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
+      case EnergyGauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
       case Meter meter ->
           oriented(meter.orientation(), meter.thickness(), meter.fills() ? 4 : meter.length());
       case Progress progress ->
@@ -330,6 +331,7 @@ public final class ScreenLayout {
   /** Whether {@code element} has {@code length="fill"}; the reader checks it sits where it can. */
   private static boolean fills(Element element) {
     return (element instanceof Gauge gauge && gauge.fills())
+        || (element instanceof EnergyGauge energy && energy.fills())
         || (element instanceof Meter meter && meter.fills());
   }
 

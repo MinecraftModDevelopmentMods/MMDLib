@@ -91,7 +91,7 @@ public final class CompanionClientSmoke {
           level.setBlock(POS, CompanionMod.MACHINES.get(current).block.get().defaultBlockState(), 3);
           var entity = level.getBlockEntity(POS);
           if (entity instanceof ProcessorEntity machine) {
-            machine.energy.setStored(80_000);
+            machine.energy.setStored(current == 0 ? 80_000 : current == 1 ? 40_000 : 10_000);
             machine.items.insertItem(0, new ItemStack(current == 1 ? Items.IRON_INGOT : Items.COPPER_ORE,
                 current == 1 ? 1 : 16), false);
             for (int i = 0; i < 40; i++) machine.serverTick();
@@ -115,9 +115,11 @@ public final class CompanionClientSmoke {
     var expected = CompanionMod.MACHINES.get(stage).type.get();
     if (menu.blockEntity.getType() != expected || ++frames < 25) return;
     try {
-      var energy = menu.elements.stream().filter(e -> e instanceof zone.moddev.mc.lib.gui.model.Element.Meter
-          || e instanceof zone.moddev.mc.lib.gui.model.Element.Gauge)
-          .findFirst().orElseThrow();
+      var energy = menu.bound.screen().find("energy").orElseThrow();
+      if (!(energy instanceof zone.moddev.mc.lib.gui.model.Element.EnergyGauge))
+        throw new AssertionError("Every companion screen must use the reusable battery gauge");
+      if (screen.layout.bounds(energy).right() != screen.layout.panel().width() - 7)
+        throw new AssertionError("Energy must sit against the right panel margin");
       if (!(menu.value(energy, false) instanceof Number)) throw new AssertionError("Energy was not synced");
       if (stage < 3) {
         var progress = menu.bound.screen().find("progress").orElseThrow();

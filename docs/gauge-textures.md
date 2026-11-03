@@ -5,6 +5,9 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 (standard library only; run `python3 scripts/generate_gauge_textures.py [thickness]`, default 18).
 `gui.client.GaugeRenderer` draws them; this page describes its texture contract.
 
+These textures belong to `<gauge>`. The reusable `<energy-gauge>` uses a separate pixel battery
+renderer with a terminal and red charge bars; it does not use the glass textures.
+
 ## Files
 
 All textures are drawn for a **vertical** gauge 18 px thick. Horizontal gauges use the same

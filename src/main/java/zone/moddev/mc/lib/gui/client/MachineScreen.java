@@ -268,6 +268,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       case Element.SideConfig config -> drawSides(g, config, r);
       case Element.Gauge gauge ->
           GaugeRenderer.draw(g, r, gauge, menu.value(e, false), menu.value(e, true));
+      case Element.EnergyGauge gauge ->
+          EnergyGaugeRenderer.draw(
+              g, r, gauge, ScreenText.ratio(menu.value(e, false), menu.value(e, true)));
       case Element.Meter meter ->
           meter(g, r, meter, ScreenText.ratio(menu.value(e, false), menu.value(e, true)));
       case Element.Progress progress -> {

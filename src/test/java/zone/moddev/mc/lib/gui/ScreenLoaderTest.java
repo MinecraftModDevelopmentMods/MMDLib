@@ -258,11 +258,11 @@ public final class ScreenLoaderTest {
   @Test
   void energyGaugeBindsDefaultsAndAllowsOverrides() throws Exception {
     var defaults = bind(HEAD + "<energy-gauge id=\"energy\"/></screen>");
-    var gauge = (Element.Gauge) defaults.screen().find("energy").orElseThrow();
+    var gauge = (Element.EnergyGauge) defaults.screen().find("energy").orElseThrow();
     require(defaults.values().get(gauge).kind() == BoundValue.Kind.WHOLE);
     require(defaults.maxima().get(gauge).kind() == BoundValue.Kind.WHOLE);
     require(gauge.orientation() == Element.Orientation.VERTICAL && gauge.length() == 54);
-    require(gauge.color().orElseThrow() == 0xFFE64B38);
+    require(gauge.color() == 0xFFE64B38);
     require(gauge.common().tooltip().orElseThrow().fallback().orElseThrow().equals("{value} / {max} FE"));
 
     var custom = bind(HEAD + """
@@ -271,9 +271,9 @@ public final class ScreenLoaderTest {
                         value="#getThroughput" max="#getMaxThroughput" tooltip="example.reserve"/>
         </vbox></screen>
         """);
-    var reserve = (Element.Gauge) custom.screen().find("reserve").orElseThrow();
+    var reserve = (Element.EnergyGauge) custom.screen().find("reserve").orElseThrow();
     require(custom.maxima().get(reserve).kind() == BoundValue.Kind.DECIMAL);
-    require(reserve.color().orElseThrow() == 0xFF123456);
+    require(reserve.color() == 0xFF123456);
     require(reserve.common().tooltip().orElseThrow().key().equals("example.reserve"));
     require(reserve.common().tooltip().orElseThrow().fallback().isEmpty());
     var layout = ScreenLayout.of(custom.screen(), TextMeasure.NONE);
@@ -284,6 +284,30 @@ public final class ScreenLoaderTest {
     fails("energy must be numeric", HEAD + "<energy-gauge value=\"#getWaterTank\"/></screen>");
     fails("energy gauge too short", HEAD + "<energy-gauge length=\"7\"/></screen>");
     fails("energy fill direction", HEAD + "<vbox><energy-gauge length=\"fill\"/></vbox></screen>");
+  }
+
+  @Test
+  void allCompanionScreensPlaceBatteryAtRightMargin() throws Exception {
+    for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power")) {
+      try (var input = java.nio.file.Files.newInputStream(java.nio.file.Path.of(
+          "src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
+        var screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:" + name), name + ".xml", input);
+        var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+        var energy = screen.find("energy").orElseThrow();
+        require(energy instanceof Element.EnergyGauge);
+        var bounds = layout.bounds(energy);
+        require(bounds.right() == layout.panel().width() - 7);
+        require(bounds.height() == 54 && bounds.width() == 18);
+        for (var element : screen.elements()) {
+          if (element instanceof Element.Slot || element instanceof Element.Progress
+              || element instanceof Element.Checkbox || element instanceof Element.Label) {
+            var other = layout.bounds(element);
+            require(other.right() <= bounds.x() || other.x() >= bounds.right()
+                || other.bottom() <= bounds.y() || other.y() >= bounds.bottom());
+          }
+        }
+      }
+    }
   }
 
   @Test

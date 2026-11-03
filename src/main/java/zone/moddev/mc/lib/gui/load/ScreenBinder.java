@@ -85,6 +85,7 @@ public final class ScreenBinder {
               ? NUMBERS
               : Set.of(Kind.WHOLE, Kind.DECIMAL, Kind.NUMBER, Kind.FLUID);
       case Meter meter -> NUMBERS;
+      case EnergyGauge gauge -> NUMBERS;
       case Progress progress -> NUMBERS;
       case Checkbox checkbox -> Set.of(Kind.BOOLEAN);
       case RadioGroup group -> Set.of(Kind.WHOLE);

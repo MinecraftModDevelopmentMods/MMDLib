@@ -265,7 +265,7 @@
   </xs:element>
 
   <xs:element name="energy-gauge">
-    <xs:annotation><xs:documentation>Reusable red energy gauge. Defaults to #getEnergy / #getEnergyCapacity and an FE tooltip; common attributes override these bindings.</xs:documentation></xs:annotation>
+    <xs:annotation><xs:documentation>Battery with a terminal and red charge bars, 18 px thick and at least 8 px long including the terminal. Defaults to #getEnergy / #getEnergyCapacity and an FE tooltip; common attributes override these bindings.</xs:documentation></xs:annotation>
     <xs:complexType>
       <xs:complexContent>
         <xs:extension base="leaf">

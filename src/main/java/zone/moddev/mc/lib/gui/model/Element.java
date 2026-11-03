@@ -164,6 +164,21 @@ public sealed interface Element {
   }
 
   /**
+   * {@code energy-gauge}: a battery outline with a terminal and red charge bars by default.
+   *
+   * @param orientation vertical fills upwards; horizontal fills to the right
+   * @param length total length, including the terminal, or {@link #FILL}
+   * @param color the ARGB charge color
+   */
+  record EnergyGauge(Common common, Orientation orientation, int length, int color)
+      implements Element {
+    /** Whether the length is {@code fill}. */
+    public boolean fills() {
+      return length == FILL;
+    }
+  }
+
+  /**
    * {@code meter}: the compact segmented gauge.
    *
    * @param orientation which way it runs

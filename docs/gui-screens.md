@@ -324,7 +324,7 @@ player, menu, and element before running the handler. Hover never reaches the se
 | `group` | Recessed grouping panel | `label`, `tint`, `padding` |
 | `slot` | Item slot from the menu | `index`, `size` (`normal`/`large`), `kind` (`normal`/`upgrade`/`ghost`; `upgrade` holds one item), `tint`, `icon` |
 | `gauge` | Glass graduated gauge ([gauge textures](gauge-textures.md)) | `orientation`, `length` (size or `fill`), `color` (solid fill) or a fluid value |
-| `energy-gauge` | Reusable red FE gauge, using the same glass renderer | Defaults: vertical, `length="54"`, `color="#E64B38"`, `value="#getEnergy"`, `max="#getEnergyCapacity"`; all can be overridden |
+| `energy-gauge` | Reusable battery with red charge bars and a terminal | Defaults: vertical, `length="54"`, `color="#E64B38"`, `value="#getEnergy"`, `max="#getEnergyCapacity"`; all can be overridden |
 | `meter` | Compact segmented gauge | `orientation`, `thickness` (5 or 10), `length` (size or `fill`), `color`, `segment`, `gap`, `gap-color` |
 | `progress` | Fill-in progress indicator | `icon` (default arrow), `direction`, `jei-recipes` |
 | `label` | Text | `text` |
@@ -345,9 +345,12 @@ Any screen can use the standard energy gauge:
 <energy-gauge id="energy"/>
 ```
 
-It is 18 px wide and 54 px tall, fills from the bottom, and shows `{value} / {max} FE`
-on hover using `screen.mmdlib.energy`. It uses the same binding validation, synchronization,
-layout and rendering as `gauge`. Multiple buffers can use separate ids and getters:
+It is 18 px wide and 54 px tall (including the top terminal), fills from the bottom, and shows
+`{value} / {max} FE` on hover using `screen.mmdlib.energy`. A dark battery casing surrounds red
+charge bars; the last charged bar fills partially to track the level. Red stays red at every
+charge level. `EnergyGaugeRenderer` draws the battery directly in GUI pixels, without tank glass
+or scale markings. It uses the same binding validation and synchronization as other numeric
+widgets. Multiple buffers can use separate ids and getters:
 
 ```xml
 <energy-gauge id="reserve" length="4s" color="#D23838"
@@ -355,7 +358,8 @@ layout and rendering as `gauge`. Multiple buffers can use separate ids and gette
               tooltip="screen.example.reserve" tooltip-fallback="Reserve: {value} / {max} FE"/>
 ```
 
-`orientation="horizontal"` and `length="fill"` follow the ordinary gauge rules. A custom
+`orientation="horizontal"` puts the terminal on the right and fills towards it. `length="fill"`
+follows the ordinary gauge rules; explicit lengths must be at least 8 px. A custom
 `tooltip` replaces the built-in tooltip; its fallback is optional.
 
 ## JEI (optional)
