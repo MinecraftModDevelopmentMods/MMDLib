@@ -40,12 +40,11 @@ public non-sealed interface FluidGroup extends SlotGroup {
   boolean reserve(int tank, TankPlan plan, MachineTx tx);
 
   /**
-   * Adds {@code plan} back to the tank's plan without checking that it is legal, for undoing a
-   * {@link #release}.
-   *
-   * @throws IllegalStateException if the plans cannot be merged
+   * Adds {@code plan} to the tank's plan without checking that it is legal, for loading plans that
+   * were saved while legal. Returns false and changes nothing if tank is outside the group or the
+   * plans cannot be merged.
    */
-  void restore(int tank, TankPlan plan, MachineTx tx);
+  boolean restore(int tank, TankPlan plan, MachineTx tx);
 
   /** Takes {@code plan}, which must have been reserved, out of the tank's plan. */
   void release(int tank, TankPlan plan, MachineTx tx);
@@ -65,8 +64,10 @@ public non-sealed interface FluidGroup extends SlotGroup {
 
   /**
    * Where {@code fluids} would land once {@code taken[tank]} mB are gone from each tank: per fluid,
-   * per tank, how many mB go there. Room is measured against each tank's end state, and a tank
-   * whose plan is not legal takes nothing. Null if they do not all fit. Changes nothing.
+   * per tank, how many mB go there. A tank's end state decides what may join it and how much
+   * room planned takes and adds leave, but fluid another plan has yet to take still fills the tank
+   * now, and a different fluid waits until the tank has physically emptied. A tank whose plan is
+   * not legal takes nothing. Null if they do not all fit. Changes nothing.
    */
   @Nullable
   int[][] place(List<FluidAmount> fluids, long[] taken);

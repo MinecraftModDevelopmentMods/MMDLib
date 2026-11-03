@@ -114,12 +114,13 @@ public final class StorageGroups {
     }
 
     @Override
-    public void restore(int slot, SlotPlan plan, MachineTx tx) {
-      if (!valid(slot)) return;
+    public boolean restore(int slot, SlotPlan plan, MachineTx tx) {
+      if (!valid(slot)) return false;
       var merged = storage.plan(slots[slot]).plus(plan);
-      if (merged == null) throw new IllegalStateException("Plans cannot be merged in slot " + slot);
+      if (merged == null) return false;
       trackPlan(slots[slot], tx);
       storage.setPlan(slots[slot], merged);
+      return true;
     }
 
     @Override
@@ -139,7 +140,8 @@ public final class StorageGroups {
         var plan = storage.plan(slots[i]);
         var asked = new SlotPlan(plan.take() + (int) taken[i], plan.add());
         usable[i] = asked.legal(stack, storage.getSlotLimit(slots[i]));
-        held.add(usable[i] ? asked.endState(stack) : ItemStack.EMPTY);
+        int after = stack.getCount() - (int) taken[i];
+        held.add(usable[i] ? stack.copyWithCount(after) : ItemStack.EMPTY);
       }
       var placed = new int[stacks.size()][slots.length];
       for (int n = 0; n < stacks.size(); n++) {
@@ -148,13 +150,11 @@ public final class StorageGroups {
         for (boolean merging : new boolean[] {true, false})
           for (int i = 0; i < slots.length && left > 0; i++) {
             var slot = held.get(i);
-            if (!usable[i] || merging == slot.isEmpty()) continue;
-            if (merging && !ItemStack.isSameItemSameComponents(slot, stack)) continue;
-            int limit = Math.min(storage.getSlotLimit(slots[i]), stack.getMaxStackSize());
-            int moved = Math.min(left, limit - slot.getCount());
+            var plan = storage.plan(slots[i]);
+            if (!usable[i] || merging == plan.endState(slot).isEmpty()) continue;
+            int moved = Math.min(left, plan.room(slot, stack, storage.getSlotLimit(slots[i])));
             if (moved <= 0) continue;
-            if (slot.isEmpty()) held.set(i, stack.copyWithCount(moved));
-            else slot.grow(moved);
+            held.set(i, stack.copyWithCount(slot.getCount() + moved));
             placed[n][i] = moved;
             left -= moved;
           }
@@ -244,12 +244,13 @@ public final class StorageGroups {
     }
 
     @Override
-    public void restore(int tank, TankPlan plan, MachineTx tx) {
-      if (!valid(tank)) return;
+    public boolean restore(int tank, TankPlan plan, MachineTx tx) {
+      if (!valid(tank)) return false;
       var merged = storage.plan(indexes[tank]).plus(plan);
-      if (merged == null) throw new IllegalStateException("Plans cannot be merged in tank " + tank);
+      if (merged == null) return false;
       trackPlan(indexes[tank], tx);
       storage.setPlan(indexes[tank], merged);
+      return true;
     }
 
     @Override
@@ -270,7 +271,8 @@ public final class StorageGroups {
         var plan = storage.plan(indexes[i]);
         var asked = new TankPlan(plan.take() + (int) taken[i], plan.add());
         usable[i] = asked.legal(amount, tank.getCapacity());
-        held.add(usable[i] ? asked.endState(amount) : FluidAmount.EMPTY);
+        int after = amount.amount() - (int) taken[i];
+        held.add(usable[i] ? amount.withAmount(after) : FluidAmount.EMPTY);
       }
       var placed = new int[fluids.size()][indexes.length];
       for (int n = 0; n < fluids.size(); n++) {
@@ -281,10 +283,11 @@ public final class StorageGroups {
         for (boolean merging : new boolean[] {true, false})
           for (int i = 0; i < indexes.length && left > 0; i++) {
             var tank = held.get(i);
-            if (!usable[i] || merging == tank.isEmpty()) continue;
-            if (merging && !tank.sameFluid(fluid)) continue;
+            var plan = storage.plan(indexes[i]);
+            if (!usable[i] || merging == plan.endState(tank).isEmpty()) continue;
             if (!merging && !storage.tank(indexes[i]).isFluidValid(stack)) continue;
-            int moved = Math.min(left, storage.tank(indexes[i]).getCapacity() - tank.amount());
+            int moved =
+                Math.min(left, plan.room(tank, fluid, storage.tank(indexes[i]).getCapacity()));
             if (moved <= 0) continue;
             held.set(i, fluid.withAmount(tank.amount() + moved));
             placed[n][i] = moved;

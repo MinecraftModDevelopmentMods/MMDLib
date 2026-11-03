@@ -40,12 +40,11 @@ public non-sealed interface ItemGroup extends SlotGroup {
   boolean reserve(int slot, SlotPlan plan, MachineTx tx);
 
   /**
-   * Adds {@code plan} back to the slot's plan without checking that it is legal, for undoing a
-   * {@link #release}.
-   *
-   * @throws IllegalStateException if the plans cannot be merged
+   * Adds {@code plan} to the slot's plan without checking that it is legal, for loading plans that
+   * were saved while legal. Returns false and changes nothing if slot is outside the group or the
+   * plans cannot be merged.
    */
-  void restore(int slot, SlotPlan plan, MachineTx tx);
+  boolean restore(int slot, SlotPlan plan, MachineTx tx);
 
   /** Takes {@code plan}, which must have been reserved, out of the slot's plan. */
   void release(int slot, SlotPlan plan, MachineTx tx);
@@ -65,9 +64,10 @@ public non-sealed interface ItemGroup extends SlotGroup {
 
   /**
    * Where {@code stacks} would land once {@code taken[slot]} items are gone from each slot: per
-   * stack, per slot, how many go there. Room is measured against each slot's end state, so planned
-   * takes make room and planned adds use it, and a slot whose plan is not legal takes nothing. Null
-   * if they do not all fit. Works on copies; changes nothing.
+   * stack, per slot, how many go there. A slot's end state decides what may join it and how much
+   * room planned takes and adds leave, but items another plan has yet to take still fill the slot
+   * now, and a different item waits until the slot has physically emptied. A slot whose plan is
+   * not legal takes nothing. Null if they do not all fit. Works on copies; changes nothing.
    */
   @Nullable
   int[][] place(List<ItemStack> stacks, long[] taken);

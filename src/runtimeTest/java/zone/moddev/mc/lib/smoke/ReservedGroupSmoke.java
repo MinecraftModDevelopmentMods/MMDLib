@@ -150,7 +150,8 @@ final class ReservedGroupSmoke {
     require(freed != null && freed[0][0] == 64 && freed[0][1] == 24, "taken items leave room");
     pair.setPlan(0, new SlotPlan(30, none));
     var skipped = group.place(List.of(iron(10)), new long[2]);
-    require(skipped != null && skipped[0][0] == 0 && skipped[0][1] == 10, "skips an illegal plan");
+    require(skipped != null && skipped[0][0] == 0 && skipped[0][1] == 10, "uses the legal slot");
+    require(group.place(List.of(iron(30)), new long[2]) == null, "skips an illegal plan");
     require(group.free(0) == 0 && group.free(1) == 40 && group.free(2) == 0, "free");
 
     var tanks = new FluidStorage();
@@ -169,6 +170,54 @@ final class ReservedGroupSmoke {
     tanks.setPlan(0, new TankPlan(100, FluidAmount.EMPTY));
     require(tankGroup.free(0) == 300 && tankGroup.free(1) == 0, "free mB");
 
+    // A tank whose plan takes more than it holds is skipped; the other can't hold 500 alone.
+    var broken = new FluidStorage();
+    broken.addTank(1_000, Role.STORAGE);
+    broken.addTank(1_000, Role.STORAGE);
+    broken.tank(0).setFluid(new FluidStack(Fluids.WATER, 400));
+    broken.tank(1).setFluid(new FluidStack(Fluids.WATER, 600));
+    broken.setPlan(0, new TankPlan(500, FluidAmount.EMPTY));
+    var brokenGroup = StorageGroups.fluids(broken, 0, 1);
+    require(brokenGroup.place(List.of(water.withAmount(400)), new long[2]) != null, "400 fit");
+    require(brokenGroup.place(List.of(water.withAmount(500)), new long[2]) == null, "tank skipped");
+
+    // Another plan's take makes room only once it has run: fits agrees with insertResult.
+    var owned = new ItemStorage(1);
+    owned.setStackInSlot(0, iron(64));
+    owned.setPlan(0, new SlotPlan(30, none));
+    var ownedGroup = StorageGroups.items(owned, 0);
+    require(!ownedGroup.fits(List.of(iron(10))), "a full slot has no room yet");
+    require(!owned.fits(0, iron(10)), "as insertResult says");
+    require(ownedGroup.fits(List.of(iron(10)), new long[] {30}), "own take makes room");
+    var swap = new ItemStorage(1);
+    swap.setStackInSlot(0, iron(1));
+    swap.setPlan(0, new SlotPlan(1, none));
+    var swapGroup = StorageGroups.items(swap, 0);
+    var gold = new ItemStack(Items.GOLD_INGOT);
+    require(!swapGroup.fits(List.of(gold)), "gold waits for the iron to go");
+    require(!swap.fits(0, gold), "as insertResult says");
+    swap.setPlan(0, SlotPlan.NONE);
+    require(swapGroup.fits(List.of(gold), new long[] {1}), "gold fits once its own take ran");
+
+    var fullTank = new FluidStorage();
+    fullTank.addTank(1_000, Role.STORAGE);
+    fullTank.tank(0).setFluid(new FluidStack(Fluids.WATER, 1_000));
+    fullTank.setPlan(0, new TankPlan(300, FluidAmount.EMPTY));
+    var fullGroup = StorageGroups.fluids(fullTank, 0);
+    require(!fullGroup.fits(List.of(water.withAmount(100))), "a full tank has no room yet");
+    require(fullTank.fill(new FluidStack(Fluids.WATER, 100), FluidAction.SIMULATE) == 0, "fill");
+    require(fullGroup.fits(List.of(water.withAmount(100)), new long[] {300}), "own take");
+    var oneWater = new FluidStorage();
+    oneWater.addTank(1_000, Role.STORAGE);
+    oneWater.tank(0).setFluid(new FluidStack(Fluids.WATER, 100));
+    oneWater.setPlan(0, new TankPlan(100, FluidAmount.EMPTY));
+    var lava = FluidStacks.amount(new FluidStack(Fluids.LAVA, 100));
+    var oneWaterGroup = StorageGroups.fluids(oneWater, 0);
+    require(!oneWaterGroup.fits(List.of(lava)), "lava waits for the water to go");
+    require(oneWater.fill(new FluidStack(Fluids.LAVA, 100), FluidAction.SIMULATE) == 0, "fill");
+    oneWater.setPlan(0, TankPlan.NONE);
+    require(oneWaterGroup.fits(List.of(lava), new long[] {100}), "lava fits once it went");
+
     // Undo: a plan is undone with the transaction, and contents and plan restore together.
     var undo = new Crusher(5, 1_000);
     try (var tx = undo.inventory.begin()) {
@@ -182,12 +231,17 @@ final class ReservedGroupSmoke {
       tx.commit();
     }
     require(undo.items.plan(0).sameAs(new SlotPlan(1, none)), "committed plan stays");
+
     try (var tx = undo.inventory.begin()) {
       var input = undo.items("input");
       input.release(0, new SlotPlan(1, none), tx);
       require(undo.items.plan(0).isNone(), "released");
-      input.restore(0, new SlotPlan(2, none), tx);
-      require(undo.items.plan(0).sameAs(new SlotPlan(2, none)), "restored past the check");
+      var ore = new ItemStack(Items.COPPER_ORE);
+      require(input.restore(0, new SlotPlan(6, ore), tx), "restore");
+      require(undo.items.plan(0).sameAs(new SlotPlan(6, ore)), "restored past the check");
+      require(!input.restore(0, new SlotPlan(0, gold), tx), "other items cannot merge");
+      require(!input.restore(7, new SlotPlan(1, none), tx), "out of range");
+      require(undo.items.plan(0).sameAs(new SlotPlan(6, ore)), "refusals changed nothing");
     }
     require(undo.items.plan(0).sameAs(new SlotPlan(1, none)), "release and restore undone");
 
