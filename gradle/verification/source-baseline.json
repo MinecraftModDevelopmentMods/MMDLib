@@ -306,7 +306,7 @@
   "src/main/java/com/mcmoddev/lib/ioc/MMDResourceLocation.java": "66fbf6977eb110313eb4a15dda1dd3faadd470c7beeadf6fbba6f0fde18f8c3c",
   "src/main/java/com/mcmoddev/lib/item/GenericMMDItem.java": "290df70f5a6f8234904117d5d5a69a018940cb6eb5e5a296efee9a63c6f6dba3",
   "src/main/java/com/mcmoddev/lib/item/ItemBolt.java": "3e7c61a1708b70b6bf72f028423b2271943e76f311dd92885b53184b0f12b660",
-  "src/main/java/com/mcmoddev/lib/item/ItemCrossbow.java": "0a3807adf3c03b8ec90aefec8cb7b57b7a1fa737bf5b49bf922b1f75b7d06980",
+  "src/main/java/com/mcmoddev/lib/item/ItemCrossbow.java": "ed16f4883d78787ab20c8b9ad4ad3cc8f1ea608538ad0de1c9d91266217a7f21",
   "src/main/java/com/mcmoddev/lib/item/ItemMMDAnvilBlock.java": "4f37c5d1c005d278681f0871b556a4a2181ee3fe6f2207174b5d35be4eb49110",
   "src/main/java/com/mcmoddev/lib/item/ItemMMDArmor.java": "355aa4fc4d3ed92420d99a87a2c0feaa4d6b98bce783c39a5257b6f46d6a8e0e",
   "src/main/java/com/mcmoddev/lib/item/ItemMMDArrow.java": "4605204b5d6c295b9103ac05b4b5d76bb3d28c455072b501452e345176e360ca",
