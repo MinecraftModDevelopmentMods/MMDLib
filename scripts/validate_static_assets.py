@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Validate static model dependencies, overrides, textures, and animation metadata without launching a GUI."""
-import json,struct,zipfile
+import json,struct,sys,zipfile
 from pathlib import Path
 
+# Usage: validate_static_assets.py <minecraft resources jar> <neoforge jar> (passed by ./gradlew verifyStaticAssets)
 def main():
     repo=Path(__file__).resolve().parents[1];root=repo/'src/main/resources';assets=root/'assets/mmdlib'
-    jars={name:zipfile.ZipFile(repo/path) for name,path in {'minecraft':'.gradle/repositories/ng_dummy_ng/net/minecraft/client/1.21.1/client-1.21.1-client-extra.jar','neoforge':'.gradle/repositories/ng_dummy_ng/net/neoforged/neoforge/21.1.247/neoforge-21.1.247.jar'}.items()}
+    if len(sys.argv)!=3:sys.exit('usage: validate_static_assets.py <minecraft resources jar> <neoforge jar>')
+    jars={name:zipfile.ZipFile(path) for name,path in zip(('minecraft','neoforge'),sys.argv[1:])}
     def parts(ref):return ref.split(':',1) if ':' in ref else ('minecraft',ref)
     def read_model(ref):
         ns,path=parts(ref)
