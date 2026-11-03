@@ -63,6 +63,8 @@ final class ClientMenuItemsSmoke {
     matches("top slot", 64, iron(63), new SlotPlan(1, iron(2)));
     matches("empty plan", 64, iron(63), new SlotPlan(0, none));
     matches("empty slot", 64, none, new SlotPlan(0, gold(1)));
+    matches("last one", 64, iron(1), new SlotPlan(1, none));
+    matches("partial stack", 64, iron(2), new SlotPlan(1, gold(1)));
     matches("limited", 16, iron(10), new SlotPlan(1, none));
 
     var rules = new ItemStorage(1);
@@ -75,6 +77,13 @@ final class ClientMenuItemsSmoke {
     client.setPlan(1, new SlotPlan(1, none));
     client.setPlan(-1, new SlotPlan(1, none));
     require(!client.hasPlan(1) && !client.hasPlan(-1), "a slot that does not exist has no plan");
+
+    // A ghost slot past the storage's end refuses a plan without throwing.
+    var wide = new ClientMenuItems(3, new ItemStorage(2));
+    wide.setPlan(2, new SlotPlan(1, none));
+    require(!wide.hasPlan(2), "a slot past the storage takes no plan");
+    wide.setPlan(1, new SlotPlan(1, none));
+    require(wide.hasPlan(1), "a slot in the storage takes one");
   }
 
   private static void matches(String row, int limit, ItemStack held, SlotPlan plan) {

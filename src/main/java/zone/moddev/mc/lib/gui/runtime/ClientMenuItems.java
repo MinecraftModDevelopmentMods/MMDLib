@@ -35,7 +35,7 @@ public final class ClientMenuItems extends ItemStackHandler implements ReservedS
     Arrays.fill(plans, SlotPlan.NONE);
   }
 
-  /** Replaces what the machine plans for a slot; a slot that does not exist is ignored. */
+  /** Replaces what the machine plans for a slot; a slot past the end of the rules is ignored. */
   public void setPlan(int slot, SlotPlan plan) {
     if (inRange(slot)) plans[slot] = plan;
   }
@@ -77,7 +77,7 @@ public final class ClientMenuItems extends ItemStackHandler implements ReservedS
   }
 
   private boolean inRange(int slot) {
-    return slot >= 0 && slot < plans.length;
+    return slot >= 0 && slot < Math.min(plans.length, rules.getSlots());
   }
 
   @Override
