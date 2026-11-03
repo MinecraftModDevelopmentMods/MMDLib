@@ -82,7 +82,10 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     return addTank(capacity, role, fluid -> true);
   }
 
-  /** The tank itself, for the machine's own work; it ignores roles but keeps its filter. */
+  /**
+   * The tank itself, for the machine's own work; it ignores roles but keeps its filter and obeys
+   * its plan.
+   */
   public FluidTank tank(int index) {
     return tanks.get(index);
   }

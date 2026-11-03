@@ -126,8 +126,9 @@ public CrusherBlock create(BlockContext context) {
 ```
 
 The block delegates `newBlockEntity` and `getTicker` to `binding.prepared()`, as
-`MaterialEntityBlock` does, and reads `binding.type()` only after registration (for
-example when a block entity is created), never in its constructor.
+`MaterialEntityBlock` does. It also overrides `onRemove` as `MaterialEntityBlock` does: without
+it, `DropsContents` is never called and nothing reports the missing hook. It reads `binding.type()` only after registration (for example
+when a block entity is created), never in its constructor.
 
 ## Machine features
 
@@ -144,6 +145,45 @@ tag.put("features", features.save(registries.createSerializationContext(NbtOps.I
 // loadAdditional, after the storages
 features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));
 ```
+
+**Running recipes.** A `RecipeProcessor` is built from a feature key, a machine recipe type and a
+`MachineInventory`, and added to the host; the block entity's ticker calls `features.tick(level)`:
+
+```java
+final RecipeProcessor processor = new RecipeProcessor("work", MyRecipes.CRUSHING, inventory);
+final FeatureHost features = new FeatureHost(this::setChanged).add(processor);
+
+// in the ticker
+(level, pos, state, entity) -> entity.features.tick(level)
+```
+
+`status()` is one of: `IDLE`, no cycle is running; `RUNNING`, a cycle is running; `STALLED`, a
+cycle is waiting for energy and keeps its progress and reservations; `BLOCKED`, a cycle has run its
+time but cannot finish, say an input was taken, and retries each tick; and `PAUSED`, held by an
+interrupt. `progress()` and `time()` give the ticks done and the ticks the cycle takes, for a
+screen; `time()` is 0 when idle or paused.
+
+On `/reload` a running cycle finishes as planned, and the next cycle uses the new recipes.
+
+**Interrupting.** `interrupt()` stops the processor from drawing energy and starts nothing new
+until `resume()`; `paused()` says whether it is held. It works without power and whatever the
+status. It also releases the running cycle's reservations, so the items it locked can be taken
+out. This is the trap for players: an unpowered machine keeps its inputs and outputs locked, and
+the only ways to get them back are an interrupt or breaking the block. A mod should give the
+player a button, an `Element.Button` in the screen XML with a `gui-click` handler (see
+[GUI screens](gui-screens.md)) that calls `interrupt()` or `resume()`. Resuming reserves the paused
+recipe again if it still can, and continues the progress.
+
+**Groups.** The processor reaches storage through the inventory's group keys. Two keys must not
+overlap for inputs, since a slot cannot be promised to two cycles. A machine with one slot for both
+input and output must use one key for both: with two keys over the one slot, the processor finds no
+room for the product: the recipe lookup answers `NO_ROOM` forever and the machine never starts.
+
+**Clearing.** `/setblock` and `/fill` over a block call `Clearable.tryClear` on its block entity
+first, which is how a chest's contents vanish instead of dropping when a command replaces it. A
+block entity with `DropsContents` that should do the same also implements `Clearable`, and
+empties its storages (and their plans) in `clearContent()`. Without it, the command drops the
+contents.
 
 **Dropping contents.** A block entity of a `MaterialEntityBlock` (which includes `mmdlib:machine`)
 that implements `DropsContents` has `dropContents(level, pos)` called on the server when its block

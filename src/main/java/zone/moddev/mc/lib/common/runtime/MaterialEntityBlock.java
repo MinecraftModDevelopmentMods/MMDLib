@@ -14,7 +14,8 @@ import zone.moddev.mc.lib.common.factories.BlockEntityFactories;
 
 /**
  * Optional base for data-configured machines. Custom blocks can delegate these same hooks
- * themselves.
+ * themselves: {@code newBlockEntity}, {@code getTicker} and {@code onRemove}, without which {@link
+ * DropsContents} does nothing.
  */
 public class MaterialEntityBlock<E extends BlockEntity> extends Block implements EntityBlock {
   private final BlockEntityFactories.Prepared<E> factory;

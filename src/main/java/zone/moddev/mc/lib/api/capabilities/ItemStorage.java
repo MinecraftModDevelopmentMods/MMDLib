@@ -128,7 +128,10 @@ public class ItemStorage extends ItemStackHandler implements ReservedSlots {
     return held.getCount() + plans[slot].room(held, stack, getSlotLimit(slot));
   }
 
-  /** Inserts the machine's own product, ignoring roles and filters. Returns what did not fit. */
+  /**
+   * Inserts the machine's own product, ignoring roles and filters; plans still apply. Returns what
+   * did not fit.
+   */
   public ItemStack insertResult(int slot, ItemStack stack, boolean simulate) {
     bypass = true;
     try {
