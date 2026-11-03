@@ -15,6 +15,8 @@ public interface ScreenHost {
    * The inventory behind the screen's {@code <slot index>} elements, numbered as in the XML;
    * returning an {@code ItemStorage} keeps its output restrictions and filters for players. It must
    * work on the client too, where the menu asks it what each slot accepts to predict clicks.
+   * It must return the {@code ItemStorage} itself: a wrapper, or another {@code ReservedSlots},
+   * loses the guards of reserved slots and the client's copy of the plans.
    */
   IItemHandlerModifiable screenItems();
 

@@ -129,6 +129,71 @@ The block delegates `newBlockEntity` and `getTicker` to `binding.prepared()`, as
 `MaterialEntityBlock` does, and reads `binding.type()` only after registration (for
 example when a block entity is created), never in its constructor.
 
+## Machine features
+
+A `FeatureHost` runs a machine's `MachineFeature`s, such as a `RecipeProcessor`, and saves each
+under its key. The block entity ticks it from `serverTick` with `features.tick(level)`, and saves
+and loads it through a `DynamicOps`, after the storages, since a processor checks the loaded
+contents against its saved cycle:
+
+```java
+final FeatureHost features = new FeatureHost(this::setChanged).add(processor);
+
+// saveAdditional
+tag.put("features", features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
+// loadAdditional, after the storages
+features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));
+```
+
+**Dropping contents.** A block entity of a `MaterialEntityBlock` (which includes `mmdlib:machine`)
+that implements `DropsContents` has `dropContents(level, pos)` called on the server when its block
+is broken or replaced by another block, but not when only its state changes. Usually it is
+`items.dropAll(level, pos)`. Reserved items are still in their slots, so nothing else needs to be
+given back.
+
+**Syncing to clients.** Nothing is sent to clients unless the block entity opts in. A feature that
+should be readable on the client, for a renderer, particles or a tooltip, returns true from
+`syncsToClient()`; `RecipeProcessor` does. The block entity then wires `FeatureSync`:
+
+```java
+final FeatureHost features =
+    new FeatureHost(this::setChanged, () -> FeatureSync.send(this)).add(processor);
+
+@Override
+public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+  return FeatureSync.updateTag(features, registries);
+}
+
+@Override
+public Packet<ClientGamePacketListener> getUpdatePacket() {
+  return ClientboundBlockEntityDataPacket.create(this);
+}
+
+@Override
+protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+  super.loadAdditional(tag, registries);
+  if (FeatureSync.read(features, tag, registries)) return;
+  // the usual loading
+}
+```
+
+The host sends at most once every 10 ticks (`FeatureHost.SYNC_INTERVAL`), and always sends the
+latest change. Storages are not part of the update.
+
+A feature controls what clients get with two methods. `clientState()` is the state to send, by
+default what `state()` saves; a feature overrides it for a moment clients shouldn't see.
+`restoreOnClient(state)` takes it on, by default as `restore`. `RecipeProcessor` overrides the
+second to copy only its status, pause flag, progress and time, because a client has no storage
+contents to check a cycle against, and never reserves anything.
+
+On the client, `processor.status()` and `processor.time()` are current. `processor.progress()` is
+as of the last status change, so a progress bar reads it from a screen getter instead; screens keep
+their own getter sync (see [GUI screens](gui-screens.md#wiring-a-machine)). While paused, `time()`
+is 0, so a bar must not divide by it without checking.
+
+`FeatureSync.read` goes by the tag's key, not the side: a `/data merge` that includes the key
+runs `restoreOnClient` on the server.
+
 ## Deferred registration and block hooks
 
 The registrar does all of the following for you; it is how to wire a block entity by

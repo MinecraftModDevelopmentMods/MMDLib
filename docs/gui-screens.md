@@ -62,6 +62,22 @@ contents, and asks the client block entity's `screenItems()` what each slot acce
 holds, so a click is predicted the way the server will answer it. It's only asked about rules, so its
 contents don't need to be synced.
 
+Return the `ItemStorage` itself. A wrapper around it, or another `ReservedSlots` implementation,
+loses the guards below and the client's copy of the plans.
+
+When the machine has reserved items in a slot (see [capabilities](capabilities.md#reservations)),
+the menu keeps them from being taken or replaced:
+
+- Left and right click, Q and Ctrl+Q, and shift-click take only what is free.
+- Clicking the slot with a different item is refused.
+- A number key is refused on a slot with a plan, because vanilla would move the whole stack.
+- Double-clicking a slot with a plan doesn't collect from elsewhere.
+
+The client's menu works out the same answer from the slot's plan, which arrives with the screen's
+values, so clicks don't flicker. Bars and numbers still come from the getters named in the XML; a
+feature's own client sync (see [block entities](block-entities.md#machine-features)) doesn't
+replace them.
+
 `screenDestinations` controls shift-click routing into the machine; its default tries all storage
 indexes, subject to their filters. `screenRecipeSlots` explicitly names recipe inputs in recipe
 order; its default disables JEI transfer. Both methods must work on the client as well as the
