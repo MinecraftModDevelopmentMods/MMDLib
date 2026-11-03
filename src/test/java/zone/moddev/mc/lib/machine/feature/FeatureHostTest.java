@@ -102,7 +102,7 @@ class FeatureHostTest {
   }
 
   /** A feature that syncs and counts which way it was restored. */
-  private static final class Synced implements MachineFeature<Integer> {
+  private static class Synced implements MachineFeature<Integer> {
     final String key;
     int value;
     int restores;
@@ -210,5 +210,19 @@ class FeatureHostTest {
     host.loadOnClient(JsonOps.INSTANCE, data);
     assertEquals(0, counts[0]);
     assertEquals(0, counts[1]);
+  }
+
+  @Test
+  void clientSaveUsesClientStateAndSaveUsesState() {
+    var feature =
+        new Synced("a", 1) {
+          @Override
+          public Integer clientState() {
+            return 9;
+          }
+        };
+    var host = new FeatureHost(() -> {}).add(feature);
+    assertEquals(9, host.saveForClient(JsonOps.INSTANCE).getAsJsonObject().get("a").getAsInt());
+    assertEquals(1, host.save(JsonOps.INSTANCE).getAsJsonObject().get("a").getAsInt());
   }
 }

@@ -311,6 +311,30 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorPendingMarkOnAFinishTick(GameTestHelper helper) {
+    ProcessorSmoke.pendingMarkOnAFinishTick(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorSiblingMarkOnAFinishTick(GameTestHelper helper) {
+    ProcessorSmoke.siblingMarkOnAFinishTick(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorUpdateTagInTheGap(GameTestHelper helper) {
+    ProcessorSmoke.updateTagInTheGap(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorSaveInTheGap(GameTestHelper helper) {
+    ProcessorSmoke.saveInTheGap(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipeTypeRegistered(GameTestHelper helper) {
     MachineRecipeTypeSmoke.registered();
     helper.succeed();

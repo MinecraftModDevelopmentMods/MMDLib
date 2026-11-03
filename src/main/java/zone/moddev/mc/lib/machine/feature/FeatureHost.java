@@ -109,11 +109,12 @@ public final class FeatureHost {
     }
   }
 
-  /** The state of the features that sync, as {@link #save} writes it. */
+  /** The {@link MachineFeature#clientState} of the features that sync, written as {@link #save}. */
   public <T> T saveForClient(DynamicOps<T> ops) {
     var map = new LinkedHashMap<T, T>();
     for (var feature : features.values())
-      if (feature.syncsToClient()) map.put(ops.createString(feature.key()), encode(ops, feature));
+      if (feature.syncsToClient())
+        map.put(ops.createString(feature.key()), encodeClient(ops, feature));
     return ops.createMap(map);
   }
 
@@ -133,6 +134,10 @@ public final class FeatureHost {
 
   private static <T, S> T encode(DynamicOps<T> ops, MachineFeature<S> feature) {
     return feature.codec().encodeStart(ops, feature.state()).getOrThrow();
+  }
+
+  private static <T, S> T encodeClient(DynamicOps<T> ops, MachineFeature<S> feature) {
+    return feature.codec().encodeStart(ops, feature.clientState()).getOrThrow();
   }
 
   private static <T, S> void decode(DynamicOps<T> ops, MachineFeature<S> feature, T saved) {

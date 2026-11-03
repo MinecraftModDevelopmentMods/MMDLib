@@ -30,6 +30,14 @@ public interface MachineFeature<S> {
   }
 
   /**
+   * The state to send to clients; by default what {@link #state} saves. A feature may differ for a
+   * moment that clients should not see, as long as {@link #state} stays what is right to save.
+   */
+  default S clientState() {
+    return state();
+  }
+
+  /**
    * Takes on state sent to a client. It never saves, so it takes on only what the client can use;
    * by default that is all of it, as {@link #restore}.
    */

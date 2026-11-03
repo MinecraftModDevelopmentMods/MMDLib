@@ -107,7 +107,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   private Status status = Status.IDLE;
   private Status marked = Status.IDLE;
   private int markedTime;
-  private boolean finished;
+  @Nullable private CyclePlan justFinished;
   private int syncedTime;
 
   /** A processor saved under {@code key} that runs recipes of {@code type} on {@code inventory}. */
@@ -171,6 +171,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     if (cycle != null) cycle.release(inventory);
     cycle = null;
     syncedTime = 0;
+    justFinished = null;
     paused = state.paused();
     resumeRecipe = state.resumeRecipe().orElse(null);
     resumeTime = state.resumeTime();
@@ -210,6 +211,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     }
     paused = true;
     status = Status.PAUSED;
+    justFinished = null;
     changed = true;
   }
 
@@ -244,20 +246,38 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   }
 
   /**
-   * Runs a tick, then asks for a sync if the status or the cycle's time differs from the last one
-   * asked for. The tick that finishes a cycle asks for nothing: the processor is only idle until
-   * the next tick starts the next cycle, and a client should not be told of that gap.
+   * Runs a tick, then asks for a sync if what clients see differs from the last thing asked for.
+   * On the tick that finishes a cycle the processor is idle only until the next tick starts the
+   * next cycle; clients are shown that tick as the cycle still running, so they never read the gap.
    */
   @Override
   public void tick(FeatureHost host) {
-    finished = false;
+    justFinished = null;
     run(host);
-    if (finished) return;
-    if (status != marked || time() != markedTime) {
-      marked = status;
-      markedTime = time();
+    var seen = justFinished != null ? Status.RUNNING : status;
+    int seenTime = justFinished != null ? justFinished.time() : time();
+    if (seen != marked || seenTime != markedTime) {
+      marked = seen;
+      markedTime = seenTime;
       host.markSync();
     }
+  }
+
+  /**
+   * What clients are sent. It is {@link #state} except on the tick that finishes a cycle, when the
+   * finished cycle still shows as running so the one idle tick before the next cycle starts is not
+   * sent. That tick is never saved: {@link #state} says idle and holds no cycle.
+   */
+  @Override
+  public State clientState() {
+    if (justFinished == null) return state();
+    return new State(
+        false,
+        justFinished.time(),
+        Optional.empty(),
+        0,
+        Optional.of(justFinished),
+        Optional.of(Status.RUNNING));
   }
 
   private void run(FeatureHost host) {
@@ -285,10 +305,10 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     }
     if (progress >= cycle.time()) {
       if (cycle.finish(inventory, level.getRandom())) {
+        justFinished = cycle;
         cycle = null;
         progress = 0;
         status = Status.IDLE;
-        finished = true;
         host.markChanged();
       } else {
         status = Status.BLOCKED;

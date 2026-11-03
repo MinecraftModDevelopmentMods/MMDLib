@@ -29,6 +29,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.machine.feature.FeatureHost;
 import zone.moddev.mc.lib.machine.feature.MachineFeature;
+import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.State;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
@@ -433,6 +434,114 @@ final class ProcessorSmoke {
       if (rig.processor.status() == Status.IDLE && ticks > 0) return;
     }
     throw new AssertionError("Processor smoke failed: the cycle never finished");
+  }
+
+  /** Refills the slot as a hopper would, once a cycle has left it without iron. */
+  private static void feed(ProcessorRig rig) {
+    if (rig.processor.status() == Status.IDLE && !rig.items.getStackInSlot(0).is(Items.IRON_INGOT))
+      refill(rig, Items.IRON_INGOT);
+  }
+
+  /**
+   * A mark still pending when a cycle finishes is sent on that tick, and clients must not read the
+   * idle tick between cycles then. Tried for every pair of interrupt and resume ticks.
+   */
+  static void pendingMarkOnAFinishTick(ServerLevel level) {
+    for (int pause = 1; pause <= 14; pause++) {
+      for (int gap = 1; gap <= 3; gap++) {
+        var client = ProcessorRig.oneSlot(true);
+        var rig = watched(level, client);
+        refill(rig, Items.IRON_INGOT);
+        for (int tick = 1; tick <= 60; tick++) {
+          rig.ticks(level, 1);
+          if (tick == pause) rig.processor.interrupt();
+          if (tick == pause + gap) rig.processor.resume();
+          feed(rig);
+          require(
+              client.processor.status() != Status.IDLE,
+              "pause " + pause + " gap " + gap + " tick " + tick + ": clients read IDLE");
+        }
+        require(client.processor.status() == Status.RUNNING, "pause " + pause + ": not running");
+        require(client.processor.time() == 10, "pause " + pause + ": time");
+      }
+    }
+  }
+
+  /** Another lane's mark is sent on this lane's finish tick; clients must not read idle then. */
+  static void siblingMarkOnAFinishTick(ServerLevel level) {
+    var registries = level.registryAccess();
+    for (int pause = 1; pause <= 30; pause++) {
+      var flat = ProcessorRig.oneSlot(true);
+      var other = ProcessorRig.oneSlot(true);
+      var clientFlat = ProcessorRig.oneSlot(true);
+      var type = MachineRecipeTypeSmoke.REFINING;
+      var otherLane = new RecipeProcessor("other", type, other.inventory);
+      var clientLane = new RecipeProcessor("other", type, other.inventory);
+      var clientHost = clientFlat.host.add(clientLane);
+      var host = flat.host.add(otherLane);
+      flat.onSync =
+          () -> {
+            var update = FeatureSync.updateTag(host, registries);
+            FeatureSync.read(clientHost, update, registries);
+          };
+      refill(flat, Items.IRON_INGOT);
+      refill(other, Items.IRON_INGOT);
+      for (int tick = 1; tick <= 80; tick++) {
+        host.tick(level);
+        if (tick == pause) otherLane.interrupt();
+        feed(flat);
+        require(
+            clientFlat.processor.status() != Status.IDLE,
+            "pause " + pause + " tick " + tick + ": clients read IDLE");
+      }
+      require(clientFlat.processor.status() == Status.RUNNING, "pause " + pause + ": not running");
+      require(clientLane.status() == Status.PAUSED, "pause " + pause + ": " + clientLane.status());
+    }
+  }
+
+  /** A player who arrives on the tick a cycle finishes is told it is running; idle follows. */
+  static void updateTagInTheGap(ServerLevel level) {
+    var registries = level.registryAccess();
+    var rig = ProcessorRig.oneSlot(true);
+    refill(rig, Items.IRON_INGOT);
+    cycle(level, rig);
+    require(rig.processor.status() == Status.IDLE, "the gap");
+    var arrival = ProcessorRig.oneSlot(true);
+    FeatureSync.read(arrival.host, FeatureSync.updateTag(rig.host, registries), registries);
+    require(arrival.processor.status() == Status.RUNNING, "told " + arrival.processor.status());
+    require(arrival.processor.time() == 10, "told time " + arrival.processor.time());
+
+    rig.onSync =
+        () -> {
+          var update = FeatureSync.updateTag(rig.host, registries);
+          FeatureSync.read(arrival.host, update, registries);
+        };
+    rig.ticks(level, FeatureHost.SYNC_INTERVAL);
+    require(arrival.processor.status() == Status.IDLE, "later " + arrival.processor.status());
+    require(arrival.processor.time() == 0, "later time " + arrival.processor.time());
+  }
+
+  /** A save made in the gap holds no cycle: nothing comes back, nothing is made twice. */
+  static void saveInTheGap(ServerLevel level) {
+    var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+    var rig = ProcessorRig.oneSlot(true);
+    refill(rig, Items.IRON_INGOT);
+    cycle(level, rig);
+    var state = rig.processor.state();
+    require(state.status().equals(Optional.of(Status.IDLE)), "state says " + state.status());
+    require(state.cycle().isEmpty(), "state holds the finished cycle");
+    require(rig.items.getStackInSlot(0).is(Items.GOLD_INGOT), "one gold made");
+
+    var copy = rig.reloaded(level);
+    copy.host.load(ops, rig.host.save(ops));
+    require(copy.processor.status() == Status.IDLE, "loaded " + copy.processor.status());
+    require(copy.processor.time() == 0, "loaded time");
+    require(unplanned(copy), "plans came back");
+    var held = copy.items.getStackInSlot(0);
+    require(held.is(Items.GOLD_INGOT) && held.getCount() == 1, "products " + held);
+    copy.ticks(level, 20);
+    held = copy.items.getStackInSlot(0);
+    require(held.is(Items.GOLD_INGOT) && held.getCount() == 1, "made again " + held);
   }
 
   /** A save with a status name this version doesn't know still restores everything else. */
