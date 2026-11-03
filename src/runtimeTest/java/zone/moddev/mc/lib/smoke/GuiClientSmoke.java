@@ -241,10 +241,14 @@ public final class GuiClientSmoke {
       MMDLib.LOGGER.info(
           "MMDLIB_GUI_SIDES_PASS: actual context navigation, hidden slots, side-face click and"
               + " authoritative sync");
+      // Back to the first view, where the input slot is shown, for the plans check.
+      var navigation = screen.getMenu().bound.screen().find("navigate").orElseThrow();
+      var back = screen.bounds(navigation);
+      screen.mouseClicked(back.x() + 3, back.y() + 3, 0);
       stage = 4;
     }
     // The plans check runs from the tick handler; the JEI-less run ends here once it passes.
-    if (stage == 4 && plansStage == 3) {
+    if (stage == 4 && plansStage == 7) {
       if (!net.neoforged.fml.ModList.get().isLoaded("jei")) {
         finished = true;
         mc.stop();
@@ -311,17 +315,21 @@ public final class GuiClientSmoke {
   }
 
   /**
-   * With the machine screen open on the menu, reserves one iron of ten on the server and checks
-   * that the client's slot predicts the reservation, then that releasing it clears the prediction.
+   * With the machine screen back on its first view, reserves one iron of ten (and room for four
+   * more) on the server. The client's slot must refuse gold, cap a stack where the plan says, and
+   * predict real clicks the way the server answers them; releasing the plan lifts all of it.
    */
   private static void checkPlans(Minecraft mc) {
-    if (plansStage == 3 || !(mc.player.containerMenu instanceof MachineMenu menu)) return;
+    if (plansStage == 7 || !(mc.player.containerMenu instanceof MachineMenu menu)) return;
     var server = mc.getSingleplayerServer();
     var slot = menu.slots.get(0);
     var iron = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_INGOT);
     var gold = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLD_INGOT);
     var handler = ((net.neoforged.neoforge.items.SlotItemHandler) slot).getItemHandler();
+    var plan =
+        new zone.moddev.mc.lib.machine.inventory.SlotPlan(1, iron.copyWithCount(4));
     if (plansStage == 0) {
+      if (!slot.isActive()) return;
       plansStage = 1;
       server.execute(
           () -> {
@@ -329,10 +337,7 @@ public final class GuiClientSmoke {
               var items = ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS)).items;
               savedInput = items.getStackInSlot(0).copy();
               items.setStackInSlot(0, iron.copyWithCount(10));
-              if (!items.reserve(
-                  0,
-                  new zone.moddev.mc.lib.machine.inventory.SlotPlan(
-                      1, net.minecraft.world.item.ItemStack.EMPTY)))
+              if (!items.reserve(0, plan))
                 throw new AssertionError("the server refused the reservation");
             } catch (Throwable error) {
               fail(error);
@@ -345,45 +350,94 @@ public final class GuiClientSmoke {
         if (++plansTicks > 60) throw new AssertionError("the plan never reached the client");
         return;
       }
-      if (slot.mayPlace(gold) || client.isItemValid(0, gold) || !client.isItemValid(0, iron))
+      // 10 iron, take 1, add 4: the slot ends at 13, which is all it may hold.
+      if (slot.mayPlace(gold) || !slot.mayPlace(iron))
         throw new AssertionError("the client does not hold the slot to the iron it keeps");
-      if (slot.getMaxStackSize(iron) != 16)
+      if (slot.getMaxStackSize(iron) != 13)
         throw new AssertionError("planned max stack " + slot.getMaxStackSize(iron));
       int free = client.extractItem(0, 64, true).getCount();
       if (free != slot.getItem().getCount() - 1)
         throw new AssertionError("the client predicts " + free + " free to take");
+      // A real click over the connection: left click takes what is free.
+      mc.gameMode.handleInventoryMouseClick(
+          menu.containerId, 0, 0, net.minecraft.world.inventory.ClickType.PICKUP, mc.player);
+      requireSlot(menu, 1, 9, "the client's prediction of taking the free iron");
       plansStage = 2;
       plansTicks = 0;
+    } else if (plansStage == 2) {
+      // Long enough for the server's answer to arrive and overwrite a wrong prediction.
+      if (++plansTicks < 20) return;
+      requireSlot(menu, 1, 9, "the client after the server answered taking");
+      requireServerSlot(server, 1, 9, "taking");
+      // Put it back: merging onto the planned iron is allowed.
+      mc.gameMode.handleInventoryMouseClick(
+          menu.containerId, 0, 0, net.minecraft.world.inventory.ClickType.PICKUP, mc.player);
+      requireSlot(menu, 10, 0, "the client's prediction of putting the iron back");
+      plansStage = 3;
+      plansTicks = 0;
+    } else if (plansStage == 3) {
+      if (++plansTicks < 20) return;
+      requireSlot(menu, 10, 0, "the client after the server answered putting back");
+      requireServerSlot(server, 10, 0, "putting back");
+      plansStage = 4;
       server.execute(
           () -> {
             try {
               ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS))
                   .items
-                  .release(
-                      0,
-                      new zone.moddev.mc.lib.machine.inventory.SlotPlan(
-                          1, net.minecraft.world.item.ItemStack.EMPTY));
+                  .release(0, plan);
             } catch (Throwable error) {
               fail(error);
             }
           });
-    } else if (plansStage == 2) {
+    } else if (plansStage == 4) {
       var client = (ClientMenuItems) handler;
       if (client.hasPlan(0)) {
-        if (++plansTicks > 60) throw new AssertionError("the release never reached the client");
+        if (++plansTicks > 80) throw new AssertionError("the release never reached the client");
         return;
       }
-      if (client.extractItem(0, 64, true).getCount() != 10)
-        throw new AssertionError("a released slot is not free to take");
-      plansStage = 3;
+      if (client.extractItem(0, 64, true).getCount() != 10
+          || slot.getMaxStackSize(iron) != 16
+          || !slot.mayPlace(gold))
+        throw new AssertionError("a released slot is still held");
+      plansStage = 7;
       server.execute(
           () ->
               ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS))
                   .items
                   .setStackInSlot(0, savedInput));
       MMDLib.LOGGER.info(
-          "MMDLIB_GUI_PLANS_PASS: the client menu held a reserved slot and let it go again");
+          "MMDLIB_GUI_PLANS_PASS: the client menu held a reserved slot, predicted real clicks on"
+              + " it as the server answered them, and let it go again");
     }
+  }
+
+  private static void requireSlot(MachineMenu menu, int slot, int carried, String what) {
+    if (menu.slots.get(0).getItem().getCount() != slot || menu.getCarried().getCount() != carried)
+      throw new AssertionError(
+          what
+              + ": slot "
+              + menu.slots.get(0).getItem().getCount()
+              + ", carried "
+              + menu.getCarried().getCount());
+  }
+
+  private static void requireServerSlot(
+      net.minecraft.server.MinecraftServer server, int slot, int carried, String what) {
+    var state =
+        server
+            .submit(
+                () -> {
+                  var menu =
+                      server.getPlayerList().getPlayers().getFirst().containerMenu;
+                  return new int[] {
+                    menu.getSlot(0).getItem().getCount(), menu.getCarried().getCount()
+                  };
+                })
+            .join();
+    if (state[0] != slot || state[1] != carried)
+      throw new AssertionError(
+          "the server after " + what + ": slot " + state[0] + ", carried " + state[1]);
   }
 
   private static void fail(Throwable error) {
