@@ -172,8 +172,7 @@ public final class RecipeMatcher {
       }
       case FluidGroup fluids -> {
         var amounts = new long[fluids.tanks()];
-        for (int tank = 0; tank < amounts.length; tank++)
-          amounts[tank] = fluids.free(tank);
+        for (int tank = 0; tank < amounts.length; tank++) amounts[tank] = fluids.free(tank);
         yield amounts;
       }
       case EnergyGroup energy -> new long[] {energy.stored()};
