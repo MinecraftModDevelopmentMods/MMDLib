@@ -71,7 +71,8 @@ the menu keeps them from being taken or replaced:
 - Left and right click, Q and Ctrl+Q, and shift-click take only what is free.
 - Clicking the slot with a different item is refused.
 - A number key is refused on a slot with a plan, because vanilla would move the whole stack.
-- Double-clicking a slot with a plan doesn't collect from elsewhere.
+- Double-clicking a slot with a plan doesn't collect from elsewhere. Double-clicking another slot
+  still takes the planned slot's free part.
 
 The client's menu works out the same answer from the slot's plan, which arrives with the screen's
 values, so clicks don't flicker. Bars and numbers still come from the getters named in the XML; a
