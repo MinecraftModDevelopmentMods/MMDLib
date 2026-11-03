@@ -1,125 +1,56 @@
-buildscript {
-  repositories {
-    mavenLocal()
-    jcenter()
-    mavenCentral()
-//  maven {
-//    url 'http://maven.aliyun.com/nexus/content/groups/public/'
-//  }
-//
-//  maven {
-//    url 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
-//  }
-    removeIf { it instanceof MavenArtifactRepository && it.url.host == 'files.minecraftforge.net' }
-    maven {
-      name = 'forge'
-      url = 'https://maven.minecraftforge.net/'
-    }
-    maven {
-      name = 'gradle'
-      url 'https://plugins.gradle.org/m2/'
-    }
-    maven {
-      name = 'sonatype'
-      url = 'https://oss.sonatype.org/content/groups/public'
-    }
-  }
-  dependencies {
-    classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: project.fg_version
-    //classpath group: 'com.jaredsburrows', name: 'gradle-checker-framework-plugin', version: '0.2.2'
-  }
-}
-
 plugins {
-  id 'com.github.spotbugs' version '1.6.9' // 4.0 or later
+  id 'net.minecraftforge.gradle'
+  id 'com.github.spotbugs' version '6.0.26'
   id 'com.matthewprenger.cursegradle' version '1.4.0'
-  id 'org.sonarqube' version '2.8'
-  id 'se.bjurr.gitchangelog.git-changelog-gradle-plugin' version '1.60'
-//id 'org.junit.platform.gradle.plugin' version '1.2.0'
+  id 'org.sonarqube' version '5.1.0.4882'
+  id 'se.bjurr.gitchangelog.git-changelog-gradle-plugin' version '1.79.0'
   id 'maven-publish'
   id 'jacoco'
-  id 'checkstyle' // 2.7 or later
+  id 'checkstyle'
+  id 'eclipse'
+  id 'idea'
+  id 'pmd'
 }
 
-apply plugin: 'net.minecraftforge.gradle.forge' // FG2.x
-//apply plugin: 'forge' // FG1.x
-//apply plugin: 'com.jaredsburrows.checkerframework'
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-apply plugin: 'maven-publish'
-apply plugin: 'pmd'
-import org.gradle.util.GradleVersion
-if (GradleVersion.current() < GradleVersion.version('4.0')) {
-  apply plugin: 'findbugs'
+import com.github.spotbugs.snom.Confidence
+import com.github.spotbugs.snom.Effort
+import groovy.json.JsonSlurper
+import java.util.regex.Matcher
+import net.minecraftforge.gradle.common.tasks.SignJar
+
+java {
+  toolchain.languageVersion = JavaLanguageVersion.of(8)
 }
 
-project.afterEvaluate {
-  //final def junitPlatformTestTask = project.tasks.getByName('junitPlatformTest')
-
-  // configure jacoco to analyze the junitPlatformTest task
-  jacoco {
-    // this tool version is compatible with
-    toolVersion = '0.8.3'
-    // Not needed with new way
-    //if (GradleVersion.current() < GradleVersion.version('4.6')) {
-      //applyTo junitPlatformTestTask
-    //}}
-  }
-
-  // create junit platform jacoco task
-  project.task(type: JacocoReport, 'junitPlatformJacocoReport',
-  {
-    if (GradleVersion.current() >= GradleVersion.version('5.0')) {
-      getSourceDirectories().from(files('./src/main'))
-      getClassDirectories().from(files("${project.buildDir}/classes/main"))
-    } else {
-      sourceDirectories = files('./src/main')
-      classDirectories = files("${project.buildDir}/classes/main")
-    }
-    // Not needed with new way
-    //if (GradleVersion.current() < GradleVersion.version('4.6')) {
-    //  executionData junitPlatformTestTask
-    //}
-  })
+jacoco {
+  toolVersion = '0.8.12'
 }
 
-// Only works with JUnit Platform Launcher 1.2.0 and earlier
-/*
-if (GradleVersion.current() < GradleVersion.version('4.6')) {
-  junitPlatform {
-    // platformVersion '1.2.0'
-    // logManager 'org.apache.logging.log4j.jul.LogManager'
-    reportsDir file("${project.buildDir}/test-results/junit-platform")
-    // enableStandardTestTask true
-    // selectors (optional)
-    // filters (optional)
-  }
+tasks.register('junitPlatformJacocoReport', JacocoReport) {
+  dependsOn test
+  executionData test
+  sourceDirectories.from files('./src/main')
+  classDirectories.from sourceSets.main.output
 }
-*/
 
-if (GradleVersion.current() >= GradleVersion.version('4.0')) {
-  spotbugs {
-    ignoreFailures = true
-    toolVersion = '3.1.6'
-    effort = 'max'
-    reportLevel = 'low'
-    //includeFilter = file("$rootProject.projectDir/config/spotbugs-filter.xml")
-  }
+spotbugs {
+  ignoreFailures = true
+  effort = Effort.valueOf('MAX')
+  reportLevel = Confidence.valueOf('LOW')
+  //includeFilter = file("$rootProject.projectDir/config/spotbugs-filter.xml")
+}
 
-  tasks.withType(com.github.spotbugs.SpotBugsTask) {
-    reports {
-      xml.enabled = false
-      html.enabled = true
-    }
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+  reports {
+    xml.required = false
+    html.required = true
   }
 }
 
-if (GradleVersion.current() >= GradleVersion.version('2.7')) {
-  checkstyle {
-    ignoreFailures = true
-    toolVersion = '8.20' // 5.7 is default
-    showViolations = false
-  }
+checkstyle {
+  ignoreFailures = true
+  toolVersion = '8.20' // 5.7 is default
+  showViolations = false
 }
 
 pmd {
@@ -127,74 +58,47 @@ pmd {
   ignoreFailures = true
   sourceSets = [sourceSets.main]
   reportsDir = file("$project.buildDir/reports/pmd")
-  rulePriority = 5
+  rulesMinimumPriority = 5
   ruleSets = [
-    'java-android',
-    'java-basic',
-    'java-braces',
-    'java-clone',
-    'java-codesize',
-    'java-comments',
-    'java-controversial',
-    'java-coupling',
-    'java-design',
-    'java-empty',
-    'java-finalizers',
-    'java-imports',
-    'java-j2ee',
-    'java-javabeans',
-    'java-junit',
-    'java-logging-jakarta-commons',
-    'java-logging-java',
-//    'java-metrics', // Upsets 5.8.1
-    'java-migrating',
-    'java-migrating_to_junit4',
-    'java-naming',
-    'java-optimizations',
-//    'java-quickstart', // 6.x
-    'java-strictexception',
-    'java-strings',
-    'java-sunsecure',
-    'java-typeresolution',
-    'java-unnecessary',
-    'java-unusedcode'
+    'category/java/bestpractices.xml',
+    'category/java/codestyle.xml',
+    'category/java/design.xml',
+    'category/java/documentation.xml',
+    'category/java/errorprone.xml',
+    'category/java/multithreading.xml',
+    'category/java/performance.xml',
+    'category/java/security.xml'
   ]
-  toolVersion = '5.8.1'; // 6.19.0
-  if (GradleVersion.current() >= GradleVersion.version('5.6')) {
-//    incrementalAnalysis = true // Requires PMD 6.0.0 or newer
-  }
+  toolVersion = '6.55.0'
+  incrementalAnalysis = true
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
   options.encoding = 'UTF-8'
   options.compilerArgs = [
     '-Xlint:deprecation', // deprecation, rawtypes, cast, unchecked, all
     //'-Xdiags:verbose',
     //'-Werror'
   ]
-  compileJava.options.compilerArgs += '-proc:none'
 }
 
-tasks.withType(Test) {
-  compileTestJava.options.compilerArgs += '-proc:none'
-}
+compileJava.options.compilerArgs += '-proc:none'
+compileTestJava.options.compilerArgs += '-proc:none'
 
 javadoc {
   failOnError = false
 }
 
 test {
-  if (GradleVersion.current() >= GradleVersion.version('4.6')) {
-    useJUnitPlatform()
-    /*
-    useJUnitPlatform {
-      includeTags 'fast', 'smoke & feature-a'
-      //excludeTags 'slow', 'ci'
-      includeEngines 'junit-jupiter'
-      //excludeEngines 'junit-vintage'
-    }
-    */
+  useJUnitPlatform()
+  /*
+  useJUnitPlatform {
+    includeTags 'fast', 'smoke & feature-a'
+    //excludeTags 'slow', 'ci'
+    includeEngines 'junit-jupiter'
+    //excludeEngines 'junit-vintage'
   }
+  */
 }
 
 //project.ext.short_version = '1.0.0'
@@ -212,10 +116,9 @@ static String getBuildNumber() {
   return System.getenv('BUILD_NUMBER') ?: System.getenv('TRAVIS_BUILD_NUMBER') ?: System.getenv('CIRCLE_BUILD_NUM') ?: '0'
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
-compileJava.sourceCompatibility = JavaVersion.VERSION_1_8
-compileJava.targetCompatibility = JavaVersion.VERSION_1_8
+base {
+  archivesName = project.archivesBaseName
+}
 
 eclipse.project {
   buildCommand 'org.eclipse.buildship.core.gradleprojectbuilder'
@@ -242,7 +145,6 @@ if (System.getenv('SECRET_FILE')) {
   secretFile = file 'secret.json'
 }
 
-import groovy.json.JsonSlurper
 project.ext.secret = new Secrets()
 if (secretFile.exists()) {
   secretFile.withReader {
@@ -260,376 +162,232 @@ if (secretFile.exists()) {
   )
 }
 
+final def mcRunDir = project.hasProperty('runDir') ? file(project.runDir)
+    : file('../run').exists() ? file('../run')
+    : file('run')
+
 minecraft {
-  version = project.forge_mc_version + '-' + project.forge_version
-  mappings = project.mcp_mappings_version
+  mappings channel: project.mcp_mappings_channel, version: project.mcp_mappings_version
 
-  if (project.hasProperty('runDir')) {
-    runDir = project.runDir
-  } else if (file('../run').exists()) {
-    runDir = '../run'
-  } else {
-    runDir = 'run'
+  if (project.hasProperty('mod_at_file')) {
+    accessTransformer = file("src/main/resources/${project.mod_at_file}")
   }
 
-  replace '@MOD_VERSION@', project.short_version
+  runs {
+    configureEach {
+      workingDirectory mcRunDir
 
-  if (project.hasProperty('signSHA1') && getBooleanProperty('do_sign_jar')) {
-    replace '@FINGERPRINT@', project.findProperty('signSHA1')
-  } else {
-    replace '@FINGERPRINT@', ''
-  }
+      property 'forge.logging.console.level', 'debug'
 
-  if (project.hasProperty('core_plugin')) {
-    clientJvmArgs += "-Dfml.coreMods.load=${project.core_plugin}"
-    serverJvmArgs += "-Dfml.coreMods.load=${project.core_plugin}"
-  }
+      if (project.hasProperty('core_plugin')) {
+        property 'fml.coreMods.load', project.core_plugin
+      }
 
-  if (project.hasProperty('mc_username')) {
-    clientRunArgs += ['--username', project.mc_username]
-    if (project.hasProperty('mc_password')) {
-      clientRunArgs += ['--password', project.mc_password]
+      if (getBooleanProperty('forge_do_not_backup')) {
+        property 'fml.doNotBackup', 'true'
+      }
+
+      if (getBooleanProperty('log4j_skip_jansi')) {
+        property 'log4j.skipJansi', 'true'
+      }
+
+      mods {
+        mmdlib {
+          source sourceSets.main
+        }
+      }
+    }
+
+    client {
+      if (project.hasProperty('mc_username')) {
+        args '--username', project.mc_username
+        if (project.hasProperty('mc_password')) {
+          args '--password', project.mc_password
+        }
+      }
+      if (project.hasProperty('mc_uuid')) {
+        args '--uuid', project.mc_uuid
+      }
+
+      if (project.hasProperty('mc_resolution')) {
+        final def res = [
+                         '480p': [640, 480],
+                         '576p': [640, 576],
+                         '720p': [1280, 720],
+                         '1080p': [1920, 1080],
+                         'custom': [project.findProperty('mc_custom_resolution_width'), project.findProperty('mc_custom_resolution_height')]]
+        final def choice = res?.get(project.mc_resolution)
+        if (choice != null) {
+          args '--width', choice[0]
+          args '--height', choice[1]
+        }
+      }
+
+      if (project.hasProperty('client_jvm_args')) {
+        jvmArgs project.client_jvm_args
+      }
+      if (project.hasProperty('client_game_args')) {
+        args project.client_game_args
+      }
+    }
+
+    server {
+      if (getBooleanProperty('mc_server_nogui')) {
+        args 'nogui'
+      }
+
+      if (getBooleanProperty('forge_query_result_confirm')) {
+        property 'fml.queryResult', 'confirm'
+      }
+
+      if (project.hasProperty('server_jvm_args')) {
+        jvmArgs project.server_jvm_args
+      }
+      if (project.hasProperty('server_game_args')) {
+        args project.server_game_args
+      }
     }
   }
-  if (project.hasProperty('mc_uuid')) {
-    clientRunArgs += ['--uuid', project.mc_uuid]
-  }
-
-  if (getBooleanProperty('mc_server_nogui')) {
-    serverRunArgs += 'nogui'
-  }
-
-  if (getBooleanProperty('forge_do_not_backup')) {
-    serverJvmArgs += '-Dfml.doNotBackup=true'
-    clientJvmArgs += '-Dfml.doNotBackup=true'
-  }
-
-  if (getBooleanProperty('forge_query_result_confirm')) {
-    serverJvmArgs += '-Dfml.queryResult=confirm'
-  }
-
-  if (getBooleanProperty('log4j_skip_jansi')) {
-    serverJvmArgs += '-Dlog4j.skipJansi=true'
-    clientJvmArgs += '-Dlog4j.skipJansi=true'
-  }
-
-  if (project.hasProperty('mc_resolution')) {
-    final def res = [
-                     '480p': [640, 480],
-                     '576p': [640, 576],
-                     '720p': [1280, 720],
-                     '1080p': [1920, 1080],
-                     'custom': [project.findProperty('mc_custom_resolution_width'), project.findProperty('mc_custom_resolution_height')]]
-    final def choice = res?.get(project.mc_resolution)
-    if (choice != null) {
-      clientRunArgs += ['--width', choice[0]]
-      clientRunArgs += ['--height', choice[1]]
-    }
-  }
-
-  if (project.hasProperty('client_jvm_args')) {
-    clientJvmArgs += project.client_jvm_args
-  }
-  if (project.hasProperty('server_jvm_args')) {
-    serverJvmArgs += project.server_jvm_args
-  }
-
-  if (project.hasProperty('client_game_args')) {
-    clientRunArgs += project.client_game_args
-  }
-  if (project.hasProperty('server_game_args')) {
-    serverRunArgs += project.server_game_args
-  }
-
-  makeObfSourceJar = getBooleanProperty('create_source_jar')
-
-  useDepAts = getBooleanProperty('dep_has_ats')
 }
 
 repositories {
+  // Must come before any third-party maven: ForgeGradle's downloader tries repositories in
+  // order and accepts the first non-error response, so a maven that answers unknown paths
+  // with an HTML page gets that page cached as the Forge userdev jar.
+  maven {
+    name = 'MinecraftForge'
+    url = 'https://maven.minecraftforge.net/'
+  }
   mavenLocal()
-  jcenter()
   mavenCentral()
 
-  removeIf { it instanceof MavenArtifactRepository && it.url.host == 'files.minecraftforge.net' }
-  maven {
-    url "https://maven.minecraftforge.net/"
-  }
-  maven { // Mantle, TCon, JEI
-    name 'DVS1 Maven FS'
-    url 'http://dvs1.progwml6.com/files/maven/'
-  }
-  maven { // CCL, CCC, NEI
-    name 'Chickenbones Repo'
-    url 'http://chickenbones.net/maven/'
-  }
-  maven { // The One Probe, EnderIO, EnderCore
-    name 'tterrag'
-    url 'http://maven.tterrag.com/'
-  }
-  maven { // Tesla
-    name 'MMD'
-    url 'https://maven.mcmoddev.com/'
-  }
-  maven { // MCMultipart
-    name 'amadornes'
-    url 'http://maven.amadornes.com/'
-  }
-  maven { // CraftTweaker, ZenScript
-    name 'blamejared'
-    url 'http://maven.blamejared.com/'
-  }
-  maven { // IC2
-    name 'industrialcraft'
-    url 'http://maven.ic2.player.to/'
-  }
-/*  maven { // HWYLA
-    name 'tehnut'
-    url 'http://tehnut.info/maven/'
-  }*/
-  maven { // CoFH
-    name 'Covers Maven'
-    url 'http://maven.covers1624.net/'
-  }
-  maven {
-    name = 'CurseForge'
-    url = 'https://minecraft.curseforge.com/api/maven/'
-  }
-  maven {
-    name 'opencomputers'
-    url 'http://maven.cil.li/'
-  }
-  maven { // Mekanism, TAIGA
-    name 'jitpack'
-    url 'https://jitpack.io/'
-  }
-  maven { // Buildcraft
-    name 'buildcraft'
-    url 'https://mod-buildcraft.com/maven/'
-  }
-  maven { // Storage Drawers
-    name 'thiakil'
-    url 'http://maven.thiakil.com/'
-  }
-  /*
-  ivy {
-    url 'http://ae-mod.info/builds'
-    layout "pattern", {
-    artifact "[module]-[revision](-[classifier])(.[ext])"
+  maven { // OreSpawn, AdditionalLootTables
+    name = 'MMD Archive'
+    url = 'https://maven.moddev.zone/mmd-archive/'
+    content {
+      includeGroup 'com.mcmoddev'
     }
   }
-  */
+  maven { // TConstruct, Mantle
+    name = 'DVS1 Maven FS'
+    url = 'https://dvs1.progwml6.com/files/maven/'
+    content {
+      includeGroupByRegex 'slimeknights.*'
+    }
+  }
+  maven { // JEI, CraftTweaker, Tesla
+    name = 'blamejared'
+    url = 'https://maven.blamejared.com/'
+    content {
+      includeGroup 'mezz.jei'
+      includeGroup 'CraftTweaker2'
+      includeGroup 'net.darkhax.tesla'
+    }
+  }
+  maven { // IC2
+    name = 'industrialcraft'
+    url = 'https://maven.ic2.player.to/'
+    content {
+      includeGroup 'net.industrial-craft'
+    }
+  }
+  maven { // CoFH, RedstoneFlux
+    name = 'Covers Maven'
+    url = 'https://maven.covers1624.net/'
+    content {
+      includeGroup 'cofh'
+    }
+  }
+  maven { // Mekanism
+    name = 'jitpack'
+    url = 'https://jitpack.io/'
+    content {
+      includeGroup 'com.github.aidancbrady'
+    }
+  }
+  maven { // Construct's Armory, Thaumcraft, VeinMiner, HWYLA
+    name = 'CurseMaven'
+    url = 'https://cursemaven.com/'
+    content {
+      includeGroup 'curse.maven'
+    }
+  }
 }
 
 dependencies {
-  testCompile('org.junit.platform:junit-platform-launcher:1.5.+')
-  testCompile('org.junit.jupiter:junit-jupiter-api:5.5.+') // testImplementation
-  testRuntime('org.junit.jupiter:junit-jupiter-engine:5.5.+') //testRuntimeOnly
-  if (GradleVersion.current() >= GradleVersion.version('2.13')) {
-    testCompileOnly 'junit:junit:4.12'
-  }
-  testRuntime 'org.junit.vintage:junit-vintage-engine:5.5.+' //testRuntimeOnly
-  testCompile('org.mockito:mockito-core:2.+')
-  testCompile('org.mockito:mockito-junit-jupiter:2.+') {
+  minecraft "net.minecraftforge:forge:${project.forge_mc_version}-${project.forge_version}"
+
+  testImplementation platform('org.junit:junit-bom:5.5.2')
+  testImplementation 'org.junit.platform:junit-platform-launcher'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+  testCompileOnly 'junit:junit:4.12'
+  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
+  testImplementation 'org.mockito:mockito-core:2.+'
+  testImplementation('org.mockito:mockito-junit-jupiter:2.+') {
     exclude group: 'org.junit.jupiter', module: 'junit-jupiter-engine'
   }
-  if (GradleVersion.current() >= GradleVersion.version('4.6')) {
-    annotationProcessor group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.0'
-  }
 
-  deobfProvided "com.mcmoddev:AdditionalLootTables:${mc_version}-${alt_version}"
-  //runtime "com.mcmoddev:AdditionalLootTables:${mc_version}-${alt_version}"
-  deobfProvided "com.mcmoddev:OreSpawn:${mc_version}-${orespawn_version}"
-  //runtime "com.mcmoddev:OreSpawn:${mc_version}-${orespawn_version}"
+  compileOnly fg.deobf("com.mcmoddev:AdditionalLootTables:${mc_version}-${alt_version}")
+  compileOnly fg.deobf("com.mcmoddev:OreSpawn:${mc_version}-${orespawn_version}")
 
   // TODO: We don't use this
-  deobfProvided "net.darkhax.tesla:Tesla-${mc_version}.2:${tesla_version}"
-//runtime "net.darkhax.tesla:Tesla-${mc_version}.2:${tesla_version}"
+  compileOnly fg.deobf("net.darkhax.tesla:Tesla-${mc_version}.2:${tesla_version}")
 
-  deobfProvided ("com.github.aidancbrady:Mekanism:${mekanism_version}") {
-    exclude group: 'com.mod-buildcraft'
-    exclude group: 'CraftTweaker2'
-    exclude group: 'MCMultiPart2'
-    exclude group: 'cofh'
-    exclude group: 'com.blamejared'
-    exclude group: 'mezz.jei'
-    exclude group: 'net.darkhax.tesla'
-    exclude module: 'CTM'
-    exclude module: 'Hwyla'
-    exclude module: 'InventoryTweaks'
-    exclude module: 'industrialcraft-2'
-    exclude module: 'OpenComputers'
-  }
-  /*
-  runtime ("com.github.aidancbrady:Mekanism:${mekanism_version}") {
-    exclude group: 'com.mod-buildcraft'
-    exclude group: 'CraftTweaker2'
-    exclude group: 'MCMultiPart2'
-    exclude group: 'cofh'
-    exclude group: 'com.blamejared'
-    exclude group: 'mezz.jei'
-    exclude group: 'net.darkhax.tesla'
-    exclude module: 'CTM'
-    exclude module: 'Hwyla'
-    exclude module: 'InventoryTweaks'
-    exclude module: 'industrialcraft-2'
-    exclude module: 'OpenComputers'
-  }
-  */
-
-  // TODO: We don't use this
-  deobfProvided ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
-    exclude group: 'mezz.jei'
-  }
-  
-//  runtime ("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
-//    exclude group: 'mezz.jei'
-//  }
-  
-
-  deobfProvided ("slimeknights:TConstruct:${mc_version}.2-${tconstruct_version}") {
-    exclude group: 'mezz.jei'
-  }
-  
-//  runtime ("slimeknights:TConstruct:${mc_version}-${tconstruct_version}") {
-//    exclude group: 'mezz.jei'
-//  }
-
-  deobfProvided ("constructs-armory:conarm:${mc_version}.2:${conarm_version}") {
-    exclude group: 'mezz.jei'
+  compileOnly fg.deobf("com.github.aidancbrady:Mekanism:${mekanism_version}") {
+    transitive = false
   }
 
-//  runtime ("constructs-armory:conarm:${mc_version}.2:${conarm_version}") {
-//    exclude group: 'mezz.jei'
-//  }
-
-  deobfProvided "mezz.jei:jei_${mc_version}.2:${jei_version}"
-//  runtime "mezz.jei:jei_${mc_version}:${jei_version}"
-
-  // TODO: We don't use this
-  deobfProvided "codechicken:CodeChickenLib:${mc_version}.2-${ccl_version}:universal"
-//runtime "codechicken:CodeChickenLib:${mc_version}-${ccl_version}:universal"
-
-  deobfProvided ("codechicken:NotEnoughItems:${mc_version}.2-${nei_version}:universal") {
-    exclude group: 'codechicken'
-    exclude group: 'mezz.jei'
-  }
-  /*
-  runtime ("codechicken:NotEnoughItems:${mc_version}-${nei_version}:universal") {
-    exclude group: 'codechicken'
-    exclude group: 'mezz.jei'
-  }
-  */
-
-  // TODO: We don't use this
-  deobfProvided "MCMultiPart2:MCMultiPart:${mcmp_version}"
-//runtime "MCMultiPart2:MCMultiPart:${mcmp_version}"
-//deobfProvided "MCMultiPart2:MCMultiPart-exp:${mcmp_experimental_version}"
-//runtime "MCMultiPart2:MCMultiPart-exp:${mcmp_experimental_version}"
-
-  deobfProvided ("mcjty.theoneprobe:TheOneProbe-${mc_version}:${mc_version}-${top_version}:api") {
-    exclude group: 'cofh'
-  }
-  /*
-  runtime ("mcjty.theoneprobe:TheOneProbe-${mc_version}:${mc_version}-${top_version}") {
-    exclude group: 'cofh'
-  }
-  */
-
-  deobfProvided "portablejim:VeinMiner:${veinminer_version}"
-//runtime "portablejim:VeinMiner:${veinminer_version}"
-
-  deobfProvided ("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
-    exclude group: 'mezz.jei'
-  }
-//runtime "net.industrial-craft:industrialcraft-2:${ic2_version}"
-
-  // TODO: We don't use this
-//deobfProvided "com.googlecode.efficient-java-matrix-library:ejml:0.23"
-//runtime "com.googlecode.efficient-java-matrix-library:ejml:0.23"
-
-  deobfProvided "CraftTweaker2:CraftTweaker2-API:${ct_api_version}"
-  deobfProvided "CraftTweaker2:CraftTweaker2-MC1120-Main:${mc_version}-${ct_version}"
-
-  // TODO: We don't use this
-  /*
-  deobfCompile ("MineTweaker3:MineTweaker3-API:${minetweaker_version}") {
-    exclude group: 'mezz.jei'
-    exclude group: 'org.ow2.asm'
-  }
-  runtime "MineTweaker3:MineTweaker3-API:${minetweaker_version}"
-  */
-
-  deobfProvided ("mcp.mobius.waila:Hwyla:${hwyla_version}") {
-    exclude group: 'mezz.jei'
-  }
-//  runtime "mcp.mobius.waila:Hwyla:${hwyla_version}"
-
-  deobfProvided ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:universal") {
-    exclude group: 'mezz.jei'
-  }
-  /*
-  runtime ("cofh:CoFHCore:${mc_version}-${cofhcore_version}:universal") {
-    exclude group: 'mezz.jei'
-  }
-  */
-
-  /*
-  runtime ("cofh:CoFHWorld:${mc_version}-${cofhworld_version}:universal") {
-    exclude group: 'mezz.jei'
+  compileOnly fg.deobf("slimeknights.mantle:Mantle:${mc_version}-${mantle_version}") {
+    transitive = false
   }
 
-  runtime ("cofh:ThermalFoundation:${mc_version}-${thermal_foundation_version}:universal") {
-    exclude group: 'cofh'
-    exclude group: 'mezz.jei'
-  }
-  runtime ("cofh:ThermalExpansion:${mc_version}-${thermal_expansion_version}:universal") {
-    exclude group: 'codechicken'
-    exclude group: 'cofh'
-    exclude group: 'mezz.jei'
-  }
-  */
-
-  deobfProvided ("com.blamejared:MTLib:${mtlib_version}") {
-    exclude group: 'mezz.jei'
-  }
-  /*
-  runtime ("com.blamejared:MTLib:${mtlib_version}") {
-    exclude group: 'mezz.jei'
-  }
-  */
-
-  deobfProvided ("thaumcraft:Thaumcraft:${mc_version}.2:6.1.BETA26") {
-    exclude group: 'mezz.jei'
+  compileOnly fg.deobf("slimeknights:TConstruct:${mc_version}.2-${tconstruct_version}") {
+    transitive = false
   }
 
-  deobfProvided ("baubles:Baubles:${mc_version}:1.5.2"){
-    exclude group: 'mezz.jei'
+  compileOnly fg.deobf("curse.maven:constructs-armory-287683:${conarm_curse_file}")
+
+  compileOnly fg.deobf("mezz.jei:jei_${mc_version}.2:${jei_version}")
+
+  compileOnly fg.deobf("net.industrial-craft:industrialcraft-2:${ic2_version}:api") {
+    transitive = false
   }
+
+  compileOnly fg.deobf("curse.maven:veinminer-67133:${veinminer_curse_file}")
+
+  compileOnly fg.deobf("CraftTweaker2:CraftTweaker2-API:${ct_api_version}") {
+    transitive = false
+  }
+  compileOnly "CraftTweaker2:ZenScript:${ct_api_version}"
+  compileOnly fg.deobf("CraftTweaker2:CraftTweaker2-MC1120-Main:${mc_version}-${ct_version}") {
+    transitive = false
+  }
+
+  compileOnly fg.deobf("curse.maven:hwyla-253449:${hwyla_curse_file}")
+
+  compileOnly fg.deobf("cofh:RedstoneFlux:${mc_version}-${redstoneflux_version}:universal")
+  compileOnly fg.deobf("cofh:CoFHCore:${mc_version}-${cofhcore_version}:universal") {
+    transitive = false
+  }
+
+  compileOnly fg.deobf("curse.maven:thaumcraft-223628:${thaumcraft_curse_file}")
 }
 
 processResources {
   inputs.property 'version', project.short_version
-  inputs.property 'mcversion', project.minecraft.version
+  inputs.property 'mcversion', project.forge_mc_version
 
-  from (sourceSets.main.resources.srcDirs) {
-    include 'mcmod.info'
-    expand 'version': project.short_version, 'mcversion': project.minecraft.version
-  }
-
-  from (sourceSets.main.resources.srcDirs) {
-    exclude 'mcmod.info'
+  filesMatching('mcmod.info') {
+    expand 'version': project.short_version, 'mcversion': project.forge_mc_version
   }
 
   rename '(.+_at.cfg)', 'META-INF/$1'
 }
 
 jar {
-  //from sourceSets.api.output
-  //from sourceSets.main.output
-
   manifest {
-    mainAttributes(
+    attributes(
       'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}",
       'Timestamp': System.currentTimeMillis(),
       'Specification-Title': 'examplemod',
@@ -653,44 +411,29 @@ jar {
         attributes 'ContainedDeps': project.mod_contained_deps
     }
   }
+  finalizedBy 'reobfJar'
 }
 
-task apiJar(type: Jar) {
+tasks.register('sourceJar', Jar) {
   onlyIf {
-    getBooleanProperty('create_api_jar')
+    getBooleanProperty('create_source_jar')
   }
 
-  description = 'Creates a JAR containing the API Classes.'
-  classifier = 'api'
-  from apiClasses
-  // from sourceSets.api.output
-  manifest {
-    mainAttributes(
-      'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}:api",
-      'Timestamp': System.currentTimeMillis(),
-      'Specification-Title': 'examplemod',
-      'Specification-Vendor': 'mcmoddev',
-      'Specification-Version': '1',
-      'Implementation-Title': project.name + '-api',
-      'Implementation-Version': project.version,
-      'Implementation-Vendor' :'mcmoddev',
-      'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-      'Built-On-Java': "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
-      'Built-On': "${project.forge_mc_version}-${project.forge_version}"
-    )
-  }
+  description = 'Creates a JAR containing the source code.'
+  archiveClassifier = 'sources'
+  from sourceSets.main.allSource
 }
 
-task deobfJar(type: Jar) {
+tasks.register('deobfJar', Jar) {
   onlyIf {
     getBooleanProperty('create_deobf_jar')
   }
 
   description = 'Creates a JAR containing the non-obfuscated compiled code.'
-  classifier = 'deobf'
+  archiveClassifier = 'deobf'
   from sourceSets.main.output
   manifest {
-    mainAttributes(
+    attributes(
       'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}:deobf",
       'Timestamp': System.currentTimeMillis(),
       'Specification-Title': 'examplemod',
@@ -712,15 +455,16 @@ task deobfJar(type: Jar) {
   }
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
+tasks.register('javadocJar', Jar) {
+  dependsOn javadoc
   onlyIf {
     getBooleanProperty('create_javadoc_jar')
   }
 
   description = 'Creates a JAR containing the JavaDocs.'
-  classifier = 'javadoc'
-  from javadoc.getDestinationDir()
-  manifest.mainAttributes(
+  archiveClassifier = 'javadoc'
+  from javadoc.destinationDir
+  manifest.attributes(
     'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}:javadoc",
     'Timestamp': System.currentTimeMillis(),
     'Implementation-Title': project.name + '-javadoc',
@@ -730,94 +474,56 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
   )
 }
 
-task signJar(type: SignJar, dependsOn: reobfJar) {
-  onlyIf {
+void configureSigning(final SignJar task, final Jar jarTask, final String flag) {
+  task.dependsOn jarTask
+  task.onlyIf {
+    ((flag == null) || getBooleanProperty(flag)) &&
     getBooleanProperty('do_sign_jar') &&
     project.hasProperty('keyStore')
   }
 
+  task.keyStore = project.findProperty('keyStore')
+  task.alias = project.findProperty('keyStoreAlias')
+  task.storePass = project.findProperty('keyStorePass')
+  task.keyPass = project.findProperty('keyStoreKeyPass')
+
+  task.inputFile = jarTask.archiveFile
+  task.outputFile = jarTask.archiveFile
+}
+
+tasks.register('signJar', SignJar) {
   description = 'Sign the Main JAR'
-  inputFile = jar.archivePath
-  outputFile = jar.archivePath
-
-  keyStore = project.findProperty('keyStore')
-  alias = project.findProperty('keyStoreAlias')
-  storePass = project.findProperty('keyStorePass')
-  keyPass = project.findProperty('keyStoreKeyPass')
+  dependsOn 'reobfJar'
+  configureSigning(it, jar, null)
 }
 
-task signApiJar(type: SignJar) {
-  onlyIf {
-    getBooleanProperty('create_api_jar') &&
-    getBooleanProperty('do_sign_jar') &&
-    project.hasProperty('keyStore')
-  }
-
-  description = 'Sign the API JAR'
-  keyStore = project.findProperty('keyStore')
-  alias = project.findProperty('keyStoreAlias')
-  storePass = project.findProperty('keyStorePass')
-  keyPass = project.findProperty('keyStoreKeyPass')
-
-  inputFile = apiJar.archivePath
-  outputFile = apiJar.archivePath
-}
-
-task signDeobfJar(type: SignJar) {
-  onlyIf {
-    getBooleanProperty('create_deobf_jar') &&
-    getBooleanProperty('do_sign_jar') &&
-    project.hasProperty('keyStore')
-  }
-
+tasks.register('signDeobfJar', SignJar) {
   description = 'Sign the deobf JAR'
-  keyStore = project.findProperty('keyStore')
-  alias = project.findProperty('keyStoreAlias')
-  storePass = project.findProperty('keyStorePass')
-  keyPass = project.findProperty('keyStoreKeyPass')
-
-  inputFile = deobfJar.archivePath
-  outputFile = deobfJar.archivePath
+  configureSigning(it, deobfJar, 'create_deobf_jar')
 }
 
-task signSourceJar(type: SignJar) {
-  onlyIf {
-    getBooleanProperty('create_source_jar') &&
-    getBooleanProperty('do_sign_jar') &&
-    project.hasProperty('keyStore')
-  }
-
+tasks.register('signSourceJar', SignJar) {
   description = 'Sign the Sources JAR'
-  keyStore = project.findProperty('keyStore')
-  alias = project.findProperty('keyStoreAlias')
-  storePass = project.findProperty('keyStorePass')
-  keyPass = project.findProperty('keyStoreKeyPass')
-
-  inputFile = sourceJar.archivePath
-  outputFile = sourceJar.archivePath
+  configureSigning(it, sourceJar, 'create_source_jar')
 }
 
-task signJavadocJar(type: SignJar) {
-  onlyIf {
-    getBooleanProperty('create_javadoc_jar') &&
-    getBooleanProperty('do_sign_jar') &&
-    project.hasProperty('keyStore')
-  }
+tasks.register('signJavadocJar', SignJar) {
+  description = 'Sign the Javadoc JAR'
+  configureSigning(it, javadocJar, 'create_javadoc_jar')
+}
 
-  keyStore = project.findProperty('keyStore')
-  alias = project.findProperty('keyStoreAlias')
-  storePass = project.findProperty('keyStorePass')
-  keyPass = project.findProperty('keyStoreKeyPass')
-
-  inputFile = javadocJar.archivePath
-  outputFile = javadocJar.archivePath
+if (getBooleanProperty('create_deobf_jar')) {
+  build.dependsOn deobfJar
+}
+if (getBooleanProperty('create_source_jar')) {
+  build.dependsOn sourceJar
+}
+if (getBooleanProperty('create_javadoc_jar')) {
+  build.dependsOn javadocJar
 }
 
 if (getBooleanProperty('do_sign_jar')) {
   build.dependsOn signJar
-  if (getBooleanProperty('create_api_jar')) {
-    build.dependsOn signApiJar
-  }
   if (getBooleanProperty('create_deobf_jar')) {
     build.dependsOn signDeobfJar
   }
@@ -829,23 +535,8 @@ if (getBooleanProperty('do_sign_jar')) {
   }
 }
 
-tasks.publish.dependsOn build
-tasks.curseforge.dependsOn publish
-
-artifacts {
-  if (getBooleanProperty('create_api_jar')) {
-    archives apiJar
-  }
-  if (getBooleanProperty('create_deobf_jar')) {
-    archives deobfJar
-  }
-  if (getBooleanProperty('create_source_jar')) {
-    archives sourceJar
-  }
-  if (getBooleanProperty('create_javadoc_jar')) {
-    archives javadocJar
-  }
-}
+tasks.named('publish') { dependsOn build }
+tasks.named('curseforge') { dependsOn 'publish' }
 
 publishing {
   publications {
@@ -853,26 +544,15 @@ publishing {
       groupId project.group
       artifactId project.archivesBaseName
       version project.version
-      from components.java
+      artifact jar
       if (getBooleanProperty('create_source_jar')) {
-        artifact sourceJar {
-          classifier 'sources'
-        }
-      }
-      if (getBooleanProperty('create_api_jar')) {
-        artifact apiJar {
-          classifier 'api'
-        }
+        artifact sourceJar
       }
       if (getBooleanProperty('create_deobf_jar')) {
-        artifact deobfJar {
-          classifier 'deobf'
-        }
+        artifact deobfJar
       }
       if (getBooleanProperty('create_javadoc_jar')) {
-        artifact javadocJar {
-          classifier 'javadoc'
-        }
+        artifact javadocJar
       }
       /*
       pom {
@@ -994,13 +674,6 @@ curseforge {
           }
         }
       }
-      if (getBooleanProperty('create_api_jar')) {
-        addArtifact(apiJar) {
-          if (getBooleanProperty('curseforge_use_custom_display_name')) {
-            displayName = "${project.name} ${project.display_version} API"
-          }
-        }
-      }
       if (getBooleanProperty('create_source_jar')) {
         addArtifact(sourceJar) {
           if (getBooleanProperty('curseforge_use_custom_display_name')) {
@@ -1026,25 +699,25 @@ curseforge {
   }
 }
 
-sonarqube {
+sonar {
   properties {
     if (project.hasProperty('sonar_host_url')) {
       property 'sonar.host.url', project.sonar_host_url
     } else if (secret.sonarHost != '') {
       property 'sonar.host.url', secret.sonarHost
     }
-    property 'sonar.login', secret.sonarToken
+    property 'sonar.token', secret.sonarToken
     if (project.hasProperty('sonar_organisation')) {
       property 'sonar.organization', project.sonar_organisation
-    } else if (secret.sonarOrganisation != '') {
+    } else if (secret.sonarOrganization != '') {
       property 'sonar.organization', secret.sonarOrganization
     }
     //property 'sonar.projectName', project.archivesBaseName
     //property 'sonar.projectKey', "${project.group}:${project.archivesBaseName}"
     //property 'sonar.branch.name', 'master-1.12.2'
     //property 'sonar.branch.target', ''
-    property 'sonar.junit.reportPaths', "${project.buildDir}/test-results/junit-platform/*.xml"
-    property 'sonar.jacoco.reportPaths', "${project.buildDir}/jacoco/junitPlatformTest.exec"
+    property 'sonar.junit.reportPaths', "${project.buildDir}/test-results/test"
+    property 'sonar.coverage.jacoco.xmlReportPaths', "${project.buildDir}/reports/jacoco/junitPlatformJacocoReport/junitPlatformJacocoReport.xml"
   }
 }
 
@@ -1069,7 +742,6 @@ String getModVersion(final String type) {
   return getModVersion(type, modFile)
 }
 
-import java.util.regex.Matcher
 String getModVersion(final String type, final String modFile) {
   if ((modFile != null) && (modFile != '')) {
     final File file = file(modFile)
@@ -1092,12 +764,8 @@ boolean getBooleanProperty(final String property) {
   }
 }
 
-task gitChangelog(type: se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask) {
+tasks.named('gitChangelog') {
   file = new File('CHANGELOG.md')
   gitHubIssuePattern = "nonada123"
   templateContent = file('changelog.mustache').getText('UTF-8')
-}
-
-Object findProperty(final String propertyName) {
-  return hasProperty(propertyName) ? property(propertyName) : null;
 }
