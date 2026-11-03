@@ -45,6 +45,7 @@ import zone.moddev.mc.lib.api.capabilities.ItemStorage;
 import zone.moddev.mc.lib.api.capabilities.MachineCapabilities;
 import zone.moddev.mc.lib.api.capabilities.Role;
 import zone.moddev.mc.lib.common.factories.BlockEntityFactory;
+import zone.moddev.mc.lib.common.runtime.DropsContents;
 import zone.moddev.mc.lib.common.types.MMDBlockEntity;
 import zone.moddev.mc.lib.gui.Screens;
 import zone.moddev.mc.lib.gui.load.ScreenBinder;
@@ -119,7 +120,7 @@ public final class CrusherSmoke {
   }
 
   /** Ore in slot 0, products in 1 and 2, the byproduct in 3, water and energy beside them. */
-  public static final class Crusher extends BlockEntity implements ScreenHost {
+  public static final class Crusher extends BlockEntity implements ScreenHost, DropsContents {
     public final ItemStorage items =
         new ItemStorage(4)
             .role(Role.INPUT, 0)
@@ -159,10 +160,9 @@ public final class CrusherSmoke {
       else processor.interrupt();
     }
 
-    /** What breaking the block does: free every reservation, then drop what is inside. */
-    void dropContents(Level level) {
-      processor.interrupt();
-      items.dropAll(level, getBlockPos());
+    @Override
+    public void dropContents(Level level, BlockPos pos) {
+      items.dropAll(level, pos);
     }
 
     @Override
@@ -390,14 +390,20 @@ public final class CrusherSmoke {
     menu.clickMenuButton(player, new ScreenNetwork.Action(82, button, 0, 0, 0, 0).pack());
     require(crusher.processor.paused() && crusher.items.plan(0).isNone(), "interrupted");
     menu.clickMenuButton(player, new ScreenNetwork.Action(82, button, 0, 0, 0, 0).pack());
-    require(!crusher.processor.paused() && crusher.getProgress() == progress, "resumed");
+    require(!crusher.processor.paused(), "resumed");
+    crusher.host.tick(level);
+    require(crusher.items.plan(0).take() == 1, "the cycle reserves again");
+    require(crusher.getProgress() > progress, "progress carried on: " + crusher.getProgress());
     player.containerMenu = previous;
 
-    crusher.dropContents(level);
-    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    // Break the block with the cycle live: the ore it holds comes out, and nothing else.
+    require(crusher.items.getStackInSlot(0).getCount() == 1, "one ore inside");
+    level.destroyBlock(pos, false);
     int dropped = 0;
-    for (var drop : level.getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(2)))
+    for (var drop : level.getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(2))) {
+      require(drop.getItem().is(Items.COPPER_ORE), "dropped " + drop.getItem());
       dropped += drop.getItem().getCount();
+    }
     level.setBlock(above, Blocks.AIR.defaultBlockState(), 3);
     require(dropped == 1, "one ore went in and one came out: " + dropped);
   }
