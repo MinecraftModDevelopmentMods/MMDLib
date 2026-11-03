@@ -57,6 +57,13 @@ final class ReservedStorageSmoke {
     rows.setPlan(0, new SlotPlan(0, none));
     require(rows.insertItem(0, iron(5), true).getCount() == 4, "empty plan, 1 of room");
 
+    var empty = new ItemStorage(1);
+    empty.setPlan(0, new SlotPlan(0, gold(1)));
+    require(empty.insertItem(0, iron(1), true).getCount() == 1, "empty slot refuses iron");
+    require(!empty.isItemValid(0, iron(1)) && empty.isItemValid(0, gold(1)), "empty validity");
+    require(empty.insertItem(0, gold(64), false).getCount() == 1, "empty slot takes 63 gold");
+    require(empty.getStackInSlot(0).getCount() == 63, "63 gold held");
+
     var own = new ItemStorage(1);
     own.setStackInSlot(0, iron(63));
     own.setPlan(0, new SlotPlan(1, iron(2)));
@@ -79,6 +86,10 @@ final class ReservedStorageSmoke {
     res.release(0, new SlotPlan(1, gold(1)));
     require(res.plan(0).isNone() && !res.hasPlan(0), "release returns to none");
     require(!res.reserve(0, new SlotPlan(2, none)), "cannot take more than held");
+    var partial = new ItemStorage(1);
+    partial.setStackInSlot(0, iron(2));
+    require(!partial.reserve(0, new SlotPlan(1, gold(1))), "partial stack swap refused");
+    require(partial.plan(0).isNone(), "partial refusal leaves no plan");
     var limited = new ItemStorage(1).limit(16, 0);
     require(!limited.reserve(0, new SlotPlan(0, iron(17))), "slot limit applies");
 
