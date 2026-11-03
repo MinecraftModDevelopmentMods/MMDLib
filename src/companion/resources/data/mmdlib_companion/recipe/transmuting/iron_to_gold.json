@@ -1,0 +1,27 @@
+{
+  "type": "mmdlib_companion:transmuting",
+  "inputs": {
+    "energy": [
+      {
+        "energy": 4000
+      }
+    ],
+    "slot": [
+      {
+        "items": {
+          "item": "minecraft:iron_ingot"
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "slot": [
+      {
+        "item": {
+          "id": "minecraft:gold_ingot"
+        }
+      }
+    ]
+  },
+  "time": 200
+}

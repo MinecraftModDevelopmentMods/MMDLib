@@ -1,0 +1,15 @@
+<screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.transmuter" title-fallback="Iron-to-Gold Converter"
+        block-entity="zone.moddev.mc.companion.ProcessorEntity">
+  <vbox padding="7" spacing="4">
+    <label text="screen.mmdlib_companion.single" text-fallback="One iron in, one gold out"/>
+    <hbox spacing="6">
+      <slot index="0"/>
+      <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:transmuting"/>
+    </hbox>
+    <label text="screen.mmdlib_companion.lane_a" text-fallback="Lane A"/>
+    <checkbox value="#getPaused" id="toggle_0" text="screen.mmdlib_companion.toggle" text-fallback="Paused (free items)" tooltip="screen.mmdlib_companion.toggle.tip" tooltip-fallback="Pause this lane to free its reserved items, or resume it." on-click="mmdlib_companion:toggle_0"/>
+    <label text="screen.mmdlib_companion.energy" text-fallback="Energy"/>
+    <meter orientation="horizontal" length="144" color="#E64B38" value="#getEnergy" max="#getEnergyCapacity" tooltip="screen.mmdlib_companion.energy.tip" tooltip-fallback="{value} / {max} FE"/>
+  </vbox>
+  <popout kind="warning" value="#getWarnings"/>
+</screen>

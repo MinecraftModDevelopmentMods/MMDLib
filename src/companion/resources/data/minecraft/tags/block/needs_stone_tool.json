@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "mmdlib_companion:crusher",
+    "mmdlib_companion:transmuter",
+    "mmdlib_companion:dual_crusher",
+    "mmdlib_companion:creative_power"
+  ]
+}

@@ -81,6 +81,9 @@ configurations.named('runtimeTestCompileOnly') {
     extendsFrom configurations.compileOnly
 }
 
+// Optional playable examples, packaged separately from MMDLib.
+apply from: 'scripts/companion.gradle'
+
 // Javadoc for extenders and maintainers: `./gradlew javadoc` (output in build/docs/javadoc).
 // Records and fluent builders are described in prose, so per-parameter tags are not required.
 tasks.named('javadoc', Javadoc) {

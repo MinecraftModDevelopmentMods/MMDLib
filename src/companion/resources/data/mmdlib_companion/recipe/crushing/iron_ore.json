@@ -1,0 +1,28 @@
+{
+  "type": "mmdlib_companion:crushing",
+  "inputs": {
+    "energy": [
+      {
+        "energy": 2000
+      }
+    ],
+    "input": [
+      {
+        "items": {
+          "item": "minecraft:iron_ore"
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "output": [
+      {
+        "item": {
+          "id": "minecraft:raw_iron",
+          "count": 2
+        }
+      }
+    ]
+  },
+  "time": 100
+}

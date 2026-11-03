@@ -1,0 +1,9 @@
+<screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.creative_power" title-fallback="Creative Power Source"
+        block-entity="zone.moddev.mc.companion.CreativePowerEntity" inventory="none">
+  <vbox padding="7" spacing="4">
+    <label text="screen.mmdlib_companion.power" text-fallback="Powers all six adjacent blocks"/>
+    <label text="screen.mmdlib_companion.rate" text-fallback="1,000 FE per face per tick"/>
+    <label text="screen.mmdlib_companion.energy" text-fallback="Energy"/>
+    <meter orientation="horizontal" length="144" color="#E64B38" value="#getEnergy" max="#getEnergyCapacity" tooltip="screen.mmdlib_companion.energy.tip" tooltip-fallback="{value} / {max} FE"/>
+  </vbox>
+</screen>

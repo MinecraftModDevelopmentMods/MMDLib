@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "mmdlib_companion:block/transmuter"
+    }
+  }
+}

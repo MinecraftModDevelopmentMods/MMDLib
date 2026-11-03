@@ -133,6 +133,9 @@ when a block entity is created), never in its constructor.
 
 ## Machine features
 
+The separately packaged [machine companion](machine-companion.md) provides playable examples of
+the processor, a one-slot converter, shared lanes and a creative power source.
+
 A `FeatureHost` runs a machine's `MachineFeature`s, such as a `RecipeProcessor`, and saves each
 under its key. The block entity ticks it from `serverTick` with `features.tick(level)`, and saves
 and loads it through a `DynamicOps`, after the storages, since a processor checks the loaded
