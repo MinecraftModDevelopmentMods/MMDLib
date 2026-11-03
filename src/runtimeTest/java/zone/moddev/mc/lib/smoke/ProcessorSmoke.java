@@ -1,11 +1,39 @@
 package zone.moddev.mc.lib.smoke;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
+import com.mojang.serialization.JsonOps;
+
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.level.material.Fluids;
+
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import zone.moddev.mc.lib.api.capabilities.IoMode;
+import zone.moddev.mc.lib.machine.feature.RecipeProcessor.State;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
+import zone.moddev.mc.lib.machine.recipe.CyclePlan;
+import zone.moddev.mc.lib.machine.recipe.CyclePlan.At;
+import zone.moddev.mc.lib.machine.recipe.CyclePlan.ItemTake;
+import zone.moddev.mc.lib.machine.recipe.CyclePlan.Placed;
+import zone.moddev.mc.lib.machine.recipe.MachineProduct.ItemProduct;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeBuilder;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 
 /** Runs recipe processors tick by tick: the worked run, jams, lanes, chances and removed inputs. */
 final class ProcessorSmoke {
@@ -220,6 +248,234 @@ final class ProcessorSmoke {
     rig.ticks(level, 20);
     require(rig.changes[0] == 0, "machine that can't start marked changed");
     require(rig.processor.status() == Status.IDLE, "idle");
+  }
+
+  /** A mid-cycle save and load puts back the same plans and progress, and the same finish. */
+  static void reloadResumes(ServerLevel level) {
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 101);
+    var copy = reload(level, rig);
+    expect(copy, Status.RUNNING, 100, "after the load");
+    require(copy.processor.time() == 200, "time comes from the plan");
+    for (int slot = 0; slot < 4; slot++)
+      require(copy.items.plan(slot).sameAs(rig.items.plan(slot)), "plan " + slot);
+    require(copy.fluids.plan(0).sameAs(rig.fluids.plan(0)), "tank plan");
+    copy.ticks(level, 99);
+    expect(copy, Status.RUNNING, 199, "one tick short");
+    copy.ticks(level, 1);
+    require(copy.processor.status() == Status.IDLE, "finished on time");
+    require(rawCopper(copy) == 2, "products made");
+    require(copy.items.getStackInSlot(0).getCount() == 2, "ore taken");
+    require(copy.fluids.getFluidInTank(0).getAmount() == 750, "water taken");
+    require(unplanned(copy), "plans released");
+  }
+
+  /** A running cycle keeps its recipe through a /reload; the next cycle uses the new one. */
+  static void recipeChanged(ServerLevel level) {
+    var manager = level.getRecipeManager();
+    var id = ResourceLocation.fromNamespaceAndPath("mmdlib_smoke", "refining/crush_copper");
+    var originals = new ArrayList<RecipeHolder<?>>(manager.getRecipes());
+    try {
+      var rig = ProcessorRig.crusher(3, 1_000, 1_000_000);
+      rig.ticks(level, 101);
+      var diamonds =
+          MachineRecipeBuilder.recipe(MachineRecipeTypeSmoke.REFINING)
+              .inputItems("input", Ingredient.of(Items.COPPER_ORE), 1)
+              .inputFluid("water", Fluids.WATER, 250)
+              .inputEnergy("energy", 4_000)
+              .outputItem("output", new ItemStack(Items.DIAMOND, 5))
+              .time(20)
+              .build();
+      var changed = new ArrayList<>(originals);
+      changed.removeIf(holder -> holder.id().equals(id));
+      var entry = new MachineRecipeEntry(MachineRecipeTypeSmoke.REFINING, diamonds);
+      changed.add(new RecipeHolder<>(id, entry));
+      manager.replaceRecipes(changed);
+      require(rig.processor.time() == 200, "the cycle keeps its time");
+      rig.ticks(level, 99);
+      expect(rig, Status.RUNNING, 199, "still the old time");
+      rig.ticks(level, 1);
+      require(rawCopper(rig) == 2, "the old products, got " + rawCopper(rig));
+      require(countOf(rig, Items.DIAMOND) == 0, "no diamonds from the old cycle");
+      rig.ticks(level, 1);
+      expect(rig, Status.RUNNING, 0, "the next cycle starts");
+      require(rig.processor.time() == 20, "on the new recipe, time " + rig.processor.time());
+      rig.ticks(level, 20);
+      require(countOf(rig, Items.DIAMOND) == 5, "five diamonds");
+
+      manager.replaceRecipes(originals);
+      rig = ProcessorRig.crusher(3, 1_000, 1_000_000);
+      rig.ticks(level, 101);
+      var removed = new ArrayList<>(originals);
+      removed.removeIf(holder -> holder.id().equals(id));
+      manager.replaceRecipes(removed);
+      rig.ticks(level, 100);
+      require(rig.processor.status() == Status.IDLE, "finished without its recipe");
+      require(rawCopper(rig) == 2, "the products of the removed recipe");
+      require(rig.items.getStackInSlot(0).getCount() == 2, "ore taken");
+      rig.ticks(level, 5);
+      require(rig.processor.status() == Status.IDLE, "nothing more to run");
+      require(unplanned(rig), "plans released");
+    } finally {
+      manager.replaceRecipes(originals);
+    }
+  }
+
+  /** A saved cycle that can't hold cancels, and a pause survives it. */
+  static void planCantHold(ServerLevel level) {
+    var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+    for (boolean paused : new boolean[] {false, true}) {
+      var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+      rig.ticks(level, 51);
+      var saved = rig.host.save(ops);
+      if (paused) saved.getAsJsonObject().getAsJsonObject("work").addProperty("paused", true);
+
+      var missing = JsonParser.parseString(saved.toString().replace("copper_ore", "no_such_ore"));
+      var copy = rig.reloaded(level);
+      copy.host.load(ops, missing);
+      cancelled(copy, paused, "a missing item");
+
+      copy = rig.reloaded(level);
+      copy.items.setStackInSlot(0, ItemStack.EMPTY);
+      copy.host.load(ops, saved);
+      cancelled(copy, paused, "emptied inputs");
+
+      copy = rig.reloaded(level);
+      copy.fluids.tank(0).setFluid(FluidStack.EMPTY);
+      copy.host.load(ops, saved);
+      cancelled(copy, paused, "emptied tank");
+    }
+
+    var iron = new ItemStack(Items.IRON_INGOT);
+    var gold = ResourceLocation.fromNamespaceAndPath("mmdlib_smoke", "refining/iron_to_gold");
+    var fewer = ProcessorRig.oneSlot(true);
+    fewer.items.insertResult(0, iron.copy(), false);
+    var outside =
+        new CyclePlan(
+            gold, 10, List.of(new ItemTake("slot", 1, iron)), List.of(), List.of(), Map.of());
+    fewer.processor.restore(new State(false, 3, Optional.empty(), Optional.of(outside)));
+    cancelled(fewer, false, "fewer slots");
+
+    var running = ProcessorRig.oneSlot(true);
+    running.items.insertResult(0, iron.copy(), false);
+    running.ticks(level, 4);
+    require(running.processor.status() == Status.RUNNING, "the gold cycle runs");
+    var noPower = running.reloaded(level, false);
+    noPower.host.load(ops, running.host.save(ops));
+    cancelled(noPower, false, "an energy group that is gone");
+    require(noPower.items.getStackInSlot(0).is(Items.IRON_INGOT), "the iron stays");
+  }
+
+  /** The cycle field drops the whole plan if any part of it won't decode, never a part of it. */
+  static void partialPlanCancels(ServerLevel level) {
+    var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+    var recipe = ResourceLocation.fromNamespaceAndPath("mmdlib_smoke", "refining/crush_copper");
+    var plan =
+        new CyclePlan(
+            recipe,
+            200,
+            List.of(
+                new ItemTake("input", 0, new ItemStack(Items.COPPER_ORE)),
+                new ItemTake("output", 1, new ItemStack(Items.COBBLESTONE))),
+            List.of(),
+            List.of(),
+            Map.of());
+    var state = new State(true, 50, Optional.empty(), Optional.of(plan));
+    JsonElement json = State.CODEC.encodeStart(ops, state).getOrThrow();
+    var broken = JsonParser.parseString(json.toString().replace("cobblestone", "no_such_thing"));
+    var decoded = State.CODEC.parse(ops, broken);
+    require(decoded.result().isPresent(), "the state still decodes: " + decoded);
+    var back = decoded.result().get();
+    require(back.cycle().isEmpty(), "no part of a broken plan survives: " + back.cycle());
+    require(back.paused() && back.progress() == 50, "the rest of the state is kept");
+    var whole = State.CODEC.parse(ops, json).getOrThrow();
+    require(whole.cycle().isPresent(), "an intact plan decodes");
+  }
+
+  /** Loading the same save twice leaves one cycle's plans, not two. */
+  static void loadedTwice(ServerLevel level) {
+    var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 51);
+    Tag saved = rig.host.save(ops);
+    var copy = rig.reloaded(level);
+    copy.host.load(ops, saved);
+    int free = copy.items.freeToTake(0);
+    copy.host.load(ops, saved);
+    for (int slot = 0; slot < 4; slot++)
+      require(copy.items.plan(slot).sameAs(rig.items.plan(slot)), "plan " + slot);
+    require(copy.fluids.plan(0).sameAs(rig.fluids.plan(0)), "tank plan");
+    require(copy.items.freeToTake(0) == free && free == 2, "free is unchanged: " + free);
+    expect(copy, Status.RUNNING, 50, "after the second load");
+    copy.ticks(level, 150);
+    require(unplanned(copy) && rawCopper(copy) == 2, "one cycle's worth");
+  }
+
+  /** Two lanes' plans on one slot restore into the same merged plan in either order. */
+  static void lanesRestoreInEitherOrder(ServerLevel level) {
+    var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+    var gold = ResourceLocation.fromNamespaceAndPath("mmdlib_smoke", "refining/iron_to_gold");
+    var iron = new ItemStack(Items.IRON_INGOT);
+    var ingot = new ItemProduct(new ItemStack(Items.GOLD_INGOT), 1);
+    var takesIron =
+        new CyclePlan(
+            gold, 10, List.of(new ItemTake("slot", 0, iron)), List.of(), List.of(), Map.of());
+    var addsGold =
+        new CyclePlan(
+            gold,
+            10,
+            List.of(),
+            List.of(),
+            List.of(new Placed("slot", ingot, List.of(new At(0, 1)))),
+            Map.of());
+    var merged = new SlotPlan(1, new ItemStack(Items.GOLD_INGOT));
+    for (boolean goldFirst : new boolean[] {false, true}) {
+      var rig = ProcessorRig.oneSlot(true);
+      rig.items.insertResult(0, iron.copy(), false);
+      var other = rig.lane("other");
+      var first = goldFirst ? addsGold : takesIron;
+      var second = goldFirst ? takesIron : addsGold;
+      rig.processor.restore(new State(false, 3, Optional.empty(), Optional.of(first)));
+      other.restore(new State(false, 3, Optional.empty(), Optional.of(second)));
+      require(rig.items.plan(0).sameAs(merged), "the source has the merged plan");
+
+      var copy = rig.reloaded(level);
+      var copyOther = copy.lane("other");
+      copy.host.load(ops, rig.host.save(ops));
+      var order = ", gold first " + goldFirst;
+      require(copy.processor.status() == Status.RUNNING, "first lane runs" + order);
+      require(copyOther.status() == Status.RUNNING, "second lane runs" + order);
+      require(copy.items.plan(0).sameAs(merged), "the merged plan" + order);
+      copy.ticks(level, 12);
+      require(copy.items.getStackInSlot(0).is(Items.GOLD_INGOT), "gold made" + order);
+      require(copy.items.getStackInSlot(0).getCount() == 1, "one gold" + order);
+      require(unplanned(copy), "plans released" + order);
+    }
+  }
+
+  private static ProcessorRig reload(ServerLevel level, ProcessorRig rig) {
+    var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+    var copy = rig.reloaded(level);
+    copy.host.load(ops, rig.host.save(ops));
+    return copy;
+  }
+
+  /** The processor is idle, or paused if it was, with nothing reserved. */
+  private static void cancelled(ProcessorRig rig, boolean paused, String why) {
+    var expected = paused ? Status.PAUSED : Status.IDLE;
+    require(rig.processor.status() == expected, why + ": " + rig.processor.status());
+    require(rig.processor.paused() == paused, why + ": paused " + rig.processor.paused());
+    require(rig.processor.progress() == 0 && rig.processor.time() == 0, why + ": progress");
+    require(unplanned(rig), why + ": plans left behind");
+  }
+
+  private static int countOf(ProcessorRig rig, Item item) {
+    int count = 0;
+    for (int slot = 0; slot < rig.items.getSlots(); slot++) {
+      var stack = rig.items.getStackInSlot(slot);
+      if (stack.is(item)) count += stack.getCount();
+    }
+    return count;
   }
 
   private static int rawCopper(ProcessorRig rig) {

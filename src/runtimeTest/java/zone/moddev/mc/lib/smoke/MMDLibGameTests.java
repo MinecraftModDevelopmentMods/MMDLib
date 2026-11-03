@@ -173,6 +173,42 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorReloadResumes(GameTestHelper helper) {
+    ProcessorSmoke.reloadResumes(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorRecipeChanged(GameTestHelper helper) {
+    ProcessorSmoke.recipeChanged(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorPlanCantHold(GameTestHelper helper) {
+    ProcessorSmoke.planCantHold(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorPartialPlanCancels(GameTestHelper helper) {
+    ProcessorSmoke.partialPlanCancels(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorLoadedTwice(GameTestHelper helper) {
+    ProcessorSmoke.loadedTwice(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorLanesRestoreInEitherOrder(GameTestHelper helper) {
+    ProcessorSmoke.lanesRestoreInEitherOrder(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void processorIdleDoesNotMarkChanged(GameTestHelper helper) {
     ProcessorSmoke.idleDoesNotMarkChanged(helper.getLevel());
     helper.succeed();

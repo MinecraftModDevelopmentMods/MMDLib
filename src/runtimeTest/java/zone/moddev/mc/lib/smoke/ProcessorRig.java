@@ -29,8 +29,12 @@ final class ProcessorRig {
   final MachineInventory inventory;
   final FeatureHost host = new FeatureHost(() -> changes[0]++);
   final RecipeProcessor processor;
+  private final boolean crusher;
+  private final boolean withEnergy;
 
   private ProcessorRig(ItemStorage storage, boolean crusher, boolean withEnergy) {
+    this.crusher = crusher;
+    this.withEnergy = withEnergy;
     items = storage.onChange(() -> changes[0]++);
     var builder = MachineInventory.builder();
     if (crusher) {
@@ -66,6 +70,26 @@ final class ProcessorRig {
     rig.energy.setStored(1_000_000);
     rig.changes[0] = 0;
     return rig;
+  }
+
+  /**
+   * A fresh rig of the same shape whose storages are loaded from this one's saved data, as a block
+   * entity loads them before its features. Plans are not saved with the storages, so the copy has
+   * none.
+   */
+  ProcessorRig reloaded(ServerLevel level) {
+    return reloaded(level, withEnergy);
+  }
+
+  /** As {@link #reloaded(ServerLevel)}, with or without the energy group. */
+  ProcessorRig reloaded(ServerLevel level, boolean withEnergy) {
+    var provider = level.registryAccess();
+    var copy = crusher ? crusher(0, 0, 0) : oneSlot(withEnergy);
+    copy.items.deserializeNBT(provider, items.serializeNBT(provider));
+    copy.fluids.deserializeNBT(provider, fluids.serializeNBT(provider));
+    copy.energy.deserializeNBT(provider, energy.serializeNBT(provider));
+    copy.changes[0] = 0;
+    return copy;
   }
 
   /** A second processor on the same host and storages. */

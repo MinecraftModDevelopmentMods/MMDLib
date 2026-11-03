@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
 import zone.moddev.mc.lib.machine.inventory.EnergyGroup;
@@ -39,22 +40,33 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   }
 
   /**
-   * The saved form: the running cycle, if any, and its progress.
+   * The saved form. A cycle that won't decode, say because an item is gone from the game, is
+   * dropped as a whole while the rest of the state is kept.
    *
+   * @param paused whether an interrupt holds the processor
+   * @param progress ticks done of {@code cycle}, or of the recipe to resume
+   * @param resumeRecipe the recipe a pause or a resume is waiting to reserve again
    * @param cycle the running cycle
-   * @param progress ticks of {@code cycle} done
    */
-  public record State(Optional<CyclePlan> cycle, int progress) {
+  public record State(
+      boolean paused,
+      int progress,
+      Optional<ResourceLocation> resumeRecipe,
+      Optional<CyclePlan> cycle) {
     /** The save form. */
     public static final Codec<State> CODEC =
         RecordCodecBuilder.create(
             instance ->
                 instance
                     .group(
-                        CyclePlan.CODEC.optionalFieldOf("cycle").forGetter(State::cycle),
+                        Codec.BOOL.optionalFieldOf("paused", false).forGetter(State::paused),
                         Codec.intRange(0, Integer.MAX_VALUE)
                             .optionalFieldOf("progress", 0)
-                            .forGetter(State::progress))
+                            .forGetter(State::progress),
+                        ResourceLocation.CODEC
+                            .optionalFieldOf("resume_recipe")
+                            .forGetter(State::resumeRecipe),
+                        CyclePlan.CODEC.lenientOptionalFieldOf("cycle").forGetter(State::cycle))
                     .apply(instance, State::new));
   }
 
@@ -63,6 +75,8 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   private final MachineRecipeLookup lookup;
   @Nullable private CyclePlan cycle;
   private int progress;
+  @Nullable private ResourceLocation resumeRecipe;
+  private boolean paused;
   private Status status = Status.IDLE;
 
   /** A processor saved under {@code key} that runs recipes of {@code type} on {@code inventory}. */
@@ -84,16 +98,43 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
 
   @Override
   public State state() {
-    return new State(Optional.ofNullable(cycle), progress);
+    return new State(
+        paused, progress, Optional.ofNullable(resumeRecipe), Optional.ofNullable(cycle));
   }
 
-  /** Takes on a saved cycle if its reservations can be put back; otherwise goes idle. */
+  /**
+   * Takes on saved state. A running cycle is released first, since the storages keep their plans
+   * when they load their contents. A saved cycle whose plan can't be put back cancels, and the
+   * processor goes back to searching.
+   *
+   * <p>Load the storages before the {@link FeatureHost} loads, so the inputs are in place for the
+   * plan to check.
+   */
   @Override
   public void restore(State state) {
     if (cycle != null) cycle.release(inventory);
-    cycle = state.cycle().filter(plan -> plan.restore(inventory)).orElse(null);
-    progress = cycle == null ? 0 : Math.min(state.progress(), cycle.time());
-    status = cycle == null ? Status.IDLE : Status.RUNNING;
+    cycle = null;
+    paused = state.paused();
+    resumeRecipe = state.resumeRecipe().orElse(null);
+    progress = resumeRecipe == null ? 0 : state.progress();
+    var saved = state.cycle().filter(plan -> !paused && holds(plan)).orElse(null);
+    if (saved != null) {
+      cycle = saved;
+      progress = Math.min(state.progress(), saved.time());
+    }
+    status = paused ? Status.PAUSED : cycle == null ? Status.IDLE : Status.RUNNING;
+  }
+
+  /** Whether the plan's energy groups are there and its reservations can be put back. */
+  private boolean holds(CyclePlan plan) {
+    for (var key : plan.energy().keySet())
+      if (!(inventory.group(key).orElse(null) instanceof EnergyGroup)) return false;
+    return plan.restore(inventory);
+  }
+
+  /** Whether an interrupt holds the processor. */
+  public boolean paused() {
+    return paused;
   }
 
   /** What the processor is doing. */
@@ -113,6 +154,10 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
 
   @Override
   public void tick(FeatureHost host) {
+    if (paused) {
+      status = Status.PAUSED;
+      return;
+    }
     var level = host.level();
     if (cycle == null) {
       start(level, host);
