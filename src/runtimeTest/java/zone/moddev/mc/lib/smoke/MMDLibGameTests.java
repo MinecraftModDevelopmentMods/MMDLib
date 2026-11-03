@@ -95,6 +95,12 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void slotPlanRules(GameTestHelper helper) {
+    SlotPlanSmoke.check();
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipes(GameTestHelper helper) {
     MachineRecipeSmoke.check(helper.getLevel());
     helper.succeed();
