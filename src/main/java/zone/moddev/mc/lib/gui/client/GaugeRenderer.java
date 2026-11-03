@@ -75,24 +75,6 @@ final class GaugeRenderer {
           y = vertical ? r.y() + row : r.y() + 1;
       g.fill(x, y + 1, x + (vertical ? mark : 1), y + 1 + (vertical ? 1 : mark), 0x59000000);
       g.fill(x, y, x + (vertical ? mark : 1), y + (vertical ? 1 : mark), 0xd9eef3f6);
-      if (major && inner / 4f >= 8) {
-        String digits = Integer.toString(n * 5);
-        int dx = vertical ? x + mark + 1 : x - 3, dy = vertical ? y - 2 : y + mark + 1;
-        for (int i = 0; i < digits.length(); i++) {
-          int digit = digits.charAt(i) - '0';
-          RenderSystem.enableBlend();
-          g.blit(
-              ResourceLocation.parse("mmdlib:textures/gui/gauge/digits.png"),
-              dx + i * 4,
-              dy,
-              digit * 4,
-              0,
-              3,
-              5,
-              39,
-              5);
-        }
-      }
     }
   }
 

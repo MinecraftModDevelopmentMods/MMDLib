@@ -19,7 +19,7 @@ files rotated 90° clockwise (see below).
 | `body_middle.png` | 18×1 | One row of the tube, repeated to fill the length |
 | `body_bottom.png` | 18×5 | Bottom cap |
 | `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Translucent glass overlay: soft highlight in columns 2–3, faint shade in column 16 |
-| `digits.png` | 39×5 | White 3×5 digits `0`–`9`; digit *n* starts at x = 4*n* |
+| `digits.png` | 39×5 | White 3×5 numeral atlas; not used by the gauge renderer |
 
 Pixels outside the rounded shape are fully transparent, so the GUI background shows through
 the corners.
@@ -40,9 +40,8 @@ For a gauge of length *L* (≥ 10) at (*x*, *y*):
    pixel directly below each mark pixel. From the left inside edge (x = 1):
    - every 5%: 2 px; every 10%: 3 px; 25/50/75: 7 px (40% of the 16 px inside width)
    - drop the 5% marks when they would be under 3 px apart, then the 10% marks
-5. **Numbers** at 25/50/75, from `digits.png`, at 90% opacity with the same shadow, placed one
-   pixel right of the long mark and vertically centred on it. Hide them when the 25% marks are
-   under 8 px apart.
+
+The scale shows tick marks only, without numeric labels. Exact amounts remain in the tooltip.
 
 A mark at fraction *p* sits on row `1 + inner - round(inner * p)`, where `inner = L - 2`.
 
@@ -63,8 +62,7 @@ Every `body_middle` row's interior is columns 1–16.
 
 Draw everything rotated 90° clockwise: the bottom cap becomes the left cap, the top cap the
 right cap, the highlight lands on top, and contents fill left to right. Marks hang down from
-the top edge. Two things stay upright: the fluid sprite (tile it unrotated) and the numbers
-(placed below their long marks, centred on them). Skip the meniscus.
+the top edge. The fluid sprite stays upright (tile it unrotated). Skip the meniscus.
 
 An interactive mockup of the design was used to agree it; these files reproduce its pixels.
 
