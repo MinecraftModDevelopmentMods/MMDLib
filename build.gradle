@@ -3,56 +3,140 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.1.38'
+    id 'net.neoforged.moddev' version '2.0.148'
 }
-version = '2.0.0-alpha'
-group = 'zone.moddev.mc.lib'
-base { archivesName = 'mmdlib' }
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+def env = System.getenv()
+def tag = providers.environmentVariable('TAG')
+version = tag.orElse("${mod_version}-development").get()
+group = mod_group
+
+base {
+    archivesName = mod_archive_name
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+    withJavadocJar()
+}
+
 repositories {
     mavenCentral()
     // JEI (optional integration; compile-time API only)
     maven { url = 'https://maven.blamejared.com' }
 }
+
+// Dev-only runtime dependencies: on the runtime classpath, but kept out of the published POM.
+configurations {
+    localRuntime
+    runtimeClasspath.extendsFrom localRuntime
+}
+
 dependencies {
-    implementation 'net.neoforged:neoforge:21.1.247'
     // Optional JEI integration: compiled against the API only, never bundled or required.
     compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
     // Dev runs include JEI; pass -PwithoutJei to launch without it.
     if (!providers.gradleProperty('withoutJei').isPresent()) {
-        runtimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
+        localRuntime "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
     }
 }
-runs {
-    configureEach {
-        workingDirectory project.layout.projectDirectory.dir('run')
-        modSource project.sourceSets.main
+
+neoForge {
+    version = neoforge_version
+
+    parchment {
+        minecraftVersion = parchment_minecraft_version
+        mappingsVersion = parchment_mappings_version
     }
-    client {}
-    server { argument '--nogui' }
-    data {
-        systemProperty 'mmdlib.projectDir', project.layout.projectDirectory.asFile.absolutePath
-        systemProperty 'mmdlib.python', providers.gradleProperty('mmdlibPython').getOrElse('python3')
-        if (providers.gradleProperty('mmdlibMinecraftAssets').isPresent()) {
-            systemProperty 'mmdlib.minecraftAssets', providers.gradleProperty('mmdlibMinecraftAssets').get()
+
+    runs {
+        configureEach {
+            gameDirectory = file('run')
         }
-        arguments.addAll '--mod', 'mmdlib', '--all', '--output',
-                file('src/generated/resources').absolutePath, '--existing', file('src/main/resources').absolutePath
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        data {
+            data()
+            systemProperty 'mmdlib.projectDir', project.layout.projectDirectory.asFile.absolutePath
+            systemProperty 'mmdlib.python', providers.gradleProperty('mmdlibPython').getOrElse('python3')
+            if (providers.gradleProperty('mmdlibMinecraftAssets').isPresent()) {
+                systemProperty 'mmdlib.minecraftAssets', providers.gradleProperty('mmdlibMinecraftAssets').get()
+            }
+            programArguments.addAll '--mod', mod_id, '--all', '--output',
+                    file('src/generated/resources').absolutePath, '--existing', file('src/main/resources').absolutePath
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
     }
 }
+
 sourceSets {
     main.resources.srcDir 'src/generated/resources'
     main.resources.exclude '.cache/**'
 }
-tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
-publishing {
-    publications { mavenJava(MavenPublication) { from components.java } }
-    repositories { maven { url = layout.projectDirectory.dir('mcmodsrepo') } }
+
+tasks.named('processResources', ProcessResources) {
+    def properties = [
+            minecraft_version_range: minecraft_version_range,
+            neoforge_version_range: neoforge_version_range,
+            loader_version_range: loader_version_range,
+            jei_version_range: jei_version_range,
+            mod_id: mod_id,
+            mod_name: mod_name,
+            mod_license: mod_license,
+            mod_version: project.version,
+            mod_authors: mod_authors,
+            mod_description: mod_description,
+            display_url: display_url,
+            issue_url: issue_url,
+            update_url: update_url
+    ]
+    inputs.properties properties
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand properties
+    }
 }
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 
 tasks.withType(Jar).configureEach {
     manifest.attributes('Implementation-Version': project.version.toString())
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = mod_archive_name
+            from components.java
+        }
+    }
+    repositories {
+        if (env.MAVEN_UPLOAD_URL) {
+            maven {
+                url = uri(env.MAVEN_UPLOAD_URL)
+                credentials {
+                    username = env.MAVEN_UPLOAD_USERNAME
+                    password = env.MAVEN_UPLOAD_PASSWORD
+                }
+            }
+        }
+        // Local inspection: `./gradlew publishAllPublicationsToLocalRepository` writes to mcmodsrepo/.
+        maven {
+            name = 'local'
+            url = layout.projectDirectory.dir('mcmodsrepo')
+        }
+    }
 }
 
 // runData launches from main output, so processResources necessarily precedes it.
@@ -62,13 +146,11 @@ def refreshDataResources = tasks.register('refreshDataResources', Sync) {
     into tasks.named('processResources').map { it.destinationDir }
     duplicatesStrategy = DuplicatesStrategy.FAIL
 }
+tasks.named('runData') { finalizedBy refreshDataResources }
 tasks.configureEach { task ->
-    if (task.name == 'runData') task.finalizedBy(refreshDataResources)
-    if (task.name == 'jar' || task.name == 'jarJar' || task.name == 'javadoc' || task.name.startsWith('verify')
-            || task.name.startsWith('test')
-            || task.name in ['compileTestJava', 'compileBuilderTestJava', 'compileRuntimeTestJava',
-                    'writeMinecraftClasspathJunit', 'writeMinecraftClasspathClient', 'writeMinecraftClasspathServer',
-                    'runClient', 'runServer']) {
+    if (task.name in ['jar', 'sourcesJar', 'javadoc', 'compileTestJava', 'compileBuilderTestJava',
+                    'compileRuntimeTestJava', 'runClient', 'runServer']
+            || task.name.startsWith('verify') || task.name.startsWith('test')) {
         task.mustRunAfter(refreshDataResources)
     }
 }
@@ -112,5 +194,18 @@ tasks.register('format') {
         }
         grouping.result.get()
         logger.lifecycle("Formatted ${sources.files.size()} files. " + grouping.standardOutput.asText.get().trim())
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+    }
+}
+
+eclipse {
+    classpath {
+        downloadJavadoc = true
+        downloadSources = true
     }
 }

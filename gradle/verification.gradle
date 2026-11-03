@@ -1,6 +1,9 @@
 // Verification: the builderTest/runtimeTest source sets and every verify* task.
 // All of it runs on `./gradlew check`; `build` only compiles and packages (see the end of this file).
 
+// MDG only puts Minecraft on main by default; the verification source sets build on test's classpath.
+neoForge.addModdingDependenciesTo(sourceSets.test)
+
 sourceSets {
     builderTest {
         compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath

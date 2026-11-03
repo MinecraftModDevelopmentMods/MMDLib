@@ -2,7 +2,7 @@
 // Run a normal ./gradlew build afterward to restore regular main output.
 allprojects {
     afterEvaluate {
-        if (extensions.findByName('runs') != null) {
+        if (extensions.findByName('neoForge') != null) {
             sourceSets.main.java.srcDir(file('src/runtimeTest/java'))
             def smokeDir = file('build/runtime-smoke/server')
             smokeDir.mkdirs()
@@ -12,8 +12,7 @@ online-mode=true
 level-name=runtime-smoke
 spawn-protection=0
 '''
-            runs.server.workingDirectory = smokeDir
-            // NeoGradle creates run tasks in a later evaluation callback.
+            neoForge.runs.server.gameDirectory = smokeDir
             tasks.configureEach { task ->
                 if (task.name == 'runServer') {
                     task.doLast {
