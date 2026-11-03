@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import com.mojang.serialization.Codec;
 
@@ -40,6 +41,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.SlotItemHandler;
 
 import zone.moddev.mc.lib.api.MaterialEventTypes;
 import zone.moddev.mc.lib.api.MaterialExtensions;
@@ -54,6 +56,7 @@ import zone.moddev.mc.lib.common.types.MMDBlockEntity;
 import zone.moddev.mc.lib.gui.Screens;
 import zone.moddev.mc.lib.gui.load.ScreenBinder;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
+import zone.moddev.mc.lib.gui.runtime.ClientMenuItems;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 import zone.moddev.mc.lib.gui.runtime.ScreenNetwork;
@@ -360,6 +363,122 @@ public final class CrusherSmoke {
     require(count(items) == 0 && inventoryCount(player, iron) == 50, "whole-stack shift-click");
 
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+  }
+
+  /** One click on slot 0 with a given slot, plan, carried stack and hotbar. */
+  private record Row(
+      String name,
+      ItemStack held,
+      SlotPlan plan,
+      ItemStack carried,
+      ItemStack hotbar,
+      BiConsumer<MachineMenu, ServerPlayer> click) {}
+
+  /**
+   * Runs the menu rows through the server's menu and through one built the way a client builds it,
+   * over {@link ClientMenuItems}, and requires the same slot, carried stack, inventory and drops
+   * after each: the client predicts every click without a correction from the server.
+   */
+  static void clientRows(ServerLevel level, BlockPos pos, ServerPlayer player) {
+    var crusher = place(level, pos);
+    var server = new MachineMenu(82, player.getInventory(), crusher, false);
+    var client = new MachineMenu(83, player.getInventory(), crusher, true);
+    var clientItems = (ClientMenuItems) ((SlotItemHandler) client.getSlot(0)).getItemHandler();
+    var iron = Items.IRON_INGOT;
+    var gold = Items.GOLD_INGOT;
+    var none = ItemStack.EMPTY;
+    var takeOne = new SlotPlan(1, none);
+    var jam = new SlotPlan(1, stack(gold, 1));
+    int hotbar = 4 + 27;
+    var rows = new java.util.ArrayList<Row>();
+    for (var click :
+        new Object[][] {
+          {"left", 0, ClickType.PICKUP},
+          {"right", 1, ClickType.PICKUP},
+          {"Q", 0, ClickType.THROW},
+          {"Ctrl+Q", 1, ClickType.THROW},
+          {"shift", 0, ClickType.QUICK_MOVE},
+          {"swap", 2, ClickType.SWAP},
+        }) {
+      var type = (ClickType) click[2];
+      int button = (Integer) click[1];
+      BiConsumer<MachineMenu, ServerPlayer> action = (m, p) -> m.clicked(0, button, type, p);
+      var name = click[0] + ": ";
+      var hotbarGold = stack(gold, 3);
+      rows.add(new Row(name + "50 iron take 1", stack(iron, 50), takeOne, none, none, action));
+      rows.add(new Row(name + "1 iron take 1", stack(iron, 1), takeOne, none, none, action));
+      rows.add(new Row(name + "2 iron, add gold", stack(iron, 2), jam, none, none, action));
+      rows.add(new Row(name + "no plan", stack(iron, 50), SlotPlan.NONE, none, none, action));
+      rows.add(new Row(name + "gold in hotbar", stack(iron, 50), takeOne, none, hotbarGold, action));
+    }
+    BiConsumer<MachineMenu, ServerPlayer> place =
+        (m, p) -> m.clicked(0, 0, ClickType.PICKUP, p);
+    var addIron = new SlotPlan(1, stack(iron, 2));
+    var addGold = new SlotPlan(0, stack(gold, 1));
+    for (var carried :
+        new ItemStack[] {stack(iron, 64), stack(iron, 10), stack(gold, 64), stack(gold, 5)}) {
+      var name = "carrying " + carried.getCount() + " " + carried.getItem() + ": ";
+      rows.add(new Row(name + "50 iron", stack(iron, 50), takeOne, carried, none, place));
+      rows.add(new Row(name + "1 iron take 1", stack(iron, 1), takeOne, carried, none, place));
+      rows.add(new Row(name + "jam", stack(iron, 1), jam, carried, none, place));
+      rows.add(new Row(name + "63 iron, add 2", stack(iron, 63), addIron, carried, none, place));
+      rows.add(new Row(name + "empty, add gold", none, addGold, carried, none, place));
+      rows.add(new Row(name + "empty, no plan", none, SlotPlan.NONE, carried, none, place));
+    }
+    BiConsumer<MachineMenu, ServerPlayer> doubleClick =
+        (m, p) -> m.clicked(4, 0, ClickType.PICKUP_ALL, p);
+    BiConsumer<MachineMenu, ServerPlayer> shiftIn =
+        (m, p) -> m.clicked(hotbar + 2, 0, ClickType.QUICK_MOVE, p);
+    BiConsumer<MachineMenu, ServerPlayer> drag =
+        (m, p) -> {
+          m.clicked(-999, 0, ClickType.QUICK_CRAFT, p);
+          m.clicked(0, 1, ClickType.QUICK_CRAFT, p);
+          m.clicked(4, 1, ClickType.QUICK_CRAFT, p);
+          m.clicked(-999, 2, ClickType.QUICK_CRAFT, p);
+        };
+    rows.add(new Row("double click", stack(iron, 50), takeOne, stack(iron, 10), none, doubleClick));
+    rows.add(new Row("shift in", stack(iron, 50), takeOne, none, stack(iron, 64), shiftIn));
+    rows.add(new Row("shift in, empty", none, addGold, none, stack(gold, 64), shiftIn));
+    rows.add(new Row("shift in, wrong item", none, addGold, none, stack(iron, 64), shiftIn));
+    rows.add(new Row("shift in, no plan", none, SlotPlan.NONE, none, stack(iron, 64), shiftIn));
+    rows.add(new Row("drag", stack(iron, 50), takeOne, stack(iron, 64), none, drag));
+
+    for (var row : rows) {
+      crusher.items.setPlan(0, SlotPlan.NONE);
+      crusher.items.setStackInSlot(0, ItemStack.EMPTY);
+      var onServer = outcome(server, player, row, crusher.items, null);
+      crusher.items.setPlan(0, SlotPlan.NONE);
+      crusher.items.setStackInSlot(0, ItemStack.EMPTY);
+      var onClient = outcome(client, player, row, null, clientItems);
+      require(
+          onServer.equals(onClient),
+          row.name() + ": server " + onServer + ", client " + onClient);
+    }
+    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+  }
+
+  /** Sets the row up on one menu, clicks, and describes everything the click could have moved. */
+  private static String outcome(
+      MachineMenu menu, ServerPlayer player, Row row, ItemStorage server, ClientMenuItems client) {
+    menu.setCarried(row.carried().copy());
+    player.getInventory().clearContent();
+    player.getInventory().setItem(2, row.hotbar().copy());
+    var area = player.getBoundingBox().inflate(8);
+    for (var drop : player.serverLevel().getEntitiesOfClass(ItemEntity.class, area)) drop.discard();
+    if (server != null) {
+      server.setStackInSlot(0, row.held().copy());
+      server.setPlan(0, row.plan());
+    } else {
+      client.setStackInSlot(0, row.held().copy());
+      client.setPlan(0, row.plan());
+    }
+    row.click().accept(menu, player);
+    var text = new StringBuilder(menu.getSlot(0).getItem() + ", carried " + menu.getCarried());
+    var inventory = player.getInventory();
+    for (int i = 0; i < inventory.getContainerSize(); i++)
+      if (!inventory.getItem(i).isEmpty())
+        text.append(", slot ").append(i).append(' ').append(inventory.getItem(i));
+    return text + ", dropped " + dropped(player.serverLevel(), player);
   }
 
   /** A hopper feeds a crusher, which saves, reloads and breaks in the middle of a cycle. */

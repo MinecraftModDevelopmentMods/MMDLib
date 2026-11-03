@@ -59,6 +59,14 @@ public class MachineMenu extends AbstractContainerMenu {
   }
 
   public MachineMenu(int id, Inventory inventory, BlockEntity entity) {
+    this(id, inventory, entity, inventory.player.level().isClientSide);
+  }
+
+  /**
+   * @param client whether the slots are the client's copy, as on a client; the menu does not
+   *     otherwise tell the two apart, so a test can run both against one server
+   */
+  public MachineMenu(int id, Inventory inventory, BlockEntity entity, boolean client) {
     super(ScreenRuntime.MENUS.get(), id);
     owner = inventory.player;
     blockEntity = entity;
@@ -84,7 +92,7 @@ public class MachineMenu extends AbstractContainerMenu {
             .mapToInt(e -> ((Element.Slot) e).index() + 1)
             .max()
             .orElse(0);
-    if (owner.level().isClientSide)
+    if (client)
       items =
           host == null ? new ItemStackHandler(count) : new ClientMenuItems(count, host.screenItems());
     else items = host == null ? new ItemStackHandler(0) : host.screenItems();
