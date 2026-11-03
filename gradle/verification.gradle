@@ -1,6 +1,9 @@
 // Verification: the JUnit tests, the runtimeTest source set and every verify* task.
 // All of it runs on `./gradlew check`; `build` only compiles and packages (see the end of this file).
 
+// MDG only puts Minecraft on main by default; the verification source sets build on test's classpath.
+neoForge.addModdingDependenciesTo(sourceSets.test)
+
 sourceSets {
     runtimeTest {
         compileClasspath += sourceSets.main.output + sourceSets.test.compileClasspath
@@ -13,16 +16,30 @@ tasks.named('check') { dependsOn tasks.named('compileRuntimeTestJava') }
 // `check`. The run loads main and runtimeTest as one mod, in a fresh world each time, and exits
 // with the number of failed tests. Release jars never contain runtimeTest (verifyReleaseClasses).
 def gameTestDir = layout.buildDirectory.dir('gametest')
-runs {
-    gameTestServer {
-        workingDirectory gameTestDir
-        modSource project.sourceSets.runtimeTest
-        systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib'
+neoForge {
+    // Game tests are found by scanning the mod's own files, so this run loads mmdlib from main and
+    // runtimeTest together; the other runs load only the release mod (main).
+    mods {
+        mmdlib_gametest {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.runtimeTest
+        }
+    }
+    runs {
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = gameTestDir
+            sourceSet = sourceSets.runtimeTest
+            loadedMods = [neoForge.mods.mmdlib_gametest]
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib'
+        }
     }
 }
-// NeoGradle creates the run task late, so it is found by name.
-def gameTestTask = tasks.matching { it.name == 'runGameTestServer' }
-gameTestTask.configureEach { it.doFirst { project.delete(gameTestDir); gameTestDir.get().asFile.mkdirs() } }
+neoForge.runs.matching { it.name != 'gameTestServer' }.configureEach {
+    loadedMods = [neoForge.mods.named(mod_id).get()]
+}
+def gameTestTask = tasks.named('runGameTestServer')
+gameTestTask.configure { it.doFirst { project.delete(gameTestDir); gameTestDir.get().asFile.mkdirs() } }
 tasks.named('check') { dependsOn gameTestTask }
 
 // Unit tests in src/test: JUnit 5, no running game. `./gradlew test` (part of `check`).
