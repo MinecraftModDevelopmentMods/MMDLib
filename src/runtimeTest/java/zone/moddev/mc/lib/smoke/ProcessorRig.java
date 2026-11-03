@@ -25,11 +25,17 @@ import zone.moddev.mc.lib.machine.neoforge.StorageGroups;
 final class ProcessorRig {
   final int[] changes = new int[1];
   final int[] syncs = new int[1];
+  /** Also run on every send, for a test that reads what the clients would be told. */
+  Runnable onSync = () -> {};
   final ItemStorage items;
   final FluidStorage fluids = new FluidStorage().onChange(() -> changes[0]++);
   final EnergyBuffer energy = new EnergyBuffer(10_000_000_000L, 1_000).onChange(() -> changes[0]++);
   final MachineInventory inventory;
-  final FeatureHost host = new FeatureHost(() -> changes[0]++, () -> syncs[0]++);
+  final FeatureHost host = new FeatureHost(() -> changes[0]++, 
+            () -> {
+              syncs[0]++;
+              onSync.run();
+            });
   final RecipeProcessor processor;
   private final boolean crusher;
   private final boolean withEnergy;

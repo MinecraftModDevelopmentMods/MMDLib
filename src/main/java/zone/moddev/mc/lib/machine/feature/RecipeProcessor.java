@@ -63,7 +63,8 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
    * @param resumeTime the time that recipe took, so progress is dropped if its time changed
    * @param cycle the running cycle
    * @param status what the processor was doing; loading works it out again, and only a client
-   *     takes it from here
+   *     takes it from here. A name this version doesn't know reads as empty, which loses nothing
+   *     else.
    */
   public record State(
       boolean paused,
@@ -71,7 +72,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
       Optional<ResourceLocation> resumeRecipe,
       int resumeTime,
       Optional<CyclePlan> cycle,
-      Status status) {
+      Optional<Status> status) {
     /** The save form. */
     public static final Codec<State> CODEC =
         RecordCodecBuilder.create(
@@ -89,9 +90,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
                             .optionalFieldOf("resume_time", 0)
                             .forGetter(State::resumeTime),
                         CyclePlan.CODEC.lenientOptionalFieldOf("cycle").forGetter(State::cycle),
-                        STATUS_CODEC
-                            .optionalFieldOf("status", Status.IDLE)
-                            .forGetter(State::status))
+                        STATUS_CODEC.lenientOptionalFieldOf("status").forGetter(State::status))
                     .apply(instance, State::new));
   }
 
@@ -107,6 +106,8 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   private boolean changed;
   private Status status = Status.IDLE;
   private Status marked = Status.IDLE;
+  private int markedTime;
+  private boolean finished;
   private int syncedTime;
 
   /** A processor saved under {@code key} that runs recipes of {@code type} on {@code inventory}. */
@@ -135,7 +136,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
         Optional.ofNullable(resumeRecipe),
         resumeTime,
         Optional.ofNullable(cycle),
-        status);
+        Optional.of(status));
   }
 
   @Override
@@ -153,7 +154,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   public void restoreOnClient(State state) {
     paused = state.paused();
     progress = state.progress();
-    status = state.status();
+    state.status().ifPresent(sent -> status = sent);
     syncedTime = state.cycle().map(CyclePlan::time).orElse(0);
   }
 
@@ -242,11 +243,19 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     return cycle == null ? syncedTime : cycle.time();
   }
 
+  /**
+   * Runs a tick, then asks for a sync if the status or the cycle's time differs from the last one
+   * asked for. The tick that finishes a cycle asks for nothing: the processor is only idle until
+   * the next tick starts the next cycle, and a client should not be told of that gap.
+   */
   @Override
   public void tick(FeatureHost host) {
+    finished = false;
     run(host);
-    if (status != marked) {
+    if (finished) return;
+    if (status != marked || time() != markedTime) {
       marked = status;
+      markedTime = time();
       host.markSync();
     }
   }
@@ -279,6 +288,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
         cycle = null;
         progress = 0;
         status = Status.IDLE;
+        finished = true;
         host.markChanged();
       } else {
         status = Status.BLOCKED;

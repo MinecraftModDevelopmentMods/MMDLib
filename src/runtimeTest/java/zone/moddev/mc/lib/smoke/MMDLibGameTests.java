@@ -293,6 +293,24 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void processorConsecutiveCyclesStayRunning(GameTestHelper helper) {
+    ProcessorSmoke.consecutiveCyclesStayRunning(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorConsecutiveCyclesOfDifferentTimes(GameTestHelper helper) {
+    ProcessorSmoke.consecutiveCyclesOfDifferentTimes(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void processorUnknownStatusInASave(GameTestHelper helper) {
+    ProcessorSmoke.unknownStatusInASave(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
   public static void machineRecipeTypeRegistered(GameTestHelper helper) {
     MachineRecipeTypeSmoke.registered();
     helper.succeed();

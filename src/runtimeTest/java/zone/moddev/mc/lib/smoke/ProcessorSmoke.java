@@ -12,6 +12,7 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
@@ -31,6 +32,7 @@ import zone.moddev.mc.lib.machine.feature.MachineFeature;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.State;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
+import zone.moddev.mc.lib.machine.neoforge.FeatureSync;
 import zone.moddev.mc.lib.machine.recipe.CyclePlan;
 import zone.moddev.mc.lib.machine.recipe.CyclePlan.At;
 import zone.moddev.mc.lib.machine.recipe.CyclePlan.ItemTake;
@@ -361,6 +363,102 @@ final class ProcessorSmoke {
     require(rig.syncs[0] == 5, "resume sent " + rig.syncs[0] + " on the next tick");
   }
 
+  /** A rig whose sends are read into {@code client}, as a nearby player would see them. */
+  private static ProcessorRig watched(ServerLevel level, ProcessorRig client) {
+    var rig = ProcessorRig.oneSlot(true);
+    var registries = level.registryAccess();
+    rig.onSync =
+        () -> {
+          var update = FeatureSync.updateTag(rig.host, registries);
+          FeatureSync.read(client.host, update, registries);
+        };
+    return rig;
+  }
+
+  /** Puts {@code item} in the one slot once the last cycle is done, as a hopper would. */
+  private static void refill(ProcessorRig rig, Item item) {
+    rig.items.setStackInSlot(0, new ItemStack(item));
+  }
+
+  /** Back-to-back cycles read as running, not as idle for the tick between them. */
+  static void consecutiveCyclesStayRunning(ServerLevel level) {
+    var client = ProcessorRig.oneSlot(true);
+    var rig = watched(level, client);
+    refill(rig, Items.IRON_INGOT);
+    for (int cycle = 0; cycle < 6; cycle++) {
+      int ticks = 0;
+      do {
+        rig.ticks(level, 1);
+        ticks++;
+        require(ticks < 20, "cycle " + cycle + " never finished");
+        require(
+            client.processor.status() == Status.RUNNING,
+            "cycle " + cycle + " tick " + ticks + ": clients read " + client.processor.status());
+      } while (rig.processor.status() != Status.IDLE);
+      refill(rig, Items.IRON_INGOT);
+    }
+    require(rig.syncs[0] == 1, "six cycles sent " + rig.syncs[0] + " times");
+
+    // Nothing more to do: the machine really is idle, and clients are told.
+    rig.items.setStackInSlot(0, ItemStack.EMPTY);
+    rig.ticks(level, 1);
+    require(client.processor.status() == Status.IDLE, "clients read " + client.processor.status());
+    require(client.processor.time() == 0, "idle time " + client.processor.time());
+    require(rig.syncs[0] == 2, "idle sent " + rig.syncs[0]);
+  }
+
+  /** A cycle of a different time than the last is sent, though the status is the same. */
+  static void consecutiveCyclesOfDifferentTimes(ServerLevel level) {
+    var client = ProcessorRig.oneSlot(true);
+    var rig = watched(level, client);
+    refill(rig, Items.IRON_INGOT);
+    cycle(level, rig);
+    require(client.processor.time() == 10, "iron takes 10: " + client.processor.time());
+    refill(rig, Items.COBBLESTONE);
+    rig.ticks(level, 1);
+    require(rig.processor.time() == 5, "cobblestone takes 5: " + rig.processor.time());
+    require(client.processor.time() == 5, "clients read " + client.processor.time());
+    require(client.processor.status() == Status.RUNNING, "still running");
+    cycle(level, rig);
+    refill(rig, Items.IRON_INGOT);
+    rig.ticks(level, FeatureHost.SYNC_INTERVAL - 2);
+    require(rig.processor.time() == 10, "iron again: " + rig.processor.time());
+    require(client.processor.time() == 10, "clients read " + client.processor.time());
+  }
+
+  /** Ticks until the running cycle is done. */
+  private static void cycle(ServerLevel level, ProcessorRig rig) {
+    for (int ticks = 0; ticks < 30; ticks++) {
+      rig.ticks(level, 1);
+      if (rig.processor.status() == Status.IDLE && ticks > 0) return;
+    }
+    throw new AssertionError("Processor smoke failed: the cycle never finished");
+  }
+
+  /** A save with a status name this version doesn't know still restores everything else. */
+  static void unknownStatusInASave(ServerLevel level) {
+    var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+    var rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 51);
+    rig.processor.interrupt();
+    var saved = (CompoundTag) rig.host.save(ops);
+    require(saved.getCompound("work").getString("status").equals("PAUSED"), "saved " + saved);
+    saved.getCompound("work").putString("status", "NO_SUCH_STATUS");
+    var copy = rig.reloaded(level);
+    copy.host.load(ops, saved);
+    expect(copy, Status.PAUSED, 50, "after the load");
+    require(copy.processor.paused(), "still paused");
+
+    rig = ProcessorRig.crusher(3, 1_000, 100_000);
+    rig.ticks(level, 51);
+    saved = (CompoundTag) rig.host.save(ops);
+    saved.getCompound("work").putString("status", "NO_SUCH_STATUS");
+    copy = rig.reloaded(level);
+    copy.host.load(ops, saved);
+    expect(copy, Status.RUNNING, 50, "a running cycle");
+    require(copy.processor.time() == 200 && !copy.items.plan(0).isNone(), "the cycle came back");
+  }
+
   /** A mid-cycle save and load puts back the same plans and progress, and the same finish. */
   static void reloadResumes(ServerLevel level) {
     var rig = ProcessorRig.crusher(3, 1_000, 100_000);
@@ -465,7 +563,7 @@ final class ProcessorSmoke {
         new CyclePlan(
             gold, 10, List.of(new ItemTake("slot", 1, iron)), List.of(), List.of(), Map.of());
     fewer.processor.restore(
-        new State(false, 3, Optional.empty(), 0, Optional.of(outside), Status.IDLE));
+        new State(false, 3, Optional.empty(), 0, Optional.of(outside), Optional.empty()));
     cancelled(fewer, false, "fewer slots");
 
     var running = ProcessorRig.oneSlot(true);
@@ -492,7 +590,7 @@ final class ProcessorSmoke {
             List.of(),
             List.of(),
             Map.of());
-    var state = new State(true, 50, Optional.empty(), 0, Optional.of(plan), Status.IDLE);
+    var state = new State(true, 50, Optional.empty(), 0, Optional.of(plan), Optional.empty());
     JsonElement json = State.CODEC.encodeStart(ops, state).getOrThrow();
     var broken = JsonParser.parseString(json.toString().replace("cobblestone", "no_such_thing"));
     var decoded = State.CODEC.parse(ops, broken);
@@ -548,8 +646,9 @@ final class ProcessorSmoke {
       var first = goldFirst ? addsGold : takesIron;
       var second = goldFirst ? takesIron : addsGold;
       rig.processor.restore(
-          new State(false, 3, Optional.empty(), 0, Optional.of(first), Status.IDLE));
-      other.restore(new State(false, 3, Optional.empty(), 0, Optional.of(second), Status.IDLE));
+          new State(false, 3, Optional.empty(), 0, Optional.of(first), Optional.empty()));
+      other.restore(
+          new State(false, 3, Optional.empty(), 0, Optional.of(second), Optional.empty()));
       require(rig.items.plan(0).sameAs(merged), "the source has the merged plan");
 
       var copy = rig.reloaded(level);
