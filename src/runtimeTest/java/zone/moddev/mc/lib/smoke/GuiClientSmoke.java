@@ -81,7 +81,9 @@ public final class GuiClientSmoke {
                         net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(),
                         3);
                     level.setBlock(
-                        CRUSHER, BuiltInRegistries.BLOCK.get(CrusherSmoke.ID).defaultBlockState(), 3);
+                        CRUSHER,
+                        BuiltInRegistries.BLOCK.get(CrusherSmoke.ID).defaultBlockState(),
+                        3);
                     player.teleportTo(POS.getX() + .5, POS.getY() + 1, POS.getZ() + 2.5);
                   } catch (Throwable error) {
                     fail(error);
