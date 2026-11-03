@@ -303,4 +303,11 @@ public final class MMDLibGameTests {
     MachineRecipeTypeSmoke.builderMatchesFile(helper.getLevel());
     helper.succeed();
   }
+
+  @GameTest(template = EMPTY)
+  public static void crusherEndToEnd(GameTestHelper helper) {
+    CrusherSmoke.endToEnd(
+        helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+    helper.succeed();
+  }
 }
