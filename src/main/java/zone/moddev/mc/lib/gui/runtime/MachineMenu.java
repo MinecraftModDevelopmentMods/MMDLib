@@ -31,6 +31,7 @@ public class MachineMenu extends AbstractContainerMenu {
   public final ScreenBinder.Bound bound;
   public final List<Element> elements;
   private final Map<String, String> views = new HashMap<>();
+  private final Map<Element, Boolean> visibility = new IdentityHashMap<>();
   private final Map<Element, Integer> elementIndexes = new IdentityHashMap<>();
   private final Map<Integer, Object> values = new HashMap<>();
   private final ScreenHost host;
@@ -40,9 +41,150 @@ public class MachineMenu extends AbstractContainerMenu {
   private final Player owner;
   private boolean initial = true;
   private boolean interacting;
+  private long widgetSession = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+  private int nextWidgetRequest;
+  private int lastWidgetRequest;
+  private long widgetActionTick = Long.MIN_VALUE;
+  private int widgetActionsThisTick;
+  private final Map<Integer, Integer> pendingWidgets = new HashMap<>();
+  private final Map<Integer, ScreenNetwork.WidgetResult> widgetResults = new HashMap<>();
+  private final Set<Integer> widgetRefreshKeys = new HashSet<>();
+  private final Map<Integer, Integer> widgetSentAt = new HashMap<>();
+  private int widgetClientTicks;
 
   public MachineMenu(int id, Inventory inventory, RegistryFriendlyByteBuf data) {
     this(id, inventory, readEntity(inventory, data));
+    widgetSession = data.readLong();
+  }
+
+  public MachineMenu(int id, Inventory inventory, BlockEntity entity, long session) {
+    this(id, inventory, entity);
+    widgetSession = session;
+  }
+
+  public long widgetSession() {
+    return widgetSession;
+  }
+
+  /** Client-side: at most one in-flight edit per widget. */
+  public <T> Optional<ScreenNetwork.Widget> prepareWidgetAction(
+      Element.Custom widget, WidgetAction<T> action, T value) {
+    int index = index(widget);
+    if (!visible(widget)
+        || pendingWidgets.containsKey(index)
+        || widgetResults.containsKey(index)
+        || nextWidgetRequest == Integer.MAX_VALUE) return Optional.empty();
+    if (WidgetTypes.GLOBAL.require(widget.type()).action(action.id()).orElse(null) != action)
+      throw new IllegalArgumentException("Action is not registered for " + widget.type());
+    byte[] data;
+    try {
+      data = action.encode(owner.registryAccess(), value);
+    } catch (RuntimeException failure) {
+      zone.moddev.mc.lib.MMDLib.LOGGER.error(
+          "Could not encode widget action: {}", action.id(), failure);
+      return Optional.empty();
+    }
+    int request = ++nextWidgetRequest;
+    pendingWidgets.put(index, request);
+    widgetSentAt.put(index, widgetClientTicks);
+    return Optional.of(
+        new ScreenNetwork.Widget(containerId, widgetSession, index, request, action.id(), data));
+  }
+
+  public boolean widgetPending(Element.Custom widget) {
+    return pendingWidgets.containsKey(index(widget));
+  }
+
+  public void receiveWidgetResult(ScreenNetwork.WidgetResult result) {
+    if (result.menu() != containerId
+        || result.session() != widgetSession
+        || !Objects.equals(pendingWidgets.get(result.element()), result.request())) return;
+    pendingWidgets.remove(result.element());
+    widgetSentAt.remove(result.element());
+    values.put(result.element() * 2, result.value());
+    values.put(result.element() * 2 + 1, result.maximum());
+    widgetResults.put(result.element(), result);
+  }
+
+  public ScreenNetwork.WidgetResult takeWidgetResult(Element.Custom widget) {
+    return widgetResults.remove(index(widget));
+  }
+
+  /** Client-side timeout prevents an unconfirmed edit from permanently disabling a control. */
+  public void tickWidgetActions() {
+    widgetClientTicks++;
+    for (var entry : new HashMap<>(widgetSentAt).entrySet())
+      if (widgetClientTicks - entry.getValue() >= 100) {
+        int index = entry.getKey();
+        receiveWidgetResult(
+            new ScreenNetwork.WidgetResult(
+                containerId,
+                widgetSession,
+                index,
+                pendingWidgets.get(index),
+                false,
+                values.get(index * 2),
+                values.get(index * 2 + 1)));
+      }
+  }
+
+  /** Server-side authorization precedes decoding. Excess edits are rejected without dispatch. */
+  public ScreenNetwork.WidgetResult widgetAction(
+      net.minecraft.server.level.ServerPlayer player, ScreenNetwork.Widget packet) {
+    if (player != owner
+        || player.containerMenu != this
+        || !stillValid(player)
+        || packet.menu() != containerId
+        || packet.session() != widgetSession
+        || packet.request() <= lastWidgetRequest
+        || packet.element() >= elements.size()) return null;
+    long tick = player.level().getGameTime();
+    if (widgetActionTick != tick) {
+      widgetActionTick = tick;
+      widgetActionsThisTick = 0;
+    }
+    lastWidgetRequest = packet.request();
+    if (!(elements.get(packet.element()) instanceof Element.Custom widget)) return null;
+    if (++widgetActionsThisTick > 8)
+      // Use the last sent snapshot: rate-limited requests must not invoke codecs or getters.
+      return widgetResult(packet, false, values);
+    boolean accepted = false;
+    var action = WidgetTypes.GLOBAL.require(widget.type()).action(packet.action());
+    if (visible(widget) && action.isPresent()) {
+      try {
+        accepted =
+            action.get().dispatch(new WidgetAction.Context(player, this, widget), packet.data());
+      } catch (RuntimeException failure) {
+        zone.moddev.mc.lib.MMDLib.LOGGER.error(
+            "Widget action failed: {}", packet.action(), failure);
+      }
+    }
+    if (accepted) blockEntity.setChanged();
+    ScreenSnapshots.invalidate(blockEntity);
+    var snapshot = ScreenSnapshots.read(blockEntity, bound);
+    return widgetResult(packet, accepted, snapshot);
+  }
+
+  private ScreenNetwork.WidgetResult widgetResult(
+      ScreenNetwork.Widget packet, boolean accepted, Map<Integer, Object> snapshot) {
+    var result =
+        new ScreenNetwork.WidgetResult(
+            containerId,
+            widgetSession,
+            packet.element(),
+            packet.request(),
+            accepted,
+            snapshot.get(packet.element() * 2),
+            snapshot.get(packet.element() * 2 + 1));
+    // The acknowledgment changes the client's values too. Include it in the delta baseline so
+    // a later return to the pre-action value is sent even if no regular broadcast saw the edit.
+    values.put(packet.element() * 2, result.value());
+    values.put(packet.element() * 2 + 1, result.maximum());
+    // A client may already have timed out and ignored this response. Also send the next normal
+    // snapshot for these keys so its confirmed values converge independently of acknowledgments.
+    widgetRefreshKeys.add(packet.element() * 2);
+    widgetRefreshKeys.add(packet.element() * 2 + 1);
+    return result;
   }
 
   private static BlockEntity readEntity(Inventory inventory, RegistryFriendlyByteBuf data) {
@@ -141,7 +283,8 @@ public class MachineMenu extends AbstractContainerMenu {
               @Override
               public void setChanged() {
                 super.setChanged();
-                // Vanilla shift-click merges mutate the stack directly, bypassing handler callbacks.
+                // Vanilla shift-click merges mutate the stack directly, bypassing handler
+                // callbacks.
                 if (!client) {
                   if (items instanceof ItemStorage storage) storage.markChanged();
                   blockEntity.setChanged();
@@ -225,32 +368,31 @@ public class MachineMenu extends AbstractContainerMenu {
   }
 
   public boolean visible(Element element) {
-    for (var root : bound.screen().body())
-      if (visibleIn(root, element, true) != null)
-        return Boolean.TRUE.equals(visibleIn(root, element, true));
-    for (var root : bound.screen().tabs())
-      if (visibleIn(root, element, true) != null)
-        return Boolean.TRUE.equals(visibleIn(root, element, true));
-    return false;
+    if (visibility.isEmpty()) {
+      for (var root : bound.screen().body()) cacheVisibility(root, true);
+      for (var root : bound.screen().tabs()) cacheVisibility(root, true);
+    }
+    return Boolean.TRUE.equals(visibility.get(element));
   }
 
-  private Boolean visibleIn(Element root, Element target, boolean shown) {
-    if (root == target) return shown;
+  private void cacheVisibility(Element root, boolean shown) {
+    visibility.put(root, shown);
     for (var child : root.children()) {
       boolean next = shown;
       if (root instanceof Element.Context c)
         next &= child.common().id().orElse("").equals(views.get(c.common().id().orElse("")));
-      Boolean found = visibleIn(child, target, next);
-      if (found != null) return found;
+      cacheVisibility(child, next);
     }
-    return null;
   }
 
   public void navigate(String context, String view) {
     var e = bound.screen().find(context).orElse(null);
     if (e instanceof Element.Context c
-        && c.views().stream().anyMatch(v -> v.common().id().orElse("").equals(view)))
+        && c.views().stream().anyMatch(v -> v.common().id().orElse("").equals(view))
+        && !Objects.equals(views.get(context), view)) {
       views.put(context, view);
+      visibility.clear();
+    }
   }
 
   @Override
@@ -378,6 +520,8 @@ public class MachineMenu extends AbstractContainerMenu {
       }
     snapshot.putAll(reservationSnapshot());
     var delta = ScreenValues.changed(values, snapshot, initial);
+    for (int key : widgetRefreshKeys) delta.put(key, snapshot.get(key));
+    widgetRefreshKeys.clear();
     if (!delta.isEmpty()) {
       values.putAll(delta);
       PacketDistributor.sendToPlayer(player, new ScreenNetwork.Values(containerId, delta));

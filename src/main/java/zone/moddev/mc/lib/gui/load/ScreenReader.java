@@ -27,6 +27,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import zone.moddev.mc.lib.gui.WidgetTypes;
 import zone.moddev.mc.lib.gui.model.Common;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Element.*;
@@ -61,8 +62,15 @@ public final class ScreenReader {
    */
   public static Screen read(ResourceLocation id, String source, InputStream input)
       throws IOException {
+    return read(id, source, input, WidgetTypes.GLOBAL);
+  }
+
+  /** Reads using an explicit widget registry, for tools that own their loading stage. */
+  public static Screen read(
+      ResourceLocation id, String source, InputStream input, WidgetTypes widgets)
+      throws IOException {
     Node root = parse(source, input);
-    var screen = new Builder(source).screen(id, root);
+    var screen = new Builder(source, widgets).screen(id, root);
     check(screen);
     return screen;
   }
@@ -164,9 +172,11 @@ public final class ScreenReader {
 
   private static final class Builder {
     private final String source;
+    private final WidgetTypes widgets;
 
-    Builder(String source) {
+    Builder(String source, WidgetTypes widgets) {
       this.source = source;
+      this.widgets = widgets;
     }
 
     Screen screen(ResourceLocation id, Node root) {
@@ -204,6 +214,7 @@ public final class ScreenReader {
                 enumValue(Align.class, node, "align"),
                 children(node));
         case "spacer" -> new Spacer(c);
+        case "custom" -> custom(node, c);
         case "group" ->
             new Group(
                 c,
@@ -276,6 +287,31 @@ public final class ScreenReader {
                 text(node, "text"));
         default -> throw error(node, "Unknown element <" + node.name() + ">");
       };
+    }
+
+    private Custom custom(Node node, Common common) {
+      var properties = new LinkedHashMap<String, String>();
+      for (var property : node.children()) {
+        var name = property.attributes().get("name");
+        if (properties.putIfAbsent(name, property.attributes().get("value")) != null)
+          throw error(property, "Duplicate widget property: " + name);
+      }
+      var element =
+          new Custom(
+              common,
+              id(node, "type").orElseThrow(),
+              size(node, "width", 1),
+              size(node, "height", 1),
+              properties);
+      try {
+        var type = widgets.require(element.type());
+        if (common.value().isPresent() && type.valueKinds().isEmpty())
+          throw new IllegalArgumentException("This widget does not accept a value binding");
+        type.validator().accept(element);
+      } catch (RuntimeException ex) {
+        throw new ScreenException(source, node.line(), element.type() + ": " + ex.getMessage(), ex);
+      }
+      return element;
     }
 
     /** Standard energy bindings can be overridden for machines with several buffers. */

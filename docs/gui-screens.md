@@ -132,6 +132,211 @@ under `build/gui-smoke*`, checks server actions and full codecs, opens the actua
 synced values, and saves `screenshots/gui-smoke.png`. Run a normal build afterward to remove
 injected smoke classes from main output; release verification rejects any leaked smoke classes.
 
+## Registering custom widget types
+
+A consuming mod can add a leaf widget without replacing MMDLib's screen or menu. Register its
+common-side contract in the mod constructor, before screen discovery:
+
+```java
+import java.util.Set;
+import net.minecraft.resources.ResourceLocation;
+import zone.moddev.mc.lib.gui.WidgetType;
+import zone.moddev.mc.lib.gui.WidgetTypes;
+import zone.moddev.mc.lib.gui.load.BoundValue.Kind;
+
+WidgetTypes.GLOBAL.register(ResourceLocation.parse("example:temperature"),
+    new WidgetType(Set.of(Kind.WHOLE, Kind.DECIMAL, Kind.NUMBER), widget -> {
+        if (widget.common().value().isEmpty() || widget.common().max().isEmpty())
+            throw new IllegalArgumentException("Temperature needs value and max");
+        if (!widget.properties().isEmpty())
+            throw new IllegalArgumentException("Temperature has no custom properties");
+    }));
+```
+
+`valueKinds` lists the declared getter return kinds the widget accepts. Use an empty set for a
+decoration without a value; `max`, when present, is always numeric and requires `value`. The
+validator checks required bindings, dimensions and properties. Throw `IllegalArgumentException`
+with an author-facing explanation; MMDLib adds the screen file, line and widget type. Validators
+run on both sides at startup and must not use client classes or a live world. IDs cannot be
+replaced, and type registration closes when startup screen discovery begins.
+
+Use the registered type in any ordinary widget container:
+
+```xml
+<custom id="temperature" type="example:temperature" width="36" height="2s"
+        value="#getTemperature" max="#getMaxTemperature"
+        tooltip="screen.example.temperature"
+        tooltip-fallback="Temperature: {value} / {max}"/>
+```
+
+Width and height are required, from 1 to 1024 GUI pixels; the existing `s` slot unit is supported.
+The element receives normal box placement and supports all common attributes, including offsets,
+tooltips, `on-click`, `on-right-click`, shifted clicks, `on-hover`, `hover-shows`, and `jei-recipes`.
+An interactive instance handles input first. If it returns `PASS`, JEI recipe actions take
+priority over ordinary click handlers; use a separate recipes control when needed.
+
+Types that need configuration can accept named properties:
+
+```xml
+<custom type="mmdlib_companion:progress_dial" width="24" height="24"
+        value="#getProgress" max="#getTime">
+  <property name="color" value="#55CC88"/>
+</custom>
+```
+
+The type validator owns the allowed property names and value formats. Duplicate names fail
+loading. `widget.properties()` is an immutable, sorted map of strings, included in the screen
+fingerprint. Property nodes do not create menu elements or slots. Unknown XML attributes still
+fail schema validation. The generic XSD can describe property structure; per-type rules are
+checked by Java at startup.
+
+Register drawing separately, **only on the client**, during client mod construction or
+`FMLClientSetupEvent`:
+
+```java
+import zone.moddev.mc.lib.gui.client.WidgetRenderers;
+
+WidgetRenderers.GLOBAL.register(ResourceLocation.parse("example:temperature"), context -> {
+    var g = context.graphics();
+    var r = context.bounds();
+    g.fill(r.x(), r.y(), r.right(), r.bottom(), 0xff353535);
+    int filled = (int) Math.round(r.height() * context.ratio());
+    g.fill(r.x(), r.bottom() - filled, r.right(), r.bottom(), 0xffdd6644);
+});
+```
+
+The context supplies the custom element, absolute GUI bounds and mouse coordinates, partial
+tick, and the server-synced `value()` / `maximum()`. Values can be null before sync or when a
+getter fails. Whole numbers arrive as `BigInteger`, decimals as `Double`; boolean, fluid and
+text kinds use the existing protocol. `ratio()` clamps numeric values to 0..1 and returns zero
+when unavailable. `hovered()` tests the widget's rectangle. Do not mutate or retain synced
+objects, and never call machine getters from the renderer.
+
+MMDLib clips drawing to the widget rectangle and restores its pose and tint afterward. Renderers
+must balance any additional pose/scissor pushes and restore any other render state they change.
+Renderer IDs must have a common-side type, and every custom widget used in a loaded screen must
+have a renderer. These checks run at client load completion, when renderer registration closes.
+Rendering and this registry are never loaded on a dedicated server.
+
+This API supports leaf widgets. It does not provide custom child containers or additional getter
+channels beyond `value` and `max`. Stateful input and typed actions are described below. Ordinary
+click handlers continue to use menu ownership, distance, visibility and action validation.
+
+The companion Crusher demonstrates a clickable progress dial in
+`CompanionWidgets`, `client.CompanionWidgetsClient`, and `mmdlib/screen/crusher.xml`. Its custom
+click pauses/resumes the machine through the same server callback as the pause button. The
+companion game tests exercise it on a dedicated server, and the client smoke checks its synced
+values and click path. For tools that own loading, `ScreenReader.read` and `ScreenBinder.bind`
+also accept an explicit `WidgetTypes` registry; use the same registry for both.
+
+### Interactive instances
+
+Use `WidgetRenderers.GLOBAL.registerInteractive(typeId, MyWidget::new)` to register a
+`WidgetFactory`. It receives a `WidgetAccess` and returns a **fresh `WidgetInstance`** per element
+per screen. Keep draft text, cursor/selection, drag previews and other local state in that instance.
+Do not keep editing state in a static renderer. The existing `register` method remains available
+for stateless drawing.
+
+`WidgetAccess` exposes the element, live absolute bounds, server-confirmed value and maximum,
+`pending()`, and `submit(action, payload)`. `WidgetInstance` implements rendering plus optional
+mouse, scroll, key, character, tick, focus and lifecycle methods. Its click result is:
+
+| Result | Meaning |
+|---|---|
+| `PASS` | Try the element's ordinary recipe/click behavior and underlying screen handling |
+| `CONSUME` | Handle this click; focus the instance if `focusable()` is true |
+| `CAPTURE` | Also receive dragging and release for this mouse button outside the widget bounds |
+
+Only a captured press receives mouse drag/release callbacks. Releasing an inventory drag over a
+widget leaves the release with the inventory, regardless of which widget is under the pointer.
+
+Tab and Shift+Tab move between visible focusable custom widgets in document order. While one is
+focused, inventory shortcuts are consumed even when its `keyPressed` returns false, so typing E,
+Q or a number cannot close the screen or move a slot. `charTyped` is separate from `keyPressed`.
+Escape first cancels capture; otherwise it is offered to the focused instance. If unhandled, it
+clears focus. With no focused instance, the screen's normal back/close behavior applies.
+
+Hiding a widget cancels capture, removes focus and calls `visibilityChanged(false)`. A cancelled
+drag does not receive a committing release, and that release cannot leak into an inventory slot.
+Resize calls `cancelInteraction()` on a captured instance and `resized()` on all instances; the
+instances and keyboard focus survive. Keep text drafts in `resized()` and use `visibilityChanged`
+to decide whether to discard drafts on a view change. `removed()` runs once per instance when
+the screen is removed. Balance any widget-owned resources there.
+If another screen (such as a recipe browser) returns to the same `MachineScreen` object, fresh
+widget instances are created on reinitialization. Ordinary resizing keeps the existing instances.
+
+The companion `NameEditor` adapts Minecraft's `EditBox`, including clipboard shortcuts, cursor
+movement, selection, drag selection, a 32-character limit, and Apply/Cancel. It retains a dirty
+draft while server values change, and only replaces it on successful submission or explicit
+cancellation. `ReserveSlider` previews while dragging and sends one update on release; it also
+supports scroll, arrow keys, Shift for ten-point steps, Home and End.
+
+### Typed actions and acknowledgments
+
+Define an action on the common side and add it to the third argument of `WidgetType`. Only actions
+in that type's list can be invoked by its elements. A handler receives the authenticated server
+player, menu and custom element; return false to reject. Check permissions, numeric bounds,
+allowed options and any element-specific property **before** mutating the machine.
+
+```java
+var setLimit = new WidgetAction<Integer>(ResourceLocation.parse("example:set_limit"),
+    StreamCodec.of((buffer, value) -> buffer.writeVarInt(value), buffer -> buffer.readVarInt()),
+    5, (context, value) -> {
+        if (value < 0 || value > 100) return false;
+        if (!(context.menu().blockEntity instanceof PressBlockEntity press)) return false;
+        press.setLimit(value);
+        return true;
+    });
+
+WidgetTypes.GLOBAL.register(ResourceLocation.parse("example:limit_slider"),
+    new WidgetType(Set.of(Kind.WHOLE), widget -> {
+        if (widget.common().value().isEmpty())
+            throw new IllegalArgumentException("Limit slider needs value");
+    }, List.of(setLimit)));
+```
+
+The relevant imports are `gui.WidgetAction`, `gui.WidgetType`, `gui.WidgetTypes`,
+`gui.load.BoundValue.Kind`, `net.minecraft.network.codec.StreamCodec`, and the ordinary Java
+collections. Codecs use `RegistryFriendlyByteBuf`, so structured records and registry-aware
+values are supported. Register matching action IDs and codecs on both sides. Each action declares
+a maximum encoded size of 1–4096 bytes. The envelope is bounded before the mod codec runs, the
+encoder uses a bounded buffer, and trailing bytes are refused. **Codecs must additionally bound
+their own string and collection lengths before allocating.**
+
+The client instance calls `access.submit(setLimit, previewValue)`. False means the widget is
+hidden, another request is pending, an earlier result still needs delivery, or encoding failed.
+Codec runtime exceptions (including buffer overflow) are logged and return false without sending
+a packet or marking the widget pending. Do not submit every render frame. For sliders, commit on
+release; throttle continuous controls yourself.
+
+The server checks menu ownership, interaction distance, visibility, element type, allowed action,
+menu-session token and increasing request number before dispatch. At most eight typed actions
+per menu per server tick are processed; excess edits receive an immediate rejection using the last
+sent values, without invoking their codec, getters or handler. Replayed requests are dropped. Handler
+exceptions are logged and rejected, but MMDLib cannot undo a handler's partial mutations.
+
+The response includes accept/reject and fresh authoritative `value`/`max` snapshots after the
+handler (or the last sent values for rate-limited edits). They are applied before
+`WidgetInstance.actionResult(boolean)` runs and update the server's delta baseline. The next ordinary
+snapshot also refreshes those values, so a late acknowledgment ignored after timeout cannot leave
+the client stale. Ordinary snapshot sync continues for every viewer, including changes to other
+elements. Preserve a rejected text
+draft and show feedback so the player can correct it. Requests are limited to one in flight per
+widget. After 100 client ticks without a matching response, the control is unlocked and receives
+`actionResult(false)` to report an **unconfirmed** edit; that does not prove the server rolled back
+or never applied the edit. The timer follows the player's open menu even while another screen
+covers it; result callbacks are delivered when the machine screen resumes. Responses for old
+sessions or obsolete requests are ignored.
+
+The companion Settings view demonstrates all three cases: a named machine, an energy-reserve
+slider that holds processing below the chosen charge percentage, and a Run/Pause selector whose
+payload contains both lane index and state. The server restricts that selector to the lane named
+in its XML property. These settings persist with the machine. The graphical smoke run checks
+focus, typing, cancellation, resizing, view changes, release outside bounds and server rejection.
+
+The expanded menu protocol is version **2**, including a session token in menu-opening data.
+Client and server must use matching MMDLib builds.
+
 ## Files and IDs
 
 Screens live in the same root `mmdlib/` folders as other definitions, under `screen/`. As with

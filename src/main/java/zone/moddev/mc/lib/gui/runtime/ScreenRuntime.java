@@ -87,26 +87,7 @@ public final class ScreenRuntime {
   }
 
   public static String fingerprint(zone.moddev.mc.lib.gui.model.Screen screen) {
-    String model =
-        screen.id()
-            + "|"
-            + screen.title()
-            + "|"
-            + screen.blockEntity()
-            + "|"
-            + screen.playerInventory()
-            + "|"
-            + screen.body()
-            + "|"
-            + screen.tabs();
-    try {
-      return java.util.HexFormat.of()
-          .formatHex(
-              java.security.MessageDigest.getInstance("SHA-256")
-                  .digest(model.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-    } catch (java.security.NoSuchAlgorithmException impossible) {
-      throw new AssertionError(impossible);
-    }
+    return screen.fingerprint();
   }
 
   public static boolean open(Player player, BlockEntity entity) {
@@ -114,6 +95,7 @@ public final class ScreenRuntime {
     var bound = Screens.get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()));
     if (bound.isEmpty() || !bound.get().blockEntityClass().isInstance(entity)) return false;
     if (player instanceof ServerPlayer server) {
+      long session = java.util.concurrent.ThreadLocalRandom.current().nextLong();
       var text = bound.get().screen().title();
       Component title =
           text.fallback()
@@ -121,10 +103,11 @@ public final class ScreenRuntime {
               .orElseGet(() -> Component.translatable(text.key()));
       server.openMenu(
           new SimpleMenuProvider(
-              (id, inventory, p) -> new MachineMenu(id, inventory, entity), title),
+              (id, inventory, p) -> new MachineMenu(id, inventory, entity, session), title),
           buf -> {
             buf.writeBlockPos(entity.getBlockPos());
             buf.writeUtf(fingerprint(bound.get().screen()));
+            buf.writeLong(session);
           });
     }
     return true;

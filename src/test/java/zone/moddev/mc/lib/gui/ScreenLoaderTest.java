@@ -299,21 +299,35 @@ public final class ScreenLoaderTest {
     require(button.labelFor(Boolean.TRUE).orElseThrow().key().equals("screen.test.on"));
     require(button.iconFor(BigInteger.valueOf(-1)).orElseThrow().getPath().equals("off"));
     require(!button.flat());
-    fails("flat buttons require icons", HEAD
-        + "<button flat=\"true\" text=\"screen.test.text\" tooltip=\"screen.test.mode\"/></screen>");
-    fails("state icons require value", HEAD
-        + "<button icons=\"mmdlib:off mmdlib:on\" tooltip=\"screen.test.mode\"/></screen>");
-    fails("state counts must agree", HEAD
-        + "<button value=\"#getProgress\" icons=\"mmdlib:off mmdlib:on\" value-labels=\"screen.test.off\" tooltip=\"screen.test.mode\"/></screen>");
+    fails(
+        "flat buttons require icons",
+        HEAD
+            + "<button flat=\"true\" text=\"screen.test.text\""
+            + " tooltip=\"screen.test.mode\"/></screen>");
+    fails(
+        "state icons require value",
+        HEAD + "<button icons=\"mmdlib:off mmdlib:on\" tooltip=\"screen.test.mode\"/></screen>");
+    fails(
+        "state counts must agree",
+        HEAD
+            + "<button value=\"#getProgress\" icons=\"mmdlib:off mmdlib:on\""
+            + " value-labels=\"screen.test.off\" tooltip=\"screen.test.mode\"/></screen>");
   }
 
   @Test
   void companionControlsSitAboveInventoryAtRightMargin() throws Exception {
     for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher")) {
-      try (var input = java.nio.file.Files.newInputStream(java.nio.file.Path.of(
-          "src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
-        var screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:" + name), name + ".xml", input);
-        var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+      try (var input =
+          java.nio.file.Files.newInputStream(
+              java.nio.file.Path.of("src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
+        var screen =
+            ScreenReader.read(
+                ResourceLocation.parse("mmdlib_companion:" + name),
+                name + ".xml",
+                input,
+                companionLayoutWidgets());
+        var layout =
+            ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
         var controls = layout.bounds(screen.find("controls").orElseThrow());
         var redstone = layout.bounds(screen.find("redstone").orElseThrow());
         var pause = layout.bounds(screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
@@ -331,18 +345,30 @@ public final class ScreenLoaderTest {
   @Test
   void allCompanionScreensPlaceBatteryAtRightMargin() throws Exception {
     for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power")) {
-      try (var input = java.nio.file.Files.newInputStream(java.nio.file.Path.of(
-          "src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
-        var screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:" + name), name + ".xml", input);
-        var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+      try (var input =
+          java.nio.file.Files.newInputStream(
+              java.nio.file.Path.of("src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
+        var screen =
+            ScreenReader.read(
+                ResourceLocation.parse("mmdlib_companion:" + name),
+                name + ".xml",
+                input,
+                companionLayoutWidgets());
+        var layout =
+            ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
         var energy = screen.find("energy").orElseThrow();
         require(energy instanceof Element.EnergyGauge);
         var bounds = layout.bounds(energy);
         require(bounds.right() == layout.panel().width() - 7);
         require(bounds.height() == 54 && bounds.width() == 18);
         for (var element : screen.elements()) {
-          if (element instanceof Element.Slot || element instanceof Element.Progress
-              || element instanceof Element.Checkbox || element instanceof Element.Label) {
+          if (screen.find("settings").filter(view -> containsElement(view, element)).isPresent())
+            continue;
+          if (element instanceof Element.Slot
+              || element instanceof Element.Progress
+              || element instanceof Element.Custom
+              || element instanceof Element.Checkbox
+              || element instanceof Element.Label) {
             var other = layout.bounds(element);
             require(other.right() <= bounds.x() || other.x() >= bounds.right()
                 || other.bottom() <= bounds.y() || other.y() >= bounds.bottom());
@@ -355,9 +381,15 @@ public final class ScreenLoaderTest {
   @Test
   void crusherPlacesProcessingBeforeRightEnergyGauge() throws Exception {
     Screen screen;
-    try (var input = java.nio.file.Files.newInputStream(
-        java.nio.file.Path.of("src/companion/resources/mmdlib/screen/crusher.xml"))) {
-      screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:crusher"), "crusher.xml", input);
+    try (var input =
+        java.nio.file.Files.newInputStream(
+            java.nio.file.Path.of("src/companion/resources/mmdlib/screen/crusher.xml"))) {
+      screen =
+          ScreenReader.read(
+              ResourceLocation.parse("mmdlib_companion:crusher"),
+              "crusher.xml",
+              input,
+              companionLayoutWidgets());
     }
     var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
     var energy = layout.bounds(screen.find("energy").orElseThrow());
@@ -373,6 +405,24 @@ public final class ScreenLoaderTest {
     require(output.y() == input.y());
     require(energy.right() == layout.panel().width() - 7);
     require(energy.bottom() < layout.inventory().orElseThrow().y());
+  }
+
+  private static WidgetTypes companionLayoutWidgets() {
+    // These checks only measure XML. The actual companion contract is exercised by game tests.
+    var types = new WidgetTypes();
+    for (var type : java.util.List.of("name_editor", "reserve_slider", "lane_selector"))
+      types.register(
+          ResourceLocation.parse("mmdlib_companion:" + type),
+          new WidgetType(java.util.Set.of(BoundValue.Kind.values()), widget -> {}));
+    types.register(
+        ResourceLocation.parse("mmdlib_companion:progress_dial"),
+        new WidgetType(java.util.Set.of(BoundValue.Kind.WHOLE), widget -> {}));
+    return types;
+  }
+
+  private static boolean containsElement(Element root, Element target) {
+    return root == target
+        || root.children().stream().anyMatch(child -> containsElement(child, target));
   }
 
   private static void checkLayout(Screen screen) throws Exception {

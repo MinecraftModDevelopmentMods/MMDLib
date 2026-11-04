@@ -91,8 +91,106 @@ public final class ScreenNetwork {
     }
   }
 
+  /** A menu-session-bound, typed widget action. Its body is bounded before a mod codec runs. */
+  public record Widget(
+      int menu, long session, int element, int request, ResourceLocation action, byte[] data)
+      implements CustomPacketPayload {
+    public Widget {
+      if (element < 0
+          || element > 4095
+          || request < 1
+          || data.length > zone.moddev.mc.lib.gui.WidgetAction.MAX_BYTES)
+        throw new IllegalArgumentException("Widget action outside protocol limits");
+      Objects.requireNonNull(action);
+      data = data.clone();
+    }
+
+    @Override
+    public byte[] data() {
+      return data.clone();
+    }
+
+    public static final Type<Widget> TYPE = ScreenNetwork.type("widget");
+    public static final StreamCodec<RegistryFriendlyByteBuf, Widget> CODEC =
+        StreamCodec.of(
+            (b, p) -> {
+              b.writeVarInt(p.menu);
+              b.writeLong(p.session);
+              b.writeVarInt(p.element);
+              b.writeVarInt(p.request);
+              b.writeResourceLocation(p.action);
+              b.writeByteArray(p.data);
+            },
+            b ->
+                new Widget(
+                    b.readVarInt(),
+                    b.readLong(),
+                    b.readVarInt(),
+                    b.readVarInt(),
+                    b.readResourceLocation(),
+                    b.readByteArray(zone.moddev.mc.lib.gui.WidgetAction.MAX_BYTES)));
+
+    public Type<Widget> type() {
+      return TYPE;
+    }
+  }
+
+  /** Acknowledges the edit with fresh authoritative values, including on rejection. */
+  public record WidgetResult(
+      int menu,
+      long session,
+      int element,
+      int request,
+      boolean accepted,
+      Object value,
+      Object maximum)
+      implements CustomPacketPayload {
+    public static final Type<WidgetResult> TYPE = ScreenNetwork.type("widget_result");
+    public static final StreamCodec<RegistryFriendlyByteBuf, WidgetResult> CODEC =
+        StreamCodec.of(
+            (b, p) -> {
+              b.writeVarInt(p.menu);
+              b.writeLong(p.session);
+              b.writeVarInt(p.element);
+              b.writeVarInt(p.request);
+              b.writeBoolean(p.accepted);
+              ScreenValues.write(b, p.value);
+              ScreenValues.write(b, p.maximum);
+            },
+            b ->
+                new WidgetResult(
+                    b.readVarInt(),
+                    b.readLong(),
+                    b.readVarInt(),
+                    b.readVarInt(),
+                    b.readBoolean(),
+                    ScreenValues.read(b),
+                    ScreenValues.read(b)));
+
+    public Type<WidgetResult> type() {
+      return TYPE;
+    }
+  }
+
   public static void register(RegisterPayloadHandlersEvent event) {
-    var r = event.registrar("1");
+    var r = event.registrar("2");
+    r.playToServer(
+        Widget.TYPE,
+        Widget.CODEC,
+        (p, c) -> {
+          if (c.player() instanceof net.minecraft.server.level.ServerPlayer player
+              && player.containerMenu instanceof MachineMenu menu) {
+            var result = menu.widgetAction(player, p);
+            if (result != null)
+              net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, result);
+          }
+        });
+    r.playToClient(
+        WidgetResult.TYPE,
+        WidgetResult.CODEC,
+        (p, c) -> {
+          if (c.player().containerMenu instanceof MachineMenu menu) menu.receiveWidgetResult(p);
+        });
     r.playToClient(
         Values.TYPE,
         Values.CODEC,

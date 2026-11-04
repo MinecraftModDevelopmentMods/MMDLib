@@ -106,6 +106,7 @@ public final class ScreenLayout {
     return switch (element) {
       case Box box -> boxSize(box);
       case Spacer spacer -> new int[] {0, 0};
+      case Custom custom -> new int[] {custom.width(), custom.height()};
       case Group group -> {
         int[] inner = stack(group.children(), 2);
         int label = group.label().isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0;

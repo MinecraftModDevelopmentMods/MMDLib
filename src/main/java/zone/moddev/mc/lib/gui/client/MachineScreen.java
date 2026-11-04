@@ -22,6 +22,8 @@ import zone.moddev.mc.lib.gui.runtime.*;
 /** Client presentation of a data-defined machine; getters are never invoked here. */
 public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   public final ScreenLayout layout;
+  private WidgetInput widgetInput;
+  private boolean widgetsRemoved;
   private final Set<Element.Popout> open = Collections.newSetFromMap(new IdentityHashMap<>());
   private final Map<Element.Popout, Integer> scroll = new IdentityHashMap<>();
   private final Map<Element.SideConfig, Integer> groups = new IdentityHashMap<>();
@@ -42,12 +44,56 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   public MachineScreen(MachineMenu menu, Inventory inventory, Component title) {
     super(menu, inventory, title);
+    WidgetRenderers.GLOBAL.validate(menu.bound.screen());
     layout =
         ScreenLayout.of(
             menu.bound.screen(),
             text -> net.minecraft.client.Minecraft.getInstance().font.width(text(text)));
     imageWidth = layout.panel().width();
     imageHeight = layout.panel().height();
+    widgetInput = createWidgets();
+  }
+
+  private WidgetInput createWidgets() {
+    return new WidgetInput(
+        menu.elements.stream()
+            .filter(Element.Custom.class::isInstance)
+            .map(Element.Custom.class::cast)
+            .toList(),
+        widget ->
+            WidgetRenderers.GLOBAL
+                .require(widget.type())
+                .create(
+                    new WidgetAccess() {
+                      public Element.Custom element() {
+                        return widget;
+                      }
+
+                      public Rect bounds() {
+                        return MachineScreen.this.bounds(widget);
+                      }
+
+                      public Object value() {
+                        return menu.value(widget, false);
+                      }
+
+                      public Object maximum() {
+                        return menu.value(widget, true);
+                      }
+
+                      public boolean pending() {
+                        return menu.widgetPending(widget);
+                      }
+
+                      public <T> boolean submit(
+                          zone.moddev.mc.lib.gui.WidgetAction<T> action, T value) {
+                        var packet = menu.prepareWidgetAction(widget, action, value);
+                        packet.ifPresent(PacketDistributor::sendToServer);
+                        return packet.isPresent();
+                      }
+                    }),
+        this::visible,
+        this::bounds);
   }
 
   @EventBusSubscriber(modid = "mmdlib", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -61,9 +107,25 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     }
   }
 
+  @EventBusSubscriber(modid = "mmdlib", value = Dist.CLIENT)
+  public static final class PendingActions {
+    @SubscribeEvent
+    public static void tick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+      var player = net.minecraft.client.Minecraft.getInstance().player;
+      if (player != null && player.containerMenu instanceof MachineMenu menu)
+        menu.tickWidgetActions();
+    }
+  }
+
   @Override
   protected void init() {
     super.init();
+    // Recipe browsers can return to the same screen object after removed() was called.
+    if (widgetsRemoved) {
+      widgetInput = createWidgets();
+      widgetsRemoved = false;
+    }
+    widgetInput.resized();
     if (restored) return;
     restored = true;
     if (REMEMBERED.containsKey(menu.bound.screen().id())) {
@@ -163,7 +225,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   protected void renderBg(GuiGraphics g, float partial, int mx, int my) {
     sprite(g, "panel", layout.panel().offset(leftPos, topPos));
     caption(g, text(menu.bound.screen().title()), leftPos + 7, topPos + 6);
-    for (var e : menu.elements) if (visible(e)) draw(g, e, bounds(e), mx, my);
+    for (var e : menu.elements) if (visible(e)) draw(g, e, bounds(e), mx, my, partial);
     layout
         .inventory()
         .ifPresent(
@@ -186,8 +248,23 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
             });
   }
 
-  private void draw(GuiGraphics g, Element e, Rect r, int mx, int my) {
+  private void draw(GuiGraphics g, Element e, Rect r, int mx, int my, float partial) {
     switch (e) {
+      case Element.Custom custom -> {
+        g.pose().pushPose();
+        g.enableScissor(r.x(), r.y(), r.right(), r.bottom());
+        try {
+          widgetInput
+              .instance(custom)
+              .render(
+                  new WidgetRenderer.Context(
+                      g, custom, r, menu.value(e, false), menu.value(e, true), mx, my, partial));
+        } finally {
+          g.setColor(1, 1, 1, 1);
+          g.disableScissor();
+          g.pose().popPose();
+        }
+      }
       case Element.Group group -> {
         tinted(g, "group", r, group.tint().orElse(0xffffff));
         group
@@ -446,6 +523,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public void render(GuiGraphics g, int mx, int my, float partial) {
+    updateWidgets();
     super.render(g, mx, my, partial);
     Element next = null;
     for (var e : menu.elements) if (visible(e) && bounds(e).contains(mx, my)) next = e;
@@ -459,7 +537,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
           .common()
           .hoverShows()
           .flatMap(id -> menu.bound.screen().find(id))
-          .ifPresent(e -> draw(g, e, bounds(e), mx, my));
+          .ifPresent(e -> draw(g, e, bounds(e), mx, my, partial));
     for (var p : open) {
       Rect r = popBounds(p);
       Rect tab = bounds(p);
@@ -568,16 +646,27 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseClicked(double mx, double my, int button) {
-    if (button > 1) return super.mouseClicked(mx, my, button);
-    boolean onDrawerTab = menu.bound.screen().tabs().stream()
-        .anyMatch(e -> e instanceof Element.Popout && bounds(e).contains(mx, my));
+    updateWidgets();
+    if (widgetInput.capturing()) return true;
+    widgetInput.beginClick();
+    boolean onDrawerTab =
+        menu.bound.screen().tabs().stream()
+            .anyMatch(e -> e instanceof Element.Popout && bounds(e).contains(mx, my));
     for (var p : open)
-      if (popBounds(p).contains(mx, my)
-          || drawerRail(p).contains(mx, my) && !onDrawerTab) return true;
+      if (button >= 0
+          && button <= 1
+          && (popBounds(p).contains(mx, my) || drawerRail(p).contains(mx, my) && !onDrawerTab)) {
+        widgetInput.clearFocus();
+        return true;
+      }
     for (int i = menu.elements.size() - 1; i >= 0; i--) {
       var e = menu.elements.get(i);
       Rect r = bounds(e);
       if (!visible(e) || !r.contains(mx, my)) continue;
+      widgetInput.blurUnless(e);
+      if (e instanceof Element.Custom custom && widgetInput.click(custom, mx, my, button))
+        return true;
+      if (button > 1) continue;
       if (e instanceof Element.Popout p) {
         if (!open.remove(p)) {
           open.removeIf(other -> other.edge() == p.edge());
@@ -640,6 +729,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         return true;
       }
     }
+    widgetInput.clearFocus();
     return super.mouseClicked(mx, my, button);
   }
 
@@ -655,6 +745,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean keyPressed(int key, int scan, int modifiers) {
+    updateWidgets();
+    if (widgetInput.keyPressed(key, scan, modifiers)) return true;
     if (key == 256)
       for (var e : menu.elements)
         if (e instanceof Element.Context c
@@ -669,6 +761,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public void removed() {
+    widgetInput.removed();
+    widgetsRemoved = true;
     hover(hovered, false);
     hovered = null;
     super.removed();
@@ -676,11 +770,52 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseScrolled(double mx, double my, double dx, double dy) {
+    updateWidgets();
     for (var p : open)
       if (popBounds(p).contains(mx, my)) {
         scroll.merge(p, (int) (-dy * 10), Integer::sum);
         return true;
       }
-    return super.mouseScrolled(mx, my, dx, dy);
+    return widgetInput.scroll(mx, my, dx, dy) || super.mouseScrolled(mx, my, dx, dy);
+  }
+
+  private void updateWidgets() {
+    widgetInput.update();
+    for (var e : menu.elements)
+      if (e instanceof Element.Custom custom) {
+        var result = menu.takeWidgetResult(custom);
+        if (result != null) widgetInput.instance(custom).actionResult(result.accepted());
+      }
+  }
+
+  @Override
+  protected void containerTick() {
+    super.containerTick();
+    updateWidgets();
+    widgetInput.tick();
+  }
+
+  @Override
+  public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    updateWidgets();
+    return widgetInput.drag(x, y, button, dx, dy) || super.mouseDragged(x, y, button, dx, dy);
+  }
+
+  @Override
+  public boolean mouseReleased(double x, double y, int button) {
+    updateWidgets();
+    return widgetInput.release(x, y, button) || super.mouseReleased(x, y, button);
+  }
+
+  @Override
+  public boolean charTyped(char character, int modifiers) {
+    updateWidgets();
+    return widgetInput.charTyped(character, modifiers) || super.charTyped(character, modifiers);
+  }
+
+  @Override
+  public boolean keyReleased(int key, int scan, int modifiers) {
+    updateWidgets();
+    return widgetInput.keyReleased(key, scan, modifiers) || super.keyReleased(key, scan, modifiers);
   }
 }

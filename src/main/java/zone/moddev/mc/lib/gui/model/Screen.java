@@ -54,6 +54,20 @@ public record Screen(
         .findFirst();
   }
 
+  /** Stable model fingerprint used to reject differing client/server screen definitions. */
+  public String fingerprint() {
+    String model =
+        id + "|" + title + "|" + blockEntity + "|" + playerInventory + "|" + body + "|" + tabs;
+    try {
+      return java.util.HexFormat.of()
+          .formatHex(
+              java.security.MessageDigest.getInstance("SHA-256")
+                  .digest(model.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    } catch (java.security.NoSuchAlgorithmException impossible) {
+      throw new AssertionError(impossible);
+    }
+  }
+
   private static void visit(Element element, Consumer<Element> visitor) {
     visitor.accept(element);
     element.children().forEach(child -> visit(child, visitor));
