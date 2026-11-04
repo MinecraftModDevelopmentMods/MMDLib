@@ -107,6 +107,16 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     }
   }
 
+  @EventBusSubscriber(modid = "mmdlib", value = Dist.CLIENT)
+  public static final class PendingActions {
+    @SubscribeEvent
+    public static void tick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+      var player = net.minecraft.client.Minecraft.getInstance().player;
+      if (player != null && player.containerMenu instanceof MachineMenu menu)
+        menu.tickWidgetActions();
+    }
+  }
+
   @Override
   protected void init() {
     super.init();
@@ -643,7 +653,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         menu.bound.screen().tabs().stream()
             .anyMatch(e -> e instanceof Element.Popout && bounds(e).contains(mx, my));
     for (var p : open)
-      if (popBounds(p).contains(mx, my) || drawerRail(p).contains(mx, my) && !onDrawerTab) {
+      if (button >= 0
+          && button <= 1
+          && (popBounds(p).contains(mx, my) || drawerRail(p).contains(mx, my) && !onDrawerTab)) {
         widgetInput.clearFocus();
         return true;
       }
@@ -779,7 +791,6 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   protected void containerTick() {
     super.containerTick();
-    menu.tickWidgetActions();
     updateWidgets();
     widgetInput.tick();
   }

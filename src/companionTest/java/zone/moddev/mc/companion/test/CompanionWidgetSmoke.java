@@ -163,11 +163,26 @@ final class CompanionWidgetSmoke {
         if (!s.visible(name)) return false;
         var delayed =
             menu.prepareWidgetAction(name, CompanionWidgets.RENAME, "Late edit").orElseThrow();
-        // Deliver only after the local timeout. Its ignored acknowledgment must not prevent
-        // ordinary snapshot synchronization from carrying the newly confirmed server value.
-        for (int i = 0; i < 100; i++) menu.tickWidgetActions();
-        if (menu.widgetPending(name)) throw new AssertionError("Timeout left the editor pending");
-        PacketDistributor.sendToServer(delayed);
+        // A recipe browser can cover the machine while its menu remains open. Let real client
+        // ticks expire the request, then deliver it late to check ordinary value convergence.
+        mc.setScreen(
+            new net.minecraft.client.gui.screens.Screen(Component.literal("Cover")) {
+              private int ticks;
+
+              @Override
+              public boolean isPauseScreen() {
+                return false;
+              }
+
+              @Override
+              public void tick() {
+                if (++ticks < 105) return;
+                if (menu.widgetPending(name))
+                  throw new AssertionError("Covered screen left the editor pending");
+                PacketDistributor.sendToServer(delayed);
+                mc.setScreen(s);
+              }
+            });
       }
       case 17 -> {
         if (!nameIs(s, name, "Late edit")) return false;

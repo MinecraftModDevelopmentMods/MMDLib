@@ -308,7 +308,7 @@ public final class ScreenReader {
         if (common.value().isPresent() && type.valueKinds().isEmpty())
           throw new IllegalArgumentException("This widget does not accept a value binding");
         type.validator().accept(element);
-      } catch (IllegalArgumentException ex) {
+      } catch (RuntimeException ex) {
         throw new ScreenException(source, node.line(), element.type() + ": " + ex.getMessage(), ex);
       }
       return element;

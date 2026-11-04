@@ -324,7 +324,9 @@ elements. Preserve a rejected text
 draft and show feedback so the player can correct it. Requests are limited to one in flight per
 widget. After 100 client ticks without a matching response, the control is unlocked and receives
 `actionResult(false)` to report an **unconfirmed** edit; that does not prove the server rolled back
-or never applied the edit. Responses for old sessions or obsolete requests are ignored.
+or never applied the edit. The timer follows the player's open menu even while another screen
+covers it; result callbacks are delivered when the machine screen resumes. Responses for old
+sessions or obsolete requests are ignored.
 
 The companion Settings view demonstrates all three cases: a named machine, an energy-reserve
 slider that holds processing below the chosen charge percentage, and a Run/Pause selector whose

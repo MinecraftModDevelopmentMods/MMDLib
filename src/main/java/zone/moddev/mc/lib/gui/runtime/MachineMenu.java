@@ -31,6 +31,7 @@ public class MachineMenu extends AbstractContainerMenu {
   public final ScreenBinder.Bound bound;
   public final List<Element> elements;
   private final Map<String, String> views = new HashMap<>();
+  private final Map<Element, Boolean> visibility = new IdentityHashMap<>();
   private final Map<Element, Integer> elementIndexes = new IdentityHashMap<>();
   private final Map<Integer, Object> values = new HashMap<>();
   private final ScreenHost host;
@@ -367,32 +368,31 @@ public class MachineMenu extends AbstractContainerMenu {
   }
 
   public boolean visible(Element element) {
-    for (var root : bound.screen().body())
-      if (visibleIn(root, element, true) != null)
-        return Boolean.TRUE.equals(visibleIn(root, element, true));
-    for (var root : bound.screen().tabs())
-      if (visibleIn(root, element, true) != null)
-        return Boolean.TRUE.equals(visibleIn(root, element, true));
-    return false;
+    if (visibility.isEmpty()) {
+      for (var root : bound.screen().body()) cacheVisibility(root, true);
+      for (var root : bound.screen().tabs()) cacheVisibility(root, true);
+    }
+    return Boolean.TRUE.equals(visibility.get(element));
   }
 
-  private Boolean visibleIn(Element root, Element target, boolean shown) {
-    if (root == target) return shown;
+  private void cacheVisibility(Element root, boolean shown) {
+    visibility.put(root, shown);
     for (var child : root.children()) {
       boolean next = shown;
       if (root instanceof Element.Context c)
         next &= child.common().id().orElse("").equals(views.get(c.common().id().orElse("")));
-      Boolean found = visibleIn(child, target, next);
-      if (found != null) return found;
+      cacheVisibility(child, next);
     }
-    return null;
   }
 
   public void navigate(String context, String view) {
     var e = bound.screen().find(context).orElse(null);
     if (e instanceof Element.Context c
-        && c.views().stream().anyMatch(v -> v.common().id().orElse("").equals(view)))
+        && c.views().stream().anyMatch(v -> v.common().id().orElse("").equals(view))
+        && !Objects.equals(views.get(context), view)) {
       views.put(context, view);
+      visibility.clear();
+    }
   }
 
   @Override

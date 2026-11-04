@@ -188,15 +188,21 @@ public final class ScreenBinder {
   }
 
   private static String describe(Set<Kind> kinds) {
-    if (kinds.size() == Kind.values().length) return "a number, boolean, FluidStack or Component";
     if (kinds.equals(NUMBERS)) return "a number";
-    if (kinds.equals(Set.of(Kind.BOOLEAN))) return "a boolean";
-    if (kinds.equals(Set.of(Kind.WHOLE))) return "a whole number";
-    if (kinds.contains(Kind.FLUID)) return "a number or a FluidStack";
-    if (kinds.contains(Kind.TEXT)) return "a Component or a list of Components";
+    if (kinds.isEmpty()) return "no value binding";
     return kinds.stream()
         .sorted()
-        .map(kind -> kind.name().toLowerCase(java.util.Locale.ROOT))
+        .map(
+            kind ->
+                switch (kind) {
+                  case WHOLE -> "a whole number";
+                  case DECIMAL -> "a decimal number";
+                  case NUMBER -> "a declared Number";
+                  case BOOLEAN -> "a boolean";
+                  case FLUID -> "a FluidStack";
+                  case TEXT -> "a Component";
+                  case TEXT_LIST -> "a collection of Components";
+                })
         .collect(java.util.stream.Collectors.joining(" or "));
   }
 }

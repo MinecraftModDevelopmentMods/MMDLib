@@ -257,6 +257,25 @@ public final class CompanionClientSmoke {
         Screenshot.grab(mc.gameDirectory, name + "-drawer.png", mc.getMainRenderTarget(), message -> {});
         if (!screen.mouseClicked(tab.x() + 10, screen.exclusions().getFirst().bottom() - 8, 0))
           throw new AssertionError("Clicks on the drawer rail must not pass through the screen");
+        // Vanilla returns true even for unused buttons. Observe its recorded press to verify
+        // these clicks reached inventory handling instead of being consumed by the drawer.
+        var lastButton =
+            net.minecraft.client.gui.screens.inventory.AbstractContainerScreen.class
+                .getDeclaredField("lastClickButton");
+        lastButton.setAccessible(true);
+        for (int button : new int[] {2, 3, 4})
+          for (var point :
+              new double[][] {
+                {tab.x() + 10, screen.exclusions().getFirst().bottom() - 8},
+                {tab.x() - 10, tab.y() + 10}
+              }) {
+            lastButton.setInt(screen, -1);
+            screen.mouseClicked(point[0], point[1], button);
+            if (lastButton.getInt(screen) != button)
+              throw new AssertionError("Drawer swallowed mouse button " + button);
+            if (screen.exclusions().size() != 2)
+              throw new AssertionError("Extra mouse button changed the drawer state");
+          }
         screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
         screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
         if (screen.exclusions().size() != 1)

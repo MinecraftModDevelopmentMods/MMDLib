@@ -98,6 +98,10 @@ class WidgetInputTest {
             e -> e == a ? first : second,
             e -> !hidden.contains(e),
             e -> new Rect(e == a ? 0 : 50, 0, 40, 20));
+
+    Fixture() {
+      input.update();
+    }
   }
 
   @Test
@@ -166,6 +170,7 @@ class WidgetInputTest {
     assertTrue(f.input.keyPressed(258, 0, 1));
     assertTrue(f.first.focused);
     f.hidden.add(f.b);
+    f.input.update();
     f.input.keyPressed(258, 0, 0);
     assertSame(f.a, f.input.focused());
     assertTrue(f.input.keyPressed(256, 0, 0));
@@ -190,6 +195,30 @@ class WidgetInputTest {
         () ->
             new WidgetInput(
                 List.of(f.a, f.b), e -> f.first, e -> true, e -> new Rect(0, 0, 40, 20)));
+  }
+
+  @Test
+  void routingReusesOneVisibilitySnapshotPerEvent() {
+    var element = element("counted");
+    var reads = new java.util.concurrent.atomic.AtomicInteger();
+    var input =
+        new WidgetInput(
+            List.of(element),
+            e -> new Editor(),
+            e -> {
+              reads.incrementAndGet();
+              return true;
+            },
+            e -> new Rect(0, 0, 40, 20));
+    input.update();
+    input.capturing();
+    input.beginClick();
+    input.click(element, 5, 5, 0);
+    input.tick();
+    input.keyPressed(258, 0, 0);
+    assertEquals(1, reads.get());
+    input.update();
+    assertEquals(2, reads.get());
   }
 
   @Test

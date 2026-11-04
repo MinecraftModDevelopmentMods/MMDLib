@@ -142,6 +142,53 @@ class CustomWidgetsTest {
   }
 
   @Test
+  void validatorRuntimeFailuresKeepLocationTypeAndCause() {
+    for (var failure :
+        new RuntimeException[] {
+          new IllegalStateException("Bad configuration"),
+          new NullPointerException("Missing property")
+        }) {
+      var types = new WidgetTypes();
+      types.register(
+          ID,
+          new WidgetType(
+              Set.of(Kind.WHOLE),
+              widget -> {
+                throw failure;
+              }));
+      var error = assertThrows(ScreenException.class, () -> read(types, widget(VALUES, "")));
+      assertTrue(
+          error.getMessage().contains("custom.xml:3: example:dial: " + failure.getMessage()));
+      assertSame(failure, error.getCause());
+    }
+  }
+
+  @Test
+  void customKindErrorsDescribeOnlyTheAcceptedKinds() throws Exception {
+    var cases =
+        Map.of(
+            Set.of(Kind.FLUID), "a FluidStack",
+            Set.of(Kind.TEXT), "a Component",
+            Set.of(Kind.TEXT_LIST), "a collection of Components",
+            Set.of(Kind.BOOLEAN, Kind.TEXT), "a boolean or a Component",
+            Set.of(Kind.WHOLE, Kind.FLUID), "a whole number or a FluidStack",
+            Set.of(Kind.DECIMAL), "a decimal number");
+    for (var entry : cases.entrySet()) {
+      var types = new WidgetTypes();
+      types.register(ID, new WidgetType(entry.getKey(), widget -> {}));
+      var getter = entry.getKey().contains(Kind.BOOLEAN) ? "#getProgress" : "#isAutoEject";
+      var screen = read(types, widget("value=\"" + getter + "\"", ""));
+      var error =
+          assertThrows(
+              ScreenException.class,
+              () -> ScreenBinder.bind(screen, getClass().getClassLoader(), types));
+      assertTrue(
+          error.getMessage().endsWith("this element needs " + entry.getValue()),
+          error.getMessage());
+    }
+  }
+
+  @Test
   void rejectsWrongGetterKindsBeforeOpening() throws Exception {
     var types = registry();
     var screen = read(types, widget("value=\"#isAutoEject\" max=\"#getProgressMax\"", ""));

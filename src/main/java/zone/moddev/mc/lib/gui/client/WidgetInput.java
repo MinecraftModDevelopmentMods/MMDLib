@@ -7,7 +7,11 @@ import java.util.function.Predicate;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Element.Custom;
 
-/** Focus, capture and lifecycle routing, independent of vanilla's inventory key handling. */
+/**
+ * Focus, capture and lifecycle routing, independent of vanilla's inventory key handling. Call
+ * {@link #update()} once before routing an input event, tick or frame. All operations in that event
+ * share its visibility snapshot.
+ */
 public final class WidgetInput {
   private final List<Custom> order;
   private final Map<Custom, WidgetInstance> instances = new IdentityHashMap<>();
@@ -43,13 +47,11 @@ public final class WidgetInput {
   }
 
   public boolean capturing() {
-    update();
     return captured != null;
   }
 
   /** A new physical press ends any suppression left over from a cancelled earlier gesture. */
   public void beginClick() {
-    update();
     if (captured == null) cancelledButton = -1;
   }
 
@@ -69,9 +71,12 @@ public final class WidgetInput {
     }
   }
 
+  private boolean isShown(Custom element) {
+    return Boolean.TRUE.equals(shown.get(element));
+  }
+
   public void tick() {
-    update();
-    if (!closed) for (var e : order) if (visible.test(e)) instances.get(e).tick();
+    if (!closed) for (var e : order) if (isShown(e)) instances.get(e).tick();
   }
 
   public void blurUnless(Object element) {
@@ -91,8 +96,7 @@ public final class WidgetInput {
 
   /** Called in screen hit order, after checking drawers and other elements above this one. */
   public boolean click(Custom element, double x, double y, int button) {
-    update();
-    if (closed || !visible.test(element)) return false;
+    if (closed || !isShown(element)) return false;
     if (captured != null) return true;
     cancelledButton = -1;
     var instance = instances.get(element);
@@ -107,7 +111,6 @@ public final class WidgetInput {
   }
 
   public boolean drag(double x, double y, int button, double dx, double dy) {
-    update();
     if (closed) return false;
     if (captured == null) return button == cancelledButton;
     if (button == capturedButton) instances.get(captured).mouseDragged(x, y, button, dx, dy);
@@ -115,7 +118,6 @@ public final class WidgetInput {
   }
 
   public boolean release(double x, double y, int button) {
-    update();
     if (closed) return false;
     if (button == cancelledButton) {
       cancelledButton = -1;
@@ -133,23 +135,21 @@ public final class WidgetInput {
   }
 
   public boolean scroll(double x, double y, double dx, double dy) {
-    update();
     if (closed) return false;
     if (captured != null) return true;
     for (var e : order.reversed())
-      if (visible.test(e)
+      if (isShown(e)
           && bounds.apply(e).contains(x, y)
           && instances.get(e).mouseScrolled(x, y, dx, dy)) return true;
     return false;
   }
 
   public boolean keyPressed(int key, int scan, int modifiers) {
-    update();
     if (closed) return false;
     if (key == 258) { // Tab / Shift+Tab.
       cancelCapture();
       var candidates =
-          order.stream().filter(visible).filter(e -> instances.get(e).focusable()).toList();
+          order.stream().filter(this::isShown).filter(e -> instances.get(e).focusable()).toList();
       if (candidates.isEmpty()) return false;
       int index = -1;
       for (int i = 0; i < candidates.size(); i++) if (candidates.get(i) == focused) index = i;
@@ -173,7 +173,6 @@ public final class WidgetInput {
   }
 
   public boolean keyReleased(int key, int scan, int modifiers) {
-    update();
     if (closed) return false;
     if (focused == null) return false;
     instances.get(focused).keyReleased(key, scan, modifiers);
@@ -181,7 +180,6 @@ public final class WidgetInput {
   }
 
   public boolean charTyped(char character, int modifiers) {
-    update();
     if (closed) return false;
     if (focused == null) return false;
     instances.get(focused).charTyped(character, modifiers);
