@@ -3,7 +3,9 @@ package zone.moddev.mc.lib.gui.runtime;
 import net.minecraft.world.item.ItemStack;
 
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
+
+import zone.moddev.mc.lib.api.capabilities.PlannedItemHandler;
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /**
  * The client's copy of the slots behind a {@link MachineMenu}. Vanilla's menu sync fills it; what
@@ -11,8 +13,11 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * ScreenHost#screenItems()}, so a click is predicted the way the server will answer it. The server
  * still decides: a filter that depends on server-only state can mispredict, and the server's answer
  * replaces the prediction.
+ *
+ * <p>Reservations arrive as each slot's {@link SlotPlan} and apply the same way they do in the
+ * server's storage.
  */
-public final class ClientMenuItems extends ItemStackHandler {
+public final class ClientMenuItems extends PlannedItemHandler {
   private final IItemHandler rules;
 
   /**
@@ -24,9 +29,21 @@ public final class ClientMenuItems extends ItemStackHandler {
     this.rules = rules;
   }
 
+  /** Replaces what the machine plans for a slot; a slot past the end of the rules is ignored. */
+  @Override
+  public void setPlan(int slot, SlotPlan plan) {
+    if (inRange(slot)) super.setPlan(slot, plan);
+  }
+
   @Override
   public boolean isItemValid(int slot, ItemStack stack) {
-    return slot < rules.getSlots() && rules.isItemValid(slot, stack);
+    return slot < rules.getSlots()
+        && rules.isItemValid(slot, stack)
+        && super.isItemValid(slot, stack);
+  }
+
+  private boolean inRange(int slot) {
+    return slot >= 0 && slot < Math.min(getSlots(), rules.getSlots());
   }
 
   @Override

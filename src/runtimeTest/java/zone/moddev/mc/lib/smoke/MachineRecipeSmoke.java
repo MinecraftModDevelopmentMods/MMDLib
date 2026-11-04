@@ -26,7 +26,7 @@ import zone.moddev.mc.lib.machine.recipe.RecipeMatcher;
 
 /** Checks recipe matching, consuming and producing with the crusher recipe from recipes.md. */
 final class MachineRecipeSmoke {
-  private static final String CRUSHER =
+  static final String CRUSHER =
       """
       {
         "inputs": {
@@ -425,7 +425,7 @@ final class MachineRecipeSmoke {
     require(fluids.getFluidInTank(0).is(Fluids.LAVA), "the tank now holds lava");
   }
 
-  private static MachineRecipe recipe(RegistryOps<com.google.gson.JsonElement> ops, String json) {
+  static MachineRecipe recipe(RegistryOps<com.google.gson.JsonElement> ops, String json) {
     return MachineRecipe.CODEC.codec().parse(ops, JsonParser.parseString(json)).getOrThrow();
   }
 

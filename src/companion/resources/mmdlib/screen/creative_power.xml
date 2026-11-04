@@ -1,0 +1,15 @@
+<screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.creative_power" title-fallback="Creative Power Source"
+        block-entity="zone.moddev.mc.companion.CreativePowerEntity" inventory="none">
+  <vbox padding="7" spacing="4">
+    <hbox spacing="6" align="center">
+      <vbox spacing="4">
+        <spacer/>
+        <label text="screen.mmdlib_companion.power" text-fallback="Powers all six adjacent blocks"/>
+        <label text="screen.mmdlib_companion.rate" text-fallback="1,000 FE per face per tick"/>
+        <spacer/>
+      </vbox>
+      <spacer/>
+      <energy-gauge id="energy" length="3s"/>
+    </hbox>
+  </vbox>
+</screen>

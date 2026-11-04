@@ -22,7 +22,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * refuse placement, so players cannot put items into outputs. The machine fills outputs with {@link
  * #insertResult}.
  */
-public class ItemStorage extends ItemStackHandler {
+public class ItemStorage extends PlannedItemHandler {
   private final Role[] roles;
   private final int[] limits;
 
@@ -31,6 +31,18 @@ public class ItemStorage extends ItemStackHandler {
 
   private Runnable onChange = () -> {};
   private boolean bypass;
+  private long revision;
+
+  /** Change counter for recipe search invalidation. */
+  public long revision() {
+    return revision + reservationPlans().revision();
+  }
+
+  /** Reports an in-place change made by a menu, including persistence and recipe invalidation. */
+  public void markChanged() {
+    revision++;
+    onChange.run();
+  }
 
   /**
    * An empty inventory of {@code size} slots, all {@link Role#STORAGE} with no filter and a
@@ -59,18 +71,21 @@ public class ItemStorage extends ItemStackHandler {
    * @throws IndexOutOfBoundsException if a slot does not exist
    */
   public ItemStorage role(Role role, int... slots) {
+    revision++;
     for (int slot : slots) roles[checked(slot)] = role;
     return this;
   }
 
   /** Only stacks passing {@code filter} may be inserted into these slots, by anyone. */
   public ItemStorage filter(Predicate<ItemStack> filter, int... slots) {
+    revision++;
     for (int slot : slots) filters[checked(slot)] = filter;
     return this;
   }
 
   /** At most {@code limit} items in each of these slots (and never more than a full stack). */
   public ItemStorage limit(int limit, int... slots) {
+    revision++;
     for (int slot : slots) limits[checked(slot)] = limit;
     return this;
   }
@@ -80,7 +95,10 @@ public class ItemStorage extends ItemStackHandler {
     return roles[checked(slot)];
   }
 
-  /** Inserts the machine's own product, ignoring roles and filters. Returns what did not fit. */
+  /**
+   * Inserts the machine's own product, ignoring roles and filters; plans still apply. Returns what
+   * did not fit.
+   */
   public ItemStack insertResult(int slot, ItemStack stack, boolean simulate) {
     bypass = true;
     try {
@@ -106,7 +124,8 @@ public class ItemStorage extends ItemStackHandler {
 
   @Override
   public boolean isItemValid(int slot, ItemStack stack) {
-    return bypass || (roles[slot] != Role.OUTPUT && filters[slot].test(stack));
+    boolean allowed = bypass || (roles[slot] != Role.OUTPUT && filters[slot].test(stack));
+    return allowed && super.isItemValid(slot, stack);
   }
 
   @Override
@@ -116,7 +135,7 @@ public class ItemStorage extends ItemStackHandler {
 
   @Override
   protected void onContentsChanged(int slot) {
-    onChange.run();
+    markChanged();
   }
 
   /** Drops every stack at {@code pos} and empties the storage, e.g. when the block is broken. */
@@ -125,7 +144,7 @@ public class ItemStorage extends ItemStackHandler {
       Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), getStackInSlot(slot));
       stacks.set(slot, ItemStack.EMPTY);
     }
-    onChange.run();
+    markChanged();
   }
 
   /** An automation view with a fixed mode, e.g. {@link IoMode#BOTH} for unsided access. */

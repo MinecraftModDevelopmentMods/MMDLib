@@ -6,8 +6,8 @@ directly, and automation gets per-face views of it.
 
 | Class | Wraps | Main points |
 |---|---|---|
-| `ItemStorage` | `ItemStackHandler` | Per-slot `Role`, filter, limit; `insertResult` for products; `dropAll` |
-| `FluidStorage` | several `FluidTank`s as one `IFluidHandler` | Per-tank `Role`, capacity, filter; `tank(i)` for the machine |
+| `ItemStorage` | `ItemStackHandler` | Per-slot `Role`, filter, limit; `insertResult` for products; `dropAll`; reservations |
+| `FluidStorage` | several `FluidTank`s as one `IFluidHandler` | Per-tank `Role`, capacity, filter; `tank(i)` for the machine; reservations |
 | `EnergyBuffer` | `IEnergyStorage` | `long` internally; `int` values clamped for other mods; transfer rates |
 | `SideConfig` | | Per-face `IoMode`, stored relative to the machine's front; codec |
 | `MachineCapabilities` | `RegisterCapabilitiesEvent` | One-line registration with per-side modes |
@@ -36,6 +36,37 @@ directly, and automation gets per-face views of it.
 - **Relative faces.** `LEFT` and `RIGHT` are as seen by a player looking at the front. For a
   machine facing up or down, `TOP` is the north side. `RelativeFace.facing(state)` reads the
   `facing` or `horizontal_facing` property, and defaults to north when the state has neither.
+
+## Reservations
+
+`ItemStorage` and the client menu handler share `PlannedItemHandler` for insertion, extraction and
+capacity rules. Item and fluid storages use `ReservationPlans` for plan merging, release and
+transaction rollback. Direct content setters remain available to the owning machine and save loading.
+
+Custom menu handlers and wrappers can implement `ReservedSlots`, including `plan(slot)`, to publish
+the same snapshots as `ItemStorage`. During a click, menu slots expose only unreserved items to
+vanilla; outside the interaction, rendering and synchronization still show the full stack. A number
+key or offhand swap can therefore move the free portion without moving reserved items.
+
+A machine that runs a recipe over many ticks can reserve what the recipe needs. `ItemStorage`
+keeps one `SlotPlan` per slot and `FluidStorage` one `TankPlan` per tank: how much the machine will
+take from it, and what it will add. `RecipeProcessor` makes and releases the plans itself; a mod
+that runs its own cycles uses `reserve(slot, plan)`, `release(slot, plan)` and `plan(slot)`
+(`tank` for fluids). A slot or tank with no plan behaves exactly as without this feature.
+
+What a plan does to the calls on the storage:
+
+| Call | With a plan |
+|---|---|
+| `extractItem`, `drain` | Never goes below the reserved amount. 50 iron with 1 reserved gives up 49 |
+| `insertItem`, `fill` | Accepted only if the slot still ends up as one legal stack within its limit after the machine takes and adds what it planned, and the stack in the slot now can hold it |
+| `insertResult` | Obeys the plan like `insertItem`; it skips roles and filters, not reservations |
+| `tank(i)` | Its `fill` and `drain` obey the tank's plan |
+| `isItemValid` | Answers for the planned end state, so a hopper is not offered what would break the plan |
+| `setStackInSlot`, `setFluid` | Still bypass the plan. They stay available for undoing a transaction and loading a save, and they are the one way to break a running cycle |
+
+Plans are not saved by the storages. A feature saves its own cycle and puts the plans back when it
+loads, so load the storages first.
 
 ## Example
 

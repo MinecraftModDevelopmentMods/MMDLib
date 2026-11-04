@@ -1,0 +1,28 @@
+{
+  "type": "mmdlib_companion:crushing",
+  "inputs": {
+    "energy": [
+      {
+        "energy": 2000
+      }
+    ],
+    "input": [
+      {
+        "items": {
+          "item": "minecraft:cobblestone"
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "output": [
+      {
+        "item": {
+          "id": "minecraft:gravel",
+          "count": 1
+        }
+      }
+    ]
+  },
+  "time": 100
+}

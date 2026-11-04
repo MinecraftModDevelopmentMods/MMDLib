@@ -37,8 +37,11 @@ public final class ScreenLayout {
   /** Space around the content of a side tab, and the tab's overlap with the panel. */
   public static final int TAB_PADDING = 4, TAB_OVERLAP = 4, TAB_BORDER = 3;
 
-  /** Size of a collapsed pop-out tab: a 16 px icon with a 3 px border. */
+  /** Width of a pop-out edge tab: a 16 px icon with a 3 px border. */
   public static final int POPOUT_TAB = 22;
+
+  /** Height of a compact rectangular drawer tab. */
+  public static final int POPOUT_HEIGHT = 24;
 
   /** Gap between tabs stacked on one edge. */
   public static final int TAB_GAP = 2;
@@ -112,6 +115,7 @@ public final class ScreenLayout {
       case Slot slot -> slot.size() == SlotSize.LARGE ? new int[] {26, 26} : new int[] {18, 18};
       // A fill length counts as its minimum here; placement stretches it.
       case Gauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
+      case EnergyGauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
       case Meter meter ->
           oriented(meter.orientation(), meter.thickness(), meter.fills() ? 4 : meter.length());
       case Progress progress ->
@@ -120,7 +124,7 @@ public final class ScreenLayout {
               : new int[] {24, 16};
       case Label label -> new int[] {text.width(label.text()), TextMeasure.LINE_HEIGHT};
       case Button button ->
-          button.text().isPresent()
+          button.flat() ? new int[] {14, 14} : button.text().isPresent()
               ? new int[] {Math.max(20, text.width(button.text().get()) + 8), 20}
               : new int[] {20, 20};
       case Checkbox box -> new int[] {10 + 4 + text.width(box.text()), 10};
@@ -159,7 +163,7 @@ public final class ScreenLayout {
           inner[0] + 2 * TAB_PADDING + TAB_OVERLAP + TAB_BORDER, inner[1] + 2 * TAB_PADDING
         };
       }
-      case Popout popout -> new int[] {POPOUT_TAB, POPOUT_TAB};
+      case Popout popout -> new int[] {POPOUT_TAB, POPOUT_HEIGHT};
     };
   }
 
@@ -327,6 +331,7 @@ public final class ScreenLayout {
   /** Whether {@code element} has {@code length="fill"}; the reader checks it sits where it can. */
   private static boolean fills(Element element) {
     return (element instanceof Gauge gauge && gauge.fills())
+        || (element instanceof EnergyGauge energy && energy.fills())
         || (element instanceof Meter meter && meter.fills());
   }
 

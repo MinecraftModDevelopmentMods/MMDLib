@@ -62,6 +62,23 @@ contents, and asks the client block entity's `screenItems()` what each slot acce
 holds, so a click is predicted the way the server will answer it. It's only asked about rules, so its
 contents don't need to be synced.
 
+Return the `ItemStorage` itself. A wrapper around it, or another `ReservedSlots` implementation,
+loses the guards below and the client's copy of the plans.
+
+When the machine has reserved items in a slot (see [capabilities](capabilities.md#reservations)),
+the menu keeps them from being taken or replaced:
+
+- Left and right click, Q and Ctrl+Q, and shift-click take only what is free.
+- Clicking the slot with a different item is refused.
+- A number key is refused on a slot with a plan, because vanilla would move the whole stack.
+- Double-clicking a slot with a plan doesn't collect from elsewhere. Double-clicking another slot
+  still takes the planned slot's free part.
+
+The client's menu works out the same answer from the slot's plan, which arrives with the screen's
+values, so clicks don't flicker. Bars and numbers still come from the getters named in the XML; a
+feature's own client sync (see [block entities](block-entities.md#machine-features)) doesn't
+replace them.
+
 `screenDestinations` controls shift-click routing into the machine; its default tries all storage
 indexes, subject to their filters. `screenRecipeSlots` explicitly names recipe inputs in recipe
 order; its default disables JEI transfer. Both methods must work on the client as well as the
@@ -249,6 +266,21 @@ bottom automatically. Write `<player-inventory/>` only to place it somewhere els
   screen file without one. The tooltip says what the button does or shows (for example
   "Side configuration: choose which faces accept and output each slot group, tank and energy"),
   because icon buttons alone were found unclear.
+- **Stateful icon buttons:** `icons` is a whitespace-separated list of sprite IDs selected by a
+  boolean (`false` = 0, `true` = 1) or whole-number `value`. Optional `value-labels` supplies
+  translated names for `{value}` in the tooltip. When both lists are present their lengths must
+  match. Missing or out-of-range values display the first state. These buttons keep the standard
+  20×20 icon-button size by default. Set `flat="true"` for a 14×14 control with a 12×12
+  icon, a uniform one-pixel dark border and a flat grey background that lightens on hover.
+  Flat buttons do not take text captions. An `hbox` with a
+  leading `spacer` places them against its right edge.
+
+  ```xml
+  <button value="#getPaused" on-click="example:toggle_pause"
+          icons="mmdlib:icon_pause mmdlib:icon_resume"
+          value-labels="screen.example.running screen.example.paused"
+          tooltip="screen.example.pause.tip"/>
+  ```
 
 ## Values
 
@@ -270,9 +302,9 @@ instance to call and is rejected at load.
 Getters run only on the server, each tick while the screen is open. The client never calls
 them; it only receives the values.
 
-MMDLib provides no built-in value names. Generic names could only cover the simplest cases
-(a single energy buffer, a single tank) and would need rules for every ambiguous one, while the
-block entity's author can always expose exactly the value a screen should show.
+Values name Java getters, not storage handles. The `energy-gauge` convenience widget defaults
+to `#getEnergy` and `#getEnergyCapacity`; the block entity must expose these public getters,
+or the screen must override `value` and `max` to name its own.
 
 The loader checks at startup that each method exists, belongs to the right class, and returns
 a supported type. A fluid gauge's getter returns the fluid itself (its type and amount); energy
@@ -307,6 +339,7 @@ player, menu, and element before running the handler. Hover never reaches the se
 | `group` | Recessed grouping panel | `label`, `tint`, `padding` |
 | `slot` | Item slot from the menu | `index`, `size` (`normal`/`large`), `kind` (`normal`/`upgrade`/`ghost`; `upgrade` holds one item), `tint`, `icon` |
 | `gauge` | Glass graduated gauge ([gauge textures](gauge-textures.md)) | `orientation`, `length` (size or `fill`), `color` (solid fill) or a fluid value |
+| `energy-gauge` | Reusable slim gauge with thin, lightly glossy red charge bars | Defaults: vertical, `length="54"`, `color="#E64B38"`, `value="#getEnergy"`, `max="#getEnergyCapacity"`; all can be overridden |
 | `meter` | Compact segmented gauge | `orientation`, `thickness` (5 or 10), `length` (size or `fill`), `color`, `segment`, `gap`, `gap-color` |
 | `progress` | Fill-in progress indicator | `icon` (default arrow), `direction`, `jei-recipes` |
 | `label` | Text | `text` |
@@ -318,6 +351,32 @@ player, menu, and element before running the handler. Hover never reaches the se
 | `popout` | Information pop-out on an edge tab | `kind` (`info`/`warning`/`error`), `icon`, `edge`, `text` |
 | `side-config` | Six-face IO configuration, one resource group at a time | `groups` (element IDs) |
 | `player-inventory` | Explicit placement of the player inventory | |
+
+### Reusable energy gauge
+
+Any screen can use the standard energy gauge:
+
+```xml
+<energy-gauge id="energy"/>
+```
+
+It is 18 px wide and 54 px tall, fills from the bottom, and shows
+`{value} / {max} FE` on hover using `screen.mmdlib.energy`. It shares the fluid gauge's thin casing
+and medium-grey empty interior, with no terminal or scale markings. Thin, lightly glossy red charge bars
+sit inside; the last charged bar fills partially to track the level. Red stays red at every
+charge level. `EnergyGaugeRenderer` draws the bars over the shared gauge background.
+It uses the same binding validation and synchronization as other numeric
+widgets. Multiple buffers can use separate ids and getters:
+
+```xml
+<energy-gauge id="reserve" length="4s" color="#D23838"
+              value="#getReserveEnergy" max="#getReserveCapacity"
+              tooltip="screen.example.reserve" tooltip-fallback="Reserve: {value} / {max} FE"/>
+```
+
+`orientation="horizontal"` fills from left to right. `length="fill"`
+follows the ordinary gauge rules; explicit lengths must be at least 8 px. A custom
+`tooltip` replaces the built-in tooltip; its fallback is optional.
 
 ## JEI (optional)
 
@@ -424,6 +483,8 @@ When JEI is installed:
     marker.
   - Layout: a blank line starts a new paragraph. Text wraps to the pop-out's width and
     scrolls when it is taller.
+  - A pop-out with both `text` and `value` shows its fixed explanation first, followed by the
+    live component or component list. An info drawer can therefore include current warnings.
 - **Edge tabs are author-placed.** Each pop-out tab
   takes `edge` (`left` or `right`) and `icon`, so a screen author spreads them across the
   two sides instead of crowding one. Each pop-out kind has a default icon
@@ -431,6 +492,12 @@ When JEI is installed:
   [GUI sprites](gui-sprites.md)), which `icon` replaces. Tabs on the same edge stack in document order, below any
   `<side-tab>` there. A screen whose tabs do not fit the panel height on an edge fails at
   load, naming the screen file and edge.
+  Pop-out tabs are 22×24 rectangles, coloured by kind: yellow information, amber warning,
+  red error. Clicking one opens a matching drawer outward from that edge, with the icon
+  retained on a darker rail as the close control. Its body is up to 150 pixels wide and
+  extends to the main panel's bottom. Text wraps to the available width; scroll inside
+  to read longer content. Opening another drawer on the same edge replaces the open drawer;
+  tabs remain visible and clickable on the rail.
 
 - **The screen is display only.** Behaviour belongs to the block entity's own code, which the
   screen is wired to:

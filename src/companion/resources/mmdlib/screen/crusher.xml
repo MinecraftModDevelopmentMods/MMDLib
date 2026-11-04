@@ -1,0 +1,28 @@
+<screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.crusher" title-fallback="Crusher"
+        block-entity="zone.moddev.mc.companion.ProcessorEntity">
+  <vbox padding="7" spacing="4">
+    <hbox spacing="6" align="center">
+      <gauge id="tank" length="3s" value="#getTankFluid" max="#getTankCapacity"
+             tooltip="screen.mmdlib_companion.tank.tip" tooltip-fallback="Water or lava: {value} / {max} mB. Click with a fluid container to transfer."
+             on-click="mmdlib_companion:tank_container" on-right-click="mmdlib_companion:tank_container"/>
+      <spacer/>
+      <slot index="0"/>
+      <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:crushing"/>
+      <slot index="1"/>
+      <spacer/>
+      <energy-gauge id="energy" length="3s"/>
+    </hbox>
+    <hbox id="controls" spacing="2" align="center">
+      <spacer/>
+      <button flat="true" id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
+              icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
+              value-labels="screen.mmdlib_companion.redstone.ignore screen.mmdlib_companion.redstone.high screen.mmdlib_companion.redstone.low"
+              tooltip="screen.mmdlib_companion.redstone.tip"/>
+      <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
+              icons="mmdlib:icon_pause mmdlib:icon_resume"
+              value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
+              tooltip="screen.mmdlib_companion.pause.tip"/>
+    </hbox>
+  </vbox>
+  <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.crusher" value="#getWarnings"/>
+</screen>

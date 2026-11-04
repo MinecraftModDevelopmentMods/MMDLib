@@ -95,7 +95,8 @@ prepared handle. MMDLib does not create or attach that register:
 
 ```java
 // During construction, before registry events:
-var types = DeferredRegister.<BlockEntityType<?>>create(Registries.BLOCK_ENTITY_TYPE, MODID);
+var types = DeferredRegister.<BlockEntityType<?>>create(
+        net.minecraft.core.registries.Registries.BLOCK_ENTITY_TYPE, MODID);
 types.register(modBus);
 // After definitions have been queued, still before registry events:
 registrar.blockEntityHandles().values().forEach(handle -> handle.register(types));
@@ -126,8 +127,138 @@ public CrusherBlock create(BlockContext context) {
 ```
 
 The block delegates `newBlockEntity` and `getTicker` to `binding.prepared()`, as
-`MaterialEntityBlock` does, and reads `binding.type()` only after registration (for
-example when a block entity is created), never in its constructor.
+`MaterialEntityBlock` does. It also overrides `onRemove` as `MaterialEntityBlock` does: without
+it, `DropsContents` is never called and nothing reports the missing hook. It reads `binding.type()` only after registration (for example
+when a block entity is created), never in its constructor.
+
+## Machine features
+
+The separately packaged [machine companion](machine-companion.md) provides playable examples of
+the processor, a one-slot converter, shared lanes and a creative power source.
+
+A `FeatureHost` runs a machine's `MachineFeature`s, such as a `RecipeProcessor`, and saves each
+under its key. The block entity ticks it from `serverTick` with `features.tick(level)`, and saves
+and loads it through a `DynamicOps`, after the storages, since a processor checks the loaded
+contents against its saved cycle:
+
+```java
+final FeatureHost features = new FeatureHost(this::setChanged).add(processor);
+
+// saveAdditional
+tag.put("features", features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
+// loadAdditional, after the storages
+features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));
+```
+
+**Running recipes.** A `RecipeProcessor` is built from a feature key, a machine recipe type and a
+`MachineInventory`, and added to the host; the block entity's ticker calls `features.tick(level)`:
+
+```java
+final RecipeProcessor processor = new RecipeProcessor("work", MyRecipes.CRUSHING, inventory);
+final FeatureHost features = new FeatureHost(this::setChanged).add(processor);
+
+// The factory's server-side ticker:
+BlockEntityTicker<CrusherEntity> ticker =
+    (level, pos, state, entity) -> entity.features.tick(level);
+```
+
+`status()` is one of: `IDLE`, no cycle is running; `RUNNING`, a cycle is running; `STALLED`, a
+cycle is waiting for energy and keeps its progress and reservations; `BLOCKED`, a cycle has run its
+time but cannot finish, say an input was taken, and retries each tick; and `PAUSED`, held by an
+interrupt. `progress()` and `time()` give the ticks done and the ticks the cycle takes, for a
+screen; `time()` is 0 when idle or paused.
+
+On `/reload` a running cycle finishes as planned, and the next cycle uses the new recipes.
+
+Failed recipe searches retry every 20 ticks while inventory revisions stay unchanged. Built-in
+item/fluid groups report changes to contents, rules and reservations, so new inputs or freed output
+space trigger a search on the next tick. Custom groups can implement `SlotGroup.revision()` for the
+same response; the periodic retry also catches recipe reloads and changes in untracked groups.
+Running cycles and consecutive successful cycles are not delayed.
+
+**Interrupting.** `interrupt()` stops the processor from drawing energy and starts nothing new
+until `resume()`; `paused()` says whether it is held. It works without power and whatever the
+status. It also releases the running cycle's reservations, so the items it locked can be taken
+out. This is the trap for players: an unpowered machine keeps its inputs and outputs locked, and
+the only ways to get them back are an interrupt or breaking the block. A mod should give the
+player a button, an `Element.Button` in the screen XML with a `gui-click` handler (see
+[GUI screens](gui-screens.md)) that calls `interrupt()` or `resume()`. Resuming reserves the paused
+recipe again if it still can. Progress is kept only if that recipe still exists, can reserve its
+inputs and output space again, and has the same `time`; otherwise progress resets.
+
+**Groups.** The processor reaches storage through the inventory's group keys. Groups in one
+inventory must not overlap: use one key for each set of slots or tanks. Multiple processor lanes
+can share that inventory and reserve the same slot, provided enough unreserved inputs and output
+space remain; each lane holds only its own share of the slot's plan.
+
+A machine with one slot for both input and output must use one key for both. For a different-item
+product, the cycle must also consume the entire stack: a recipe turning 1 iron into 1 gold cannot
+start with 2 iron in the slot, because the leftover iron blocks the gold (`NO_ROOM`). A slot limit
+of 1 makes that recipe usable without asking players to remove surplus iron. A product that stacks
+with the remaining input can share the slot, subject to its limit.
+
+**Clearing.** When replacing a block, `/setblock` and `/fill` normally call `Clearable.tryClear` on
+its block entity first, which is how a chest's contents vanish instead of dropping. A
+block entity with `DropsContents` that should do the same also implements `Clearable`, and
+empties its storages (and their plans) in `clearContent()`. Without it, the command drops the
+contents. Both commands' `destroy` mode destroys the old block before clearing, so its contents
+still drop even when the block entity implements `Clearable`.
+
+Call `RecipeProcessor.reset()` on each lane before clearing storage: it releases that lane's plans
+and clears progress, the remembered recipe and pause state. Fresh inputs can then start new work.
+Use `interrupt()` for a player-requested pause that should keep its place, not for clearing a machine.
+
+**Dropping contents.** A block entity of a `MaterialEntityBlock` (which includes `mmdlib:machine`)
+that implements `DropsContents` has `dropContents(level, pos)` called on the server when its block
+is broken or replaced by another block, but not when only its state changes. Usually it is
+`items.dropAll(level, pos)`. Reserved items are still in their slots, so nothing else needs to be
+given back.
+
+Custom blocks can call `DropsContents.onRemove(state, level, pos, replacement)` before their
+superclass removal hook to use the same server-only, different-block guard.
+
+**Syncing to clients.** Nothing is sent to clients unless the block entity opts in. A feature that
+should be readable on the client, for a renderer, particles or a tooltip, returns true from
+`syncsToClient()`; `RecipeProcessor` does. The block entity then wires `FeatureSync`:
+
+```java
+final FeatureHost features =
+    new FeatureHost(this::setChanged, () -> FeatureSync.send(this)).add(processor);
+
+@Override
+public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+  return FeatureSync.updateTag(features, registries);
+}
+
+@Override
+public Packet<ClientGamePacketListener> getUpdatePacket() {
+  return ClientboundBlockEntityDataPacket.create(this);
+}
+
+@Override
+protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+  super.loadAdditional(tag, registries);
+  if (FeatureSync.read(features, tag, registries)) return;
+  // the usual loading
+}
+```
+
+The host sends at most once every 10 ticks (`FeatureHost.SYNC_INTERVAL`), and always sends the
+latest change. Storages are not part of the update.
+
+A feature controls what clients get with two methods. `clientState()` is the state to send, by
+default what `state()` saves; a feature overrides it for a moment clients shouldn't see.
+`restoreOnClient(state)` takes it on, by default as `restore`. `RecipeProcessor` overrides the
+second to copy only its status, pause flag, progress and time, because a client has no storage
+contents to check a cycle against, and never reserves anything.
+
+On the client, `processor.status()` and `processor.time()` are current. `processor.progress()` is
+as of the last status change, so a progress bar reads it from a screen getter instead; screens keep
+their own getter sync (see [GUI screens](gui-screens.md#wiring-a-machine)). While paused, `time()`
+is 0, so a bar must not divide by it without checking.
+
+`FeatureSync.read` goes by the tag's key, not the side: a `/data merge` that includes the key
+runs `restoreOnClient` on the server.
 
 ## Deferred registration and block hooks
 

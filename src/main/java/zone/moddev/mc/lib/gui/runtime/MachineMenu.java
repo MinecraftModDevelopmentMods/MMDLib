@@ -2,6 +2,8 @@ package zone.moddev.mc.lib.gui.runtime;
 
 import java.util.*;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.*;
@@ -18,9 +20,13 @@ import zone.moddev.mc.lib.gui.*;
 import zone.moddev.mc.lib.gui.layout.*;
 import zone.moddev.mc.lib.gui.load.*;
 import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /** One menu for all XML screens. Slot numbers retain the machine's storage numbering. */
 public class MachineMenu extends AbstractContainerMenu {
+  /** Slot plans sync under this key plus the slot, above every element key. */
+  public static final int PLAN_KEYS = 1 << 20;
+
   public final BlockEntity blockEntity;
   public final ScreenBinder.Bound bound;
   public final List<Element> elements;
@@ -29,8 +35,11 @@ public class MachineMenu extends AbstractContainerMenu {
   private final Map<Integer, Object> values = new HashMap<>();
   private final ScreenHost host;
   private final int machineSlots;
+  private final IItemHandler items;
+  @Nullable private final ReservedSlots reserved;
   private final Player owner;
   private boolean initial = true;
+  private boolean interacting;
 
   public MachineMenu(int id, Inventory inventory, RegistryFriendlyByteBuf data) {
     this(id, inventory, readEntity(inventory, data));
@@ -51,6 +60,16 @@ public class MachineMenu extends AbstractContainerMenu {
   }
 
   public MachineMenu(int id, Inventory inventory, BlockEntity entity) {
+    this(id, inventory, entity, inventory.player.level().isClientSide);
+  }
+
+  /**
+   * For tests only.
+   *
+   * @param client whether the slots are the client's copy, as on a client; the menu still reads the
+   *     level's side for layout, so this is only meaningful for running both against one server
+   */
+  protected MachineMenu(int id, Inventory inventory, BlockEntity entity, boolean client) {
     super(ScreenRuntime.MENUS.get(), id);
     owner = inventory.player;
     blockEntity = entity;
@@ -76,12 +95,12 @@ public class MachineMenu extends AbstractContainerMenu {
             .mapToInt(e -> ((Element.Slot) e).index() + 1)
             .max()
             .orElse(0);
-    IItemHandler items;
-    if (owner.level().isClientSide)
+    if (client)
       items =
           host == null ? new ItemStackHandler(count) : new ClientMenuItems(count, host.screenItems());
     else items = host == null ? new ItemStackHandler(0) : host.screenItems();
     machineSlots = count;
+    reserved = items instanceof ReservedSlots slots ? slots : null;
     var layout =
         ScreenLayout.of(
             bound.screen(),
@@ -118,7 +137,17 @@ public class MachineMenu extends AbstractContainerMenu {
             });
       } else
         addSlot(
-            new SlotItemHandler(items, index, xy[0], xy[1]) {
+            new ReservationSlot(items, index, xy[0], xy[1], () -> interacting) {
+              @Override
+              public void setChanged() {
+                super.setChanged();
+                // Vanilla shift-click merges mutate the stack directly, bypassing handler callbacks.
+                if (!client) {
+                  if (items instanceof ItemStorage storage) storage.markChanged();
+                  blockEntity.setChanged();
+                }
+              }
+
               public boolean isActive() {
                 return visible(element);
               }
@@ -128,7 +157,8 @@ public class MachineMenu extends AbstractContainerMenu {
               }
 
               public boolean mayPickup(Player player) {
-                return isActive() && super.mayPickup(player);
+                // A planned slot lets a player merge into it even when nothing is free to take.
+                return isActive() && (planned(index) || super.mayPickup(player));
               }
 
               public int getMaxStackSize() {
@@ -177,6 +207,12 @@ public class MachineMenu extends AbstractContainerMenu {
 
   public void apply(Map<Integer, Object> delta) {
     values.putAll(delta);
+    if (items instanceof ClientMenuItems client)
+      delta.forEach(
+          (key, value) -> {
+            if (key >= PLAN_KEYS && value instanceof SlotPlan plan)
+              client.setPlan(key - PLAN_KEYS, plan);
+          });
     for (int i = 0; i < elements.size(); i++)
       if (elements.get(i) instanceof Element.Context context
           && delta.get(Integer.MIN_VALUE + i) instanceof java.math.BigInteger selection) {
@@ -228,17 +264,41 @@ public class MachineMenu extends AbstractContainerMenu {
   @Override
   public void clicked(int slot, int button, ClickType type, Player player) {
     if (slot >= 0 && slot < slots.size() && !slots.get(slot).isActive()) return;
-    super.clicked(slot, button, type, player);
+    boolean previous = interacting;
+    interacting = true;
+    try {
+      super.clicked(slot, button, type, player);
+    } finally {
+      endInteraction(previous);
+    }
+  }
+
+  private void endInteraction(boolean previous) {
+    interacting = previous;
+    if (!previous)
+      for (var slot : slots)
+        if (slot instanceof ReservationSlot reservedSlot) reservedSlot.endInteraction();
   }
 
   @Override
   public ItemStack quickMoveStack(Player player, int index) {
+    boolean previous = interacting;
+    interacting = true;
+    try {
+      return moveStack(player, index);
+    } finally {
+      endInteraction(previous);
+    }
+  }
+
+  private ItemStack moveStack(Player player, int index) {
     if (index < 0 || index >= slots.size()) return ItemStack.EMPTY;
     var source = slots.get(index);
     if (!source.isActive() || !source.mayPickup(player) || !source.hasItem())
       return ItemStack.EMPTY;
     var stack = source.getItem();
     var original = stack.copy();
+    if (index < machineSlots && planned(index)) return quickMovePlanned(player, source);
     if (index < machineSlots) {
       if (!moveItemStackTo(stack, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
     } else {
@@ -263,6 +323,28 @@ public class MachineMenu extends AbstractContainerMenu {
     else source.setChanged();
     source.onTake(player, stack);
     return original;
+  }
+
+  /** Moves only what the storage says is free, then takes exactly that much out of the slot. */
+  private ItemStack quickMovePlanned(Player player, Slot source) {
+    // Ask the storage what it would give: a subclass may give less than the plan frees.
+    int free = items.extractItem(source.index, reserved.freeToTake(source.index), true).getCount();
+    if (free <= 0) return ItemStack.EMPTY;
+    var moving = source.getItem().copyWithCount(free);
+    var original = moving.copy();
+    if (!moveItemStackTo(moving, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
+    int moved = free - moving.getCount();
+    var taken = source.remove(moved);
+    source.onTake(player, taken);
+    return original.copyWithCount(moved);
+  }
+
+  private boolean planned(int index) {
+    return reserved != null
+        && index >= 0
+        && index < machineSlots
+        && slots.get(index) instanceof SlotItemHandler
+        && reserved.hasPlan(index);
   }
 
   @Override
@@ -294,6 +376,7 @@ public class MachineMenu extends AbstractContainerMenu {
               .equals(views.get(context.common().id().orElseThrow()))) selected = view;
         snapshot.put(Integer.MIN_VALUE + i, java.math.BigInteger.valueOf(selected));
       }
+    snapshot.putAll(reservationSnapshot());
     var delta = ScreenValues.changed(values, snapshot, initial);
     if (!delta.isEmpty()) {
       values.putAll(delta);
@@ -304,6 +387,15 @@ public class MachineMenu extends AbstractContainerMenu {
         if (e instanceof Element.Slot s && s.kind() == Element.SlotKind.GHOST)
           slots.get(s.index()).set(host.screenGhost(s.index()).copy());
     initial = false;
+  }
+
+  /** Reservation snapshots from any handler implementing the menu's reservation contract. */
+  public Map<Integer, Object> reservationSnapshot() {
+    var snapshot = new HashMap<Integer, Object>();
+    if (reserved != null)
+      for (int slot = 0; slot < Math.min(machineSlots, items.getSlots()); slot++)
+        snapshot.put(PLAN_KEYS + slot, reserved.plan(slot));
+    return snapshot;
   }
 
   @Override

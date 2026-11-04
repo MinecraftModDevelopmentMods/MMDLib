@@ -2,9 +2,8 @@
 """Generates the graduated-cylinder gauge textures (stdlib only).
 
 Writes to src/main/resources/assets/mmdlib/textures/gui/gauge/:
-  body_top.png, body_middle.png, body_bottom.png    tube body: outline + dark glass interior
+  body_top.png, body_middle.png, body_bottom.png    shared casing: outline + medium grey interior
   glass_top.png, glass_middle.png, glass_bottom.png  translucent highlight drawn over the contents
-  digits.png                                         white 3x5 digits 0-9, 4 px apart
 and prints the per-row content clip table for the caps (see docs/gauge-textures.md).
 
 The textures are vertical; horizontal gauges draw them rotated 90 degrees clockwise.
@@ -17,14 +16,8 @@ import zlib
 from pathlib import Path
 
 OUTLINE = (0x1E, 0x22, 0x26)
-INTERIOR = (0x2A, 0x31, 0x37)
-DIGITS = {
-    "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
-    "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
-    "4": ["101", "101", "111", "001", "001"], "5": ["111", "100", "111", "001", "111"],
-    "6": ["111", "100", "111", "101", "111"], "7": ["111", "001", "001", "010", "010"],
-    "8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "111"],
-}
+# Shared neutral dark grey for the energy and fluid gauge backgrounds.
+INTERIOR = (0x55, 0x55, 0x55)
 
 
 def write_png(path, width, height, pixels):
@@ -72,10 +65,13 @@ def main():
             body_row.append((INTERIOR if inside(x, y) else OUTLINE) + (255,))
             if not inside(x, y):
                 glass_row.append((0, 0, 0, 0)); continue
-            layers = [((255, 255, 255), 0.05)]
-            if x == 2: layers.append(((255, 255, 255), 0.32))
-            if x == 3: layers.append(((255, 255, 255), 0.16))
-            if x == inner_w: layers.append(((0, 0, 0), 0.22))
+            # Cylindrical lighting across the tube, independent of fluid and fill height.
+            # Dark curved sides roll into a broad lit face and an off-centre reflection.
+            u = (x - 1) / max(1, inner_w - 1)
+            shade = 0.48 * abs(2 * u - 1) ** 1.6 + 0.12 * u ** 3
+            reflection = 0.48 * math.exp(-((u - 0.27) / 0.105) ** 2)
+            face_light = 0.09 * math.exp(-((u - 0.43) / 0.32) ** 2)
+            layers = [((0, 0, 0), shade), ((255, 255, 255), face_light + reflection)]
             glass_row.append(compose(layers))
         body.append(body_row); glass.append(glass_row)
 
@@ -85,13 +81,6 @@ def main():
         write_png(out / f"{name}_top.png", width, cap, rows[:cap])
         write_png(out / f"{name}_middle.png", width, 1, rows[cap:cap + 1])
         write_png(out / f"{name}_bottom.png", width, cap, rows[cap + 1:])
-
-    digits = [[(0, 0, 0, 0)] * 39 for _ in range(5)]
-    for i, ch in enumerate("0123456789"):
-        for dy, row in enumerate(DIGITS[ch]):
-            for dx, bit in enumerate(row):
-                if bit == "1": digits[dy][i * 4 + dx] = (255, 255, 255, 255)
-    write_png(out / "digits.png", 39, 5, digits)
 
     print(f"thickness {width}, corner radius {radius}, cap rows {cap}")
     print("content clip per top-cap row (row: first..last interior x); bottom cap mirrors it:")

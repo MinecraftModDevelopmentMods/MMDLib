@@ -5,6 +5,11 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 (standard library only; run `python3 scripts/generate_gauge_textures.py [thickness]`, default 18).
 `gui.client.GaugeRenderer` draws them; this page describes its texture contract.
 
+These textures supply `<gauge>` and the matching slim background of `<energy-gauge>`. The energy
+renderer draws thin red charge bars with a soft reflection, without a terminal or graduations.
+Bars are at most four pixels thick, separated by one-pixel gaps.
+Both empty interiors use neutral dark grey `#555555`.
+
 ## Files
 
 All textures are drawn for a **vertical** gauge 18 px thick. Horizontal gauges use the same
@@ -12,11 +17,10 @@ files rotated 90° clockwise (see below).
 
 | File | Size | Contents |
 |---|---|---|
-| `body_top.png` | 18×5 | Top cap of the tube: outline and dark glass interior, rounded corners |
+| `body_top.png` | 18×5 | Top cap of the tube: thin outline and medium grey interior, rounded corners |
 | `body_middle.png` | 18×1 | One row of the tube, repeated to fill the length |
 | `body_bottom.png` | 18×5 | Bottom cap |
-| `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Translucent glass overlay: soft highlight in columns 2–3, faint shade in column 16 |
-| `digits.png` | 39×5 | White 3×5 digits `0`–`9`; digit *n* starts at x = 4*n* |
+| `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Cylindrical lighting: dark curved sides, a broad lit face, and an off-centre vertical reflection |
 
 Pixels outside the rounded shape are fully transparent, so the GUI background shows through
 the corners.
@@ -33,13 +37,15 @@ For a gauge of length *L* (≥ 10) at (*x*, *y*):
 3. **Glass**: flush preceding buffered GUI draws, enable source-alpha blending, then draw
    the three `glass_*` pieces in the same arrangement as the body. The renderer restores the
    caller's blend enable/function, depth-test state and shader color after drawing the gauge.
+   The overlay is clipped to the filled portion, leaving the empty interior flat medium grey.
+   Fluid textures remain visible beneath it; the cylinder effect comes from lighting, not a new
+   outline. The energy gauge uses only the body textures, without this glass overlay.
 4. **Graduations**, drawn in code: colour `#EEF3F6` at 85% opacity, with a 35% black shadow
    pixel directly below each mark pixel. From the left inside edge (x = 1):
    - every 5%: 2 px; every 10%: 3 px; 25/50/75: 7 px (40% of the 16 px inside width)
    - drop the 5% marks when they would be under 3 px apart, then the 10% marks
-5. **Numbers** at 25/50/75, from `digits.png`, at 90% opacity with the same shadow, placed one
-   pixel right of the long mark and vertically centred on it. Hide them when the 25% marks are
-   under 8 px apart.
+
+The scale shows tick marks only, without numeric labels. Exact amounts remain in the tooltip.
 
 A mark at fraction *p* sits on row `1 + inner - round(inner * p)`, where `inner = L - 2`.
 
@@ -60,8 +66,7 @@ Every `body_middle` row's interior is columns 1–16.
 
 Draw everything rotated 90° clockwise: the bottom cap becomes the left cap, the top cap the
 right cap, the highlight lands on top, and contents fill left to right. Marks hang down from
-the top edge. Two things stay upright: the fluid sprite (tile it unrotated) and the numbers
-(placed below their long marks, centred on them). Skip the meniscus.
+the top edge. The fluid sprite stays upright (tile it unrotated). Skip the meniscus.
 
 An interactive mockup of the design was used to agree it; these files reproduce its pixels.
 

@@ -6,10 +6,12 @@ import java.util.*;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.world.item.ItemStack;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import zone.moddev.mc.lib.gui.load.BoundValue;
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /** Immutable wire snapshots; whole numbers never pass through a long or a double. */
 public final class ScreenValues {
@@ -47,6 +49,7 @@ public final class ScreenValues {
 
   public static boolean equal(Object a, Object b) {
     if (a instanceof FluidStack x && b instanceof FluidStack y) return FluidStack.matches(x, y);
+    if (a instanceof SlotPlan x && b instanceof SlotPlan y) return x.sameAs(y);
     return Objects.equals(a, b);
   }
 
@@ -89,6 +92,11 @@ public final class ScreenValues {
         buf.writeVarInt(list.size());
         for (Object c : list) ComponentSerialization.STREAM_CODEC.encode(buf, (Component) c);
       }
+      case SlotPlan plan -> {
+        buf.writeByte(7);
+        buf.writeVarInt(plan.take());
+        ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, plan.add());
+      }
       default -> throw new IllegalArgumentException("Unsupported GUI wire value");
     }
   }
@@ -109,6 +117,7 @@ public final class ScreenValues {
         for (int i = 0; i < count; i++) list.add(ComponentSerialization.STREAM_CODEC.decode(buf));
         yield List.copyOf(list);
       }
+      case 7 -> new SlotPlan(buf.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf));
       default -> throw new IllegalArgumentException("Unknown GUI wire value");
     };
   }

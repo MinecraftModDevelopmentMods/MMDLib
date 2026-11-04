@@ -1,0 +1,28 @@
+{
+  "type": "mmdlib_companion:crushing",
+  "inputs": {
+    "energy": [
+      {
+        "energy": 2000
+      }
+    ],
+    "input": [
+      {
+        "items": {
+          "item": "minecraft:gravel"
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "output": [
+      {
+        "item": {
+          "id": "minecraft:sand",
+          "count": 1
+        }
+      }
+    ]
+  },
+  "time": 100
+}

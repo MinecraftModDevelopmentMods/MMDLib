@@ -85,8 +85,11 @@ public final class ScreenBinder {
               ? NUMBERS
               : Set.of(Kind.WHOLE, Kind.DECIMAL, Kind.NUMBER, Kind.FLUID);
       case Meter meter -> NUMBERS;
+      case EnergyGauge gauge -> NUMBERS;
       case Progress progress -> NUMBERS;
       case Checkbox checkbox -> Set.of(Kind.BOOLEAN);
+      case Button button when !button.icons().isEmpty() || !button.valueLabels().isEmpty() ->
+          Set.of(Kind.BOOLEAN, Kind.WHOLE);
       case RadioGroup group -> Set.of(Kind.WHOLE);
       case Popout popout -> Set.of(Kind.TEXT, Kind.TEXT_LIST);
       // Anything else only feeds {value} into its tooltip.

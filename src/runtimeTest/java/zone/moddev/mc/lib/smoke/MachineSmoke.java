@@ -53,6 +53,8 @@ public final class MachineSmoke {
   @SubscribeEvent
   static void construct(FMLConstructModEvent event) {
     Registries.BLOCK_ENTITY_FACTORIES.register(id("counter_entity"), new CounterFactory());
+    Registries.BLOCK_ENTITY_FACTORIES.register(
+        CrusherSmoke.ENTITY_FACTORY, new CrusherSmoke.Factory());
     var bus = ModList.get().getModContainerById("mmdlib").orElseThrow().getEventBus();
     registrar = new RuntimeContentRegistrar(NAMESPACE, MaterialExtensions.GLOBAL, bus);
     var types =
@@ -80,6 +82,26 @@ public final class MachineSmoke {
                   MaterialRuntimeSettings.DEFAULT,
                   new FactoryData(JsonParser.parseString("{\"step\":3}")));
           registrar.queue(machine.resolve(MACHINE, module));
+          var crusherModule =
+              DataModules.Block.CODEC
+                  .parse(
+                      JsonOps.INSTANCE,
+                      JsonParser.parseString(
+                          """
+                          {"factory":"mmdlib:machine","template":{},
+                           "part":{"block_entity":{"factory":"mmdlib_smoke:crusher_entity",
+                             "factory_data":{}}}}
+                          """))
+                  .getOrThrow();
+          var crusher =
+              new StandaloneBlock(
+                  id("crusher_module"),
+                  FactoryData.EMPTY,
+                  java.util.Optional.empty(),
+                  MaterialRuntimeSettings.DEFAULT,
+                  FactoryData.EMPTY);
+          registrar.queue(crusher.resolve(CrusherSmoke.ID, crusherModule));
+          CrusherSmoke.install();
           registrar.blockEntityHandles().values().forEach(handle -> handle.register(types));
           if (Boolean.getBoolean("mmdlib.guiSmoke")) GuiRuntimeChecks.install();
           var item =

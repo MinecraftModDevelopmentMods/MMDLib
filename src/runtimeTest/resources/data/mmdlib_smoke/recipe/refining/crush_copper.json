@@ -1,0 +1,13 @@
+{
+  "type": "mmdlib_smoke:refining",
+  "inputs": {
+    "input":  [{ "items": { "tag": "c:ores/copper" }, "count": 1 }],
+    "water":  [{ "fluids": "minecraft:water", "amount": 250 }],
+    "energy": [{ "energy": 4000 }]
+  },
+  "outputs": {
+    "output":    [{ "item": { "id": "minecraft:raw_copper", "count": 2 } }],
+    "byproduct": [{ "item": { "id": "minecraft:gravel" }, "chance": 0.25 }]
+  },
+  "time": 200
+}

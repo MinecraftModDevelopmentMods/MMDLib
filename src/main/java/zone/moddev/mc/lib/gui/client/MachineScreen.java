@@ -217,7 +217,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       }
       case Element.Label label -> caption(g, label.text(), r);
       case Element.Button b -> {
-        sprite(
+        if (b.flat()) {
+          sprite(g, r.contains(mx, my) ? "mmdlib:button_flat_highlighted" : "mmdlib:button_flat", r);
+        } else sprite(
             g,
             r.contains(mx, my) ? "minecraft:widget/button_highlighted" : "minecraft:widget/button",
             r);
@@ -226,7 +228,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                 t ->
                     g.drawCenteredString(
                         font, text(t), r.x() + r.width() / 2, r.y() + 6, 0xffffff));
-        b.icon().ifPresent(icon -> blit(g, icon, r.x() + (r.width() - 16) / 2, r.y() + 2, 16, 16));
+        int iconSize = b.flat() ? 12 : 16;
+        b.iconFor(menu.value(e, false))
+            .ifPresent(icon -> blit(g, icon, r.x() + (r.width() - iconSize) / 2,
+                r.y() + (r.height() - iconSize) / 2, iconSize, iconSize));
       }
       case Element.Checkbox c -> {
         sprite(
@@ -262,12 +267,15 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       }
       case Element.SideTab tab -> sideTab(g, r, tab.edge());
       case Element.Popout pop -> {
-        sideTab(g, r, pop.edge());
+        SideDrawerRenderer.tab(g, r, pop.kind());
         blit(g, pop.iconOrDefault(), r.x() + 3, r.y() + 3, 16, 16);
       }
       case Element.SideConfig config -> drawSides(g, config, r);
       case Element.Gauge gauge ->
           GaugeRenderer.draw(g, r, gauge, menu.value(e, false), menu.value(e, true));
+      case Element.EnergyGauge gauge ->
+          EnergyGaugeRenderer.draw(
+              g, r, gauge, ScreenText.ratio(menu.value(e, false), menu.value(e, true)));
       case Element.Meter meter ->
           meter(g, r, meter, ScreenText.ratio(menu.value(e, false), menu.value(e, true)));
       case Element.Progress progress -> {
@@ -396,28 +404,41 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   public List<Rect> exclusions() {
     var result = new ArrayList<Rect>();
     for (var e : menu.bound.screen().tabs()) {
-      result.add(bounds(e));
-      if (e instanceof Element.Popout p && open.contains(p)) result.add(popBounds(p));
+      if (e instanceof Element.Popout p && open.contains(p)) {
+        result.add(drawerRail(p));
+        result.add(popBounds(p));
+      } else result.add(bounds(e));
     }
     return result;
   }
 
   private Rect popBounds(Element.Popout p) {
     Rect tab = bounds(p);
-    int w = 150, h = Math.max(22, Math.min(topPos + imageHeight - tab.y(), 120));
+    int room = p.edge() == Element.Edge.LEFT ? tab.x() - 4 : width - tab.right() - 4;
+    int w = Math.max(24, Math.min(150, room));
+    int h = Math.max(ScreenLayout.POPOUT_HEIGHT, topPos + imageHeight - tab.y());
     return new Rect(p.edge() == Element.Edge.LEFT ? tab.x() - w : tab.right(), tab.y(), w, h);
+  }
+
+  private Rect drawerRail(Element.Popout p) {
+    Rect tab = bounds(p);
+    return new Rect(tab.x(), tab.y(), tab.width(), popBounds(p).height());
   }
 
   private List<net.minecraft.util.FormattedCharSequence> popLines(Element.Popout p) {
     Object value = menu.value(p, false);
     var result = new ArrayList<net.minecraft.util.FormattedCharSequence>();
+    int textWidth = popBounds(p).width() - 12;
     if (p.text().isPresent())
-      result.addAll(font.split(ScreenText.markup(text(p.text().get()).getString()), 138));
-    else if (value instanceof Component c) result.addAll(font.split(c, 138));
+      result.addAll(font.split(ScreenText.markup(text(p.text().get()).getString()), textWidth));
+    if (!result.isEmpty()
+        && (value instanceof Component || value instanceof List<?> list && !list.isEmpty()))
+      result.add(net.minecraft.util.FormattedCharSequence.EMPTY);
+    if (value instanceof Component c) result.addAll(font.split(c, textWidth));
     else if (value instanceof List<?> list)
       for (var c : list)
         if (c instanceof Component text) {
-          result.addAll(font.split(text, 138));
+          result.addAll(font.split(text, textWidth));
           result.add(net.minecraft.util.FormattedCharSequence.EMPTY);
         }
     return result;
@@ -441,7 +462,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
           .ifPresent(e -> draw(g, e, bounds(e), mx, my));
     for (var p : open) {
       Rect r = popBounds(p);
-      sprite(g, "panel", r);
+      Rect tab = bounds(p);
+      SideDrawerRenderer.open(g, tab, r, p.edge(), p.kind());
+      blit(g, p.iconOrDefault(), tab.x() + 3, tab.y() + 3, 16, 16);
       var lines = popLines(p);
       int max = Math.max(0, lines.size() * 10 - (r.height() - 12));
       int offset = Math.clamp(scroll.getOrDefault(p, 0), 0, max);
@@ -451,6 +474,13 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         g.drawString(font, lines.get(i), r.x() + 6, r.y() + 6 + i * 10 - offset, 0xff303030, false);
       g.disableScissor();
     }
+    // Keep every drawer tab clickable and visible on the expanded rail.
+    for (var e : menu.bound.screen().tabs())
+      if (e instanceof Element.Popout p) {
+        Rect tab = bounds(p);
+        SideDrawerRenderer.tab(g, tab, p.kind());
+        blit(g, p.iconOrDefault(), tab.x() + 3, tab.y() + 3, 16, 16);
+      }
     renderTooltip(g, mx, my);
     if (hovered != null) tooltip(g, hovered, mx, my);
   }
@@ -498,7 +528,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
           String translated =
               this.text(t)
                   .getString()
-                  .replace("{value}", ScreenText.number(menu.value(e, false), shift))
+                  .replace("{value}", e instanceof Element.Button button
+                      ? button.labelFor(menu.value(e, false)).map(label -> this.text(label).getString())
+                          .orElseGet(() -> ScreenText.number(menu.value(e, false), shift))
+                      : ScreenText.number(menu.value(e, false), shift))
                   .replace("{max}", ScreenText.number(menu.value(e, true), shift));
           lines.add(Component.literal(translated));
         });
@@ -536,13 +569,20 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   public boolean mouseClicked(double mx, double my, int button) {
     if (button > 1) return super.mouseClicked(mx, my, button);
-    for (var p : open) if (popBounds(p).contains(mx, my)) return true;
+    boolean onDrawerTab = menu.bound.screen().tabs().stream()
+        .anyMatch(e -> e instanceof Element.Popout && bounds(e).contains(mx, my));
+    for (var p : open)
+      if (popBounds(p).contains(mx, my)
+          || drawerRail(p).contains(mx, my) && !onDrawerTab) return true;
     for (int i = menu.elements.size() - 1; i >= 0; i--) {
       var e = menu.elements.get(i);
       Rect r = bounds(e);
       if (!visible(e) || !r.contains(mx, my)) continue;
       if (e instanceof Element.Popout p) {
-        if (!open.remove(p)) open.add(p);
+        if (!open.remove(p)) {
+          open.removeIf(other -> other.edge() == p.edge());
+          open.add(p);
+        }
         return true;
       }
       if (e instanceof Element.Slot s && s.kind() == Element.SlotKind.GHOST) {

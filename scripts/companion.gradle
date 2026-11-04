@@ -1,0 +1,106 @@
+sourceSets {
+    companion {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+    companionTest {
+        compileClasspath += sourceSets.companion.output + sourceSets.companion.compileClasspath
+        runtimeClasspath += sourceSets.companion.output + sourceSets.companion.runtimeClasspath
+    }
+}
+
+neoForge.addModdingDependenciesTo(sourceSets.companion)
+neoForge.addModdingDependenciesTo(sourceSets.companionTest)
+
+neoForge {
+    mods {
+        mmdlib_companion {
+            sourceSet sourceSets.companion
+        }
+        mmdlib_companion_test {
+            sourceSet sourceSets.companion
+            sourceSet sourceSets.companionTest
+        }
+    }
+    runs {
+        companionClient {
+            client()
+            gameDirectory = layout.projectDirectory.dir('run/companion')
+            sourceSet = sourceSets.companion
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion]
+        }
+        companionClientSmoke {
+            client()
+            gameDirectory = layout.buildDirectory.dir('companion-client-smoke')
+            sourceSet = sourceSets.companionTest
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
+            systemProperty 'mmdlib.companionSmoke', 'true'
+            programArguments.addAll '--width', '1280', '--height', '960'
+        }
+        companionGameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = layout.buildDirectory.dir('companion-gametest')
+            sourceSet = sourceSets.companionTest
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib_companion'
+        }
+    }
+}
+
+def companionJar = tasks.register('companionJar', Jar) {
+    group = 'build'
+    description = 'Builds the optional four-machine companion mod.'
+    archiveBaseName = 'mmdlib-companion'
+    destinationDirectory = layout.buildDirectory.dir('companion/libs')
+    from sourceSets.companion.output
+}
+
+def companionTests = tasks.matching { it.name == 'runCompanionGameTestServer' }
+companionTests.configureEach {
+    doFirst {
+        def testDir = layout.buildDirectory.dir('companion-gametest').get().asFile
+        project.delete(testDir)
+        testDir.mkdirs()
+    }
+}
+tasks.named('check') { dependsOn companionTests, companionJar }
+
+tasks.matching { it.name == 'runCompanionClientSmoke' }.configureEach {
+    doFirst {
+        def smokeDir = layout.buildDirectory.dir('companion-client-smoke').get().asFile
+        smokeDir.mkdirs()
+        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\n'
+    }
+    doLast {
+        def log = layout.buildDirectory.file('companion-client-smoke/logs/latest.log').get().asFile
+        if (!log.exists() || !log.text.contains('COMPANION_CLIENT_PASS') || log.text.contains('COMPANION_CLIENT_FAIL'))
+            throw new GradleException('Companion client smoke failed; inspect ' + log)
+    }
+}
+
+tasks.register('verifyCompanionPackaging') {
+    group = 'verification'
+    dependsOn tasks.named('jar'), companionJar
+    doLast {
+        def libraryDir = tasks.named('jar').get().destinationDirectory.get().asFile.toPath().toAbsolutePath().normalize()
+        def companionFile = companionJar.get().archiveFile.get().asFile
+        if (companionFile.toPath().toAbsolutePath().normalize().startsWith(libraryDir))
+            throw new GradleException('Companion jar must stay outside the library release directory: ' + companionFile)
+        def staleCompanions = fileTree(libraryDir.toFile()) { include 'mmdlib-companion-*.jar' }.files
+        if (!staleCompanions.isEmpty())
+            throw new GradleException('Companion jars in the library release directory; run clean before building: ' + staleCompanions)
+        if (publishing.publications.named('mavenJava').get().artifacts.any { it.file == companionFile })
+            throw new GradleException('Companion jar must not be part of the MMDLib Maven publication')
+        new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { jar ->
+            def leaked = jar.entries().findAll { it.name.contains('mmdlib_companion') || it.name.startsWith('zone/moddev/mc/companion/') }
+            if (leaked) throw new GradleException('Companion content in MMDLib jar: ' + leaked*.name)
+        }
+        new java.util.zip.ZipFile(companionJar.get().archiveFile.get().asFile).withCloseable { jar ->
+            def leaked = jar.entries().findAll { it.name.startsWith('zone/moddev/mc/lib/') || it.name.startsWith('zone/moddev/mc/companion/test/') || it.name.contains('/structure/') }
+            if (leaked) throw new GradleException('Library or test content in companion jar: ' + leaked*.name)
+            if (jar.getEntry('META-INF/neoforge.mods.toml') == null)
+                throw new GradleException('Companion mod descriptor is missing')
+        }
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyCompanionPackaging') }

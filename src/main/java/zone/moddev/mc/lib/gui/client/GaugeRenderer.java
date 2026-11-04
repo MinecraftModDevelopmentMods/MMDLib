@@ -21,6 +21,21 @@ import zone.moddev.mc.lib.gui.model.Element;
 final class GaugeRenderer {
   private GaugeRenderer() {}
 
+  /** Shared slim casing and medium-grey empty interior for fluid and energy gauges. */
+  static void background(GuiGraphics g, Rect r, boolean vertical) {
+    var state = RenderState.capture();
+    try {
+      int length = vertical ? r.height() : r.width();
+      shell(g, r, vertical, length, "body");
+    } finally {
+      try {
+        g.flush();
+      } finally {
+        state.restore();
+      }
+    }
+  }
+
   static void draw(GuiGraphics g, Rect r, Element.Gauge gauge, Object value, Object max) {
     var state = RenderState.capture();
     try {
@@ -64,7 +79,17 @@ final class GaugeRenderer {
       if (vertical && step == filled - 1)
         g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(), 0x4dffffff);
     }
-    shell(g, r, vertical, length, "glass");
+    // Keep the shared empty background flat. Only the contents get curved lighting.
+    if (filled > 0) {
+      if (vertical)
+        g.enableScissor(r.x(), r.bottom() - 1 - filled, r.right(), r.bottom() - 1);
+      else g.enableScissor(r.x() + 1, r.y(), r.x() + 1 + filled, r.bottom());
+      try {
+        shell(g, r, vertical, length, "glass");
+      } finally {
+        g.disableScissor();
+      }
+    }
     int inner = length - 2;
     for (int n = 1; n < 20; n++) {
       boolean major = n == 5 || n == 10 || n == 15;
@@ -75,24 +100,6 @@ final class GaugeRenderer {
           y = vertical ? r.y() + row : r.y() + 1;
       g.fill(x, y + 1, x + (vertical ? mark : 1), y + 1 + (vertical ? 1 : mark), 0x59000000);
       g.fill(x, y, x + (vertical ? mark : 1), y + (vertical ? 1 : mark), 0xd9eef3f6);
-      if (major && inner / 4f >= 8) {
-        String digits = Integer.toString(n * 5);
-        int dx = vertical ? x + mark + 1 : x - 3, dy = vertical ? y - 2 : y + mark + 1;
-        for (int i = 0; i < digits.length(); i++) {
-          int digit = digits.charAt(i) - '0';
-          RenderSystem.enableBlend();
-          g.blit(
-              ResourceLocation.parse("mmdlib:textures/gui/gauge/digits.png"),
-              dx + i * 4,
-              dy,
-              digit * 4,
-              0,
-              3,
-              5,
-              39,
-              5);
-        }
-      }
     }
   }
 

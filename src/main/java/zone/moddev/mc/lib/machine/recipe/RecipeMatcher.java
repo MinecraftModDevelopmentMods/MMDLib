@@ -162,18 +162,17 @@ public final class RecipeMatcher {
     return MatchResult.OK;
   }
 
-  /** What each slot or tank of {@code group} holds, or the stored energy as one entry. */
-  private static long[] available(SlotGroup group) {
+  /** What each slot or tank of {@code group} has free, or the stored energy as one entry. */
+  static long[] available(SlotGroup group) {
     return switch (group) {
       case ItemGroup items -> {
         var counts = new long[items.size()];
-        for (int slot = 0; slot < counts.length; slot++) counts[slot] = items.peek(slot).getCount();
+        for (int slot = 0; slot < counts.length; slot++) counts[slot] = items.free(slot);
         yield counts;
       }
       case FluidGroup fluids -> {
         var amounts = new long[fluids.tanks()];
-        for (int tank = 0; tank < amounts.length; tank++)
-          amounts[tank] = fluids.peek(tank).amount();
+        for (int tank = 0; tank < amounts.length; tank++) amounts[tank] = fluids.free(tank);
         yield amounts;
       }
       case EnergyGroup energy -> new long[] {energy.stored()};
@@ -181,7 +180,7 @@ public final class RecipeMatcher {
   }
 
   /** Adds {@code ingredient} to {@code claims}; returns what's still needed, -1 if wrong kind. */
-  private static long claim(
+  static long claim(
       InputClaims claims, SlotGroup group, MachineIngredient ingredient, int time) {
     return switch (ingredient) {
       case ItemPart part when group instanceof ItemGroup items ->

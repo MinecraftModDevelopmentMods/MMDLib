@@ -50,3 +50,59 @@ jobs:
           retention-days: 14
           path: |
             build/libs/*.jar
+
+      - name: Upload test reports and game test logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: check-reports
+          path: |
+            build/reports/tests/
+            build/gametest/logs/
+            build/companion-gametest/logs/
+          if-no-files-found: ignore
+
+  gui-smoke:
+    name: Client GUI smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gradle/actions/wrapper-validation@v6
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'microsoft'
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Xvfb and Mesa
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      # Run the companion before the library smoke, which injects test sources into main output.
+      - name: Companion GUI smoke test
+        timeout-minutes: 20
+        run: xvfb-run -a ./gradlew runCompanionClientSmoke
+
+      - name: GUI smoke test with JEI
+        timeout-minutes: 20
+        run: xvfb-run -a ./gradlew runClient -I scripts/gui-smoke.init.gradle
+
+      - name: GUI smoke test without JEI
+        timeout-minutes: 20
+        run: xvfb-run -a ./gradlew runClient -PwithoutJei -I scripts/gui-smoke.init.gradle
+
+      - name: Upload client logs and screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gui-smoke-logs
+          path: |
+            build/companion-client-smoke/logs/
+            build/companion-client-smoke/screenshots/
+            build/gui-smoke/logs/
+            build/gui-smoke/screenshots/
+            build/gui-smoke-without-jei/logs/
+            build/gui-smoke-without-jei/screenshots/
+          if-no-files-found: ignore

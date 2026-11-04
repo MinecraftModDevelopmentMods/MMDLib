@@ -192,6 +192,7 @@ public final class ScreenReader {
     }
 
     private Element element(Node node) {
+      if (node.name().equals("energy-gauge")) node = energyDefaults(node);
       var c = common(node);
       return switch (node.name()) {
         case "vbox", "hbox" ->
@@ -224,6 +225,12 @@ public final class ScreenReader {
                 enumValue(Orientation.class, node, "orientation"),
                 length(node, 8),
                 color(node, "color"));
+        case "energy-gauge" ->
+            new EnergyGauge(
+                c,
+                enumValue(Orientation.class, node, "orientation"),
+                length(node, 8),
+                color(node, "color").orElseThrow());
         case "meter" ->
             new Meter(
                 c,
@@ -242,7 +249,10 @@ public final class ScreenReader {
                 c,
                 text(node, "text"),
                 id(node, "icon"),
-                Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse));
+                Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse),
+                words(node, "icons").stream().map(ResourceLocation::parse).toList(),
+                words(node, "value-labels").stream().map(key -> new Text(key, Optional.empty())).toList(),
+                java.util.Set.of("true", "1").contains(node.attributes().getOrDefault("flat", "false")));
         case "checkbox" -> new Checkbox(c, text(node, "text").orElseThrow());
         case "radio-group" ->
             new RadioGroup(
@@ -266,6 +276,18 @@ public final class ScreenReader {
                 text(node, "text"));
         default -> throw error(node, "Unknown element <" + node.name() + ">");
       };
+    }
+
+    /** Standard energy bindings can be overridden for machines with several buffers. */
+    private Node energyDefaults(Node node) {
+      var attributes = new LinkedHashMap<>(node.attributes());
+      attributes.putIfAbsent("value", "#getEnergy");
+      attributes.putIfAbsent("max", "#getEnergyCapacity");
+      if (!attributes.containsKey("tooltip")) {
+        attributes.put("tooltip", "screen.mmdlib.energy");
+        attributes.putIfAbsent("tooltip-fallback", "{value} / {max} FE");
+      }
+      return new Node(node.name(), attributes, node.children(), node.line());
     }
 
     private Common common(Node node) {
@@ -303,6 +325,11 @@ public final class ScreenReader {
         return Optional.empty();
       }
       return Optional.of(new Text(key, fallback));
+    }
+
+    private List<String> words(Node node, String name) {
+      String value = node.attributes().getOrDefault(name, "").trim();
+      return value.isEmpty() ? List.of() : List.of(value.split("\\s+"));
     }
 
     private Optional<ValueRef> value(Node node, String name) {
@@ -423,10 +450,17 @@ public final class ScreenReader {
         throw new ScreenException(source, line, "max needs value");
       switch (element) {
         case Button button -> {
+          if (button.flat() && button.text().isPresent())
+            throw new ScreenException(source, line, "A flat button uses an icon, not a text caption");
           if (c.tooltip().isEmpty())
             throw new ScreenException(source, line, "<button> needs a tooltip saying what it does");
-          if (button.text().isEmpty() && button.icon().isEmpty())
+          if (button.text().isEmpty() && button.icon().isEmpty() && button.icons().isEmpty())
             throw new ScreenException(source, line, "<button> needs text or icon");
+          if (!button.icons().isEmpty() || !button.valueLabels().isEmpty())
+            requireValue(source, element, "a stateful <button>", false);
+          if (!button.icons().isEmpty() && !button.valueLabels().isEmpty()
+              && button.icons().size() != button.valueLabels().size())
+            throw new ScreenException(source, line, "button icons and value-labels must have equal counts");
           if (button.shows().isPresent()) {
             var target = button.shows().get();
             var views = contexts.get(target.context());
@@ -441,6 +475,7 @@ public final class ScreenReader {
           }
         }
         case Gauge gauge -> requireValue(source, element, "a <gauge>", true);
+        case EnergyGauge gauge -> requireValue(source, element, "an <energy-gauge>", true);
         case Meter meter -> requireValue(source, element, "a <meter>", true);
         case Progress progress -> requireValue(source, element, "a <progress>", true);
         case Checkbox checkbox -> requireValue(source, element, "a <checkbox>", false);
@@ -481,6 +516,7 @@ public final class ScreenReader {
   private static void checkFill(String source, Element element, boolean verticalParent) {
     Orientation orientation = null;
     if (element instanceof Gauge gauge && gauge.fills()) orientation = gauge.orientation();
+    if (element instanceof EnergyGauge gauge && gauge.fills()) orientation = gauge.orientation();
     if (element instanceof Meter meter && meter.fills()) orientation = meter.orientation();
     if (orientation == Orientation.VERTICAL && verticalParent)
       throw new ScreenException(

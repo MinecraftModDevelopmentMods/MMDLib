@@ -255,6 +255,126 @@ public final class ScreenLoaderTest {
     fails("missing static", HEAD + "<label text=\"a\" value=\"java.lang.Math#nope\"/></screen>");
   }
 
+  @Test
+  void energyGaugeBindsDefaultsAndAllowsOverrides() throws Exception {
+    var defaults = bind(HEAD + "<energy-gauge id=\"energy\"/></screen>");
+    var gauge = (Element.EnergyGauge) defaults.screen().find("energy").orElseThrow();
+    require(defaults.values().get(gauge).kind() == BoundValue.Kind.WHOLE);
+    require(defaults.maxima().get(gauge).kind() == BoundValue.Kind.WHOLE);
+    require(gauge.orientation() == Element.Orientation.VERTICAL && gauge.length() == 54);
+    require(gauge.color() == 0xFFE64B38);
+    require(gauge.common().tooltip().orElseThrow().fallback().orElseThrow().equals("{value} / {max} FE"));
+
+    var custom = bind(HEAD + """
+        <vbox>
+          <energy-gauge id="reserve" orientation="horizontal" length="fill" color="#123456"
+                        value="#getThroughput" max="#getMaxThroughput" tooltip="example.reserve"/>
+        </vbox></screen>
+        """);
+    var reserve = (Element.EnergyGauge) custom.screen().find("reserve").orElseThrow();
+    require(custom.maxima().get(reserve).kind() == BoundValue.Kind.DECIMAL);
+    require(reserve.color() == 0xFF123456);
+    require(reserve.common().tooltip().orElseThrow().key().equals("example.reserve"));
+    require(reserve.common().tooltip().orElseThrow().fallback().isEmpty());
+    var layout = ScreenLayout.of(custom.screen(), TextMeasure.NONE);
+    require(layout.bounds(reserve).width() == layout.panel().width());
+    require(layout.bounds(reserve).height() == Element.SLOT);
+
+    fails("energy getter missing", HEAD + "<energy-gauge value=\"#getMissing\"/></screen>");
+    fails("energy must be numeric", HEAD + "<energy-gauge value=\"#getWaterTank\"/></screen>");
+    fails("energy gauge too short", HEAD + "<energy-gauge length=\"7\"/></screen>");
+    fails("energy fill direction", HEAD + "<vbox><energy-gauge length=\"fill\"/></vbox></screen>");
+  }
+
+  @Test
+  void statefulButtonsSelectIconsAndTranslatedValues() throws Exception {
+    var screen = bind(HEAD + """
+        <button id="mode" value="#getProgress" icons="mmdlib:off mmdlib:on"
+                value-labels="screen.test.off screen.test.on" tooltip="screen.test.mode"/>
+        </screen>
+        """).screen();
+    var button = (Element.Button) screen.find("mode").orElseThrow();
+    require(button.iconFor(BigInteger.ONE).orElseThrow().getPath().equals("on"));
+    require(button.iconFor(Boolean.FALSE).orElseThrow().getPath().equals("off"));
+    require(button.labelFor(Boolean.TRUE).orElseThrow().key().equals("screen.test.on"));
+    require(button.iconFor(BigInteger.valueOf(-1)).orElseThrow().getPath().equals("off"));
+    require(!button.flat());
+    fails("flat buttons require icons", HEAD
+        + "<button flat=\"true\" text=\"screen.test.text\" tooltip=\"screen.test.mode\"/></screen>");
+    fails("state icons require value", HEAD
+        + "<button icons=\"mmdlib:off mmdlib:on\" tooltip=\"screen.test.mode\"/></screen>");
+    fails("state counts must agree", HEAD
+        + "<button value=\"#getProgress\" icons=\"mmdlib:off mmdlib:on\" value-labels=\"screen.test.off\" tooltip=\"screen.test.mode\"/></screen>");
+  }
+
+  @Test
+  void companionControlsSitAboveInventoryAtRightMargin() throws Exception {
+    for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher")) {
+      try (var input = java.nio.file.Files.newInputStream(java.nio.file.Path.of(
+          "src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
+        var screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:" + name), name + ".xml", input);
+        var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+        var controls = layout.bounds(screen.find("controls").orElseThrow());
+        var redstone = layout.bounds(screen.find("redstone").orElseThrow());
+        var pause = layout.bounds(screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
+        require(controls.y() > layout.bounds(screen.find("energy").orElseThrow()).bottom());
+        require(controls.bottom() < layout.inventory().orElseThrow().y());
+        require(pause.right() == layout.panel().width() - 7);
+        require(redstone.y() == pause.y() && redstone.right() < pause.x());
+        require(pause.width() == 14 && pause.height() == 14);
+        require(((Element.Button) screen.find("redstone").orElseThrow()).flat());
+        require(((Element.Button) screen.find("toggle_0").orElseThrow()).flat());
+      }
+    }
+  }
+
+  @Test
+  void allCompanionScreensPlaceBatteryAtRightMargin() throws Exception {
+    for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power")) {
+      try (var input = java.nio.file.Files.newInputStream(java.nio.file.Path.of(
+          "src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
+        var screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:" + name), name + ".xml", input);
+        var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+        var energy = screen.find("energy").orElseThrow();
+        require(energy instanceof Element.EnergyGauge);
+        var bounds = layout.bounds(energy);
+        require(bounds.right() == layout.panel().width() - 7);
+        require(bounds.height() == 54 && bounds.width() == 18);
+        for (var element : screen.elements()) {
+          if (element instanceof Element.Slot || element instanceof Element.Progress
+              || element instanceof Element.Checkbox || element instanceof Element.Label) {
+            var other = layout.bounds(element);
+            require(other.right() <= bounds.x() || other.x() >= bounds.right()
+                || other.bottom() <= bounds.y() || other.y() >= bounds.bottom());
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  void crusherPlacesProcessingBeforeRightEnergyGauge() throws Exception {
+    Screen screen;
+    try (var input = java.nio.file.Files.newInputStream(
+        java.nio.file.Path.of("src/companion/resources/mmdlib/screen/crusher.xml"))) {
+      screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:crusher"), "crusher.xml", input);
+    }
+    var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+    var energy = layout.bounds(screen.find("energy").orElseThrow());
+    var tank = layout.bounds(screen.find("tank").orElseThrow());
+    var arrow = layout.bounds(screen.find("progress").orElseThrow());
+    var slots = screen.elements().stream().filter(Element.Slot.class::isInstance).toList();
+    var input = layout.bounds(slots.get(0));
+    var output = layout.bounds(slots.get(1));
+    require(tank.x() == 7 && tank.right() < input.x());
+    require(tank.y() == energy.y() && tank.height() == energy.height());
+    require(input.right() < arrow.x() && arrow.right() < output.x() && output.right() < energy.x());
+    require(input.y() + input.height() / 2 == energy.y() + energy.height() / 2);
+    require(output.y() == input.y());
+    require(energy.right() == layout.panel().width() - 7);
+    require(energy.bottom() < layout.inventory().orElseThrow().y());
+  }
+
   private static void checkLayout(Screen screen) throws Exception {
     // Six pixels per character stands in for the font.
     var layout = ScreenLayout.of(screen, text -> text.key().length() * 6);

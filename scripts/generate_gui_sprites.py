@@ -48,6 +48,32 @@ def bevel_box(w, h, dark, fill, light):
     return img
 
 
+def recessed_slot():
+    """18px item well; the outer bevel and inward shadows stay fixed when nine-sliced."""
+    img = canvas(18, 18, grey(128))
+    for y in range(1, 17):
+        for x in range(1, 17):
+            # Light from above-left catches the lower rim of the recessed surface.
+            top_shadow = {1: 34, 2: 18, 3: 7}.get(y, 0)
+            left_shadow = {1: 14, 2: 6, 3: 2}.get(x, 0)
+            bottom_light = {16: 10, 15: 5, 14: 2}.get(y, 0)
+            right_light = {16: 5, 15: 2, 14: 1}.get(x, 0)
+            img[y][x] = grey(128 - top_shadow - left_shadow + bottom_light + right_light)
+    rect(img, 0, 0, 17, 1, grey(62))
+    rect(img, 0, 0, 1, 17, grey(70))
+    rect(img, 1, 17, 17, 1, grey(224))
+    rect(img, 17, 1, 1, 17, grey(205))
+    img[0][0] = grey(53)
+    img[0][17] = img[17][0] = grey(140)
+    img[17][17] = grey(231)
+    return img
+
+
+def write_slot_sprite():
+    write_png("slot", recessed_slot(),
+              {"type": "nine_slice", "width": 18, "height": 18, "border": 4})
+
+
 def panel(w, h):
     """Vanilla container panel: black outline with cut corners, 2 px white highlight, 2 px shadow."""
     img = canvas(w, h)
@@ -84,6 +110,40 @@ def compact_frame(size=8):
     return img
 
 
+def drawer_frame(w, h):
+    """Thin raised rectangular frame from the drawer reference; tintable face and bevels."""
+    img = canvas(w, h)
+    rect(img, 1, 0, w - 2, h, grey(0x30))
+    rect(img, 0, 1, w, h - 2, grey(0x30))
+    rect(img, 1, 1, w - 2, h - 2, grey(0xDF))
+    rect(img, 1, 1, w - 3, 1, grey(0xFF))
+    rect(img, 1, 1, 1, h - 3, grey(0xFF))
+    rect(img, 2, h - 2, w - 3, 1, grey(0x80))
+    rect(img, w - 2, 2, 1, h - 3, grey(0x80))
+    return img
+
+
+def info_glyph():
+    """White serif i with a dark one-pixel outline; the coloured tab supplies its background."""
+    rows = ["..##..", "..##..", "......", ".###..", "..##..", "..##..",
+            "..##..", "..##..", "..##..", ".####."]
+    ink = {(5 + x, 3 + y) for y, row in enumerate(rows)
+           for x, pixel in enumerate(row) if pixel == '#'}
+    img = canvas(16, 16)
+    for x, y in ink:
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1): img[y + dy][x + dx] = grey(0x36)
+    for x, y in ink: img[y][x] = grey(0xFF)
+    return img
+
+
+def write_drawer_sprites():
+    write_png("drawer_tab", drawer_frame(22, 24))
+    write_png("drawer_panel", drawer_frame(16, 16),
+              {"type": "nine_slice", "width": 16, "height": 16, "border": 3})
+    write_png("icon_info", info_glyph())
+
+
 def checkbox(on):
     img = bevel_box(10, 10, 0x37, 0x8B, 0xFF)
     if on:
@@ -110,13 +170,37 @@ def radio(on):
 
 
 def arrow(filled):
-    """24x16 progress arrow; draw the filled sprite over the empty one, cropped to the progress."""
+    """Bevelled blue-grey arrow; both states share a silhouette for clipped progress fills."""
     img = canvas(24, 16)
+    top = (121, 198, 247) if filled else (190, 207, 223)
+    bottom = (35, 101, 162) if filled else (105, 130, 157)
+    outline = (40, 78, 119) if filled else (79, 99, 123)
+    highlight = (196, 237, 255) if filled else (229, 242, 252)
+
+    def inside(x, y):
+        return ((1 <= x <= 16 and 5 <= y <= 10)
+                or (16 <= x <= 23 and abs(y - 7.5) <= (23 - x) * 0.85 + 0.5))
+
+    def mix(a, b, fraction):
+        return tuple(round(v + (w - v) * fraction) for v, w in zip(a, b))
+
     for y in range(16):
         for x in range(24):
-            if (x <= 13 and 6 <= y <= 9) or (x >= 12 and abs(y + 0.5 - 8) <= (24 - x) * 0.72):
-                img[y][x] = grey(255 if filled else 0x8B)
+            if not inside(x, y): continue
+            if any(not inside(x + dx, y + dy) for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0))):
+                color = outline
+            else:
+                color = mix(top, bottom, max(0, min(1, (y - 2) / 11)))
+                if y < 8 and not inside(x, y - 2): color = highlight
+                elif y == 7: color = mix(color, highlight, 0.25)
+                elif y >= 9 and not inside(x, y + 2): color = mix(color, outline, 0.35)
+            img[y][x] = (*color, 255)
     return img
+
+
+def write_progress_sprites():
+    write_png("progress_arrow", arrow(False))
+    write_png("progress_arrow_filled", arrow(True))
 
 
 def icon(rows, color):
@@ -153,7 +237,6 @@ def status_icon(inside, fill, edge, glyph, ink):
     return img
 
 
-def in_circle(x, y): return math.hypot(x - 8, y - 8) <= 7.5
 def in_triangle(x, y): return 0.5 <= y <= 15.5 and abs(x - 8) <= (y - 0.5) * 0.5 + 0.6
 def in_shield(x, y):
     """Heater shield: flat top, straight sides, curving to a point at the bottom."""
@@ -161,30 +244,72 @@ def in_shield(x, y):
     return y <= 7 or abs(x - 8) <= 7 * max(0.0, 1 - (y - 7) / 9) ** 0.8 + 0.2
 
 
-INFO = ["##", "..", "##", "##", "##", "##", "##"]
 BANG = ["##", "##", "##", "##", "..", "##"]
 BANG_LOW = ["##", "##", "##", "##", "##", "..", "##"]  # sits lower, inside the triangle's wide part
+
+
+def write_flat_buttons():
+    """Compact controls: uniform 1px outline, flat fill, and an interior-only hover highlight."""
+    for name, fill in (("button_flat", 0x8B), ("button_flat_highlighted", 0xA9)):
+        img = canvas(14, 14, grey(0x37))
+        rect(img, 1, 1, 12, 12, grey(fill))
+        write_png(name, img, {"type": "nine_slice", "width": 14, "height": 14, "border": 1})
+
+
+def write_control_icons():
+    """16 px control glyphs with a one-pixel shadow and optional lane/mode badge."""
+    def glyph(img, rows, x, y, ink):
+        for dy, row in enumerate(rows):
+            for dx, bit in enumerate(row):
+                if bit != ".": img[y + dy + 1][x + dx + 1] = grey(42)
+        for dy, row in enumerate(rows):
+            for dx, bit in enumerate(row):
+                if bit != ".": img[y + dy][x + dx] = ink
+
+    pause = ["##...##"] * 9
+    play = ["#......", "###....", "#####..", "#######", "#######", "#####..", "###....", "#......"]
+    letters = {"a": [".#.", "#.#", "###", "#.#", "#.#"],
+               "b": ["##.", "#.#", "##.", "#.#", "##."]}
+    for name, rows, ink in (("pause", pause, (240, 198, 70, 255)),
+                            ("resume", play, (100, 216, 112, 255))):
+        for lane in ("", "a", "b"):
+            img = canvas(16, 16)
+            glyph(img, rows, 3 if lane else 4, 2 if lane else 3, ink)
+            if lane: glyph(img, letters[lane], 11, 9, grey(245))
+            write_png("icon_" + name + ("_" + lane if lane else ""), img)
+
+    torch = [".###.", "#####", "#####", ".###.", "..#..", "..#..", "..#..", "..#..", "..#.."]
+    badges = {"ignore": ["#.#", ".#.", "#.#"],
+              "high": [".#.", "###", ".#."], "low": ["...", "###", "..."]}
+    for mode, badge in badges.items():
+        img = canvas(16, 16)
+        glyph(img, torch, 4, 2, (242, 70, 49, 255) if mode == "high" else (155, 67, 55, 255))
+        rect(img, 6, 6, 1, 5, (166, 117, 64, 255))
+        if mode == "high": rect(img, 5, 3, 2, 2, (255, 201, 101, 255))
+        glyph(img, badge, 11, 10, grey(245))
+        write_png("icon_redstone_" + mode, img)
 
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print(f"writing to {OUT}:")
-    write_png("slot", bevel_box(18, 18, 0x37, 0x8B, 0xFF), {"type": "nine_slice", "width": 18, "height": 18, "border": 1})
+    write_slot_sprite()
     write_png("group", bevel_box(16, 16, 0x8B, 0xC6, 0xFF), {"type": "nine_slice", "width": 16, "height": 16, "border": 1})
     write_png("panel", panel(16, 16), {"type": "nine_slice", "width": 16, "height": 16, "border": 4})
     write_png("side_tab", side_tab(16), {"type": "nine_slice", "width": 34, "height": 16,
                                          "border": {"left": 3, "top": 3, "right": 3, "bottom": 3}})
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
+    write_drawer_sprites()
+    write_control_icons()
+    write_flat_buttons()
     write_png("checkbox", checkbox(False))
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))
     write_png("radio_selected", radio(True))
-    write_png("progress_arrow", arrow(False))
-    write_png("progress_arrow_filled", arrow(True))
+    write_progress_sprites()
     for name, rows in ICONS.items(): write_png(name, icon(rows, (0x6A, 0x50, 0x20, 255)))
     write_png("icon_sides", icon(CUBE, grey(255)))
     # Pop-out kinds. Full colour, not for tinting.
-    write_png("icon_info", status_icon(in_circle, (0x2F, 0x6F, 0xD0, 255), (0x1B, 0x3F, 0x80, 255), INFO, grey(255)))
     write_png("icon_warning", status_icon(in_triangle, (0xF5, 0xC5, 0x18, 255), (0x7A, 0x5A, 0x00, 255), BANG_LOW, (0x20, 0x20, 0x20, 255)))
     write_png("icon_error", status_icon(in_shield, (0xD0, 0x20, 0x20, 255), (0x70, 0x10, 0x10, 255), BANG, grey(255)))
 

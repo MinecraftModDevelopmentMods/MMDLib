@@ -139,6 +139,7 @@
       <xs:element ref="group"/>
       <xs:element ref="slot"/>
       <xs:element ref="gauge"/>
+      <xs:element ref="energy-gauge"/>
       <xs:element ref="meter"/>
       <xs:element ref="progress"/>
       <xs:element ref="label"/>
@@ -263,6 +264,19 @@
     </xs:complexType>
   </xs:element>
 
+  <xs:element name="energy-gauge">
+    <xs:annotation><xs:documentation>Slim gauge casing with red charge bars, 18 px thick and at least 8 px long. Defaults to #getEnergy / #getEnergyCapacity and an FE tooltip; common attributes override these bindings.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="orientation" type="orientation" default="vertical"/>
+          <xs:attribute name="length" type="length" default="54"/>
+          <xs:attribute name="color" type="color" default="#E64B38"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
   <xs:element name="meter">
     <xs:annotation><xs:documentation>Compact segmented gauge, 5 or 10 px thick; at least 4 px long, segments at least 1 px.</xs:documentation></xs:annotation>
     <xs:complexType>
@@ -315,6 +329,9 @@
           <xs:attribute name="text-fallback" type="xs:string"/>
           <xs:attribute name="icon" type="resourceId"/>
           <xs:attribute name="shows" type="viewRef"/>
+          <xs:attribute name="flat" type="xs:boolean" default="false"/>
+          <xs:attribute name="icons"><xs:simpleType><xs:list itemType="resourceId"/></xs:simpleType></xs:attribute>
+          <xs:attribute name="value-labels"><xs:simpleType><xs:list itemType="translationKey"/></xs:simpleType></xs:attribute>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>
