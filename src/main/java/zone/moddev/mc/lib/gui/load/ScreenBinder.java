@@ -10,6 +10,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import zone.moddev.mc.lib.gui.WidgetTypes;
 import zone.moddev.mc.lib.gui.load.BoundValue.Kind;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Element.*;
@@ -55,6 +56,11 @@ public final class ScreenBinder {
    *     public, has the wrong shape, or returns a kind the element cannot show
    */
   public static Bound bind(Screen screen, ClassLoader loader) {
+    return bind(screen, loader, WidgetTypes.GLOBAL);
+  }
+
+  /** Binds a screen read with an explicit widget registry. */
+  public static Bound bind(Screen screen, ClassLoader loader, WidgetTypes widgets) {
     var source = screen.source();
     Class<?> owner = load(screen.blockEntity(), loader, source, 0, "block-entity class");
     Class<?> base =
@@ -68,7 +74,8 @@ public final class ScreenBinder {
       if (c.value().isPresent())
         values.put(
             element,
-            resolve(c.value().get(), owner, loader, source, c.line(), valueKinds(element)));
+            resolve(
+                c.value().get(), owner, loader, source, c.line(), valueKinds(element, widgets)));
       if (c.max().isPresent())
         maxima.put(element, resolve(c.max().get(), owner, loader, source, c.line(), NUMBERS));
     }
@@ -78,8 +85,9 @@ public final class ScreenBinder {
   private static final Set<Kind> NUMBERS = Set.of(Kind.WHOLE, Kind.DECIMAL, Kind.NUMBER);
 
   /** What each element's {@code value} may return. */
-  private static Set<Kind> valueKinds(Element element) {
+  private static Set<Kind> valueKinds(Element element, WidgetTypes widgets) {
     return switch (element) {
+      case Custom custom -> widgets.require(custom.type()).valueKinds();
       case Gauge gauge ->
           gauge.color().isPresent()
               ? NUMBERS
@@ -186,6 +194,9 @@ public final class ScreenBinder {
     if (kinds.equals(Set.of(Kind.WHOLE))) return "a whole number";
     if (kinds.contains(Kind.FLUID)) return "a number or a FluidStack";
     if (kinds.contains(Kind.TEXT)) return "a Component or a list of Components";
-    return "a number, boolean, FluidStack or Component";
+    return kinds.stream()
+        .sorted()
+        .map(kind -> kind.name().toLowerCase(java.util.Locale.ROOT))
+        .collect(java.util.stream.Collectors.joining(" or "));
   }
 }

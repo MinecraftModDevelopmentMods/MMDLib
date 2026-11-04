@@ -1,18 +1,32 @@
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.crusher" title-fallback="Crusher"
         block-entity="zone.moddev.mc.companion.ProcessorEntity">
   <vbox padding="7" spacing="4">
+    <context id="panel">
+    <view id="machine">
     <hbox spacing="6" align="center">
       <gauge id="tank" length="3s" value="#getTankFluid" max="#getTankCapacity"
              tooltip="screen.mmdlib_companion.tank.tip" tooltip-fallback="Water or lava: {value} / {max} mB. Click with a fluid container to transfer."
              on-click="mmdlib_companion:tank_container" on-right-click="mmdlib_companion:tank_container"/>
       <spacer/>
       <slot index="0"/>
-      <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:crushing"/>
+      <custom id="progress" type="mmdlib_companion:progress_dial" width="24" height="24"
+              value="#getProgress" max="#getTime"
+              on-click="mmdlib_companion:toggle_0"
+              tooltip="screen.mmdlib_companion.progress_dial"
+              tooltip-fallback="Progress: {value} / {max} ticks. Click to pause or resume.">
+        <property name="color" value="#55CC88"/>
+      </custom>
       <slot index="1"/>
       <spacer/>
       <energy-gauge id="energy" length="3s"/>
     </hbox>
     <hbox id="controls" spacing="2" align="center">
+      <button text="screen.mmdlib_companion.recipes" text-fallback="Recipes"
+              tooltip="screen.mmdlib_companion.recipes.tip" tooltip-fallback="Show crushing recipes in JEI, when installed."
+              jei-recipes="mmdlib_companion:crushing"/>
+      <button id="open_settings" text="screen.mmdlib_companion.settings" text-fallback="Settings"
+              tooltip="screen.mmdlib_companion.settings.tip" tooltip-fallback="Edit the machine name, energy reserve and lane state."
+              shows="panel:settings"/>
       <spacer/>
       <button flat="true" id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
               icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
@@ -23,6 +37,19 @@
               value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
               tooltip="screen.mmdlib_companion.pause.tip"/>
     </hbox>
+    </view>
+    <view id="settings" title="screen.mmdlib_companion.settings" title-fallback="Settings">
+      <label text="screen.mmdlib_companion.name" text-fallback="Machine name"/>
+      <custom id="name_editor" type="mmdlib_companion:name_editor" width="162" height="42"
+              value="#getMachineName"/>
+      <custom id="reserve_slider" type="mmdlib_companion:reserve_slider" width="162" height="30"
+              value="#getReservePercent"/>
+      <custom id="lane_selector" type="mmdlib_companion:lane_selector" width="162" height="30"
+              value="#getPaused">
+        <property name="lane" value="0"/>
+      </custom>
+    </view>
+    </context>
   </vbox>
   <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.crusher" value="#getWarnings"/>
 </screen>

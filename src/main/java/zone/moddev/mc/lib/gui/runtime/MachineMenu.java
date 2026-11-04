@@ -40,9 +40,125 @@ public class MachineMenu extends AbstractContainerMenu {
   private final Player owner;
   private boolean initial = true;
   private boolean interacting;
+  private long widgetSession = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+  private int nextWidgetRequest;
+  private int lastWidgetRequest;
+  private long widgetActionTick = Long.MIN_VALUE;
+  private int widgetActionsThisTick;
+  private final Map<Integer, Integer> pendingWidgets = new HashMap<>();
+  private final Map<Integer, ScreenNetwork.WidgetResult> widgetResults = new HashMap<>();
+  private final Map<Integer, Integer> widgetSentAt = new HashMap<>();
+  private int widgetClientTicks;
 
   public MachineMenu(int id, Inventory inventory, RegistryFriendlyByteBuf data) {
     this(id, inventory, readEntity(inventory, data));
+    widgetSession = data.readLong();
+  }
+
+  public MachineMenu(int id, Inventory inventory, BlockEntity entity, long session) {
+    this(id, inventory, entity);
+    widgetSession = session;
+  }
+
+  public long widgetSession() {
+    return widgetSession;
+  }
+
+  /** Client-side: at most one in-flight edit per widget. */
+  public <T> Optional<ScreenNetwork.Widget> prepareWidgetAction(
+      Element.Custom widget, WidgetAction<T> action, T value) {
+    int index = index(widget);
+    if (!visible(widget)
+        || pendingWidgets.containsKey(index)
+        || widgetResults.containsKey(index)
+        || nextWidgetRequest == Integer.MAX_VALUE) return Optional.empty();
+    if (WidgetTypes.GLOBAL.require(widget.type()).action(action.id()).orElse(null) != action)
+      throw new IllegalArgumentException("Action is not registered for " + widget.type());
+    byte[] data = action.encode(owner.registryAccess(), value);
+    int request = ++nextWidgetRequest;
+    pendingWidgets.put(index, request);
+    widgetSentAt.put(index, widgetClientTicks);
+    return Optional.of(
+        new ScreenNetwork.Widget(containerId, widgetSession, index, request, action.id(), data));
+  }
+
+  public boolean widgetPending(Element.Custom widget) {
+    return pendingWidgets.containsKey(index(widget));
+  }
+
+  public void receiveWidgetResult(ScreenNetwork.WidgetResult result) {
+    if (result.menu() != containerId
+        || result.session() != widgetSession
+        || !Objects.equals(pendingWidgets.get(result.element()), result.request())) return;
+    pendingWidgets.remove(result.element());
+    widgetSentAt.remove(result.element());
+    values.put(result.element() * 2, result.value());
+    values.put(result.element() * 2 + 1, result.maximum());
+    widgetResults.put(result.element(), result);
+  }
+
+  public ScreenNetwork.WidgetResult takeWidgetResult(Element.Custom widget) {
+    return widgetResults.remove(index(widget));
+  }
+
+  /** Client-side timeout prevents an unconfirmed edit from permanently disabling a control. */
+  public void tickWidgetActions() {
+    widgetClientTicks++;
+    for (var entry : new HashMap<>(widgetSentAt).entrySet())
+      if (widgetClientTicks - entry.getValue() >= 100) {
+        int index = entry.getKey();
+        receiveWidgetResult(
+            new ScreenNetwork.WidgetResult(
+                containerId,
+                widgetSession,
+                index,
+                pendingWidgets.get(index),
+                false,
+                values.get(index * 2),
+                values.get(index * 2 + 1)));
+      }
+  }
+
+  /** Server-side authorization precedes decoding. Replays and excess traffic are dropped. */
+  public ScreenNetwork.WidgetResult widgetAction(
+      net.minecraft.server.level.ServerPlayer player, ScreenNetwork.Widget packet) {
+    if (player != owner
+        || player.containerMenu != this
+        || !stillValid(player)
+        || packet.menu() != containerId
+        || packet.session() != widgetSession
+        || packet.request() <= lastWidgetRequest
+        || packet.element() >= elements.size()) return null;
+    long tick = player.level().getGameTime();
+    if (widgetActionTick != tick) {
+      widgetActionTick = tick;
+      widgetActionsThisTick = 0;
+    }
+    if (++widgetActionsThisTick > 8) return null;
+    lastWidgetRequest = packet.request();
+    if (!(elements.get(packet.element()) instanceof Element.Custom widget)) return null;
+    boolean accepted = false;
+    var action = WidgetTypes.GLOBAL.require(widget.type()).action(packet.action());
+    if (visible(widget) && action.isPresent()) {
+      try {
+        accepted =
+            action.get().dispatch(new WidgetAction.Context(player, this, widget), packet.data());
+      } catch (RuntimeException failure) {
+        zone.moddev.mc.lib.MMDLib.LOGGER.error(
+            "Widget action failed: {}", packet.action(), failure);
+      }
+    }
+    if (accepted) blockEntity.setChanged();
+    ScreenSnapshots.invalidate(blockEntity);
+    var snapshot = ScreenSnapshots.read(blockEntity, bound);
+    return new ScreenNetwork.WidgetResult(
+        containerId,
+        widgetSession,
+        packet.element(),
+        packet.request(),
+        accepted,
+        snapshot.get(packet.element() * 2),
+        snapshot.get(packet.element() * 2 + 1));
   }
 
   private static BlockEntity readEntity(Inventory inventory, RegistryFriendlyByteBuf data) {
@@ -141,7 +257,8 @@ public class MachineMenu extends AbstractContainerMenu {
               @Override
               public void setChanged() {
                 super.setChanged();
-                // Vanilla shift-click merges mutate the stack directly, bypassing handler callbacks.
+                // Vanilla shift-click merges mutate the stack directly, bypassing handler
+                // callbacks.
                 if (!client) {
                   if (items instanceof ItemStorage storage) storage.markChanged();
                   blockEntity.setChanged();

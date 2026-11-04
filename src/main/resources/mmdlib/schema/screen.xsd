@@ -136,6 +136,7 @@
       <xs:element ref="vbox"/>
       <xs:element ref="hbox"/>
       <xs:element ref="spacer"/>
+      <xs:element ref="custom"/>
       <xs:element ref="group"/>
       <xs:element ref="slot"/>
       <xs:element ref="gauge"/>
@@ -160,6 +161,24 @@
   <xs:complexType name="leaf">
     <xs:attributeGroup ref="common"/>
   </xs:complexType>
+
+  <xs:element name="custom">
+    <xs:annotation><xs:documentation>A registered mod widget. Its type validates the named properties at startup.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="property" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:attribute name="name" type="elementId" use="required"/>
+            <xs:attribute name="value" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attributeGroup ref="common"/>
+      <xs:attribute name="type" type="resourceId" use="required"/>
+      <xs:attribute name="width" type="pixels" use="required"/>
+      <xs:attribute name="height" type="pixels" use="required"/>
+    </xs:complexType>
+  </xs:element>
 
   <xs:element name="screen">
     <xs:annotation><xs:documentation>The root. title is a translation key; block-entity is the class whose getters #method values call.</xs:documentation></xs:annotation>

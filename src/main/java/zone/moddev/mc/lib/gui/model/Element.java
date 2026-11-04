@@ -92,6 +92,46 @@ public sealed interface Element {
   record Spacer(Common common) implements Element {}
 
   /**
+   * A mod-defined leaf. Properties are immutable and sorted so screen fingerprints are stable
+   * across JVMs and XML property order. Property nodes are configuration, not child elements.
+   */
+  record Custom(
+      Common common,
+      ResourceLocation type,
+      int width,
+      int height,
+      java.util.Map<String, String> properties)
+      implements Element {
+    public Custom {
+      java.util.Objects.requireNonNull(common, "common");
+      java.util.Objects.requireNonNull(type, "type");
+      if (width < 1 || width > 1024 || height < 1 || height > 1024)
+        throw new IllegalArgumentException("Custom widget dimensions must be from 1 to 1024 px");
+      properties = java.util.Collections.unmodifiableSortedMap(new java.util.TreeMap<>(properties));
+    }
+
+    /**
+     * Escape property values so punctuation cannot make different configurations fingerprint alike.
+     */
+    @Override
+    public String toString() {
+      var json = new com.google.gson.JsonObject();
+      properties.forEach(json::addProperty);
+      return "Custom[common="
+          + common
+          + ", type="
+          + type
+          + ", width="
+          + width
+          + ", height="
+          + height
+          + ", properties="
+          + json
+          + "]";
+    }
+  }
+
+  /**
    * {@code group}: a recessed panel around its children.
    *
    * @param label an optional caption

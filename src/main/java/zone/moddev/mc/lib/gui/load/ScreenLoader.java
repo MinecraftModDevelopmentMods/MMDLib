@@ -33,6 +33,7 @@ public final class ScreenLoader {
    * @throws IllegalArgumentException if two files have the same ID
    */
   public static Map<ResourceLocation, ScreenBinder.Bound> load(List<SourceRoot> sources) {
+    zone.moddev.mc.lib.gui.WidgetTypes.GLOBAL.freeze();
     var screens = new TreeMap<ResourceLocation, ScreenBinder.Bound>();
     for (var source : sources) {
       var folder = source.root().resolve(SECTION);

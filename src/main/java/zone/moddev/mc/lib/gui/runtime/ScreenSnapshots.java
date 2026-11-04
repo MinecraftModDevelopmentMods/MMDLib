@@ -18,6 +18,10 @@ final class ScreenSnapshots {
   private static final Map<BlockEntity, Entry> CACHE = new WeakHashMap<>();
   private static final Set<String> FAILURES = new HashSet<>();
 
+  static void invalidate(BlockEntity entity) {
+    CACHE.remove(entity);
+  }
+
   static Map<Integer, Object> read(BlockEntity entity, ScreenBinder.Bound bound) {
     long tick = entity.getLevel().getGameTime();
     var old = CACHE.get(entity);

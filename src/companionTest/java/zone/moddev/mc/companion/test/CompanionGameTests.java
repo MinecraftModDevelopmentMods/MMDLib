@@ -38,6 +38,214 @@ import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
 public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
+  private static <T> ScreenNetwork.Widget widgetPacket(
+      MachineMenu menu,
+      String element,
+      int request,
+      zone.moddev.mc.lib.gui.WidgetAction<T> action,
+      T value) {
+    return new ScreenNetwork.Widget(
+        menu.containerId,
+        menu.widgetSession(),
+        menu.index(menu.bound.screen().find(element).orElseThrow()),
+        request,
+        action.id(),
+        action.encode(menu.blockEntity.getLevel().registryAccess(), value));
+  }
+
+  @GameTest(template = "empty")
+  public static void typedWidgetActionsAuthorizeBeforeMutation(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    var menu = new MachineMenu(51, player.getInventory(), machine);
+    player.containerMenu = menu;
+    var rename = zone.moddev.mc.companion.CompanionWidgets.RENAME;
+    try {
+      require(
+          !menu.widgetAction(player, widgetPacket(menu, "name_editor", 1, rename, "Hidden"))
+              .accepted(),
+          "Hidden widgets cannot mutate the machine");
+      menu.navigate("panel", "settings");
+      var packet = widgetPacket(menu, "name_editor", 2, rename, "Copper crusher");
+      require(
+          menu.widgetAction(
+                  player,
+                  new ScreenNetwork.Widget(
+                      51,
+                      menu.widgetSession() + 1,
+                      packet.element(),
+                      2,
+                      rename.id(),
+                      packet.data()))
+              == null,
+          "Old menu sessions are rejected");
+      var outsider = helper.makeMockServerPlayerInLevel();
+      require(menu.widgetAction(outsider, packet) == null, "Other players cannot use this menu");
+      var accepted = menu.widgetAction(player, packet);
+      require(
+          accepted.accepted()
+              && ((net.minecraft.network.chat.Component) accepted.value())
+                  .getString()
+                  .equals("Copper crusher"),
+          "Accept response carries the value after the handler, in the same tick");
+      require(menu.widgetAction(player, packet) == null, "Requests cannot be replayed");
+      var rejected = menu.widgetAction(player, widgetPacket(menu, "name_editor", 3, rename, "   "));
+      require(
+          !rejected.accepted() && machine.getMachineName().getString().equals("Copper crusher"),
+          "Invalid text is rejected without changing the authoritative name");
+      var data = rename.encode(player.registryAccess(), "Malformed");
+      require(
+          !menu.widgetAction(
+                  player,
+                  new ScreenNetwork.Widget(
+                      51,
+                      menu.widgetSession(),
+                      packet.element(),
+                      4,
+                      rename.id(),
+                      java.util.Arrays.copyOf(data, data.length + 1)))
+              .accepted(),
+          "Trailing data is rejected");
+      require(
+          !menu.widgetAction(
+                  player,
+                  widgetPacket(
+                      menu,
+                      "name_editor",
+                      5,
+                      zone.moddev.mc.companion.CompanionWidgets.RESERVE,
+                      50))
+              .accepted(),
+          "Actions are bound to widget types");
+      player.setPos(pos.getX() + 100, pos.getY(), pos.getZ());
+      require(
+          menu.widgetAction(player, widgetPacket(menu, "name_editor", 6, rename, "Too far"))
+              == null,
+          "Distance is checked before decoding");
+      var saved = machine.saveWithFullMetadata(helper.getLevel().registryAccess());
+      var copy =
+          (ProcessorEntity)
+              BlockEntity.loadStatic(
+                  pos, machine.getBlockState(), saved, helper.getLevel().registryAccess());
+      require(copy.getMachineName().getString().equals("Copper crusher"), "Name persists");
+    } finally {
+      player.containerMenu = player.inventoryMenu;
+      helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void structuredWidgetActionsBoundValuesRateAndPendingEdits(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    var menu = new MachineMenu(52, player.getInventory(), machine);
+    player.containerMenu = menu;
+    menu.navigate("panel", "settings");
+    var reserve = zone.moddev.mc.companion.CompanionWidgets.RESERVE;
+    var lane = zone.moddev.mc.companion.CompanionWidgets.SET_LANE;
+    try {
+      require(
+          !menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 1, reserve, 101))
+              .accepted(),
+          "Reserve range checked");
+      require(
+          menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 2, reserve, 25))
+              .accepted(),
+          "Valid reserve accepted");
+      require(
+          !menu.widgetAction(
+                  player,
+                  widgetPacket(
+                      menu,
+                      "lane_selector",
+                      3,
+                      lane,
+                      new zone.moddev.mc.companion.CompanionWidgets.LaneSetting(-1, true)))
+              .accepted(),
+          "Negative lane rejected");
+      require(
+          !menu.widgetAction(
+                  player,
+                  widgetPacket(
+                      menu,
+                      "lane_selector",
+                      4,
+                      lane,
+                      new zone.moddev.mc.companion.CompanionWidgets.LaneSetting(1, true)))
+              .accepted(),
+          "Unconfigured lane rejected");
+      require(
+          menu.widgetAction(
+                      player,
+                      widgetPacket(
+                          menu,
+                          "lane_selector",
+                          5,
+                          lane,
+                          new zone.moddev.mc.companion.CompanionWidgets.LaneSetting(0, true)))
+                  .accepted()
+              && machine.getPaused(),
+          "Structured pause accepted");
+      require(
+          menu.widgetAction(
+                      player,
+                      widgetPacket(
+                          menu,
+                          "lane_selector",
+                          6,
+                          lane,
+                          new zone.moddev.mc.companion.CompanionWidgets.LaneSetting(0, false)))
+                  .accepted()
+              && !machine.getPaused(),
+          "Structured resume accepted");
+      menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 7, reserve, 25));
+      menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 8, reserve, 25));
+      require(
+          menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 9, reserve, 26)) == null,
+          "More than eight typed edits in one tick are dropped");
+      var saved = machine.saveWithFullMetadata(helper.getLevel().registryAccess());
+      var copy =
+          (ProcessorEntity)
+              BlockEntity.loadStatic(
+                  pos, machine.getBlockState(), saved, helper.getLevel().registryAccess());
+      require(copy.getReservePercent() == 25, "Reserve persists");
+      var name =
+          (zone.moddev.mc.lib.gui.model.Element.Custom)
+              menu.bound.screen().find("name_editor").orElseThrow();
+      var pending =
+          menu.prepareWidgetAction(
+                  name, zone.moddev.mc.companion.CompanionWidgets.RENAME, "Pending")
+              .orElseThrow();
+      require(
+          menu.prepareWidgetAction(name, zone.moddev.mc.companion.CompanionWidgets.RENAME, "Second")
+              .isEmpty(),
+          "Only one in-flight edit per widget");
+      menu.receiveWidgetResult(
+          new ScreenNetwork.WidgetResult(
+              52,
+              menu.widgetSession() + 1,
+              pending.element(),
+              pending.request(),
+              true,
+              net.minecraft.network.chat.Component.literal("Stale"),
+              null));
+      require(menu.widgetPending(name), "A stale response cannot settle a current edit");
+      for (int i = 0; i < 100; i++) menu.tickWidgetActions();
+      require(
+          !menu.widgetPending(name) && !menu.takeWidgetResult(name).accepted(),
+          "Timed-out edits unlock for retry");
+    } finally {
+      player.containerMenu = player.inventoryMenu;
+      helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
   @GameTest(template = "empty")
   public static void clearedProcessorsRestartWithoutManualResume(GameTestHelper helper) {
     for (var type : java.util.List.of(CompanionMod.CRUSHER, CompanionMod.TRANSMUTER, CompanionMod.DUAL_CRUSHER)) {
@@ -82,8 +290,42 @@ public final class CompanionGameTests {
       require(menu.bound.screen().id().equals(id), "Wrong menu for " + id);
       level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     }
-    require(CompanionMod.CRUSHING.recipes(level.getRecipeManager()).size() == 5, "Five crusher recipes");
-    require(CompanionMod.TRANSMUTING.recipes(level.getRecipeManager()).size() == 1, "One converter recipe");
+    require(
+        CompanionMod.CRUSHING.recipes(level.getRecipeManager()).size() == 5,
+        "Five crusher recipes");
+    require(
+        CompanionMod.TRANSMUTING.recipes(level.getRecipeManager()).size() == 1,
+        "One converter recipe");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void customWidgetUsesValidatedMenuActions(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    var menu = new MachineMenu(47, player.getInventory(), machine);
+    player.containerMenu = menu;
+    try {
+      var dial = menu.bound.screen().find("progress").orElseThrow();
+      require(
+          dial instanceof zone.moddev.mc.lib.gui.model.Element.Custom,
+          "The consuming mod's widget loads on a dedicated server");
+      int index = menu.index(dial);
+      menu.action(player, new ScreenNetwork.Action(47, index, 0, 0, 0, 1));
+      require(!machine.getPaused(), "Custom widgets reject unrecognized action payloads");
+      menu.action(player, new ScreenNetwork.Action(48, index, 0, 0, 0, 0));
+      require(!machine.getPaused(), "A stale menu id cannot act on a custom widget");
+      menu.action(player, new ScreenNetwork.Action(47, index, 0, 0, 0, 0));
+      require(machine.getPaused(), "Custom widget click invokes the registered server handler");
+      menu.action(player, new ScreenNetwork.Action(47, index, 0, 0, 0, 0));
+      require(!machine.getPaused(), "A second custom widget click resumes the machine");
+    } finally {
+      // Mock players have no client connection to receive subsequent menu ticks.
+      player.containerMenu = player.inventoryMenu;
+      helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
     helper.succeed();
   }
 

@@ -48,6 +48,31 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   private final Kind kind;
   // 0 ignores redstone, 1 requires a signal, 2 requires no signal. Manual pause is separate.
   private int redstoneMode;
+  private String machineName = "Crusher";
+  private int reservePercent;
+
+  public Component getMachineName() {
+    return Component.literal(machineName);
+  }
+
+  public int getReservePercent() {
+    return reservePercent;
+  }
+
+  public boolean rename(String name) {
+    if (name.isBlank() || name.length() > 32 || name.codePoints().anyMatch(Character::isISOControl))
+      return false;
+    machineName = name.strip();
+    setChanged();
+    return true;
+  }
+
+  public boolean setReservePercent(int value) {
+    if (value < 0 || value > 100) return false;
+    reservePercent = value;
+    setChanged();
+    return true;
+  }
 
   public ProcessorEntity(BlockEntityType<?> type, BlockPos pos, BlockState state, Kind kind) {
     super(type, pos, state);
@@ -78,7 +103,8 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
 
   @Override
   public void serverTick() {
-    if (redstoneAllowsRun()) features.tick(level);
+    if (redstoneAllowsRun() && energy.stored() >= energy.capacity() * reservePercent / 100)
+      features.tick(level);
   }
 
   public int getRedstoneMode() {
@@ -143,6 +169,9 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
 
   public List<Component> getWarnings() {
     var warnings = new ArrayList<Component>();
+    if (energy.stored() < energy.capacity() * reservePercent / 100)
+      warnings.add(
+          Component.translatable("screen.mmdlib_companion.reserve.waiting", reservePercent));
     if (!redstoneAllowsRun())
       warnings.add(Component.translatable("screen.mmdlib_companion.redstone.waiting"));
     for (int i = 0; i < lanes.size(); i++) {
@@ -189,6 +218,8 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
     super.saveAdditional(tag, registries);
     tag.put("items", items.serializeNBT(registries));
     tag.putInt("redstone_mode", redstoneMode);
+    tag.putString("machine_name", machineName);
+    tag.putInt("reserve_percent", reservePercent);
     if (hasTank()) tag.put("fluids", fluids.serializeNBT(registries));
     tag.put("features", features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
   }
@@ -199,6 +230,14 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
     super.loadAdditional(tag, registries);
     int savedMode = tag.getInt("redstone_mode");
     redstoneMode = savedMode >= 0 && savedMode <= 2 ? savedMode : 0;
+    String savedName = tag.getString("machine_name");
+    machineName =
+        !savedName.isBlank()
+                && savedName.length() <= 32
+                && savedName.codePoints().noneMatch(Character::isISOControl)
+            ? savedName.strip()
+            : "Crusher";
+    reservePercent = Math.clamp(tag.getInt("reserve_percent"), 0, 100);
     items.deserializeNBT(registries, tag.getCompound("items"));
     if (hasTank() && tag.contains("fluids")) fluids.deserializeNBT(registries, tag.getCompound("fluids"));
     features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));

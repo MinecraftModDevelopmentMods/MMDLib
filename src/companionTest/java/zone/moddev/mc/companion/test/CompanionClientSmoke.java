@@ -19,10 +19,10 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 
 import zone.moddev.mc.companion.CompanionMod;
 import zone.moddev.mc.companion.ProcessorEntity;
@@ -119,6 +119,11 @@ public final class CompanionClientSmoke {
     var expected = CompanionMod.MACHINES.get(stage).type.get();
     if (menu.blockEntity.getType() != expected || ++frames < 25) return;
     try {
+      if (stage == 0 && !CompanionWidgetSmoke.run(screen)) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
       var energy = menu.bound.screen().find("energy").orElseThrow();
       if (!(energy instanceof zone.moddev.mc.lib.gui.model.Element.EnergyGauge))
         throw new AssertionError("Every companion screen must use the reusable battery gauge");
@@ -126,19 +131,24 @@ public final class CompanionClientSmoke {
         throw new AssertionError("Energy must sit against the right panel margin");
       if (!(menu.value(energy, false) instanceof Number)) throw new AssertionError("Energy was not synced");
       if (stage == 0 && controlStage < 4) {
+        var dial = menu.bound.screen().find("progress").orElseThrow();
+        if (!(dial instanceof zone.moddev.mc.lib.gui.model.Element.Custom)
+            || !(menu.value(dial, false) instanceof Number)
+            || !(menu.value(dial, true) instanceof Number))
+          throw new AssertionError("The mod-defined dial and its values must reach the client");
         var pause = menu.bound.screen().find("toggle_0").orElseThrow();
         var redstone = menu.bound.screen().find("redstone").orElseThrow();
         if (!(menu.value(pause, false) instanceof Boolean paused)
             || !(menu.value(redstone, false) instanceof Number mode)) return;
         if (controlStage == 0 && !paused && mode.intValue() == 0) {
-          var bounds = screen.bounds(pause);
+          var bounds = screen.bounds(dial);
           screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
         } else if (controlStage == 1 && paused) {
           Screenshot.grab(mc.gameDirectory, "crusher-paused.png", mc.getMainRenderTarget(), message -> {});
           var bounds = screen.bounds(redstone);
           screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
         } else if (controlStage == 2 && mode.intValue() == 1) {
-          var bounds = screen.bounds(pause);
+          var bounds = screen.bounds(dial);
           screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
         } else if (controlStage == 3 && !paused && mode.intValue() == 1) {
           Screenshot.grab(mc.gameDirectory, "crusher-redstone.png", mc.getMainRenderTarget(), message -> {});

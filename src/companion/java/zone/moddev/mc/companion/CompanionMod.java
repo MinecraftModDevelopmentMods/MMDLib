@@ -69,6 +69,7 @@ public final class CompanionMod {
   }
 
   public CompanionMod(IEventBus bus) {
+    CompanionWidgets.register();
     BLOCKS.register(bus);
     ITEMS.register(bus);
     ENTITIES.register(bus);

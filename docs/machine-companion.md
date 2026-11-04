@@ -37,9 +37,27 @@ inside to read longer text. All four screens place a vertical battery on the rig
 reusable `<energy-gauge>` XML widget. Its red charge bars fill upwards inside a slim casing.
 The energy and fluid gauges share matching edges and medium-grey empty backgrounds, darker than slots.
 Energy bars are thin with a soft reflection; cylindrical glass shading covers only the fluid.
-The Crusher centers its input, progress arrow and output alongside it.
-Hover the energy display
-for stored and maximum FE; click the first progress arrow to see recipes when JEI is installed.
+The Crusher centers its input, a circular progress dial and output alongside it. The dial is a
+custom widget registered by the companion through MMDLib's [widget API](gui-screens.md#registering-custom-widget-types).
+Click the dial to pause or resume; its tooltip shows progress in ticks. The Crusher's Recipes
+button opens crushing recipes when JEI is installed. The other processors retain their progress
+arrows, which open recipes when clicked with JEI installed. Hover the energy display for stored
+and maximum FE.
+
+The Crusher's **Settings** button opens three examples of mod-defined interactive widgets:
+
+- **Machine name:** type up to 32 characters and choose Apply, or Cancel to restore the last
+  confirmed value. Empty names are rejected. The draft survives resizing; leaving Settings
+  discards an unapplied draft.
+- **Energy reserve:** drag to preview a percentage and release to save. The processor holds
+  while stored energy is below that percentage. Scroll or use arrow keys for one-point changes,
+  Shift+arrow for ten points, or Home/End for 0/100. The default is zero.
+- **Lane A:** choose Run or Pause. The action sends the lane and desired state together; the
+  server validates both.
+
+Tab cycles through the editors; Escape cancels an edit or focus before returning to the machine
+view. Name and reserve survive save/load. The companion's `client` package contains the input
+implementations, while `CompanionWidgets` owns their common-side validation and typed actions.
 
 The Crusher also has a **4,000 mB (four-bucket) tank** on the left. Right-click the block with a
 water or lava bucket to fill it, or an empty bucket to drain it; open the screen with an empty hand
