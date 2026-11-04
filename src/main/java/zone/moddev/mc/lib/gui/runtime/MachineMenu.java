@@ -39,6 +39,7 @@ public class MachineMenu extends AbstractContainerMenu {
   @Nullable private final ReservedSlots reserved;
   private final Player owner;
   private boolean initial = true;
+  private boolean interacting;
 
   public MachineMenu(int id, Inventory inventory, RegistryFriendlyByteBuf data) {
     this(id, inventory, readEntity(inventory, data));
@@ -136,12 +137,15 @@ public class MachineMenu extends AbstractContainerMenu {
             });
       } else
         addSlot(
-            new SlotItemHandler(items, index, xy[0], xy[1]) {
+            new ReservationSlot(items, index, xy[0], xy[1], () -> interacting) {
               @Override
               public void setChanged() {
                 super.setChanged();
                 // Vanilla shift-click merges mutate the stack directly, bypassing handler callbacks.
-                if (!client) blockEntity.setChanged();
+                if (!client) {
+                  if (items instanceof ItemStorage storage) storage.markChanged();
+                  blockEntity.setChanged();
+                }
               }
 
               public boolean isActive() {
@@ -162,8 +166,7 @@ public class MachineMenu extends AbstractContainerMenu {
               }
 
               public int getMaxStackSize(ItemStack stack) {
-                int limit = Math.min(getMaxStackSize(), super.getMaxStackSize(stack));
-                return planned(index) ? Math.min(limit, reserved.maxHeld(index, stack)) : limit;
+                return Math.min(getMaxStackSize(), super.getMaxStackSize(stack));
               }
             });
     }
@@ -261,13 +264,34 @@ public class MachineMenu extends AbstractContainerMenu {
   @Override
   public void clicked(int slot, int button, ClickType type, Player player) {
     if (slot >= 0 && slot < slots.size() && !slots.get(slot).isActive()) return;
-    // Vanilla moves the whole stack out through setByPlayer, which would take reserved items.
-    if (type == ClickType.SWAP && slot >= 0 && slot < machineSlots && planned(slot)) return;
-    super.clicked(slot, button, type, player);
+    boolean previous = interacting;
+    interacting = true;
+    try {
+      super.clicked(slot, button, type, player);
+    } finally {
+      endInteraction(previous);
+    }
+  }
+
+  private void endInteraction(boolean previous) {
+    interacting = previous;
+    if (!previous)
+      for (var slot : slots)
+        if (slot instanceof ReservationSlot reservedSlot) reservedSlot.endInteraction();
   }
 
   @Override
   public ItemStack quickMoveStack(Player player, int index) {
+    boolean previous = interacting;
+    interacting = true;
+    try {
+      return moveStack(player, index);
+    } finally {
+      endInteraction(previous);
+    }
+  }
+
+  private ItemStack moveStack(Player player, int index) {
     if (index < 0 || index >= slots.size()) return ItemStack.EMPTY;
     var source = slots.get(index);
     if (!source.isActive() || !source.mayPickup(player) || !source.hasItem())
@@ -352,9 +376,7 @@ public class MachineMenu extends AbstractContainerMenu {
               .equals(views.get(context.common().id().orElseThrow()))) selected = view;
         snapshot.put(Integer.MIN_VALUE + i, java.math.BigInteger.valueOf(selected));
       }
-    if (items instanceof ItemStorage storage)
-      for (int slot = 0; slot < Math.min(machineSlots, storage.getSlots()); slot++)
-        snapshot.put(PLAN_KEYS + slot, storage.plan(slot));
+    snapshot.putAll(reservationSnapshot());
     var delta = ScreenValues.changed(values, snapshot, initial);
     if (!delta.isEmpty()) {
       values.putAll(delta);
@@ -365,6 +387,15 @@ public class MachineMenu extends AbstractContainerMenu {
         if (e instanceof Element.Slot s && s.kind() == Element.SlotKind.GHOST)
           slots.get(s.index()).set(host.screenGhost(s.index()).copy());
     initial = false;
+  }
+
+  /** Reservation snapshots from any handler implementing the menu's reservation contract. */
+  public Map<Integer, Object> reservationSnapshot() {
+    var snapshot = new HashMap<Integer, Object>();
+    if (reserved != null)
+      for (int slot = 0; slot < Math.min(machineSlots, items.getSlots()); slot++)
+        snapshot.put(PLAN_KEYS + slot, reserved.plan(slot));
+    return snapshot;
   }
 
   @Override

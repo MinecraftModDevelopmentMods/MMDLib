@@ -170,6 +170,12 @@ screen; `time()` is 0 when idle or paused.
 
 On `/reload` a running cycle finishes as planned, and the next cycle uses the new recipes.
 
+Failed recipe searches retry every 20 ticks while inventory revisions stay unchanged. Built-in
+item/fluid groups report changes to contents, rules and reservations, so new inputs or freed output
+space trigger a search on the next tick. Custom groups can implement `SlotGroup.revision()` for the
+same response; the periodic retry also catches recipe reloads and changes in untracked groups.
+Running cycles and consecutive successful cycles are not delayed.
+
 **Interrupting.** `interrupt()` stops the processor from drawing energy and starts nothing new
 until `resume()`; `paused()` says whether it is held. It works without power and whatever the
 status. It also releases the running cycle's reservations, so the items it locked can be taken
@@ -198,11 +204,18 @@ empties its storages (and their plans) in `clearContent()`. Without it, the comm
 contents. Both commands' `destroy` mode destroys the old block before clearing, so its contents
 still drop even when the block entity implements `Clearable`.
 
+Call `RecipeProcessor.reset()` on each lane before clearing storage: it releases that lane's plans
+and clears progress, the remembered recipe and pause state. Fresh inputs can then start new work.
+Use `interrupt()` for a player-requested pause that should keep its place, not for clearing a machine.
+
 **Dropping contents.** A block entity of a `MaterialEntityBlock` (which includes `mmdlib:machine`)
 that implements `DropsContents` has `dropContents(level, pos)` called on the server when its block
 is broken or replaced by another block, but not when only its state changes. Usually it is
 `items.dropAll(level, pos)`. Reserved items are still in their slots, so nothing else needs to be
 given back.
+
+Custom blocks can call `DropsContents.onRemove(state, level, pos, replacement)` before their
+superclass removal hook to use the same server-only, different-block guard.
 
 **Syncing to clients.** Nothing is sent to clients unless the block entity opts in. A feature that
 should be readable on the client, for a renderer, particles or a tooltip, returns true from

@@ -39,6 +39,15 @@ directly, and automation gets per-face views of it.
 
 ## Reservations
 
+`ItemStorage` and the client menu handler share `PlannedItemHandler` for insertion, extraction and
+capacity rules. Item and fluid storages use `ReservationPlans` for plan merging, release and
+transaction rollback. Direct content setters remain available to the owning machine and save loading.
+
+Custom menu handlers and wrappers can implement `ReservedSlots`, including `plan(slot)`, to publish
+the same snapshots as `ItemStorage`. During a click, menu slots expose only unreserved items to
+vanilla; outside the interaction, rendering and synchronization still show the full stack. A number
+key or offhand swap can therefore move the free portion without moving reserved items.
+
 A machine that runs a recipe over many ticks can reserve what the recipe needs. `ItemStorage`
 keeps one `SlotPlan` per slot and `FluidStorage` one `TankPlan` per tank: how much the machine will
 take from it, and what it will add. `RecipeProcessor` makes and releases the plans itself; a mod

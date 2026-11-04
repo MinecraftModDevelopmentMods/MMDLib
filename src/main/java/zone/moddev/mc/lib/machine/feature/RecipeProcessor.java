@@ -27,6 +27,8 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
  * <p>Several processors may share an inventory; a processor sees what the others reserved.
  */
 public final class RecipeProcessor implements MachineFeature<RecipeProcessor.State> {
+  private static final int SEARCH_RETRY_INTERVAL = 20;
+
   /** What the processor is doing. */
   public enum Status {
     /** No cycle. */
@@ -109,6 +111,9 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   private int markedTime;
   @Nullable private CyclePlan justFinished;
   private int syncedTime;
+  // Failed searches retry once per second, including changes in custom groups and recipe reloads.
+  private int searchDelay;
+  private long[] searchedRevisions = new long[0];
 
   /** A processor saved under {@code key} that runs recipes of {@code type} on {@code inventory}. */
   public RecipeProcessor(String key, MachineRecipeType type, MachineInventory inventory) {
@@ -173,6 +178,7 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
     syncedTime = 0;
     justFinished = null;
     paused = state.paused();
+    searchDelay = 0;
     resumeRecipe = state.resumeRecipe().orElse(null);
     resumeTime = state.resumeTime();
     progress = resumeRecipe == null ? 0 : state.progress();
@@ -222,6 +228,22 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
   public void resume() {
     if (!paused) return;
     paused = false;
+    searchDelay = 0;
+    status = Status.IDLE;
+    changed = true;
+  }
+
+  /** Cancels work, releases reservations and forgets progress and pause state. */
+  public void reset() {
+    if (cycle != null) cycle.release(inventory);
+    cycle = null;
+    resumeRecipe = null;
+    resumeTime = 0;
+    progress = 0;
+    syncedTime = 0;
+    justFinished = null;
+    paused = false;
+    searchDelay = 0;
     status = Status.IDLE;
     changed = true;
   }
@@ -345,11 +367,20 @@ public final class RecipeProcessor implements MachineFeature<RecipeProcessor.Sta
 
   /** Reserves a cycle if a recipe can run. The starting tick draws no energy. */
   private void start(Level level, FeatureHost host) {
+    if (searchDelay > 0 && inventory.unchanged(searchedRevisions)) {
+      searchDelay--;
+      return;
+    }
     var found = lookup.find(level, inventory).orElse(null);
-    if (found == null) return;
-    var plan = CyclePlan.of(found.id(), found.value().recipe(), inventory).orElse(null);
-    if (plan == null || !plan.reserve(inventory)) return;
+    var plan = found == null ? null
+        : CyclePlan.of(found.id(), found.value().recipe(), inventory).orElse(null);
+    if (plan == null || !plan.reserve(inventory)) {
+      searchDelay = SEARCH_RETRY_INTERVAL - 1;
+      searchedRevisions = inventory.revisions();
+      return;
+    }
     cycle = plan;
+    searchDelay = 0;
     progress = 0;
     status = Status.RUNNING;
     host.markChanged();

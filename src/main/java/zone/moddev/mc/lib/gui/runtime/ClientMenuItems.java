@@ -1,13 +1,10 @@
 package zone.moddev.mc.lib.gui.runtime;
 
-import java.util.Arrays;
-
 import net.minecraft.world.item.ItemStack;
 
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 
-import zone.moddev.mc.lib.api.capabilities.ReservedSlots;
+import zone.moddev.mc.lib.api.capabilities.PlannedItemHandler;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /**
@@ -20,9 +17,8 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
  * <p>Reservations arrive as each slot's {@link SlotPlan} and apply the same way they do in the
  * server's storage.
  */
-public final class ClientMenuItems extends ItemStackHandler implements ReservedSlots {
+public final class ClientMenuItems extends PlannedItemHandler {
   private final IItemHandler rules;
-  private final SlotPlan[] plans;
 
   /**
    * @param size the menu's slot count, which ghost slots can take past the end of {@code rules}
@@ -31,53 +27,23 @@ public final class ClientMenuItems extends ItemStackHandler implements ReservedS
   public ClientMenuItems(int size, IItemHandler rules) {
     super(size);
     this.rules = rules;
-    plans = new SlotPlan[size];
-    Arrays.fill(plans, SlotPlan.NONE);
   }
 
   /** Replaces what the machine plans for a slot; a slot past the end of the rules is ignored. */
+  @Override
   public void setPlan(int slot, SlotPlan plan) {
-    if (inRange(slot)) plans[slot] = plan;
-  }
-
-  @Override
-  public boolean hasPlan(int slot) {
-    return inRange(slot) && !plans[slot].isNone();
-  }
-
-  @Override
-  public int freeToTake(int slot) {
-    return plans[slot].free(getStackInSlot(slot));
-  }
-
-  @Override
-  public int maxHeld(int slot, ItemStack stack) {
-    if (!hasPlan(slot)) return Math.min(getSlotLimit(slot), stack.getMaxStackSize());
-    var held = getStackInSlot(slot);
-    return held.getCount() + plans[slot].room(held, stack, getSlotLimit(slot));
+    if (inRange(slot)) super.setPlan(slot, plan);
   }
 
   @Override
   public boolean isItemValid(int slot, ItemStack stack) {
     return slot < rules.getSlots()
         && rules.isItemValid(slot, stack)
-        && (!hasPlan(slot) || plans[slot].accepts(getStackInSlot(slot), stack));
-  }
-
-  @Override
-  public ItemStack extractItem(int slot, int amount, boolean simulate) {
-    validateSlotIndex(slot);
-    int allowed = hasPlan(slot) ? Math.min(amount, freeToTake(slot)) : amount;
-    return super.extractItem(slot, allowed, simulate);
-  }
-
-  @Override
-  protected int getStackLimit(int slot, ItemStack stack) {
-    return maxHeld(slot, stack);
+        && super.isItemValid(slot, stack);
   }
 
   private boolean inRange(int slot) {
-    return slot >= 0 && slot < Math.min(plans.length, rules.getSlots());
+    return slot >= 0 && slot < Math.min(getSlots(), rules.getSlots());
   }
 
   @Override

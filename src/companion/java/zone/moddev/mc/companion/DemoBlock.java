@@ -69,9 +69,7 @@ public final class DemoBlock extends Block implements EntityBlock {
   @Override
   protected void onRemove(
       BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
-    if (!state.is(replacement.getBlock()) && !level.isClientSide()
-        && level.getBlockEntity(pos) instanceof DropsContents contents)
-      contents.dropContents(level, pos);
+    DropsContents.onRemove(state, level, pos, replacement);
     super.onRemove(state, level, pos, replacement, moved);
   }
 }

@@ -13,8 +13,6 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
-import zone.moddev.mc.lib.machine.inventory.SlotPlan;
-
 /**
  * A machine inventory: an {@link ItemStackHandler} with a {@link Role}, filter and limit per slot,
  * and a change callback. The owning block entity and its screen use it directly; automation gets a
@@ -24,16 +22,27 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
  * refuse placement, so players cannot put items into outputs. The machine fills outputs with {@link
  * #insertResult}.
  */
-public class ItemStorage extends ItemStackHandler implements ReservedSlots {
+public class ItemStorage extends PlannedItemHandler {
   private final Role[] roles;
   private final int[] limits;
-  private final SlotPlan[] plans;
 
   @SuppressWarnings("unchecked")
   private final Predicate<ItemStack>[] filters;
 
   private Runnable onChange = () -> {};
   private boolean bypass;
+  private long revision;
+
+  /** Change counter for recipe search invalidation. */
+  public long revision() {
+    return revision + reservationPlans().revision();
+  }
+
+  /** Reports an in-place change made by a menu, including persistence and recipe invalidation. */
+  public void markChanged() {
+    revision++;
+    onChange.run();
+  }
 
   /**
    * An empty inventory of {@code size} slots, all {@link Role#STORAGE} with no filter and a
@@ -44,11 +53,9 @@ public class ItemStorage extends ItemStackHandler implements ReservedSlots {
     super(size);
     roles = new Role[size];
     limits = new int[size];
-    plans = new SlotPlan[size];
     filters = new Predicate[size];
     Arrays.fill(roles, Role.STORAGE);
     Arrays.fill(limits, Item.ABSOLUTE_MAX_STACK_SIZE);
-    Arrays.fill(plans, SlotPlan.NONE);
     Arrays.fill(filters, (Predicate<ItemStack>) stack -> true);
   }
 
@@ -64,18 +71,21 @@ public class ItemStorage extends ItemStackHandler implements ReservedSlots {
    * @throws IndexOutOfBoundsException if a slot does not exist
    */
   public ItemStorage role(Role role, int... slots) {
+    revision++;
     for (int slot : slots) roles[checked(slot)] = role;
     return this;
   }
 
   /** Only stacks passing {@code filter} may be inserted into these slots, by anyone. */
   public ItemStorage filter(Predicate<ItemStack> filter, int... slots) {
+    revision++;
     for (int slot : slots) filters[checked(slot)] = filter;
     return this;
   }
 
   /** At most {@code limit} items in each of these slots (and never more than a full stack). */
   public ItemStorage limit(int limit, int... slots) {
+    revision++;
     for (int slot : slots) limits[checked(slot)] = limit;
     return this;
   }
@@ -83,49 +93,6 @@ public class ItemStorage extends ItemStackHandler implements ReservedSlots {
   /** The role of slot {@code slot}. */
   public Role role(int slot) {
     return roles[checked(slot)];
-  }
-
-  /** What the machine plans for slot {@code slot}. */
-  public SlotPlan plan(int slot) {
-    return plans[checked(slot)];
-  }
-
-  /** Replaces the plan with no checks, for undoing and loading; use {@link #reserve} otherwise. */
-  public void setPlan(int slot, SlotPlan plan) {
-    plans[checked(slot)] = plan;
-  }
-
-  /**
-   * Adds {@code plan} to what is planned for the slot. Returns false and changes nothing if the
-   * plans cannot be merged or the result is not legal for what the slot holds now.
-   */
-  public boolean reserve(int slot, SlotPlan plan) {
-    var merged = plans[checked(slot)].plus(plan);
-    if (merged == null || !merged.legal(getStackInSlot(slot), getSlotLimit(slot))) return false;
-    plans[slot] = merged;
-    return true;
-  }
-
-  /** Takes {@code plan}, which must have been reserved, out of the slot's plan. */
-  public void release(int slot, SlotPlan plan) {
-    plans[checked(slot)] = plans[slot].minus(plan);
-  }
-
-  @Override
-  public boolean hasPlan(int slot) {
-    return inRange(slot) && !plans[slot].isNone();
-  }
-
-  @Override
-  public int freeToTake(int slot) {
-    return plans[checked(slot)].free(getStackInSlot(slot));
-  }
-
-  @Override
-  public int maxHeld(int slot, ItemStack stack) {
-    if (!hasPlan(slot)) return Math.min(getSlotLimit(slot), stack.getMaxStackSize());
-    var held = getStackInSlot(slot);
-    return held.getCount() + plans[slot].room(held, stack, getSlotLimit(slot));
   }
 
   /**
@@ -158,19 +125,7 @@ public class ItemStorage extends ItemStackHandler implements ReservedSlots {
   @Override
   public boolean isItemValid(int slot, ItemStack stack) {
     boolean allowed = bypass || (roles[slot] != Role.OUTPUT && filters[slot].test(stack));
-    return allowed && (!hasPlan(slot) || plans[slot].accepts(getStackInSlot(slot), stack));
-  }
-
-  @Override
-  public ItemStack extractItem(int slot, int amount, boolean simulate) {
-    validateSlotIndex(slot);
-    int allowed = hasPlan(slot) ? Math.min(amount, freeToTake(slot)) : amount;
-    return super.extractItem(slot, allowed, simulate);
-  }
-
-  @Override
-  protected int getStackLimit(int slot, ItemStack stack) {
-    return maxHeld(slot, stack);
+    return allowed && super.isItemValid(slot, stack);
   }
 
   @Override
@@ -180,7 +135,7 @@ public class ItemStorage extends ItemStackHandler implements ReservedSlots {
 
   @Override
   protected void onContentsChanged(int slot) {
-    onChange.run();
+    markChanged();
   }
 
   /** Drops every stack at {@code pos} and empties the storage, e.g. when the block is broken. */
@@ -189,7 +144,7 @@ public class ItemStorage extends ItemStackHandler implements ReservedSlots {
       Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), getStackInSlot(slot));
       stacks.set(slot, ItemStack.EMPTY);
     }
-    onChange.run();
+    markChanged();
   }
 
   /** An automation view with a fixed mode, e.g. {@link IoMode#BOTH} for unsided access. */

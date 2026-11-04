@@ -21,7 +21,6 @@ files rotated 90° clockwise (see below).
 | `body_middle.png` | 18×1 | One row of the tube, repeated to fill the length |
 | `body_bottom.png` | 18×5 | Bottom cap |
 | `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Cylindrical lighting: dark curved sides, a broad lit face, and an off-centre vertical reflection |
-| `digits.png` | 39×5 | White 3×5 numeral atlas; not used by the gauge renderer |
 
 Pixels outside the rounded shape are fully transparent, so the GUI background shows through
 the corners.

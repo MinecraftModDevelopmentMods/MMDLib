@@ -46,6 +46,60 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 final class ProcessorSmoke {
   private ProcessorSmoke() {}
 
+  /** Failed searches must not scale with ticks; new inputs must still be noticed promptly. */
+  static void idleSearchBackoff(ServerLevel level) {
+    int[] reads = {0};
+    var storage = new zone.moddev.mc.lib.api.capabilities.ItemStorage(1) {
+      @Override
+      public ItemStack getStackInSlot(int slot) {
+        reads[0]++;
+        return super.getStackInSlot(slot);
+      }
+    };
+    var rig = new ProcessorRig(storage, false, false);
+    rig.ticks(level, 1);
+    int firstSearch = reads[0];
+    require(firstSearch > 0, "Initial search examined the inventory");
+    rig.ticks(level, 19);
+    require(reads[0] == firstSearch, "An unchanged idle machine scanned recipes every tick");
+    storage.setStackInSlot(0, new ItemStack(Items.COBBLESTONE));
+    rig.ticks(level, 1);
+    require(rig.processor.status() == Status.RUNNING, "Changed inputs invalidate idle backoff immediately");
+    rig.ticks(level, 5);
+    require(storage.getStackInSlot(0).is(Items.GRAVEL), "New inputs are processed after idle backoff");
+    rig.processor.interrupt();
+    storage.setStackInSlot(0, new ItemStack(Items.COBBLESTONE));
+    rig.processor.resume();
+    rig.ticks(level, 1);
+    require(rig.processor.status() == Status.RUNNING, "Explicit resume searches immediately");
+
+    var wet = ProcessorRig.crusher(1, 0, 100_000);
+    wet.ticks(level, 1);
+    wet.fluids.tank(0).setFluid(new FluidStack(Fluids.WATER, 1_000));
+    wet.ticks(level, 1);
+    require(wet.processor.status() == Status.RUNNING, "Fluid changes invalidate an idle search");
+
+    var manager = level.getRecipeManager();
+    var originals = new ArrayList<RecipeHolder<?>>(manager.getRecipes());
+    try {
+      var reloaded = ProcessorRig.oneSlot(false);
+      reloaded.items.setStackInSlot(0, new ItemStack(Items.DIRT));
+      reloaded.ticks(level, 1);
+      var recipe = MachineRecipeBuilder.recipe(MachineRecipeTypeSmoke.REFINING)
+          .inputItems("slot", Ingredient.of(Items.DIRT), 1)
+          .outputItem("slot", new ItemStack(Items.DIAMOND)).time(1).build();
+      var changed = new ArrayList<>(originals);
+      changed.add(new RecipeHolder<>(ResourceLocation.parse("mmdlib_smoke:idle_reload"),
+          new MachineRecipeEntry(MachineRecipeTypeSmoke.REFINING, recipe)));
+      manager.replaceRecipes(changed);
+      reloaded.ticks(level, 21);
+      require(reloaded.items.getStackInSlot(0).is(Items.DIAMOND),
+          "Periodic retry notices recipe reload without an inventory change");
+    } finally {
+      manager.replaceRecipes(originals);
+    }
+  }
+
   /** The crusher's worked run, with inputs reserved rather than taken at the start. */
   static void workedRun(ServerLevel level) {
     var rig = ProcessorRig.crusher(3, 1_000, 3_000);

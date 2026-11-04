@@ -152,6 +152,7 @@ public final class CrusherSmoke {
   /** Ore in slot 0, products in 1 and 2, the byproduct in 3, water and energy beside them. */
   public static final class Crusher extends BlockEntity implements ScreenHost, DropsContents, Clearable {
     public final Capped items = capped(this::setChanged);
+    public IItemHandlerModifiable menuItems = items;
     public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
     public final EnergyBuffer energy =
         new EnergyBuffer(10_000_000_000L, 1_000).onChange(this::setChanged);
@@ -202,7 +203,7 @@ public final class CrusherSmoke {
 
     @Override
     public IItemHandlerModifiable screenItems() {
-      return items;
+      return menuItems;
     }
 
     @Override
@@ -311,11 +312,26 @@ public final class CrusherSmoke {
 
     reset(menu, player, items, stack(iron, 50), takeOne);
     menu.clicked(0, 2, ClickType.SWAP, player);
-    require(count(items) == 50 && player.getInventory().getItem(2).isEmpty(), "swap, empty hotbar");
+    require(count(items) == 1 && player.getInventory().getItem(2).getCount() == 49,
+        "swap moves only unreserved items to an empty hotbar slot");
     require(totalIron(player, items) == 50, "swap duplicates nothing");
+    reset(menu, player, items, stack(iron, 50), takeOne);
     player.getInventory().setItem(2, stack(gold, 3));
     menu.clicked(0, 2, ClickType.SWAP, player);
     require(count(items) == 50 && player.getInventory().getItem(2).is(gold), "swap, gold");
+
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    player.getInventory().setItem(2, stack(iron, 20));
+    menu.clicked(0, 2, ClickType.SWAP, player);
+    require(count(items) == 21 && player.getInventory().getItem(2).getCount() == 49,
+        "same-item swap preserves the reserved portion");
+    require(totalIron(player, items) == 70, "same-item swap conserves items");
+    reset(menu, player, items, stack(iron, 50), takeOne);
+    player.getInventory().setItem(40, ItemStack.EMPTY);
+    menu.clicked(0, 40, ClickType.SWAP, player);
+    require(count(items) == 1 && player.getInventory().getItem(40).getCount() == 49,
+        "offhand swap moves only the free portion");
+    player.getInventory().setItem(40, ItemStack.EMPTY);
 
     // Putting items in.
     reset(menu, player, items, stack(iron, 50), takeOne);
@@ -387,6 +403,35 @@ public final class CrusherSmoke {
     menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
     require(count(items) == 0 && inventoryCount(player, iron) == 50, "whole-stack shift-click");
 
+    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+  }
+
+  /** Wrapped storages publish, predict and release reservations just like built-in storages. */
+  static void wrappedReservations(ServerLevel level, BlockPos pos, ServerPlayer player) {
+    var crusher = place(level, pos);
+    crusher.menuItems = new WrappedReservedItems(crusher.items);
+    crusher.items.setStackInSlot(0, stack(Items.IRON_INGOT, 10));
+    var plan = new SlotPlan(3, ItemStack.EMPTY);
+    crusher.items.setPlan(0, plan);
+    var server = new MachineMenu(85, player.getInventory(), crusher);
+    var client = new MachineMenu(86, player.getInventory(), crusher, true) {};
+    client.getSlot(0).set(stack(Items.IRON_INGOT, 10));
+    var snapshot = server.reservationSnapshot();
+    require(snapshot.get(MachineMenu.PLAN_KEYS) instanceof SlotPlan sent && sent.sameAs(plan),
+        "Wrapped storage publishes its reservation");
+    client.apply(snapshot);
+    server.clicked(0, 0, ClickType.PICKUP, player);
+    client.clicked(0, 0, ClickType.PICKUP, player);
+    require(server.getCarried().getCount() == 7 && client.getCarried().getCount() == 7,
+        "Both sides take only the free portion");
+    require(server.getSlot(0).getItem().getCount() == 3 && client.getSlot(0).getItem().getCount() == 3,
+        "Both sides display the reserved remainder outside interactions");
+    crusher.items.setPlan(0, SlotPlan.NONE);
+    client.apply(zone.moddev.mc.lib.gui.runtime.ScreenValues.changed(
+        snapshot, server.reservationSnapshot(), false));
+    client.setCarried(ItemStack.EMPTY);
+    client.clicked(0, 0, ClickType.PICKUP, player);
+    require(client.getCarried().getCount() == 3, "A released wrapper plan reaches the client");
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
   }
 

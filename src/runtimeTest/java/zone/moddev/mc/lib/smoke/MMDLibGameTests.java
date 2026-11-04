@@ -15,6 +15,11 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder("mmdlib")
 @PrefixGameTestTemplate(false)
 public final class MMDLibGameTests {
+  @GameTest(template = "empty")
+  public static void processorIdleSearchBackoff(GameTestHelper helper) {
+    ProcessorSmoke.idleSearchBackoff(helper.getLevel());
+    helper.succeed();
+  }
   private static final String EMPTY = "empty";
 
   /** Inside the structure, away from its edges. */
@@ -379,6 +384,13 @@ public final class MMDLibGameTests {
   @GameTest(template = EMPTY)
   public static void crusherMenuRows(GameTestHelper helper) {
     CrusherSmoke.menuRows(
+        helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void crusherWrappedReservations(GameTestHelper helper) {
+    CrusherSmoke.wrappedReservations(
         helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
     helper.succeed();
   }

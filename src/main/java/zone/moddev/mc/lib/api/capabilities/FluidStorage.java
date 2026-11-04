@@ -16,6 +16,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
 import zone.moddev.mc.lib.machine.inventory.TankPlan;
+import zone.moddev.mc.lib.machine.inventory.ReservationPlans;
 import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 
 /**
@@ -30,8 +31,17 @@ import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag> {
   private final List<FluidTank> tanks = new ArrayList<>();
   private final List<Role> roles = new ArrayList<>();
-  private final List<TankPlan> plans = new ArrayList<>();
+  private final ReservationPlans<TankPlan> plans = new ReservationPlans<>(
+      0, TankPlan.NONE, TankPlan::plus, TankPlan::minus,
+      (tank, plan) -> plan.legal(FluidStacks.amount(tanks.get(tank).getFluid()),
+          tanks.get(tank).getCapacity()));
   private Runnable onChange = () -> {};
+  private long revision;
+
+  /** Change counter for recipe search invalidation. */
+  public long revision() {
+    return revision + plans.revision();
+  }
 
   /** A storage with no tanks; add them with {@link #addTank}. */
   public FluidStorage() {}
@@ -48,7 +58,26 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     tanks.add(
         new FluidTank(capacity, filter) {
           @Override
+          public void setFluid(FluidStack stack) {
+            super.setFluid(stack);
+            onContentsChanged();
+          }
+
+          @Override
+          public FluidTank setCapacity(int capacity) {
+            revision++;
+            return super.setCapacity(capacity);
+          }
+
+          @Override
+          public FluidTank setValidator(Predicate<FluidStack> validator) {
+            revision++;
+            return super.setValidator(validator);
+          }
+
+          @Override
           protected void onContentsChanged() {
+            revision++;
             onChange.run();
           }
 
@@ -73,7 +102,8 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
           }
         });
     roles.add(role);
-    plans.add(TankPlan.NONE);
+    plans.add();
+    revision++;
     return tanks.size() - 1;
   }
 
@@ -88,6 +118,11 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
    */
   public FluidTank tank(int index) {
     return tanks.get(index);
+  }
+
+  /** Shared plan table, including transaction tracking for groups over this storage. */
+  public ReservationPlans<TankPlan> reservationPlans() {
+    return plans;
   }
 
   /** What the machine plans for tank {@code tank}. */
@@ -105,16 +140,12 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
    * plans cannot be merged or the result is not legal for what the tank holds now.
    */
   public boolean reserve(int tank, TankPlan plan) {
-    var merged = plans.get(tank).plus(plan);
-    var held = FluidStacks.amount(tanks.get(tank).getFluid());
-    if (merged == null || !merged.legal(held, tanks.get(tank).getCapacity())) return false;
-    plans.set(tank, merged);
-    return true;
+    return plans.reserve(tank, plan);
   }
 
   /** Takes {@code plan}, which must have been reserved, out of the tank's plan. */
   public void release(int tank, TankPlan plan) {
-    plans.set(tank, plans.get(tank).minus(plan));
+    plans.release(tank, plan);
   }
 
   /** The role of tank {@code tank}. */

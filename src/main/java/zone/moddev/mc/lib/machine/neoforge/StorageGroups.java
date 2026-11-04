@@ -57,10 +57,12 @@ public final class StorageGroups {
   /** A transaction key for the contents of one slot or tank; storages compare by identity. */
   private record Key(Object storage, int index) {}
 
-  /** A transaction key for the plan of one slot or tank, kept apart from its contents. */
-  private record PlanKey(Object storage, int index) {}
-
   private record ItemSlots(ItemStorage storage, int[] slots) implements ItemGroup {
+    @Override
+    public long revision() {
+      return storage.revision();
+    }
+
     @Override
     public int size() {
       return slots.length;
@@ -109,25 +111,19 @@ public final class StorageGroups {
     @Override
     public boolean reserve(int slot, SlotPlan plan, MachineTx tx) {
       if (!valid(slot)) return false;
-      trackPlan(slots[slot], tx);
-      return storage.reserve(slots[slot], plan);
+      return storage.reservationPlans().reserve(slots[slot], plan, tx);
     }
 
     @Override
     public boolean restore(int slot, SlotPlan plan, MachineTx tx) {
       if (!valid(slot)) return false;
-      var merged = storage.plan(slots[slot]).plus(plan);
-      if (merged == null) return false;
-      trackPlan(slots[slot], tx);
-      storage.setPlan(slots[slot], merged);
-      return true;
+      return storage.reservationPlans().restore(slots[slot], plan, tx);
     }
 
     @Override
     public void release(int slot, SlotPlan plan, MachineTx tx) {
       if (!valid(slot)) return;
-      trackPlan(slots[slot], tx);
-      storage.release(slots[slot], plan);
+      storage.reservationPlans().release(slots[slot], plan, tx);
     }
 
     @Override
@@ -176,17 +172,14 @@ public final class StorageGroups {
           });
     }
 
-    private void trackPlan(int index, MachineTx tx) {
-      tx.track(
-          new PlanKey(storage, index),
-          () -> {
-            var before = storage.plan(index);
-            return () -> storage.setPlan(index, before);
-          });
-    }
   }
 
   private record FluidTanks(FluidStorage storage, int[] indexes) implements FluidGroup {
+    @Override
+    public long revision() {
+      return storage.revision();
+    }
+
     @Override
     public int tanks() {
       return indexes.length;
@@ -239,25 +232,19 @@ public final class StorageGroups {
     @Override
     public boolean reserve(int tank, TankPlan plan, MachineTx tx) {
       if (!valid(tank)) return false;
-      trackPlan(indexes[tank], tx);
-      return storage.reserve(indexes[tank], plan);
+      return storage.reservationPlans().reserve(indexes[tank], plan, tx);
     }
 
     @Override
     public boolean restore(int tank, TankPlan plan, MachineTx tx) {
       if (!valid(tank)) return false;
-      var merged = storage.plan(indexes[tank]).plus(plan);
-      if (merged == null) return false;
-      trackPlan(indexes[tank], tx);
-      storage.setPlan(indexes[tank], merged);
-      return true;
+      return storage.reservationPlans().restore(indexes[tank], plan, tx);
     }
 
     @Override
     public void release(int tank, TankPlan plan, MachineTx tx) {
       if (!valid(tank)) return;
-      trackPlan(indexes[tank], tx);
-      storage.release(indexes[tank], plan);
+      storage.reservationPlans().release(indexes[tank], plan, tx);
     }
 
     @Override
@@ -311,14 +298,6 @@ public final class StorageGroups {
           });
     }
 
-    private void trackPlan(int index, MachineTx tx) {
-      tx.track(
-          new PlanKey(storage, index),
-          () -> {
-            var before = storage.plan(index);
-            return () -> storage.setPlan(index, before);
-          });
-    }
   }
 
   private record EnergyStore(EnergyBuffer buffer) implements EnergyGroup {

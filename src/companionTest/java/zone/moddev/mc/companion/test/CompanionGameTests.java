@@ -39,6 +39,35 @@ public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
   @GameTest(template = "empty")
+  public static void clearedProcessorsRestartWithoutManualResume(GameTestHelper helper) {
+    for (var type : java.util.List.of(CompanionMod.CRUSHER, CompanionMod.TRANSMUTER, CompanionMod.DUAL_CRUSHER)) {
+      var machine = place(helper, type);
+      var input = type == CompanionMod.TRANSMUTER ? Items.IRON_INGOT : Items.COPPER_ORE;
+      machine.items.setStackInSlot(0, new ItemStack(input));
+      machine.energy.setStored(100_000);
+      tick(machine, 6);
+      machine.clearContent();
+      for (var lane : machine.lanes)
+        require(!lane.paused() && lane.progress() == 0 && lane.state().resumeRecipe().isEmpty(),
+            "Clearing resets pause, progress and remembered recipe");
+      for (int slot = 0; slot < machine.items.getSlots(); slot++)
+        require(machine.items.getStackInSlot(slot).isEmpty() && !machine.items.hasPlan(slot),
+            "Clearing empties inventory and reservations");
+      machine.items.setStackInSlot(0, new ItemStack(input));
+      machine.energy.setStored(100_000);
+      tick(machine, 202);
+      int output = type == CompanionMod.TRANSMUTER ? 0 : 1;
+      require(machine.items.getStackInSlot(output).is(
+          type == CompanionMod.TRANSMUTER ? Items.GOLD_INGOT : Items.RAW_COPPER),
+          "Cleared machine processes fresh input without manual resume");
+      machine.lanes.forEach(lane -> lane.interrupt());
+      machine.clearContent();
+      require(machine.lanes.stream().noneMatch(lane -> lane.paused()), "Clearing also resets a paused machine");
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void registeredScreensAndRecipes(GameTestHelper helper) {
     var level = helper.getLevel();
     var pos = helper.absolutePos(CENTER);

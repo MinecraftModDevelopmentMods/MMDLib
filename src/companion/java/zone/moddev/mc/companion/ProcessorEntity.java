@@ -173,13 +173,15 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
 
   @Override
   public void clearContent() {
-    lanes.forEach(RecipeProcessor::interrupt);
+    lanes.forEach(RecipeProcessor::reset);
     for (int slot = 0; slot < items.getSlots(); slot++) {
       items.setPlan(slot, SlotPlan.NONE);
       items.setStackInSlot(slot, ItemStack.EMPTY);
     }
     energy.setStored(0);
     if (hasTank()) fluids.tank(0).setFluid(FluidStack.EMPTY);
+    setChanged();
+    FeatureSync.send(this);
   }
 
   @Override

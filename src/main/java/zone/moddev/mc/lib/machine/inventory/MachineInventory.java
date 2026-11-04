@@ -45,6 +45,20 @@ public final class MachineInventory {
     return new SnapshotTx();
   }
 
+  /** Captures the groups' change counters for a failed recipe search. */
+  public long[] revisions() {
+    return groups.values().stream().mapToLong(SlotGroup::revision).toArray();
+  }
+
+  /** Whether these groups still have the captured revisions. */
+  public boolean unchanged(long[] revisions) {
+    if (revisions.length != groups.size()) return false;
+    int index = 0;
+    for (var group : groups.values())
+      if (group.revision() != revisions[index++]) return false;
+    return true;
+  }
+
   /** Collects groups by key. */
   public static final class Builder {
     private final Map<String, SlotGroup> groups = new LinkedHashMap<>();

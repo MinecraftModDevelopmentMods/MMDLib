@@ -42,7 +42,7 @@ final class ProcessorRig {
   private final boolean crusher;
   private final boolean withEnergy;
 
-  private ProcessorRig(ItemStorage storage, boolean crusher, boolean withEnergy) {
+  ProcessorRig(ItemStorage storage, boolean crusher, boolean withEnergy) {
     this.crusher = crusher;
     this.withEnergy = withEnergy;
     items = storage.onChange(() -> changes[0]++);
