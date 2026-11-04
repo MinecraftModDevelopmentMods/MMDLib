@@ -8,7 +8,7 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 These textures supply `<gauge>` and the matching slim background of `<energy-gauge>`. The energy
 renderer draws thin red charge bars with a soft reflection, without a terminal or graduations.
 Bars are at most four pixels thick, separated by one-pixel gaps.
-Both empty interiors use `#55595C`, halfway between slot grey and the original dark interior.
+Both empty interiors use neutral dark grey `#555555`.
 
 ## Files
 

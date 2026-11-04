@@ -17,8 +17,8 @@ import zlib
 from pathlib import Path
 
 OUTLINE = (0x1E, 0x22, 0x26)
-# Halfway between the previous slot grey (#808080) and original dark interior (#2A3137).
-INTERIOR = (0x55, 0x59, 0x5C)
+# Shared neutral dark grey for the energy and fluid gauge backgrounds.
+INTERIOR = (0x55, 0x55, 0x55)
 DIGITS = {
     "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
     "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
