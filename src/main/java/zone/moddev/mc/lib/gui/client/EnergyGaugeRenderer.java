@@ -20,8 +20,8 @@ final class EnergyGaugeRenderer {
 
     // Clip the last charged bar to the actual level, keeping empty and full exact.
     int charged = (int) Math.round(inside * ratio);
-    // At most three pixels per bar, with a one-pixel gap between neighbours.
-    int count = Math.max(1, (inside + 4) / 4);
+    // At most four pixels per bar, with a one-pixel gap between neighbours.
+    int count = Math.max(1, (inside + 5) / 5);
     int available = inside - (count - 1);
     int position = 0;
     for (int i = 0; i < count; i++) {
