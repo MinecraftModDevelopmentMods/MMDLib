@@ -47,6 +47,7 @@ public class MachineMenu extends AbstractContainerMenu {
   private int widgetActionsThisTick;
   private final Map<Integer, Integer> pendingWidgets = new HashMap<>();
   private final Map<Integer, ScreenNetwork.WidgetResult> widgetResults = new HashMap<>();
+  private final Set<Integer> widgetRefreshKeys = new HashSet<>();
   private final Map<Integer, Integer> widgetSentAt = new HashMap<>();
   private int widgetClientTicks;
 
@@ -74,7 +75,14 @@ public class MachineMenu extends AbstractContainerMenu {
         || nextWidgetRequest == Integer.MAX_VALUE) return Optional.empty();
     if (WidgetTypes.GLOBAL.require(widget.type()).action(action.id()).orElse(null) != action)
       throw new IllegalArgumentException("Action is not registered for " + widget.type());
-    byte[] data = action.encode(owner.registryAccess(), value);
+    byte[] data;
+    try {
+      data = action.encode(owner.registryAccess(), value);
+    } catch (RuntimeException failure) {
+      zone.moddev.mc.lib.MMDLib.LOGGER.error(
+          "Could not encode widget action: {}", action.id(), failure);
+      return Optional.empty();
+    }
     int request = ++nextWidgetRequest;
     pendingWidgets.put(index, request);
     widgetSentAt.put(index, widgetClientTicks);
@@ -119,7 +127,7 @@ public class MachineMenu extends AbstractContainerMenu {
       }
   }
 
-  /** Server-side authorization precedes decoding. Replays and excess traffic are dropped. */
+  /** Server-side authorization precedes decoding. Excess edits are rejected without dispatch. */
   public ScreenNetwork.WidgetResult widgetAction(
       net.minecraft.server.level.ServerPlayer player, ScreenNetwork.Widget packet) {
     if (player != owner
@@ -134,9 +142,11 @@ public class MachineMenu extends AbstractContainerMenu {
       widgetActionTick = tick;
       widgetActionsThisTick = 0;
     }
-    if (++widgetActionsThisTick > 8) return null;
     lastWidgetRequest = packet.request();
     if (!(elements.get(packet.element()) instanceof Element.Custom widget)) return null;
+    if (++widgetActionsThisTick > 8)
+      // Use the last sent snapshot: rate-limited requests must not invoke codecs or getters.
+      return widgetResult(packet, false, values);
     boolean accepted = false;
     var action = WidgetTypes.GLOBAL.require(widget.type()).action(packet.action());
     if (visible(widget) && action.isPresent()) {
@@ -151,14 +161,29 @@ public class MachineMenu extends AbstractContainerMenu {
     if (accepted) blockEntity.setChanged();
     ScreenSnapshots.invalidate(blockEntity);
     var snapshot = ScreenSnapshots.read(blockEntity, bound);
-    return new ScreenNetwork.WidgetResult(
-        containerId,
-        widgetSession,
-        packet.element(),
-        packet.request(),
-        accepted,
-        snapshot.get(packet.element() * 2),
-        snapshot.get(packet.element() * 2 + 1));
+    return widgetResult(packet, accepted, snapshot);
+  }
+
+  private ScreenNetwork.WidgetResult widgetResult(
+      ScreenNetwork.Widget packet, boolean accepted, Map<Integer, Object> snapshot) {
+    var result =
+        new ScreenNetwork.WidgetResult(
+            containerId,
+            widgetSession,
+            packet.element(),
+            packet.request(),
+            accepted,
+            snapshot.get(packet.element() * 2),
+            snapshot.get(packet.element() * 2 + 1));
+    // The acknowledgment changes the client's values too. Include it in the delta baseline so
+    // a later return to the pre-action value is sent even if no regular broadcast saw the edit.
+    values.put(packet.element() * 2, result.value());
+    values.put(packet.element() * 2 + 1, result.maximum());
+    // A client may already have timed out and ignored this response. Also send the next normal
+    // snapshot for these keys so its confirmed values converge independently of acknowledgments.
+    widgetRefreshKeys.add(packet.element() * 2);
+    widgetRefreshKeys.add(packet.element() * 2 + 1);
+    return result;
   }
 
   private static BlockEntity readEntity(Inventory inventory, RegistryFriendlyByteBuf data) {
@@ -495,6 +520,8 @@ public class MachineMenu extends AbstractContainerMenu {
       }
     snapshot.putAll(reservationSnapshot());
     var delta = ScreenValues.changed(values, snapshot, initial);
+    for (int key : widgetRefreshKeys) delta.put(key, snapshot.get(key));
+    widgetRefreshKeys.clear();
     if (!delta.isEmpty()) {
       values.putAll(delta);
       PacketDistributor.sendToPlayer(player, new ScreenNetwork.Values(containerId, delta));

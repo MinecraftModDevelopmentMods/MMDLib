@@ -74,11 +74,10 @@ final class ReserveSlider implements WidgetInstance {
 
   @Override
   public boolean mouseReleased(double x, double y, int button) {
-    if (dragging) {
-      at(x);
-      dragging = false;
-      commit();
-    }
+    if (!dragging || button != 0) return false;
+    at(x);
+    dragging = false;
+    commit();
     return true;
   }
 

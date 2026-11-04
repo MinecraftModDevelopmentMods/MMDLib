@@ -205,9 +205,11 @@ public final class CompanionGameTests {
           "Structured resume accepted");
       menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 7, reserve, 25));
       menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 8, reserve, 25));
+      var excess = menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 9, reserve, 26));
       require(
-          menu.widgetAction(player, widgetPacket(menu, "reserve_slider", 9, reserve, 26)) == null,
-          "More than eight typed edits in one tick are dropped");
+          excess != null && !excess.accepted() && ((Number) excess.value()).intValue() == 25,
+          "Excess edits are immediately rejected with the last sent value");
+      require(machine.getReservePercent() == 25, "Rate-limited edits do not run their handler");
       var saved = machine.saveWithFullMetadata(helper.getLevel().registryAccess());
       var copy =
           (ProcessorEntity)
@@ -217,10 +219,23 @@ public final class CompanionGameTests {
       var name =
           (zone.moddev.mc.lib.gui.model.Element.Custom)
               menu.bound.screen().find("name_editor").orElseThrow();
+      require(
+          menu.prepareWidgetAction(
+                  name, zone.moddev.mc.companion.CompanionWidgets.RENAME, "x".repeat(33))
+              .isEmpty(),
+          "Codec bounds failures are refused without escaping into the client");
+      require(
+          menu.prepareWidgetAction(name, zone.moddev.mc.companion.CompanionWidgets.RENAME, null)
+              .isEmpty(),
+          "Other codec runtime failures are also refused");
+      require(
+          !menu.widgetPending(name) && menu.takeWidgetResult(name) == null,
+          "Failed encoding leaves the widget ready for another edit");
       var pending =
           menu.prepareWidgetAction(
                   name, zone.moddev.mc.companion.CompanionWidgets.RENAME, "Pending")
               .orElseThrow();
+      require(pending.request() == 1, "Failed encoding does not consume request numbers");
       require(
           menu.prepareWidgetAction(name, zone.moddev.mc.companion.CompanionWidgets.RENAME, "Second")
               .isEmpty(),
@@ -239,6 +254,57 @@ public final class CompanionGameTests {
       require(
           !menu.widgetPending(name) && !menu.takeWidgetResult(name).accepted(),
           "Timed-out edits unlock for retry");
+    } finally {
+      player.containerMenu = player.inventoryMenu;
+      helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void widgetRejectionUnlocksImmediatelyAndAcknowledgmentsTrackDeltas(
+      GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    var server = new MachineMenu(54, player.getInventory(), machine);
+    var client = new MachineMenu(54, player.getInventory(), machine, server.widgetSession());
+    player.containerMenu = server;
+    server.navigate("panel", "settings");
+    client.navigate("panel", "settings");
+    var name =
+        (zone.moddev.mc.lib.gui.model.Element.Custom)
+            server.bound.screen().find("name_editor").orElseThrow();
+    int key = server.index(name) * 2;
+    var rename = zone.moddev.mc.companion.CompanionWidgets.RENAME;
+    var original = machine.getMachineName();
+    server.apply(java.util.Map.of(key, original));
+    client.apply(java.util.Map.of(key, original));
+    try {
+      var packet = client.prepareWidgetAction(name, rename, "Temporary").orElseThrow();
+      var result = server.widgetAction(player, packet);
+      client.receiveWidgetResult(result);
+      require(client.takeWidgetResult(name).accepted(), "First edit accepted");
+      // The machine changes back before a regular broadcast has observed Temporary.
+      machine.rename(original.getString());
+      var delta =
+          zone.moddev.mc.lib.gui.runtime.ScreenValues.changed(
+              java.util.Map.of(key, server.wireValue(key)), java.util.Map.of(key, original), false);
+      require(delta.containsKey(key), "Reversion must be sent after an acknowledgment");
+      client.apply(delta);
+      server.apply(delta);
+      require(original.equals(client.value(name, false)), "Client converges to the reverted value");
+      for (int i = 2; i <= 9; i++) {
+        packet = client.prepareWidgetAction(name, rename, "Edit " + i).orElseThrow();
+        result = server.widgetAction(player, packet);
+        require(result != null && result.accepted() == (i <= 8), "Only eight edits may dispatch");
+        client.receiveWidgetResult(result);
+        require(!client.widgetPending(name), "Rejection unlocks without waiting for timeout");
+        client.takeWidgetResult(name);
+      }
+      require(machine.getMachineName().getString().equals("Edit 8"), "Ninth edit never mutates");
+      require(server.widgetAction(player, packet) == null, "Rejected requests cannot be replayed");
     } finally {
       player.containerMenu = player.inventoryMenu;
       helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);

@@ -154,6 +154,31 @@ final class CompanionWidgetSmoke {
         var context = s.bounds(menu.bound.screen().find("panel").orElseThrow());
         click(s, context.x() + 5, context.y() + 5);
       }
+      case 15 -> {
+        if (s.visible(name)) return false;
+        var open = s.bounds(menu.bound.screen().find("open_settings").orElseThrow());
+        click(s, open.x() + 8, open.y() + 8);
+      }
+      case 16 -> {
+        if (!s.visible(name)) return false;
+        var delayed =
+            menu.prepareWidgetAction(name, CompanionWidgets.RENAME, "Late edit").orElseThrow();
+        // Deliver only after the local timeout. Its ignored acknowledgment must not prevent
+        // ordinary snapshot synchronization from carrying the newly confirmed server value.
+        for (int i = 0; i < 100; i++) menu.tickWidgetActions();
+        if (menu.widgetPending(name)) throw new AssertionError("Timeout left the editor pending");
+        PacketDistributor.sendToServer(delayed);
+      }
+      case 17 -> {
+        if (!nameIs(s, name, "Late edit")) return false;
+        PacketDistributor.sendToServer(
+            menu.prepareWidgetAction(name, CompanionWidgets.RENAME, "draft ex").orElseThrow());
+      }
+      case 18 -> {
+        if (menu.widgetPending(name) || !nameIs(s, name, "draft ex")) return false;
+        var context = s.bounds(menu.bound.screen().find("panel").orElseThrow());
+        click(s, context.x() + 5, context.y() + 5);
+      }
       default -> {
         if (s.visible(name)) return false;
         return true;

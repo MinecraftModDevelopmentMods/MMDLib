@@ -2,9 +2,9 @@ package zone.moddev.mc.lib.gui.client;
 
 /**
  * One widget's state for one open screen. Factories must return fresh instances. Coordinates are
- * absolute GUI pixels. A captured drag receives release outside its bounds. Hidden widgets lose
- * focus and capture; resize preserves the instance and focus but cancels capture without
- * committing.
+ * absolute GUI pixels. Only a captured press receives dragging and release, even outside its
+ * bounds. Hidden widgets lose focus and capture; resize preserves the instance and focus but
+ * cancels capture without committing.
  */
 public interface WidgetInstance extends WidgetRenderer {
   enum Click {

@@ -121,13 +121,8 @@ public final class WidgetInput {
       cancelledButton = -1;
       return true;
     }
-    if (captured == null) {
-      for (var e : order.reversed())
-        if (visible.test(e)
-            && bounds.apply(e).contains(x, y)
-            && instances.get(e).mouseReleased(x, y, button)) return true;
-      return false;
-    }
+    // A release belongs to the control that captured the press, not the current hover target.
+    if (captured == null) return false;
     if (button == capturedButton) {
       var instance = instances.get(captured);
       captured = null;

@@ -101,6 +101,20 @@ class WidgetInputTest {
   }
 
   @Test
+  void inventoryReleaseOverWidgetIsNotDeliveredWithoutCapture() {
+    var f = new Fixture();
+    f.input.beginClick(); // The press belongs to an inventory slot.
+    assertFalse(f.input.release(5, 5, 0));
+    assertFalse(f.input.release(55, 5, 1));
+    assertEquals(0, f.first.releases);
+    assertEquals(0, f.second.releases);
+    assertTrue(f.input.click(f.a, 5, 5, 0));
+    assertTrue(f.input.release(55, 5, 0));
+    assertEquals(1, f.first.releases);
+    assertEquals(0, f.second.releases);
+  }
+
+  @Test
   void capturedReleaseOutsideBoundsDoesNotLeakToSlots() {
     var f = new Fixture();
     assertTrue(f.input.click(f.a, 5, 5, 0));

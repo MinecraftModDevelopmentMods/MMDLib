@@ -247,6 +247,9 @@ mouse, scroll, key, character, tick, focus and lifecycle methods. Its click resu
 | `CONSUME` | Handle this click; focus the instance if `focusable()` is true |
 | `CAPTURE` | Also receive dragging and release for this mouse button outside the widget bounds |
 
+Only a captured press receives mouse drag/release callbacks. Releasing an inventory drag over a
+widget leaves the release with the inventory, regardless of which widget is under the pointer.
+
 Tab and Shift+Tab move between visible focusable custom widgets in document order. While one is
 focused, inventory shortcuts are consumed even when its `keyPressed` returns false, so typing E,
 Q or a number cannot close the screen or move a slot. `charTyped` is separate from `keyPressed`.
@@ -301,17 +304,23 @@ encoder uses a bounded buffer, and trailing bytes are refused. **Codecs must add
 their own string and collection lengths before allocating.**
 
 The client instance calls `access.submit(setLimit, previewValue)`. False means the widget is
-hidden, another request is pending, or an earlier result still needs delivery. Do not submit
-every render frame. For sliders, commit on release; throttle continuous controls yourself.
+hidden, another request is pending, an earlier result still needs delivery, or encoding failed.
+Codec runtime exceptions (including buffer overflow) are logged and return false without sending
+a packet or marking the widget pending. Do not submit every render frame. For sliders, commit on
+release; throttle continuous controls yourself.
 
 The server checks menu ownership, interaction distance, visibility, element type, allowed action,
 menu-session token and increasing request number before dispatch. At most eight typed actions
-per menu per server tick are processed; excess and replayed requests are dropped. Handler
+per menu per server tick are processed; excess edits receive an immediate rejection using the last
+sent values, without invoking their codec, getters or handler. Replayed requests are dropped. Handler
 exceptions are logged and rejected, but MMDLib cannot undo a handler's partial mutations.
 
 The response includes accept/reject and fresh authoritative `value`/`max` snapshots after the
-handler. They are applied before `WidgetInstance.actionResult(boolean)` runs. Ordinary snapshot
-sync continues for every viewer, including changes to other elements. Preserve a rejected text
+handler (or the last sent values for rate-limited edits). They are applied before
+`WidgetInstance.actionResult(boolean)` runs and update the server's delta baseline. The next ordinary
+snapshot also refreshes those values, so a late acknowledgment ignored after timeout cannot leave
+the client stale. Ordinary snapshot sync continues for every viewer, including changes to other
+elements. Preserve a rejected text
 draft and show feedback so the player can correct it. Requests are limited to one in flight per
 widget. After 100 client ticks without a matching response, the control is unlocked and receives
 `actionResult(false)` to report an **unconfirmed** edit; that does not prove the server rolled back
