@@ -23,9 +23,14 @@ sand, and copper/iron/gold ore becomes two of the corresponding raw material. Th
 200 ticks and 4,000 FE. The dual crusher runs the same recipes in both lanes when there are enough
 inputs and output space.
 
-Check **Paused (free items)** to interrupt a lane and release its reservations. Uncheck it to resume.
-This control works without power. The dual crusher releases only the chosen lane's share; the other
-lane can continue. The yellow info tab opens a matching drawer to the left with machine guidance and
+The bottom of each processor panel has a compact, right-aligned control row above the inventory.
+Click the pause icon to interrupt a lane and release its reservations; it becomes a green play
+icon while paused. Click again to resume. This works without power. The Dual Crusher has separate
+buttons marked A and B; pausing one lane releases only its share, and the other can continue.
+The redstone button cycles **Ignore / Run when powered / Run when unpowered**. Redstone holds
+progress and energy use while keeping reservations; it never overrides manual pause. Both the
+selected redstone mode and each lane's pause state survive save/load. Hover a button for its state
+and action. The yellow info tab opens a matching drawer to the left with machine guidance and
 any current power-stall or blocked-finish warnings. Click the icon again to close it; scroll
 inside to read longer text. All four screens place a vertical battery on the right, using the
 reusable `<energy-gauge>` XML widget. Its red charge bars fill upwards inside a slim casing.
@@ -73,7 +78,7 @@ Install both `build/libs/mmdlib-<version>.jar` and
 Both jars use the build's version (`2.0.0.121012-development` by default, or the release tag).
 `companionJar` contains only the companion; `build` continues to build the library.
 
-`check` includes the companion's eleven server game tests and checks both jars for leaked classes and
+`check` includes the companion's twelve server game tests and checks both jars for leaked classes and
 resources. `runCompanionGameTestServer` runs just those tests. They cover all four registrations and
 menus, recipe loading, adjacent power, the one-slot limit and interruption through the menu, two
 shared lanes across save/load, command replacement versus destruction, tank capacity and persistence,
@@ -81,6 +86,8 @@ refusal to mix fluids, bucket filling/draining through the block interaction, an
 transfers through the screen (including stacked buckets and partial modded containers). Shift-click
 regressions check chunk save flags and saved item counts after merging into idle machines and
 partially extracting their output, plus a rejected transfer that must leave the save flag unchanged.
+Redstone tests cover all modes on all three processors, signal changes, independent manual pause,
+retained reservations, saved settings, and safe defaults for older or invalid saves.
 
 `runCompanionClientSmoke` creates a separate test world under `build/companion-client-smoke`, opens
 all four menus over the network and captures them under its `screenshots` directory. It is separate
@@ -89,6 +96,8 @@ The shared `build_status.yml` workflow runs `check`, builds both jars, and runs 
 and library GUI smoke tests. The library smoke is exercised with and without JEI.
 The Crusher capture shows water; `crusher-lava.png` verifies a live change to lava in the same menu.
 It also clicks the gauge to drain a lava bucket and pour it back, verifying cursor and tank sync.
+The client smoke also clicks pause and redstone controls and waits for their synchronized states;
+`crusher-paused.png` and `crusher-redstone.png` capture their alternate icons.
 
 ## Code to read
 

@@ -266,6 +266,18 @@ bottom automatically. Write `<player-inventory/>` only to place it somewhere els
   screen file without one. The tooltip says what the button does or shows (for example
   "Side configuration: choose which faces accept and output each slot group, tank and energy"),
   because icon buttons alone were found unclear.
+- **Stateful icon buttons:** `icons` is a whitespace-separated list of sprite IDs selected by a
+  boolean (`false` = 0, `true` = 1) or whole-number `value`. Optional `value-labels` supplies
+  translated names for `{value}` in the tooltip. When both lists are present their lengths must
+  match. Missing or out-of-range values display the first state. These buttons keep the standard
+  20×20 icon-button size; an `hbox` with a leading `spacer` places them against its right edge.
+
+  ```xml
+  <button value="#getPaused" on-click="example:toggle_pause"
+          icons="mmdlib:icon_pause mmdlib:icon_resume"
+          value-labels="screen.example.running screen.example.paused"
+          tooltip="screen.example.pause.tip"/>
+  ```
 
 ## Values
 

@@ -26,6 +26,8 @@ icons and progress arrows are full colour.
 | `progress_arrow`, `progress_arrow_filled` | 24×16 | none | Bevelled blue-grey arrow / brighter blue progress fill, with matching outlines and glossy highlights |
 | `upgrade_speed`, `upgrade_energy`, `upgrade_capacity` | 16×16 | none | Outline shown in an empty upgrade slot |
 | `icon_sides` | 16×16 | none | White cube icon for the side-configuration button |
+| `icon_pause`, `icon_resume` | 16×16 | none | Gold pause bars and green play triangle; `_a` and `_b` variants identify independent lanes |
+| `icon_redstone_ignore`, `icon_redstone_high`, `icon_redstone_low` | 16×16 | none | Redstone torch with × / + / − mode badge |
 | `icon_info` | 16×16 | none | Pop-out `info`: white serif "i" with a dark outline and transparent background |
 | `icon_warning` | 16×16 | none | Pop-out `warning`: yellow triangle, black "!" |
 | `icon_error` | 16×16 | none | Pop-out `error`: red heater shield, white "!" |

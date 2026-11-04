@@ -249,7 +249,9 @@ public final class ScreenReader {
                 c,
                 text(node, "text"),
                 id(node, "icon"),
-                Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse));
+                Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse),
+                words(node, "icons").stream().map(ResourceLocation::parse).toList(),
+                words(node, "value-labels").stream().map(key -> new Text(key, Optional.empty())).toList());
         case "checkbox" -> new Checkbox(c, text(node, "text").orElseThrow());
         case "radio-group" ->
             new RadioGroup(
@@ -322,6 +324,11 @@ public final class ScreenReader {
         return Optional.empty();
       }
       return Optional.of(new Text(key, fallback));
+    }
+
+    private List<String> words(Node node, String name) {
+      String value = node.attributes().getOrDefault(name, "").trim();
+      return value.isEmpty() ? List.of() : List.of(value.split("\\s+"));
     }
 
     private Optional<ValueRef> value(Node node, String name) {
@@ -444,8 +451,13 @@ public final class ScreenReader {
         case Button button -> {
           if (c.tooltip().isEmpty())
             throw new ScreenException(source, line, "<button> needs a tooltip saying what it does");
-          if (button.text().isEmpty() && button.icon().isEmpty())
+          if (button.text().isEmpty() && button.icon().isEmpty() && button.icons().isEmpty())
             throw new ScreenException(source, line, "<button> needs text or icon");
+          if (!button.icons().isEmpty() || !button.valueLabels().isEmpty())
+            requireValue(source, element, "a stateful <button>", false);
+          if (!button.icons().isEmpty() && !button.valueLabels().isEmpty()
+              && button.icons().size() != button.valueLabels().size())
+            throw new ScreenException(source, line, "button icons and value-labels must have equal counts");
           if (button.shows().isPresent()) {
             var target = button.shows().get();
             var views = contexts.get(target.context());

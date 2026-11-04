@@ -227,10 +227,38 @@ public sealed interface Element {
    * @param text the caption, if any
    * @param icon the icon sprite, if any
    * @param shows the view it switches to, if it is a navigation button
+   * @param icons optional icons indexed by its boolean or whole-number value
+   * @param valueLabels optional translated names for those states in the tooltip
    */
   record Button(
-      Common common, Optional<Text> text, Optional<ResourceLocation> icon, Optional<ViewRef> shows)
-      implements Element {}
+      Common common, Optional<Text> text, Optional<ResourceLocation> icon, Optional<ViewRef> shows,
+      List<ResourceLocation> icons, List<Text> valueLabels)
+      implements Element {
+    public Button {
+      icons = List.copyOf(icons);
+      valueLabels = List.copyOf(valueLabels);
+    }
+
+    public Button(Common common, Optional<Text> text, Optional<ResourceLocation> icon,
+        Optional<ViewRef> shows) {
+      this(common, text, icon, shows, List.of(), List.of());
+    }
+
+    private int stateIndex(Object value, int count) {
+      long index = value instanceof Boolean b ? (b ? 1 : 0)
+          : value instanceof Number n ? n.longValue() : 0;
+      return index >= 0 && index < count ? (int) index : 0;
+    }
+
+    public Optional<ResourceLocation> iconFor(Object value) {
+      return icons.isEmpty() ? icon : Optional.of(icons.get(stateIndex(value, icons.size())));
+    }
+
+    public Optional<Text> labelFor(Object value) {
+      return valueLabels.isEmpty() ? Optional.empty()
+          : Optional.of(valueLabels.get(stateIndex(value, valueLabels.size())));
+    }
+  }
 
   /**
    * {@code checkbox}: a checkbox whose value is a boolean getter.

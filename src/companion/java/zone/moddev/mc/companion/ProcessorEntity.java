@@ -46,6 +46,8 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   public final List<RecipeProcessor> lanes;
   public final FeatureHost features = new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
   private final Kind kind;
+  // 0 ignores redstone, 1 requires a signal, 2 requires no signal. Manual pause is separate.
+  private int redstoneMode;
 
   public ProcessorEntity(BlockEntityType<?> type, BlockPos pos, BlockState state, Kind kind) {
     super(type, pos, state);
@@ -76,7 +78,21 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
 
   @Override
   public void serverTick() {
-    features.tick(level);
+    if (redstoneAllowsRun()) features.tick(level);
+  }
+
+  public int getRedstoneMode() {
+    return redstoneMode;
+  }
+
+  public void cycleRedstoneMode() {
+    redstoneMode = (redstoneMode + 1) % 3;
+    setChanged();
+  }
+
+  private boolean redstoneAllowsRun() {
+    return redstoneMode == 0
+        || (level.hasNeighborSignal(worldPosition) == (redstoneMode == 1));
   }
 
   public void toggle(int index) {
@@ -84,6 +100,9 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
     var processor = lanes.get(index);
     if (processor.paused()) processor.resume();
     else processor.interrupt();
+    // Redstone can hold the feature tick, so persist and sync a manual toggle immediately.
+    setChanged();
+    FeatureSync.send(this);
   }
 
   public int getProgress() {
@@ -124,6 +143,8 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
 
   public List<Component> getWarnings() {
     var warnings = new ArrayList<Component>();
+    if (!redstoneAllowsRun())
+      warnings.add(Component.translatable("screen.mmdlib_companion.redstone.waiting"));
     for (int i = 0; i < lanes.size(); i++) {
       var status = lanes.get(i).status();
       if (status == RecipeProcessor.Status.STALLED || status == RecipeProcessor.Status.BLOCKED)
@@ -165,6 +186,7 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
     super.saveAdditional(tag, registries);
     tag.put("items", items.serializeNBT(registries));
+    tag.putInt("redstone_mode", redstoneMode);
     if (hasTank()) tag.put("fluids", fluids.serializeNBT(registries));
     tag.put("features", features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
   }
@@ -173,6 +195,8 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
     if (FeatureSync.read(features, tag, registries)) return;
     super.loadAdditional(tag, registries);
+    int savedMode = tag.getInt("redstone_mode");
+    redstoneMode = savedMode >= 0 && savedMode <= 2 ? savedMode : 0;
     items.deserializeNBT(registries, tag.getCompound("items"));
     if (hasTank() && tag.contains("fluids")) fluids.deserializeNBT(registries, tag.getCompound("fluids"));
     features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));

@@ -287,6 +287,43 @@ public final class ScreenLoaderTest {
   }
 
   @Test
+  void statefulButtonsSelectIconsAndTranslatedValues() throws Exception {
+    var screen = bind(HEAD + """
+        <button id="mode" value="#getProgress" icons="mmdlib:off mmdlib:on"
+                value-labels="screen.test.off screen.test.on" tooltip="screen.test.mode"/>
+        </screen>
+        """).screen();
+    var button = (Element.Button) screen.find("mode").orElseThrow();
+    require(button.iconFor(BigInteger.ONE).orElseThrow().getPath().equals("on"));
+    require(button.iconFor(Boolean.FALSE).orElseThrow().getPath().equals("off"));
+    require(button.labelFor(Boolean.TRUE).orElseThrow().key().equals("screen.test.on"));
+    require(button.iconFor(BigInteger.valueOf(-1)).orElseThrow().getPath().equals("off"));
+    fails("state icons require value", HEAD
+        + "<button icons=\"mmdlib:off mmdlib:on\" tooltip=\"screen.test.mode\"/></screen>");
+    fails("state counts must agree", HEAD
+        + "<button value=\"#getProgress\" icons=\"mmdlib:off mmdlib:on\" value-labels=\"screen.test.off\" tooltip=\"screen.test.mode\"/></screen>");
+  }
+
+  @Test
+  void companionControlsSitAboveInventoryAtRightMargin() throws Exception {
+    for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher")) {
+      try (var input = java.nio.file.Files.newInputStream(java.nio.file.Path.of(
+          "src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
+        var screen = ScreenReader.read(ResourceLocation.parse("mmdlib_companion:" + name), name + ".xml", input);
+        var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+        var controls = layout.bounds(screen.find("controls").orElseThrow());
+        var redstone = layout.bounds(screen.find("redstone").orElseThrow());
+        var pause = layout.bounds(screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
+        require(controls.y() > layout.bounds(screen.find("energy").orElseThrow()).bottom());
+        require(controls.bottom() < layout.inventory().orElseThrow().y());
+        require(pause.right() == layout.panel().width() - 7);
+        require(redstone.y() == pause.y() && redstone.right() < pause.x());
+        require(pause.width() == 20 && pause.height() == 20);
+      }
+    }
+  }
+
+  @Test
   void allCompanionScreensPlaceBatteryAtRightMargin() throws Exception {
     for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power")) {
       try (var input = java.nio.file.Files.newInputStream(java.nio.file.Path.of(

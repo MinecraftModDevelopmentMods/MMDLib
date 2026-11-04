@@ -59,6 +59,79 @@ public final class CompanionGameTests {
   }
 
   @GameTest(template = "empty")
+  public static void redstoneControlsHoldProgressAndRespectManualPause(GameTestHelper helper) {
+    var level = helper.getLevel();
+    for (var type : java.util.List.of(CompanionMod.CRUSHER, CompanionMod.TRANSMUTER, CompanionMod.DUAL_CRUSHER)) {
+      var machine = place(helper, type);
+      var pos = machine.getBlockPos();
+      var signal = pos.relative(Direction.EAST);
+      level.setBlock(signal, Blocks.AIR.defaultBlockState(), 3);
+      machine.items.insertItem(0, new ItemStack(type == CompanionMod.TRANSMUTER ? Items.IRON_INGOT : Items.COPPER_ORE,
+          type == CompanionMod.TRANSMUTER ? 1 : 16), false);
+      machine.energy.setStored(100_000);
+      tick(machine, 6);
+      require(machine.getRedstoneMode() == 0 && machine.getProgress() > 0,
+          "Default Ignore mode runs without a redstone signal");
+      var player = helper.makeMockServerPlayerInLevel();
+      player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+      var menu = new MachineMenu(46, player.getInventory(), machine);
+      player.containerMenu = menu;
+      int redstone = new ScreenNetwork.Action(46,
+          menu.index(menu.bound.screen().find("redstone").orElseThrow()), 0, 0, 0, 0).pack();
+      int pause = new ScreenNetwork.Action(46,
+          menu.index(menu.bound.screen().find("toggle_0").orElseThrow()), 0, 0, 0, 0).pack();
+      menu.clickMenuButton(player, redstone);
+      require(machine.getRedstoneMode() == 1, "First click selects Powered mode");
+      int progress = machine.getProgress();
+      long energy = machine.energy.stored();
+      int second = machine.getSecondProgress();
+      tick(machine, 12);
+      require(machine.getProgress() == progress && machine.getSecondProgress() == second
+          && machine.energy.stored() == energy && machine.items.hasPlan(0),
+          "Redstone hold preserves all lanes' progress, energy and reservations");
+      level.setBlock(signal, Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+      tick(machine, 2);
+      require(machine.getProgress() > progress, "Powered mode resumes when a signal arrives");
+      menu.clickMenuButton(player, pause);
+      require(machine.getPaused(), "Pause button pauses lane A");
+      progress = machine.getProgress();
+      tick(machine, 3);
+      require(machine.getProgress() == progress && machine.getPaused(), "Redstone does not override manual pause");
+      level.setBlock(signal, Blocks.AIR.defaultBlockState(), 3);
+      menu.clickMenuButton(player, pause);
+      tick(machine, 3);
+      require(!machine.getPaused() && machine.getProgress() == progress,
+          "Manual resume remains held while Powered mode has no signal");
+      level.setBlock(signal, Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+      tick(machine, 3);
+      require(machine.getProgress() > progress, "Processing resumes without losing paused progress");
+      menu.clickMenuButton(player, redstone);
+      require(machine.getRedstoneMode() == 2, "Second click selects Unpowered mode");
+      progress = machine.getProgress();
+      tick(machine, 3);
+      require(machine.getProgress() == progress, "Unpowered mode holds while a signal is present");
+      level.setBlock(signal, Blocks.AIR.defaultBlockState(), 3);
+      tick(machine, 2);
+      require(machine.getProgress() > progress, "Unpowered mode runs when the signal disappears");
+      menu.clickMenuButton(player, pause);
+      var saved = machine.saveWithFullMetadata(level.registryAccess());
+      var copy = (ProcessorEntity) BlockEntity.loadStatic(pos, machine.getBlockState(), saved, level.registryAccess());
+      require(copy.getRedstoneMode() == 2 && copy.getPaused(), "Redstone mode and independent pause survive save/load");
+      saved.remove("redstone_mode");
+      copy = (ProcessorEntity) BlockEntity.loadStatic(pos, machine.getBlockState(), saved, level.registryAccess());
+      require(copy.getRedstoneMode() == 0, "Older saves default to Ignore");
+      saved.putInt("redstone_mode", 99);
+      copy = (ProcessorEntity) BlockEntity.loadStatic(pos, machine.getBlockState(), saved, level.registryAccess());
+      require(copy.getRedstoneMode() == 0, "Invalid saved modes fall back to Ignore");
+      menu.clickMenuButton(player, redstone);
+      require(machine.getRedstoneMode() == 0 && machine.getPaused(), "Mode cycle wraps without changing manual pause");
+      machine.clearContent();
+      level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void shiftClickMergeMarksIdleMachineForSave(GameTestHelper helper) {
     var machine = place(helper, CompanionMod.CRUSHER);
     var level = helper.getLevel();

@@ -4,17 +4,34 @@
     <hbox spacing="6" align="center">
       <spacer/>
       <slot index="0"/>
-      <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:crushing"/>
+      <vbox spacing="4">
+        <hbox spacing="4" align="center">
+          <label text="screen.mmdlib_companion.lane_a" text-fallback="Lane A"/>
+          <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:crushing"/>
+        </hbox>
+        <hbox spacing="4" align="center">
+          <label text="screen.mmdlib_companion.lane_b" text-fallback="Lane B"/>
+          <progress id="second_progress" value="#getSecondProgress" max="#getSecondTime"/>
+        </hbox>
+      </vbox>
       <slot index="1"/>
       <spacer/>
       <energy-gauge id="energy" length="3s"/>
     </hbox>
-    <label text="screen.mmdlib_companion.lane_a" text-fallback="Lane A"/>
-    <checkbox value="#getPaused" id="toggle_0" text="screen.mmdlib_companion.toggle" text-fallback="Paused (free items)" tooltip="screen.mmdlib_companion.toggle.tip" tooltip-fallback="Pause this lane to free its reserved items, or resume it." on-click="mmdlib_companion:toggle_0"/>
-    <label text="screen.mmdlib_companion.lane_b" text-fallback="Lane B"/>
-    <hbox spacing="6">
-      <progress id="second_progress" value="#getSecondProgress" max="#getSecondTime"/>
-      <checkbox value="#getSecondPaused" id="toggle_1" text="screen.mmdlib_companion.toggle" text-fallback="Paused (free items)" tooltip="screen.mmdlib_companion.toggle.tip" tooltip-fallback="Pause this lane to free its reserved items, or resume it." on-click="mmdlib_companion:toggle_1"/>
+    <hbox id="controls" spacing="2" align="center">
+      <spacer/>
+      <button id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
+              icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
+              value-labels="screen.mmdlib_companion.redstone.ignore screen.mmdlib_companion.redstone.high screen.mmdlib_companion.redstone.low"
+              tooltip="screen.mmdlib_companion.redstone.tip"/>
+      <button id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
+              icons="mmdlib:icon_pause_a mmdlib:icon_resume_a"
+              value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
+              tooltip="screen.mmdlib_companion.pause.a.tip"/>
+      <button id="toggle_1" value="#getSecondPaused" on-click="mmdlib_companion:toggle_1"
+              icons="mmdlib:icon_pause_b mmdlib:icon_resume_b"
+              value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
+              tooltip="screen.mmdlib_companion.pause.b.tip"/>
     </hbox>
   </vbox>
   <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.dual_crusher" value="#getWarnings"/>

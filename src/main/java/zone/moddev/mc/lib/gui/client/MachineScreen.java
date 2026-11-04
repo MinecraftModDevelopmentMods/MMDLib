@@ -226,7 +226,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                 t ->
                     g.drawCenteredString(
                         font, text(t), r.x() + r.width() / 2, r.y() + 6, 0xffffff));
-        b.icon().ifPresent(icon -> blit(g, icon, r.x() + (r.width() - 16) / 2, r.y() + 2, 16, 16));
+        b.iconFor(menu.value(e, false))
+            .ifPresent(icon -> blit(g, icon, r.x() + (r.width() - 16) / 2, r.y() + 2, 16, 16));
       }
       case Element.Checkbox c -> {
         sprite(
@@ -523,7 +524,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
           String translated =
               this.text(t)
                   .getString()
-                  .replace("{value}", ScreenText.number(menu.value(e, false), shift))
+                  .replace("{value}", e instanceof Element.Button button
+                      ? button.labelFor(menu.value(e, false)).map(label -> this.text(label).getString())
+                          .orElseGet(() -> ScreenText.number(menu.value(e, false), shift))
+                      : ScreenText.number(menu.value(e, false), shift))
                   .replace("{max}", ScreenText.number(menu.value(e, true), shift));
           lines.add(Component.literal(translated));
         });

@@ -78,6 +78,11 @@ public final class CompanionMod {
     bus.addListener(CompanionMod::capabilities);
     MaterialExtensions.GLOBAL.events().registerCallback(
         id("tank_container"), MaterialEventTypes.GUI_CLICK, CompanionMod::transferTankContainer);
+    MaterialExtensions.GLOBAL.events().registerCallback(
+        id("redstone"), MaterialEventTypes.GUI_CLICK,
+        click -> {
+          if (click.menu().blockEntity instanceof ProcessorEntity machine) machine.cycleRedstoneMode();
+        });
     for (int lane = 0; lane < 2; lane++) {
       int index = lane;
       MaterialExtensions.GLOBAL.events().registerCallback(

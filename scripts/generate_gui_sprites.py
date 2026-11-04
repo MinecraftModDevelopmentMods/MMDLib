@@ -248,6 +248,40 @@ BANG = ["##", "##", "##", "##", "..", "##"]
 BANG_LOW = ["##", "##", "##", "##", "##", "..", "##"]  # sits lower, inside the triangle's wide part
 
 
+def write_control_icons():
+    """16 px control glyphs with a one-pixel shadow and optional lane/mode badge."""
+    def glyph(img, rows, x, y, ink):
+        for dy, row in enumerate(rows):
+            for dx, bit in enumerate(row):
+                if bit != ".": img[y + dy + 1][x + dx + 1] = grey(42)
+        for dy, row in enumerate(rows):
+            for dx, bit in enumerate(row):
+                if bit != ".": img[y + dy][x + dx] = ink
+
+    pause = ["##...##"] * 9
+    play = ["#......", "###....", "#####..", "#######", "#######", "#####..", "###....", "#......"]
+    letters = {"a": [".#.", "#.#", "###", "#.#", "#.#"],
+               "b": ["##.", "#.#", "##.", "#.#", "##."]}
+    for name, rows, ink in (("pause", pause, (240, 198, 70, 255)),
+                            ("resume", play, (100, 216, 112, 255))):
+        for lane in ("", "a", "b"):
+            img = canvas(16, 16)
+            glyph(img, rows, 3 if lane else 4, 2 if lane else 3, ink)
+            if lane: glyph(img, letters[lane], 11, 9, grey(245))
+            write_png("icon_" + name + ("_" + lane if lane else ""), img)
+
+    torch = [".###.", "#####", "#####", ".###.", "..#..", "..#..", "..#..", "..#..", "..#.."]
+    badges = {"ignore": ["#.#", ".#.", "#.#"],
+              "high": [".#.", "###", ".#."], "low": ["...", "###", "..."]}
+    for mode, badge in badges.items():
+        img = canvas(16, 16)
+        glyph(img, torch, 4, 2, (242, 70, 49, 255) if mode == "high" else (155, 67, 55, 255))
+        rect(img, 6, 6, 1, 5, (166, 117, 64, 255))
+        if mode == "high": rect(img, 5, 3, 2, 2, (255, 201, 101, 255))
+        glyph(img, badge, 11, 10, grey(245))
+        write_png("icon_redstone_" + mode, img)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print(f"writing to {OUT}:")
@@ -258,6 +292,7 @@ def main():
                                          "border": {"left": 3, "top": 3, "right": 3, "bottom": 3}})
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
     write_drawer_sprites()
+    write_control_icons()
     write_png("checkbox", checkbox(False))
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))

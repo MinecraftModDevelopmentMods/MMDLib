@@ -36,7 +36,7 @@ public final class CompanionClientSmoke {
   private static final BlockPos POS = new BlockPos(0, 100, 0);
   private static final long DEADLINE = System.currentTimeMillis() + 180_000;
   private static boolean started, opening, menuRequested, finished;
-  private static int stage, frames, waitingTicks, drawerStage, fluidStage;
+  private static int stage, frames, waitingTicks, drawerStage, fluidStage, controlStage;
 
   @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {
@@ -125,6 +125,31 @@ public final class CompanionClientSmoke {
       if (screen.layout.bounds(energy).right() != screen.layout.panel().width() - 7)
         throw new AssertionError("Energy must sit against the right panel margin");
       if (!(menu.value(energy, false) instanceof Number)) throw new AssertionError("Energy was not synced");
+      if (stage == 0 && controlStage < 4) {
+        var pause = menu.bound.screen().find("toggle_0").orElseThrow();
+        var redstone = menu.bound.screen().find("redstone").orElseThrow();
+        if (!(menu.value(pause, false) instanceof Boolean paused)
+            || !(menu.value(redstone, false) instanceof Number mode)) return;
+        if (controlStage == 0 && !paused && mode.intValue() == 0) {
+          var bounds = screen.bounds(pause);
+          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
+        } else if (controlStage == 1 && paused) {
+          Screenshot.grab(mc.gameDirectory, "crusher-paused.png", mc.getMainRenderTarget(), message -> {});
+          var bounds = screen.bounds(redstone);
+          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
+        } else if (controlStage == 2 && mode.intValue() == 1) {
+          var bounds = screen.bounds(pause);
+          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
+        } else if (controlStage == 3 && !paused && mode.intValue() == 1) {
+          Screenshot.grab(mc.gameDirectory, "crusher-redstone.png", mc.getMainRenderTarget(), message -> {});
+          var bounds = screen.bounds(redstone);
+          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
+          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
+        } else return;
+        controlStage++;
+        frames = 0;
+        return;
+      }
       if (stage < 3) {
         var progress = menu.bound.screen().find("progress").orElseThrow();
         if (!(menu.value(progress, true) instanceof Number n) || n.intValue() <= 0)
