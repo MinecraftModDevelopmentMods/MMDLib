@@ -137,6 +137,13 @@ public class MachineMenu extends AbstractContainerMenu {
       } else
         addSlot(
             new SlotItemHandler(items, index, xy[0], xy[1]) {
+              @Override
+              public void setChanged() {
+                super.setChanged();
+                // Vanilla shift-click merges mutate the stack directly, bypassing handler callbacks.
+                if (!client) blockEntity.setChanged();
+              }
+
               public boolean isActive() {
                 return visible(element);
               }

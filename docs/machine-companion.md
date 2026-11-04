@@ -72,12 +72,14 @@ Install both `build/libs/mmdlib-2.0.0-alpha.jar` and
 `build/libs/mmdlib-companion-2.0.0-alpha.jar` in a NeoForge instance. JEI is optional.
 `companionJar` contains only the companion; `build` continues to build the library.
 
-`check` includes the companion's nine server game tests and checks both jars for leaked classes and
+`check` includes the companion's eleven server game tests and checks both jars for leaked classes and
 resources. `runCompanionGameTestServer` runs just those tests. They cover all four registrations and
 menus, recipe loading, adjacent power, the one-slot limit and interruption through the menu, two
 shared lanes across save/load, command replacement versus destruction, tank capacity and persistence,
 refusal to mix fluids, bucket filling/draining through the block interaction, and cursor-container
-transfers through the screen (including stacked buckets and partial modded containers).
+transfers through the screen (including stacked buckets and partial modded containers). Shift-click
+regressions check chunk save flags and saved item counts after merging into idle machines and
+partially extracting their output, plus a rejected transfer that must leave the save flag unchanged.
 
 `runCompanionClientSmoke` creates a separate test world under `build/companion-client-smoke`, opens
 all four menus over the network and captures them under its `screenshots` directory. It is separate

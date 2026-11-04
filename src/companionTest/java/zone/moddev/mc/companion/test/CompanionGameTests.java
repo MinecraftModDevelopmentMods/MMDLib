@@ -59,6 +59,74 @@ public final class CompanionGameTests {
   }
 
   @GameTest(template = "empty")
+  public static void shiftClickMergeMarksIdleMachineForSave(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var level = helper.getLevel();
+    var chunk = level.getChunkAt(machine.getBlockPos());
+    var player = helper.makeMockServerPlayerInLevel();
+    var inventory = player.getInventory();
+    machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 60));
+    inventory.setItem(9, new ItemStack(Items.COPPER_ORE, 8));
+    var menu = new MachineMenu(44, inventory, machine);
+    int source = menu.slots.stream()
+        .filter(slot -> slot.container == inventory && slot.getContainerSlot() == 9)
+        .findFirst().orElseThrow().index;
+    require(!machine.items.hasPlan(0) && machine.energy.stored() == 0,
+        "Regression starts without reservations or power to trigger unrelated saves");
+    try {
+      // Model an already-saved chunk; no server ticks run between this and the assertion.
+      chunk.setUnsaved(false);
+      require(!chunk.isUnsaved(), "Chunk starts clean");
+      require(!menu.quickMoveStack(player, source).isEmpty(), "Shift-click merges into existing input");
+      require(machine.items.getStackInSlot(0).getCount() == 64
+          && inventory.getItem(9).getCount() == 4, "Merge respects capacity and retains the remainder");
+      require(chunk.isUnsaved(), "Shift-click merge must mark the idle machine chunk for saving");
+      var saved = machine.saveWithFullMetadata(level.registryAccess());
+      var copy = (ProcessorEntity) BlockEntity.loadStatic(
+          machine.getBlockPos(), machine.getBlockState(), saved, level.registryAccess());
+      require(copy.items.getStackInSlot(0).getCount() == 64, "Merged stack survives save/load");
+
+      chunk.setUnsaved(false);
+      require(menu.quickMoveStack(player, source).isEmpty(), "Full input rejects another shift-click");
+      require(!chunk.isUnsaved(), "Rejected shift-click does not dirty the machine chunk");
+    } finally {
+      chunk.setUnsaved(true);
+      level.setBlock(machine.getBlockPos(), Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void partialShiftClickExtractionMarksMachineForSave(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var level = helper.getLevel();
+    var chunk = level.getChunkAt(machine.getBlockPos());
+    var player = helper.makeMockServerPlayerInLevel();
+    var inventory = player.getInventory();
+    for (int slot = 0; slot < 36; slot++)
+      inventory.setItem(slot, new ItemStack(Items.COBBLESTONE, 64));
+    inventory.setItem(9, new ItemStack(Items.RAW_COPPER, 60));
+    machine.items.setStackInSlot(1, new ItemStack(Items.RAW_COPPER, 8));
+    var menu = new MachineMenu(45, inventory, machine);
+    try {
+      chunk.setUnsaved(false);
+      require(!chunk.isUnsaved(), "Chunk starts clean before partial extraction");
+      require(!menu.quickMoveStack(player, 1).isEmpty(), "Shift-click tops up the player stack");
+      require(machine.items.getStackInSlot(1).getCount() == 4
+          && inventory.getItem(9).getCount() == 64, "Partial extraction retains four machine items");
+      require(chunk.isUnsaved(), "Partial shift-click extraction must mark the machine chunk for saving");
+      var saved = machine.saveWithFullMetadata(level.registryAccess());
+      var copy = (ProcessorEntity) BlockEntity.loadStatic(
+          machine.getBlockPos(), machine.getBlockState(), saved, level.registryAccess());
+      require(copy.items.getStackInSlot(1).getCount() == 4, "Only the remaining output survives save/load");
+    } finally {
+      chunk.setUnsaved(true);
+      level.setBlock(machine.getBlockPos(), Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void creativePowerFeedsAllFaces(GameTestHelper helper) {
     var level = helper.getLevel();
     var pos = helper.absolutePos(CENTER);
