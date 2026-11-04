@@ -9,24 +9,41 @@ sourceSets {
     }
 }
 
-runs {
-    companionClient {
-        runType 'client'
-        workingDirectory layout.projectDirectory.dir('run/companion')
-        modSources.add('mmdlib_companion', sourceSets.companion)
+neoForge.addModdingDependenciesTo(sourceSets.companion)
+neoForge.addModdingDependenciesTo(sourceSets.companionTest)
+
+neoForge {
+    mods {
+        mmdlib_companion {
+            sourceSet sourceSets.companion
+        }
+        mmdlib_companion_test {
+            sourceSet sourceSets.companion
+            sourceSet sourceSets.companionTest
+        }
     }
-    companionClientSmoke {
-        runType 'client'
-        workingDirectory layout.buildDirectory.dir('companion-client-smoke')
-        modSources.add('mmdlib_companion', sourceSets.companion, sourceSets.companionTest)
-        systemProperty 'mmdlib.companionSmoke', 'true'
-        arguments.addAll '--width', '1280', '--height', '960'
-    }
-    companionGameTestServer {
-        runType 'gameTestServer'
-        workingDirectory layout.buildDirectory.dir('companion-gametest')
-        modSources.add('mmdlib_companion', sourceSets.companion, sourceSets.companionTest)
-        systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib_companion'
+    runs {
+        companionClient {
+            client()
+            gameDirectory = layout.projectDirectory.dir('run/companion')
+            sourceSet = sourceSets.companion
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion]
+        }
+        companionClientSmoke {
+            client()
+            gameDirectory = layout.buildDirectory.dir('companion-client-smoke')
+            sourceSet = sourceSets.companionTest
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
+            systemProperty 'mmdlib.companionSmoke', 'true'
+            programArguments.addAll '--width', '1280', '--height', '960'
+        }
+        companionGameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = layout.buildDirectory.dir('companion-gametest')
+            sourceSet = sourceSets.companionTest
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib_companion'
+        }
     }
 }
 

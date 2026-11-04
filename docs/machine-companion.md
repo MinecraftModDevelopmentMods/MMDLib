@@ -68,8 +68,9 @@ including reserved inputs. Normal `/setblock` and `/fill` replacement clears con
 ./gradlew runCompanionClientSmoke
 ```
 
-Install both `build/libs/mmdlib-2.0.0-alpha.jar` and
-`build/libs/mmdlib-companion-2.0.0-alpha.jar` in a NeoForge instance. JEI is optional.
+Install both `build/libs/mmdlib-<version>.jar` and
+`build/libs/mmdlib-companion-<version>.jar` in a NeoForge instance. JEI is optional.
+Both jars use the build's version (`2.0.0.121012-development` by default, or the release tag).
 `companionJar` contains only the companion; `build` continues to build the library.
 
 `check` includes the companion's eleven server game tests and checks both jars for leaked classes and
@@ -84,6 +85,8 @@ partially extracting their output, plus a rejected transfer that must leave the 
 `runCompanionClientSmoke` creates a separate test world under `build/companion-client-smoke`, opens
 all four menus over the network and captures them under its `screenshots` directory. It is separate
 from `check` because it needs a graphical client. It also accepts `-PwithoutJei`.
+The shared `build_status.yml` workflow runs `check`, builds both jars, and runs the companion
+and library GUI smoke tests. The library smoke is exercised with and without JEI.
 The Crusher capture shows water; `crusher-lava.png` verifies a live change to lava in the same menu.
 It also clicks the gauge to drain a lava bucket and pour it back, verifying cursor and tank sync.
 
