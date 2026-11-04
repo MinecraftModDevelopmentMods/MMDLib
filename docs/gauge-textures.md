@@ -6,7 +6,8 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 `gui.client.GaugeRenderer` draws them; this page describes its texture contract.
 
 These textures supply `<gauge>` and the matching slim background of `<energy-gauge>`. The energy
-renderer draws glossy red charge bars over that background, without a terminal or graduations.
+renderer draws matte red charge bars with a shallow bevel, without a terminal or graduations.
+Both empty interiors use `#808080`, matching the flat centre of the recessed slot sprite.
 
 ## Files
 
@@ -36,8 +37,9 @@ For a gauge of length *L* (≥ 10) at (*x*, *y*):
 3. **Glass**: flush preceding buffered GUI draws, enable source-alpha blending, then draw
    the three `glass_*` pieces in the same arrangement as the body. The renderer restores the
    caller's blend enable/function, depth-test state and shader color after drawing the gauge.
-   The overlay shades across the width at every fill level, including the empty portion. Fluid
-   textures remain visible beneath it; the cylinder effect comes from lighting, not a new outline.
+   The overlay is clipped to the filled portion, leaving the empty interior neutral slot grey.
+   Fluid textures remain visible beneath it; the cylinder effect comes from lighting, not a new
+   outline. The energy gauge uses only the body textures, without this glass overlay.
 4. **Graduations**, drawn in code: colour `#EEF3F6` at 85% opacity, with a 35% black shadow
    pixel directly below each mark pixel. From the left inside edge (x = 1):
    - every 5%: 2 px; every 10%: 3 px; 25/50/75: 7 px (40% of the 16 px inside width)

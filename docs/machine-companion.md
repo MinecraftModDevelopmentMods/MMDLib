@@ -29,7 +29,8 @@ lane can continue. The yellow info tab opens a matching drawer to the left with 
 any current power-stall or blocked-finish warnings. Click the icon again to close it; scroll
 inside to read longer text. All four screens place a vertical battery on the right, using the
 reusable `<energy-gauge>` XML widget. Its red charge bars fill upwards inside a slim casing.
-The energy and fluid gauges share matching edges and lighter empty backgrounds.
+The energy and fluid gauges share matching edges and neutral grey empty backgrounds like slots.
+Energy bars have a matte face and shallow bevel; cylindrical glass shading covers only the fluid.
 The Crusher centers its input, progress arrow and output alongside it.
 Hover the energy display
 for stored and maximum FE; click the first progress arrow to see recipes when JEI is installed.

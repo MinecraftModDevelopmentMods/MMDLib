@@ -5,10 +5,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Element;
 
-/** Glossy charge bars inside the same slim casing as the fluid gauge, without graduations. */
+/** Matte charge bars inside the same slim casing as the fluid gauge, without graduations. */
 final class EnergyGaugeRenderer {
-  // A narrow reflection rolls into a shaded edge, like Tesla Core Lib's RF meter artwork.
-  private static final int[] BAR_LIGHT = {-30, 10, 48, 24, 8, 0, -4, -10, -18, -28, -40, -52};
+  // A shallow bevel surrounds a flat face, without a cylindrical reflection.
+  private static final int[] BAR_LIGHT = {8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -12};
 
   private EnergyGaugeRenderer() {}
 
@@ -30,8 +30,8 @@ final class EnergyGaugeRenderer {
         for (int x = 0; x < BAR_LIGHT.length; x++)
           fill(g, r, vertical, 3 + x, 2 + position, 1, lit, shade(gauge.color(), BAR_LIGHT[x]));
         if (lit >= 3) {
-          fill(g, r, vertical, 3, 2 + position, 12, 1, shade(gauge.color(), -45));
-          fill(g, r, vertical, 4, 1 + position + lit, 9, 1, shade(gauge.color(), 30));
+          fill(g, r, vertical, 3, 2 + position, 12, 1, shade(gauge.color(), -18));
+          fill(g, r, vertical, 3, 1 + position + lit, 12, 1, shade(gauge.color(), 12));
         }
       }
       position += size + 1;

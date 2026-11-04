@@ -21,13 +21,12 @@ import zone.moddev.mc.lib.gui.model.Element;
 final class GaugeRenderer {
   private GaugeRenderer() {}
 
-  /** Shared slim casing and lit empty interior for fluid and energy gauges. */
+  /** Shared slim casing and slot-grey empty interior for fluid and energy gauges. */
   static void background(GuiGraphics g, Rect r, boolean vertical) {
     var state = RenderState.capture();
     try {
       int length = vertical ? r.height() : r.width();
       shell(g, r, vertical, length, "body");
-      shell(g, r, vertical, length, "glass");
     } finally {
       try {
         g.flush();
@@ -80,7 +79,17 @@ final class GaugeRenderer {
       if (vertical && step == filled - 1)
         g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(), 0x4dffffff);
     }
-    shell(g, r, vertical, length, "glass");
+    // Keep the empty area the same neutral grey as slots. Only the contents get curved lighting.
+    if (filled > 0) {
+      if (vertical)
+        g.enableScissor(r.x(), r.bottom() - 1 - filled, r.right(), r.bottom() - 1);
+      else g.enableScissor(r.x() + 1, r.y(), r.x() + 1 + filled, r.bottom());
+      try {
+        shell(g, r, vertical, length, "glass");
+      } finally {
+        g.disableScissor();
+      }
+    }
     int inner = length - 2;
     for (int n = 1; n < 20; n++) {
       boolean major = n == 5 || n == 10 || n == 15;

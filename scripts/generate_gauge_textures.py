@@ -17,7 +17,8 @@ import zlib
 from pathlib import Path
 
 OUTLINE = (0x1E, 0x22, 0x26)
-INTERIOR = (0x85, 0x8C, 0x94)
+# Match the flat centre of recessed_slot() in generate_gui_sprites.py.
+INTERIOR = (0x80, 0x80, 0x80)
 DIGITS = {
     "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
     "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],

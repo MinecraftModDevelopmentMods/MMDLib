@@ -324,7 +324,7 @@ player, menu, and element before running the handler. Hover never reaches the se
 | `group` | Recessed grouping panel | `label`, `tint`, `padding` |
 | `slot` | Item slot from the menu | `index`, `size` (`normal`/`large`), `kind` (`normal`/`upgrade`/`ghost`; `upgrade` holds one item), `tint`, `icon` |
 | `gauge` | Glass graduated gauge ([gauge textures](gauge-textures.md)) | `orientation`, `length` (size or `fill`), `color` (solid fill) or a fluid value |
-| `energy-gauge` | Reusable slim gauge with glossy red charge bars | Defaults: vertical, `length="54"`, `color="#E64B38"`, `value="#getEnergy"`, `max="#getEnergyCapacity"`; all can be overridden |
+| `energy-gauge` | Reusable slim gauge with matte red charge bars | Defaults: vertical, `length="54"`, `color="#E64B38"`, `value="#getEnergy"`, `max="#getEnergyCapacity"`; all can be overridden |
 | `meter` | Compact segmented gauge | `orientation`, `thickness` (5 or 10), `length` (size or `fill`), `color`, `segment`, `gap`, `gap-color` |
 | `progress` | Fill-in progress indicator | `icon` (default arrow), `direction`, `jei-recipes` |
 | `label` | Text | `text` |
@@ -347,7 +347,7 @@ Any screen can use the standard energy gauge:
 
 It is 18 px wide and 54 px tall, fills from the bottom, and shows
 `{value} / {max} FE` on hover using `screen.mmdlib.energy`. It shares the fluid gauge's thin casing
-and lighter shaded empty interior, with no terminal or scale markings. Glossy red charge bars
+and neutral slot-grey empty interior, with no terminal or scale markings. Lightly bevelled red charge bars
 sit inside; the last charged bar fills partially to track the level. Red stays red at every
 charge level. `EnergyGaugeRenderer` draws the bars over the shared gauge background.
 It uses the same binding validation and synchronization as other numeric
