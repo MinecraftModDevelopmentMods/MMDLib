@@ -248,6 +248,14 @@ BANG = ["##", "##", "##", "##", "..", "##"]
 BANG_LOW = ["##", "##", "##", "##", "##", "..", "##"]  # sits lower, inside the triangle's wide part
 
 
+def write_flat_buttons():
+    """Compact controls: uniform 1px outline, flat fill, and an interior-only hover highlight."""
+    for name, fill in (("button_flat", 0x8B), ("button_flat_highlighted", 0xA9)):
+        img = canvas(14, 14, grey(0x37))
+        rect(img, 1, 1, 12, 12, grey(fill))
+        write_png(name, img, {"type": "nine_slice", "width": 14, "height": 14, "border": 1})
+
+
 def write_control_icons():
     """16 px control glyphs with a one-pixel shadow and optional lane/mode badge."""
     def glyph(img, rows, x, y, ink):
@@ -293,6 +301,7 @@ def main():
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
     write_drawer_sprites()
     write_control_icons()
+    write_flat_buttons()
     write_png("checkbox", checkbox(False))
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))

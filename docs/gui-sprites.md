@@ -27,14 +27,16 @@ icons and progress arrows are full colour.
 | `upgrade_speed`, `upgrade_energy`, `upgrade_capacity` | 16×16 | none | Outline shown in an empty upgrade slot |
 | `icon_sides` | 16×16 | none | White cube icon for the side-configuration button |
 | `icon_pause`, `icon_resume` | 16×16 | none | Gold pause bars and green play triangle; `_a` and `_b` variants identify independent lanes |
+| `button_flat`, `button_flat_highlighted` | 14×14 | nine-slice, border 1 | Compact button with a uniform dark outline and flat grey fill; hover lightens only the interior |
 | `icon_redstone_ignore`, `icon_redstone_high`, `icon_redstone_low` | 16×16 | none | Redstone torch with × / + / − mode badge |
 | `icon_info` | 16×16 | none | Pop-out `info`: white serif "i" with a dark outline and transparent background |
 | `icon_warning` | 16×16 | none | Pop-out `warning`: yellow triangle, black "!" |
 | `icon_error` | 16×16 | none | Pop-out `error`: red heater shield, white "!" |
 
 Buttons use vanilla's own `minecraft:widget/button` sprites (and their highlighted and disabled
-versions), so resource packs restyle them; MMDLib ships no button sprite. With `flat="true"`,
-buttons render just a smaller icon and a translucent hover highlight, without a frame.
+versions), so resource packs restyle them. With `flat="true"`, buttons use MMDLib's
+`button_flat` / `button_flat_highlighted` sprites behind a smaller icon. These have a one-pixel
+border and solid background, without raised bevels; resource packs can replace them too.
 
 ## Tinting
 

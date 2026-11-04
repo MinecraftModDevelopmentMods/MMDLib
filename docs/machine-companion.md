@@ -23,7 +23,8 @@ sand, and copper/iron/gold ore becomes two of the corresponding raw material. Th
 200 ticks and 4,000 FE. The dual crusher runs the same recipes in both lanes when there are enough
 inputs and output space.
 
-The bottom of each processor panel has a compact, right-aligned row of frameless icons above the inventory.
+The bottom of each processor panel has a compact, right-aligned row of icon buttons above the inventory,
+with thin dark borders and flat grey backgrounds.
 Click the pause icon to interrupt a lane and release its reservations; it becomes a green play
 icon while paused. Click again to resume. This works without power. The Dual Crusher has separate
 buttons marked A and B; pausing one lane releases only its share, and the other can continue.

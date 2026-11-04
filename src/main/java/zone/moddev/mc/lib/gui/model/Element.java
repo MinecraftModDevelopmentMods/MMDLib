@@ -229,7 +229,7 @@ public sealed interface Element {
    * @param shows the view it switches to, if it is a navigation button
    * @param icons optional icons indexed by its boolean or whole-number value
    * @param valueLabels optional translated names for those states in the tooltip
-   * @param flat whether to use a compact icon without a button frame
+   * @param flat whether to use a compact icon with a flat border and background
    */
   record Button(
       Common common, Optional<Text> text, Optional<ResourceLocation> icon, Optional<ViewRef> shows,

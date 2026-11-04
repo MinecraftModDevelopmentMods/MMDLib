@@ -218,7 +218,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       case Element.Label label -> caption(g, label.text(), r);
       case Element.Button b -> {
         if (b.flat()) {
-          if (r.contains(mx, my)) g.fill(r.x(), r.y(), r.right(), r.bottom(), 0x24ffffff);
+          sprite(g, r.contains(mx, my) ? "mmdlib:button_flat_highlighted" : "mmdlib:button_flat", r);
         } else sprite(
             g,
             r.contains(mx, my) ? "minecraft:widget/button_highlighted" : "minecraft:widget/button",
