@@ -14,11 +14,11 @@
     </hbox>
     <hbox id="controls" spacing="2" align="center">
       <spacer/>
-      <button id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
+      <button flat="true" id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
               icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
               value-labels="screen.mmdlib_companion.redstone.ignore screen.mmdlib_companion.redstone.high screen.mmdlib_companion.redstone.low"
               tooltip="screen.mmdlib_companion.redstone.tip"/>
-      <button id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
+      <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
               icons="mmdlib:icon_pause mmdlib:icon_resume"
               value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
               tooltip="screen.mmdlib_companion.pause.tip"/>

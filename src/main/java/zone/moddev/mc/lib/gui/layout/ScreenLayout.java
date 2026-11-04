@@ -124,7 +124,7 @@ public final class ScreenLayout {
               : new int[] {24, 16};
       case Label label -> new int[] {text.width(label.text()), TextMeasure.LINE_HEIGHT};
       case Button button ->
-          button.text().isPresent()
+          button.flat() ? new int[] {14, 14} : button.text().isPresent()
               ? new int[] {Math.max(20, text.width(button.text().get()) + 8), 20}
               : new int[] {20, 20};
       case Checkbox box -> new int[] {10 + 4 + text.width(box.text()), 10};

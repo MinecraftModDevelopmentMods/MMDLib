@@ -33,7 +33,8 @@ icons and progress arrows are full colour.
 | `icon_error` | 16×16 | none | Pop-out `error`: red heater shield, white "!" |
 
 Buttons use vanilla's own `minecraft:widget/button` sprites (and their highlighted and disabled
-versions), so resource packs restyle them; MMDLib ships no button sprite.
+versions), so resource packs restyle them; MMDLib ships no button sprite. With `flat="true"`,
+buttons render just a smaller icon and a translucent hover highlight, without a frame.
 
 ## Tinting
 

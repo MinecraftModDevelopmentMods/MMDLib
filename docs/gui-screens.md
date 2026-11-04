@@ -270,7 +270,9 @@ bottom automatically. Write `<player-inventory/>` only to place it somewhere els
   boolean (`false` = 0, `true` = 1) or whole-number `value`. Optional `value-labels` supplies
   translated names for `{value}` in the tooltip. When both lists are present their lengths must
   match. Missing or out-of-range values display the first state. These buttons keep the standard
-  20×20 icon-button size; an `hbox` with a leading `spacer` places them against its right edge.
+  20×20 icon-button size by default. Set `flat="true"` for a 14×14 frameless control with a 12×12
+  icon and a subtle hover highlight; flat buttons do not take text captions. An `hbox` with a
+  leading `spacer` places them against its right edge.
 
   ```xml
   <button value="#getPaused" on-click="example:toggle_pause"

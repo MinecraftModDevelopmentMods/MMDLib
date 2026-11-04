@@ -329,6 +329,7 @@
           <xs:attribute name="text-fallback" type="xs:string"/>
           <xs:attribute name="icon" type="resourceId"/>
           <xs:attribute name="shows" type="viewRef"/>
+          <xs:attribute name="flat" type="xs:boolean" default="false"/>
           <xs:attribute name="icons"><xs:simpleType><xs:list itemType="resourceId"/></xs:simpleType></xs:attribute>
           <xs:attribute name="value-labels"><xs:simpleType><xs:list itemType="translationKey"/></xs:simpleType></xs:attribute>
         </xs:extension>

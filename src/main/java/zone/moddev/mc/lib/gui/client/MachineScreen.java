@@ -217,7 +217,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       }
       case Element.Label label -> caption(g, label.text(), r);
       case Element.Button b -> {
-        sprite(
+        if (b.flat()) {
+          if (r.contains(mx, my)) g.fill(r.x(), r.y(), r.right(), r.bottom(), 0x24ffffff);
+        } else sprite(
             g,
             r.contains(mx, my) ? "minecraft:widget/button_highlighted" : "minecraft:widget/button",
             r);
@@ -226,8 +228,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                 t ->
                     g.drawCenteredString(
                         font, text(t), r.x() + r.width() / 2, r.y() + 6, 0xffffff));
+        int iconSize = b.flat() ? 12 : 16;
         b.iconFor(menu.value(e, false))
-            .ifPresent(icon -> blit(g, icon, r.x() + (r.width() - 16) / 2, r.y() + 2, 16, 16));
+            .ifPresent(icon -> blit(g, icon, r.x() + (r.width() - iconSize) / 2,
+                r.y() + (r.height() - iconSize) / 2, iconSize, iconSize));
       }
       case Element.Checkbox c -> {
         sprite(

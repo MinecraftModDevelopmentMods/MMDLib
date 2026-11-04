@@ -251,7 +251,8 @@ public final class ScreenReader {
                 id(node, "icon"),
                 Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse),
                 words(node, "icons").stream().map(ResourceLocation::parse).toList(),
-                words(node, "value-labels").stream().map(key -> new Text(key, Optional.empty())).toList());
+                words(node, "value-labels").stream().map(key -> new Text(key, Optional.empty())).toList(),
+                java.util.Set.of("true", "1").contains(node.attributes().getOrDefault("flat", "false")));
         case "checkbox" -> new Checkbox(c, text(node, "text").orElseThrow());
         case "radio-group" ->
             new RadioGroup(
@@ -449,6 +450,8 @@ public final class ScreenReader {
         throw new ScreenException(source, line, "max needs value");
       switch (element) {
         case Button button -> {
+          if (button.flat() && button.text().isPresent())
+            throw new ScreenException(source, line, "A flat button uses an icon, not a text caption");
           if (c.tooltip().isEmpty())
             throw new ScreenException(source, line, "<button> needs a tooltip saying what it does");
           if (button.text().isEmpty() && button.icon().isEmpty() && button.icons().isEmpty())

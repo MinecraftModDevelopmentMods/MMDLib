@@ -298,6 +298,9 @@ public final class ScreenLoaderTest {
     require(button.iconFor(Boolean.FALSE).orElseThrow().getPath().equals("off"));
     require(button.labelFor(Boolean.TRUE).orElseThrow().key().equals("screen.test.on"));
     require(button.iconFor(BigInteger.valueOf(-1)).orElseThrow().getPath().equals("off"));
+    require(!button.flat());
+    fails("flat buttons require icons", HEAD
+        + "<button flat=\"true\" text=\"screen.test.text\" tooltip=\"screen.test.mode\"/></screen>");
     fails("state icons require value", HEAD
         + "<button icons=\"mmdlib:off mmdlib:on\" tooltip=\"screen.test.mode\"/></screen>");
     fails("state counts must agree", HEAD
@@ -318,7 +321,9 @@ public final class ScreenLoaderTest {
         require(controls.bottom() < layout.inventory().orElseThrow().y());
         require(pause.right() == layout.panel().width() - 7);
         require(redstone.y() == pause.y() && redstone.right() < pause.x());
-        require(pause.width() == 20 && pause.height() == 20);
+        require(pause.width() == 14 && pause.height() == 14);
+        require(((Element.Button) screen.find("redstone").orElseThrow()).flat());
+        require(((Element.Button) screen.find("toggle_0").orElseThrow()).flat());
       }
     }
   }
