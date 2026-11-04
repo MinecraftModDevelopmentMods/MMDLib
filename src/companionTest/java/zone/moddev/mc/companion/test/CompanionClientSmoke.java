@@ -57,7 +57,12 @@ public final class CompanionClientSmoke {
       if (opening) {
         if (++waitingTicks > 400)
           throw new AssertionError("Menu " + stage + " did not render; screen=" + mc.screen
-              + ", block entity=" + mc.level.getBlockEntity(POS));
+              + ", block entity=" + mc.level.getBlockEntity(POS)
+              + ", control stage=" + controlStage + ", fluid stage=" + fluidStage
+              + (mc.screen instanceof MachineScreen screen
+                  ? ", cycle time=" + screen.getMenu().bound.screen().find("progress")
+                      .map(element -> screen.getMenu().value(element, true)).orElse("missing")
+                  : ""));
         var entity = mc.level.getBlockEntity(POS);
         if (!menuRequested && entity != null
             && entity.getType() == CompanionMod.MACHINES.get(stage).type.get()) {
@@ -130,7 +135,7 @@ public final class CompanionClientSmoke {
       if (screen.layout.bounds(energy).right() != screen.layout.panel().width() - 7)
         throw new AssertionError("Energy must sit against the right panel margin");
       if (!(menu.value(energy, false) instanceof Number)) throw new AssertionError("Energy was not synced");
-      if (stage == 0 && controlStage < 4) {
+      if (stage == 0 && controlStage < 5) {
         var dial = menu.bound.screen().find("progress").orElseThrow();
         if (!(dial instanceof zone.moddev.mc.lib.gui.model.Element.Custom)
             || !(menu.value(dial, false) instanceof Number)
@@ -155,6 +160,8 @@ public final class CompanionClientSmoke {
           var bounds = screen.bounds(redstone);
           screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
           screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
+        } else if (controlStage == 4 && !paused && mode.intValue() == 0) {
+          // Wait for the server to acknowledge the redstone reset before checking the cycle.
         } else return;
         controlStage++;
         frames = 0;
@@ -163,7 +170,9 @@ public final class CompanionClientSmoke {
       if (stage < 3) {
         var progress = menu.bound.screen().find("progress").orElseThrow();
         if (!(menu.value(progress, true) instanceof Number n) || n.intValue() <= 0)
-          throw new AssertionError("Cycle time was not synced");
+          // Resume reserves the cycle on a later server tick. An idle snapshot between cycles
+          // is also valid; render frames are not a barrier for server ticks or network updates.
+          return;
         if (menu.getSlot(0).getItem().isEmpty()) throw new AssertionError("Input was not synced");
       }
       String name = menu.bound.screen().id().getPath();
