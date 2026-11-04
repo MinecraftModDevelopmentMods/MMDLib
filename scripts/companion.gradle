@@ -51,6 +51,7 @@ def companionJar = tasks.register('companionJar', Jar) {
     group = 'build'
     description = 'Builds the optional four-machine companion mod.'
     archiveBaseName = 'mmdlib-companion'
+    destinationDirectory = layout.buildDirectory.dir('companion/libs')
     from sourceSets.companion.output
 }
 
@@ -81,6 +82,15 @@ tasks.register('verifyCompanionPackaging') {
     group = 'verification'
     dependsOn tasks.named('jar'), companionJar
     doLast {
+        def libraryDir = tasks.named('jar').get().destinationDirectory.get().asFile.toPath().toAbsolutePath().normalize()
+        def companionFile = companionJar.get().archiveFile.get().asFile
+        if (companionFile.toPath().toAbsolutePath().normalize().startsWith(libraryDir))
+            throw new GradleException('Companion jar must stay outside the library release directory: ' + companionFile)
+        def staleCompanions = fileTree(libraryDir.toFile()) { include 'mmdlib-companion-*.jar' }.files
+        if (!staleCompanions.isEmpty())
+            throw new GradleException('Companion jars in the library release directory; run clean before building: ' + staleCompanions)
+        if (publishing.publications.named('mavenJava').get().artifacts.any { it.file == companionFile })
+            throw new GradleException('Companion jar must not be part of the MMDLib Maven publication')
         new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { jar ->
             def leaked = jar.entries().findAll { it.name.contains('mmdlib_companion') || it.name.startsWith('zone/moddev/mc/companion/') }
             if (leaked) throw new GradleException('Companion content in MMDLib jar: ' + leaked*.name)

@@ -45,9 +45,10 @@ jobs:
 
       - name: Read gradle.properties
         run: |
-          # Keeps the CurseForge ID defined in one place.
+          # Keep the CurseForge ID and archive name defined in gradle.properties.
           prop() { grep -E "^$1\s*=" gradle.properties | cut -d= -f2- | tr -d '[:space:]'; }
           echo "CURSEFORGE_ID=$(prop curseforge_id)" >> "$GITHUB_ENV"
+          echo "MOD_ARCHIVE_NAME=$(prop mod_archive_name)" >> "$GITHUB_ENV"
 
       - name: Build and test
         run: |
@@ -70,10 +71,11 @@ jobs:
         with:
           github-token: ${{ github.token }}
           version: ${{ env.TAG }}
-          # Main jar first so it becomes the primary file, sources/javadoc attached as extras.
+          # Exact release filenames exclude companion jars and stale versions.
           files: |
-            build/libs/!(*-@(sources|javadoc)).jar
-            build/libs/*-@(sources|javadoc).jar
+            build/libs/${{ env.MOD_ARCHIVE_NAME }}-${{ env.TAG }}.jar
+            build/libs/${{ env.MOD_ARCHIVE_NAME }}-${{ env.TAG }}-sources.jar
+            build/libs/${{ env.MOD_ARCHIVE_NAME }}-${{ env.TAG }}-javadoc.jar
 
       - name: Publish to CurseForge
         if: env.HAS_CURSEFORGE == 'true' && env.CURSEFORGE_ID != ''
@@ -84,8 +86,9 @@ jobs:
           curseforge-id: ${{ env.CURSEFORGE_ID }}
           version: ${{ env.TAG }}
           files: |
-            build/libs/!(*-@(sources|javadoc)).jar
-            build/libs/*-@(sources|javadoc).jar
+            build/libs/${{ env.MOD_ARCHIVE_NAME }}-${{ env.TAG }}.jar
+            build/libs/${{ env.MOD_ARCHIVE_NAME }}-${{ env.TAG }}-sources.jar
+            build/libs/${{ env.MOD_ARCHIVE_NAME }}-${{ env.TAG }}-javadoc.jar
           loaders: |
             neoforge
           environment: client | server

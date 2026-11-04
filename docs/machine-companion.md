@@ -75,11 +75,15 @@ including reserved inputs. Normal `/setblock` and `/fill` replacement clears con
 ```
 
 Install both `build/libs/mmdlib-<version>.jar` and
-`build/libs/mmdlib-companion-<version>.jar` in a NeoForge instance. JEI is optional.
+`build/companion/libs/mmdlib-companion-<version>.jar` in a NeoForge instance. JEI is optional.
 Both jars use the build's version (`2.0.0.121012-development` by default, or the release tag).
 `companionJar` contains only the companion; `build` continues to build the library.
+The companion output is separate from the library's CI/release upload directory and Maven
+publication. Release uploads select only the exact library, sources and Javadoc filenames for
+the tag. Run `./gradlew clean` when updating a checkout that still has companion jars in
+`build/libs`; packaging verification rejects those stale jars.
 
-`check` includes the companion's twelve server game tests and checks both jars for leaked classes and
+`check` includes the companion's thirteen server game tests and checks both jars for leaked classes and
 resources. `runCompanionGameTestServer` runs just those tests. They cover all four registrations and
 menus, recipe loading, adjacent power, the one-slot limit and interruption through the menu, two
 shared lanes across save/load, command replacement versus destruction, tank capacity and persistence,
