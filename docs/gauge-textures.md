@@ -6,7 +6,8 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 `gui.client.GaugeRenderer` draws them; this page describes its texture contract.
 
 These textures supply `<gauge>` and the matching slim background of `<energy-gauge>`. The energy
-renderer draws matte red charge bars with a shallow bevel, without a terminal or graduations.
+renderer draws thin red charge bars with a soft reflection, without a terminal or graduations.
+Bars are at most three pixels thick, separated by one-pixel gaps.
 Both empty interiors use `#808080`, matching the flat centre of the recessed slot sprite.
 
 ## Files

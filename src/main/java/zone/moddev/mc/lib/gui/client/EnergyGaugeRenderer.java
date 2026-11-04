@@ -5,10 +5,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Element;
 
-/** Matte charge bars inside the same slim casing as the fluid gauge, without graduations. */
+/** Thin, lightly glossy charge bars inside the shared slim casing, without graduations. */
 final class EnergyGaugeRenderer {
-  // A shallow bevel surrounds a flat face, without a cylindrical reflection.
-  private static final int[] BAR_LIGHT = {8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -12};
+  // A soft reflection and restrained edge shading keep the narrow bars legible.
+  private static final int[] BAR_LIGHT = {4, 12, 18, 12, 5, 0, 0, -2, -4, -6, -10, -16};
 
   private EnergyGaugeRenderer() {}
 
@@ -20,7 +20,8 @@ final class EnergyGaugeRenderer {
 
     // Clip the last charged bar to the actual level, keeping empty and full exact.
     int charged = (int) Math.round(inside * ratio);
-    int count = Math.max(1, (inside + 1) / 6);
+    // At most three pixels per bar, with a one-pixel gap between neighbours.
+    int count = Math.max(1, (inside + 4) / 4);
     int available = inside - (count - 1);
     int position = 0;
     for (int i = 0; i < count; i++) {
@@ -30,9 +31,10 @@ final class EnergyGaugeRenderer {
         for (int x = 0; x < BAR_LIGHT.length; x++)
           fill(g, r, vertical, 3 + x, 2 + position, 1, lit, shade(gauge.color(), BAR_LIGHT[x]));
         if (lit >= 3) {
-          fill(g, r, vertical, 3, 2 + position, 12, 1, shade(gauge.color(), -18));
-          fill(g, r, vertical, 3, 1 + position + lit, 12, 1, shade(gauge.color(), 12));
+          fill(g, r, vertical, 3, 2 + position, 12, 1, shade(gauge.color(), -22));
         }
+        if (lit >= 2)
+          fill(g, r, vertical, 4, 1 + position + lit, 10, 1, shade(gauge.color(), 28));
       }
       position += size + 1;
     }
