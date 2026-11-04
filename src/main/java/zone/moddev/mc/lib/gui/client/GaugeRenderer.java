@@ -21,7 +21,7 @@ import zone.moddev.mc.lib.gui.model.Element;
 final class GaugeRenderer {
   private GaugeRenderer() {}
 
-  /** Shared slim casing and slot-grey empty interior for fluid and energy gauges. */
+  /** Shared slim casing and medium-grey empty interior for fluid and energy gauges. */
   static void background(GuiGraphics g, Rect r, boolean vertical) {
     var state = RenderState.capture();
     try {
@@ -79,7 +79,7 @@ final class GaugeRenderer {
       if (vertical && step == filled - 1)
         g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(), 0x4dffffff);
     }
-    // Keep the empty area the same neutral grey as slots. Only the contents get curved lighting.
+    // Keep the shared empty background flat. Only the contents get curved lighting.
     if (filled > 0) {
       if (vertical)
         g.enableScissor(r.x(), r.bottom() - 1 - filled, r.right(), r.bottom() - 1);

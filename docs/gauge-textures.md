@@ -8,7 +8,7 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 These textures supply `<gauge>` and the matching slim background of `<energy-gauge>`. The energy
 renderer draws thin red charge bars with a soft reflection, without a terminal or graduations.
 Bars are at most four pixels thick, separated by one-pixel gaps.
-Both empty interiors use `#808080`, matching the flat centre of the recessed slot sprite.
+Both empty interiors use `#55595C`, halfway between slot grey and the original dark interior.
 
 ## Files
 
@@ -17,7 +17,7 @@ files rotated 90° clockwise (see below).
 
 | File | Size | Contents |
 |---|---|---|
-| `body_top.png` | 18×5 | Top cap of the tube: thin outline and light grey interior, rounded corners |
+| `body_top.png` | 18×5 | Top cap of the tube: thin outline and medium grey interior, rounded corners |
 | `body_middle.png` | 18×1 | One row of the tube, repeated to fill the length |
 | `body_bottom.png` | 18×5 | Bottom cap |
 | `glass_top.png`, `glass_middle.png`, `glass_bottom.png` | as above | Cylindrical lighting: dark curved sides, a broad lit face, and an off-centre vertical reflection |
@@ -38,7 +38,7 @@ For a gauge of length *L* (≥ 10) at (*x*, *y*):
 3. **Glass**: flush preceding buffered GUI draws, enable source-alpha blending, then draw
    the three `glass_*` pieces in the same arrangement as the body. The renderer restores the
    caller's blend enable/function, depth-test state and shader color after drawing the gauge.
-   The overlay is clipped to the filled portion, leaving the empty interior neutral slot grey.
+   The overlay is clipped to the filled portion, leaving the empty interior flat medium grey.
    Fluid textures remain visible beneath it; the cylinder effect comes from lighting, not a new
    outline. The energy gauge uses only the body textures, without this glass overlay.
 4. **Graduations**, drawn in code: colour `#EEF3F6` at 85% opacity, with a 35% black shadow

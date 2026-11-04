@@ -29,7 +29,7 @@ lane can continue. The yellow info tab opens a matching drawer to the left with 
 any current power-stall or blocked-finish warnings. Click the icon again to close it; scroll
 inside to read longer text. All four screens place a vertical battery on the right, using the
 reusable `<energy-gauge>` XML widget. Its red charge bars fill upwards inside a slim casing.
-The energy and fluid gauges share matching edges and neutral grey empty backgrounds like slots.
+The energy and fluid gauges share matching edges and medium-grey empty backgrounds, darker than slots.
 Energy bars are thin with a soft reflection; cylindrical glass shading covers only the fluid.
 The Crusher centers its input, progress arrow and output alongside it.
 Hover the energy display

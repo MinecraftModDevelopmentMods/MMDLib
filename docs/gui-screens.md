@@ -347,7 +347,7 @@ Any screen can use the standard energy gauge:
 
 It is 18 px wide and 54 px tall, fills from the bottom, and shows
 `{value} / {max} FE` on hover using `screen.mmdlib.energy`. It shares the fluid gauge's thin casing
-and neutral slot-grey empty interior, with no terminal or scale markings. Thin, lightly glossy red charge bars
+and medium-grey empty interior, with no terminal or scale markings. Thin, lightly glossy red charge bars
 sit inside; the last charged bar fills partially to track the level. Red stays red at every
 charge level. `EnergyGaugeRenderer` draws the bars over the shared gauge background.
 It uses the same binding validation and synchronization as other numeric

@@ -2,7 +2,7 @@
 """Generates the graduated-cylinder gauge textures (stdlib only).
 
 Writes to src/main/resources/assets/mmdlib/textures/gui/gauge/:
-  body_top.png, body_middle.png, body_bottom.png    shared casing: outline + light grey interior
+  body_top.png, body_middle.png, body_bottom.png    shared casing: outline + medium grey interior
   glass_top.png, glass_middle.png, glass_bottom.png  translucent highlight drawn over the contents
   digits.png                                         white 3x5 digits 0-9, 4 px apart
 and prints the per-row content clip table for the caps (see docs/gauge-textures.md).
@@ -17,8 +17,8 @@ import zlib
 from pathlib import Path
 
 OUTLINE = (0x1E, 0x22, 0x26)
-# Match the flat centre of recessed_slot() in generate_gui_sprites.py.
-INTERIOR = (0x80, 0x80, 0x80)
+# Halfway between the previous slot grey (#808080) and original dark interior (#2A3137).
+INTERIOR = (0x55, 0x59, 0x5C)
 DIGITS = {
     "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
     "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
