@@ -15,9 +15,17 @@ final class AutomationClientSmoke {
     var mc = Minecraft.getInstance();
     var menu = screen.getMenu();
     var a = menu.automation;
+    if (screen.guiLeft() != (screen.width - screen.layout.panel().width()) / 2
+        || screen.guiTop() != (screen.height - screen.layout.panel().height()) / 2)
+      throw new AssertionError("Drawers must never move the centred main panel");
     if (a.pending()) return false;
     if (stage == 0) {
       if (a.inventory.groups().size() != 7) throw new AssertionError("Seven colour selectors");
+      var info =
+          (zone.moddev.mc.lib.gui.model.Element.Popout)
+              menu.bound.screen().find("info").orElseThrow();
+      if (info.edge() != zone.moddev.mc.lib.gui.model.Element.Edge.LEFT)
+        throw new AssertionError("Information stays on the left");
       a.send("select", 0, -1, "", 0, "");
       stage++;
       return false;
@@ -54,9 +62,16 @@ final class AutomationClientSmoke {
     }
     if (stage == 3) {
       if (a.editor() != 0) throw new AssertionError("Filter editor opens");
-      if (screen.exclusions().size() < 4) throw new AssertionError("Filter extends JEI exclusion");
+      var exclusions = screen.exclusions();
+      if (exclusions.size() != 3)
+        throw new AssertionError("Filter must remain inside the existing drawer exclusion");
+      var drawer = exclusions.getLast();
+      if (drawer.y() != screen.guiTop() || drawer.bottom() != screen.panelBounds().bottom())
+        throw new AssertionError("Opening a filter must not extend the drawer below the panel");
       Screenshot.grab(
           mc.gameDirectory, "automation-filter-grid.png", mc.getMainRenderTarget(), m -> {});
+      if (!screen.mouseScrolled(drawer.x() + 40, drawer.bottom() - 20, 0, -2))
+        throw new AssertionError("The embedded filter grid must scroll inside the drawer");
       a.send("edit", 0, 0, "deny", 0, "");
       stage++;
       return false;

@@ -239,7 +239,8 @@ public final class CompanionClientSmoke {
         frames = 0;
         return;
       }
-      if (stage < 3) {
+      // The empty-tank/empty-energy screenshot intentionally leaves the crusher idle.
+      if (stage < 3 && !(stage == 0 && fluidStage == 5)) {
         var progress = menu.bound.screen().find("progress").orElseThrow();
         if (!(menu.value(progress, true) instanceof Number n) || n.intValue() <= 0)
           // Resume reserves the cycle on a later server tick. An idle snapshot between cycles

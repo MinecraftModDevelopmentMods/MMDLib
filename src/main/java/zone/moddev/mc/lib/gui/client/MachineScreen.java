@@ -175,10 +175,6 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   private void positionAutomation() {
     if (automation == null) return;
-    int extra = AutomationDrawer.RAIL + (menu.automation.open() ? AutomationDrawer.WIDTH : 0);
-    leftPos = Math.max(4, (width - imageWidth - extra) / 2);
-    topPos =
-        menu.automation.open() && menu.automation.editor() >= 0 ? 4 : (height - imageHeight) / 2;
     if (menu.automation.open() && !menu.automation.pending())
       open.removeIf(p -> p.edge() == Element.Edge.RIGHT);
     automation.layout();

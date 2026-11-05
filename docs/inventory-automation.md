@@ -4,6 +4,9 @@ Implement `ScreenHost.screenAutomation()` to opt a machine into the inventory dr
 screens need no new XML element. The host inserts a colour selector row above the player inventory,
 reserves the first right drawer button, and places a second selector vertically inside the drawer.
 Each selection configures one resource group. F6 focuses the selector; arrow keys change inventory.
+The main inventory panel remains centred when drawers or filters open. Information drawers stay
+on the left; inventory side configuration stays on the right. Filter controls occupy a framed,
+scrollable region inside the configuration drawer below the addon slots.
 
 ## Define independent resource groups
 
