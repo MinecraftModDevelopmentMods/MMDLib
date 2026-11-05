@@ -3,7 +3,7 @@
   <vbox padding="7" spacing="4">
     <hbox spacing="6" align="center">
       <spacer/>
-      <slot index="0"/>
+      <slot id="input" index="0"/>
       <vbox spacing="4">
         <hbox spacing="4" align="center">
           <label text="screen.mmdlib_companion.lane_a" text-fallback="Lane A"/>
@@ -14,7 +14,7 @@
           <progress id="second_progress" value="#getSecondProgress" max="#getSecondTime"/>
         </hbox>
       </vbox>
-      <slot index="1"/>
+      <slot id="output" index="1"/>
       <spacer/>
       <energy-gauge id="energy" length="3s"/>
     </hbox>

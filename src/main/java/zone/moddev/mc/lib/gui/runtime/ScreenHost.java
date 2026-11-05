@@ -14,11 +14,16 @@ public interface ScreenHost {
   /**
    * The inventory behind the screen's {@code <slot index>} elements, numbered as in the XML;
    * returning an {@code ItemStorage} keeps its output restrictions and filters for players. It must
-   * work on the client too, where the menu asks it what each slot accepts to predict clicks.
-   * A custom handler or wrapper with reservations must also implement {@code ReservedSlots},
+   * work on the client too, where the menu asks it what each slot accepts to predict clicks. A
+   * custom handler or wrapper with reservations must also implement {@code ReservedSlots},
    * including its plan snapshots, so both menu sides enforce the same reservations.
    */
   IItemHandlerModifiable screenItems();
+
+  /** Opt in to coloured resource groups and the interactive inventory drawer. */
+  default zone.moddev.mc.lib.api.automation.AutomationInventory screenAutomation() {
+    return null;
+  }
 
   /** Ordered destinations for a player inventory stack; storage still decides what it accepts. */
   default int[] screenDestinations(ItemStack stack) {
@@ -31,8 +36,8 @@ public interface ScreenHost {
   }
 
   /**
-   * The side configuration of each group, keyed by the element ids in {@code <side-config
-   * groups>}; a group missing from the map shows no modes and ignores clicks.
+   * The side configuration of each group, keyed by the element ids in {@code <side-config groups>};
+   * a group missing from the map shows no modes and ignores clicks.
    */
   default Map<String, SideConfig> screenSides() {
     return Map.of();

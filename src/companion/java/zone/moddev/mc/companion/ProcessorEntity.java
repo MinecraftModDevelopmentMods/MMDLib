@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -21,6 +22,8 @@ import net.minecraft.world.level.material.Fluids;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 
+import zone.moddev.mc.lib.api.automation.*;
+import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.api.capabilities.FluidStorage;
 import zone.moddev.mc.lib.api.capabilities.ItemStorage;
 import zone.moddev.mc.lib.api.capabilities.Role;
@@ -34,17 +37,21 @@ import zone.moddev.mc.lib.machine.neoforge.FeatureSync;
 import zone.moddev.mc.lib.machine.neoforge.StorageGroups;
 
 /** The dual crusher deliberately runs two lanes over the same input and output groups. */
-public final class ProcessorEntity extends DemoEntity implements ScreenHost, DropsContents, Clearable {
+public final class ProcessorEntity extends DemoEntity
+    implements ScreenHost, DropsContents, Clearable {
   public enum Kind {
     CRUSHER,
     TRANSMUTER,
-    DUAL
+    DUAL,
+    LOGISTICS
   }
 
   public final ItemStorage items;
+  public final AutomationInventory automation;
   public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
   public final List<RecipeProcessor> lanes;
-  public final FeatureHost features = new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
+  public final FeatureHost features =
+      new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
   private final Kind kind;
   // 0 ignores redstone, 1 requires a signal, 2 requires no signal. Manual pause is separate.
   private int redstoneMode;
@@ -78,16 +85,22 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
     super(type, pos, state);
     this.kind = kind;
     if (kind == Kind.CRUSHER)
-      fluids.addTank(4_000, Role.STORAGE,
+      fluids.addTank(
+          4_000,
+          Role.STORAGE,
           fluid -> fluid.getFluid() == Fluids.WATER || fluid.getFluid() == Fluids.LAVA);
+    if (kind == Kind.LOGISTICS)
+      for (int i = 0; i < 4; i++) fluids.addTank(4000, i < 2 ? Role.INPUT : Role.OUTPUT);
     var inventory = MachineInventory.builder().group("energy", StorageGroups.energy(energy));
     if (kind == Kind.TRANSMUTER) {
       // One key, and one item: the recipe consumes the whole slot before inserting gold.
       items = new ItemStorage(1).limit(1, 0).onChange(this::setChanged);
       inventory.group("slot", StorageGroups.items(items, 0));
     } else {
-      items = new ItemStorage(2).role(Role.INPUT, 0).role(Role.OUTPUT, 1).onChange(this::setChanged);
-      inventory.group("input", StorageGroups.items(items, 0))
+      items =
+          new ItemStorage(2).role(Role.INPUT, 0).role(Role.OUTPUT, 1).onChange(this::setChanged);
+      inventory
+          .group("input", StorageGroups.items(items, 0))
           .group("output", StorageGroups.items(items, 1));
     }
     var shared = inventory.build();
@@ -99,12 +112,85 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
       features.add(processor);
     }
     lanes = List.copyOf(processors);
+    var groups = new ArrayList<ResourceGroup<?>>();
+    groups.add(
+        itemGroup("input", 0, 0x568bd8, kind == Kind.TRANSMUTER ? IoMode.BOTH : IoMode.INPUT));
+    if (kind != Kind.TRANSMUTER) groups.add(itemGroup("output", 1, 0xe48f45, IoMode.OUTPUT));
+    int[] colours = {0x64bfc1, 0xa678cb, 0xe0c55d, 0xce668e};
+    for (int i = 0; i < fluids.getTanks(); i++) {
+      final int tank = i;
+      var group =
+          new ResourceGroup<>(
+              "tank_" + i,
+              Component.translatable("screen.mmdlib_companion.group.tank", i + 1),
+              colours[i],
+              ResourceType.FLUIDS,
+              kind == Kind.CRUSHER ? IoMode.BOTH : (i < 2 ? IoMode.INPUT : IoMode.OUTPUT),
+              List.of(i),
+              List.of(i == 0 ? "tank" : "tank_" + i),
+              new SideConfig(
+                  kind == Kind.CRUSHER ? IoMode.BOTH : (i < 2 ? IoMode.INPUT : IoMode.OUTPUT)));
+      group.bind(
+          () -> Direction.NORTH,
+          side -> fluids.view(index -> index == tank ? group.mode(side) : IoMode.DISABLED));
+      groups.add(group);
+    }
+    var energyGroup =
+        new ResourceGroup<>(
+            "energy",
+            Component.translatable("screen.mmdlib_companion.group.energy"),
+            0xd85b5b,
+            ResourceType.ENERGY,
+            kind == Kind.LOGISTICS ? IoMode.BOTH : IoMode.INPUT,
+            List.of(0),
+            List.of("energy"),
+            new SideConfig(kind == Kind.LOGISTICS ? IoMode.BOTH : IoMode.INPUT));
+    if (kind == Kind.LOGISTICS) energy.setRates(1000, 1000);
+    energyGroup.bind(() -> Direction.NORTH, side -> energy.view(() -> energyGroup.mode(side)));
+    groups.add(energyGroup);
+    automation = new AutomationInventory(this, groups);
+  }
+
+  private ResourceGroup<net.neoforged.neoforge.items.IItemHandler> itemGroup(
+      String id, int slot, int colour, IoMode mode) {
+    var group =
+        new ResourceGroup<>(
+            id,
+            Component.translatable("screen.mmdlib_companion.group." + id),
+            colour,
+            ResourceType.ITEMS,
+            mode,
+            List.of(slot),
+            List.of(id),
+            new SideConfig(mode));
+    return group.bind(
+        () -> Direction.NORTH,
+        side -> items.view(index -> index == slot ? group.mode(side) : IoMode.DISABLED));
+  }
+
+  @Override
+  public AutomationInventory screenAutomation() {
+    return automation;
   }
 
   @Override
   public void serverTick() {
-    if (redstoneAllowsRun() && energy.stored() >= energy.capacity() * reservePercent / 100)
-      features.tick(level);
+    if (kind != Kind.LOGISTICS
+        && redstoneAllowsRun()
+        && energy.stored() >= energy.capacity() * reservePercent / 100) features.tick(level);
+    AutomationTransfers.tick(automation, energy);
+  }
+
+  public FluidStack getTank1() {
+    return fluids.getFluidInTank(1);
+  }
+
+  public FluidStack getTank2() {
+    return fluids.getFluidInTank(2);
+  }
+
+  public FluidStack getTank3() {
+    return fluids.getFluidInTank(3);
   }
 
   public int getRedstoneMode() {
@@ -117,8 +203,7 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   }
 
   private boolean redstoneAllowsRun() {
-    return redstoneMode == 0
-        || (level.hasNeighborSignal(worldPosition) == (redstoneMode == 1));
+    return redstoneMode == 0 || (level.hasNeighborSignal(worldPosition) == (redstoneMode == 1));
   }
 
   public void toggle(int index) {
@@ -177,9 +262,13 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
     for (int i = 0; i < lanes.size(); i++) {
       var status = lanes.get(i).status();
       if (status == RecipeProcessor.Status.STALLED || status == RecipeProcessor.Status.BLOCKED)
-        warnings.add(Component.translatable("screen.mmdlib_companion.lane_" + (i == 0 ? "a" : "b"))
-            .append(": ").append(Component.translatable(
-                "status.mmdlib_companion." + status.name().toLowerCase(java.util.Locale.ROOT))));
+        warnings.add(
+            Component.translatable("screen.mmdlib_companion.lane_" + (i == 0 ? "a" : "b"))
+                .append(": ")
+                .append(
+                    Component.translatable(
+                        "status.mmdlib_companion."
+                            + status.name().toLowerCase(java.util.Locale.ROOT))));
     }
     return warnings;
   }
@@ -198,17 +287,19 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   @Override
   public void dropContents(Level level, BlockPos pos) {
     items.dropAll(level, pos);
+    automation.dropAll();
   }
 
   @Override
   public void clearContent() {
+    automation.clear();
     lanes.forEach(RecipeProcessor::reset);
     for (int slot = 0; slot < items.getSlots(); slot++) {
       items.setPlan(slot, SlotPlan.NONE);
       items.setStackInSlot(slot, ItemStack.EMPTY);
     }
     energy.setStored(0);
-    if (hasTank()) fluids.tank(0).setFluid(FluidStack.EMPTY);
+    for (int i = 0; i < fluids.getTanks(); i++) fluids.tank(i).setFluid(FluidStack.EMPTY);
     setChanged();
     FeatureSync.send(this);
   }
@@ -217,6 +308,7 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
   protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
     super.saveAdditional(tag, registries);
     tag.put("items", items.serializeNBT(registries));
+    tag.put("automation", automation.save(registries));
     tag.putInt("redstone_mode", redstoneMode);
     tag.putString("machine_name", machineName);
     tag.putInt("reserve_percent", reservePercent);
@@ -239,7 +331,9 @@ public final class ProcessorEntity extends DemoEntity implements ScreenHost, Dro
             : "Crusher";
     reservePercent = Math.clamp(tag.getInt("reserve_percent"), 0, 100);
     items.deserializeNBT(registries, tag.getCompound("items"));
-    if (hasTank() && tag.contains("fluids")) fluids.deserializeNBT(registries, tag.getCompound("fluids"));
+    automation.load(tag.getCompound("automation"), registries);
+    if (hasTank() && tag.contains("fluids"))
+      fluids.deserializeNBT(registries, tag.getCompound("fluids"));
     features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));
   }
 

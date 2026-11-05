@@ -4,6 +4,10 @@
 > open through `block-right-click`, and use one generic menu with custom value packets.
 > Rendering and optional JEI integration live exclusively on the client.
 
+Machines can opt into [inventory colours, side drawers and item-provided filter editors](inventory-automation.md)
+through `ScreenHost.screenAutomation()`. This adds the selectors, fixed addon/filter slots and
+embedded editor without adding per-filter XML to each screen.
+
 ## Implementation map
 
 | Piece | Where | State |

@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.api.capabilities;
 
 import java.util.Arrays;
+import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -158,6 +159,11 @@ public class ItemStorage extends PlannedItemHandler {
    * numbering; a slot index out of range is refused rather than thrown.
    */
   public IItemHandler view(Supplier<IoMode> mode) {
+    return view(slot -> mode.get());
+  }
+
+  /** Per-slot permissions, preserving every slot index and all storage reservations. */
+  public IItemHandler view(IntFunction<IoMode> mode) {
     return new IItemHandler() {
       @Override
       public int getSlots() {
@@ -171,13 +177,14 @@ public class ItemStorage extends PlannedItemHandler {
 
       @Override
       public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-        if (!inRange(slot) || !roles[slot].canInsert() || !mode.get().canInsert()) return stack;
+        if (!inRange(slot) || !roles[slot].canInsert() || !mode.apply(slot).canInsert())
+          return stack;
         return ItemStorage.this.insertItem(slot, stack, simulate);
       }
 
       @Override
       public ItemStack extractItem(int slot, int amount, boolean simulate) {
-        if (!inRange(slot) || !roles[slot].canExtract() || !mode.get().canExtract())
+        if (!inRange(slot) || !roles[slot].canExtract() || !mode.apply(slot).canExtract())
           return ItemStack.EMPTY;
         return ItemStorage.this.extractItem(slot, amount, simulate);
       }
@@ -191,7 +198,7 @@ public class ItemStorage extends PlannedItemHandler {
       public boolean isItemValid(int slot, ItemStack stack) {
         return inRange(slot)
             && roles[slot].canInsert()
-            && mode.get().canInsert()
+            && mode.apply(slot).canInsert()
             && ItemStorage.this.isItemValid(slot, stack);
       }
     };

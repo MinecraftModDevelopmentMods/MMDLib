@@ -17,6 +17,44 @@ public final class CompanionWidgetsClient {
 
   @SubscribeEvent
   public static void setup(FMLClientSetupEvent event) {
+    zone.moddev.mc.lib.gui.client.FilterWidgets.register(
+        zone.moddev.mc.companion.CompanionAddons.TAG_MODE,
+        access ->
+            new zone.moddev.mc.lib.gui.client.FilterWidgets.Instance() {
+              public void render(
+                  net.minecraft.client.gui.GuiGraphics g,
+                  zone.moddev.mc.lib.gui.layout.Rect r,
+                  net.minecraft.nbt.CompoundTag config,
+                  int mx,
+                  int my) {
+                g.fill(
+                    r.x(),
+                    r.y(),
+                    r.x() + 14,
+                    r.y() + 14,
+                    config.getBoolean("deny") ? 0xffb95555 : 0xff55a776);
+                g.renderOutline(r.x(), r.y(), 14, 14, 0xff263b50);
+                g.fill(r.x() + 3, r.y() + 6, r.x() + 11, r.y() + 8, 0xffffffff);
+                if (!config.getBoolean("deny"))
+                  g.fill(r.x() + 6, r.y() + 3, r.x() + 8, r.y() + 11, 0xffffffff);
+              }
+
+              public net.minecraft.network.chat.Component tooltip() {
+                return net.minecraft.network.chat.Component.translatable(
+                    "screen.mmdlib_companion.filter.deny");
+              }
+
+              public boolean click(double x, double y, int button) {
+                if (!access.pending().getAsBoolean())
+                  access.submit().accept(!access.configuration().get().getBoolean("deny"));
+                return true;
+              }
+
+              public boolean key(int key, int scan, int modifiers) {
+                if (key == 257 || key == 32) return click(0, 0, 0);
+                return false;
+              }
+            });
     WidgetRenderers.GLOBAL.registerInteractive(CompanionWidgets.NAME_EDITOR, NameEditor::new);
     WidgetRenderers.GLOBAL.registerInteractive(CompanionWidgets.RESERVE_SLIDER, ReserveSlider::new);
     WidgetRenderers.GLOBAL.registerInteractive(CompanionWidgets.LANE_SELECTOR, LaneSelector::new);

@@ -74,6 +74,25 @@ public final class ScreenLayout {
     return layout;
   }
 
+  /** Reserves an actual row above the player inventory for resource-group selectors. */
+  public static ScreenLayout of(Screen screen, TextMeasure text, boolean automation) {
+    var layout = of(screen, text);
+    if (automation && layout.inventory != null) {
+      int start = layout.inventory.y();
+      layout.bounds.replaceAll((element, rect) -> rect.y() >= start ? rect.offset(0, 18) : rect);
+      layout.inventory = layout.inventory.offset(0, 18);
+      layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + 18);
+    }
+    if (automation) {
+      layout.bounds.replaceAll(
+          (e, r) ->
+              r.x() >= layout.panel.width() - TAB_OVERLAP
+                  ? r.offset(0, POPOUT_HEIGHT + TAB_GAP)
+                  : r);
+    }
+    return layout;
+  }
+
   /** The main panel, at (0, 0). */
   public Rect panel() {
     return panel;
@@ -116,7 +135,8 @@ public final class ScreenLayout {
       case Slot slot -> slot.size() == SlotSize.LARGE ? new int[] {26, 26} : new int[] {18, 18};
       // A fill length counts as its minimum here; placement stretches it.
       case Gauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
-      case EnergyGauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
+      case EnergyGauge gauge ->
+          oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
       case Meter meter ->
           oriented(meter.orientation(), meter.thickness(), meter.fills() ? 4 : meter.length());
       case Progress progress ->
@@ -125,9 +145,11 @@ public final class ScreenLayout {
               : new int[] {24, 16};
       case Label label -> new int[] {text.width(label.text()), TextMeasure.LINE_HEIGHT};
       case Button button ->
-          button.flat() ? new int[] {14, 14} : button.text().isPresent()
-              ? new int[] {Math.max(20, text.width(button.text().get()) + 8), 20}
-              : new int[] {20, 20};
+          button.flat()
+              ? new int[] {14, 14}
+              : button.text().isPresent()
+                  ? new int[] {Math.max(20, text.width(button.text().get()) + 8), 20}
+                  : new int[] {20, 20};
       case Checkbox box -> new int[] {10 + 4 + text.width(box.text()), 10};
       case Radio radio -> new int[] {10 + 4 + text.width(radio.text()), 10};
       case RadioGroup group -> {

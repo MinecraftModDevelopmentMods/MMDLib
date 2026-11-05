@@ -4,7 +4,7 @@
     <label text="screen.mmdlib_companion.single" text-fallback="One iron in, one gold out"/>
     <hbox spacing="6" align="center">
       <spacer/>
-      <slot index="0"/>
+      <slot id="input" index="0"/>
       <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:transmuting"/>
       <spacer/>
       <energy-gauge id="energy" length="3s"/>
