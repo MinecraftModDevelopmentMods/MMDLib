@@ -26,4 +26,11 @@ public record AddonSpec(
   public boolean accepts(ResourceGroup<?> group) {
     return group.type() == resource && group.supports(direction);
   }
+
+  /** Transfer roles are independent of item ID or tier; BOTH occupies both roles. */
+  public boolean conflictsWith(AddonSpec other) {
+    return resource == other.resource
+        && ((direction.canInsert() && other.direction.canInsert())
+            || (direction.canExtract() && other.direction.canExtract()));
+  }
 }

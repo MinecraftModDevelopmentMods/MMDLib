@@ -54,10 +54,8 @@ public final class AutomationMenu {
               @Override
               public boolean isItemValid(int slot, ItemStack stack) {
                 int g = slot / 8, sub = slot % 8;
-                if (sub < 4) {
-                  var addon = stack.getCapability(AddonCapabilities.ADDON);
-                  return addon != null && addon.specification(stack).accepts(inventory.group(g));
-                }
+                if (sub < 4)
+                  return AutomationInventory.acceptsAddon(inventory.group(g), this, slot, stack);
                 var parent = getStackInSlot(g * 8 + sub - 4);
                 var addon = parent.getCapability(AddonCapabilities.ADDON);
                 return addon != null

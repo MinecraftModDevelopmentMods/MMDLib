@@ -9,6 +9,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
+import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import zone.moddev.mc.lib.api.capabilities.*;
@@ -64,6 +65,8 @@ public final class AutomationInventory {
           public void setStackInSlot(int slot, ItemStack stack) {
             if (stack.getCount() > 1)
               throw new IllegalArgumentException("One addon/filter per slot");
+            if (!loading && !stack.isEmpty() && !accepts(slot, stack))
+              throw new IllegalArgumentException("Incompatible or duplicate addon/filter role");
             // Even replacing an identical stack is a new attachment generation.
             if (!loading && slot % SLOTS_PER_GROUP < COLUMNS)
               detach(slot / SLOTS_PER_GROUP, slot % COLUMNS);
@@ -151,12 +154,30 @@ public final class AutomationInventory {
   public boolean accepts(int slot, ItemStack stack) {
     if (slot < 0 || slot >= groups.size() * SLOTS_PER_GROUP || stack.isEmpty()) return false;
     int group = slot / SLOTS_PER_GROUP, sub = slot % SLOTS_PER_GROUP;
-    if (sub < COLUMNS) {
-      var capability = stack.getCapability(AddonCapabilities.ADDON);
-      return capability != null && capability.specification(stack).accepts(group(group));
-    }
+    if (sub < COLUMNS) return acceptsAddon(group(group), slots, slot, stack);
     return filterSupported(group, sub - COLUMNS)
         && acceptsFilter(addon(group, sub - COLUMNS), stack);
+  }
+
+  /** Shared by authoritative storage and the menu's separate client-side slot snapshot. */
+  public static boolean acceptsAddon(
+      ResourceGroup<?> group, IItemHandler contents, int slot, ItemStack stack) {
+    if (slot < 0
+        || slot >= contents.getSlots()
+        || slot % SLOTS_PER_GROUP >= COLUMNS
+        || stack.isEmpty()) return false;
+    var capability = stack.getCapability(AddonCapabilities.ADDON);
+    if (capability == null) return false;
+    var spec = capability.specification(stack);
+    if (!spec.accepts(group)) return false;
+    int base = slot - slot % SLOTS_PER_GROUP;
+    for (int c = 0; c < COLUMNS; c++) {
+      if (base + c == slot) continue;
+      var other = contents.getStackInSlot(base + c);
+      var provider = other.getCapability(AddonCapabilities.ADDON);
+      if (provider != null && spec.conflictsWith(provider.specification(other))) return false;
+    }
+    return true;
   }
 
   private boolean acceptsFilter(ItemStack addon, ItemStack filter) {
@@ -196,11 +217,24 @@ public final class AutomationInventory {
     recovery.clear();
   }
 
-  /** Recheck capabilities after reload/definition changes, preserving invalid installed items. */
+  /** Preserve incompatible items; recover duplicate roles and orphaned filters without loss. */
   public void revalidate() {
-    for (int g = 0; g < groups.size(); g++)
-      for (int c = 0; c < COLUMNS; c++)
+    for (int g = 0; g < groups.size(); g++) {
+      var claimed = new ArrayList<AddonSpec>();
+      for (int c = 0; c < COLUMNS; c++) {
+        var stack = addon(g, c);
+        var provider = stack.getCapability(AddonCapabilities.ADDON);
+        if (provider != null) {
+          var spec = provider.specification(stack);
+          if (claimed.stream().anyMatch(spec::conflictsWith)) {
+            // Keep the first role after reload; recover duplicates and their attached filters.
+            recovery.add(stack.copy());
+            slots.setStackInSlot(addonSlot(g, c), ItemStack.EMPTY);
+          } else claimed.add(spec);
+        }
         if (!filter(g, c).isEmpty() && addon(g, c).isEmpty()) detach(g, c);
+      }
+    }
   }
 
   public boolean edit(

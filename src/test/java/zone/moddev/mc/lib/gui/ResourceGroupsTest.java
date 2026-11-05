@@ -59,6 +59,46 @@ class ResourceGroupsTest {
   }
 
   @Test
+  void transferRolesConflictAcrossItemIdsAndTiers() {
+    var input =
+        new AddonSpec(
+            ResourceLocation.parse("test:puller"),
+            ResourceType.ITEMS,
+            IoMode.INPUT,
+            8,
+            20,
+            4,
+            true);
+    var faster =
+        new AddonSpec(
+            ResourceLocation.parse("test:fast_puller"),
+            ResourceType.ITEMS,
+            IoMode.INPUT,
+            64,
+            5,
+            1,
+            true);
+    var output =
+        new AddonSpec(
+            ResourceLocation.parse("test:pusher"),
+            ResourceType.ITEMS,
+            IoMode.OUTPUT,
+            8,
+            20,
+            4,
+            true);
+    var both =
+        new AddonSpec(
+            ResourceLocation.parse("test:both"), ResourceType.ITEMS, IoMode.BOTH, 8, 20, 4, true);
+    assertTrue(input.conflictsWith(faster));
+    assertTrue(faster.conflictsWith(input));
+    assertFalse(input.conflictsWith(output));
+    assertTrue(both.conflictsWith(input));
+    assertTrue(both.conflictsWith(output));
+    assertTrue(both.conflictsWith(both));
+  }
+
+  @Test
   void rejectsStaleCyclesAndFollowsRotation() {
     var input = group(ResourceType.ITEMS, IoMode.INPUT);
     input.bind(() -> Direction.EAST, side -> null);

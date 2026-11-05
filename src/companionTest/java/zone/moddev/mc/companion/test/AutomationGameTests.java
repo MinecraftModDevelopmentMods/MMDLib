@@ -316,6 +316,135 @@ public final class AutomationGameTests {
   }
 
   @GameTest(template = "empty", timeoutTicks = 100)
+  public static void outputAddonsTransferItemsFluidsAndEnergyThroughFilters(GameTestHelper h) {
+    var machine = place(h);
+    var pos = machine.getBlockPos().relative(Direction.NORTH);
+    h.getLevel().setBlock(pos, CompanionMod.LOGISTICS.block.get().defaultBlockState(), 3);
+    var target = (ProcessorEntity) h.getLevel().getBlockEntity(pos);
+    machine.energy.setStored(10_000);
+    // Leave room for one export batch without draining the source's powered item/fluid addons.
+    target.energy.setStored(target.energy.capacity() - 1000);
+    long totalEnergy = machine.energy.stored() + target.energy.stored();
+    machine.items.setStackInSlot(1, new ItemStack(Items.DIAMOND, 16));
+    machine
+        .fluids
+        .tank(2)
+        .setFluid(
+            new net.neoforged.neoforge.fluids.FluidStack(
+                net.minecraft.world.level.material.Fluids.WATER, 500));
+    var a = machine.automation;
+    a.slots()
+        .setStackInSlot(
+            AutomationInventory.addonSlot(1, 0), new ItemStack(CompanionAddons.PUSHER.get()));
+    a.slots()
+        .setStackInSlot(
+            AutomationInventory.filterSlot(1, 0),
+            new ItemStack(CompanionAddons.LARGE_FILTER.get()));
+    a.slots()
+        .setStackInSlot(
+            AutomationInventory.addonSlot(4, 0), new ItemStack(CompanionAddons.OUTPUT_PUMP.get()));
+    a.slots()
+        .setStackInSlot(
+            AutomationInventory.filterSlot(4, 0),
+            new ItemStack(CompanionAddons.FLUID_FILTER.get()));
+    a.slots()
+        .setStackInSlot(
+            AutomationInventory.addonSlot(6, 0), new ItemStack(CompanionAddons.EXPORT_RELAY.get()));
+    sample(h, a, 1, 35, new ItemStack(Items.DIRT));
+    sample(h, a, 4, 0, new ItemStack(Items.LAVA_BUCKET));
+    h.runAfterDelay(
+        25,
+        () -> {
+          require(
+              target.items.getStackInSlot(0).isEmpty() && target.fluids.getFluidInTank(0).isEmpty(),
+              "Item and fluid filters block disallowed exports");
+          require(
+              machine.energy.stored() + target.energy.stored() == totalEnergy
+                  && target.energy.stored() == target.energy.capacity(),
+              "Export relay moves energy; refused item/fluid transfers spend no RF");
+          sample(h, a, 1, 35, new ItemStack(Items.DIAMOND));
+          sample(h, a, 4, 0, new ItemStack(Items.WATER_BUCKET));
+        });
+    h.runAfterDelay(
+        70,
+        () -> {
+          require(
+              machine.items.getStackInSlot(1).isEmpty()
+                  && target.items.getStackInSlot(0).getCount() == 16,
+              "Pusher exports every allowed item");
+          require(
+              machine.fluids.getFluidInTank(2).isEmpty()
+                  && target.fluids.getFluidInTank(0).getAmount() == 500,
+              "Output pump exports the allowed fluid");
+          require(
+              machine.energy.stored() + target.energy.stored() == totalEnergy - 564,
+              "Only actual exports cost RF: 16 items at 4 RF and 500 mB at 1 RF");
+          h.succeed();
+        });
+  }
+
+  private static void sample(
+      GameTestHelper h, AutomationInventory a, int group, int entry, ItemStack sample) {
+    require(
+        a.edit(
+            group,
+            0,
+            a.generation(group, 0),
+            a.revision(group, 0),
+            "samples",
+            entry,
+            "sample",
+            sample,
+            h.getLevel().registryAccess()),
+        "Filter sample accepted");
+  }
+
+  @GameTest(template = "empty", timeoutTicks = 80)
+  public static void tagFilterControlsRealPulling(GameTestHelper h) {
+    var machine = place(h);
+    var pos = machine.getBlockPos().relative(Direction.NORTH);
+    h.getLevel().setBlock(pos, Blocks.CHEST.defaultBlockState(), 3);
+    var chest = (ChestBlockEntity) h.getLevel().getBlockEntity(pos);
+    chest.setItem(0, new ItemStack(Items.DIRT, 8));
+    chest.setItem(1, new ItemStack(Items.OAK_PLANKS, 8));
+    var a = machine.automation;
+    a.slots().setStackInSlot(0, new ItemStack(CompanionAddons.PULLER.get()));
+    a.slots().setStackInSlot(4, new ItemStack(CompanionAddons.TAG_FILTER.get()));
+    require(
+        a.edit(
+            0,
+            0,
+            a.generation(0, 0),
+            a.revision(0, 0),
+            "tag",
+            0,
+            "minecraft:planks",
+            ItemStack.EMPTY,
+            h.getLevel().registryAccess()),
+        "Tag filter configured");
+    h.runAfterDelay(
+        22,
+        () -> {
+          require(machine.items.getStackInSlot(0).isEmpty(), "Unpowered puller cannot transfer");
+          machine.energy.setStored(1000);
+        });
+    h.runAfterDelay(
+        65,
+        () -> {
+          require(
+              machine.items.getStackInSlot(0).is(Items.OAK_PLANKS)
+                  && machine.items.getStackInSlot(0).getCount() == 8,
+              "Tag filter allows matching planks");
+          require(
+              chest.getItem(0).getCount() == 8 && chest.getItem(1).isEmpty(),
+              "Tag filter leaves dirt behind");
+          require(
+              machine.energy.stored() == 968, "Powered tag-filtered transfer pays actual RF cost");
+          h.succeed();
+        });
+  }
+
+  @GameTest(template = "empty", timeoutTicks = 100)
   public static void poweredPullerHonoursFilterAndDisabledSides(GameTestHelper h) {
     var machine = place(h);
     var pos = machine.getBlockPos().relative(Direction.NORTH);

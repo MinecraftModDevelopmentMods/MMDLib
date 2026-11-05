@@ -51,6 +51,11 @@ resource type and supported inventory operations. Disabling every face does not 
 
 Each group has four addon slots. A filter-capable addon exposes a smaller child slot. Register
 `AddonCapabilities.FILTER` for filter items; `acceptsFilter` can further restrict compatible filters.
+Each transfer role may be installed only once per group, regardless of item ID or tier: one input
+addon and one output addon can coexist when the inventory supports both. A bidirectional addon
+occupies both roles. Separate inventories may each have their own addons. Storage insertion,
+direct assignment and client menu prediction enforce the same rule. Loading an older save keeps
+the first addon for each role and queues duplicates with their attached filters for recovery.
 The parent and child are real fixed menu slots. Ghost entries in editors are not real item slots.
 All vanilla interaction paths use the same slot validation, including shift-click and hotbar swap.
 Removing/replacing a parent returns its configured filter to the acting player's inventory, or
