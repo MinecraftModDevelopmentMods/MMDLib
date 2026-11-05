@@ -9,7 +9,17 @@ import net.minecraft.resources.ResourceLocation;
 public sealed interface FilterControl {
   String id();
 
-  record Toggle(String id, ResourceLocation icon, Component tooltip) implements FilterControl {}
+  record Toggle(
+      String id,
+      ResourceLocation icon,
+      ResourceLocation selectedIcon,
+      Component tooltip,
+      Component selectedTooltip)
+      implements FilterControl {
+    public Toggle(String id, ResourceLocation icon, Component tooltip) {
+      this(id, icon, icon, tooltip, tooltip);
+    }
+  }
 
   /** A registered leaf can provide specialised rendering/input and a typed, validated action. */
   record Custom(String id, FilterWidgetType<?> type, int height) implements FilterControl {

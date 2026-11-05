@@ -256,6 +256,14 @@ def write_flat_buttons():
         write_png(name, img, {"type": "nine_slice", "width": 14, "height": 14, "border": 1})
 
 
+def write_filter_icons():
+    """White/black list cards for the flat grey mode toggle."""
+    for mode, fill in (("whitelist", 0xF1), ("blacklist", 0x24)):
+        img = canvas(10, 10)
+        rect(img, 2, 1, 6, 8, grey(fill))
+        write_png("icon_filter_" + mode, img)
+
+
 def write_control_icons():
     """16 px control glyphs with a one-pixel shadow and optional lane/mode badge."""
     def glyph(img, rows, x, y, ink):
@@ -353,6 +361,7 @@ def main():
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
     write_drawer_sprites()
     write_control_icons()
+    write_filter_icons()
     write_flat_buttons()
     write_side_config_sprites()
     write_png("checkbox", checkbox(False))

@@ -30,6 +30,7 @@ icons and progress arrows are full colour.
 | `side_mode_input`, `side_mode_output`, `side_mode_both`, `side_mode_disabled` | 14×14 | none | Outlined cyan insertion arrow, orange extraction arrow, opposing arrows, or grey cross. The drawer draws 7×7 corner badges: input at top-right, output at bottom-right, both badges for bidirectional sides, or a bottom-right cross when disabled. |
 | `icon_pause`, `icon_resume` | 16×16 | none | Gold pause bars and green play triangle; `_a` and `_b` variants identify independent lanes |
 | `button_flat`, `button_flat_highlighted` | 14×14 | nine-slice, border 1 | Compact button with a uniform dark outline and flat grey fill; hover lightens only the interior |
+| `icon_filter_whitelist`, `icon_filter_blacklist` | 10×10 | none | White/black list cards on the filter's flat grey mode toggle |
 | `icon_redstone_ignore`, `icon_redstone_high`, `icon_redstone_low` | 16×16 | none | Redstone torch with × / + / − mode badge |
 | `icon_info` | 16×16 | none | Pop-out `info`: white serif "i" with a dark outline and transparent background |
 | `icon_warning` | 16×16 | none | Pop-out `warning`: yellow triangle, black "!" |

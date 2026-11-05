@@ -65,6 +65,8 @@
   "screen.mmdlib_companion.group.energy": "Energy",
   "screen.mmdlib_companion.group.tank": "Fluid tank %s",
   "screen.mmdlib_companion.filter.deny": "Toggle allow-list / deny-list",
+  "screen.mmdlib_companion.filter.whitelist": "Whitelist: allow matching entries (click for blacklist)",
+  "screen.mmdlib_companion.filter.blacklist": "Blacklist: block matching entries (click for whitelist)",
   "screen.mmdlib_companion.filter.tag": "Item tag (namespace:path); Enter to apply",
   "item.mmdlib_companion.recovery_capsule": "Recovery Capsule",
   "item.mmdlib_companion.recovery_capsule.help": "Use on a companion machine to restore pending fluids and energy. Any remainder stays in the capsule."

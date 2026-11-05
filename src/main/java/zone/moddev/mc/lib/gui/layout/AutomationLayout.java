@@ -5,8 +5,8 @@ public final class AutomationLayout {
   public static final int WIDTH = 112, RAIL = ScreenLayout.POPOUT_TAB;
   public static final int TOP = ScreenLayout.TAB_PADDING, TAB_HEIGHT = ScreenLayout.POPOUT_HEIGHT;
   public static final int SELECTOR_WIDTH = 22, SELECTOR_PITCH = 16, SELECTOR_LIMIT = 8;
-  public static final int EDITOR_X = SELECTOR_WIDTH + 2, EDITOR_Y = 132, PADDING = 4;
-  public static final int EDITOR_HEADER = 18, FILTER_ITEM_SIZE = 12;
+  public static final int EDITOR_X = SELECTOR_WIDTH + 2, EDITOR_Y = 123, PADDING = 4;
+  public static final int EDITOR_PADDING = 4, FILTER_ITEM_SIZE = 12;
   public static final int SELECTOR_ROW_HEIGHT = 18;
   private static final int[][] FACES = {{1, 1}, {2, 2}, {0, 1}, {2, 1}, {1, 0}, {1, 2}};
 

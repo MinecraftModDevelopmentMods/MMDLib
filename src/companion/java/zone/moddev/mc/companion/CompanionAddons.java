@@ -48,7 +48,7 @@ public final class CompanionAddons {
   public static final DeferredHolder<Item, Item> EXPORT_RELAY =
       addon("export_relay", ResourceType.ENERGY, IoMode.OUTPUT, 1000, 5, 0, false);
   public static final DeferredHolder<Item, Item> ITEM_FILTER =
-      filter("item_filter", ResourceType.ITEMS, 9, false);
+      filter("item_filter", ResourceType.ITEMS, 8, false);
   public static final DeferredHolder<Item, Item> LARGE_FILTER =
       filter("large_item_filter", ResourceType.ITEMS, 36, false);
   public static final DeferredHolder<Item, Item> TAG_FILTER =
@@ -94,8 +94,10 @@ public final class CompanionAddons {
                         ? new FilterControl.Custom("deny", TAG_MODE, 14)
                         : new FilterControl.Toggle(
                             "deny",
-                            ResourceLocation.parse("mmdlib:icon_sides"),
-                            Component.translatable("screen.mmdlib_companion.filter.deny")),
+                            ResourceLocation.parse("mmdlib:icon_filter_whitelist"),
+                            ResourceLocation.parse("mmdlib:icon_filter_blacklist"),
+                            Component.translatable("screen.mmdlib_companion.filter.whitelist"),
+                            Component.translatable("screen.mmdlib_companion.filter.blacklist")),
                     tag
                         ? new FilterControl.Text(
                             "tag",
@@ -132,7 +134,7 @@ public final class CompanionAddons {
                           ? BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString()
                           : "";
               var samples = config.getList("samples", net.minecraft.nbt.Tag.TAG_STRING);
-              for (int i = 0; i < samples.size(); i++)
+              for (int i = 0; i < Math.min(size, samples.size()); i++)
                 if (samples.getString(i).equals(id)) {
                   match = true;
                   break;

@@ -6,7 +6,9 @@ reserves the first right drawer button, and places a second selector vertically 
 Each selection configures one resource group. F6 focuses the selector; arrow keys change inventory.
 The main inventory panel remains centred when drawers or filters open. Information drawers stay
 on the left; inventory side configuration stays on the right. Filter controls occupy a framed,
-scrollable region inside the configuration drawer below the addon slots. The drawer fits its
+scrollable region inside the configuration drawer below the addon slots. The arrow bar beneath
+the installed filter shows/hides this region; it has no duplicate selected-filter header.
+The drawer fits its
 visible controls and grows downward to fit an open filter, stopping four GUI pixels above the
 screen edge (with extra clearance for JEI's bottom toolbar when visible); overflow scrolls within
 the filter region. The colour selector keeps its own compact
@@ -93,12 +95,15 @@ public FilterControl controls(ItemStack stack) {
 }
 ```
 
-Use nested `Box` controls for rows/columns, `Toggle` for icon buttons, `Text` for bounded text/tag
+Use nested `Box` controls for rows/columns, `Toggle` for flat icon buttons, `Text` for bounded text/tag
 input, `Number` for bounded numeric values, and `Samples` for a wrapped ghost grid. Width is supplied
 by the drawer; tall content scrolls within the available screen space. Counts, nesting, IDs and
 text lengths are bounded. A sample comes from the **server's cursor stack**, without consuming it.
 Standard item samples match item IDs; fluid samples use a fluid container's contents. A filter
-may override sample extraction and validation for stricter matching.
+may override sample extraction and validation for stricter matching. Ghost item previews render at
+75% opacity. A toggle may provide separate icons and tooltips for its false/true states; the
+three-argument constructor retains one shared icon and tooltip. The companion's basic item filter
+provides eight ghost cells and white/black list cards for its mode toggle.
 
 For specialised controls, register a common `FilterWidgetType<T>` with a bounded action codec and
 a handler that updates only a candidate configuration. Include `FilterControl.Custom` in the tree.

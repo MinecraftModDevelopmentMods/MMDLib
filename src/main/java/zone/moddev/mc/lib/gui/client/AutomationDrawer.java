@@ -27,6 +27,7 @@ public final class AutomationDrawer {
   private final MachineScreen screen;
   private final AutomationMenu model;
   private final Minecraft mc = Minecraft.getInstance();
+  private final GhostItems ghostItems = new GhostItems();
   private int verticalOffset, horizontalOffset, editorScroll, keyboardGroup;
   private String editorKey = "";
   private FilterControl root;
@@ -90,7 +91,7 @@ public final class AutomationDrawer {
                     * AutomationLayout.SELECTOR_PITCH);
     boolean editing = model.open() && model.editor() >= 0;
     int editorHeight =
-        (panelLayout == null ? 18 : panelLayout.height()) + AutomationLayout.EDITOR_HEADER;
+        (panelLayout == null ? 18 : panelLayout.height()) + (2 * AutomationLayout.EDITOR_PADDING);
     int desiredHeight =
         editing
             ? Math.max(
@@ -136,14 +137,17 @@ public final class AutomationDrawer {
             : null;
     controlBounds.clear();
     if (editorArea != null && panelLayout != null) {
-      int viewport = Math.max(0, editorArea.height() - AutomationLayout.EDITOR_HEADER);
+      int viewport = Math.max(0, editorArea.height() - (2 * AutomationLayout.EDITOR_PADDING));
       editorScroll = Math.clamp(editorScroll, 0, Math.max(0, panelLayout.height() - viewport));
       panelLayout
           .controls()
           .forEach(
               (id, r) ->
                   controlBounds.put(
-                      id, r.offset(editorArea.x() + 6, editorArea.y() + 16 - editorScroll)));
+                      id,
+                      r.offset(
+                          editorArea.x() + 6,
+                          editorArea.y() + AutomationLayout.EDITOR_PADDING - editorScroll)));
       textFields.forEach(
           (id, field) -> {
             Rect r = controlBounds.get(id);
@@ -151,7 +155,8 @@ public final class AutomationDrawer {
               field.setX(r.x());
               field.setY(r.y());
               field.setWidth(Math.max(12, r.width() - 12));
-              if (r.bottom() <= editorArea.y() + 15 || r.y() >= editorArea.bottom() - 3)
+              if (r.bottom() <= editorArea.y() + AutomationLayout.EDITOR_PADDING
+                  || r.y() >= editorArea.bottom() - AutomationLayout.EDITOR_PADDING)
                 field.setFocused(false);
             }
           });
@@ -468,15 +473,10 @@ public final class AutomationDrawer {
   }
 
   private void drawEditor(GuiGraphics g, int mx, int my) {
-    if (editorArea == null || editorArea.height() < AutomationLayout.EDITOR_HEADER) return;
+    if (editorArea == null || editorArea.height() < (2 * AutomationLayout.EDITOR_PADDING)) return;
     g.fill(editorArea.x(), editorArea.y(), editorArea.right(), editorArea.bottom(), 0xff7189aa);
     g.renderOutline(
         editorArea.x(), editorArea.y(), editorArea.width(), editorArea.height(), 0xff526788);
-    Rect collapse = new Rect(editorArea.right() - 15, editorArea.y() + 3, 10, 10);
-    button(g, collapse, false);
-    arrow(g, collapse, false, true);
-    if (collapse.contains(mx, my))
-      tooltip = Component.translatable("screen.mmdlib.automation.collapse");
     int c = model.editor();
     var stack = model.filter(model.selected(), c);
     var provider = stack.getCapability(AddonCapabilities.FILTER);
@@ -484,28 +484,16 @@ public final class AutomationDrawer {
       g.drawString(mc.font, "?", editorArea.x() + 6, editorArea.y() + 4, 0xffffff);
       return;
     }
-    g.pose().pushPose();
-    g.pose().translate(editorArea.x() + 5, editorArea.y() + 2, 0);
-    g.pose().scale(.7f, .7f, 1);
-    g.renderItem(stack, 0, 0);
-    g.pose().popPose();
-    g.fill(
-        editorArea.x() + 20,
-        editorArea.y() + 8,
-        editorArea.right() - 19,
-        editorArea.y() + 9,
-        0xff526788);
-    int viewport = editorArea.height() - AutomationLayout.EDITOR_HEADER;
+    int viewport = editorArea.height() - (2 * AutomationLayout.EDITOR_PADDING);
     if (panelLayout.height() > viewport && viewport > 0) {
-      int track = editorArea.height() - 20,
-          thumb = Math.max(6, track * viewport / panelLayout.height());
+      int track = viewport, thumb = Math.max(6, track * viewport / panelLayout.height());
       int y =
           editorArea.y()
-              + 16
+              + AutomationLayout.EDITOR_PADDING
               + (track - thumb) * editorScroll / Math.max(1, panelLayout.height() - viewport);
       g.fill(
           editorArea.right() - 4,
-          editorArea.y() + 16,
+          editorArea.y() + AutomationLayout.EDITOR_PADDING,
           editorArea.right() - 2,
           editorArea.bottom() - 4,
           0xff526788);
@@ -514,25 +502,29 @@ public final class AutomationDrawer {
     boolean editorHovered =
         mx >= editorArea.x() + 4
             && mx < editorArea.right() - 4
-            && my >= editorArea.y() + 15
-            && my < editorArea.bottom() - 3;
+            && my >= editorArea.y() + AutomationLayout.EDITOR_PADDING
+            && my < editorArea.bottom() - AutomationLayout.EDITOR_PADDING;
     var config = provider.configuration(stack);
     g.enableScissor(
-        editorArea.x() + 4, editorArea.y() + 15, editorArea.right() - 4, editorArea.bottom() - 3);
+        editorArea.x() + 4,
+        editorArea.y() + AutomationLayout.EDITOR_PADDING,
+        editorArea.right() - 4,
+        editorArea.bottom() - AutomationLayout.EDITOR_PADDING);
     try {
       for (var control : controls) {
         Rect r = controlBounds.get(control.id());
-        if (r == null || r.bottom() <= editorArea.y() + 15 || r.y() >= editorArea.bottom() - 3)
-          continue;
+        if (r == null
+            || r.bottom() <= editorArea.y() + AutomationLayout.EDITOR_PADDING
+            || r.y() >= editorArea.bottom() - AutomationLayout.EDITOR_PADDING) continue;
         switch (control) {
           case FilterControl.Custom custom -> {
             var instance = customWidgets.get(custom.id());
             if (instance != null) {
               g.enableScissor(
                   r.x(),
-                  Math.max(r.y(), editorArea.y() + 15),
+                  Math.max(r.y(), editorArea.y() + AutomationLayout.EDITOR_PADDING),
                   r.right(),
-                  Math.min(r.bottom(), editorArea.bottom() - 3));
+                  Math.min(r.bottom(), editorArea.bottom() - AutomationLayout.EDITOR_PADDING));
               try {
                 instance.render(g, r, config.copy(), mx, my);
               } finally {
@@ -542,9 +534,14 @@ public final class AutomationDrawer {
             } else g.drawString(mc.font, "?", r.x() + 2, r.y() + 2, 0xffffff);
           }
           case FilterControl.Toggle toggle -> {
-            button(g, r, config.getBoolean(toggle.id()));
-            g.blitSprite(toggle.icon(), r.x() + 2, r.y() + 2, 10, 10);
-            if (editorHovered && r.contains(mx, my)) tooltip = toggle.tooltip();
+            boolean selected = config.getBoolean(toggle.id());
+            boolean hovered = editorHovered && r.contains(mx, my);
+            sprite(g, hovered ? "button_flat_highlighted" : "button_flat", r);
+            g.blitSprite(
+                selected ? toggle.selectedIcon() : toggle.icon(), r.x() + 2, r.y() + 2, 10, 10);
+            if (selected && toggle.icon().equals(toggle.selectedIcon()))
+              g.fill(r.x() + 3, r.bottom() - 3, r.right() - 3, r.bottom() - 2, 0xffeeeeee);
+            if (hovered) tooltip = selected ? toggle.selectedTooltip() : toggle.tooltip();
           }
           case FilterControl.Samples samples -> {
             var entries = config.getList(samples.id(), net.minecraft.nbt.Tag.TAG_STRING);
@@ -560,7 +557,7 @@ public final class AutomationDrawer {
                 else if (samples.resource() == ResourceType.FLUIDS)
                   display = new ItemStack(BuiltInRegistries.FLUID.get(id).getBucket());
                 if (!display.isEmpty()) {
-                  g.renderItem(display, cell.x() + 1, cell.y() + 1);
+                  ghostItems.render(g, display, cell.x() + 1, cell.y() + 1);
                   if (editorHovered && cell.contains(mx, my)) tooltip = display.getHoverName();
                 }
               }
@@ -676,11 +673,8 @@ public final class AutomationDrawer {
               && filter(c).contains(x, y)) return model.pending();
     }
     if (editorArea != null && editorArea.contains(x, y)) {
-      if (y < editorArea.y() + 15) {
-        model.send("collapse", model.selected(), -1, "", 0, "");
-        return true;
-      }
-      if (y >= editorArea.bottom() - 3) return true;
+      if (y < editorArea.y() + AutomationLayout.EDITOR_PADDING
+          || y >= editorArea.bottom() - AutomationLayout.EDITOR_PADDING) return true;
       var stack = model.filter(model.selected(), model.editor());
       var provider = stack.getCapability(AddonCapabilities.FILTER);
       for (var control : controls) {

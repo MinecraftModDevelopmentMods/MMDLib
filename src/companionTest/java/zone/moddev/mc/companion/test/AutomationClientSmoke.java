@@ -167,6 +167,76 @@ final class AutomationClientSmoke {
       stage++;
       return false;
     }
+    if (stage == 9) {
+      mc.getSingleplayerServer()
+          .execute(
+              () -> {
+                var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
+                var machine =
+                    (ProcessorEntity)
+                        player.serverLevel().getBlockEntity(menu.blockEntity.getBlockPos());
+                var filter = new ItemStack(CompanionAddons.ITEM_FILTER.get());
+                var provider =
+                    filter.getCapability(
+                        zone.moddev.mc.lib.api.automation.AddonCapabilities.FILTER);
+                var config = provider.configuration(filter);
+                var entries = new net.minecraft.nbt.ListTag();
+                for (String item :
+                    new String[] {
+                      "minecraft:diamond",
+                      "minecraft:dirt",
+                      "minecraft:water_bucket",
+                      "minecraft:glass"
+                    }) entries.add(net.minecraft.nbt.StringTag.valueOf(item));
+                config.put("samples", entries);
+                provider.configure(filter, config);
+                machine.automation.slots().setStackInSlot(4, filter);
+                player.containerMenu.broadcastChanges();
+              });
+      a.send("select", 0, -1, "", 0, "");
+      stage++;
+      return false;
+    }
+    if (stage == 10) {
+      if (!a.filter(0, 0).is(CompanionAddons.ITEM_FILTER.get())) return false;
+      toggleFilter(screen);
+      stage++;
+      return false;
+    }
+    if (stage == 11) {
+      var provider =
+          a.filter(0, 0).getCapability(zone.moddev.mc.lib.api.automation.AddonCapabilities.FILTER);
+      var samples =
+          zone.moddev.mc.lib.api.automation.FilterControl.flatten(provider.controls(a.filter(0, 0)))
+              .stream()
+              .filter(c -> c instanceof zone.moddev.mc.lib.api.automation.FilterControl.Samples)
+              .map(c -> (zone.moddev.mc.lib.api.automation.FilterControl.Samples) c)
+              .findFirst()
+              .orElseThrow();
+      if (samples.count() != 8)
+        throw new AssertionError("Basic filter has two rows of four ghost cells");
+      Screenshot.grab(
+          mc.gameDirectory, "automation-filter-whitelist.png", mc.getMainRenderTarget(), m -> {});
+      var drawer = screen.exclusions().getLast();
+      if (!screen.mouseClicked(
+          drawer.x() + AutomationLayout.EDITOR_X + 10,
+          drawer.y() + AutomationLayout.EDITOR_Y + AutomationLayout.EDITOR_PADDING + 5,
+          0)) throw new AssertionError("Header-free mode toggle accepts clicks");
+      stage++;
+      return false;
+    }
+    if (stage == 12) {
+      var provider =
+          a.filter(0, 0).getCapability(zone.moddev.mc.lib.api.automation.AddonCapabilities.FILTER);
+      if (!provider.configuration(a.filter(0, 0)).getBoolean("deny"))
+        throw new AssertionError(
+            "Mode toggle changes whitelist to blacklist without collapsing editor");
+      Screenshot.grab(
+          mc.gameDirectory, "automation-filter-blacklist.png", mc.getMainRenderTarget(), m -> {});
+      a.send("close", 0, -1, "", 0, "");
+      stage++;
+      return false;
+    }
     return true;
   }
 }

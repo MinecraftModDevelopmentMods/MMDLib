@@ -27,21 +27,32 @@ public final class CompanionWidgetsClient {
                   net.minecraft.nbt.CompoundTag config,
                   int mx,
                   int my) {
-                g.fill(
-                    r.x(),
-                    r.y(),
-                    r.x() + 14,
-                    r.y() + 14,
-                    config.getBoolean("deny") ? 0xffb95555 : 0xff55a776);
-                g.renderOutline(r.x(), r.y(), 14, 14, 0xff263b50);
-                g.fill(r.x() + 3, r.y() + 6, r.x() + 11, r.y() + 8, 0xffffffff);
-                if (!config.getBoolean("deny"))
-                  g.fill(r.x() + 6, r.y() + 3, r.x() + 8, r.y() + 11, 0xffffffff);
+                var button = new zone.moddev.mc.lib.gui.layout.Rect(r.x(), r.y(), 14, 14);
+                g.blitSprite(
+                    net.minecraft.resources.ResourceLocation.parse(
+                        button.contains(mx, my)
+                            ? "mmdlib:button_flat_highlighted"
+                            : "mmdlib:button_flat"),
+                    button.x(),
+                    button.y(),
+                    button.width(),
+                    button.height());
+                g.blitSprite(
+                    net.minecraft.resources.ResourceLocation.parse(
+                        config.getBoolean("deny")
+                            ? "mmdlib:icon_filter_blacklist"
+                            : "mmdlib:icon_filter_whitelist"),
+                    r.x() + 2,
+                    r.y() + 2,
+                    10,
+                    10);
               }
 
               public net.minecraft.network.chat.Component tooltip() {
                 return net.minecraft.network.chat.Component.translatable(
-                    "screen.mmdlib_companion.filter.deny");
+                    access.configuration().get().getBoolean("deny")
+                        ? "screen.mmdlib_companion.filter.blacklist"
+                        : "screen.mmdlib_companion.filter.whitelist");
               }
 
               public boolean click(double x, double y, int button) {
