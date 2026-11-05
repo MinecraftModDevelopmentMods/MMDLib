@@ -33,6 +33,13 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   /** Optional integration entry point, installed only by JEI. */
   public static java.util.function.BiPredicate<MachineScreen, Element> recipes = (s, e) -> false;
 
+  /** Optional overlays can reserve space for a bottom toolbar without moving the main panel. */
+  public static java.util.function.IntSupplier drawerBottomInset = () -> 4;
+
+  public int drawerBottom() {
+    return Math.max(0, height - Math.max(4, drawerBottomInset.getAsInt()));
+  }
+
   /**
    * Installed only by JEI: whether JEI draws the tooltip of an element's recipe area, in which case
    * the screen leaves it to JEI (which asks for {@link #tooltipLines}) instead of drawing its own.
@@ -519,11 +526,17 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     return result;
   }
 
-  private Rect popBounds(Element.Popout p) {
+  private int popWidth(Element.Popout p) {
     Rect tab = bounds(p);
     int room = p.edge() == Element.Edge.LEFT ? tab.x() - 4 : width - tab.right() - 4;
-    int w = Math.max(24, Math.min(150, room));
-    int h = Math.max(ScreenLayout.POPOUT_HEIGHT, topPos + imageHeight - tab.y());
+    return Math.max(0, Math.min(150, room));
+  }
+
+  private Rect popBounds(Element.Popout p) {
+    Rect tab = bounds(p);
+    int w = popWidth(p);
+    int limit = Math.max(0, Math.min(topPos + imageHeight, drawerBottom()) - tab.y());
+    int h = Math.min(limit, Math.max(ScreenLayout.POPOUT_HEIGHT, popLines(p).size() * 10 + 12));
     return new Rect(p.edge() == Element.Edge.LEFT ? tab.x() - w : tab.right(), tab.y(), w, h);
   }
 
@@ -535,7 +548,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   private List<net.minecraft.util.FormattedCharSequence> popLines(Element.Popout p) {
     Object value = menu.value(p, false);
     var result = new ArrayList<net.minecraft.util.FormattedCharSequence>();
-    int textWidth = popBounds(p).width() - 12;
+    int textWidth = Math.max(1, popWidth(p) - 12);
     if (p.text().isPresent())
       result.addAll(font.split(ScreenText.markup(text(p.text().get()).getString()), textWidth));
     if (!result.isEmpty()

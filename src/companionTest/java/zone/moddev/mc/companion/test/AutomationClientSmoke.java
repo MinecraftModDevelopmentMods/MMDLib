@@ -10,6 +10,7 @@ import zone.moddev.mc.lib.gui.client.MachineScreen;
 /** Real client/server round trips, screenshots and item-owned editor transitions. */
 final class AutomationClientSmoke {
   private static int stage;
+  private static int compactHeight;
 
   static boolean run(MachineScreen screen) {
     var mc = Minecraft.getInstance();
@@ -32,6 +33,10 @@ final class AutomationClientSmoke {
     }
     if (stage == 1) {
       if (!a.open()) throw new AssertionError("Colour opens drawer");
+      compactHeight = screen.exclusions().getLast().height();
+      if (compactHeight >= screen.panelBounds().height())
+        throw new AssertionError(
+            "The configuration drawer should fit its controls, not the main panel height");
       Screenshot.grab(
           mc.gameDirectory, "automation-seven-colours.png", mc.getMainRenderTarget(), m -> {});
       mc.getSingleplayerServer()
@@ -66,17 +71,28 @@ final class AutomationClientSmoke {
       if (exclusions.size() != 3)
         throw new AssertionError("Filter must remain inside the existing drawer exclusion");
       var drawer = exclusions.getLast();
-      if (drawer.y() != screen.guiTop() || drawer.bottom() != screen.panelBounds().bottom())
-        throw new AssertionError("Opening a filter must not extend the drawer below the panel");
+      if (drawer.y() != screen.guiTop()
+          || drawer.height() <= compactHeight
+          || drawer.bottom() <= screen.panelBounds().bottom()
+          || drawer.bottom() > screen.drawerBottom())
+        throw new AssertionError(
+            "A large filter should grow the drawer downward within the screen");
       Screenshot.grab(
           mc.gameDirectory, "automation-filter-grid.png", mc.getMainRenderTarget(), m -> {});
-      if (!screen.mouseScrolled(drawer.x() + 40, drawer.bottom() - 20, 0, -2))
+      screen.resize(mc, screen.width, 360);
+      var limited = screen.exclusions().getLast();
+      if (limited.bottom() != screen.drawerBottom())
+        throw new AssertionError("The growing drawer must stop at the screen margin");
+      if (!screen.mouseScrolled(limited.x() + 40, limited.bottom() - 20, 0, -2))
         throw new AssertionError("The embedded filter grid must scroll inside the drawer");
       a.send("edit", 0, 0, "deny", 0, "");
       stage++;
       return false;
     }
     if (stage == 4) {
+      Screenshot.grab(
+          mc.gameDirectory, "automation-filter-constrained.png", mc.getMainRenderTarget(), m -> {});
+      screen.resize(mc, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
       var provider =
           a.filter(0, 0).getCapability(zone.moddev.mc.lib.api.automation.AddonCapabilities.FILTER);
       if (!provider.configuration(a.filter(0, 0)).getBoolean("deny"))
@@ -104,6 +120,8 @@ final class AutomationClientSmoke {
       return false;
     }
     if (stage == 6) {
+      if (screen.exclusions().getLast().height() >= screen.panelBounds().height())
+        throw new AssertionError("A smaller filter should shrink the drawer to its content");
       Screenshot.grab(
           mc.gameDirectory, "automation-filter-tag.png", mc.getMainRenderTarget(), m -> {});
       a.send("select", 6, -1, "", 0, "");
@@ -113,6 +131,8 @@ final class AutomationClientSmoke {
     if (stage == 7) {
       if (a.selected() != 6 || a.editor() != -1)
         throw new AssertionError("Selection closes old editor");
+      if (screen.exclusions().getLast().height() != compactHeight)
+        throw new AssertionError("Changing inventory should restore the compact drawer height");
       Screenshot.grab(mc.gameDirectory, "automation-energy.png", mc.getMainRenderTarget(), m -> {});
       a.send("close", 6, -1, "", 0, "");
       stage++;

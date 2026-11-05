@@ -74,8 +74,21 @@ public final class AutomationDrawer {
   public void layout() {
     Rect panel = panel();
     tab = new Rect(panel.right(), panel.y(), RAIL, 24);
-    body = new Rect(tab.right(), panel.y(), WIDTH, Math.max(198, panel.height()));
-    int shown = Math.max(1, (body.height() - 16) / 16);
+    syncEditor();
+    int contentHeight = 96;
+    for (int c = 0; c < 4; c++) {
+      if (model.supportsFilter(model.selected(), c)) contentHeight = Math.max(contentHeight, 114);
+      if (!model.filter(model.selected(), c).isEmpty()) contentHeight = 129;
+    }
+    int baseHeight = Math.max(contentHeight, 16 + Math.min(count(), 8) * 16);
+    boolean editing = model.open() && model.editor() >= 0;
+    int editorHeight = (panelLayout == null ? 18 : panelLayout.height()) + 18;
+    int desiredHeight = editing ? Math.max(baseHeight, 132 + editorHeight + 4) : baseHeight;
+    int availableHeight = Math.max(0, screen.drawerBottom() - panel.y());
+    body = new Rect(tab.right(), panel.y(), WIDTH, Math.min(desiredHeight, availableHeight));
+    int shown =
+        Math.max(
+            1, Math.min(Math.min(count(), 8), (Math.min(baseHeight, body.height()) - 16) / 16));
     selector = new Rect(body.x() + 5, body.y() + 8, 14, shown * 16);
     var inventory = screen.layout.inventory().orElse(null);
     horizontal =
@@ -93,10 +106,13 @@ public final class AutomationDrawer {
       keyboardGroup = model.selected();
     }
     verticalOffset = Math.clamp(verticalOffset, 0, Math.max(0, count() - shown));
-    syncEditor();
     editorArea =
-        model.open() && model.editor() >= 0
-            ? new Rect(body.x() + 24, body.y() + 132, WIDTH - 28, body.height() - 136)
+        editing && body.height() > 136
+            ? new Rect(
+                body.x() + 24,
+                body.y() + 132,
+                WIDTH - 28,
+                Math.min(editorHeight, body.height() - 136))
             : null;
     controlBounds.clear();
     if (editorArea != null && panelLayout != null) {
@@ -280,7 +296,7 @@ public final class AutomationDrawer {
       swatch(g, new Rect(selector.x(), selector.y() + i * 16, 14, 14), verticalOffset + i, mx, my);
     if (count() > shown) {
       arrow(g, new Rect(selector.x() + 3, body.y() + 1, 8, 6), false, true);
-      arrow(g, new Rect(selector.x() + 3, body.bottom() - 7, 8, 6), true, true);
+      arrow(g, new Rect(selector.x() + 3, selector.bottom() + 1, 8, 6), true, true);
     }
     for (int f = 0; f < 6; f++) drawFace(g, f, mx, my);
     for (int c = 0; c < 4; c++) {
@@ -580,7 +596,7 @@ public final class AutomationDrawer {
     }
     if (!model.open()) return false;
     if (!body.contains(x, y)) closeEditorInput();
-    if (x >= body.x() + 2 && x < body.x() + 22 && y >= body.y() && y < body.bottom()) {
+    if (x >= body.x() + 2 && x < body.x() + 22 && y >= body.y() && y < selector.bottom() + 8) {
       int shown = selector.height() / 16;
       if (y < selector.y()) verticalOffset = Math.max(0, verticalOffset - 1);
       else if (y >= selector.bottom())
@@ -676,7 +692,11 @@ public final class AutomationDrawer {
 
   public boolean scroll(double x, double y, double amount) {
     layout();
-    if (model.open() && x >= body.x() && x < body.x() + 24 && y >= body.y() && y < body.bottom()) {
+    if (model.open()
+        && x >= body.x()
+        && x < body.x() + 24
+        && y >= body.y()
+        && y < selector.bottom() + 8) {
       verticalOffset += (int) -amount;
       return true;
     }

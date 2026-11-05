@@ -332,9 +332,11 @@ public final class CompanionClientSmoke {
           if (exclusions.size() != 3 || exclusions.get(1).right() != tab.x())
             throw new AssertionError("The drawer must extend left while retaining its icon tab");
           if (exclusions.get(0).bottom() != exclusions.get(1).bottom()
-              || exclusions.get(1).bottom() != screen.guiTop() + screen.layout.panel().height())
+              || exclusions.get(1).bottom() > screen.guiTop() + screen.layout.panel().height()
+              || exclusions.get(1).bottom() > screen.drawerBottom())
             throw new AssertionError(
-                "The drawer and its rail must reach the machine panel's bottom");
+                "The info drawer must fit its content within the main panel and screen height"
+                    + " limits");
           drawerStage = 1;
           frames = 0;
           return;

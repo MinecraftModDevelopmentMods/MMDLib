@@ -704,7 +704,7 @@ When JEI is installed:
   Pop-out tabs are 22×24 rectangles, coloured by kind: yellow information, amber warning,
   red error. Clicking one opens a matching drawer outward from that edge, with the icon
   retained on a darker rail as the close control. Its body is up to 150 pixels wide and
-  extends to the main panel's bottom. Text wraps to the available width; scroll inside
+  fits its text, capped at the main panel's bottom and the screen edge. Text wraps to the available width; scroll inside
   to read longer content. Opening another drawer on the same edge replaces the open drawer;
   tabs remain visible and clickable on the rail.
 

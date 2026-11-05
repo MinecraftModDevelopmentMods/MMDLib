@@ -37,6 +37,9 @@ final class MachineJei {
 
   static void runtime(IJeiRuntime value) {
     runtime = value;
+    // JEI's fixed bottom search/configuration bar does not avoid container exclusion areas.
+    MachineScreen.drawerBottomInset =
+        () -> runtime != null && runtime.getIngredientListOverlay().isListDisplayed() ? 28 : 4;
     MachineScreen.recipes =
         (screen, e) -> {
           var types = types(screen, e);
@@ -49,6 +52,7 @@ final class MachineJei {
 
   static void unavailable() {
     runtime = null;
+    MachineScreen.drawerBottomInset = () -> 4;
     MachineScreen.recipes = (s, e) -> false;
     MachineScreen.recipeTooltip = (s, e) -> false;
   }
