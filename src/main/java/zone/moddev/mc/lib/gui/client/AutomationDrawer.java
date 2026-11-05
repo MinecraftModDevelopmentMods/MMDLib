@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -28,6 +29,7 @@ public final class AutomationDrawer {
   private final AutomationMenu model;
   private final Minecraft mc = Minecraft.getInstance();
   private final GhostItems ghostItems = new GhostItems();
+  private final Map<RenderType, RenderType> fadedNeighbours = new IdentityHashMap<>();
   private int verticalOffset, editorScroll, keyboardGroup;
   private final InventoryColorButtonBar colourBar;
   private final List<Integer> displayOrder;
@@ -397,8 +399,31 @@ public final class AutomationDrawer {
 
   private void drawFace(GuiGraphics g, int index, int mx, int my) {
     var r = face(index);
-    g.fill(r.x(), r.y(), r.right(), r.bottom(), 0xff555555);
-    g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0xff8b8b8b);
+    var mode = model.mode(model.selected(), index);
+    boolean input = mode.canInsert(), output = mode.canExtract();
+    boolean disabled = !input && !output;
+    g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, disabled ? 0xbf8b8b8b : 0xff8b8b8b);
+    // Tint the background before drawing the neighbour so its model keeps its own colours.
+    int green = 0xff30e050, orange = 0xffff8a00;
+    int greenWash = 0x3830e050, orangeWash = 0x38ff8a00;
+    if (input && output) {
+      // Pixel-aligned diagonal from top-right to bottom-left, with no overlapping tint seam.
+      for (int row = 0; row < r.height() - 2; row++) {
+        int split = r.right() - 1 - row;
+        int y = r.y() + 1 + row;
+        g.fill(r.x() + 1, y, split, y + 1, greenWash);
+        g.fill(split, y, r.right() - 1, y + 1, orangeWash);
+      }
+      g.fill(r.x(), r.y(), r.right() - 1, r.y() + 1, green);
+      g.fill(r.x(), r.y() + 1, r.x() + 1, r.bottom() - 1, green);
+      g.fill(r.right() - 1, r.y(), r.right(), r.bottom(), orange);
+      g.fill(r.x(), r.bottom() - 1, r.right() - 1, r.bottom(), orange);
+    } else {
+      if (!disabled)
+        g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, input ? greenWash : orangeWash);
+      g.renderOutline(
+          r.x(), r.y(), r.width(), r.height(), disabled ? 0xbf555555 : input ? green : orange);
+    }
     var group = model.inventory.group(model.selected());
     var relative = RelativeFace.values()[index];
     var direction = group.world(relative);
@@ -424,7 +449,13 @@ public final class AutomationDrawer {
               .renderSingleBlock(
                   state,
                   g.pose(),
-                  g.bufferSource(),
+                  disabled
+                      ? type ->
+                          g.bufferSource()
+                              .getBuffer(
+                                  fadedNeighbours.computeIfAbsent(
+                                      type, original -> GhostItems.fade(original, .75f)))
+                      : g.bufferSource(),
                   LightTexture.FULL_BRIGHT,
                   OverlayTexture.NO_OVERLAY);
           g.flush();
@@ -435,16 +466,11 @@ public final class AutomationDrawer {
         }
       }
     }
-    var mode = model.mode(model.selected(), index);
-    // Keep the block visible, with small mode badges above its depth at the right corners.
+    // Keep the corner icons above the neighbour model.
     g.pose().pushPose();
     g.pose().translate(0, 0, 200);
-    g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0x337e8793);
-    if (mode.canInsert()) icon(g, "side_mode_input", new Rect(r.right() - 8, r.y() + 1, 7, 7));
-    if (mode.canExtract())
-      icon(g, "side_mode_output", new Rect(r.right() - 8, r.bottom() - 8, 7, 7));
-    if (!mode.canInsert() && !mode.canExtract())
-      icon(g, "side_mode_disabled", new Rect(r.right() - 8, r.bottom() - 8, 7, 7));
+    if (input) icon(g, "side_mode_input", new Rect(r.x() + 1, r.y() + 1, 7, 7));
+    if (output) icon(g, "side_mode_output", new Rect(r.right() - 8, r.bottom() - 8, 7, 7));
     g.pose().popPose();
     if (r.contains(mx, my))
       faceTooltip =

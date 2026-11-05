@@ -6,6 +6,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
 
 import zone.moddev.mc.companion.*;
+import zone.moddev.mc.lib.api.capabilities.IoMode;
+import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.AutomationLayout;
 import zone.moddev.mc.lib.gui.layout.ScreenLayout;
@@ -165,15 +167,35 @@ final class AutomationClientSmoke {
       Screenshot.grab(
           mc.gameDirectory, "automation-filter-tag.png", mc.getMainRenderTarget(), m -> {});
       a.send("select", 6, -1, "", 0, "");
+      mc.getSingleplayerServer()
+          .execute(
+              () -> {
+                var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
+                var machine =
+                    (ProcessorEntity)
+                        player.serverLevel().getBlockEntity(menu.blockEntity.getBlockPos());
+                var sides = machine.automation.group(6).sides();
+                sides.set(RelativeFace.FRONT, IoMode.INPUT);
+                sides.set(RelativeFace.LEFT, IoMode.OUTPUT);
+                sides.set(RelativeFace.RIGHT, IoMode.BOTH);
+                sides.set(RelativeFace.BOTTOM, IoMode.DISABLED);
+                sides.set(RelativeFace.TOP, IoMode.DISABLED);
+                sides.set(RelativeFace.BACK, IoMode.OUTPUT);
+                player.containerMenu.broadcastChanges();
+              });
       stage++;
       return false;
     }
     if (stage == 7) {
+      if (a.mode(6, RelativeFace.BOTTOM.ordinal()) != IoMode.DISABLED
+          || a.mode(6, RelativeFace.RIGHT.ordinal()) != IoMode.BOTH) return false;
       if (a.selected() != 6 || a.editor() != -1)
         throw new AssertionError("Selection closes old editor");
       if (screen.exclusions().getLast().height() != compactHeight)
         throw new AssertionError("Changing inventory should restore the compact drawer height");
       Screenshot.grab(mc.gameDirectory, "automation-energy.png", mc.getMainRenderTarget(), m -> {});
+      Screenshot.grab(
+          mc.gameDirectory, "automation-side-colours.png", mc.getMainRenderTarget(), m -> {});
       stage++;
       return false;
     }

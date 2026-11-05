@@ -35,7 +35,7 @@ final class GhostItems {
           type ->
               graphics
                   .bufferSource()
-                  .getBuffer(translucent.computeIfAbsent(type, GhostItems::fade)),
+                  .getBuffer(translucent.computeIfAbsent(type, original -> fade(original, .50f))),
           15728880,
           OverlayTexture.NO_OVERLAY,
           model);
@@ -47,7 +47,7 @@ final class GhostItems {
     }
   }
 
-  private static RenderType fade(RenderType original) {
+  static RenderType fade(RenderType original, float alpha) {
     // A shader alpha alone is ignored by opaque/cutout item passes. Enable blending after each
     // original pass sets its state, and reset before the following normal inventory item draws.
     return new RenderType(
@@ -61,7 +61,7 @@ final class GhostItems {
           original.setupRenderState();
           RenderSystem.enableBlend();
           RenderSystem.defaultBlendFunc();
-          RenderSystem.setShaderColor(1, 1, 1, .50f);
+          RenderSystem.setShaderColor(1, 1, 1, alpha);
         },
         () -> {
           RenderSystem.setShaderColor(1, 1, 1, 1);
