@@ -390,12 +390,15 @@ public final class AutomationDrawer {
       }
     }
     var mode = model.mode(model.selected(), index);
-    // Keep the preview recognisable behind a quiet veil and a high-contrast mode glyph.
-    // Both must render above the block model's depth, not behind its faces.
+    // Keep the block visible, with small mode badges above its depth at the right corners.
     g.pose().pushPose();
     g.pose().translate(0, 0, 200);
-    g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0x667e8793);
-    icon(g, "side_mode_" + mode.getSerializedName(), new Rect(r.x() + 2, r.y() + 2, 14, 14));
+    g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0x337e8793);
+    if (mode.canInsert()) icon(g, "side_mode_input", new Rect(r.right() - 8, r.y() + 1, 7, 7));
+    if (mode.canExtract())
+      icon(g, "side_mode_output", new Rect(r.right() - 8, r.bottom() - 8, 7, 7));
+    if (!mode.canInsert() && !mode.canExtract())
+      icon(g, "side_mode_disabled", new Rect(r.right() - 8, r.bottom() - 8, 7, 7));
     g.pose().popPose();
     if (r.contains(mx, my))
       faceTooltip =

@@ -27,7 +27,7 @@ icons and progress arrows are full colour.
 | `upgrade_speed`, `upgrade_energy`, `upgrade_capacity` | 16×16 | none | Outline shown in an empty upgrade slot |
 | `icon_sides` | 16×16 | none | Small white cube for generic controls |
 | `icon_side_config` | 16×16 | none | Central machine with connected cyan/orange ports for the side-configuration drawer |
-| `side_mode_input`, `side_mode_output`, `side_mode_both`, `side_mode_disabled` | 14×14 | none | Outlined cyan insertion arrow, orange extraction arrow, opposing arrows, or grey cross over faded neighbour previews |
+| `side_mode_input`, `side_mode_output`, `side_mode_both`, `side_mode_disabled` | 14×14 | none | Outlined cyan insertion arrow, orange extraction arrow, opposing arrows, or grey cross. The drawer draws 7×7 corner badges: input at top-right, output at bottom-right, both badges for bidirectional sides, or a bottom-right cross when disabled. |
 | `icon_pause`, `icon_resume` | 16×16 | none | Gold pause bars and green play triangle; `_a` and `_b` variants identify independent lanes |
 | `button_flat`, `button_flat_highlighted` | 14×14 | nine-slice, border 1 | Compact button with a uniform dark outline and flat grey fill; hover lightens only the interior |
 | `icon_redstone_ignore`, `icon_redstone_high`, `icon_redstone_low` | 16×16 | none | Redstone torch with × / + / − mode badge |
