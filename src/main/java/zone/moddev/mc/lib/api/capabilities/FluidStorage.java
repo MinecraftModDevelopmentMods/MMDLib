@@ -2,6 +2,8 @@ package zone.moddev.mc.lib.api.capabilities;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntFunction;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -15,8 +17,8 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
-import zone.moddev.mc.lib.machine.inventory.TankPlan;
 import zone.moddev.mc.lib.machine.inventory.ReservationPlans;
+import zone.moddev.mc.lib.machine.inventory.TankPlan;
 import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 
 /**
@@ -31,10 +33,15 @@ import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag> {
   private final List<FluidTank> tanks = new ArrayList<>();
   private final List<Role> roles = new ArrayList<>();
-  private final ReservationPlans<TankPlan> plans = new ReservationPlans<>(
-      0, TankPlan.NONE, TankPlan::plus, TankPlan::minus,
-      (tank, plan) -> plan.legal(FluidStacks.amount(tanks.get(tank).getFluid()),
-          tanks.get(tank).getCapacity()));
+  private final ReservationPlans<TankPlan> plans =
+      new ReservationPlans<>(
+          0,
+          TankPlan.NONE,
+          TankPlan::plus,
+          TankPlan::minus,
+          (tank, plan) ->
+              plan.legal(
+                  FluidStacks.amount(tanks.get(tank).getFluid()), tanks.get(tank).getCapacity()));
   private Runnable onChange = () -> {};
   private long revision;
 
@@ -175,7 +182,7 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
 
   @Override
   public int fill(FluidStack resource, FluidAction action) {
-    return fill(resource, action, role -> role != Role.OUTPUT);
+    return fill(resource, action, tank -> roles.get(tank) != Role.OUTPUT);
   }
 
   @Override
@@ -199,6 +206,11 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
    * numbering.
    */
   public IFluidHandler view(Supplier<IoMode> mode) {
+    return view(tank -> mode.get());
+  }
+
+  /** Per-tank permissions; filling/draining searches only eligible tanks without renumbering. */
+  public IFluidHandler view(IntFunction<IoMode> mode) {
     return new IFluidHandler() {
       @Override
       public int getTanks() {
@@ -217,63 +229,63 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
 
       @Override
       public boolean isFluidValid(int tank, FluidStack stack) {
-        return mode.get().canInsert()
-            && inRange(tank)
+        return inRange(tank)
+            && mode.apply(tank).canInsert()
             && roles.get(tank).canInsert()
             && FluidStorage.this.isFluidValid(tank, stack);
       }
 
       @Override
       public int fill(FluidStack resource, FluidAction action) {
-        return mode.get().canInsert()
-            ? FluidStorage.this.fill(resource, action, Role::canInsert)
-            : 0;
+        return FluidStorage.this.fill(
+            resource, action, tank -> roles.get(tank).canInsert() && mode.apply(tank).canInsert());
       }
 
       @Override
       public FluidStack drain(FluidStack resource, FluidAction action) {
-        return mode.get().canExtract()
-            ? FluidStorage.this.drain(resource, action, Role::canExtract)
-            : FluidStack.EMPTY;
+        return FluidStorage.this.drain(
+            resource,
+            action,
+            tank -> roles.get(tank).canExtract() && mode.apply(tank).canExtract());
       }
 
       @Override
       public FluidStack drain(int maxDrain, FluidAction action) {
-        return mode.get().canExtract()
-            ? FluidStorage.this.drain(maxDrain, action, Role::canExtract)
-            : FluidStack.EMPTY;
+        return FluidStorage.this.drain(
+            maxDrain,
+            action,
+            tank -> roles.get(tank).canExtract() && mode.apply(tank).canExtract());
       }
     };
   }
 
-  private int fill(FluidStack resource, FluidAction action, Predicate<Role> allowed) {
+  private int fill(FluidStack resource, FluidAction action, IntPredicate allowed) {
     if (resource.isEmpty()) return 0;
     int target = -1;
     for (int i = 0; i < tanks.size() && target < 0; i++)
-      if (allowed.test(roles.get(i))
+      if (allowed.test(i)
           && FluidStack.isSameFluidSameComponents(tanks.get(i).getFluid(), resource)
           && tanks.get(i).fill(resource, FluidAction.SIMULATE) > 0) target = i;
     for (int i = 0; i < tanks.size() && target < 0; i++)
-      if (allowed.test(roles.get(i))
+      if (allowed.test(i)
           && tanks.get(i).isEmpty()
           && tanks.get(i).fill(resource, FluidAction.SIMULATE) > 0) target = i;
     return target < 0 ? 0 : tanks.get(target).fill(resource, action);
   }
 
-  private FluidStack drain(FluidStack resource, FluidAction action, Predicate<Role> allowed) {
+  private FluidStack drain(FluidStack resource, FluidAction action, IntPredicate allowed) {
     if (resource.isEmpty()) return FluidStack.EMPTY;
     for (int i = 0; i < tanks.size(); i++)
-      if (allowed.test(roles.get(i))
+      if (allowed.test(i)
           && FluidStack.isSameFluidSameComponents(tanks.get(i).getFluid(), resource)
           && !tanks.get(i).drain(resource, FluidAction.SIMULATE).isEmpty())
         return tanks.get(i).drain(resource, action);
     return FluidStack.EMPTY;
   }
 
-  private FluidStack drain(int maxDrain, FluidAction action, Predicate<Role> allowed) {
+  private FluidStack drain(int maxDrain, FluidAction action, IntPredicate allowed) {
     for (int i = 0; i < tanks.size(); i++)
-      if (allowed.test(roles.get(i))
-          && !tanks.get(i).drain(maxDrain, FluidAction.SIMULATE).isEmpty())
+      if (allowed.test(i) && !tanks.get(i).drain(maxDrain, FluidAction.SIMULATE).isEmpty())
         return tanks.get(i).drain(maxDrain, action);
     return FluidStack.EMPTY;
   }

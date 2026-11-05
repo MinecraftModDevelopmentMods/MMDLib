@@ -17,6 +17,55 @@ public final class CompanionWidgetsClient {
 
   @SubscribeEvent
   public static void setup(FMLClientSetupEvent event) {
+    zone.moddev.mc.lib.gui.client.FilterWidgets.register(
+        zone.moddev.mc.companion.CompanionAddons.TAG_MODE,
+        access ->
+            new zone.moddev.mc.lib.gui.client.FilterWidgets.Instance() {
+              public void render(
+                  net.minecraft.client.gui.GuiGraphics g,
+                  zone.moddev.mc.lib.gui.layout.Rect r,
+                  net.minecraft.nbt.CompoundTag config,
+                  int mx,
+                  int my) {
+                var button = new zone.moddev.mc.lib.gui.layout.Rect(r.x(), r.y(), 14, 14);
+                g.blitSprite(
+                    net.minecraft.resources.ResourceLocation.parse(
+                        button.contains(mx, my)
+                            ? "mmdlib:button_flat_highlighted"
+                            : "mmdlib:button_flat"),
+                    button.x(),
+                    button.y(),
+                    button.width(),
+                    button.height());
+                g.blitSprite(
+                    net.minecraft.resources.ResourceLocation.parse(
+                        config.getBoolean("deny")
+                            ? "mmdlib:icon_filter_blacklist"
+                            : "mmdlib:icon_filter_whitelist"),
+                    r.x() + 2,
+                    r.y() + 2,
+                    10,
+                    10);
+              }
+
+              public net.minecraft.network.chat.Component tooltip() {
+                return net.minecraft.network.chat.Component.translatable(
+                    access.configuration().get().getBoolean("deny")
+                        ? "screen.mmdlib_companion.filter.blacklist"
+                        : "screen.mmdlib_companion.filter.whitelist");
+              }
+
+              public boolean click(double x, double y, int button) {
+                if (!access.pending().getAsBoolean())
+                  access.submit().accept(!access.configuration().get().getBoolean("deny"));
+                return true;
+              }
+
+              public boolean key(int key, int scan, int modifiers) {
+                if (key == 257 || key == 32) return click(0, 0, 0);
+                return false;
+              }
+            });
     WidgetRenderers.GLOBAL.registerInteractive(CompanionWidgets.NAME_EDITOR, NameEditor::new);
     WidgetRenderers.GLOBAL.registerInteractive(CompanionWidgets.RESERVE_SLIDER, ReserveSlider::new);
     WidgetRenderers.GLOBAL.registerInteractive(CompanionWidgets.LANE_SELECTOR, LaneSelector::new);

@@ -8,7 +8,7 @@
              tooltip="screen.mmdlib_companion.tank.tip" tooltip-fallback="Water or lava: {value} / {max} mB. Click with a fluid container to transfer."
              on-click="mmdlib_companion:tank_container" on-right-click="mmdlib_companion:tank_container"/>
       <spacer/>
-      <slot index="0"/>
+      <slot id="input" index="0"/>
       <custom id="progress" type="mmdlib_companion:progress_dial" width="24" height="24"
               value="#getProgress" max="#getTime"
               on-click="mmdlib_companion:toggle_0"
@@ -16,7 +16,7 @@
               tooltip-fallback="Progress: {value} / {max} ticks. Click to pause or resume.">
         <property name="color" value="#55CC88"/>
       </custom>
-      <slot index="1"/>
+      <slot id="output" index="1"/>
       <spacer/>
       <energy-gauge id="energy" length="3s"/>
     </hbox>
@@ -28,14 +28,6 @@
               tooltip="screen.mmdlib_companion.settings.tip" tooltip-fallback="Edit the machine name, energy reserve and lane state."
               shows="panel:settings"/>
       <spacer/>
-      <button flat="true" id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
-              icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
-              value-labels="screen.mmdlib_companion.redstone.ignore screen.mmdlib_companion.redstone.high screen.mmdlib_companion.redstone.low"
-              tooltip="screen.mmdlib_companion.redstone.tip"/>
-      <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
-              icons="mmdlib:icon_pause mmdlib:icon_resume"
-              value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
-              tooltip="screen.mmdlib_companion.pause.tip"/>
     </hbox>
     </view>
     <view id="settings" title="screen.mmdlib_companion.settings" title-fallback="Settings">
@@ -51,5 +43,15 @@
     </view>
     </context>
   </vbox>
+  <inventory-controls id="inventory_controls">
+    <button flat="true" id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
+            icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
+            value-labels="screen.mmdlib_companion.redstone.ignore screen.mmdlib_companion.redstone.high screen.mmdlib_companion.redstone.low"
+            tooltip="screen.mmdlib_companion.redstone.tip"/>
+    <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
+            icons="mmdlib:icon_pause mmdlib:icon_resume"
+            value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
+            tooltip="screen.mmdlib_companion.pause.tip"/>
+  </inventory-controls>
   <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.crusher" value="#getWarnings"/>
 </screen>

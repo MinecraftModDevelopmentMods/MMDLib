@@ -87,7 +87,7 @@ public final class ScreenLoaderTest {
           + " block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\">";
 
   private static final String EXAMPLE =
-      """
+"""
 <screen xmlns="https://moddev.zone/mmdlib/screen"
         title="screen.example.material_press"
         block-entity="zone.moddev.mc.lib.gui.ScreenLoaderTest$Press">
@@ -263,14 +263,24 @@ public final class ScreenLoaderTest {
     require(defaults.maxima().get(gauge).kind() == BoundValue.Kind.WHOLE);
     require(gauge.orientation() == Element.Orientation.VERTICAL && gauge.length() == 54);
     require(gauge.color() == 0xFFE64B38);
-    require(gauge.common().tooltip().orElseThrow().fallback().orElseThrow().equals("{value} / {max} FE"));
+    require(
+        gauge
+            .common()
+            .tooltip()
+            .orElseThrow()
+            .fallback()
+            .orElseThrow()
+            .equals("{value} / {max} FE"));
 
-    var custom = bind(HEAD + """
-        <vbox>
-          <energy-gauge id="reserve" orientation="horizontal" length="fill" color="#123456"
-                        value="#getThroughput" max="#getMaxThroughput" tooltip="example.reserve"/>
-        </vbox></screen>
-        """);
+    var custom =
+        bind(
+            HEAD
+                + """
+                <vbox>
+                  <energy-gauge id="reserve" orientation="horizontal" length="fill" color="#123456"
+                                value="#getThroughput" max="#getMaxThroughput" tooltip="example.reserve"/>
+                </vbox></screen>
+                """);
     var reserve = (Element.EnergyGauge) custom.screen().find("reserve").orElseThrow();
     require(custom.maxima().get(reserve).kind() == BoundValue.Kind.DECIMAL);
     require(reserve.color() == 0xFF123456);
@@ -288,11 +298,14 @@ public final class ScreenLoaderTest {
 
   @Test
   void statefulButtonsSelectIconsAndTranslatedValues() throws Exception {
-    var screen = bind(HEAD + """
-        <button id="mode" value="#getProgress" icons="mmdlib:off mmdlib:on"
-                value-labels="screen.test.off screen.test.on" tooltip="screen.test.mode"/>
-        </screen>
-        """).screen();
+    var screen =
+        bind(HEAD
+                + """
+                <button id="mode" value="#getProgress" icons="mmdlib:off mmdlib:on"
+                        value-labels="screen.test.off screen.test.on" tooltip="screen.test.mode"/>
+                </screen>
+                """)
+            .screen();
     var button = (Element.Button) screen.find("mode").orElseThrow();
     require(button.iconFor(BigInteger.ONE).orElseThrow().getPath().equals("on"));
     require(button.iconFor(Boolean.FALSE).orElseThrow().getPath().equals("off"));
@@ -328,12 +341,18 @@ public final class ScreenLoaderTest {
                 companionLayoutWidgets());
         var layout =
             ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
-        var controls = layout.bounds(screen.find("controls").orElseThrow());
+        var controls = layout.bounds(screen.find("inventory_controls").orElseThrow());
         var redstone = layout.bounds(screen.find("redstone").orElseThrow());
-        var pause = layout.bounds(screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
+        var pause =
+            layout.bounds(
+                screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
         require(controls.y() > layout.bounds(screen.find("energy").orElseThrow()).bottom());
         require(controls.bottom() < layout.inventory().orElseThrow().y());
-        require(pause.right() == layout.panel().width() - 7);
+        require(pause.right() == layout.inventory().orElseThrow().right());
+        var colours = layout.inventoryColors().orElseThrow();
+        require(colours.x() == layout.inventory().orElseThrow().x());
+        require(colours.y() == redstone.y() && colours.height() == redstone.height());
+        require(colours.right() + ScreenLayout.GAP == redstone.x());
         require(redstone.y() == pause.y() && redstone.right() < pause.x());
         require(pause.width() == 14 && pause.height() == 14);
         require(((Element.Button) screen.find("redstone").orElseThrow()).flat());
@@ -370,8 +389,11 @@ public final class ScreenLoaderTest {
               || element instanceof Element.Checkbox
               || element instanceof Element.Label) {
             var other = layout.bounds(element);
-            require(other.right() <= bounds.x() || other.x() >= bounds.right()
-                || other.bottom() <= bounds.y() || other.y() >= bounds.bottom());
+            require(
+                other.right() <= bounds.x()
+                    || other.x() >= bounds.right()
+                    || other.bottom() <= bounds.y()
+                    || other.y() >= bounds.bottom());
           }
         }
       }

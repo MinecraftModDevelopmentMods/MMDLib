@@ -58,6 +58,7 @@ public final class ScreenLayout {
   private final TextMeasure text;
   private Rect panel;
   private Rect inventory;
+  private Rect inventoryColors;
 
   private ScreenLayout(TextMeasure text) {
     this.text = text;
@@ -69,8 +70,53 @@ public final class ScreenLayout {
    * @throws IllegalArgumentException if the tabs on one edge do not fit the panel's height
    */
   public static ScreenLayout of(Screen screen, TextMeasure text) {
+    return of(screen, text, false);
+  }
+
+  /** Reserves an actual row above the player inventory for resource-group selectors. */
+  public static ScreenLayout of(Screen screen, TextMeasure text, boolean automation) {
     var layout = new ScreenLayout(text);
     layout.place(screen);
+    var controls =
+        screen.body().stream()
+            .filter(InventoryControls.class::isInstance)
+            .map(InventoryControls.class::cast)
+            .findFirst()
+            .orElse(null);
+    if (controls != null && layout.inventory == null)
+      throw new IllegalArgumentException("inventory-controls requires a player inventory");
+    if ((automation || controls != null) && layout.inventory != null) {
+      int start = layout.inventory.y();
+      int controlsWidth = controls == null ? 0 : layout.size(controls)[0];
+      int rowHeight =
+          Math.max(
+              AutomationLayout.SELECTOR_ROW_HEIGHT,
+              controls == null ? 0 : layout.size(controls)[1] + GAP);
+      int colourWidth = layout.inventory.width() - (controlsWidth == 0 ? 0 : controlsWidth + GAP);
+      if (colourWidth < (automation ? 34 : 0))
+        throw new IllegalArgumentException(
+            "Inventory controls leave too little room for colour selectors");
+      layout.bounds.replaceAll(
+          (element, rect) -> rect.y() >= start ? rect.offset(0, rowHeight) : rect);
+      layout.inventoryColors = new Rect(layout.inventory.x(), start, colourWidth, rowHeight - GAP);
+      if (controls != null)
+        layout.placeAt(
+            controls,
+            layout.inventory.right() - controlsWidth,
+            start,
+            controlsWidth,
+            rowHeight - GAP);
+      layout.inventory = layout.inventory.offset(0, rowHeight);
+      layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + rowHeight);
+    }
+    if (automation) {
+      layout.bounds.replaceAll(
+          (e, r) ->
+              r.x() >= layout.panel.width() - TAB_OVERLAP
+                  ? r.offset(0, POPOUT_HEIGHT + TAB_GAP)
+                  : r);
+    }
+    layout.applyOffsets(screen);
     return layout;
   }
 
@@ -82,6 +128,11 @@ public final class ScreenLayout {
   /** Where the player inventory's title starts, if the screen shows the inventory. */
   public Optional<Rect> inventory() {
     return Optional.ofNullable(inventory);
+  }
+
+  /** Left-hand region of the shared inventory toolbar, excluding its right-hand controls. */
+  public Optional<Rect> inventoryColors() {
+    return Optional.ofNullable(inventoryColors);
   }
 
   /** Where {@code element} is drawn. */
@@ -105,6 +156,15 @@ public final class ScreenLayout {
   private int[] size(Element element) {
     return switch (element) {
       case Box box -> boxSize(box);
+      case InventoryControls controls -> {
+        int width = Math.max(0, controls.children().size() - 1) * 2, height = 0;
+        for (var child : controls.children()) {
+          int[] size = size(child);
+          width += size[0];
+          height = Math.max(height, size[1]);
+        }
+        yield new int[] {width, height};
+      }
       case Spacer spacer -> new int[] {0, 0};
       case Custom custom -> new int[] {custom.width(), custom.height()};
       case Group group -> {
@@ -116,7 +176,8 @@ public final class ScreenLayout {
       case Slot slot -> slot.size() == SlotSize.LARGE ? new int[] {26, 26} : new int[] {18, 18};
       // A fill length counts as its minimum here; placement stretches it.
       case Gauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
-      case EnergyGauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
+      case EnergyGauge gauge ->
+          oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
       case Meter meter ->
           oriented(meter.orientation(), meter.thickness(), meter.fills() ? 4 : meter.length());
       case Progress progress ->
@@ -125,9 +186,11 @@ public final class ScreenLayout {
               : new int[] {24, 16};
       case Label label -> new int[] {text.width(label.text()), TextMeasure.LINE_HEIGHT};
       case Button button ->
-          button.flat() ? new int[] {14, 14} : button.text().isPresent()
-              ? new int[] {Math.max(20, text.width(button.text().get()) + 8), 20}
-              : new int[] {20, 20};
+          button.flat()
+              ? new int[] {14, 14}
+              : button.text().isPresent()
+                  ? new int[] {Math.max(20, text.width(button.text().get()) + 8), 20}
+                  : new int[] {20, 20};
       case Checkbox box -> new int[] {10 + 4 + text.width(box.text()), 10};
       case Radio radio -> new int[] {10 + 4 + text.width(radio.text()), 10};
       case RadioGroup group -> {
@@ -216,7 +279,8 @@ public final class ScreenLayout {
           if (e instanceof Context context)
             alternateViews.addAll(context.views().subList(1, context.views().size()));
         });
-    int[] body = stack(screen.body(), GAP);
+    var content = screen.body().stream().filter(e -> !(e instanceof InventoryControls)).toList();
+    int[] body = stack(content, GAP);
     boolean addInventory =
         screen.playerInventory()
             && screen.elements().stream().noneMatch(PlayerInventory.class::isInstance);
@@ -228,7 +292,7 @@ public final class ScreenLayout {
       height += GAP + INVENTORY_HEIGHT + PANEL_MARGIN;
     }
     int y = titleHeight;
-    for (var element : screen.body()) {
+    for (var element : content) {
       int[] size = size(element);
       // Top-level boxes span the panel, as a vbox's children do.
       int w = element instanceof Box || fills(element) ? width : size[0];
@@ -247,13 +311,20 @@ public final class ScreenLayout {
       if (element instanceof PlayerInventory) inventory = bounds.get(element);
     placeTabs(screen, Edge.LEFT);
     placeTabs(screen, Edge.RIGHT);
-    applyOffsets(screen);
   }
 
   private void placeAt(Element element, int x, int y, int width, int height) {
     bounds.put(element, new Rect(x, y, width, height));
     switch (element) {
       case Box box -> placeBox(box, x, y, width, height);
+      case InventoryControls controls -> {
+        int left = x;
+        for (var child : controls.children()) {
+          int[] size = size(child);
+          placeAt(child, left, y + (height - size[1]) / 2, size[0], size[1]);
+          left += size[0] + 2;
+        }
+      }
       case Group group -> {
         int top =
             y + group.padding() + (group.label().isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0);

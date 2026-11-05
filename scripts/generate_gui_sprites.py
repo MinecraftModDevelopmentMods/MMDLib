@@ -256,6 +256,14 @@ def write_flat_buttons():
         write_png(name, img, {"type": "nine_slice", "width": 14, "height": 14, "border": 1})
 
 
+def write_filter_icons():
+    """White/black list cards for the flat grey mode toggle."""
+    for mode, fill in (("whitelist", 0xF1), ("blacklist", 0x24)):
+        img = canvas(10, 10)
+        rect(img, 2, 1, 6, 8, grey(fill))
+        write_png("icon_filter_" + mode, img)
+
+
 def write_control_icons():
     """16 px control glyphs with a one-pixel shadow and optional lane/mode badge."""
     def glyph(img, rows, x, y, ink):
@@ -290,6 +298,58 @@ def write_control_icons():
         write_png("icon_redstone_" + mode, img)
 
 
+def write_side_config_sprites():
+    """Outlined directional glyphs remain legible over faded neighbour previews."""
+    cyan, orange = (133, 210, 255, 255), (255, 185, 101, 255)
+    ink = (30, 40, 52, 255)
+
+    def outlined(pixels):
+        result = canvas(len(pixels[0]), len(pixels))
+        for y, row in enumerate(pixels):
+            for x, colour in enumerate(row):
+                if colour == CLEAR: continue
+                for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= ny < len(result) and 0 <= nx < len(row): result[ny][nx] = ink
+        for y, row in enumerate(pixels):
+            for x, colour in enumerate(row):
+                if colour != CLEAR: result[y][x] = colour
+        return result
+
+    def arrow(img, x, y, down, colour):
+        rows = ["..##..", "..##..", "..##..", "..##..", "######", ".####.", "..##.."]
+        if not down: rows = rows[::-1]
+        for dy, row in enumerate(rows):
+            for dx, bit in enumerate(row):
+                if bit == "#": img[y + dy][x + dx] = colour
+
+    for mode in ("input", "output", "both", "disabled"):
+        img = canvas(14, 14)
+        if mode == "both":
+            arrow(img, 1, 5, True, cyan)
+            arrow(img, 7, 2, False, orange)
+        elif mode == "disabled":
+            for i in range(8):
+                rect(img, 3 + i, 3 + i, 1, 1, grey(205))
+                rect(img, 10 - i, 3 + i, 1, 1, grey(205))
+        else:
+            arrow(img, 4, 2, mode == "input", cyan if mode == "input" else orange)
+            rect(img, 3, 10, 8, 2, grey(225))
+            rect(img, 3, 9, 1, 1, grey(225))
+            rect(img, 10, 9, 1, 1, grey(225))
+        write_png("side_mode_" + mode, outlined(img))
+
+    # A central machine with four connected, coloured ports identifies side configuration.
+    img = canvas(16, 16)
+    rect(img, 7, 2, 2, 12, grey(220))
+    rect(img, 2, 7, 12, 2, grey(220))
+    rect(img, 5, 5, 6, 6, grey(240))
+    rect(img, 6, 6, 4, 4, (93, 119, 151, 255))
+    for x, y, colour in ((6, 1, cyan), (1, 6, cyan), (11, 6, orange), (6, 11, orange)):
+        rect(img, x, y, 4, 4, colour)
+    write_png("icon_side_config", outlined(img))
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print(f"writing to {OUT}:")
@@ -301,7 +361,9 @@ def main():
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
     write_drawer_sprites()
     write_control_icons()
+    write_filter_icons()
     write_flat_buttons()
+    write_side_config_sprites()
     write_png("checkbox", checkbox(False))
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))

@@ -185,6 +185,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:group ref="widget" minOccurs="1" maxOccurs="unbounded"/>
+        <xs:element ref="inventory-controls" minOccurs="0"/>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element ref="side-tab"/>
           <xs:element ref="popout"/>
@@ -200,6 +201,13 @@
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="inventory-controls">
+    <xs:complexType>
+      <xs:sequence><xs:element ref="button" minOccurs="1" maxOccurs="unbounded"/></xs:sequence>
+      <xs:attributeGroup ref="common"/>
     </xs:complexType>
   </xs:element>
 

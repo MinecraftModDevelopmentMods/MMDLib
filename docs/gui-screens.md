@@ -4,6 +4,10 @@
 > open through `block-right-click`, and use one generic menu with custom value packets.
 > Rendering and optional JEI integration live exclusively on the client.
 
+Machines can opt into [inventory colours, side drawers and item-provided filter editors](inventory-automation.md)
+through `ScreenHost.screenAutomation()`. This adds the selectors, fixed addon/filter slots and
+embedded editor without adding per-filter XML to each screen.
+
 ## Implementation map
 
 | Piece | Where | State |
@@ -431,6 +435,13 @@ The standard player inventory (three rows of nine, a 4 px gap, then the hotbar) 
 bottom automatically. Write `<player-inventory/>` only to place it somewhere else, or set
 `inventory="none"` on `<screen>` to leave it out.
 
+Optional `<inventory-controls>` goes after the main body and before tabs/popouts. Its button
+children form a right-aligned row above the player inventory (for example redstone and pause
+toggles). Automation's reusable `InventoryColorButtonBar` shares that row on the left, with
+scrollable overflow. The row is allocated once, and both sides align with the inventory edges.
+Use ordinary button declarations inside it; no spacer or coordinates are needed. This element
+requires a player inventory and is available to every screen, not just companion machines.
+
 ## Layout
 
 - **Boxes.** `vbox` stacks children top to bottom and `hbox` left to right, so text of any
@@ -700,7 +711,7 @@ When JEI is installed:
   Pop-out tabs are 22×24 rectangles, coloured by kind: yellow information, amber warning,
   red error. Clicking one opens a matching drawer outward from that edge, with the icon
   retained on a darker rail as the close control. Its body is up to 150 pixels wide and
-  extends to the main panel's bottom. Text wraps to the available width; scroll inside
+  fits its text, capped at the main panel's bottom and the screen edge. Text wraps to the available width; scroll inside
   to read longer content. Opening another drawer on the same edge replaces the open drawer;
   tabs remain visible and clickable on the rail.
 

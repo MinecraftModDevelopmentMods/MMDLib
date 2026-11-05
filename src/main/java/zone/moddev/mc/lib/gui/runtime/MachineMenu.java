@@ -39,6 +39,8 @@ public class MachineMenu extends AbstractContainerMenu {
   private final IItemHandler items;
   @Nullable private final ReservedSlots reserved;
   private final Player owner;
+  public final AutomationMenu automation;
+  private final int baseMachineSlots;
   private boolean initial = true;
   private boolean interacting;
   private long widgetSession = java.util.concurrent.ThreadLocalRandom.current().nextLong();
@@ -226,6 +228,10 @@ public class MachineMenu extends AbstractContainerMenu {
       if (element instanceof Element.SideConfig config && config.groups().size() > 682)
         throw new IllegalArgumentException("Too many side configuration groups");
     host = entity instanceof ScreenHost h ? h : null;
+    automation =
+        host != null && host.screenAutomation() != null
+            ? new AutomationMenu(this, host.screenAutomation(), owner, client)
+            : null;
     elements.forEach(
         e -> {
           if (e instanceof Element.Context c)
@@ -239,14 +245,18 @@ public class MachineMenu extends AbstractContainerMenu {
             .orElse(0);
     if (client)
       items =
-          host == null ? new ItemStackHandler(count) : new ClientMenuItems(count, host.screenItems());
+          host == null
+              ? new ItemStackHandler(count)
+              : new ClientMenuItems(count, host.screenItems());
     else items = host == null ? new ItemStackHandler(0) : host.screenItems();
-    machineSlots = count;
+    baseMachineSlots = count;
+    machineSlots = count + (automation == null ? 0 : automation.slotCount());
     reserved = items instanceof ReservedSlots slots ? slots : null;
     var layout =
         ScreenLayout.of(
             bound.screen(),
-            owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE);
+            owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
+            automation != null);
     for (int n = 0; n < count; n++) {
       final int index = n;
       var element =
@@ -313,6 +323,8 @@ public class MachineMenu extends AbstractContainerMenu {
               }
             });
     }
+    if (automation != null)
+      automation.addSlots(this::addSlot, count, layout.panel().width() + AutomationLayout.RAIL);
     layout
         .inventory()
         .ifPresent(
@@ -420,6 +432,7 @@ public class MachineMenu extends AbstractContainerMenu {
     if (!previous)
       for (var slot : slots)
         if (slot instanceof ReservationSlot reservedSlot) reservedSlot.endInteraction();
+    if (!previous && automation != null) automation.afterInteraction();
   }
 
   @Override
@@ -446,12 +459,15 @@ public class MachineMenu extends AbstractContainerMenu {
     } else {
       if (host == null) return ItemStack.EMPTY;
       var destinations = new ArrayList<Slot>();
+      if (automation != null)
+        for (int destination = baseMachineSlots; destination < machineSlots; destination++)
+          if (slots.get(destination).isActive() && slots.get(destination).mayPlace(stack))
+            destinations.add(slots.get(destination));
       for (int destination : host.screenDestinations(stack))
         if (destination >= 0
-            && destination < machineSlots
+            && destination < baseMachineSlots
             && slots.get(destination).isActive()
-            && slots.get(destination).mayPlace(stack))
-          destinations.add(slots.get(destination));
+            && slots.get(destination).mayPlace(stack)) destinations.add(slots.get(destination));
       // Like vanilla's moveItemStackTo: top up matching stacks first, then fill empty slots.
       for (var slot : destinations)
         if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(slot.getItem(), stack))
@@ -484,7 +500,7 @@ public class MachineMenu extends AbstractContainerMenu {
   private boolean planned(int index) {
     return reserved != null
         && index >= 0
-        && index < machineSlots
+        && index < baseMachineSlots
         && slots.get(index) instanceof SlotItemHandler
         && reserved.hasPlan(index);
   }
@@ -501,9 +517,12 @@ public class MachineMenu extends AbstractContainerMenu {
 
   @Override
   public void broadcastChanges() {
+    if (automation != null) automation.beforeBroadcast();
     super.broadcastChanges();
-    if (!(owner instanceof net.minecraft.server.level.ServerPlayer player) || !stillValid(owner))
-      return;
+    if (automation != null) automation.broadcast();
+    if (!(owner instanceof net.minecraft.server.level.ServerPlayer player)
+        || !stillValid(owner)
+        || !player.connection.hasChannel(ScreenNetwork.Values.TYPE)) return;
     var snapshot = new HashMap<>(ScreenSnapshots.read(blockEntity, bound));
     for (int i = 0; i < elements.size(); i++)
       if (elements.get(i) instanceof Element.Context context) {
@@ -537,7 +556,7 @@ public class MachineMenu extends AbstractContainerMenu {
   public Map<Integer, Object> reservationSnapshot() {
     var snapshot = new HashMap<Integer, Object>();
     if (reserved != null)
-      for (int slot = 0; slot < Math.min(machineSlots, items.getSlots()); slot++)
+      for (int slot = 0; slot < Math.min(baseMachineSlots, items.getSlots()); slot++)
         snapshot.put(PLAN_KEYS + slot, reserved.plan(slot));
     return snapshot;
   }

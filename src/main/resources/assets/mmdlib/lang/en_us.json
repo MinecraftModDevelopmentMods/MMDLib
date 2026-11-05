@@ -278,5 +278,12 @@
   "screen.mmdlib.face.short.left": "L",
   "screen.mmdlib.face.short.right": "R",
   "screen.mmdlib.face.short.top": "T",
-  "screen.mmdlib.face.short.bottom": "D"
+  "screen.mmdlib.face.short.bottom": "D",
+  "screen.mmdlib.automation.open": "Inventory side configuration",
+  "screen.mmdlib.automation.filter": "Configure this filter",
+  "screen.mmdlib.automation.collapse": "Collapse filter editor",
+  "screen.mmdlib.automation.sample": "Click with a sample; right-click to clear",
+  "screen.mmdlib.automation.empty": "No neighbouring block",
+  "screen.mmdlib.automation.unloaded": "Neighbour not loaded",
+  "screen.mmdlib.automation.addon": "Compatible addon"
 }

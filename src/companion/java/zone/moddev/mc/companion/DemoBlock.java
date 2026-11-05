@@ -45,14 +45,29 @@ public final class DemoBlock extends Block implements EntityBlock {
   }
 
   @Override
-  protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level,
-      BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-    if (level.getBlockEntity(pos) instanceof ProcessorEntity machine && machine.hasTank()
+  protected ItemInteractionResult useItemOn(
+      ItemStack stack,
+      BlockState state,
+      Level level,
+      BlockPos pos,
+      Player player,
+      InteractionHand hand,
+      BlockHitResult hit) {
+    if (stack.is(CompanionAddons.RECOVERY_CAPSULE.get())
+        && level.getBlockEntity(pos) instanceof ProcessorEntity machine) {
+      if (level.isClientSide()) return ItemInteractionResult.SUCCESS;
+      return RecoveryCapsuleItem.restore(stack, machine)
+          ? ItemInteractionResult.CONSUME
+          : ItemInteractionResult.FAIL;
+    }
+    if (level.getBlockEntity(pos) instanceof ProcessorEntity machine
+        && machine.hasTank()
         && FluidUtil.getFluidHandler(stack).isPresent()) {
       if (level.isClientSide()) return ItemInteractionResult.SUCCESS;
       if (FluidUtil.interactWithFluidHandler(player, hand, machine.fluids))
         return ItemInteractionResult.CONSUME;
-      player.displayClientMessage(Component.translatable("screen.mmdlib_companion.tank.refused"), true);
+      player.displayClientMessage(
+          Component.translatable("screen.mmdlib_companion.tank.refused"), true);
       // Do not let a rejected bucket spill its contents beside the machine.
       return ItemInteractionResult.FAIL;
     }
@@ -60,10 +75,11 @@ public final class DemoBlock extends Block implements EntityBlock {
   }
 
   @Override
-  protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
-      Player player, BlockHitResult hit) {
+  protected InteractionResult useWithoutItem(
+      BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
     return ScreenRuntime.open(player, level.getBlockEntity(pos))
-        ? InteractionResult.sidedSuccess(level.isClientSide()) : InteractionResult.PASS;
+        ? InteractionResult.sidedSuccess(level.isClientSide())
+        : InteractionResult.PASS;
   }
 
   @Override
