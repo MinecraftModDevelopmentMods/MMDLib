@@ -21,6 +21,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 
@@ -37,6 +38,17 @@ public final class CompanionClientSmoke {
   private static final long DEADLINE = System.currentTimeMillis() + 180_000;
   private static boolean started, opening, menuRequested, finished;
   private static int stage, frames, waitingTicks, drawerStage, fluidStage, controlStage;
+
+  @SubscribeEvent
+  public static void render(ScreenEvent.Render.Pre event) {
+    if (Boolean.getBoolean("mmdlib.companionSmoke")
+        && !finished
+        && opening
+        && stage == 4
+        && event.getScreen() instanceof MachineScreen screen
+        && AutomationClientSmoke.renderTooltipCapture(
+            screen, event.getGuiGraphics(), event.getPartialTick())) event.setCanceled(true);
+  }
 
   @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {

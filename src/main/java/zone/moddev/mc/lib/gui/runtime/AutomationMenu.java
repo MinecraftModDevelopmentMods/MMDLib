@@ -12,6 +12,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
+import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 
 /**
  * Per-viewer selection/editor state. Every group keeps fixed real slot indices for the menu
@@ -130,7 +131,7 @@ public final class AutomationMenu {
               items,
               index,
               bodyX + 26 + (i % 4) * 20 + (i % 8 >= 4 ? 3 : 1),
-              74 + (i % 8 >= 4 ? 24 : 1)) {
+              ScreenLayout.TAB_PADDING + 74 + (i % 8 >= 4 ? 24 : 1)) {
             @Override
             public boolean isActive() {
               return open

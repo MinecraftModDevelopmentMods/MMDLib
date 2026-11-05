@@ -37,6 +37,7 @@ public final class AutomationDrawer {
   private final Map<String, FilterWidgets.Instance> customWidgets = new HashMap<>();
   private FilterWidgets.Instance focusedCustom;
   private Component tooltip;
+  private List<Component> faceTooltip = List.of();
   private Rect body, tab, selector, horizontal, editorArea;
   private final Map<String, Rect> controlBounds = new HashMap<>();
   private int lastSelected = -1;
@@ -73,7 +74,7 @@ public final class AutomationDrawer {
 
   public void layout() {
     Rect panel = panel();
-    tab = new Rect(panel.right(), panel.y(), RAIL, 24);
+    tab = new Rect(panel.right(), panel.y() + ScreenLayout.TAB_PADDING, RAIL, 24);
     syncEditor();
     int contentHeight = 96;
     for (int c = 0; c < 4; c++) {
@@ -84,8 +85,8 @@ public final class AutomationDrawer {
     boolean editing = model.open() && model.editor() >= 0;
     int editorHeight = (panelLayout == null ? 18 : panelLayout.height()) + 18;
     int desiredHeight = editing ? Math.max(baseHeight, 132 + editorHeight + 4) : baseHeight;
-    int availableHeight = Math.max(0, screen.drawerBottom() - panel.y());
-    body = new Rect(tab.right(), panel.y(), WIDTH, Math.min(desiredHeight, availableHeight));
+    int availableHeight = Math.max(0, screen.drawerBottom() - tab.y());
+    body = new Rect(tab.right(), tab.y(), WIDTH, Math.min(desiredHeight, availableHeight));
     int shown =
         Math.max(
             1, Math.min(Math.min(count(), 8), (Math.min(baseHeight, body.height()) - 16) / 16));
@@ -236,12 +237,14 @@ public final class AutomationDrawer {
   }
 
   private void swatch(GuiGraphics g, Rect r, int group, int mx, int my) {
-    button(g, r, model.selected() == group && model.open());
+    boolean selected = model.selected() == group && model.open();
+    g.fill(r.x(), r.y(), r.right(), r.bottom(), selected ? 0xffeeeeee : 0xff555555);
+    int border = selected ? 2 : 1;
     g.fill(
-        r.x() + 2,
-        r.y() + 2,
-        r.right() - 2,
-        r.bottom() - 2,
+        r.x() + border,
+        r.y() + border,
+        r.right() - border,
+        r.bottom() - border,
         0xff000000 | model.inventory.group(group).colour());
     if (r.contains(mx, my)) {
       tooltip = model.inventory.group(group).name();
@@ -252,8 +255,9 @@ public final class AutomationDrawer {
   public void drawBackground(GuiGraphics g, int mx, int my) {
     layout();
     tooltip = null;
+    faceTooltip = List.of();
     tint(g, "drawer_tab", tab, 0x819bc2);
-    icon(g, "icon_sides", new Rect(tab.x() + 3, tab.y() + 3, 16, 16));
+    icon(g, "icon_side_config", new Rect(tab.x() + 3, tab.y() + 4, 16, 16));
     for (int index = 0; index < count(); index++) {
       var group = model.inventory.group(index);
       for (String id : group.highlights())
@@ -386,28 +390,19 @@ public final class AutomationDrawer {
       }
     }
     var mode = model.mode(model.selected(), index);
-    int x = r.right() - 8, y = r.bottom() - 8;
-    g.fill(x, y, r.right() - 1, r.bottom() - 1, 0xee263440);
-    if (mode.canInsert()) {
-      int ax = x + (mode.canExtract() ? 1 : 2);
-      g.fill(ax + 1, y + 1, ax + 2, y + 5, 0xff85c5ff);
-      g.fill(ax, y + 3, ax + 3, y + 4, 0xff85c5ff);
-    }
-    if (mode.canExtract()) {
-      int ax = x + (mode.canInsert() ? 4 : 2);
-      g.fill(ax + 1, y + 2, ax + 2, y + 6, 0xffffbb73);
-      g.fill(ax, y + 3, ax + 3, y + 4, 0xffffbb73);
-    }
-    if (!mode.canInsert() && !mode.canExtract()) {
-      g.fill(x + 2, y + 3, x + 5, y + 4, 0xffaaaaaa);
-    }
+    // Keep the preview recognisable behind a quiet veil and a high-contrast mode glyph.
+    // Both must render above the block model's depth, not behind its faces.
+    g.pose().pushPose();
+    g.pose().translate(0, 0, 200);
+    g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0x667e8793);
+    icon(g, "side_mode_" + mode.getSerializedName(), new Rect(r.x() + 2, r.y() + 2, 14, 14));
+    g.pose().popPose();
     if (r.contains(mx, my))
-      tooltip =
-          Component.translatable("screen.mmdlib.face." + relative.getSerializedName())
-              .append(" · ")
-              .append(neighbour)
-              .append(" · ")
-              .append(Component.translatable("screen.mmdlib.mode." + mode.getSerializedName()));
+      faceTooltip =
+          List.of(
+              Component.translatable("screen.mmdlib.face." + relative.getSerializedName()),
+              neighbour,
+              Component.translatable("screen.mmdlib.mode." + mode.getSerializedName()));
   }
 
   private static void gear(GuiGraphics g, Rect r) {
@@ -556,7 +551,8 @@ public final class AutomationDrawer {
   }
 
   public void tooltip(GuiGraphics g, int mx, int my) {
-    if (tooltip != null) g.renderTooltip(mc.font, tooltip, mx, my);
+    if (!faceTooltip.isEmpty()) g.renderComponentTooltip(mc.font, faceTooltip, mx, my);
+    else if (tooltip != null) g.renderTooltip(mc.font, tooltip, mx, my);
   }
 
   public List<Rect> exclusions() {

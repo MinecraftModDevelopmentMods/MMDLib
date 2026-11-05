@@ -2,15 +2,24 @@ package zone.moddev.mc.companion.test;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
 
 import zone.moddev.mc.companion.*;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
+import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 
 /** Real client/server round trips, screenshots and item-owned editor transitions. */
 final class AutomationClientSmoke {
   private static int stage;
   private static int compactHeight;
+
+  static boolean renderTooltipCapture(MachineScreen screen, GuiGraphics graphics, float partial) {
+    if (stage != 8 || !screen.getMenu().automation.open()) return false;
+    var drawer = screen.exclusions().getLast();
+    screen.renderWithTooltip(graphics, drawer.x() + 81, drawer.y() + 52, partial);
+    return true;
+  }
 
   static boolean run(MachineScreen screen) {
     var mc = Minecraft.getInstance();
@@ -33,7 +42,11 @@ final class AutomationClientSmoke {
     }
     if (stage == 1) {
       if (!a.open()) throw new AssertionError("Colour opens drawer");
-      compactHeight = screen.exclusions().getLast().height();
+      var drawer = screen.exclusions().getLast();
+      var info = menu.bound.screen().find("info").orElseThrow();
+      if (drawer.y() != screen.bounds(info).y())
+        throw new AssertionError("Information and configuration drawers must align at the top");
+      compactHeight = drawer.height();
       if (compactHeight >= screen.panelBounds().height())
         throw new AssertionError(
             "The configuration drawer should fit its controls, not the main panel height");
@@ -71,7 +84,7 @@ final class AutomationClientSmoke {
       if (exclusions.size() != 3)
         throw new AssertionError("Filter must remain inside the existing drawer exclusion");
       var drawer = exclusions.getLast();
-      if (drawer.y() != screen.guiTop()
+      if (drawer.y() != screen.guiTop() + ScreenLayout.TAB_PADDING
           || drawer.height() <= compactHeight
           || drawer.bottom() <= screen.panelBounds().bottom()
           || drawer.bottom() > screen.drawerBottom())
@@ -134,6 +147,12 @@ final class AutomationClientSmoke {
       if (screen.exclusions().getLast().height() != compactHeight)
         throw new AssertionError("Changing inventory should restore the compact drawer height");
       Screenshot.grab(mc.gameDirectory, "automation-energy.png", mc.getMainRenderTarget(), m -> {});
+      stage++;
+      return false;
+    }
+    if (stage == 8) {
+      Screenshot.grab(
+          mc.gameDirectory, "automation-side-tooltip.png", mc.getMainRenderTarget(), m -> {});
       a.send("close", 6, -1, "", 0, "");
       stage++;
       return false;
