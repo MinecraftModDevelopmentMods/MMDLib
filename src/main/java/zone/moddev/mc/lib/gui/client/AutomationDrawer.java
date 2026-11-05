@@ -23,8 +23,7 @@ import zone.moddev.mc.lib.gui.runtime.AutomationMenu;
  * Compact inventory-first drawer. Its selector belongs inside the body, not the navigation rail.
  */
 public final class AutomationDrawer {
-  public static final int WIDTH = 112, RAIL = 22;
-  private static final int[][] FACES = {{1, 1}, {2, 2}, {0, 1}, {2, 1}, {1, 0}, {1, 2}};
+  public static final int WIDTH = AutomationLayout.WIDTH, RAIL = AutomationLayout.RAIL;
   private final MachineScreen screen;
   private final AutomationMenu model;
   private final Minecraft mc = Minecraft.getInstance();
@@ -52,20 +51,19 @@ public final class AutomationDrawer {
   }
 
   private Rect face(int index) {
-    return new Rect(
-        body.x() + 36 + FACES[index][0] * 18, body.y() + 7 + FACES[index][1] * 18, 18, 18);
+    return AutomationLayout.face(index).offset(body.x(), body.y());
   }
 
   private Rect gear(int column) {
-    return new Rect(body.x() + 30 + column * 20, body.y() + 115, 10, 10);
+    return AutomationLayout.gear(column).offset(body.x(), body.y());
   }
 
   private Rect module(int column) {
-    return new Rect(body.x() + 26 + column * 20, body.y() + 74, 18, 18);
+    return AutomationLayout.addon(column).offset(body.x(), body.y());
   }
 
   private Rect filter(int column) {
-    return new Rect(body.x() + 28 + column * 20, body.y() + 96, 14, 14);
+    return AutomationLayout.filter(column).offset(body.x(), body.y());
   }
 
   private int count() {
@@ -74,29 +72,48 @@ public final class AutomationDrawer {
 
   public void layout() {
     Rect panel = panel();
-    tab = new Rect(panel.right(), panel.y() + ScreenLayout.TAB_PADDING, RAIL, 24);
+    tab =
+        new Rect(
+            panel.right(), panel.y() + AutomationLayout.TOP, RAIL, AutomationLayout.TAB_HEIGHT);
     syncEditor();
-    int contentHeight = 96;
+    boolean hasFilterSlot = false, hasFilter = false;
     for (int c = 0; c < 4; c++) {
-      if (model.supportsFilter(model.selected(), c)) contentHeight = Math.max(contentHeight, 114);
-      if (!model.filter(model.selected(), c).isEmpty()) contentHeight = 129;
+      hasFilterSlot |= model.supportsFilter(model.selected(), c);
+      hasFilter |= !model.filter(model.selected(), c).isEmpty();
     }
-    int baseHeight = Math.max(contentHeight, 16 + Math.min(count(), 8) * 16);
+    int contentHeight = AutomationLayout.contentHeight(hasFilterSlot, hasFilter);
+    int baseHeight =
+        Math.max(
+            contentHeight,
+            16
+                + Math.min(count(), AutomationLayout.SELECTOR_LIMIT)
+                    * AutomationLayout.SELECTOR_PITCH);
     boolean editing = model.open() && model.editor() >= 0;
-    int editorHeight = (panelLayout == null ? 18 : panelLayout.height()) + 18;
-    int desiredHeight = editing ? Math.max(baseHeight, 132 + editorHeight + 4) : baseHeight;
+    int editorHeight =
+        (panelLayout == null ? 18 : panelLayout.height()) + AutomationLayout.EDITOR_HEADER;
+    int desiredHeight =
+        editing
+            ? Math.max(
+                baseHeight, AutomationLayout.EDITOR_Y + editorHeight + AutomationLayout.PADDING)
+            : baseHeight;
     int availableHeight = Math.max(0, screen.drawerBottom() - tab.y());
     body = new Rect(tab.right(), tab.y(), WIDTH, Math.min(desiredHeight, availableHeight));
     int shown =
         Math.max(
-            1, Math.min(Math.min(count(), 8), (Math.min(baseHeight, body.height()) - 16) / 16));
-    selector = new Rect(body.x() + 5, body.y() + 8, 14, shown * 16);
+            1,
+            Math.min(
+                Math.min(count(), AutomationLayout.SELECTOR_LIMIT),
+                (Math.min(baseHeight, body.height()) - 16) / AutomationLayout.SELECTOR_PITCH));
+    selector = new Rect(body.x() + 5, body.y() + 8, 14, shown * AutomationLayout.SELECTOR_PITCH);
     var inventory = screen.layout.inventory().orElse(null);
     horizontal =
         inventory == null
             ? null
             : new Rect(
-                panel.x() + inventory.x(), panel.y() + inventory.y() - 18, inventory.width(), 16);
+                panel.x() + inventory.x(),
+                panel.y() + inventory.y() - AutomationLayout.SELECTOR_ROW_HEIGHT,
+                inventory.width(),
+                16);
     if (lastSelected != model.selected()) {
       int hSlots = horizontal == null ? 1 : Math.max(1, (horizontal.width() - 20) / 18);
       if (model.selected() < verticalOffset || model.selected() >= verticalOffset + shown)
@@ -108,16 +125,18 @@ public final class AutomationDrawer {
     }
     verticalOffset = Math.clamp(verticalOffset, 0, Math.max(0, count() - shown));
     editorArea =
-        editing && body.height() > 136
+        editing && body.height() > AutomationLayout.EDITOR_Y + AutomationLayout.PADDING
             ? new Rect(
-                body.x() + 24,
-                body.y() + 132,
-                WIDTH - 28,
-                Math.min(editorHeight, body.height() - 136))
+                body.x() + AutomationLayout.EDITOR_X,
+                body.y() + AutomationLayout.EDITOR_Y,
+                WIDTH - AutomationLayout.EDITOR_X - AutomationLayout.PADDING,
+                Math.min(
+                    editorHeight,
+                    body.height() - AutomationLayout.EDITOR_Y - AutomationLayout.PADDING))
             : null;
     controlBounds.clear();
     if (editorArea != null && panelLayout != null) {
-      int viewport = Math.max(0, editorArea.height() - 18);
+      int viewport = Math.max(0, editorArea.height() - AutomationLayout.EDITOR_HEADER);
       editorScroll = Math.clamp(editorScroll, 0, Math.max(0, panelLayout.height() - viewport));
       panelLayout
           .controls()
@@ -294,10 +313,20 @@ public final class AutomationDrawer {
     if (!model.open()) return;
     tint(g, "drawer_panel", body, 0x819bc2);
     g.fill(tab.x() + 2, tab.bottom(), tab.right() - 1, body.bottom(), 0xff425878);
-    g.fill(body.x() + 22, body.y() + 5, body.x() + 23, body.bottom() - 5, 0xff526788);
-    int shown = selector.height() / 16;
+    g.fill(
+        body.x() + AutomationLayout.SELECTOR_WIDTH,
+        body.y() + 5,
+        body.x() + AutomationLayout.SELECTOR_WIDTH + 1,
+        body.bottom() - 5,
+        0xff526788);
+    int shown = selector.height() / AutomationLayout.SELECTOR_PITCH;
     for (int i = 0; i < shown && verticalOffset + i < count(); i++)
-      swatch(g, new Rect(selector.x(), selector.y() + i * 16, 14, 14), verticalOffset + i, mx, my);
+      swatch(
+          g,
+          new Rect(selector.x(), selector.y() + i * AutomationLayout.SELECTOR_PITCH, 14, 14),
+          verticalOffset + i,
+          mx,
+          my);
     if (count() > shown) {
       arrow(g, new Rect(selector.x() + 3, body.y() + 1, 8, 6), false, true);
       arrow(g, new Rect(selector.x() + 3, selector.bottom() + 1, 8, 6), true, true);
@@ -426,7 +455,7 @@ public final class AutomationDrawer {
   }
 
   private void drawEditor(GuiGraphics g, int mx, int my) {
-    if (editorArea == null || editorArea.height() < 18) return;
+    if (editorArea == null || editorArea.height() < AutomationLayout.EDITOR_HEADER) return;
     g.fill(editorArea.x(), editorArea.y(), editorArea.right(), editorArea.bottom(), 0xff7189aa);
     g.renderOutline(
         editorArea.x(), editorArea.y(), editorArea.width(), editorArea.height(), 0xff526788);
@@ -453,7 +482,7 @@ public final class AutomationDrawer {
         editorArea.right() - 19,
         editorArea.y() + 9,
         0xff526788);
-    int viewport = editorArea.height() - 18;
+    int viewport = editorArea.height() - AutomationLayout.EDITOR_HEADER;
     if (panelLayout.height() > viewport && viewport > 0) {
       int track = editorArea.height() - 20,
           thumb = Math.max(6, track * viewport / panelLayout.height());
@@ -596,13 +625,16 @@ public final class AutomationDrawer {
     }
     if (!model.open()) return false;
     if (!body.contains(x, y)) closeEditorInput();
-    if (x >= body.x() + 2 && x < body.x() + 22 && y >= body.y() && y < selector.bottom() + 8) {
-      int shown = selector.height() / 16;
+    if (x >= body.x() + 2
+        && x < body.x() + AutomationLayout.SELECTOR_WIDTH
+        && y >= body.y()
+        && y < selector.bottom() + 8) {
+      int shown = selector.height() / AutomationLayout.SELECTOR_PITCH;
       if (y < selector.y()) verticalOffset = Math.max(0, verticalOffset - 1);
       else if (y >= selector.bottom())
         verticalOffset = Math.min(Math.max(0, count() - shown), verticalOffset + 1);
       else {
-        int index = verticalOffset + ((int) y - selector.y()) / 16;
+        int index = verticalOffset + ((int) y - selector.y()) / AutomationLayout.SELECTOR_PITCH;
         if (index < count()) model.send("select", index, -1, "", 0, "");
       }
       return true;
@@ -694,7 +726,7 @@ public final class AutomationDrawer {
     layout();
     if (model.open()
         && x >= body.x()
-        && x < body.x() + 24
+        && x < body.x() + AutomationLayout.EDITOR_X
         && y >= body.y()
         && y < selector.bottom() + 8) {
       verticalOffset += (int) -amount;

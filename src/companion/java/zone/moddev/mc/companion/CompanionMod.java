@@ -177,10 +177,12 @@ public final class CompanionMod {
           machine.type.get(),
           (entity, side) -> {
             var p = (ProcessorEntity) entity;
-            return p.energy.view(
-                () ->
-                    p.automation.mode(
-                        zone.moddev.mc.lib.api.automation.ResourceType.ENERGY, 0, side));
+            return side == null
+                ? p.energy.view(zone.moddev.mc.lib.api.capabilities.IoMode.BOTH)
+                : p.energy.view(
+                    () ->
+                        p.automation.mode(
+                            zone.moddev.mc.lib.api.automation.ResourceType.ENERGY, 0, side));
           });
     }
   }

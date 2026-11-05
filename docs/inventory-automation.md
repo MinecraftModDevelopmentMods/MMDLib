@@ -37,10 +37,19 @@ Both views preserve storage reservations. Null-side views still honour the decla
 
 Groups are saved by ID, independently of UI ordering. Call `automation.save(registries)` and
 `automation.load(tag, registries)` in the block entity's persistence hooks. Missing groups preserve
-their raw saved content. Call `automation.dropAll()` from the block's contents-drop hook. Item
-transfer remainders are dropped too; fluid and energy buffers follow the usual machine-break
-semantics and are discarded. Hosts that retain fluids/energy on break should preserve the saved
-automation data alongside their other storage. Do not also drop the same addon slots separately.
+their raw saved content. Call `automation.dropAll(recoverResources)` from the block's contents-drop
+hook. Addons, filters and pending item transfers drop as items. The required callback must preserve
+pending fluid/energy transfers, unpaid energy refunds and custom resource payloads in a dropped
+container. It receives a compound with a `resources` list (`type` resource ID plus transport-owned
+`data`) and an optional long `refund`. Ownership is handed to the callback before pending data is
+cleared. Do not also drop the same addon slots separately. This hook handles transfer escrow;
+normal tank/buffer contents remain the host's separate break policy.
+
+The companion drops a **Recovery Capsule**, a companion item carrying this data. Use it on a
+companion machine to restore fluids into accepting tanks and energy into available buffer space.
+Partial restoration leaves the remainder in the same capsule; a fully restored capsule is consumed,
+including in creative mode. Unknown resource payloads remain preserved. No recovery item is
+registered by MMDLib itself.
 
 ## Addon item capabilities
 
@@ -65,6 +74,10 @@ after the operation, or `recover(null)` to drop queued items. Recovery is persis
 Unknown or incompatible installed items remain removable. An installed filter whose capability is
 missing blocks its module; it does not become an unfiltered transfer. Empty optional filter slots
 are intentionally unfiltered.
+Validation is dirty-driven: normal slot edits and loading invalidate the affected groups. Call
+`automation.invalidateAddons()` after an external addon-capability/definition change; this also
+invalidates editor generations. Use the slot setters for attachment changes rather than mutating
+installed stacks without notification.
 
 ## Item-provided filter panels
 
@@ -111,21 +124,34 @@ Call `AutomationTransfers.tick(automation, energy)` once per server tick, after 
 The scheduler rotates module and face priorities, observes enabled sides and installed predicates,
 and charges RF only for actual delivery. It never force-loads a neighbour's chunk. Built-in item,
 fluid and energy transports simulate before extracting and retain unexpected insertion remainders
-in persistent escrow for later delivery. Escrow retains its original direction, face and cost even
-if the module is removed; disabling that face pauses its completion. It cannot be silently reused
-as a new transfer with different settings. Capability implementations must obey the normal
+in persistent escrow for later delivery. Inbound escrow belongs to the machine already and finishes
+locally without querying the old source, even if that neighbour is removed or external sides are
+disabled. Outbound escrow first tries its previous destination, then other enabled output faces;
+with no accepting destination it remains saved. It retains its original direction and cost even
+if the module is removed, and cannot be reused as a new transfer with different settings.
+Refunds that do not fit the power buffer remain persisted and are retried when room is available.
+Capability implementations must obey the normal
 simulation/count contracts; no API can recover reliably from an external handler throwing after
 an undocumented partial mutation.
 
 The companion uses paid mechanical pullers/pushers and fluid pumps. Its energy relays are lossless
-and have no auxiliary RF fee, so importing can bootstrap an empty buffer. Paid transports should
-use a power buffer separate from the resource being moved to avoid sharing refund capacity.
+and have no auxiliary RF fee, so importing can bootstrap an empty buffer. Pending refund ownership
+is independent of buffer capacity, including when handlers refill the buffer during a transfer.
 
 Register future content with `ResourceType.register(id, capabilityInterface)` and
-`AutomationTransfers.register(type, transport)`. Custom transports own their bounded persistent
-escrow schema and must preserve unaccepted resources. Resource types are not a closed enum; gas
+`AutomationTransfers.register(type, transport)`. Custom transports implement `move` for a fresh
+transfer and `deliver` for an already-extracted payload; `deliver` must not consult or extract from
+the source. They own their bounded persistent escrow schema and must preserve unaccepted resources.
+Override `recovery` to provide a resource-only payload for the host's break container; the default
+preserves the whole pending state. Resource types are not a closed enum; gas
 support can add a capability and transport without changing the drawer.
 
 The optional companion's Logistics Workbench demonstrates seven groups: two item inventories,
 four independent fluid tanks and energy. Its output tanks can be filled by the owning machine/test
 setup; passive external insertion correctly refuses them.
+
+Neighbour capability lookups use per-machine NeoForge caches that follow invalidation, replacement
+and chunk loading. Resource membership uses indexed lookups, and menus construct sync snapshots
+only when their revision or viewer state changes. `AutomationLayout` is the shared source for drawer
+frames, real slot coordinates and filter hit bounds. Unsided companion energy queries retain the
+buffer's normal insert/extract limits; sided queries additionally obey inventory side settings.

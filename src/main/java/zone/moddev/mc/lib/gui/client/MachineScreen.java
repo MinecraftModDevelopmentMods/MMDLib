@@ -15,6 +15,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import zone.moddev.mc.lib.api.automation.AutomationInventory;
 import zone.moddev.mc.lib.gui.layout.*;
 import zone.moddev.mc.lib.gui.model.*;
 import zone.moddev.mc.lib.gui.runtime.*;
@@ -900,7 +901,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     }
     graphics.pose().pushPose();
     graphics.pose().translate(slot.x, slot.y, 0);
-    graphics.pose().scale(.75f, .75f, 1);
+    float scale = AutomationLayout.FILTER_ITEM_SIZE / 16f;
+    graphics.pose().scale(scale, scale, 1);
     graphics.pose().translate(-slot.x, -slot.y, 0);
     super.renderSlot(graphics, slot);
     graphics.pose().popPose();
@@ -908,15 +910,15 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   protected boolean isHovering(int x, int y, int w, int h, double mx, double my) {
-    if (menu.automation != null && w == 16 && h == 16)
-      for (int i = menu.automation.slotStart();
-          i < menu.automation.slotStart() + menu.automation.slotCount();
-          i++) {
+    if (menu.automation != null && menu.automation.open() && w == 16 && h == 16)
+      for (int c = 0; c < AutomationInventory.COLUMNS; c++) {
+        int i =
+            menu.automation.slotStart()
+                + AutomationInventory.filterSlot(menu.automation.selected(), c);
         var slot = menu.slots.get(i);
-        if ((i - menu.automation.slotStart()) % 8 >= 4
-            && slot.isActive()
-            && slot.x == x
-            && slot.y == y) return super.isHovering(x, y, 12, 12, mx, my);
+        if (slot.isActive() && slot.x == x && slot.y == y)
+          return super.isHovering(
+              x, y, AutomationLayout.FILTER_ITEM_SIZE, AutomationLayout.FILTER_ITEM_SIZE, mx, my);
       }
     return super.isHovering(x, y, w, h, mx, my);
   }

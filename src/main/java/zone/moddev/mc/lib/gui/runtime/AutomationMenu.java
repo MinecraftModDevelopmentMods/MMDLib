@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
-import zone.moddev.mc.lib.gui.layout.ScreenLayout;
+import zone.moddev.mc.lib.gui.layout.AutomationLayout;
 
 /**
  * Per-viewer selection/editor state. Every group keeps fixed real slot indices for the menu
@@ -32,7 +32,9 @@ public final class AutomationMenu {
   private int tickActions;
   private long[] generations, revisions;
   private int[] modes;
-  private String lastSnapshot = "";
+  private long lastInventoryRevision = -1;
+  private int lastSelected = -1, lastEditor = -2;
+  private boolean lastOpen;
 
   public AutomationMenu(
       MachineMenu menu, AutomationInventory inventory, Player owner, boolean client) {
@@ -124,12 +126,9 @@ public final class AutomationMenu {
     this.start = start;
     for (int i = 0; i < items.getSlots(); i++) {
       final int index = i;
+      var bounds = AutomationLayout.item(i % 8).offset(bodyX, AutomationLayout.TOP);
       var slot =
-          new SlotItemHandler(
-              items,
-              index,
-              bodyX + 26 + (i % 4) * 20 + (i % 8 >= 4 ? 3 : 1),
-              ScreenLayout.TAB_PADDING + 74 + (i % 8 >= 4 ? 24 : 1)) {
+          new SlotItemHandler(items, index, bounds.x(), bounds.y()) {
             @Override
             public boolean isActive() {
               return open
@@ -350,18 +349,15 @@ public final class AutomationMenu {
 
   public void broadcast() {
     if (client || processingAction) return;
-    var state = snapshot(true);
-    String fingerprint =
-        selected
-            + "/"
-            + open
-            + "/"
-            + editor
-            + Arrays.toString(state.modes())
-            + Arrays.toString(state.generations())
-            + Arrays.toString(state.revisions());
-    if (!fingerprint.equals(lastSnapshot)) {
-      lastSnapshot = fingerprint;
+    long revision = inventory.viewRevision();
+    if (revision != lastInventoryRevision
+        || selected != lastSelected
+        || open != lastOpen
+        || editor != lastEditor) {
+      lastInventoryRevision = revision;
+      lastSelected = selected;
+      lastOpen = open;
+      lastEditor = editor;
       transmit(true);
     }
   }

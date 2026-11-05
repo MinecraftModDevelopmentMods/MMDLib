@@ -79,9 +79,16 @@ public final class ScreenLayout {
     var layout = of(screen, text);
     if (automation && layout.inventory != null) {
       int start = layout.inventory.y();
-      layout.bounds.replaceAll((element, rect) -> rect.y() >= start ? rect.offset(0, 18) : rect);
-      layout.inventory = layout.inventory.offset(0, 18);
-      layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + 18);
+      layout.bounds.replaceAll(
+          (element, rect) ->
+              rect.y() >= start ? rect.offset(0, AutomationLayout.SELECTOR_ROW_HEIGHT) : rect);
+      layout.inventory = layout.inventory.offset(0, AutomationLayout.SELECTOR_ROW_HEIGHT);
+      layout.panel =
+          new Rect(
+              0,
+              0,
+              layout.panel.width(),
+              layout.panel.height() + AutomationLayout.SELECTOR_ROW_HEIGHT);
     }
     if (automation) {
       layout.bounds.replaceAll(

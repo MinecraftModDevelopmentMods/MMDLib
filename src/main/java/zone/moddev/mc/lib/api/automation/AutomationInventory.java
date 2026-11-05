@@ -1,9 +1,14 @@
 package zone.moddev.mc.lib.api.automation;
 
 import java.util.*;
+import java.util.function.Consumer;
+
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.*;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -11,6 +16,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 
 import zone.moddev.mc.lib.api.capabilities.*;
 
@@ -24,6 +31,14 @@ public final class AutomationInventory {
   private final BlockEntity owner;
   private final List<ResourceGroup<?>> groups;
   private final Map<String, Integer> ids = new LinkedHashMap<>();
+  private final Map<ResourceType<?>, Int2ObjectOpenHashMap<ResourceGroup<?>>> members =
+      new IdentityHashMap<>();
+  private final BitSet dirtyGroups = new BitSet();
+  private long viewRevision, refund;
+  private ServerLevel cacheLevel;
+  private final Map<
+          BlockCapability<?, Direction>, EnumMap<Direction, BlockCapabilityCache<?, Direction>>>
+      neighbours = new IdentityHashMap<>();
   private final long[] generation;
   private final long[] revision;
   private final List<ItemStack> recovery = new ArrayList<>();
@@ -47,7 +62,9 @@ public final class AutomationInventory {
       for (int member : group.members())
         if (!membership.add(group.type().id() + "/" + member))
           throw new IllegalArgumentException("Overlapping resource membership: " + group.id());
-      group.sides().onChange(owner::setChanged);
+      var indexed = members.computeIfAbsent(group.type(), ignored -> new Int2ObjectOpenHashMap<>());
+      for (int member : group.members()) indexed.put(member, group);
+      group.sides().onChange(this::viewChanged);
     }
     slots =
         new ItemStackHandler(groups.size() * SLOTS_PER_GROUP) {
@@ -77,6 +94,7 @@ public final class AutomationInventory {
           protected void onContentsChanged(int slot) {
             if (loading) return;
             int group = slot / SLOTS_PER_GROUP, column = slot % COLUMNS;
+            dirtyGroups.set(group);
             int key = group * COLUMNS + column;
             if (slot % SLOTS_PER_GROUP < COLUMNS) {
               generation[key]++;
@@ -88,7 +106,7 @@ public final class AutomationInventory {
               generation[key]++;
               revision[key]++;
             }
-            owner.setChanged();
+            viewChanged();
           }
         };
   }
@@ -113,9 +131,78 @@ public final class AutomationInventory {
     return slots;
   }
 
+  private void viewChanged() {
+    viewRevision++;
+    owner.setChanged();
+  }
+
+  public long viewRevision() {
+    return viewRevision;
+  }
+
+  /** Call after external capability/definition changes; normal slot edits invalidate themselves. */
+  public void invalidateAddons() {
+    dirtyGroups.set(0, groups.size());
+    Arrays.setAll(generation, i -> generation[i] + 1);
+    viewChanged();
+  }
+
+  /** Persist any refund that cannot currently fit; retry before the next transfer. */
+  public void refund(EnergyBuffer power, long amount) {
+    if (amount < 0) throw new IllegalArgumentException("Negative refund");
+    if (amount == 0) return;
+    refund = Math.addExact(refund, amount - power.insert(amount, false));
+    owner.setChanged();
+  }
+
+  public long pendingRefund() {
+    return refund;
+  }
+
+  public void settleRefund(EnergyBuffer power) {
+    if (refund == 0) return;
+    long restored = power.insert(refund, false);
+    refund -= restored;
+    if (restored != 0) owner.setChanged();
+  }
+
+  /** Per-owner caches follow neighbour removal, capability invalidation and chunk reloads. */
+  @SuppressWarnings("unchecked")
+  public <T> T neighbour(BlockCapability<T, Direction> capability, Direction side) {
+    if (!(owner.getLevel() instanceof ServerLevel level) || owner.isRemoved()) return null;
+    if (cacheLevel != level) {
+      neighbours.clear();
+      cacheLevel = level;
+    }
+    var bySide = neighbours.computeIfAbsent(capability, ignored -> new EnumMap<>(Direction.class));
+    var cache =
+        (BlockCapabilityCache<T, Direction>)
+            bySide.computeIfAbsent(
+                side,
+                direction ->
+                    BlockCapabilityCache.create(
+                        capability,
+                        level,
+                        owner.getBlockPos().relative(direction),
+                        direction.getOpposite(),
+                        () -> !owner.isRemoved() && owner.getLevel() == level,
+                        () -> {}));
+    return cache.getCapability();
+  }
+
+  public CompoundTag existingTransferState(String group, int column) {
+    String key = group + "/" + column;
+    return transfers.contains(key, Tag.TAG_COMPOUND) ? transfers.getCompound(key) : null;
+  }
+
   public CompoundTag transferState(String group, int column) {
     String key = group + "/" + column;
-    if (!transfers.contains(key, Tag.TAG_COMPOUND)) transfers.put(key, new CompoundTag());
+    if (!transfers.contains(key, Tag.TAG_COMPOUND)) {
+      var state = new CompoundTag();
+      int index = index(group);
+      if (index >= 0) state.putString("resource", group(index).type().id().toString());
+      transfers.put(key, state);
+    }
     return transfers.getCompound(key);
   }
 
@@ -219,7 +306,7 @@ public final class AutomationInventory {
 
   /** Preserve incompatible items; recover duplicate roles and orphaned filters without loss. */
   public void revalidate() {
-    for (int g = 0; g < groups.size(); g++) {
+    for (int g = dirtyGroups.nextSetBit(0); g >= 0; g = dirtyGroups.nextSetBit(g + 1)) {
       var claimed = new ArrayList<AddonSpec>();
       for (int c = 0; c < COLUMNS; c++) {
         var stack = addon(g, c);
@@ -234,6 +321,7 @@ public final class AutomationInventory {
         }
         if (!filter(g, c).isEmpty() && addon(g, c).isEmpty()) detach(g, c);
       }
+      dirtyGroups.clear(g);
     }
   }
 
@@ -267,16 +355,15 @@ public final class AutomationInventory {
       loading = false;
     }
     revision[group * COLUMNS + column]++;
-    owner.setChanged();
+    dirtyGroups.set(group);
+    viewChanged();
     return true;
   }
 
   public IoMode mode(ResourceType<?> type, int member, net.minecraft.core.Direction side) {
-    return groups.stream()
-        .filter(g -> g.type() == type && g.contains(member))
-        .findFirst()
-        .map(g -> g.mode(side))
-        .orElse(IoMode.DISABLED);
+    var indexed = members.get(type);
+    var group = indexed == null ? null : indexed.get(member);
+    return group == null ? IoMode.DISABLED : group.mode(side);
   }
 
   public CompoundTag save(HolderLookup.Provider registries) {
@@ -298,6 +385,7 @@ public final class AutomationInventory {
     result.putInt("version", 1);
     result.put("groups", data);
     result.put("transfers", transfers.copy());
+    result.putLong("refund", refund);
     var pending = new ListTag();
     for (var item : recovery) pending.add(item.saveOptional(registries));
     result.put("recovery", pending);
@@ -309,6 +397,7 @@ public final class AutomationInventory {
     try {
       recovery.clear();
       transfers = data.getCompound("transfers").copy();
+      refund = Math.max(0, data.getLong("refund"));
       for (int i = 0; i < slots.getSlots(); i++) slots.setStackInSlot(i, ItemStack.EMPTY);
       unknown = data.getCompound("groups").copy();
       for (int i = 0; i < groups.size(); i++) {
@@ -341,12 +430,44 @@ public final class AutomationInventory {
     } finally {
       loading = false;
     }
-    Arrays.setAll(generation, i -> generation[i] + 1);
+    invalidateAddons();
     revalidate();
   }
 
-  public void dropAll() {
+  private String transferType(String key, CompoundTag state) {
+    String type = state.getString("resource");
+    if (!type.isEmpty()) return type;
+    int slash = key.lastIndexOf('/');
+    int group = slash < 0 ? -1 : index(key.substring(0, slash));
+    if (group >= 0) return group(group).type().id().toString();
+    if (state.contains("fluid")) return ResourceType.FLUIDS.id().toString();
+    if (state.contains("energy")) return ResourceType.ENERGY.id().toString();
+    if (state.contains("item")) return ResourceType.ITEMS.id().toString();
+    return type;
+  }
+
+  /** The host must preserve non-item payloads in a dropped container before this clears storage. */
+  public void dropAll(Consumer<CompoundTag> recoverResources) {
     if (owner.getLevel() == null || owner.getLevel().isClientSide) return;
+    Objects.requireNonNull(recoverResources);
+    var payload = new CompoundTag();
+    var resources = new ListTag();
+    for (String key : transfers.getAllKeys()) {
+      var state = transfers.getCompound(key);
+      String type = transferType(key, state);
+      if (type.equals(ResourceType.ITEMS.id().toString())) continue;
+      var pending = AutomationTransfers.recovery(type, state);
+      if (!pending.isEmpty()) {
+        var entry = new CompoundTag();
+        entry.putString("type", type);
+        entry.put("data", pending);
+        resources.add(entry);
+      }
+    }
+    if (!resources.isEmpty()) payload.put("resources", resources);
+    if (refund > 0) payload.putLong("refund", refund);
+    // The host must take ownership before anything is cleared or ordinary item drops begin.
+    if (!payload.isEmpty()) recoverResources.accept(payload);
     loading = true;
     try {
       for (String id : unknown.getAllKeys())
@@ -356,12 +477,15 @@ public final class AutomationInventory {
         }
       unknown = new CompoundTag();
       for (String key : transfers.getAllKeys()) {
+        if (!transferType(key, transfers.getCompound(key))
+            .equals(ResourceType.ITEMS.id().toString())) continue;
         var item =
             ItemStack.parseOptional(
                 owner.getLevel().registryAccess(), transfers.getCompound(key).getCompound("item"));
         if (!item.isEmpty()) recovery.add(item);
       }
       transfers = new CompoundTag();
+      refund = 0;
       for (int i = 0; i < slots.getSlots(); i++) {
         var stack = slots.getStackInSlot(i);
         if (!stack.isEmpty()) recovery.add(stack.copy());
@@ -384,7 +508,7 @@ public final class AutomationInventory {
     recovery.clear();
     unknown = new CompoundTag();
     transfers = new CompoundTag();
-    Arrays.setAll(generation, i -> generation[i] + 1);
-    owner.setChanged();
+    refund = 0;
+    invalidateAddons();
   }
 }

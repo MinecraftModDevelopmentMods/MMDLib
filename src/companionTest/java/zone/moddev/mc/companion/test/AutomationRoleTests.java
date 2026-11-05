@@ -189,7 +189,10 @@ public final class AutomationRoleTests {
     expected.put(Items.DIAMOND, 3);
     expected.put(Items.IRON_INGOT, 2);
     h.getLevel().destroyBlock(machine.getBlockPos(), true);
-    a.dropAll();
+    a.dropAll(
+        payload -> {
+          throw new AssertionError("No non-item pending resources in this test");
+        });
     var actual = new HashMap<Item, Integer>();
     var drops =
         h.getLevel()

@@ -40,6 +40,16 @@ public final class AutomationTransfers {
         Predicate<Object> filter,
         CompoundTag escrow,
         HolderLookup.Provider registries);
+
+    /** Deliver already-owned resources without consulting or extracting from the source. */
+    int deliver(T to, int max, CompoundTag escrow, HolderLookup.Provider registries);
+
+    /**
+     * Resource-only payload handed to the host on break; custom transports may keep their schema.
+     */
+    default CompoundTag recovery(CompoundTag escrow) {
+      return pending(escrow) ? escrow.copy() : new CompoundTag();
+    }
   }
 
   private static final Map<ResourceType<?>, Transport<?>> TRANSPORTS = new IdentityHashMap<>();
@@ -86,12 +96,23 @@ public final class AutomationTransfers {
             if (staged.isEmpty()) return 0;
             // Persist before invoking an external handler, and keep any remainder.
             escrow.put("item", staged.saveOptional(registries));
+            return deliver(to, max, escrow, registries);
+          }
+
+          public int deliver(
+              IItemHandler to, int max, CompoundTag escrow, HolderLookup.Provider registries) {
+            var staged = ItemStack.parseOptional(registries, escrow.getCompound("item"));
+            if (staged.isEmpty()) return 0;
             var offered = staged.copyWithCount(Math.min(max, staged.getCount()));
             int delivered = offered.getCount() - Transfer.insert(to, offered, false).getCount();
             staged.shrink(delivered);
             if (staged.isEmpty()) escrow.remove("item");
             else escrow.put("item", staged.saveOptional(registries));
             return delivered;
+          }
+
+          public CompoundTag recovery(CompoundTag escrow) {
+            return payload("item", escrow);
           }
         });
     register(
@@ -127,6 +148,13 @@ public final class AutomationTransfers {
             }
             if (staged.isEmpty()) return 0;
             escrow.put("fluid", staged.save(registries));
+            return deliver(to, max, escrow, registries);
+          }
+
+          public int deliver(
+              IFluidHandler to, int max, CompoundTag escrow, HolderLookup.Provider registries) {
+            var staged = FluidStack.parseOptional(registries, escrow.getCompound("fluid"));
+            if (staged.isEmpty()) return 0;
             var offered = staged.copy();
             offered.setAmount(Math.min(max, staged.getAmount()));
             int delivered = to.fill(offered, IFluidHandler.FluidAction.EXECUTE);
@@ -134,6 +162,10 @@ public final class AutomationTransfers {
             if (staged.isEmpty()) escrow.remove("fluid");
             else escrow.put("fluid", staged.save(registries));
             return delivered;
+          }
+
+          public CompoundTag recovery(CompoundTag escrow) {
+            return payload("fluid", escrow);
           }
         });
     register(
@@ -157,15 +189,45 @@ public final class AutomationTransfers {
               if (accepted > 0) staged = from.extractEnergy(Math.min(max, accepted), false);
             }
             escrow.putInt("energy", staged);
+            return deliver(to, max, escrow, registries);
+          }
+
+          public int deliver(
+              IEnergyStorage to, int max, CompoundTag escrow, HolderLookup.Provider registries) {
+            int staged = escrow.getInt("energy");
             int delivered = to.receiveEnergy(Math.min(max, staged), false);
             if (staged == delivered) escrow.remove("energy");
             else escrow.putInt("energy", staged - delivered);
             return delivered;
           }
+
+          public CompoundTag recovery(CompoundTag escrow) {
+            return escrow.getInt("energy") > 0 ? payload("energy", escrow) : new CompoundTag();
+          }
         });
   }
 
   private AutomationTransfers() {}
+
+  private static CompoundTag payload(String key, CompoundTag escrow) {
+    var payload = new CompoundTag();
+    if (escrow.contains(key)) payload.put(key, escrow.get(key).copy());
+    return payload;
+  }
+
+  /**
+   * Preserve unknown transport state too, so removing a mod cannot destroy its pending resources.
+   */
+  public static CompoundTag recovery(String type, CompoundTag state) {
+    try {
+      var transport =
+          TRANSPORTS.get(
+              ResourceType.require(net.minecraft.resources.ResourceLocation.parse(type)));
+      return transport == null ? state.copy() : transport.recovery(state);
+    } catch (IllegalArgumentException unknown) {
+      return state.copy();
+    }
+  }
 
   private static boolean pending(ResourceType<?> type, CompoundTag state) {
     var transport = TRANSPORTS.get(type);
@@ -179,6 +241,7 @@ public final class AutomationTransfers {
     var level = inventory.owner().getLevel();
     if (level == null || level.isClientSide) return;
     inventory.revalidate();
+    inventory.settleRefund(power);
     int total = inventory.groups().size() * 4;
     int start = (int) Math.floorMod(level.getGameTime(), total);
     for (int n = 0; n < total; n++) {
@@ -186,10 +249,11 @@ public final class AutomationTransfers {
       var group = inventory.group(g);
       var stack = inventory.addon(g, c);
       var addon = stack.getCapability(AddonCapabilities.ADDON);
-      var state = inventory.transferState(group.id(), c);
-      boolean pending = pending(group.type(), state);
-      if (!pending && (addon == null || !addon.specification(stack).accepts(group))) continue;
+      var state = inventory.existingTransferState(group.id(), c);
+      boolean pending = state != null && pending(group.type(), state);
       AddonSpec spec = addon == null ? null : addon.specification(stack);
+      if (!pending && (spec == null || !spec.accepts(group))) continue;
+      if (state == null) state = inventory.transferState(group.id(), c);
       long cost = pending ? state.getLong("cost") : spec.energyPerUnit();
       int batch = pending ? state.getInt("batch") : spec.batch();
       if (!pending && Math.floorMod(level.getGameTime() + index, spec.interval()) != 0) continue;
@@ -204,7 +268,7 @@ public final class AutomationTransfers {
           value -> predicate == null || predicate.matches(filter, value, level.registryAccess());
       int first = state.getInt("face");
       boolean both = !pending && spec.direction() == IoMode.BOTH;
-      for (int offset = 0; offset < (pending ? 1 : both ? 12 : 6); offset++) {
+      for (int offset = 0; offset < (both ? 12 : 6); offset++) {
         int face = Math.floorMod(first + offset / (both ? 2 : 1), 6);
         var direction = group.world(RelativeFace.values()[face]);
         boolean input =
@@ -213,26 +277,32 @@ public final class AutomationTransfers {
                 : both
                     ? ((level.getGameTime() / spec.interval() + index + offset) & 1) == 0
                     : spec.direction().canInsert();
-        if (input ? !group.mode(direction).canInsert() : !group.mode(direction).canExtract())
+        if (!(pending && input)
+            && (input ? !group.mode(direction).canInsert() : !group.mode(direction).canExtract()))
           continue;
-        if (!level.hasChunkAt(inventory.owner().getBlockPos().relative(direction))) continue;
-        state.putBoolean("input", input);
-        state.putLong("cost", cost);
-        state.putInt("batch", batch);
-        state.putInt("face", face);
+        var transport = TRANSPORTS.get(group.type());
+        if (transport == null
+            || (!(pending && input)
+                && inventory.neighbour(transport.capability(), direction) == null)) continue;
+        if (!pending) {
+          state.putBoolean("input", input);
+          state.putLong("cost", cost);
+          state.putInt("batch", batch);
+          state.putInt("face", face);
+        }
         long reserved = cost * max;
         if (!power.consume(reserved)) break;
         int moved;
         try {
-          moved = move(group, inventory, direction, input, max, accepts, state);
+          moved = move(group, inventory, direction, input, pending, max, accepts, state);
         } catch (RuntimeException failure) {
-          power.insert(reserved, false);
+          inventory.refund(power, reserved);
           inventory.owner().setChanged();
           throw failure;
         }
-        power.insert(reserved - cost * moved, false);
+        inventory.refund(power, reserved - cost * moved);
         inventory.owner().setChanged();
-        if (moved > 0 || pending(group.type(), state)) {
+        if (moved > 0 || (pending && input) || (!pending && pending(group.type(), state))) {
           if (!pending(group.type(), state)) state.putInt("face", (face + 1) % 6);
           break;
         }
@@ -246,16 +316,18 @@ public final class AutomationTransfers {
       AutomationInventory inventory,
       Direction direction,
       boolean input,
+      boolean pending,
       int max,
       Predicate<Object> filter,
       CompoundTag escrow) {
     var transport = (Transport<T>) TRANSPORTS.get(group.type());
     if (transport == null) return 0;
     var level = inventory.owner().getLevel();
-    T neighbour =
-        Transfer.neighbour(
-            transport.capability(), level, inventory.owner().getBlockPos(), direction);
+    if (pending && input)
+      return transport.deliver(group.port(null), max, escrow, level.registryAccess());
+    T neighbour = inventory.neighbour(transport.capability(), direction);
     if (neighbour == null) return 0;
+    if (pending) return transport.deliver(neighbour, max, escrow, level.registryAccess());
     T local = group.port(direction);
     return transport.move(
         input ? neighbour : local,

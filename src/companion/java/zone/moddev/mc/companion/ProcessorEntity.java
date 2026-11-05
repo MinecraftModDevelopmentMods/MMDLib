@@ -287,7 +287,14 @@ public final class ProcessorEntity extends DemoEntity
   @Override
   public void dropContents(Level level, BlockPos pos) {
     items.dropAll(level, pos);
-    automation.dropAll();
+    automation.dropAll(
+        payload ->
+            net.minecraft.world.Containers.dropItemStack(
+                level,
+                pos.getX() + .5,
+                pos.getY() + .5,
+                pos.getZ() + .5,
+                RecoveryCapsuleItem.create(payload)));
   }
 
   @Override

@@ -323,7 +323,8 @@ public class MachineMenu extends AbstractContainerMenu {
               }
             });
     }
-    if (automation != null) automation.addSlots(this::addSlot, count, layout.panel().width() + 22);
+    if (automation != null)
+      automation.addSlots(this::addSlot, count, layout.panel().width() + AutomationLayout.RAIL);
     layout
         .inventory()
         .ifPresent(
@@ -464,7 +465,7 @@ public class MachineMenu extends AbstractContainerMenu {
             destinations.add(slots.get(destination));
       for (int destination : host.screenDestinations(stack))
         if (destination >= 0
-            && destination < machineSlots
+            && destination < baseMachineSlots
             && slots.get(destination).isActive()
             && slots.get(destination).mayPlace(stack)) destinations.add(slots.get(destination));
       // Like vanilla's moveItemStackTo: top up matching stacks first, then fill empty slots.
@@ -555,7 +556,7 @@ public class MachineMenu extends AbstractContainerMenu {
   public Map<Integer, Object> reservationSnapshot() {
     var snapshot = new HashMap<Integer, Object>();
     if (reserved != null)
-      for (int slot = 0; slot < Math.min(machineSlots, items.getSlots()); slot++)
+      for (int slot = 0; slot < Math.min(baseMachineSlots, items.getSlots()); slot++)
         snapshot.put(PLAN_KEYS + slot, reserved.plan(slot));
     return snapshot;
   }

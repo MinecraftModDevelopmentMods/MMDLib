@@ -21,6 +21,8 @@ import zone.moddev.mc.lib.api.capabilities.IoMode;
 public final class CompanionAddons {
   private static final DeferredRegister<Item> ITEMS =
       DeferredRegister.create(Registries.ITEM, CompanionMod.ID);
+  public static final DeferredHolder<Item, Item> RECOVERY_CAPSULE =
+      ITEMS.register("recovery_capsule", RecoveryCapsuleItem::new);
   private static final Map<DeferredHolder<Item, Item>, InventoryAddon> ADDONS =
       new LinkedHashMap<>();
   private static final Map<DeferredHolder<Item, Item>, InventoryFilter> FILTERS =

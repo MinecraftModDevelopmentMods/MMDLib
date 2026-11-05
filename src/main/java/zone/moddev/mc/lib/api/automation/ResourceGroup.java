@@ -20,6 +20,7 @@ public final class ResourceGroup<T> {
   private final List<Integer> members;
   private final List<String> highlights;
   private final SideConfig sides;
+  private final String definitionKey;
   private Function<Direction, T> port;
   private Supplier<Direction> facing = () -> Direction.NORTH;
 
@@ -46,6 +47,12 @@ public final class ResourceGroup<T> {
     this.members = List.copyOf(members);
     this.highlights = List.copyOf(highlights);
     this.sides = Objects.requireNonNull(sides);
+    definitionKey =
+        id
+            + "/"
+            + Integer.toHexString(
+                Objects.hash(
+                    type.id().toString(), supported.name(), colour, this.members, this.highlights));
     for (var face : RelativeFace.values()) sides.set(face, intersect(sides.get(face), supported));
   }
 
@@ -54,10 +61,7 @@ public final class ResourceGroup<T> {
   }
 
   public String definitionKey() {
-    return id
-        + "/"
-        + Integer.toHexString(
-            Objects.hash(type.id().toString(), supported.name(), colour, members, highlights));
+    return definitionKey;
   }
 
   public Component name() {
