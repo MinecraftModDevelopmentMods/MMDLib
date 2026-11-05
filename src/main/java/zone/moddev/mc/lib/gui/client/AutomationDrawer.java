@@ -54,8 +54,8 @@ public final class AutomationDrawer {
     return AutomationLayout.face(index).offset(body.x(), body.y());
   }
 
-  private Rect gear(int column) {
-    return AutomationLayout.gear(column).offset(body.x(), body.y());
+  private Rect filterToggle(int column) {
+    return AutomationLayout.filterToggle(column).offset(body.x(), body.y());
   }
 
   private Rect module(int column) {
@@ -345,11 +345,32 @@ public final class AutomationDrawer {
         g.fill(f.x() + 6, module(c).bottom(), f.x() + 7, f.y(), 0xff425878);
         sprite(g, "slot", f);
         if (!model.filter(model.selected(), c).isEmpty()) {
-          var gear = gear(c);
-          button(g, gear, model.editor() == c);
-          gear(g, gear);
-          if (gear.contains(mx, my))
-            tooltip = Component.translatable("screen.mmdlib.automation.filter");
+          var toggle = filterToggle(c);
+          boolean expanded = model.editor() == c;
+          boolean hovered = toggle.contains(mx, my);
+          g.fill(
+              toggle.x(),
+              toggle.y(),
+              toggle.right(),
+              toggle.bottom(),
+              hovered ? 0xff7189aa : 0xff425878);
+          g.renderOutline(
+              toggle.x(),
+              toggle.y(),
+              toggle.width(),
+              toggle.height(),
+              hovered ? 0xffb4bac2 : 0xff858b94);
+          arrow(
+              g,
+              new Rect(toggle.x() + (toggle.width() - 5) / 2, toggle.y() + 2, 5, 3),
+              !expanded,
+              true);
+          if (hovered)
+            tooltip =
+                Component.translatable(
+                    expanded
+                        ? "screen.mmdlib.automation.collapse"
+                        : "screen.mmdlib.automation.filter");
         }
       }
     }
@@ -436,14 +457,6 @@ public final class AutomationDrawer {
               Component.translatable("screen.mmdlib.face." + relative.getSerializedName()),
               neighbour,
               Component.translatable("screen.mmdlib.mode." + mode.getSerializedName()));
-  }
-
-  private static void gear(GuiGraphics g, Rect r) {
-    int x = r.x() + 2, y = r.y() + 2;
-    g.fill(x + 2, y, x + 4, y + 6, 0xff303844);
-    g.fill(x, y + 2, x + 6, y + 4, 0xff303844);
-    g.fill(x + 1, y + 1, x + 5, y + 5, 0xff303844);
-    g.fill(x + 2, y + 2, x + 4, y + 4, 0xffadc2dd);
   }
 
   private static void arrow(GuiGraphics g, Rect r, boolean forward, boolean vertical) {
@@ -653,7 +666,7 @@ public final class AutomationDrawer {
     for (int c = 0; c < 4; c++) {
       if (model.supportsFilter(model.selected(), c)
           && !model.filter(model.selected(), c).isEmpty()
-          && gear(c).contains(x, y)) {
+          && filterToggle(c).contains(x, y)) {
         model.send("editor", model.selected(), c, "", 0, "");
         return true;
       }

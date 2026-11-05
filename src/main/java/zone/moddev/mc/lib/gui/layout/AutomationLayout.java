@@ -24,8 +24,9 @@ public final class AutomationLayout {
     return new Rect(28 + column * 20, 96, 14, 14);
   }
 
-  public static Rect gear(int column) {
-    return new Rect(30 + column * 20, 115, 10, 10);
+  public static Rect filterToggle(int column) {
+    var filter = filter(column);
+    return new Rect(filter.x(), filter.bottom() + 2, filter.width(), 7);
   }
 
   /** Item bounds inside a frame, relative to the drawer body; addon slots precede filters. */
@@ -37,7 +38,7 @@ public final class AutomationLayout {
 
   public static int contentHeight(boolean filterSlot, boolean configuredFilter) {
     return (configuredFilter
-            ? gear(0).bottom()
+            ? filterToggle(0).bottom()
             : filterSlot ? filter(0).bottom() : addon(0).bottom())
         + PADDING;
   }

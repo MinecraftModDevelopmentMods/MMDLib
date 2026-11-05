@@ -7,12 +7,20 @@ import net.minecraft.world.item.ItemStack;
 
 import zone.moddev.mc.companion.*;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
+import zone.moddev.mc.lib.gui.layout.AutomationLayout;
 import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 
 /** Real client/server round trips, screenshots and item-owned editor transitions. */
 final class AutomationClientSmoke {
   private static int stage;
   private static int compactHeight;
+
+  private static void toggleFilter(MachineScreen screen) {
+    var drawer = screen.exclusions().getLast();
+    var toggle = AutomationLayout.filterToggle(0).offset(drawer.x(), drawer.y());
+    if (!screen.mouseClicked(toggle.x() + toggle.width() / 2, toggle.y() + toggle.height() / 2, 0))
+      throw new AssertionError("Filter toggle bar accepts clicks");
+  }
 
   static boolean renderTooltipCapture(MachineScreen screen, GuiGraphics graphics, float partial) {
     if (stage != 8 || !screen.getMenu().automation.open()) return false;
@@ -74,7 +82,9 @@ final class AutomationClientSmoke {
     }
     if (stage == 2) {
       if (a.filter(0, 0).isEmpty()) return false;
-      a.send("editor", 0, 0, "", 0, "");
+      Screenshot.grab(
+          mc.gameDirectory, "automation-filter-collapsed.png", mc.getMainRenderTarget(), m -> {});
+      toggleFilter(screen);
       stage++;
       return false;
     }
@@ -128,7 +138,7 @@ final class AutomationClientSmoke {
     }
     if (stage == 5) {
       if (!a.filter(0, 0).is(CompanionAddons.TAG_FILTER.get()) || a.editor() != -1) return false;
-      a.send("editor", 0, 0, "", 0, "");
+      toggleFilter(screen);
       stage++;
       return false;
     }
