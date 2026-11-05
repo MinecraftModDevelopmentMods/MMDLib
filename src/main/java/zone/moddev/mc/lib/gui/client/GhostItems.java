@@ -61,7 +61,7 @@ final class GhostItems {
           original.setupRenderState();
           RenderSystem.enableBlend();
           RenderSystem.defaultBlendFunc();
-          RenderSystem.setShaderColor(1, 1, 1, .75f);
+          RenderSystem.setShaderColor(1, 1, 1, .50f);
         },
         () -> {
           RenderSystem.setShaderColor(1, 1, 1, 1);

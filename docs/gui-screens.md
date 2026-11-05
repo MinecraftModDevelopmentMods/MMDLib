@@ -435,6 +435,13 @@ The standard player inventory (three rows of nine, a 4 px gap, then the hotbar) 
 bottom automatically. Write `<player-inventory/>` only to place it somewhere else, or set
 `inventory="none"` on `<screen>` to leave it out.
 
+Optional `<inventory-controls>` goes after the main body and before tabs/popouts. Its button
+children form a right-aligned row above the player inventory (for example redstone and pause
+toggles). Automation's reusable `InventoryColorButtonBar` shares that row on the left, with
+scrollable overflow. The row is allocated once, and both sides align with the inventory edges.
+Use ordinary button declarations inside it; no spacer or coordinates are needed. This element
+requires a player inventory and is available to every screen, not just companion machines.
+
 ## Layout
 
 - **Boxes.** `vbox` stacks children top to bottom and `hbox` left to right, so text of any

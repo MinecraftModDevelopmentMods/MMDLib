@@ -23,6 +23,17 @@ final class AutomationClientSmoke {
   }
 
   static boolean renderTooltipCapture(MachineScreen screen, GuiGraphics graphics, float partial) {
+    if (stage == 2 && !screen.getMenu().automation.filter(0, 0).isEmpty()) {
+      var slot =
+          screen
+              .getMenu()
+              .slots
+              .get(
+                  screen.getMenu().automation.slotStart()
+                      + zone.moddev.mc.lib.api.automation.AutomationInventory.filterSlot(0, 0));
+      screen.render(graphics, screen.guiLeft() + slot.x + 6, screen.guiTop() + slot.y + 6, partial);
+      return true;
+    }
     if (stage != 8 || !screen.getMenu().automation.open()) return false;
     var drawer = screen.exclusions().getLast();
     screen.renderWithTooltip(graphics, drawer.x() + 81, drawer.y() + 52, partial);
@@ -44,12 +55,17 @@ final class AutomationClientSmoke {
               menu.bound.screen().find("info").orElseThrow();
       if (info.edge() != zone.moddev.mc.lib.gui.model.Element.Edge.LEFT)
         throw new AssertionError("Information stays on the left");
-      a.send("select", 0, -1, "", 0, "");
+      var colours = screen.layout.inventoryColors().orElseThrow();
+      if (!screen.mouseClicked(
+          screen.guiLeft() + colours.x() + 3, screen.guiTop() + colours.y() + 3, 0))
+        throw new AssertionError("Inventory colour bar opens the first displayed inventory");
       stage++;
       return false;
     }
     if (stage == 1) {
       if (!a.open()) throw new AssertionError("Colour opens drawer");
+      if (a.selected() != 2)
+        throw new AssertionError("Leftmost tank appears before item inventories");
       var drawer = screen.exclusions().getLast();
       var info = menu.bound.screen().find("info").orElseThrow();
       if (drawer.y() != screen.bounds(info).y())
@@ -60,6 +76,7 @@ final class AutomationClientSmoke {
             "The configuration drawer should fit its controls, not the main panel height");
       Screenshot.grab(
           mc.gameDirectory, "automation-seven-colours.png", mc.getMainRenderTarget(), m -> {});
+      a.send("select", 0, -1, "", 0, "");
       mc.getSingleplayerServer()
           .execute(
               () -> {

@@ -214,6 +214,7 @@ public final class ScreenReader {
                 enumValue(Align.class, node, "align"),
                 children(node));
         case "spacer" -> new Spacer(c);
+        case "inventory-controls" -> new InventoryControls(c, children(node));
         case "custom" -> custom(node, c);
         case "group" ->
             new Group(
@@ -262,8 +263,11 @@ public final class ScreenReader {
                 id(node, "icon"),
                 Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse),
                 words(node, "icons").stream().map(ResourceLocation::parse).toList(),
-                words(node, "value-labels").stream().map(key -> new Text(key, Optional.empty())).toList(),
-                java.util.Set.of("true", "1").contains(node.attributes().getOrDefault("flat", "false")));
+                words(node, "value-labels").stream()
+                    .map(key -> new Text(key, Optional.empty()))
+                    .toList(),
+                java.util.Set.of("true", "1")
+                    .contains(node.attributes().getOrDefault("flat", "false")));
         case "checkbox" -> new Checkbox(c, text(node, "text").orElseThrow());
         case "radio-group" ->
             new RadioGroup(
@@ -487,16 +491,19 @@ public final class ScreenReader {
       switch (element) {
         case Button button -> {
           if (button.flat() && button.text().isPresent())
-            throw new ScreenException(source, line, "A flat button uses an icon, not a text caption");
+            throw new ScreenException(
+                source, line, "A flat button uses an icon, not a text caption");
           if (c.tooltip().isEmpty())
             throw new ScreenException(source, line, "<button> needs a tooltip saying what it does");
           if (button.text().isEmpty() && button.icon().isEmpty() && button.icons().isEmpty())
             throw new ScreenException(source, line, "<button> needs text or icon");
           if (!button.icons().isEmpty() || !button.valueLabels().isEmpty())
             requireValue(source, element, "a stateful <button>", false);
-          if (!button.icons().isEmpty() && !button.valueLabels().isEmpty()
+          if (!button.icons().isEmpty()
+              && !button.valueLabels().isEmpty()
               && button.icons().size() != button.valueLabels().size())
-            throw new ScreenException(source, line, "button icons and value-labels must have equal counts");
+            throw new ScreenException(
+                source, line, "button icons and value-labels must have equal counts");
           if (button.shows().isPresent()) {
             var target = button.shows().get();
             var views = contexts.get(target.context());

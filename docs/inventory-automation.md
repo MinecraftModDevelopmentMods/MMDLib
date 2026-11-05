@@ -3,7 +3,18 @@
 Implement `ScreenHost.screenAutomation()` to opt a machine into the inventory drawer. Existing
 screens need no new XML element. The host inserts a colour selector row above the player inventory,
 reserves the first right drawer button, and places a second selector vertically inside the drawer.
-Each selection configures one resource group. F6 focuses the selector; arrow keys change inventory.
+Each selection configures one resource group. The reusable `InventoryColorButtonBar` builds the
+buttons automatically from the groups and their screen anchors: screen reading order (rows from
+left to right, stacks from top to bottom), once per group. Groups without a matching anchor follow
+in declaration order; item groups without explicit anchors can use their slot indices. The same
+order drives the drawer selector and keyboard navigation, without renumbering saved groups or
+menu slots. F6 focuses the selector; arrow keys change inventory. Overflow scrolls within the
+colour bar instead of covering adjacent controls.
+
+Place optional machine buttons in a top-level `<inventory-controls>` after the main screen body.
+They align right on the same row as the left-aligned colour bar, against the player inventory's
+edges. Layout reserves this row once and computes the selector's remaining width automatically.
+Screens without machine controls give the colour bar the full inventory width.
 The main inventory panel remains centred when drawers or filters open. Information drawers stay
 on the left; inventory side configuration stays on the right. Filter controls occupy a framed,
 scrollable region inside the configuration drawer below the addon slots. The arrow bar beneath
@@ -101,7 +112,7 @@ by the drawer; tall content scrolls within the available screen space. Counts, n
 text lengths are bounded. A sample comes from the **server's cursor stack**, without consuming it.
 Standard item samples match item IDs; fluid samples use a fluid container's contents. A filter
 may override sample extraction and validation for stricter matching. Ghost item previews render at
-75% opacity. A toggle may provide separate icons and tooltips for its false/true states; the
+60% opacity. A toggle may provide separate icons and tooltips for its false/true states; the
 three-argument constructor retains one shared icon and tooltip. The companion's basic item filter
 provides eight ghost cells and white/black list cards for its mode toggle.
 

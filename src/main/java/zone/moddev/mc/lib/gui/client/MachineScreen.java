@@ -888,14 +888,42 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         && super.hasClickedOutside(x, y, left, top, button);
   }
 
+  private boolean isFilterSlot(net.minecraft.world.inventory.Slot slot) {
+    return menu.automation != null
+        && slot.index >= menu.automation.slotStart()
+        && slot.index < menu.automation.slotStart() + menu.automation.slotCount()
+        && (slot.index - menu.automation.slotStart()) % AutomationInventory.SLOTS_PER_GROUP
+            >= AutomationInventory.COLUMNS;
+  }
+
+  @Override
+  protected void renderSlotHighlight(
+      GuiGraphics graphics,
+      net.minecraft.world.inventory.Slot slot,
+      int mouseX,
+      int mouseY,
+      float partialTick) {
+    if (!isFilterSlot(slot)) {
+      super.renderSlotHighlight(graphics, slot, mouseX, mouseY, partialTick);
+      return;
+    }
+    if (slot.isHighlightable()) {
+      int colour = getSlotColor(slot.index);
+      graphics.fillGradient(
+          net.minecraft.client.renderer.RenderType.guiOverlay(),
+          slot.x,
+          slot.y,
+          slot.x + AutomationLayout.FILTER_ITEM_SIZE,
+          slot.y + AutomationLayout.FILTER_ITEM_SIZE,
+          colour,
+          colour,
+          0);
+    }
+  }
+
   @Override
   protected void renderSlot(GuiGraphics graphics, net.minecraft.world.inventory.Slot slot) {
-    boolean small =
-        menu.automation != null
-            && slot.index >= menu.automation.slotStart()
-            && slot.index < menu.automation.slotStart() + menu.automation.slotCount()
-            && (slot.index - menu.automation.slotStart()) % 8 >= 4;
-    if (!small) {
+    if (!isFilterSlot(slot)) {
       super.renderSlot(graphics, slot);
       return;
     }

@@ -28,7 +28,9 @@ public final class AutomationDrawer {
   private final AutomationMenu model;
   private final Minecraft mc = Minecraft.getInstance();
   private final GhostItems ghostItems = new GhostItems();
-  private int verticalOffset, horizontalOffset, editorScroll, keyboardGroup;
+  private int verticalOffset, editorScroll, keyboardGroup;
+  private final InventoryColorButtonBar colourBar;
+  private final List<Integer> displayOrder;
   private String editorKey = "";
   private FilterControl root;
   private FilterPanelLayout panelLayout;
@@ -38,13 +40,19 @@ public final class AutomationDrawer {
   private FilterWidgets.Instance focusedCustom;
   private Component tooltip;
   private List<Component> faceTooltip = List.of();
-  private Rect body, tab, selector, horizontal, editorArea;
+  private Rect body, tab, selector, editorArea;
   private final Map<String, Rect> controlBounds = new HashMap<>();
   private int lastSelected = -1;
 
   public AutomationDrawer(MachineScreen screen) {
     this.screen = screen;
     model = screen.getMenu().automation;
+    colourBar =
+        new InventoryColorButtonBar(
+            screen.getMenu().bound.screen(),
+            model.inventory.groups(),
+            group -> model.send("select", group, -1, "", 0, ""));
+    displayOrder = colourBar.order();
   }
 
   private Rect panel() {
@@ -106,21 +114,13 @@ public final class AutomationDrawer {
                 Math.min(count(), AutomationLayout.SELECTOR_LIMIT),
                 (Math.min(baseHeight, body.height()) - 16) / AutomationLayout.SELECTOR_PITCH));
     selector = new Rect(body.x() + 5, body.y() + 8, 14, shown * AutomationLayout.SELECTOR_PITCH);
-    var inventory = screen.layout.inventory().orElse(null);
-    horizontal =
-        inventory == null
-            ? null
-            : new Rect(
-                panel.x() + inventory.x(),
-                panel.y() + inventory.y() - AutomationLayout.SELECTOR_ROW_HEIGHT,
-                inventory.width(),
-                16);
+    colourBar.layout(
+        screen.layout.inventoryColors().map(r -> r.offset(panel.x(), panel.y())).orElse(null),
+        model.selected());
     if (lastSelected != model.selected()) {
-      int hSlots = horizontal == null ? 1 : Math.max(1, (horizontal.width() - 20) / 18);
-      if (model.selected() < verticalOffset || model.selected() >= verticalOffset + shown)
-        verticalOffset = Math.max(0, model.selected() - shown + 1);
-      if (model.selected() < horizontalOffset || model.selected() >= horizontalOffset + hSlots)
-        horizontalOffset = Math.max(0, model.selected() - hSlots + 1);
+      int position = displayOrder.indexOf(model.selected());
+      if (position < verticalOffset || position >= verticalOffset + shown)
+        verticalOffset = Math.max(0, position - shown + 1);
       lastSelected = model.selected();
       keyboardGroup = model.selected();
     }
@@ -300,20 +300,10 @@ public final class AutomationDrawer {
                 });
     }
     if (tab.contains(mx, my)) tooltip = Component.translatable("screen.mmdlib.automation.open");
-    if (horizontal != null) {
-      int capacity = Math.max(1, (horizontal.width() - 20) / 18);
-      horizontalOffset = Math.clamp(horizontalOffset, 0, Math.max(0, count() - capacity));
-      for (int i = 0; i < capacity && horizontalOffset + i < count(); i++)
-        swatch(
-            g,
-            new Rect(horizontal.x() + 10 + i * 18, horizontal.y() + 1, 14, 14),
-            horizontalOffset + i,
-            mx,
-            my);
-      if (count() > capacity) {
-        arrow(g, new Rect(horizontal.x(), horizontal.y() + 3, 8, 10), false, false);
-        arrow(g, new Rect(horizontal.right() - 8, horizontal.y() + 3, 8, 10), true, false);
-      }
+    int hoveredGroup = colourBar.render(g, mx, my, model.open());
+    if (hoveredGroup >= 0) {
+      tooltip = model.inventory.group(hoveredGroup).name();
+      highlight(g, hoveredGroup);
     }
     if (!model.open()) return;
     tint(g, "drawer_panel", body, 0x819bc2);
@@ -329,7 +319,7 @@ public final class AutomationDrawer {
       swatch(
           g,
           new Rect(selector.x(), selector.y() + i * AutomationLayout.SELECTOR_PITCH, 14, 14),
-          verticalOffset + i,
+          displayOrder.get(verticalOffset + i),
           mx,
           my);
     if (count() > shown) {
@@ -622,17 +612,7 @@ public final class AutomationDrawer {
       model.send(model.open() ? "close" : "select", model.selected(), -1, "", 0, "");
       return true;
     }
-    if (horizontal != null && horizontal.contains(x, y)) {
-      int capacity = Math.max(1, (horizontal.width() - 20) / 18);
-      if (x < horizontal.x() + 10) horizontalOffset = Math.max(0, horizontalOffset - 1);
-      else if (x >= horizontal.right() - 10)
-        horizontalOffset = Math.min(Math.max(0, count() - capacity), horizontalOffset + 1);
-      else {
-        int index = horizontalOffset + ((int) x - horizontal.x() - 10) / 18;
-        if (index < count()) model.send("select", index, -1, "", 0, "");
-      }
-      return true;
-    }
+    if (colourBar.click(x, y)) return true;
     if (!model.open()) return false;
     if (!body.contains(x, y)) closeEditorInput();
     if (x >= body.x() + 2
@@ -645,7 +625,7 @@ public final class AutomationDrawer {
         verticalOffset = Math.min(Math.max(0, count() - shown), verticalOffset + 1);
       else {
         int index = verticalOffset + ((int) y - selector.y()) / AutomationLayout.SELECTOR_PITCH;
-        if (index < count()) model.send("select", index, -1, "", 0, "");
+        if (index < count()) model.send("select", displayOrder.get(index), -1, "", 0, "");
       }
       return true;
     }
@@ -747,10 +727,7 @@ public final class AutomationDrawer {
       editorScroll += (int) (-amount * 18);
       return true;
     }
-    if (horizontal != null && horizontal.contains(x, y)) {
-      horizontalOffset += (int) -amount;
-      return true;
-    }
+    if (colourBar.scroll(x, y, amount)) return true;
     return false;
   }
 
@@ -781,7 +758,11 @@ public final class AutomationDrawer {
       return true;
     }
     if (selectorFocused && (key == 264 || key == 265 || key == 262 || key == 263)) {
-      keyboardGroup = Math.floorMod(keyboardGroup + (key == 264 || key == 262 ? 1 : -1), count());
+      keyboardGroup =
+          displayOrder.get(
+              Math.floorMod(
+                  displayOrder.indexOf(keyboardGroup) + (key == 264 || key == 262 ? 1 : -1),
+                  count()));
       model.send("select", keyboardGroup, -1, "", 0, "");
       narrateSelection();
       return true;

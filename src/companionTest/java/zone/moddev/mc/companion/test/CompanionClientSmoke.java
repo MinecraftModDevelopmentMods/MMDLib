@@ -210,6 +210,21 @@ public final class CompanionClientSmoke {
         waitingTicks = 0;
         return;
       }
+      if (menu.automation != null) {
+        var row = screen.layout.inventoryColors().orElseThrow();
+        var inventory = screen.layout.inventory().orElseThrow();
+        if (row.x() != inventory.x())
+          throw new AssertionError("Colours align with inventory left edge");
+        for (String id : new String[] {"redstone", "toggle_0", "toggle_1"}) {
+          var button = menu.bound.screen().find(id);
+          if (button.isPresent()) {
+            var rect = screen.layout.bounds(button.get());
+            if (rect.y() != row.y() || rect.x() <= row.right() || rect.right() > inventory.right())
+              throw new AssertionError(
+                  "Colour selectors and machine controls share one non-overlapping row");
+          }
+        }
+      }
       var energy = menu.bound.screen().find("energy").orElseThrow();
       if (!(energy instanceof zone.moddev.mc.lib.gui.model.Element.EnergyGauge))
         throw new AssertionError("Every companion screen must use the reusable battery gauge");
