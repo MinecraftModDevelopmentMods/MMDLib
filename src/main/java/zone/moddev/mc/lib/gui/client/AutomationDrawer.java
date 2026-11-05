@@ -352,7 +352,8 @@ public final class AutomationDrawer {
 
   private void drawFace(GuiGraphics g, int index, int mx, int my) {
     var r = face(index);
-    sprite(g, "slot", r);
+    g.fill(r.x(), r.y(), r.right(), r.bottom(), 0xff555555);
+    g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0xff8b8b8b);
     var group = model.inventory.group(model.selected());
     var relative = RelativeFace.values()[index];
     var direction = group.world(relative);
@@ -370,7 +371,7 @@ public final class AutomationDrawer {
         try {
           g.flush();
           g.pose().translate(r.x() + 9, r.y() + 9, 150);
-          g.pose().scale(10, -10, 10);
+          g.pose().scale(7.5f, -7.5f, 7.5f);
           g.pose().mulPose(Axis.XP.rotationDegrees(30));
           g.pose().mulPose(Axis.YP.rotationDegrees(225));
           g.pose().translate(-.5, -.5, -.5);
