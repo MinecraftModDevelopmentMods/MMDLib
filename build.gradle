@@ -25,6 +25,14 @@ repositories {
     mavenCentral()
     // JEI (optional integration; compile-time API only)
     maven { url = 'https://maven.blamejared.com' }
+    maven {
+        url = 'https://maven.theillusivec4.top/'
+        content { includeGroup 'top.theillusivec4.curios' }
+    }
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
 }
 
 // Dev-only runtime dependencies: on the runtime classpath, but kept out of the published POM.
@@ -34,6 +42,8 @@ configurations {
 }
 
 dependencies {
+    // Optional equipment discovery; neither bundled nor a transitive runtime requirement.
+    compileOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}:api"
     // Optional JEI integration: compiled against the API only, never bundled or required.
     compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
@@ -54,6 +64,13 @@ neoForge {
     runs {
         configureEach {
             gameDirectory = file('run')
+            // Optional user-level preferences apply only to manual development clients.
+            if (name in ['client', 'companionClient']) {
+                if (providers.gradleProperty('mmdlibClientWidth').isPresent())
+                    programArguments.addAll '--width', providers.gradleProperty('mmdlibClientWidth').get()
+                if (providers.gradleProperty('mmdlibClientHeight').isPresent())
+                    programArguments.addAll '--height', providers.gradleProperty('mmdlibClientHeight').get()
+            }
         }
         client {
             client()
@@ -92,6 +109,7 @@ tasks.named('processResources', ProcessResources) {
             neoforge_version_range: neoforge_version_range,
             loader_version_range: loader_version_range,
             jei_version_range: jei_version_range,
+            curios_version_range: curios_version_range,
             mod_id: mod_id,
             mod_name: mod_name,
             mod_license: mod_license,

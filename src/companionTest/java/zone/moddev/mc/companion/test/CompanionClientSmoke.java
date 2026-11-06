@@ -35,9 +35,11 @@ import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 @EventBusSubscriber(modid = CompanionMod.ID, value = Dist.CLIENT)
 public final class CompanionClientSmoke {
   private static final BlockPos POS = new BlockPos(0, 100, 0);
-  private static final long DEADLINE = System.currentTimeMillis() + 180_000;
+  private static final long DEADLINE = System.currentTimeMillis() + 240_000;
   private static boolean started, opening, menuRequested, finished;
   private static int stage, frames, waitingTicks, drawerStage, fluidStage, controlStage;
+  private static boolean controlFixtureRequested;
+  private static volatile boolean controlFixtureReady;
 
   @SubscribeEvent
   public static void render(ScreenEvent.Render.Pre event) {
@@ -126,6 +128,7 @@ public final class CompanionClientSmoke {
         return;
       }
       if (stage == CompanionMod.MACHINES.size()) {
+        if (!DrawerMemoryClientSmoke.run()) return;
         finished = true;
         MMDLib.LOGGER.info(
             "COMPANION_CLIENT_PASS: all five menus rendered and received their values");
@@ -142,6 +145,10 @@ public final class CompanionClientSmoke {
                   var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
                   var level = player.serverLevel();
                   player.closeContainer();
+                  if (current == 0 && BackpackFixture.installed()) {
+                    BackpackFixture.equip(player);
+                    CuriosFixture.setup(player);
+                  }
                   level.getChunkAt(POS);
                   level.setBlock(
                       POS.offset(0, 0, 2),
@@ -200,6 +207,11 @@ public final class CompanionClientSmoke {
     var expected = CompanionMod.MACHINES.get(stage).type.get();
     if (menu.blockEntity.getType() != expected || ++frames < 25) return;
     try {
+      if (stage == 0 && (!CuriosClientSmoke.run(screen) || !BackpackClientSmoke.run(screen))) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
       if (stage == 4 && !AutomationClientSmoke.run(screen)) {
         frames = 0;
         waitingTicks = 0;
@@ -210,16 +222,27 @@ public final class CompanionClientSmoke {
         waitingTicks = 0;
         return;
       }
+      if (stage == 0 && !prepareControlFixture()) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
       if (menu.automation != null) {
         var row = screen.layout.inventoryColors().orElseThrow();
         var inventory = screen.layout.inventory().orElseThrow();
         if (row.x() != inventory.x())
           throw new AssertionError("Colours align with inventory left edge");
+        var firstStorage = zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(inventory, 9);
+        var lastStorage = zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(inventory, 17);
+        if (row.y() != inventory.y() || row.bottom() + 4 != firstStorage.y())
+          throw new AssertionError("Toolbar shares the helmet row directly above inventory slots");
         for (String id : new String[] {"redstone", "toggle_0", "toggle_1"}) {
           var button = menu.bound.screen().find(id);
           if (button.isPresent()) {
             var rect = screen.layout.bounds(button.get());
-            if (rect.y() != row.y() || rect.x() <= row.right() || rect.right() > inventory.right())
+            if (rect.y() != row.y()
+                || rect.x() <= row.right()
+                || rect.right() > lastStorage.right())
               throw new AssertionError(
                   "Colour selectors and machine controls share one non-overlapping row");
           }
@@ -356,10 +379,11 @@ public final class CompanionClientSmoke {
           Screenshot.grab(mc.gameDirectory, name + ".png", mc.getMainRenderTarget(), message -> {});
           screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
           var exclusions = screen.exclusions();
-          if (exclusions.size() != 3 || exclusions.get(1).right() != tab.x())
+          if (exclusions.size() != 3 + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1)
+              || exclusions.get(1).right() != tab.x())
             throw new AssertionError("The drawer must extend left while retaining its icon tab");
           if (exclusions.get(0).bottom() != exclusions.get(1).bottom()
-              || exclusions.get(1).bottom() > screen.guiTop() + screen.layout.panel().height()
+              || exclusions.get(1).bottom() > screen.panelBounds().bottom() - 4
               || exclusions.get(1).bottom() > screen.drawerBottom())
             throw new AssertionError(
                 "The info drawer must fit its content within the main panel and screen height"
@@ -370,7 +394,10 @@ public final class CompanionClientSmoke {
         }
         Screenshot.grab(
             mc.gameDirectory, name + "-drawer.png", mc.getMainRenderTarget(), message -> {});
-        if (!screen.mouseClicked(tab.x() + 10, screen.exclusions().getFirst().bottom() - 8, 0))
+        // The compact panel puts equipment tabs at the bottom of the same rail.
+        // Exercise empty rail below the info tab, not another drawer's tab.
+        int railY = tab.bottom() + 4;
+        if (!screen.mouseClicked(tab.x() + 10, railY, 0))
           throw new AssertionError("Clicks on the drawer rail must not pass through the screen");
         // Vanilla returns true even for unused buttons. Observe its recorded press to verify
         // these clicks reached inventory handling instead of being consumed by the drawer.
@@ -381,19 +408,20 @@ public final class CompanionClientSmoke {
         for (int button : new int[] {2, 3, 4})
           for (var point :
               new double[][] {
-                {tab.x() + 10, screen.exclusions().getFirst().bottom() - 8},
+                {tab.x() + 10, railY},
                 {tab.x() - 10, tab.y() + 10}
               }) {
             lastButton.setInt(screen, -1);
             screen.mouseClicked(point[0], point[1], button);
             if (lastButton.getInt(screen) != button)
               throw new AssertionError("Drawer swallowed mouse button " + button);
-            if (screen.exclusions().size() != 3)
+            if (screen.exclusions().size()
+                != 3 + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
               throw new AssertionError("Extra mouse button changed the drawer state");
           }
         screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
         screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
-        if (screen.exclusions().size() != 2)
+        if (screen.exclusions().size() != 2 + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
           throw new AssertionError("The icon tab did not close its drawer");
         drawerStage = 0;
         if (stage == 0) {
@@ -422,7 +450,40 @@ public final class CompanionClientSmoke {
     }
   }
 
-  private static void fail(Throwable error) {
+  private static boolean prepareControlFixture() {
+    if (controlFixtureReady) return true;
+    if (!controlFixtureRequested) {
+      controlFixtureRequested = true;
+      var server = Minecraft.getInstance().getSingleplayerServer();
+      server.execute(
+          () -> {
+            try {
+              var machine = (ProcessorEntity) server.overworld().getBlockEntity(POS);
+              // Reproduce a slow inventory/widget prelude without sleeping: its original recipe
+              // inputs must be allowed to run out before we prepare the independent control phase.
+              for (int i = 0; i < 2_000; i++) machine.serverTick();
+              if (!machine.items.getStackInSlot(0).isEmpty())
+                throw new AssertionError(
+                    "Slow-prelude regression did not exhaust the original input");
+              machine.lanes.forEach(zone.moddev.mc.lib.machine.feature.RecipeProcessor::reset);
+              for (int i = 0; i < machine.items.getSlots(); i++)
+                machine.items.setStackInSlot(i, ItemStack.EMPTY);
+              machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 16));
+              machine.energy.setStored(80_000);
+              for (int i = 0; i < 40; i++) machine.serverTick();
+              if (machine.lanes.getFirst().time() <= 0)
+                throw new AssertionError("Fresh control fixture did not start processing");
+              server.getPlayerList().getPlayers().getFirst().containerMenu.broadcastChanges();
+              controlFixtureReady = true;
+            } catch (Throwable error) {
+              fail(error);
+            }
+          });
+    }
+    return false;
+  }
+
+  static void fail(Throwable error) {
     finished = true;
     MMDLib.LOGGER.error("COMPANION_CLIENT_FAIL", error);
     Minecraft.getInstance().execute(() -> Minecraft.getInstance().stop());

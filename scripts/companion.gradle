@@ -7,10 +7,26 @@ sourceSets {
         compileClasspath += sourceSets.companion.output + sourceSets.companion.compileClasspath
         runtimeClasspath += sourceSets.companion.output + sourceSets.companion.runtimeClasspath
     }
+    // Mock GameTest connections cannot negotiate Curios' login-sync payloads.
+    // Reuse the compiled fixtures, but keep optional mods for real client/server smoke runs.
+    companionServerTest {
+        runtimeClasspath += sourceSets.companionTest.output + sourceSets.companion.output + sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
 }
 
 neoForge.addModdingDependenciesTo(sourceSets.companion)
 neoForge.addModdingDependenciesTo(sourceSets.companionTest)
+neoForge.addModdingDependenciesTo(sourceSets.companionServerTest)
+
+// Development fixtures only: do not add backpack APIs or required mod metadata to either jar.
+// -PwithoutBackpacks retains a companion run without Curios or backpack mods.
+if (!providers.gradleProperty('withoutBackpacks').isPresent()) {
+    dependencies {
+        companionRuntimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+        companionRuntimeOnly "maven.modrinth:sophisticated-backpacks:${sophisticated_backpacks_version}"
+        companionRuntimeOnly "maven.modrinth:sophisticated-core:${sophisticated_core_version}"
+    }
+}
 
 neoForge {
     mods {
@@ -40,7 +56,7 @@ neoForge {
         companionGameTestServer {
             type = 'gameTestServer'
             gameDirectory = layout.buildDirectory.dir('companion-gametest')
-            sourceSet = sourceSets.companionTest
+            sourceSet = sourceSets.companionServerTest
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
             systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib_companion'
         }
@@ -69,7 +85,7 @@ tasks.matching { it.name == 'runCompanionClientSmoke' }.configureEach {
     doFirst {
         def smokeDir = layout.buildDirectory.dir('companion-client-smoke').get().asFile
         smokeDir.mkdirs()
-        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\n'
+        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\npauseOnLostFocus:false\n'
     }
     doLast {
         def log = layout.buildDirectory.file('companion-client-smoke/logs/latest.log').get().asFile
@@ -94,6 +110,13 @@ tasks.register('verifyCompanionPackaging') {
         new java.util.zip.ZipFile(tasks.named('jar').get().archiveFile.get().asFile).withCloseable { jar ->
             def leaked = jar.entries().findAll { it.name.contains('mmdlib_companion') || it.name.startsWith('zone/moddev/mc/companion/') }
             if (leaked) throw new GradleException('Companion content in MMDLib jar: ' + leaked*.name)
+            def bundledIntegrations = jar.entries().findAll { it.name.startsWith('top/theillusivec4/') || it.name.startsWith('net/p3pp3rf1y/') }
+            if (bundledIntegrations) throw new GradleException('Optional integration classes bundled in MMDLib: ' + bundledIntegrations*.name)
+            def metadata = jar.getInputStream(jar.getEntry('META-INF/neoforge.mods.toml')).getText('UTF-8')
+            if (!(metadata =~ /(?s)modId="curios"\s+type="optional"/).find())
+                throw new GradleException('Curios must be declared optional in the release jar')
+            if (metadata.contains('sophisticatedbackpacks') || metadata.contains('sophisticatedcore'))
+                throw new GradleException('Backpack test fixtures must not be dependencies of MMDLib')
         }
         new java.util.zip.ZipFile(companionJar.get().archiveFile.get().asFile).withCloseable { jar ->
             def leaked = jar.entries().findAll { it.name.startsWith('zone/moddev/mc/lib/') || it.name.startsWith('zone/moddev/mc/companion/test/') || it.name.contains('/structure/') }

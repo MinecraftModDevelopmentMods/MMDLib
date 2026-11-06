@@ -17,8 +17,15 @@ final class AutomationClientSmoke {
   private static int stage;
   private static int compactHeight;
 
+  private static zone.moddev.mc.lib.gui.layout.Rect automationBounds(MachineScreen screen) {
+    return screen.exclusions().stream()
+        .filter(rect -> rect.x() >= screen.panelBounds().right() && rect.width() > 22)
+        .findFirst()
+        .orElseThrow();
+  }
+
   private static void toggleFilter(MachineScreen screen) {
-    var drawer = screen.exclusions().getLast();
+    var drawer = automationBounds(screen);
     var toggle = AutomationLayout.filterToggle(0).offset(drawer.x(), drawer.y());
     if (!screen.mouseClicked(toggle.x() + toggle.width() / 2, toggle.y() + toggle.height() / 2, 0))
       throw new AssertionError("Filter toggle bar accepts clicks");
@@ -37,7 +44,7 @@ final class AutomationClientSmoke {
       return true;
     }
     if (stage != 8 || !screen.getMenu().automation.open()) return false;
-    var drawer = screen.exclusions().getLast();
+    var drawer = automationBounds(screen);
     screen.renderWithTooltip(graphics, drawer.x() + 81, drawer.y() + 52, partial);
     return true;
   }
@@ -68,7 +75,7 @@ final class AutomationClientSmoke {
       if (!a.open()) throw new AssertionError("Colour opens drawer");
       if (a.selected() != 2)
         throw new AssertionError("Leftmost tank appears before item inventories");
-      var drawer = screen.exclusions().getLast();
+      var drawer = automationBounds(screen);
       var info = menu.bound.screen().find("info").orElseThrow();
       if (drawer.y() != screen.bounds(info).y())
         throw new AssertionError("Information and configuration drawers must align at the top");
@@ -110,19 +117,19 @@ final class AutomationClientSmoke {
     if (stage == 3) {
       if (a.editor() != 0) throw new AssertionError("Filter editor opens");
       var exclusions = screen.exclusions();
-      if (exclusions.size() != 3)
+      if (exclusions.stream().filter(rect -> rect.x() >= screen.panelBounds().right()).count() != 2)
         throw new AssertionError("Filter must remain inside the existing drawer exclusion");
-      var drawer = exclusions.getLast();
+      var drawer = automationBounds(screen);
       if (drawer.y() != screen.guiTop() + ScreenLayout.TAB_PADDING
           || drawer.height() <= compactHeight
           || drawer.bottom() <= screen.panelBounds().bottom()
           || drawer.bottom() > screen.drawerBottom())
         throw new AssertionError(
-            "A large filter should grow the drawer downward within the screen");
+            "A large filter should grow beyond the panel when the screen permits it");
       Screenshot.grab(
           mc.gameDirectory, "automation-filter-grid.png", mc.getMainRenderTarget(), m -> {});
       screen.resize(mc, screen.width, 360);
-      var limited = screen.exclusions().getLast();
+      var limited = automationBounds(screen);
       if (limited.bottom() != screen.drawerBottom())
         throw new AssertionError("The growing drawer must stop at the screen margin");
       if (!screen.mouseScrolled(limited.x() + 40, limited.bottom() - 20, 0, -2))
@@ -162,7 +169,7 @@ final class AutomationClientSmoke {
       return false;
     }
     if (stage == 6) {
-      if (screen.exclusions().getLast().height() >= screen.panelBounds().height())
+      if (automationBounds(screen).height() >= screen.panelBounds().height())
         throw new AssertionError("A smaller filter should shrink the drawer to its content");
       Screenshot.grab(
           mc.gameDirectory, "automation-filter-tag.png", mc.getMainRenderTarget(), m -> {});
@@ -191,7 +198,7 @@ final class AutomationClientSmoke {
           || a.mode(6, RelativeFace.RIGHT.ordinal()) != IoMode.BOTH) return false;
       if (a.selected() != 6 || a.editor() != -1)
         throw new AssertionError("Selection closes old editor");
-      if (screen.exclusions().getLast().height() != compactHeight)
+      if (automationBounds(screen).height() != compactHeight)
         throw new AssertionError("Changing inventory should restore the compact drawer height");
       Screenshot.grab(mc.gameDirectory, "automation-energy.png", mc.getMainRenderTarget(), m -> {});
       Screenshot.grab(
@@ -256,7 +263,7 @@ final class AutomationClientSmoke {
         throw new AssertionError("Basic filter has two rows of four ghost cells");
       Screenshot.grab(
           mc.gameDirectory, "automation-filter-whitelist.png", mc.getMainRenderTarget(), m -> {});
-      var drawer = screen.exclusions().getLast();
+      var drawer = automationBounds(screen);
       if (!screen.mouseClicked(
           drawer.x() + AutomationLayout.EDITOR_X + 10,
           drawer.y() + AutomationLayout.EDITOR_Y + AutomationLayout.EDITOR_PADDING + 5,

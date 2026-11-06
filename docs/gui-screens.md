@@ -338,7 +338,7 @@ payload contains both lane index and state. The server restricts that selector t
 in its XML property. These settings persist with the machine. The graphical smoke run checks
 focus, typing, cancellation, resizing, view changes, release outside bounds and server rejection.
 
-The expanded menu protocol is version **2**, including a session token in menu-opening data.
+The expanded menu protocol is version **6**, including a session token in menu-opening data.
 Client and server must use matching MMDLib builds.
 
 ## Files and IDs
@@ -431,14 +431,26 @@ a compact meter, a few controls, an upgrade tab, and a side-configuration view:
 </screen>
 ```
 
-The standard player inventory (three rows of nine, a 4 px gap, then the hotbar) is added at the
-bottom automatically. Write `<player-inventory/>` only to place it somewhere else, or set
-`inventory="none"` on `<screen>` to leave it out.
+The standard player inventory is added at the bottom automatically: three rows of nine,
+a 4 px gap, then the hotbar. A column on the right contains helmet, chestplate, leggings and
+boots, with the offhand slot beside the hotbar. Empty equipment slots show vanilla icons;
+armor uses NeoForge's equipment checks, a one-item limit, and vanilla binding-curse protection.
+The complete inventory panel is 184 by 94 GUI pixels, including its toolbar row. There is no
+inventory label: the toolbar shares the helmet's row, directly above the three storage rows.
+Write `<player-inventory/>` only to place it somewhere else, or set `inventory="none"` on
+`<screen>` to leave out the inventory and equipment together.
+
+Shift-clicking equipment moves it into the ordinary inventory/hotbar. Machine outputs also
+go there; they do not automatically equip armor or fill the offhand. Shift-clicking ordinary
+inventory slots keeps the machine's `screenDestinations` routing. JEI recipe transfer uses
+only the ordinary inventory and hotbar, leaving equipped items alone.
 
 Optional `<inventory-controls>` goes after the main body and before tabs/popouts. Its button
 children form a right-aligned row above the player inventory (for example redstone and pause
 toggles). Automation's reusable `InventoryColorButtonBar` shares that row on the left, with
-scrollable overflow. The row is allocated once, and both sides align with the inventory edges.
+scrollable overflow. Both sides align with the nine-column storage grid, leaving the equipment
+column clear. Flat controls fit in the inventory's existing top row; taller controls add only
+the extra height they need.
 Use ordinary button declarations inside it; no spacer or coordinates are needed. This element
 requires a player inventory and is available to every screen, not just companion machines.
 
@@ -473,7 +485,9 @@ requires a player inventory and is available to every screen, not just companion
   - A button with `shows="<context>:<view>"` switches that context area to the view. Pressing
     it again, or the back button drawn in the corner of every non-default view, returns to the
     default view. Escape also returns to the default view first, then closes the screen.
-  - The area is sized to its largest view, so switching never moves the rest of the screen.
+  - The area measures the active view and fills the available width in vertical layouts.
+    Switching views resizes and recentres the panel, moving the inventory, toolbar and drawers
+    with it. Hidden settings do not reserve empty space; menu slot identities stay unchanged.
   - A view's `title` is drawn at its top, so the player can always tell which view is showing.
   - The shown view is remembered per screen file for the session.
   - Slots in a hidden view exist on the server menu at all times, but are hidden and refuse
@@ -711,7 +725,9 @@ When JEI is installed:
   Pop-out tabs are 22×24 rectangles, coloured by kind: yellow information, amber warning,
   red error. Clicking one opens a matching drawer outward from that edge, with the icon
   retained on a darker rail as the close control. Its body is up to 150 pixels wide and
-  fits its text, capped at the main panel's bottom and the screen edge. Text wraps to the available width; scroll inside
+  fits its text. Info and inventory drawers share a 4-pixel inset from the main panel's top
+  and bottom, and stop earlier if the screen or an overlay limits the space. The side-config
+  drawer shares the top inset but can grow below the main panel to fit its filter controls. Text wraps to the available width; scroll inside
   to read longer content. Opening another drawer on the same edge replaces the open drawer;
   tabs remain visible and clickable on the rail.
 
@@ -723,6 +739,83 @@ When JEI is installed:
   - Shift-click routing is the block entity's menu code, as in vanilla. A furnace, for example,
     sends a smeltable item to its ingredient slot and other fuel to its fuel slot. MMDLib only
     keeps slots in hidden views out of that routing.
+
+Drawer choices are remembered across MMDLib machine screens for the current connection.
+The left drawer (info, backpack or Curios) and right automation drawer are independent.
+Backpack selection uses its equipment slot address, and automation selection uses its resource
+group ID. Missing features are skipped; explicit closes are remembered. Joining another world
+or server resets these preferences. Filter-editor drafts are not carried between machines.
+
+## Equipped storage drawer (optional Curios integration)
+
+When Curios is installed, machine screens with a player inventory automatically show a
+bottom-left tab for an equipped item exposing NeoForge's `Capabilities.ItemHandler.ITEM`.
+The tab renders the actual item, including its model/tint components and custom name in
+the tooltip. No screen XML changes or backpack-specific API are needed.
+
+The server config `inventory.container_slots` selects functional Curios slots to inspect;
+the defaults are `back` and `backpack`. Cosmetic slots are excluded. Empty slots, ordinary
+items and zero-slot capabilities show no tab. Curios remains optional, and neither Curios
+nor any backpack mod is bundled with MMDLib.
+
+Click the tab to open storage on the left. Left/right clicks take a stack/half stack or
+insert the carried stack/one item. Shift-click a storage cell to move items into the player
+inventory; **while storage is open, shift-clicking the ordinary player inventory stores
+items in the selected container**. Machine-output and equipment transfers keep their usual
+behavior. Drag with the left button to divide the carried stack evenly, or with the right
+button to place one item in each visited slot. Drags starting in the backpack can include ordinary
+player inventory slots. Gestures starting in the normal inventory retain Minecraft's usual drag
+and double-click behavior. Press a configured hotbar key over a backpack slot to exchange its contents with that
+hotbar slot. Double-click a backpack stack to collect matching items from the entire selected backpack
+and ordinary player inventory, up to the carried item's stack limit. Item components,
+insertion/extraction restrictions and slot limits are respected. All transfers use only the
+container's insert/extract capability. A container may redirect insertions (for example,
+merging into existing stacks instead of the hovered empty slots), including during drags
+and hotbar swaps. Drag previews highlight backpack targets; final counts come from the container
+after release. The drawer does not bypass that behavior with direct slot setters.
+
+Backpack-specific upgrades/settings/crafting screens are not provided. Ordinary clicks with
+different carried items do not swap stacks; use a hotbar key for an explicit swap.
+
+Storage uses six slots per row inside a drawer filling the panel height between the shared
+4-pixel top and bottom insets, with the same tinted frame and
+darker icon rail as the other drawers. Large inventories are paged with the arrows or mouse wheel. Click the header to cycle
+between eligible equipped containers. The main panel stays stationary, opening storage
+closes a left information drawer, and the right automation drawer remains independent.
+If the window has insufficient space, the tab explains how to make room. Unequipping,
+replacing or resizing a container closes the drawer; stale clicks are rejected by the server.
+The drawer respects the capability's insertion/extraction filters and limits.
+
+Some items expose storage only after being initialized through their own normal UI. Such
+items show the tab only after initialization. The library does not initialize third-party
+storage or interpret its private data.
+
+For development, `runCompanionClient` and `runCompanionClientSmoke` include Curios,
+Sophisticated Backpacks and Sophisticated Core as runtime fixtures. Use
+`-PwithoutBackpacks` to omit them. These dependencies do not enter either published jar.
+Server GameTests run without these fixtures because Curios login sync requires a negotiated
+client connection; the client smoke test covers real backpack discovery and networked transfers.
+
+## Curios equipment drawer
+
+With Curios installed, screens that show player inventory also gain a **Curios** tab on
+the left. It sits above the backpack tab when an equipped container is available. The
+full-height drawer lists the player's visible Curios slot groups in their configured order,
+using Curios' names and empty-slot icons. The **E** column contains functional equipment;
+the **C** column contains cosmetic equipment where the slot type supports it. A dash means
+that slot has no cosmetic counterpart. Arrows and the mouse wheel page through longer lists.
+
+Left/right clicking equips or unequips through the actual Curios handlers. Shift-clicking
+an accessory moves it into ordinary player storage. While this drawer is open, shift-clicking
+player storage attempts to equip the item in a compatible **functional** slot; place cosmetic
+items directly in the cosmetic column. Existing equipment is not swapped automatically.
+Curios' validation, equip/unequip events and removal restrictions still apply.
+
+Opening this drawer closes backpack storage or the left information drawer; the right
+automation drawer remains independent. Escape closes the equipment drawer first. A change
+to the available slot groups or counts closes the old view and invalidates stale requests;
+reopening shows the updated slots. Curios stays optional, with no tab or class-loading
+requirement when absent. This drawer does not change slot definitions or rendering toggles.
 
 ## Proper use
 

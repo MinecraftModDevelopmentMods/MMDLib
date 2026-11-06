@@ -33,7 +33,7 @@ public final class GuiRuntimeChecks {
             MaterialEventTypes.GUI_CLICK,
             c -> ((Counter) c.menu().blockEntity).clicks++);
     String xml =
-        """
+"""
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="test.title" title-fallback="GUI runtime smoke"
         block-entity="zone.moddev.mc.lib.smoke.MachineSmoke$Counter">
   <vbox padding="7" spacing="4">
@@ -126,7 +126,21 @@ public final class GuiRuntimeChecks {
           "Hidden side action");
       require(menu.ghost(player, ghost, new ItemStack(Items.DIAMOND, 64)), "Ghost filter rejected");
       require(entity.ghost.getCount() == 1 && entity.ghost.is(Items.DIAMOND), "Ghost filter count");
+      var originalSlots = java.util.List.copyOf(menu.slots);
+      var originalPanel = menu.layout().panel();
       menu.clickMenuButton(player, new ScreenNetwork.Action(73, nav, 1, 0, 0, 0).pack());
+      require(!originalPanel.equals(menu.layout().panel()), "Context did not resize panel");
+      for (int i = 0; i < menu.slots.size(); i++) {
+        var slot = menu.slots.get(i);
+        require(slot == originalSlots.get(i), "Context replaced slot identity");
+        if (slot.container == player.getInventory()) {
+          var r =
+              zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(
+                  menu.layout().inventory().orElseThrow(), slot.getSlotIndex());
+          require(
+              slot.x == r.x() + 1 && slot.y == r.y() + 1, "Player slot layout after navigation");
+        }
+      }
       require(menu.slots.get(1).isActive() && !menu.slots.get(0).isActive(), "Context visibility");
       require(!menu.ghost(player, ghost, new ItemStack(Items.STONE)), "Hidden ghost changed");
       menu.clickMenuButton(player, new ScreenNetwork.Action(73, config, 3, 0, 0, 0).pack());

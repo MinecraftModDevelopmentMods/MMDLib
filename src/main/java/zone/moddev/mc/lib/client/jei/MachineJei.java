@@ -254,7 +254,11 @@ final class MachineJei {
 
           public List<Slot> getInventorySlots(MachineMenu menu, R recipe) {
             return menu.slots.stream()
-                .filter(s -> s.container == player.getInventory() && s.isActive())
+                .filter(
+                    s ->
+                        s.container == player.getInventory()
+                            && s.getContainerSlot() < 36
+                            && s.isActive())
                 .toList();
           }
         };

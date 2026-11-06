@@ -285,5 +285,20 @@
   "screen.mmdlib.automation.sample": "Click with a sample; right-click to clear",
   "screen.mmdlib.automation.empty": "No neighbouring block",
   "screen.mmdlib.automation.unloaded": "Neighbour not loaded",
-  "screen.mmdlib.automation.addon": "Compatible addon"
+  "screen.mmdlib.automation.addon": "Compatible addon",
+  "screen.mmdlib.container.toggle": "Open or close equipped storage",
+  "screen.mmdlib.container.room": "Reduce GUI scale or enlarge the window to show storage.",
+  "screen.mmdlib.container.select": "Click to select the next equipped container.",
+  "screen.mmdlib.container.store": "Shift-click inventory items to store them here.",
+  "screen.mmdlib.container.gestures": "Drag to distribute; double-click to collect; hotbar keys swap slots.",
+  "screen.mmdlib.curios.title": "Curios",
+  "screen.mmdlib.curios.toggle": "Open or close equipped accessories",
+  "screen.mmdlib.curios.store": "Shift-click inventory items to equip them; shift-click accessories to unequip.",
+  "screen.mmdlib.curios.equipment": "Slot",
+  "screen.mmdlib.curios.functional.short": "E",
+  "screen.mmdlib.curios.cosmetic.short": "C",
+  "screen.mmdlib.curios.functional": "Equipped slot",
+  "screen.mmdlib.curios.cosmetic": "Cosmetic slot",
+  "screen.mmdlib.curios.columns": "E: Equipped • C: Cosmetic",
+  "screen.mmdlib.curios.unavailable": "This slot has no cosmetic counterpart."
 }

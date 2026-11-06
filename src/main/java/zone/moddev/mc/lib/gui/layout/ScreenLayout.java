@@ -16,17 +16,31 @@ import zone.moddev.mc.lib.gui.model.Screen;
  * <p>The main panel stacks the screen's top-level elements, then (unless the screen places it or
  * leaves it out) the player inventory, centred. Boxes stack their children; inside a {@code vbox} a
  * child {@code hbox} stretches to the full width, and inside an {@code hbox} a child {@code vbox}
- * stretches to the full height, so {@code spacer}s have room to fill. A context area is as large as
- * its largest view, and every view is placed at the same spot. Side tabs and pop-out tabs stack
- * down their panel edge, side tabs first.
+ * stretches to the full height, so {@code spacer}s have room to fill. A context area sizes itself
+ * to its selected view and fills the available width in vertical layouts. Side tabs and pop-out
+ * tabs stack down their panel edge, side tabs first.
  *
  * <p>Fixed sizes come from the sprites ({@code docs/gui-sprites.md}): slots 18 px (26 large),
  * gauges 18 px thick, progress arrows 24x16, checkboxes and radios 10 px, buttons 20 px high,
  * side-configuration faces 20 px in a 3x3 grid.
  */
 public final class ScreenLayout {
-  /** Width and height of the player inventory: three rows and the hotbar, plus its title. */
-  public static final int INVENTORY_WIDTH = 162, INVENTORY_HEIGHT = 11 + 3 * 18 + 4 + 18;
+  /** Three inventory rows and a hotbar, with a toolbar and equipment column on the right. */
+  public static final int INVENTORY_WIDTH = 162 + 4 + 18, INVENTORY_HEIGHT = 18 + 3 * 18 + 4 + 18;
+
+  /** Slot background for a vanilla player inventory index (0..40), relative to the panel. */
+  public static Rect playerSlot(Rect inventory, int index) {
+    if (index < 0 || index > 40) throw new IllegalArgumentException("Player slot: " + index);
+    int x, y;
+    if (index < 36) {
+      x = (index % 9) * 18;
+      y = index < 9 ? 76 : 18 + (index / 9 - 1) * 18;
+    } else {
+      x = 166;
+      y = index == 40 ? 76 : (39 - index) * 18;
+    }
+    return new Rect(inventory.x() + x, inventory.y() + y, 18, 18);
+  }
 
   /** Margin around the panel's content, as vanilla screens. */
   public static final int PANEL_MARGIN = 7;
@@ -35,7 +49,7 @@ public final class ScreenLayout {
   public static final int GAP = 4;
 
   /** Space around the content of a side tab, and the tab's overlap with the panel. */
-  public static final int TAB_PADDING = 4, TAB_OVERLAP = 4, TAB_BORDER = 3;
+  public static final int TAB_PADDING = SideDrawerLayout.MARGIN, TAB_OVERLAP = 4, TAB_BORDER = 3;
 
   /** Width of a pop-out edge tab: a 16 px icon with a 3 px border. */
   public static final int POPOUT_TAB = 22;
@@ -56,12 +70,14 @@ public final class ScreenLayout {
   private final java.util.Set<View> alternateViews =
       java.util.Collections.newSetFromMap(new IdentityHashMap<>());
   private final TextMeasure text;
+  private final Map<String, String> views;
   private Rect panel;
   private Rect inventory;
   private Rect inventoryColors;
 
-  private ScreenLayout(TextMeasure text) {
+  private ScreenLayout(TextMeasure text, Map<String, String> views) {
     this.text = text;
+    this.views = Map.copyOf(views);
   }
 
   /**
@@ -73,9 +89,15 @@ public final class ScreenLayout {
     return of(screen, text, false);
   }
 
-  /** Reserves an actual row above the player inventory for resource-group selectors. */
+  /** Places the inventory toolbar beside the helmet, directly above the storage slots. */
   public static ScreenLayout of(Screen screen, TextMeasure text, boolean automation) {
-    var layout = new ScreenLayout(text);
+    return of(screen, text, automation, Map.of());
+  }
+
+  /** Measures selected context views; omitted selections use each context's default view. */
+  public static ScreenLayout of(
+      Screen screen, TextMeasure text, boolean automation, Map<String, String> views) {
+    var layout = new ScreenLayout(text, views);
     layout.place(screen);
     var controls =
         screen.body().stream()
@@ -92,22 +114,23 @@ public final class ScreenLayout {
           Math.max(
               AutomationLayout.SELECTOR_ROW_HEIGHT,
               controls == null ? 0 : layout.size(controls)[1] + GAP);
-      int colourWidth = layout.inventory.width() - (controlsWidth == 0 ? 0 : controlsWidth + GAP);
+      int storageRight = playerSlot(layout.inventory, 17).right();
+      int colourWidth =
+          storageRight - layout.inventory.x() - (controlsWidth == 0 ? 0 : controlsWidth + GAP);
       if (colourWidth < (automation ? 34 : 0))
         throw new IllegalArgumentException(
             "Inventory controls leave too little room for colour selectors");
+      // The inventory already reserves one slot row beside the helmet. Only taller controls
+      // need more space; ordinary flat controls and colour selectors use that existing row.
+      int extraHeight = Math.max(0, rowHeight - 18);
       layout.bounds.replaceAll(
-          (element, rect) -> rect.y() >= start ? rect.offset(0, rowHeight) : rect);
+          (element, rect) -> rect.y() >= start ? rect.offset(0, extraHeight) : rect);
       layout.inventoryColors = new Rect(layout.inventory.x(), start, colourWidth, rowHeight - GAP);
       if (controls != null)
         layout.placeAt(
-            controls,
-            layout.inventory.right() - controlsWidth,
-            start,
-            controlsWidth,
-            rowHeight - GAP);
-      layout.inventory = layout.inventory.offset(0, rowHeight);
-      layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + rowHeight);
+            controls, storageRight - controlsWidth, start, controlsWidth, rowHeight - GAP);
+      layout.inventory = layout.inventory.offset(0, extraHeight);
+      layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + extraHeight);
     }
     if (automation) {
       layout.bounds.replaceAll(
@@ -125,7 +148,7 @@ public final class ScreenLayout {
     return panel;
   }
 
-  /** Where the player inventory's title starts, if the screen shows the inventory. */
+  /** Bounds of the player inventory, including the toolbar row and equipment column. */
   public Optional<Rect> inventory() {
     return Optional.ofNullable(inventory);
   }
@@ -200,15 +223,7 @@ public final class ScreenLayout {
           Math.max(inner[0], group.label().map(text::width).orElse(0)), inner[1] + label
         };
       }
-      case Context context -> {
-        int width = 0, height = 0;
-        for (var view : context.views()) {
-          int[] size = size(view);
-          width = Math.max(width, size[0]);
-          height = Math.max(height, size[1]);
-        }
-        yield new int[] {width, height};
-      }
+      case Context context -> size(selectedView(context));
       case View view -> {
         int[] inner = stack(view.children(), GAP);
         int title = viewHeader(view);
@@ -273,6 +288,14 @@ public final class ScreenLayout {
         : 0;
   }
 
+  private View selectedView(Context context) {
+    String selected = views.get(context.common().id().orElse(""));
+    return context.views().stream()
+        .filter(view -> view.common().id().orElse("").equals(selected))
+        .findFirst()
+        .orElse(context.defaultView());
+  }
+
   private void place(Screen screen) {
     screen.forEach(
         e -> {
@@ -294,8 +317,9 @@ public final class ScreenLayout {
     int y = titleHeight;
     for (var element : content) {
       int[] size = size(element);
-      // Top-level boxes span the panel, as a vbox's children do.
-      int w = element instanceof Box || fills(element) ? width : size[0];
+      // Top-level boxes and context areas span the panel, as a vbox's children do.
+      int w =
+          element instanceof Box || element instanceof Context || fills(element) ? width : size[0];
       placeAt(element, 0, y, w, size[1]);
       y += size[1] + GAP;
     }
@@ -335,7 +359,16 @@ public final class ScreenLayout {
         placeStack(group.children(), x, top, width, 2);
       }
       case Context context -> {
-        for (var view : context.views()) placeAt(view, x, y, width, height);
+        for (var view : context.views()) {
+          // Hidden elements still need bounds for their persistent menu slots and widgets.
+          int[] size = size(view);
+          placeAt(
+              view,
+              x,
+              y,
+              Math.max(width, size[0]),
+              view == selectedView(context) ? height : size[1]);
+        }
       }
       case View view -> {
         int top = y + (viewHeader(view));
@@ -358,7 +391,10 @@ public final class ScreenLayout {
   private void placeStack(List<Element> children, int x, int y, int width, int spacing) {
     for (var child : children) {
       int[] size = size(child);
-      int w = (child instanceof Box box && !box.vertical()) || fills(child) ? width : size[0];
+      int w =
+          (child instanceof Box box && !box.vertical()) || child instanceof Context || fills(child)
+              ? width
+              : size[0];
       placeAt(child, x, y, w, size[1]);
       y += size[1] + spacing;
     }
@@ -388,7 +424,8 @@ public final class ScreenLayout {
         main = leftover / spacers + (spacerIndex++ < leftover % spacers ? 1 : 0);
       }
       if (box.vertical()) {
-        boolean stretch = (child instanceof Box b && !b.vertical()) || fills(child);
+        boolean stretch =
+            (child instanceof Box b && !b.vertical()) || child instanceof Context || fills(child);
         int w = stretch ? innerW : size[0];
         placeAt(child, innerX + align(box.align(), innerW, w), position, w, main);
       } else {

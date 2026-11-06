@@ -9,7 +9,7 @@ allprojects {
             def smokeDir = file(providers.gradleProperty('withoutJei').isPresent() ? 'build/gui-smoke-without-jei' : 'build/gui-smoke')
             smokeDir.mkdirs()
             new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\n'
-            neoForge.runs.client.programArguments.addAll '--width', '1280', '--height', '960'
+            neoForge.runs.client.programArguments.set(['--width', '1280', '--height', '960'])
             neoForge.runs.client.gameDirectory = smokeDir
             neoForge.runs.client.systemProperty 'mmdlib.guiSmoke', 'true'
             tasks.configureEach { task ->

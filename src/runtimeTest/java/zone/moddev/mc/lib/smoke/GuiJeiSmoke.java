@@ -156,6 +156,26 @@ public final class GuiJeiSmoke {
             false,
             false);
     if (error != null) throw new AssertionError("JEI transfer validation failed: " + error);
+    // The same ingredient in the offhand must not be consumed as a recipe input.
+    var inventory = Minecraft.getInstance().player.getInventory();
+    var ingredient = inventory.getItem(9);
+    var previousOffhand = inventory.getItem(40);
+    try {
+      inventory.setItem(9, ItemStack.EMPTY);
+      inventory.setItem(40, ingredient);
+      var equippedOnly =
+          handler.transferRecipe(
+              screen.getMenu(),
+              recipe,
+              layout.getRecipeSlotsView(),
+              Minecraft.getInstance().player,
+              false,
+              false);
+      if (equippedOnly == null) throw new AssertionError("JEI used the offhand as recipe storage");
+    } finally {
+      inventory.setItem(9, ingredient);
+      inventory.setItem(40, previousOffhand);
+    }
     error =
         handler.transferRecipe(
             screen.getMenu(),

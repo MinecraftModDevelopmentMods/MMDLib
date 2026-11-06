@@ -22,8 +22,10 @@ import zone.moddev.mc.lib.gui.runtime.*;
 
 /** Client presentation of a data-defined machine; getters are never invoked here. */
 public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
-  public final ScreenLayout layout;
+  public ScreenLayout layout;
   private final AutomationDrawer automation;
+  private final ContainerDrawer containerDrawer;
+  private final ContainerDrawer curiosDrawer;
   private WidgetInput widgetInput;
   private boolean widgetsRemoved;
   private final Set<Element.Popout> open = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -50,19 +52,18 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   private Element hovered;
   private boolean restored;
+  private final DrawerMemory drawerMemory = new DrawerMemory();
 
   public MachineScreen(MachineMenu menu, Inventory inventory, Component title) {
     super(menu, inventory, title);
     WidgetRenderers.GLOBAL.validate(menu.bound.screen());
-    layout =
-        ScreenLayout.of(
-            menu.bound.screen(),
-            text -> net.minecraft.client.Minecraft.getInstance().font.width(text(text)),
-            menu.automation != null);
+    layout = menu.layout();
     imageWidth = layout.panel().width();
     imageHeight = layout.panel().height();
     widgetInput = createWidgets();
     automation = menu.automation == null ? null : new AutomationDrawer(this);
+    containerDrawer = new ContainerDrawer(this);
+    curiosDrawer = new ContainerDrawer(this, true);
   }
 
   private WidgetInput createWidgets() {
@@ -121,10 +122,18 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @EventBusSubscriber(modid = "mmdlib", value = Dist.CLIENT)
   public static final class PendingActions {
     @SubscribeEvent
+    public static void logout(
+        net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+      DrawerMemory.disconnected();
+    }
+
+    @SubscribeEvent
     public static void tick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
       var player = net.minecraft.client.Minecraft.getInstance().player;
       if (player != null && player.containerMenu instanceof MachineMenu menu) {
         menu.tickWidgetActions();
+        menu.containerDrawer.tickClient();
+        menu.curiosDrawer.tickClient();
         if (menu.automation != null) menu.automation.tick();
       }
     }
@@ -133,6 +142,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   protected void init() {
     super.init();
+    containerDrawer.cancelGesture();
+    curiosDrawer.cancelGesture();
     if (automation != null) automation.closeEditorInput();
     // Recipe browsers can return to the same screen object after removed() was called.
     if (widgetsRemoved) {
@@ -174,14 +185,52 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   }
 
   public Rect bounds(Element e) {
+    updateLayout();
     return layout.bounds(e).offset(leftPos, topPos);
   }
 
   public Rect panelBounds() {
+    updateLayout();
     return layout.panel().offset(leftPos, topPos);
   }
 
+  private void updateLayout() {
+    if (layout == menu.layout()) return;
+    layout = menu.layout();
+    imageWidth = layout.panel().width();
+    imageHeight = layout.panel().height();
+    leftPos = (width - imageWidth) / 2;
+    topPos = (height - imageHeight) / 2;
+    hoveredSlot = null;
+    quickCraftSlots.clear();
+    isQuickCrafting = false;
+    widgetInput.resized();
+    containerDrawer.cancelGesture();
+    curiosDrawer.cancelGesture();
+    if (automation != null) automation.closeEditorInput();
+  }
+
+  void rememberContainerIntent(
+      boolean equipment, ContainerDrawerNetwork.State state, int kind, int argument) {
+    drawerMemory.containerIntent(equipment, state, kind, argument);
+  }
+
+  void rememberAutomationIntent(String kind, int group) {
+    drawerMemory.automationIntent(kind, menu.automation.inventory.group(group).id());
+  }
+
+  void closeLeftDrawers() {
+    open.removeIf(p -> p.edge() == Element.Edge.LEFT);
+  }
+
+  boolean onDrawerTab(double x, double y) {
+    return containerDrawer.tabContains(x, y)
+        || curiosDrawer.tabContains(x, y)
+        || menu.bound.screen().tabs().stream().anyMatch(e -> bounds(e).contains(x, y));
+  }
+
   private void positionAutomation() {
+    updateLayout();
     if (automation == null) return;
     if (menu.automation.open() && !menu.automation.pending())
       open.removeIf(p -> p.edge() == Element.Edge.RIGHT);
@@ -255,23 +304,14 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         .inventory()
         .ifPresent(
             r -> {
-              caption(
-                  g,
-                  Component.translatable("container.inventory"),
-                  leftPos + r.x(),
-                  topPos + r.y());
-              for (int row = 0; row < 4; row++)
-                for (int col = 0; col < 9; col++)
-                  sprite(
-                      g,
-                      "slot",
-                      new Rect(
-                          leftPos + r.x() + col * 18,
-                          topPos + r.y() + 11 + row * 18 + (row == 3 ? 4 : 0),
-                          18,
-                          18));
+              for (int index = 0; index <= 40; index++)
+                sprite(g, "slot", ScreenLayout.playerSlot(r, index).offset(leftPos, topPos));
             });
     if (automation != null) automation.drawBackground(g, mx, my);
+    containerDrawer.render(g, mx, my);
+    curiosDrawer.render(g, mx, my);
+    containerDrawer.renderTab(g);
+    curiosDrawer.renderTab(g);
   }
 
   private void draw(GuiGraphics g, Element e, Rect r, int mx, int my, float partial) {
@@ -524,6 +564,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       } else result.add(bounds(e));
     }
     if (automation != null) result.addAll(automation.exclusions());
+    result.addAll(containerDrawer.exclusions());
+    result.addAll(curiosDrawer.exclusions());
     return result;
   }
 
@@ -536,14 +578,20 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   private Rect popBounds(Element.Popout p) {
     Rect tab = bounds(p);
     int w = popWidth(p);
-    int limit = Math.max(0, Math.min(topPos + imageHeight, drawerBottom()) - tab.y());
-    int h = Math.min(limit, Math.max(ScreenLayout.POPOUT_HEIGHT, popLines(p).size() * 10 + 12));
-    return new Rect(p.edge() == Element.Edge.LEFT ? tab.x() - w : tab.right(), tab.y(), w, h);
+    int top = SideDrawerLayout.top(panelBounds());
+    int h = Math.max(tab.bottom() - top, popLines(p).size() * 10 + 12);
+    return SideDrawerLayout.body(
+        panelBounds(),
+        drawerBottom(),
+        p.edge() == Element.Edge.LEFT ? tab.x() - w : tab.right(),
+        top,
+        w,
+        h);
   }
 
   private Rect drawerRail(Element.Popout p) {
     Rect tab = bounds(p);
-    return new Rect(tab.x(), tab.y(), tab.width(), popBounds(p).height());
+    return SideDrawerLayout.rail(tab, popBounds(p));
   }
 
   private List<net.minecraft.util.FormattedCharSequence> popLines(Element.Popout p) {
@@ -607,6 +655,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     renderTooltip(g, mx, my);
     if (hovered != null) tooltip(g, hovered, mx, my);
     if (automation != null) automation.tooltip(g, mx, my);
+    containerDrawer.tooltip(g, mx, my);
+    curiosDrawer.tooltip(g, mx, my);
   }
 
   private void hover(Element e, boolean enter) {
@@ -696,6 +746,11 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseClicked(double mx, double my, int button) {
+    drawerMemory.userInput();
+    if (containerDrawer.click(mx, my, button) || curiosDrawer.click(mx, my, button)) {
+      widgetInput.clearFocus();
+      return true;
+    }
     positionAutomation();
     if (automation != null && automation.click(mx, my, button)) {
       widgetInput.clearFocus();
@@ -723,12 +778,17 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         return true;
       if (button > 1) continue;
       if (e instanceof Element.Popout p) {
+        if (p.edge() == Element.Edge.LEFT) {
+          containerDrawer.close();
+          curiosDrawer.close();
+        }
         if (automation != null && p.edge() == Element.Edge.RIGHT && menu.automation.open())
           menu.automation.send("close", menu.automation.selected(), -1, "", 0, "");
         if (!open.remove(p)) {
           open.removeIf(other -> other.edge() == p.edge());
           open.add(p);
         }
+        drawerMemory.popoutIntent(p, open.contains(p));
         return true;
       }
       if (e instanceof Element.Slot s && s.kind() == Element.SlotKind.GHOST) {
@@ -802,6 +862,18 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean keyPressed(int key, int scan, int modifiers) {
+    drawerMemory.userInput();
+    // A lost drawer acknowledgment must never trap the player in the screen.
+    if ((menu.containerDrawer.pending() || menu.curiosDrawer.pending())
+        && (key == 256
+            || net.minecraft.client.Minecraft.getInstance()
+                .options
+                .keyInventory
+                .matches(key, scan))) {
+      onClose();
+      return true;
+    }
+    if (containerDrawer.key(key, scan) || curiosDrawer.key(key, scan)) return true;
     if (automation != null && automation.key(key, scan, modifiers)) return true;
     updateWidgets();
     if (widgetInput.keyPressed(key, scan, modifiers)) return true;
@@ -819,6 +891,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public void removed() {
+    drawerMemory.capture(this, open);
+    containerDrawer.cancelGesture();
+    curiosDrawer.cancelGesture();
     if (automation != null) automation.removed();
     widgetInput.removed();
     widgetsRemoved = true;
@@ -829,6 +904,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseScrolled(double mx, double my, double dx, double dy) {
+    if (curiosDrawer.scroll(mx, my, dy) || containerDrawer.scroll(mx, my, dy)) return true;
     if (automation != null && automation.scroll(mx, my, dy)) return true;
     updateWidgets();
     for (var p : open)
@@ -840,6 +916,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   }
 
   private void updateWidgets() {
+    updateLayout();
     widgetInput.update();
     for (var e : menu.elements)
       if (e instanceof Element.Custom custom) {
@@ -851,12 +928,21 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   protected void containerTick() {
     super.containerTick();
+    drawerMemory.restore(this, open);
     updateWidgets();
     widgetInput.tick();
   }
 
   @Override
+  public void mouseMoved(double x, double y) {
+    containerDrawer.mouseMoved(x, y);
+    curiosDrawer.mouseMoved(x, y);
+    super.mouseMoved(x, y);
+  }
+
+  @Override
   public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    if (containerDrawer.drag(x, y, button) || curiosDrawer.drag(x, y, button)) return true;
     if (automation != null && automation.drag(x, y, button, dx, dy)) return true;
     updateWidgets();
     return widgetInput.drag(x, y, button, dx, dy) || super.mouseDragged(x, y, button, dx, dy);
@@ -864,6 +950,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseReleased(double x, double y, int button) {
+    boolean curiosReleased = curiosDrawer.release(x, y, button);
+    if (containerDrawer.release(x, y, button) || curiosReleased) return true;
     if (automation != null && automation.release(x, y, button)) return true;
     updateWidgets();
     return widgetInput.release(x, y, button) || super.mouseReleased(x, y, button);
@@ -885,6 +973,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   protected boolean hasClickedOutside(double x, double y, int left, int top, int button) {
     return (automation == null || !automation.contains(x, y))
+        && !containerDrawer.contains(x, y)
+        && !curiosDrawer.contains(x, y)
         && super.hasClickedOutside(x, y, left, top, button);
   }
 

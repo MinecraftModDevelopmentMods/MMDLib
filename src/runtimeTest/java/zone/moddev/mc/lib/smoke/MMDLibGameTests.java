@@ -20,12 +20,30 @@ public final class MMDLibGameTests {
     ProcessorSmoke.idleSearchBackoff(helper.getLevel());
     helper.succeed();
   }
+
   private static final String EMPTY = "empty";
 
   /** Inside the structure, away from its edges. */
   private static final BlockPos CENTER = new BlockPos(2, 1, 2);
 
   private MMDLibGameTests() {}
+
+  @GameTest(template = EMPTY)
+  public static void equippedContainer(GameTestHelper helper) {
+    ContainerDrawerSmoke.check(helper.getLevel(), helper.absolutePos(CENTER),
+        helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
+    helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void playerEquipment(GameTestHelper helper) {
+    PlayerEquipmentSmoke.check(
+        helper.getLevel(),
+        helper.absolutePos(CENTER),
+        helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL),
+        helper.makeMockPlayer(net.minecraft.world.level.GameType.CREATIVE));
+    helper.succeed();
+  }
 
   @GameTest(template = EMPTY)
   public static void contentRegistered(GameTestHelper helper) {
