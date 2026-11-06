@@ -796,7 +796,10 @@ darker icon rail as the other drawers. Large inventories are paged with the arro
 between eligible equipped containers. The main panel stays stationary, opening storage
 closes a left information drawer, and the right automation drawer remains independent.
 If the window has insufficient space, the tab explains how to make room. Unequipping,
-replacing or resizing a container closes the drawer; stale clicks are rejected by the server.
+replacing or resizing a container closes the drawer; requests for an old container or page are
+rejected by the server. Live item-count or icon updates do not cancel drags or block clicks:
+transfers use the current server contents, filters and limits. Both equipment drawers share one
+menu-local Curios discovery per tick, refreshed before and after item actions.
 The drawer respects the capability's insertion/extraction filters and limits.
 
 Some items expose storage only after being initialized through their own normal UI. Such

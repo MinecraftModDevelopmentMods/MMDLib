@@ -97,8 +97,18 @@ public final class ScreenLayout {
   /** Measures selected context views; omitted selections use each context's default view. */
   public static ScreenLayout of(
       Screen screen, TextMeasure text, boolean automation, Map<String, String> views) {
+    return of(screen, text, automation, false, views);
+  }
+
+  /** Includes runtime drawer tabs when sizing the panel and placing its XML tabs. */
+  public static ScreenLayout of(
+      Screen screen,
+      TextMeasure text,
+      boolean automation,
+      boolean redstone,
+      Map<String, String> views) {
     var layout = new ScreenLayout(text, views);
-    layout.place(screen);
+    layout.place(screen, (automation ? 1 : 0) + (redstone ? 1 : 0));
     var controls =
         screen.body().stream()
             .filter(InventoryControls.class::isInstance)
@@ -131,13 +141,6 @@ public final class ScreenLayout {
             controls, storageRight - controlsWidth, start, controlsWidth, rowHeight - GAP);
       layout.inventory = layout.inventory.offset(0, extraHeight);
       layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + extraHeight);
-    }
-    if (automation) {
-      layout.bounds.replaceAll(
-          (e, r) ->
-              r.x() >= layout.panel.width() - TAB_OVERLAP
-                  ? r.offset(0, POPOUT_HEIGHT + TAB_GAP)
-                  : r);
     }
     layout.applyOffsets(screen);
     return layout;
@@ -296,7 +299,7 @@ public final class ScreenLayout {
         .orElse(context.defaultView());
   }
 
-  private void place(Screen screen) {
+  private void place(Screen screen, int rightDrawers) {
     screen.forEach(
         e -> {
           if (e instanceof Context context)
@@ -333,8 +336,16 @@ public final class ScreenLayout {
               INVENTORY_HEIGHT);
     for (var element : screen.elements())
       if (element instanceof PlayerInventory) inventory = bounds.get(element);
-    placeTabs(screen, Edge.LEFT);
-    placeTabs(screen, Edge.RIGHT);
+    if (rightDrawers > 0) {
+      int tabsHeight = TAB_PADDING + rightDrawers * (POPOUT_HEIGHT + TAB_GAP) - TAB_GAP;
+      for (var tab : screen.tabs())
+        if (tab instanceof SideTab side && side.edge() == Edge.RIGHT
+            || tab instanceof Popout popout && popout.edge() == Edge.RIGHT)
+          tabsHeight += TAB_GAP + size(tab)[1];
+      panel = new Rect(0, 0, width, Math.max(height, tabsHeight + TAB_PADDING));
+    }
+    placeTabs(screen, Edge.LEFT, 0);
+    placeTabs(screen, Edge.RIGHT, rightDrawers);
   }
 
   private void placeAt(Element element, int x, int y, int width, int height) {
@@ -452,8 +463,8 @@ public final class ScreenLayout {
     };
   }
 
-  private void placeTabs(Screen screen, Edge edge) {
-    int y = TAB_PADDING;
+  private void placeTabs(Screen screen, Edge edge, int runtimeTabs) {
+    int y = TAB_PADDING + runtimeTabs * (POPOUT_HEIGHT + TAB_GAP);
     // Side tabs first, then pop-outs, each in document order.
     var ordered = new ArrayList<Element>();
     for (var tab : screen.tabs())

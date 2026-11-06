@@ -513,6 +513,14 @@ public final class CompanionGameTests {
           level.getCapability(
               Capabilities.EnergyStorage.BLOCK, pos.relative(side), side.getOpposite());
       require(view.canReceive() && !view.canExtract(), "Processor energy is input-only");
+      var unsided = level.getCapability(Capabilities.EnergyStorage.BLOCK, pos.relative(side), null);
+      require(
+          unsided != null
+              && !unsided.canExtract()
+              && unsided.extractEnergy(1_000, true) == 0
+              && unsided.extractEnergy(1_000, false) == 0
+              && machine.energy.stored() == 1_000,
+          "Unsided Crusher access cannot drain energy");
       level.setBlock(pos.relative(side), Blocks.AIR.defaultBlockState(), 3);
     }
     var output = level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, Direction.UP);

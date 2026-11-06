@@ -15,7 +15,7 @@ final class DrawerMemoryClientSmoke {
   private static boolean requested;
 
   static boolean run() {
-    if (!BackpackFixture.installed() || step > 11) return true;
+    if (!BackpackFixture.installed() || step > 13) return true;
     var mc = Minecraft.getInstance();
     if (reported != step) {
       reported = step;
@@ -177,6 +177,36 @@ final class DrawerMemoryClientSmoke {
           screen.keyPressed(256, 0, 0);
           require(mc.screen != screen, "Escape immediately closes a pending redstone request");
         } else mc.player.closeContainer();
+        open(FIRST);
+        advance();
+      }
+      case 12 -> {
+        if (!first || waitTicks < 15) return false;
+        if (!menu.automation.open()) {
+          var panel = screen.panelBounds();
+          click(screen, new Rect(panel.right(), panel.y() + 4, 22, 24));
+          return false;
+        }
+        require(menu.automation.send("select", 0, 0, "", 0, ""), "Automation request is pending");
+        screen.keyPressed(256, 0, 0);
+        require(
+            mc.screen != screen, "Escape closes immediately during a pending automation request");
+        open(SECOND);
+        advance();
+      }
+      case 13 -> {
+        if (!second || waitTicks < 15) return false;
+        if (!menu.automation.open()) {
+          var panel = screen.panelBounds();
+          click(screen, new Rect(panel.right(), panel.y() + 4, 22, 24));
+          return false;
+        }
+        require(
+            menu.automation.send("select", 0, 0, "", 0, ""),
+            "Second automation request is pending");
+        screen.keyPressed(69, 0, 0);
+        require(mc.screen != screen, "Inventory key closes during a pending automation request");
+        MachineScreen.PendingActions.logout(null);
         advance();
         return true;
       }

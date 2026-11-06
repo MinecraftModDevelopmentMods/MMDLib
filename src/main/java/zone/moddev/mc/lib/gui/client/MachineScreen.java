@@ -898,7 +898,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     // A lost drawer acknowledgment must never trap the player in the screen.
     if ((menu.containerDrawer.pending()
             || menu.curiosDrawer.pending()
-            || menu.redstone != null && menu.redstone.pending())
+            || menu.redstone != null && menu.redstone.pending()
+            || menu.automation != null && menu.automation.pending())
         && (key == 256
             || net.minecraft.client.Minecraft.getInstance()
                 .options

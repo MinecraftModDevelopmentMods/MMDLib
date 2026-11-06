@@ -29,6 +29,7 @@ public final class ContainerDrawerMenu {
   private final boolean equipment;
   private final Player owner;
   private final Supplier<List<EquippedContainers.Source>> discover;
+  private final Runnable invalidateDiscovery;
   private List<EquippedContainers.Source> sources = List.of();
   private List<Integer> sourceSizes = List.of();
   private int selected,
@@ -62,6 +63,16 @@ public final class ContainerDrawerMenu {
       Player owner,
       Supplier<List<EquippedContainers.Source>> discover,
       boolean equipment) {
+    this(menu, owner, discover, equipment, () -> {});
+  }
+
+  public ContainerDrawerMenu(
+      MachineMenu menu,
+      Player owner,
+      Supplier<List<EquippedContainers.Source>> discover,
+      boolean equipment,
+      Runnable invalidateDiscovery) {
+    this.invalidateDiscovery = invalidateDiscovery;
     this.equipment = equipment;
     if (equipment) pageSize = 20;
     this.menu = menu;
@@ -201,9 +212,9 @@ public final class ContainerDrawerMenu {
           && !described.describe(offset + i).equals(state.descriptions().get(i)))
         descriptionsChanged = true;
     }
-    if (iconsChanged
-        || contentsChanged
-        || descriptionsChanged
+    // Only changes to interaction identity/layout invalidate a gesture. Live contents and
+    // icon components (which may include the backpack's contents) still sync every tick.
+    if (descriptionsChanged
         || open != state.open()
         || selected != state.selected()
         || offset != state.offset()
@@ -212,7 +223,11 @@ public final class ContainerDrawerMenu {
       dirty = true;
     }
     // Scan live handlers, but copy immutable packet data only when something actually changed.
-    if (revision == state.revision() && lastRequest == state.acknowledged()) return;
+    if (iconsChanged || contentsChanged) dirty = true;
+    if (revision == state.revision()
+        && lastRequest == state.acknowledged()
+        && !iconsChanged
+        && !contentsChanged) return;
     var icons =
         iconsChanged ? found.stream().map(s -> s.stack().copyWithCount(1)).toList() : state.icons();
     List<ItemStack> contents = state.contents();
@@ -266,6 +281,7 @@ public final class ContainerDrawerMenu {
         || request.session() != menu.widgetSession()
         || request.request() <= lastRequest) return;
     lastRequest = request.request();
+    invalidateDiscovery.run();
     refresh();
     long tick = player.level().getGameTime();
     if (tick != actionTick) {
@@ -340,6 +356,7 @@ public final class ContainerDrawerMenu {
     dirty = true;
     // Vanilla slot/cursor changes precede the acknowledgment, so pending input can resume safely.
     if (request.kind() == SYNC) menu.sendAllDataToRemote();
+    invalidateDiscovery.run();
     menu.broadcastChanges();
     broadcast();
   }

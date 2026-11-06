@@ -54,7 +54,11 @@ final class RedstoneDrawer {
     tab =
         new Rect(
             panel.right(),
-            panel.y() + AutomationLayout.TOP + AutomationLayout.TAB_HEIGHT + 2,
+            panel.y()
+                + AutomationLayout.TOP
+                + (screen.getMenu().automation == null
+                    ? 0
+                    : AutomationLayout.TAB_HEIGHT + ScreenLayout.TAB_GAP),
             AutomationLayout.RAIL,
             AutomationLayout.TAB_HEIGHT);
     if (!model.open()) return;

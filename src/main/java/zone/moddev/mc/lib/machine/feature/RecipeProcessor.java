@@ -103,6 +103,7 @@ public final class RecipeProcessor
   }
 
   private final String key;
+  private final String outputPrefix;
   private final MachineInventory inventory;
   private final MachineRecipeType type;
   private final MachineRecipeLookup lookup;
@@ -132,6 +133,7 @@ public final class RecipeProcessor
   public RecipeProcessor(
       String key, MachineRecipeType type, MachineInventory inventory, Component displayName) {
     this.key = key;
+    outputPrefix = outputPrefix(key);
     this.inventory = inventory;
     this.type = type;
     lookup = type.lookup();
@@ -148,10 +150,24 @@ public final class RecipeProcessor
                 this::redstoneProgress));
   }
 
+  // Persistence keys predate redstone IDs and may contain arbitrary characters. Preserve
+  // existing compatible IDs; use a separate namespace for stable, bounded fallback IDs.
+  private static String outputPrefix(String key) {
+    if (key.matches("[a-z0-9_.:/-]{1,107}")) return "processor/" + key;
+    try {
+      var digest = java.security.MessageDigest.getInstance("SHA-256");
+      return "processor-key/"
+          + java.util.HexFormat.of()
+              .formatHex(digest.digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    } catch (java.security.NoSuchAlgorithmException impossible) {
+      throw new AssertionError(impossible);
+    }
+  }
+
   private RedstoneOutput output(
       String kind, Component name, String icon, int colour, IntSupplier value) {
     return new RedstoneOutput(
-        "processor/" + key + "/" + kind,
+        outputPrefix + "/" + kind,
         Component.translatable("screen.mmdlib.redstone.source." + kind, name),
         Component.translatable("screen.mmdlib.redstone.source." + kind + ".info", name),
         colour,

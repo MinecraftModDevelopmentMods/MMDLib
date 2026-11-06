@@ -38,6 +38,55 @@ public final class EquippedContainers {
     }
   }
 
+  /** One equipment scan shared by both drawers. Handler contents remain live. */
+  public record Snapshot(List<Source> containers, List<Source> equipment) {
+    public Snapshot {
+      containers = List.copyOf(containers);
+      equipment = List.copyOf(equipment);
+    }
+  }
+
+  /** Menu-local cache, discarded with its viewer; mutations always invalidate it. */
+  public static final class Discovery {
+    private final java.util.function.LongSupplier clock;
+    private final java.util.function.Supplier<Snapshot> scan;
+    private long tick = Long.MIN_VALUE;
+    private Snapshot snapshot;
+
+    public Discovery(Player player) {
+      this(player.level()::getGameTime, scanner(player));
+    }
+
+    Discovery(java.util.function.LongSupplier clock, java.util.function.Supplier<Snapshot> scan) {
+      this.clock = clock;
+      this.scan = scan;
+    }
+
+    public Snapshot get() {
+      long now = clock.getAsLong();
+      if (snapshot == null || tick != now) {
+        snapshot = scan.get();
+        tick = now;
+      }
+      return snapshot;
+    }
+
+    public void invalidate() {
+      snapshot = null;
+    }
+
+    private static java.util.function.Supplier<Snapshot> scanner(Player player) {
+      var identity = new ItemStack(net.minecraft.world.item.Items.ENDER_EYE);
+      return () -> discover(player, identity);
+    }
+  }
+
+  private static Snapshot discover(Player player, ItemStack identity) {
+    // Kept outside the optional adapter so a server without Curios never loads its API.
+    if (!ModList.get().isLoaded("curios")) return new Snapshot(List.of(), List.of());
+    return zone.moddev.mc.lib.compat.curios.CuriosEquipment.discover(player, identity);
+  }
+
   public static List<Source> equipment(Player player, ItemStack identity) {
     if (!ModList.get().isLoaded("curios")) return List.of();
     return zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity);

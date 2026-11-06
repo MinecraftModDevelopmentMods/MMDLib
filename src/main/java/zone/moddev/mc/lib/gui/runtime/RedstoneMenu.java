@@ -125,13 +125,13 @@ public final class RedstoneMenu {
       actionTick = tick;
       actions = 0;
     }
-    if (++actions <= 16 && p.revision() == revision()) {
+    if (++actions <= 16) {
       if (p.kind() == TOGGLE) {
         open = !open;
         if (open && menu.automation != null) menu.automation.closeServer();
       } else if (open) {
         if (p.kind() == SELECT) selected = p.face();
-        else if (p.face() == selected)
+        else if (p.face() == selected && p.revision() == revision())
           switch (p.kind()) {
             case MODE -> {
               if (p.value() < 3) control.mode(selected, MODES[p.value()]);

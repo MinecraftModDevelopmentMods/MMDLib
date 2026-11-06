@@ -225,17 +225,27 @@ public class MachineMenu extends AbstractContainerMenu {
     if (!bound.blockEntityClass().isInstance(entity))
       throw new IllegalArgumentException("Wrong screen block entity");
     elements = bound.screen().elements();
-    containerDrawer = new ContainerDrawerMenu(this, owner);
-    var equipmentIdentity = new ItemStack(net.minecraft.world.item.Items.ENDER_EYE);
+    var equipmentDiscovery = new EquippedContainers.Discovery(owner);
+    containerDrawer =
+        new ContainerDrawerMenu(
+            this,
+            owner,
+            () ->
+                bound.screen().playerInventory()
+                    ? equipmentDiscovery.get().containers()
+                    : List.of(),
+            false,
+            equipmentDiscovery::invalidate);
     curiosDrawer =
         new ContainerDrawerMenu(
             this,
             owner,
             () ->
                 bound.screen().playerInventory()
-                    ? EquippedContainers.equipment(owner, equipmentIdentity)
+                    ? equipmentDiscovery.get().equipment()
                     : java.util.List.of(),
-            true);
+            true,
+            equipmentDiscovery::invalidate);
     for (int i = 0; i < elements.size(); i++) elementIndexes.put(elements.get(i), i);
     if (elements.size() > 4096)
       throw new IllegalArgumentException("A screen may have at most 4096 elements");
@@ -275,7 +285,9 @@ public class MachineMenu extends AbstractContainerMenu {
         ScreenLayout.of(
             bound.screen(),
             owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
-            automation != null);
+            automation != null,
+            redstone != null,
+            views);
     for (int n = 0; n < count; n++) {
       final int index = n;
       var element =
@@ -378,6 +390,7 @@ public class MachineMenu extends AbstractContainerMenu {
             bound.screen(),
             owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
             automation != null,
+            redstone != null,
             views);
     for (var element : elements) {
       if (element instanceof Element.Slot slot) {

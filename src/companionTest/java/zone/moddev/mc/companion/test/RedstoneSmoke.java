@@ -207,6 +207,18 @@ final class RedstoneSmoke {
       require(control.inverted(0), "Output inversion applied through validated menu action");
       drawer.action(player, request(menu, 12, RedstoneMenu.INVERT, 0, 2));
       require(control.inverted(0), "Invalid inversion value refused");
+      var staleClose = request(menu, 13, RedstoneMenu.TOGGLE, 0, 0);
+      control.range(0, 3, 11); // Another viewer changes the shared configuration.
+      drawer.action(player, staleClose);
+      require(!drawer.open(), "Shared edits cannot block local drawer close");
+      var staleOpen = request(menu, 14, RedstoneMenu.TOGGLE, 0, 0);
+      control.range(0, 4, 11);
+      drawer.action(player, staleOpen);
+      require(drawer.open(), "Shared edits cannot block local drawer open");
+      var staleSelect = request(menu, 15, RedstoneMenu.SELECT, 1, 0);
+      control.range(0, 5, 11);
+      drawer.action(player, staleSelect);
+      require(drawer.selected() == 1, "Shared edits cannot block local face selection");
       player.containerMenu = player.inventoryMenu;
       machine.clearContent();
       level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
