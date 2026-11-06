@@ -38,6 +38,8 @@ public final class CompanionClientSmoke {
   private static final long DEADLINE = System.currentTimeMillis() + 240_000;
   private static boolean started, opening, menuRequested, finished;
   private static int stage, frames, waitingTicks, drawerStage, fluidStage, controlStage;
+  private static boolean controlFixtureRequested;
+  private static volatile boolean controlFixtureReady;
 
   @SubscribeEvent
   public static void render(ScreenEvent.Render.Pre event) {
@@ -216,6 +218,11 @@ public final class CompanionClientSmoke {
         return;
       }
       if (stage == 0 && !CompanionWidgetSmoke.run(screen)) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
+      if (stage == 0 && !prepareControlFixture()) {
         frames = 0;
         waitingTicks = 0;
         return;
@@ -441,6 +448,39 @@ public final class CompanionClientSmoke {
     } catch (Throwable error) {
       fail(error);
     }
+  }
+
+  private static boolean prepareControlFixture() {
+    if (controlFixtureReady) return true;
+    if (!controlFixtureRequested) {
+      controlFixtureRequested = true;
+      var server = Minecraft.getInstance().getSingleplayerServer();
+      server.execute(
+          () -> {
+            try {
+              var machine = (ProcessorEntity) server.overworld().getBlockEntity(POS);
+              // Reproduce a slow inventory/widget prelude without sleeping: its original recipe
+              // inputs must be allowed to run out before we prepare the independent control phase.
+              for (int i = 0; i < 2_000; i++) machine.serverTick();
+              if (!machine.items.getStackInSlot(0).isEmpty())
+                throw new AssertionError(
+                    "Slow-prelude regression did not exhaust the original input");
+              machine.lanes.forEach(zone.moddev.mc.lib.machine.feature.RecipeProcessor::reset);
+              for (int i = 0; i < machine.items.getSlots(); i++)
+                machine.items.setStackInSlot(i, ItemStack.EMPTY);
+              machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 16));
+              machine.energy.setStored(80_000);
+              for (int i = 0; i < 40; i++) machine.serverTick();
+              if (machine.lanes.getFirst().time() <= 0)
+                throw new AssertionError("Fresh control fixture did not start processing");
+              server.getPlayerList().getPlayers().getFirst().containerMenu.broadcastChanges();
+              controlFixtureReady = true;
+            } catch (Throwable error) {
+              fail(error);
+            }
+          });
+    }
+    return false;
   }
 
   static void fail(Throwable error) {
