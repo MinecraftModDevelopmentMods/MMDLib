@@ -342,7 +342,8 @@ public final class ScreenLoaderTest {
         var layout =
             ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
         var controls = layout.bounds(screen.find("inventory_controls").orElseThrow());
-        var redstone = layout.bounds(screen.find("redstone").orElseThrow());
+        require(screen.find("redstone").isEmpty());
+        var firstPause = layout.bounds(screen.find("toggle_0").orElseThrow());
         var pause =
             layout.bounds(
                 screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
@@ -353,11 +354,10 @@ public final class ScreenLoaderTest {
         require(pause.right() == ScreenLayout.playerSlot(inventory, 17).right());
         var colours = layout.inventoryColors().orElseThrow();
         require(colours.x() == layout.inventory().orElseThrow().x());
-        require(colours.y() == redstone.y() && colours.height() == redstone.height());
-        require(colours.right() + ScreenLayout.GAP == redstone.x());
-        require(redstone.y() == pause.y() && redstone.right() < pause.x());
+        require(colours.y() == firstPause.y() && colours.height() == firstPause.height());
+        require(colours.right() + ScreenLayout.GAP == firstPause.x());
+        require(firstPause.y() == pause.y());
         require(pause.width() == 14 && pause.height() == 14);
-        require(((Element.Button) screen.find("redstone").orElseThrow()).flat());
         require(((Element.Button) screen.find("toggle_0").orElseThrow()).flat());
       }
     }

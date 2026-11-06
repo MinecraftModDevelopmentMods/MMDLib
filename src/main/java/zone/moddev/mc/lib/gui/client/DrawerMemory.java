@@ -76,6 +76,22 @@ final class DrawerMemory {
           restoring.remove(edge);
           screen.closeLeftDrawers();
         }
+      } else if (selection.kind().equals("redstone")) {
+        var redstone = menu.redstone;
+        if (redstone == null) {
+          restoring.remove(edge);
+          continue;
+        }
+        if (redstone.pending()) continue;
+        if (!redstone.open())
+          redstone.send(zone.moddev.mc.lib.gui.runtime.RedstoneMenu.TOGGLE, 0, 0, 0);
+        else {
+          if (redstone.selected() != selection.offset())
+            redstone.send(
+                zone.moddev.mc.lib.gui.runtime.RedstoneMenu.SELECT, selection.offset(), 0, 0);
+          restoring.remove(edge);
+          screen.closeRightPopouts();
+        }
       } else if (selection.kind().equals("automation")) {
         var automation = menu.automation;
         if (automation == null) {
@@ -122,6 +138,12 @@ final class DrawerMemory {
     }
   }
 
+  void redstoneIntent(boolean open, int kind, int face) {
+    if (kind == zone.moddev.mc.lib.gui.runtime.RedstoneMenu.TOGGLE && open)
+      remembered.remove(Element.Edge.RIGHT);
+    else remembered.put(Element.Edge.RIGHT, new Selection("redstone", "", face));
+  }
+
   void automationIntent(String kind, String group) {
     if (kind.equals("close")) remembered.remove(Element.Edge.RIGHT);
     else if (kind.equals("select"))
@@ -142,6 +164,7 @@ final class DrawerMemory {
               && (menu.containerDrawer.pending() || menu.curiosDrawer.pending())
           || edge == Element.Edge.RIGHT && menu.automation != null && menu.automation.pending())
         continue;
+      if (edge == Element.Edge.RIGHT && menu.redstone != null && menu.redstone.pending()) continue;
       Selection selection = null;
       if (edge == Element.Edge.LEFT) {
         for (var drawer : java.util.List.of(menu.containerDrawer, menu.curiosDrawer)) {
@@ -153,6 +176,8 @@ final class DrawerMemory {
                     state.keys().get(state.selected()),
                     state.offset());
         }
+      } else if (menu.redstone != null && menu.redstone.open()) {
+        selection = new Selection("redstone", "", menu.redstone.selected());
       } else if (menu.automation != null && menu.automation.open()) {
         var a = menu.automation;
         selection = new Selection("automation", a.inventory.group(a.selected()).id(), 0);
@@ -169,7 +194,8 @@ final class DrawerMemory {
                         && menu.containerDrawer.state().keys().isEmpty()
                     || previous.kind().equals("curios")
                         && menu.curiosDrawer.state().keys().isEmpty()
-                    || previous.kind().equals("automation") && menu.automation == null);
+                    || previous.kind().equals("automation") && menu.automation == null
+                    || previous.kind().equals("redstone") && menu.redstone == null);
         if (!unavailable) remembered.remove(edge);
       }
     }

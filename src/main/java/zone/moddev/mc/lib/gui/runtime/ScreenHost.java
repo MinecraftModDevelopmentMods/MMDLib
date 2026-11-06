@@ -20,6 +20,11 @@ public interface ScreenHost {
    */
   IItemHandlerModifiable screenItems();
 
+  /** Opt in to the independent redstone face drawer. */
+  default zone.moddev.mc.lib.api.redstone.RedstoneControl screenRedstone() {
+    return null;
+  }
+
   /** Opt in to coloured resource groups and the interactive inventory drawer. */
   default zone.moddev.mc.lib.api.automation.AutomationInventory screenAutomation() {
     return null;

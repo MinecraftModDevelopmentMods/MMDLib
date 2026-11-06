@@ -11,10 +11,6 @@
     </hbox>
   </vbox>
   <inventory-controls id="inventory_controls">
-    <button flat="true" id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
-            icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
-            value-labels="screen.mmdlib_companion.redstone.ignore screen.mmdlib_companion.redstone.high screen.mmdlib_companion.redstone.low"
-            tooltip="screen.mmdlib_companion.redstone.tip"/>
     <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
             icons="mmdlib:icon_pause mmdlib:icon_resume"
             value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"

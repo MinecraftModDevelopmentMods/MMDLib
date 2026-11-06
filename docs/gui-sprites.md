@@ -31,7 +31,10 @@ icons and progress arrows are full colour.
 | `icon_pause`, `icon_resume` | 16×16 | none | Gold pause bars and green play triangle; `_a` and `_b` variants identify independent lanes |
 | `button_flat`, `button_flat_highlighted` | 14×14 | nine-slice, border 1 | Compact button with a uniform dark outline and flat grey fill; hover lightens only the interior |
 | `icon_filter_whitelist`, `icon_filter_blacklist` | 10×10 | none | White/black list cards on the filter's flat grey mode toggle |
+| `icon_processor_progress` | 16x16 | none | Three rising blue bars for per-processor recipe progress. |
 | `icon_redstone_ignore`, `icon_redstone_high`, `icon_redstone_low` | 16×16 | none | Redstone torch with × / + / − mode badge |
+| `icon_redstone_between`, `icon_redstone_outside` | 32x12 | none | Transparent interval glyphs with cream boundaries and green inward/outward arrows. |
+| `icon_redstone_revert`, `icon_redstone_revert_on` | 14x14 | none | Opposed horizontal arrows for output inversion; cream when off, green when on. |
 | `icon_info` | 16×16 | none | Pop-out `info`: white serif "i" with a dark outline and transparent background |
 | `icon_warning` | 16×16 | none | Pop-out `warning`: yellow triangle, black "!" |
 | `icon_error` | 16×16 | none | Pop-out `error`: red heater shield, white "!" |

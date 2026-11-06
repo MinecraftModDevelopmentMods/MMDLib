@@ -23,6 +23,8 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import zone.moddev.mc.lib.api.automation.*;
+import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
+import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.api.capabilities.FluidStorage;
 import zone.moddev.mc.lib.api.capabilities.ItemStorage;
@@ -53,8 +55,7 @@ public final class ProcessorEntity extends DemoEntity
   public final FeatureHost features =
       new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
   private final Kind kind;
-  // 0 ignores redstone, 1 requires a signal, 2 requires no signal. Manual pause is separate.
-  private int redstoneMode;
+  public final RedstoneControl redstone;
   private String machineName = "Crusher";
   private int reservePercent;
 
@@ -91,6 +92,7 @@ public final class ProcessorEntity extends DemoEntity
           fluid -> fluid.getFluid() == Fluids.WATER || fluid.getFluid() == Fluids.LAVA);
     if (kind == Kind.LOGISTICS)
       for (int i = 0; i < 4; i++) fluids.addTank(4000, i < 2 ? Role.INPUT : Role.OUTPUT);
+    int[] outputSlots = kind == Kind.CRUSHER ? new int[] {1, 2} : new int[] {1};
     var inventory = MachineInventory.builder().group("energy", StorageGroups.energy(energy));
     if (kind == Kind.TRANSMUTER) {
       // One key, and one item: the recipe consumes the whole slot before inserting gold.
@@ -98,24 +100,35 @@ public final class ProcessorEntity extends DemoEntity
       inventory.group("slot", StorageGroups.items(items, 0));
     } else {
       items =
-          new ItemStorage(2).role(Role.INPUT, 0).role(Role.OUTPUT, 1).onChange(this::setChanged);
+          new ItemStorage(1 + outputSlots.length)
+              .role(Role.INPUT, 0)
+              .role(kind == Kind.CRUSHER ? Role.STORAGE : Role.OUTPUT, outputSlots)
+              .onChange(this::setChanged);
       inventory
           .group("input", StorageGroups.items(items, 0))
-          .group("output", StorageGroups.items(items, 1));
+          .group("output", StorageGroups.items(items, outputSlots));
     }
     var shared = inventory.build();
     var recipeType = kind == Kind.TRANSMUTER ? CompanionMod.TRANSMUTING : CompanionMod.CRUSHING;
     var processors = new ArrayList<RecipeProcessor>();
     for (int i = 0; i < (kind == Kind.DUAL ? 2 : 1); i++) {
-      var processor = new RecipeProcessor("lane_" + i, recipeType, shared);
+      var processor =
+          new RecipeProcessor(
+              "lane_" + i,
+              recipeType,
+              shared,
+              Component.translatable("screen.mmdlib_companion.processor", i + 1));
       processors.add(processor);
       features.add(processor);
     }
     lanes = List.copyOf(processors);
     var groups = new ArrayList<ResourceGroup<?>>();
     groups.add(
-        itemGroup("input", 0, 0x568bd8, kind == Kind.TRANSMUTER ? IoMode.BOTH : IoMode.INPUT));
-    if (kind != Kind.TRANSMUTER) groups.add(itemGroup("output", 1, 0xe48f45, IoMode.OUTPUT));
+        itemGroup("input", 0x568bd8, kind == Kind.TRANSMUTER ? IoMode.BOTH : IoMode.INPUT, 0));
+    if (kind != Kind.TRANSMUTER)
+      groups.add(
+          itemGroup(
+              "output", 0xe48f45, kind == Kind.CRUSHER ? IoMode.BOTH : IoMode.OUTPUT, outputSlots));
     int[] colours = {0x64bfc1, 0xa678cb, 0xe0c55d, 0xce668e};
     for (int i = 0; i < fluids.getTanks(); i++) {
       final int tank = i;
@@ -149,10 +162,39 @@ public final class ProcessorEntity extends DemoEntity
     energyGroup.bind(() -> Direction.NORTH, side -> energy.view(() -> energyGroup.mode(side)));
     groups.add(energyGroup);
     automation = new AutomationInventory(this, groups);
+    var outputParts = new ArrayList<Object>();
+    for (var group : groups)
+      outputParts.add(
+          RedstoneOutput.resource(
+              group,
+              () -> {
+                if (group.type() == ResourceType.ENERGY)
+                  return energy.capacity() == 0 ? 0 : (double) energy.stored() / energy.capacity();
+                double amount = 0, capacity = 0;
+                for (int index : group.members()) {
+                  if (group.type() == ResourceType.ITEMS && index < items.getSlots()) {
+                    var stack = items.getStackInSlot(index);
+                    int limit =
+                        Math.min(
+                            items.getSlotLimit(index),
+                            stack.isEmpty() ? 64 : stack.getMaxStackSize());
+                    if (limit > 0) {
+                      amount += (double) stack.getCount() / limit;
+                      capacity++;
+                    }
+                  } else if (group.type() == ResourceType.FLUIDS && index < fluids.getTanks()) {
+                    amount += fluids.getFluidInTank(index).getAmount();
+                    capacity += fluids.getTankCapacity(index);
+                  }
+                }
+                return capacity == 0 ? 0 : amount / capacity;
+              }));
+    if (kind != Kind.LOGISTICS) outputParts.add(features);
+    redstone = new RedstoneControl(this, outputParts);
   }
 
   private ResourceGroup<net.neoforged.neoforge.items.IItemHandler> itemGroup(
-      String id, int slot, int colour, IoMode mode) {
+      String id, int colour, IoMode mode, int... slots) {
     var group =
         new ResourceGroup<>(
             id,
@@ -160,25 +202,35 @@ public final class ProcessorEntity extends DemoEntity
             colour,
             ResourceType.ITEMS,
             mode,
-            List.of(slot),
-            List.of(id),
+            java.util.Arrays.stream(slots).boxed().toList(),
+            java.util.stream.IntStream.range(0, slots.length)
+                .mapToObj(i -> i == 0 ? id : id + "_" + (i + 1))
+                .toList(),
             new SideConfig(mode));
     return group.bind(
         () -> Direction.NORTH,
-        side -> items.view(index -> index == slot ? group.mode(side) : IoMode.DISABLED));
+        side -> items.view(index -> group.contains(index) ? group.mode(side) : IoMode.DISABLED));
   }
 
   @Override
+  public RedstoneControl screenRedstone() {
+    return redstone;
+  }
+
   public AutomationInventory screenAutomation() {
     return automation;
   }
 
   @Override
   public void serverTick() {
-    if (kind != Kind.LOGISTICS
-        && redstoneAllowsRun()
-        && energy.stored() >= energy.capacity() * reservePercent / 100) features.tick(level);
+    redstone.readInputs();
+    features.tick(
+        level,
+        kind != Kind.LOGISTICS
+            && redstoneAllowsRun()
+            && energy.stored() >= energy.capacity() * reservePercent / 100);
     AutomationTransfers.tick(automation, energy);
+    redstone.updateOutputs();
   }
 
   public FluidStack getTank1() {
@@ -193,17 +245,8 @@ public final class ProcessorEntity extends DemoEntity
     return fluids.getFluidInTank(3);
   }
 
-  public int getRedstoneMode() {
-    return redstoneMode;
-  }
-
-  public void cycleRedstoneMode() {
-    redstoneMode = (redstoneMode + 1) % 3;
-    setChanged();
-  }
-
   private boolean redstoneAllowsRun() {
-    return redstoneMode == 0 || (level.hasNeighborSignal(worldPosition) == (redstoneMode == 1));
+    return !redstone.paused();
   }
 
   public void toggle(int index) {
@@ -316,7 +359,7 @@ public final class ProcessorEntity extends DemoEntity
     super.saveAdditional(tag, registries);
     tag.put("items", items.serializeNBT(registries));
     tag.put("automation", automation.save(registries));
-    tag.putInt("redstone_mode", redstoneMode);
+    tag.put("redstone_control", redstone.save(registries));
     tag.putString("machine_name", machineName);
     tag.putInt("reserve_percent", reservePercent);
     if (hasTank()) tag.put("fluids", fluids.serializeNBT(registries));
@@ -328,7 +371,10 @@ public final class ProcessorEntity extends DemoEntity
     if (FeatureSync.read(features, tag, registries)) return;
     super.loadAdditional(tag, registries);
     int savedMode = tag.getInt("redstone_mode");
-    redstoneMode = savedMode >= 0 && savedMode <= 2 ? savedMode : 0;
+    int redstoneMode = savedMode >= 0 && savedMode <= 2 ? savedMode : 0;
+    if (tag.contains("redstone_control"))
+      redstone.load(tag.getCompound("redstone_control"), registries);
+    else redstone.migrate(redstoneMode);
     String savedName = tag.getString("machine_name");
     machineName =
         !savedName.isBlank()

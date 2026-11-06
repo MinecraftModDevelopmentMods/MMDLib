@@ -24,6 +24,8 @@ import zone.moddev.mc.lib.gui.runtime.*;
 public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   public ScreenLayout layout;
   private final AutomationDrawer automation;
+  private final RedstoneDrawer redstone;
+  private final ReservationOverlay reservations = new ReservationOverlay();
   private final ContainerDrawer containerDrawer;
   private final ContainerDrawer curiosDrawer;
   private WidgetInput widgetInput;
@@ -62,6 +64,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     imageHeight = layout.panel().height();
     widgetInput = createWidgets();
     automation = menu.automation == null ? null : new AutomationDrawer(this);
+    redstone = menu.redstone == null ? null : new RedstoneDrawer(this);
     containerDrawer = new ContainerDrawer(this);
     curiosDrawer = new ContainerDrawer(this, true);
   }
@@ -135,6 +138,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         menu.containerDrawer.tickClient();
         menu.curiosDrawer.tickClient();
         if (menu.automation != null) menu.automation.tick();
+        if (menu.redstone != null) menu.redstone.tick();
       }
     }
   }
@@ -217,6 +221,14 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   void rememberAutomationIntent(String kind, int group) {
     drawerMemory.automationIntent(kind, menu.automation.inventory.group(group).id());
+  }
+
+  void rememberRedstoneIntent(int kind, int face) {
+    drawerMemory.redstoneIntent(menu.redstone.open(), kind, face);
+  }
+
+  void closeRightPopouts() {
+    open.removeIf(p -> p.edge() == Element.Edge.RIGHT);
   }
 
   void closeLeftDrawers() {
@@ -308,6 +320,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                 sprite(g, "slot", ScreenLayout.playerSlot(r, index).offset(leftPos, topPos));
             });
     if (automation != null) automation.drawBackground(g, mx, my);
+    if (redstone != null) redstone.render(g, mx, my);
+    if (automation != null) automation.renderTab(g);
     containerDrawer.render(g, mx, my);
     curiosDrawer.render(g, mx, my);
     containerDrawer.renderTab(g);
@@ -564,6 +578,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       } else result.add(bounds(e));
     }
     if (automation != null) result.addAll(automation.exclusions());
+    if (redstone != null) result.addAll(redstone.exclusions());
     result.addAll(containerDrawer.exclusions());
     result.addAll(curiosDrawer.exclusions());
     return result;
@@ -655,6 +670,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     renderTooltip(g, mx, my);
     if (hovered != null) tooltip(g, hovered, mx, my);
     if (automation != null) automation.tooltip(g, mx, my);
+    if (redstone != null) redstone.tooltip(g, mx, my);
     containerDrawer.tooltip(g, mx, my);
     curiosDrawer.tooltip(g, mx, my);
   }
@@ -715,6 +731,16 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         });
     if (c.tooltipShift().isPresent() && !shift)
       lines.add(Component.translatable("screen.mmdlib.shift_for_more"));
+    if (e instanceof Element.Slot slot) {
+      var plan = menu.reservationPlan(slot.index());
+      if (plan.take() > 0)
+        lines.add(Component.translatable("screen.mmdlib.reservation.input", plan.take()));
+      var output = plan.add();
+      if (!output.isEmpty())
+        lines.add(
+            Component.translatable(
+                "screen.mmdlib.reservation.output", output.getCount(), output.getHoverName()));
+    }
     if (e instanceof Element.SideConfig config) {
       int group = groups.getOrDefault(config, 0);
       for (int i = 0; i < 6; i++)
@@ -752,6 +778,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       return true;
     }
     positionAutomation();
+    if (redstone != null && redstone.click(mx, my, button)) {
+      widgetInput.clearFocus();
+      return true;
+    }
     if (automation != null && automation.click(mx, my, button)) {
       widgetInput.clearFocus();
       return true;
@@ -782,6 +812,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
           containerDrawer.close();
           curiosDrawer.close();
         }
+        if (p.edge() == Element.Edge.RIGHT && menu.redstone != null && menu.redstone.open())
+          menu.redstone.send(RedstoneMenu.TOGGLE, menu.redstone.selected(), 0, 0);
         if (automation != null && p.edge() == Element.Edge.RIGHT && menu.automation.open())
           menu.automation.send("close", menu.automation.selected(), -1, "", 0, "");
         if (!open.remove(p)) {
@@ -874,6 +906,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       return true;
     }
     if (containerDrawer.key(key, scan) || curiosDrawer.key(key, scan)) return true;
+    if (redstone != null && redstone.key(key)) return true;
     if (automation != null && automation.key(key, scan, modifiers)) return true;
     updateWidgets();
     if (widgetInput.keyPressed(key, scan, modifiers)) return true;
@@ -905,6 +938,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   public boolean mouseScrolled(double mx, double my, double dx, double dy) {
     if (curiosDrawer.scroll(mx, my, dy) || containerDrawer.scroll(mx, my, dy)) return true;
+    if (redstone != null && redstone.scroll(mx, my, dy)) return true;
     if (automation != null && automation.scroll(mx, my, dy)) return true;
     updateWidgets();
     for (var p : open)
@@ -943,6 +977,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
     if (containerDrawer.drag(x, y, button) || curiosDrawer.drag(x, y, button)) return true;
+    if (redstone != null && redstone.drag(x, y, button)) return true;
     if (automation != null && automation.drag(x, y, button, dx, dy)) return true;
     updateWidgets();
     return widgetInput.drag(x, y, button, dx, dy) || super.mouseDragged(x, y, button, dx, dy);
@@ -952,6 +987,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   public boolean mouseReleased(double x, double y, int button) {
     boolean curiosReleased = curiosDrawer.release(x, y, button);
     if (containerDrawer.release(x, y, button) || curiosReleased) return true;
+    if (redstone != null && redstone.release(x, y, button)) return true;
     if (automation != null && automation.release(x, y, button)) return true;
     updateWidgets();
     return widgetInput.release(x, y, button) || super.mouseReleased(x, y, button);
@@ -972,7 +1008,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   protected boolean hasClickedOutside(double x, double y, int left, int top, int button) {
-    return (automation == null || !automation.contains(x, y))
+    return (redstone == null || !redstone.contains(x, y))
+        && (automation == null || !automation.contains(x, y))
         && !containerDrawer.contains(x, y)
         && !curiosDrawer.contains(x, y)
         && super.hasClickedOutside(x, y, left, top, button);
@@ -1024,6 +1061,22 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     graphics.pose().translate(-slot.x, -slot.y, 0);
     super.renderSlot(graphics, slot);
     graphics.pose().popPose();
+  }
+
+  @Override
+  protected void renderSlotContents(
+      GuiGraphics graphics,
+      ItemStack displayed,
+      net.minecraft.world.inventory.Slot slot,
+      @org.jetbrains.annotations.Nullable String countString) {
+    if (!menu.isMachineItemSlot(slot.index)) {
+      super.renderSlotContents(graphics, displayed, slot, countString);
+      return;
+    }
+    // Keep vanilla item/drag rendering and decorations, then draw both quantities at one scale.
+    super.renderSlotContents(graphics, displayed, slot, "");
+    reservations.render(
+        graphics, font, slot, displayed, menu.reservationPlan(slot.index), countString);
   }
 
   @Override

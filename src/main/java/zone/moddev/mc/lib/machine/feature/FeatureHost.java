@@ -2,6 +2,10 @@ package zone.moddev.mc.lib.machine.feature;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import zone.moddev.mc.lib.api.redstone.IRedstoneOutput;
+import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
 
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -15,7 +19,7 @@ import net.minecraft.world.level.Level;
  * Runs and saves a machine's {@link MachineFeature}s. The block entity ticks it and saves it with
  * its own data; a feature calls {@link #markChanged} when its state changes.
  */
-public final class FeatureHost {
+public final class FeatureHost implements IRedstoneOutput {
   private static final Logger LOGGER = LogUtils.getLogger();
 
   /** The fewest ticks between two sends to clients. */
@@ -60,15 +64,31 @@ public final class FeatureHost {
    * have passed since the last send. Does nothing on the client.
    */
   public void tick(Level level) {
+    tick(level, true);
+  }
+
+  /** Resolves every feature's active/suspended state even when processing is held. */
+  public void tick(Level level, boolean enabled) {
     if (level.isClientSide()) return;
     this.level = level;
-    for (var feature : features.values()) feature.tick(this);
+    for (var feature : features.values()) {
+      if (enabled) feature.tick(this);
+      else feature.suspended(this);
+    }
     if (sinceSync < SYNC_INTERVAL) sinceSync++;
     if (syncPending && sinceSync >= SYNC_INTERVAL) {
       syncPending = false;
       sinceSync = 0;
       onSync.run();
     }
+  }
+
+  @Override
+  public List<RedstoneOutput> redstoneOutputs() {
+    var outputs = new ArrayList<RedstoneOutput>();
+    for (var feature : features.values())
+      if (feature instanceof IRedstoneOutput provider) outputs.addAll(provider.redstoneOutputs());
+    return List.copyOf(outputs);
   }
 
   /** The level being ticked; only for use while a feature ticks. */
@@ -157,8 +177,7 @@ public final class FeatureHost {
     result.error().ifPresent(e -> logBad(feature, e.message()));
   }
 
-  private static <T, S> void decodeOnClient(
-      DynamicOps<T> ops, MachineFeature<S> feature, T saved) {
+  private static <T, S> void decodeOnClient(DynamicOps<T> ops, MachineFeature<S> feature, T saved) {
     var result = feature.codec().parse(ops, saved);
     result.result().ifPresent(feature::restoreOnClient);
     result.error().ifPresent(e -> logBad(feature, e.message()));

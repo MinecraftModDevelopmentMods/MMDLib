@@ -66,17 +66,30 @@ contents, and asks the client block entity's `screenItems()` what each slot acce
 holds, so a click is predicted the way the server will answer it. It's only asked about rules, so its
 contents don't need to be synced.
 
-Return the `ItemStorage` itself. A wrapper around it, or another `ReservedSlots` implementation,
-loses the guards below and the client's copy of the plans.
+Return the `ItemStorage` itself, or a handler/wrapper implementing `ReservedSlots`, including
+`plan(slot)`, so both menu sides receive and enforce the same reservations.
 
 When the machine has reserved items in a slot (see [capabilities](capabilities.md#reservations)),
 the menu keeps them from being taken or replaced:
 
 - Left and right click, Q and Ctrl+Q, and shift-click take only what is free.
 - Clicking the slot with a different item is refused.
-- A number key is refused on a slot with a plan, because vanilla would move the whole stack.
+- Number-key and offhand swaps move only the unreserved portion.
 - Double-clicking a slot with a plan doesn't collect from elsewhere. Double-clicking another slot
   still takes the planned slot's free part.
+
+Machine slots show reservations at the top right. Both reservation and held quantities use
+87.5% of vanilla's font size:
+`-2` means two items reserved for input, and `+1` means space reserved for one output. The held
+quantity stays at the bottom right, using the same size even when no reservation is present.
+An empty planned output shows its item model at 50%
+opacity with `+1` at the top, without creating a real stack. Mixed consume/produce plans show
+both signed counts on the top row. Tooltips provide reservation counts and the planned output's
+name. Clearing the plan removes the badge and ghost. Player inventory, equipment and filter
+slots are unaffected.
+Chance outputs show their reserved capacity, not a guarantee that the product will be rolled.
+No extra packet or XML binding is needed; `MachineMenu.reservationPlan(index)` exposes the existing
+synchronized snapshot for real machine slots.
 
 The client's menu works out the same answer from the slot's plan, which arrives with the screen's
 values, so clicks don't flicker. Bars and numbers still come from the getters named in the XML; a
@@ -338,7 +351,7 @@ payload contains both lane index and state. The server restricts that selector t
 in its XML property. These settings persist with the machine. The graphical smoke run checks
 focus, typing, cancellation, resizing, view changes, release outside bounds and server rejection.
 
-The expanded menu protocol is version **6**, including a session token in menu-opening data.
+The expanded menu protocol is version **9**, including a session token in menu-opening data.
 Client and server must use matching MMDLib builds.
 
 ## Files and IDs
@@ -446,7 +459,7 @@ inventory slots keeps the machine's `screenDestinations` routing. JEI recipe tra
 only the ordinary inventory and hotbar, leaving equipped items alone.
 
 Optional `<inventory-controls>` goes after the main body and before tabs/popouts. Its button
-children form a right-aligned row above the player inventory (for example redstone and pause
+children form a right-aligned row above the player inventory (for example manual pause
 toggles). Automation's reusable `InventoryColorButtonBar` shares that row on the left, with
 scrollable overflow. Both sides align with the nine-column storage grid, leaving the equipment
 column clear. Flat controls fit in the inventory's existing top row; taller controls add only
@@ -816,6 +829,87 @@ automation drawer remains independent. Escape closes the equipment drawer first.
 to the available slot groups or counts closes the old view and invalidates stale requests;
 reopening shows the updated slots. Curios stays optional, with no tab or class-loading
 requirement when absent. This drawer does not change slot definitions or rendering toggles.
+
+## Redstone face drawer
+
+Implement `ScreenHost.screenRedstone()` to return a persistent `RedstoneControl`. Its right-side
+drawer uses the inventory drawer's neighbour grid, directional badges and shared frame. Clicking
+a different face selects it; clicking the selected face cycles Ignore, Read and Emit (right-click
+cycles backwards). Faces have a spaced selection outline and small background-free signal numbers:
+bright green incoming strength for Read, orange emitted strength for Emit, with thin glyph outlines.
+
+- **Ignore:** no input gate and no emitted signal.
+- **Read:** a single bar has a minimum handle above and a maximum below. Endpoints are inclusive,
+  and dragging either past the other pushes both together. Between highlights the selected interval;
+  Outside highlights its complement. The icon toggle sits to the left of the bar: inward arrows
+  between boundaries mean Between, outward arrows beyond boundaries mean Outside. Equal endpoints
+  simplify only the info text to For N / Except N; ranges touching 0 or 15 use a single
+  above/below condition (including equality for Between). The icon stays unchanged. Processing pauses when
+  the face receives a highlighted level.
+  The default is Between 1–15. Dragging previews locally, release applies both endpoints atomically,
+  and Escape cancels the drag. Any Read face requesting pause holds processing.
+- **Emit:** click the colour swatch or sprite and source name to cycle outputs; right-click
+  cycles backwards. Resource fullness entries come first in the companion, followed by each
+  processor's own Processing, Paused/idle and Progress entries. A small reverse-arrows button
+  before the picker toggles Revert (`15 - level`). Until a source is selected, or if that source
+  no longer exists, the face emits zero even when reverted.
+
+These controls are built in: there are no redstone upgrade items or slots. Each face saves its
+interval, Between/Outside choice, stable output ID and inversion independently. Changing the
+face mode retains those settings. The small yellow info box explains the selected source and
+current signal. The drawer fits its content and scrolls when the viewport cannot fit it. The
+old main redstone button is removed; manual pause remains above the inventory. Right drawers
+are mutually exclusive, and drawer/face selection is remembered for the current connection.
+
+### Output providers
+
+Runtime parts opt in by implementing `api.redstone.IRedstoneOutput`. Its `redstoneOutputs()`
+returns a stable, ordered list of `RedstoneOutput` descriptors. Each descriptor has:
+
+- A stable ID unique across this machine, used for saved selections.
+- Translatable name and description components, used by the picker and yellow info box.
+- An RGB colour and optional GUI sprite ID, used as the picker's swatch or icon.
+- A server-side `IntSupplier` whose result is clamped to 0-15.
+
+Construct `RedstoneControl(owner, parts)` after registering the parts; it discovers only parts
+implementing the interface and rejects duplicate IDs. The catalog must have the same order and
+metadata on client and server. Descriptors use common-side types, without client rendering
+classes. Suppliers are evaluated only on the server, once per selected source per output update.
+`FeatureHost` implements the interface by collecting outputs from participating features.
+
+`RedstoneOutput.resource(group, fullnessSupplier)` adapts an existing `ResourceGroup`, preserving
+its ID, label and colour. Fullness is 0-1 and maps to `floor(fullness * 15)`. The companion measures
+item groups by average slot fullness, fluid groups by amount/capacity, and energy by stored/capacity.
+The resource-only `RedstoneControl(owner, groups, fullnessFunction)` constructor remains available.
+
+Each `RecipeProcessor` contributes three independent sources, prefixed by its saved feature key:
+
+| Source | Signal |
+|---|---|
+| Processing | 15 while actively processing (including the start and completion ticks), otherwise 0 |
+| Paused/idle | 15 while paused, idle, blocked, energy-stalled or held by the host; otherwise 0 |
+| Progress | `floor(completedTicks / recipeTicks * 15)`; retained while held/paused, 15 on completion, 0 when idle |
+
+Use the constructor accepting a display-name `Component` to label processors clearly; the original
+constructor defaults to the feature key. Multiple processors produce multiple sets of entries.
+There is no aggregate machine-wide running signal.
+
+Tick in this order on the server:
+
+```java
+redstone.readInputs();
+features.tick(level, !redstone.paused() && otherProcessingGates);
+// Perform any automatic transfers here.
+redstone.updateOutputs();
+```
+
+Passing `false` to `FeatureHost.tick` invokes each feature's `suspended` callback instead of
+processing it, so a held processor cannot retain a stale running signal. Save/load the controller
+tag and return `signal(direction)` from the block's redstone output hook. The direction passed
+to `signal` is Minecraft's query direction, not the outward face. Stateless hosts can call
+`redstone.tick()` to read inputs and update outputs together. The companion emits weak power,
+keeps transfers running while processing is held, and migrates old inventory selections and
+the previous global redstone mode. Manual pause remains independent.
 
 ## Proper use
 

@@ -298,6 +298,74 @@ def write_control_icons():
         write_png("icon_redstone_" + mode, img)
 
 
+def write_processor_progress_icon():
+    """Three rising blue bars inside a small progress frame."""
+    img = canvas(16, 16)
+    rect(img, 1, 2, 14, 12, (30, 40, 52, 255))
+    rect(img, 2, 3, 12, 10, (92, 108, 124, 255))
+    for x, height in ((3, 3), (7, 6), (11, 9)):
+        rect(img, x, 12 - height, 2, height, (133, 210, 255, 255))
+        rect(img, x, 12 - height, 2, 1, (213, 241, 255, 255))
+    write_png("icon_processor_progress", img)
+
+
+def write_redstone_revert_icons():
+    """Opposed horizontal arrows for normal/reverted resource output, transparent 14x14."""
+    rows = ("......#...", "......##..", "#########.", "......##..", "......#...")
+    ink = (30, 40, 34, 255)
+    for active in (False, True):
+        img = canvas(14, 14)
+        for y0, right in ((1, True), (8, False)):
+            for y, row in enumerate(rows):
+                for x, bit in enumerate(row if right else row[::-1]):
+                    if bit == "#":
+                        img[y0 + y][x + 2] = ((173, 255, 192, 255) if active
+                                               else (255, 239, 183, 255))
+        result = canvas(14, 14)
+        for y, row in enumerate(img):
+            for x, colour in enumerate(row):
+                if colour == CLEAR: continue
+                for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < 14 and 0 <= ny < 14: result[ny][nx] = ink
+        for y, row in enumerate(img):
+            for x, colour in enumerate(row):
+                if colour != CLEAR: result[y][x] = colour
+        write_png("icon_redstone_revert" + ("_on" if active else ""), result)
+
+
+def write_redstone_range_icons():
+    """32x12 transparent interval glyphs, matching the outlined machine-control sprites."""
+    ink = (30, 40, 34, 255)
+    arrow_rows = ("...#...", "...##..", "######.", "#######",
+                  "######.", "...##..", "...#...")
+    for mode in ("between", "outside"):
+        img = canvas(32, 12)
+        bars = (2, 28) if mode == "between" else (12, 18)
+        arrows = ((7, True), (18, False)) if mode == "between" else ((2, False), (23, True))
+        for x in bars:
+            rect(img, x, 2, 2, 8, (210, 186, 121, 255))
+            rect(img, x, 2, 1, 7, (255, 239, 183, 255))
+        for x, right in arrows:
+            for y, row in enumerate(arrow_rows):
+                for dx, bit in enumerate(row if right else row[::-1]):
+                    if bit == "#":
+                        img[y + 2][x + dx] = ((173, 255, 192, 255) if y < 3
+                                             else (86, 218, 127, 255) if y < 5
+                                             else (53, 165, 96, 255))
+        result = canvas(32, 12)
+        for y, row in enumerate(img):
+            for x, colour in enumerate(row):
+                if colour == CLEAR: continue
+                for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < 32 and 0 <= ny < 12: result[ny][nx] = ink
+        for y, row in enumerate(img):
+            for x, colour in enumerate(row):
+                if colour != CLEAR: result[y][x] = colour
+        write_png("icon_redstone_" + mode, result)
+
+
 def write_side_config_sprites():
     """Outlined directional glyphs remain legible over faded neighbour previews."""
     cyan, orange = (133, 210, 255, 255), (255, 185, 101, 255)
@@ -361,6 +429,9 @@ def main():
     write_png("compact_frame", compact_frame(), {"type": "nine_slice", "width": 8, "height": 8, "border": 1})
     write_drawer_sprites()
     write_control_icons()
+    write_redstone_range_icons()
+    write_redstone_revert_icons()
+    write_processor_progress_icon()
     write_filter_icons()
     write_flat_buttons()
     write_side_config_sprites()

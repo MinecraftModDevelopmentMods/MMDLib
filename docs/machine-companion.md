@@ -19,7 +19,7 @@ to run without it.
 
 | Block ID (prefix `mmdlib_companion:`) | What it does |
 | --- | --- |
-| `crusher` | One input slot, one output slot, one processor, and a water/lava preview tank |
+| `crusher` | One input slot, two output slots, one processor, and a water/lava preview tank |
 | `transmuter` | One slot limited to one item; converts an iron ingot into a gold ingot |
 | `dual_crusher` | Two independently pausable processors share the same input and output slots |
 | `creative_power` | Refills its buffer and supplies up to 1,000 FE per adjacent face per tick |
@@ -28,6 +28,14 @@ The crusher recipes take 100 ticks and 2,000 FE per cycle: cobblestone becomes g
 sand, and copper/iron/gold ore becomes two of the corresponding raw material. The converter takes
 200 ticks and 4,000 FE. The dual crusher runs the same recipes in both lanes when there are enough
 inputs and output space.
+
+The Crusher's two outputs share one inventory and colour/side configuration. For testing, both
+allow insertion and extraction, so you can manually fill them with any item; reservations still
+protect promised output space. New Crushers default this group to input/output on all faces. Outputs may
+split across the slots: with 63 raw iron in each output, one iron ore reserves `+1` in each slot
+and finishes at 64 + 64. With only one free space total, that two-item recipe waits without taking
+input or energy. Existing Crusher saves retain their input and first output, with the new output
+starting empty. The Dual Crusher keeps its existing shared single-output layout.
 
 The bottom of each processor panel has a compact, right-aligned row of icon buttons above the inventory,
 with thin dark borders and flat grey backgrounds.
@@ -43,7 +51,7 @@ inside to read longer text. All four screens place a vertical battery on the rig
 reusable `<energy-gauge>` XML widget. Its red charge bars fill upwards inside a slim casing.
 The energy and fluid gauges share matching edges and medium-grey empty backgrounds, darker than slots.
 Energy bars are thin with a soft reflection; cylindrical glass shading covers only the fluid.
-The Crusher centers its input, a circular progress dial and output alongside it. The dial is a
+The Crusher centers its input, a circular progress dial and two adjacent output slots. The dial is a
 custom widget registered by the companion through MMDLib's [widget API](gui-screens.md#registering-custom-widget-types).
 Click the dial to pause or resume; its tooltip shows progress in ticks. The Crusher's Recipes
 button opens crushing recipes when JEI is installed. The other processors retain their progress
