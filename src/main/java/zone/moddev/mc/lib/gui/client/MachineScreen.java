@@ -896,7 +896,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   public boolean keyPressed(int key, int scan, int modifiers) {
     drawerMemory.userInput();
     // A lost drawer acknowledgment must never trap the player in the screen.
-    if ((menu.containerDrawer.pending() || menu.curiosDrawer.pending())
+    if ((menu.containerDrawer.pending()
+            || menu.curiosDrawer.pending()
+            || menu.redstone != null && menu.redstone.pending())
         && (key == 256
             || net.minecraft.client.Minecraft.getInstance()
                 .options

@@ -493,11 +493,11 @@ final class RedstoneDrawer {
       handled = false;
       return true;
     }
-    if (key == 256 && model.open()) {
-      if (!model.pending()) send(RedstoneMenu.TOGGLE, model.selected(), 0, 0);
+    if (key == 256 && model.open() && !model.pending()) {
+      send(RedstoneMenu.TOGGLE, model.selected(), 0, 0);
       return true;
     }
-    return model.pending();
+    return false;
   }
 
   private void updateSlider(double x) {

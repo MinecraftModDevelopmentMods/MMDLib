@@ -169,7 +169,14 @@ final class DrawerMemoryClientSmoke {
         require(
             !bag.open() && !curios.open() && !menu.automation.open(),
             "Logout clears drawer preferences before the next screen");
-        mc.player.closeContainer();
+        if (menu.redstone != null) {
+          require(
+              menu.redstone.send(zone.moddev.mc.lib.gui.runtime.RedstoneMenu.SYNC, 0, 0, 0),
+              "Redstone sync is pending before the next client tick");
+          require(!screen.keyPressed(65, 0, 0), "Pending redstone does not swallow unrelated keys");
+          screen.keyPressed(256, 0, 0);
+          require(mc.screen != screen, "Escape immediately closes a pending redstone request");
+        } else mc.player.closeContainer();
         advance();
         return true;
       }
