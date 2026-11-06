@@ -55,7 +55,7 @@ public final class CuriosEquipment {
                   boolean render = i >= stacks.getRenders().size() || stacks.getRenders().get(i);
                   entries.add(
                       new Entry(
-                          new SlotInfo(group.getKey(), i, false, true, icon),
+                          new SlotInfo(group.getKey(), i, false, active, icon),
                           stacks.getStacks(),
                           active,
                           render));
@@ -65,7 +65,7 @@ public final class CuriosEquipment {
                               group.getKey(),
                               i,
                               true,
-                              cosmetic,
+                              cosmetic && active,
                               ResourceLocation.parse("curios:slot/empty_cosmetic_slot")),
                           cosmetic ? stacks.getCosmeticStacks() : null,
                           active,
@@ -86,7 +86,13 @@ public final class CuriosEquipment {
           private boolean valid(int slot) {
             if (slot < 0 || slot >= entries.size()) return false;
             var entry = entries.get(slot);
-            return entry.info.available() && entry.info.index() < entry.handler.getSlots();
+            return entry.info.available()
+                && entry.info.index() < entry.handler.getSlots()
+                && CuriosApi.getCuriosInventory(player)
+                    .map(
+                        inventory ->
+                            inventory.isSlotActive(entry.info.identifier(), entry.info.index()))
+                    .orElse(false);
           }
 
           public int getSlots() {

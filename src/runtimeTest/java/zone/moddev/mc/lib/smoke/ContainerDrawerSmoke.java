@@ -65,10 +65,31 @@ final class ContainerDrawerSmoke {
     drawer.refresh();
     require(
         ItemStack.matches(icon, drawer.state().icons().getFirst()), "Icon preserves components");
+    var unchanged = drawer.state();
+    drawer.refresh();
+    require(drawer.state() == unchanged, "Unchanged closed drawer reuses its snapshot");
     backing.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 15));
     send(drawer, menu, player, ContainerDrawerMenu.PICKUP, 0);
     require(menu.getCarried().isEmpty(), "Closed drawer cannot transfer");
     send(drawer, menu, player, ContainerDrawerMenu.TOGGLE, 0);
+    unchanged = drawer.state();
+    drawer.refresh();
+    require(drawer.state() == unchanged, "Unchanged open drawer reuses its snapshot");
+    var oldContents = unchanged.contents();
+    backing.getStackInSlot(0).grow(1);
+    drawer.refresh();
+    require(
+        drawer.state() != unchanged && oldContents.getFirst().getCount() == 15,
+        "In-place count changes refresh without mutating previous snapshots");
+    backing.getStackInSlot(0).shrink(1);
+    drawer.refresh();
+    unchanged = drawer.state();
+    icon.set(DataComponents.CUSTOM_NAME, Component.literal("Renamed equipped item"));
+    drawer.refresh();
+    require(
+        drawer.state() != unchanged && drawer.state().contents() == unchanged.contents(),
+        "Icon changes reuse unchanged content copies");
+
     send(drawer, menu, player, ContainerDrawerMenu.PICKUP, 1);
     require(
         menu.getCarried().getCount() == 8 && backing.getStackInSlot(0).getCount() == 7,
@@ -160,6 +181,26 @@ final class ContainerDrawerSmoke {
           receiver.request(ContainerDrawerMenu.SYNC, 0, 27).orElseThrow().request()
               > decoded.acknowledged(),
           "Snapshot acknowledgments advance the next request sequence");
+      require(!receiver.pendingInventory(), "Sync does not block vanilla inventory");
+      var acknowledgement =
+          new ContainerDrawerNetwork.State(
+              decoded.menu(),
+              decoded.equipment(),
+              decoded.session(),
+              decoded.revision(),
+              decoded.acknowledged() + 1,
+              decoded.open(),
+              decoded.selected(),
+              decoded.offset(),
+              decoded.pageSize(),
+              decoded.icons(),
+              decoded.keys(),
+              decoded.sizes(),
+              decoded.contents(),
+              decoded.descriptions());
+      receiver.receive(acknowledgement);
+      receiver.request(ContainerDrawerMenu.PICKUP, 0, 27).orElseThrow();
+      require(receiver.pendingInventory(), "Item transfers wait for authoritative cursor updates");
       menu.curiosDrawer.receive(decoded);
       require(
           menu.curiosDrawer.state().equipment() && menu.curiosDrawer.state().icons().isEmpty(),

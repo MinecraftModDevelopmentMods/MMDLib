@@ -40,15 +40,30 @@ final class ContainerDrawer {
     return -1;
   }
 
+  private boolean inventoryPending() {
+    return screen.getMenu().containerDrawer.pendingInventory()
+        || screen.getMenu().curiosDrawer.pendingInventory();
+  }
+
+  private boolean inventoryTarget(double x, double y) {
+    // Outside clicks can drop the carried stack. Settings inside the panel remain usable.
+    return !screen.onDrawerTab(x, y)
+            && screen.hasClickedOutside(x, y, screen.guiLeft(), screen.guiTop(), 0)
+        || screen.getMenu().slots.stream().anyMatch(slot -> overSlot(slot, x, y));
+  }
+
+  private boolean overSlot(net.minecraft.world.inventory.Slot slot, double x, double y) {
+    return x >= screen.guiLeft() + slot.x
+        && x < screen.guiLeft() + slot.x + 16
+        && y >= screen.guiTop() + slot.y
+        && y < screen.guiTop() + slot.y + 16;
+  }
+
   private int playerSlotAt(double x, double y) {
     for (var slot : screen.getMenu().slots)
       if (slot.container == Minecraft.getInstance().player.getInventory()
           && slot.getContainerSlot() < 36
-          && x >= screen.guiLeft() + slot.x
-          && x < screen.guiLeft() + slot.x + 16
-          && y >= screen.guiTop() + slot.y
-          && y < screen.guiTop() + slot.y + 16)
-        return ContainerDrawerMenu.MAX_SLOTS + slot.getContainerSlot();
+          && overSlot(slot, x, y)) return ContainerDrawerMenu.MAX_SLOTS + slot.getContainerSlot();
     return -1;
   }
 
@@ -414,8 +429,10 @@ final class ContainerDrawer {
       return true;
     }
     if (screen.getMenu().containerDrawer.pending() || screen.getMenu().curiosDrawer.pending()) {
-      handledPress = true;
-      return true;
+      // Configuration requests do not touch vanilla slots. Only serialize item-changing gestures.
+      boolean blocked = contains(x, y) || inventoryPending() && inventoryTarget(x, y);
+      handledPress = blocked;
+      return blocked;
     }
     if (!available()) return false;
     var state = menu.state();
@@ -474,18 +491,15 @@ final class ContainerDrawer {
       return true;
     }
     if (button == 0 && Screen.hasShiftDown()) {
-      var player = Minecraft.getInstance().player;
-      for (var slot : screen.getMenu().slots)
-        if (slot.container == player.getInventory()
-            && slot.getContainerSlot() < 36
-            && x >= screen.guiLeft() + slot.x
-            && x < screen.guiLeft() + slot.x + 16
-            && y >= screen.guiTop() + slot.y
-            && y < screen.guiTop() + slot.y + 16) {
-          send(ContainerDrawerMenu.QUICK_STORE, slot.getContainerSlot(), state.pageSize());
-          handledPress = true;
-          return true;
-        }
+      int slot = playerSlotAt(x, y);
+      if (slot >= 0) {
+        send(
+            ContainerDrawerMenu.QUICK_STORE,
+            slot - ContainerDrawerMenu.MAX_SLOTS,
+            state.pageSize());
+        handledPress = true;
+        return true;
+      }
     }
     return false;
   }
@@ -525,10 +539,13 @@ final class ContainerDrawer {
       close();
       return true;
     }
-    if (key == 256) return menu.pending();
-    return menu.pending()
-        || contains(mouseX, mouseY)
-            && !Minecraft.getInstance().options.keyInventory.matches(key, scan);
+    if (key == 256) return false;
+    if (inventoryPending()
+        && (Minecraft.getInstance().options.keyDrop.matches(key, scan)
+            || java.util.Arrays.stream(Minecraft.getInstance().options.keyHotbarSlots)
+                .anyMatch(binding -> binding.matches(key, scan)))) return true;
+    return contains(mouseX, mouseY)
+        && !Minecraft.getInstance().options.keyInventory.matches(key, scan);
   }
 
   void mouseMoved(double x, double y) {
@@ -546,7 +563,7 @@ final class ContainerDrawer {
       }
       return true;
     }
-    return handledPress || menu.pending();
+    return handledPress;
   }
 
   boolean release(double x, double y, int button) {

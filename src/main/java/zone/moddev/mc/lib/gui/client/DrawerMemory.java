@@ -11,18 +11,24 @@ import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
 final class DrawerMemory {
   private record Selection(String kind, String key, int offset) {}
 
-  private static Object connection;
+  private static java.lang.ref.WeakReference<Object> connection =
+      new java.lang.ref.WeakReference<>(null);
   private static final Map<Element.Edge, Selection> remembered = new EnumMap<>(Element.Edge.class);
   private final Map<Element.Edge, Selection> restoring = new EnumMap<>(Element.Edge.class);
   private int ticks;
 
   DrawerMemory() {
     Object current = Minecraft.getInstance().getConnection();
-    if (connection != current) {
-      connection = current;
+    if (connection.get() != current) {
+      connection = new java.lang.ref.WeakReference<>(current);
       remembered.clear();
     }
     restoring.putAll(remembered);
+  }
+
+  static void disconnected() {
+    connection.clear();
+    remembered.clear();
   }
 
   void userInput() {

@@ -42,12 +42,61 @@ final class CuriosFixture {
         .orElseThrow()
         .getStacks()
         .insertItem(11, new ItemStack(Items.AMETHYST_SHARD), false);
+    checkInactive(player);
+    // Keep one empty pair inactive for the client presentation/interaction checks.
+    inventory.setSlotActive("ring", 2, false);
     NeoForge.EVENT_BUS.addListener(
         (CurioCanUnequipEvent event) -> {
           if (event.getSlotContext().entity() == player
               && event.getSlotContext().identifier().equals("ring")
               && event.getSlotContext().index() == 1) event.setUnequipResult(TriState.FALSE);
         });
+  }
+
+  private static void checkInactive(ServerPlayer player) {
+    var inventory = CuriosApi.getCuriosInventory(player).orElseThrow();
+    var identity = new ItemStack(Items.CHEST);
+    var live =
+        zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity).getFirst().items();
+    inventory.setSlotActive("ring", 0, false);
+    for (int slot : new int[] {0, 1}) {
+      require(
+          live.extractItem(slot, 1, true).isEmpty() && live.extractItem(slot, 1, false).isEmpty(),
+          "Retained handler rejects inactive extraction");
+      require(
+          !live.isItemValid(slot, new ItemStack(Items.DIAMOND))
+              && live.insertItem(slot, new ItemStack(Items.DIAMOND), true).getCount() == 1
+              && live.insertItem(slot, new ItemStack(Items.DIAMOND), false).getCount() == 1,
+          "Retained handler rejects inactive insertion");
+    }
+    var fresh =
+        (zone.moddev.mc.lib.gui.runtime.EquippedContainers.DescribedHandler)
+            zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity)
+                .getFirst()
+                .items();
+    require(
+        !fresh.describe(0).available() && !fresh.describe(1).available(),
+        "Both inactive functional/cosmetic slots are presented as unavailable");
+    inventory.setSlotActive("ring", 0, true);
+    require(
+        live.getStackInSlot(0).is(Items.DIAMOND) && live.getStackInSlot(1).is(Items.EMERALD),
+        "Inactive attempts preserve functional and cosmetic contents");
+    inventory.setSlotActive("ring", 2, false);
+    fresh =
+        (zone.moddev.mc.lib.gui.runtime.EquippedContainers.DescribedHandler)
+            zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity)
+                .getFirst()
+                .items();
+    for (int slot : new int[] {4, 5})
+      require(
+          fresh.insertItem(slot, new ItemStack(Items.DIAMOND), false).getCount() == 1,
+          "Inactive empty pair refuses otherwise valid items");
+    inventory.setSlotActive("ring", 2, true);
+    inventory.setSlotActive("back", 0, false);
+    require(
+        zone.moddev.mc.lib.gui.runtime.EquippedContainers.find(player).isEmpty(),
+        "Inactive backpack is not exposed as storage");
+    inventory.setSlotActive("back", 0, true);
   }
 
   static void resize(ServerPlayer player) {

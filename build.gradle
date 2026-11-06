@@ -64,10 +64,16 @@ neoForge {
     runs {
         configureEach {
             gameDirectory = file('run')
+            // Optional user-level preferences apply only to manual development clients.
+            if (name in ['client', 'companionClient']) {
+                if (providers.gradleProperty('mmdlibClientWidth').isPresent())
+                    programArguments.addAll '--width', providers.gradleProperty('mmdlibClientWidth').get()
+                if (providers.gradleProperty('mmdlibClientHeight').isPresent())
+                    programArguments.addAll '--height', providers.gradleProperty('mmdlibClientHeight').get()
+            }
         }
         client {
             client()
-            programArguments.addAll '--width', '2560', '--height', '1440'
         }
         server {
             server()

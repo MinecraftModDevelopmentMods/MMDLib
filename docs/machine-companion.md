@@ -7,6 +7,12 @@ in `src/companion` and are packaged separately from the library.
 ## Play
 
 Run `./gradlew runCompanionClient`, create a creative world, and open the **MMDLib Machines** tab.
+
+For a personal window size, add `mmdlibClientWidth=2560` and `mmdlibClientHeight=1440` to
+`~/.gradle/gradle.properties` (or the file in your `GRADLE_USER_HOME`). These optional settings
+apply to `runClient` and `runCompanionClient` only and stay outside the repository. Without them,
+Minecraft uses its default window size. Automated smoke runs retain their own fixed dimensions.
+
 Place a **Creative Power Source** next to a machine, then right-click the machine to open its screen.
 The source supplies all six adjacent faces. JEI is included in development runs; add `-PwithoutJei`
 to run without it.

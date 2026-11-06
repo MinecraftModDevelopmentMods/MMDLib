@@ -122,6 +122,12 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @EventBusSubscriber(modid = "mmdlib", value = Dist.CLIENT)
   public static final class PendingActions {
     @SubscribeEvent
+    public static void logout(
+        net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+      DrawerMemory.disconnected();
+    }
+
+    @SubscribeEvent
     public static void tick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
       var player = net.minecraft.client.Minecraft.getInstance().player;
       if (player != null && player.containerMenu instanceof MachineMenu menu) {
@@ -857,6 +863,16 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   public boolean keyPressed(int key, int scan, int modifiers) {
     drawerMemory.userInput();
+    // A lost drawer acknowledgment must never trap the player in the screen.
+    if ((menu.containerDrawer.pending() || menu.curiosDrawer.pending())
+        && (key == 256
+            || net.minecraft.client.Minecraft.getInstance()
+                .options
+                .keyInventory
+                .matches(key, scan))) {
+      onClose();
+      return true;
+    }
     if (containerDrawer.key(key, scan) || curiosDrawer.key(key, scan)) return true;
     if (automation != null && automation.key(key, scan, modifiers)) return true;
     updateWidgets();

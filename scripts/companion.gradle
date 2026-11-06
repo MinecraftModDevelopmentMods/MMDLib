@@ -41,7 +41,6 @@ neoForge {
     runs {
         companionClient {
             client()
-            programArguments.addAll '--width', '2560', '--height', '1440'
             gameDirectory = layout.projectDirectory.dir('run/companion')
             sourceSet = sourceSets.companion
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion]
@@ -86,7 +85,7 @@ tasks.matching { it.name == 'runCompanionClientSmoke' }.configureEach {
     doFirst {
         def smokeDir = layout.buildDirectory.dir('companion-client-smoke').get().asFile
         smokeDir.mkdirs()
-        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\n'
+        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\npauseOnLostFocus:false\n'
     }
     doLast {
         def log = layout.buildDirectory.file('companion-client-smoke/logs/latest.log').get().asFile

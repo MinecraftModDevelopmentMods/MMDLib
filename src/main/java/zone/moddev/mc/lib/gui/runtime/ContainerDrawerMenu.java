@@ -38,7 +38,7 @@ public final class ContainerDrawerMenu {
       nextRequest,
       pendingRequest,
       pendingTicks;
-  private boolean open;
+  private boolean open, pendingInventory;
   private long revision, actionTick = Long.MIN_VALUE;
   private int actions;
   private ContainerDrawerNetwork.State state;
@@ -93,6 +93,11 @@ public final class ContainerDrawerMenu {
     return pendingRequest != 0;
   }
 
+  /** Only item-changing requests need to serialize vanilla inventory gestures. */
+  public boolean pendingInventory() {
+    return pending() && pendingInventory;
+  }
+
   public Optional<ContainerDrawerNetwork.Request> request(int kind, int argument, int size) {
     return request(kind, argument, size, List.of());
   }
@@ -100,6 +105,13 @@ public final class ContainerDrawerMenu {
   public Optional<ContainerDrawerNetwork.Request> request(
       int kind, int argument, int size, List<Integer> slots) {
     if (pending() || nextRequest == Integer.MAX_VALUE) return Optional.empty();
+    pendingInventory |=
+        kind == PICKUP
+            || kind == QUICK_TAKE
+            || kind == QUICK_STORE
+            || kind == DISTRIBUTE
+            || kind == COLLECT
+            || kind == SWAP;
     pendingRequest = ++nextRequest;
     pendingTicks = 0;
     return Optional.of(
@@ -123,11 +135,14 @@ public final class ContainerDrawerMenu {
         || update.revision() < state.revision()) return;
     state = update;
     nextRequest = Math.max(nextRequest, update.acknowledged());
-    if (update.acknowledged() >= pendingRequest) pendingRequest = 0;
+    if (update.acknowledged() >= pendingRequest) {
+      pendingRequest = 0;
+      pendingInventory = false;
+    }
   }
 
   public void tickClient() {
-    if (pending() && ++pendingTicks >= 100) {
+    if (pending() && ++pendingTicks >= 20) {
       pendingRequest = 0;
       request(SYNC, 0, state.pageSize()).ifPresent(PacketDistributor::sendToServer);
     }
@@ -144,47 +159,72 @@ public final class ContainerDrawerMenu {
                         && s.items().getSlots() > 0
                         && s.items().getSlots() <= MAX_SLOTS)
             .toList();
-    var sizes = found.stream().map(s -> s.items().getSlots()).toList();
-    boolean replaced = found.size() != sources.size() || !sizes.equals(sourceSizes);
+    boolean replaced = found.size() != sources.size();
     if (!replaced)
       for (int i = 0; i < found.size(); i++) {
         if (!found.get(i).key().equals(sources.get(i).key())
-            || found.get(i).stack() != sources.get(i).stack()) {
+            || found.get(i).stack() != sources.get(i).stack()
+            || found.get(i).items().getSlots() != sourceSizes.get(i)) {
           replaced = true;
           break;
         }
       }
+    // Capabilities may be replaced without replacing the equipped stack. Always use the live one.
     sources = found;
-    sourceSizes = sizes;
     if (replaced) {
+      sourceSizes = found.stream().map(s -> s.items().getSlots()).toList();
       open = false;
       offset = 0;
       selected = 0;
       revision++;
       dirty = true;
     }
-    var icons = found.stream().map(s -> s.stack().copyWithCount(1)).toList();
-    var contents = new ArrayList<ItemStack>();
-    var descriptions = new ArrayList<EquippedContainers.SlotInfo>();
-    if (open && !found.isEmpty()) {
-      var items = found.get(selected).items();
-      offset = Math.clamp(offset, 0, Math.max(0, items.getSlots() - 1));
-      for (int i = offset; i < Math.min(items.getSlots(), offset + pageSize); i++) {
-        contents.add(items.getStackInSlot(i).copy());
-        if (items instanceof EquippedContainers.DescribedHandler described)
-          descriptions.add(described.describe(i));
-      }
+    boolean iconsChanged = found.size() != state.icons().size();
+    if (!iconsChanged)
+      for (int i = 0; i < found.size(); i++)
+        if (!ItemStack.isSameItemSameComponents(found.get(i).stack(), state.icons().get(i))) {
+          iconsChanged = true;
+          break;
+        }
+    IItemHandler items = open && !found.isEmpty() ? found.get(selected).items() : null;
+    if (items != null) offset = Math.clamp(offset, 0, Math.max(0, items.getSlots() - 1));
+    int count = items == null ? 0 : Math.min(pageSize, items.getSlots() - offset);
+    var described = items instanceof EquippedContainers.DescribedHandler d ? d : null;
+    boolean contentsChanged = count != state.contents().size();
+    boolean descriptionsChanged = (described == null ? 0 : count) != state.descriptions().size();
+    for (int i = 0; i < count; i++) {
+      if (!contentsChanged
+          && !ItemStack.matches(items.getStackInSlot(offset + i), state.contents().get(i)))
+        contentsChanged = true;
+      if (!descriptionsChanged
+          && described != null
+          && !described.describe(offset + i).equals(state.descriptions().get(i)))
+        descriptionsChanged = true;
     }
-    if (!descriptions.equals(state.descriptions())
-        || !sameStacks(icons, state.icons())
-        || !sizes.equals(state.sizes())
-        || !sameStacks(contents, state.contents())
+    if (iconsChanged
+        || contentsChanged
+        || descriptionsChanged
         || open != state.open()
         || selected != state.selected()
         || offset != state.offset()
         || pageSize != state.pageSize()) {
       revision++;
       dirty = true;
+    }
+    // Scan live handlers, but copy immutable packet data only when something actually changed.
+    if (revision == state.revision() && lastRequest == state.acknowledged()) return;
+    var icons =
+        iconsChanged ? found.stream().map(s -> s.stack().copyWithCount(1)).toList() : state.icons();
+    List<ItemStack> contents = state.contents();
+    if (contentsChanged) {
+      contents = new ArrayList<>(count);
+      for (int i = 0; i < count; i++) contents.add(items.getStackInSlot(offset + i).copy());
+    }
+    List<EquippedContainers.SlotInfo> descriptions = state.descriptions();
+    if (descriptionsChanged) {
+      descriptions = new ArrayList<>();
+      if (described != null)
+        for (int i = 0; i < count; i++) descriptions.add(described.describe(offset + i));
     }
     state =
         new ContainerDrawerNetwork.State(
@@ -198,16 +238,12 @@ public final class ContainerDrawerMenu {
             offset,
             pageSize,
             icons,
-            found.stream().map(s -> equipment ? "curios" : s.key()).toList(),
-            sizes,
-            List.copyOf(contents),
+            replaced
+                ? found.stream().map(s -> equipment ? "curios" : s.key()).toList()
+                : state.keys(),
+            sourceSizes,
+            contents,
             descriptions);
-  }
-
-  private static boolean sameStacks(List<ItemStack> a, List<ItemStack> b) {
-    if (a.size() != b.size()) return false;
-    for (int i = 0; i < a.size(); i++) if (!ItemStack.matches(a.get(i), b.get(i))) return false;
-    return true;
   }
 
   public void broadcast() {
@@ -303,6 +339,7 @@ public final class ContainerDrawerMenu {
     revision++;
     dirty = true;
     // Vanilla slot/cursor changes precede the acknowledgment, so pending input can resume safely.
+    if (request.kind() == SYNC) menu.sendAllDataToRemote();
     menu.broadcastChanges();
     broadcast();
   }
@@ -412,6 +449,11 @@ public final class ContainerDrawerMenu {
   }
 
   private void giveToPlayer(ItemStack stack) {
+    insertIntoPlayer(stack);
+    if (!stack.isEmpty()) owner.drop(stack, false);
+  }
+
+  private void insertIntoPlayer(ItemStack stack) {
     // Inventory.add can discard overflow in creative mode or merge into the offhand.
     // Recovery must preserve every item and use only ordinary player storage.
     for (int pass = 0; pass < 2; pass++)
@@ -431,7 +473,6 @@ public final class ContainerDrawerMenu {
         }
       }
     owner.getInventory().setChanged();
-    if (!stack.isEmpty()) owner.drop(stack, false);
   }
 
   private void click(EquippedContainers.Source source, int slot, boolean right) {
@@ -487,24 +528,7 @@ public final class ContainerDrawerMenu {
     }
     if (room == 0) return;
     var taken = handler.extractItem(slot, Math.min(room, simulated.getCount()), false);
-    for (int pass = 0; pass < 2; pass++)
-      for (int i = 0; i < 36 && !taken.isEmpty(); i++) {
-        var existing = owner.getInventory().getItem(i);
-        if (!(pass == 0 ? ItemStack.isSameItemSameComponents(existing, taken) : existing.isEmpty()))
-          continue;
-        int amount =
-            Math.min(
-                taken.getCount(),
-                Math.max(
-                    0,
-                    Math.min(owner.getInventory().getMaxStackSize(), taken.getMaxStackSize())
-                        - existing.getCount()));
-        if (amount > 0) {
-          owner.getInventory().setItem(i, taken.copyWithCount(existing.getCount() + amount));
-          taken.shrink(amount);
-        }
-      }
-    owner.getInventory().setChanged();
+    insertIntoPlayer(taken);
     // Preserve items even if a third-party extraction callback unexpectedly changed the
     // destination.
     if (!taken.isEmpty()) {

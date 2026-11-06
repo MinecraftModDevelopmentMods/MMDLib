@@ -15,7 +15,7 @@ final class DrawerMemoryClientSmoke {
   private static boolean requested;
 
   static boolean run() {
-    if (!BackpackFixture.installed()) return true;
+    if (!BackpackFixture.installed() || step > 11) return true;
     var mc = Minecraft.getInstance();
     if (reported != step) {
       reported = step;
@@ -113,7 +113,16 @@ final class DrawerMemoryClientSmoke {
           click(screen, new Rect(panel.right(), panel.y() + 4, 22, 24));
           return false;
         }
-        open(FIRST);
+        server(
+            player -> {
+              player
+                  .getInventory()
+                  .setItem(
+                      9,
+                      new net.minecraft.world.item.ItemStack(
+                          net.minecraft.world.item.Items.DIRT, 16));
+              ScreenRuntime.open(player, player.serverLevel().getBlockEntity(FIRST));
+            });
         advance();
       }
       case 9 -> {
@@ -121,6 +130,45 @@ final class DrawerMemoryClientSmoke {
         require(
             !bag.open() && !curios.open(),
             "Closed left drawers remain closed while right drawer restores");
+        // Deliberately drop a configuration request instead of sending it to the server.
+        menu.containerDrawer
+            .request(zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu.SYNC, 0, bag.pageSize())
+            .orElseThrow();
+        var slot =
+            menu.slots.stream()
+                .filter(s -> s.container == mc.player.getInventory() && s.getContainerSlot() == 9)
+                .findFirst()
+                .orElseThrow();
+        click(screen, new Rect(screen.guiLeft() + slot.x, screen.guiTop() + slot.y, 16, 16));
+        require(
+            menu.getCarried().getCount() == 16,
+            "Dropped config request does not block vanilla pickup");
+        click(screen, new Rect(screen.guiLeft() + slot.x, screen.guiTop() + slot.y, 16, 16));
+        advance();
+      }
+      case 10 -> {
+        // The normal pending guard above waits for the one-second SYNC recovery.
+        require(waitTicks >= 15, "Lost acknowledgment exercised timeout recovery");
+        menu.containerDrawer
+            .request(zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu.PICKUP, 0, bag.pageSize())
+            .orElseThrow();
+        int exclusions = screen.exclusions().size();
+        var panel = screen.panelBounds();
+        click(screen, new Rect(panel.x() - 22, panel.y() + 4, 22, 24));
+        require(
+            screen.exclusions().size() > exclusions, "Pending transfer does not block info drawer");
+        screen.keyPressed(256, 0, 0);
+        require(
+            mc.screen != screen, "Escape closes screen immediately during dropped item request");
+        MachineScreen.PendingActions.logout(null);
+        open(SECOND);
+        advance();
+      }
+      case 11 -> {
+        if (!second || waitTicks < 15) return false;
+        require(
+            !bag.open() && !curios.open() && !menu.automation.open(),
+            "Logout clears drawer preferences before the next screen");
         mc.player.closeContainer();
         advance();
         return true;

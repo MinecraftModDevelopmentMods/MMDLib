@@ -70,6 +70,9 @@ final class CuriosClientSmoke {
             state.contents().get(0).is(Items.DIAMOND) && state.contents().get(1).is(Items.EMERALD),
             "Functional and cosmetic contents are distinct");
         require(
+            !state.descriptions().get(4).available() && !state.descriptions().get(5).available(),
+            "Inactive functional/cosmetic pair is disabled on client");
+        require(
             !state.descriptions().get(7).available(), "Missing cosmetic counterpart is disabled");
         require(
             screen.exclusions().contains(layout.body())

@@ -33,7 +33,7 @@ public final class CuriosContainers {
                                   && result.size() < ContainerDrawerMenu.MAX_CONTAINERS;
                               i++) {
                             var stack = stacks.getStackInSlot(i);
-                            if (stack.isEmpty()) continue;
+                            if (stack.isEmpty() || !inventory.isSlotActive(name, i)) continue;
                             var handler = stack.getCapability(Capabilities.ItemHandler.ITEM);
                             if (handler != null
                                 && handler.getSlots() > 0
