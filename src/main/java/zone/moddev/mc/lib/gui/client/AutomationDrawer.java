@@ -53,8 +53,15 @@ public final class AutomationDrawer {
         new InventoryColorButtonBar(
             screen.getMenu().bound.screen(),
             model.inventory.groups(),
-            group -> model.send("select", group, -1, "", 0, ""));
+            group -> send("select", group, -1, "", 0, ""));
     displayOrder = colourBar.order();
+  }
+
+  private boolean send(
+      String kind, int group, int column, String control, int entry, String value) {
+    if (!model.send(kind, group, column, control, entry, value)) return false;
+    screen.rememberAutomationIntent(kind, group);
+    return true;
   }
 
   private Rect panel() {
@@ -107,8 +114,15 @@ public final class AutomationDrawer {
             ? Math.max(
                 baseHeight, AutomationLayout.EDITOR_Y + editorHeight + AutomationLayout.PADDING)
             : baseHeight;
-    int availableHeight = Math.max(0, screen.drawerBottom() - tab.y());
-    body = new Rect(tab.right(), tab.y(), WIDTH, Math.min(desiredHeight, availableHeight));
+    body =
+        SideDrawerLayout.body(
+            panel,
+            screen.drawerBottom(),
+            tab.right(),
+            tab.y(),
+            WIDTH,
+            desiredHeight,
+            SideDrawerLayout.HeightLimit.SCREEN);
     int shown =
         Math.max(
             1,
@@ -246,13 +260,6 @@ public final class AutomationDrawer {
     g.blitSprite(ResourceLocation.parse("mmdlib:" + name), r.x(), r.y(), r.width(), r.height());
   }
 
-  private static void tint(GuiGraphics g, String name, Rect r, int colour) {
-    g.setColor(
-        ((colour >> 16) & 255) / 255f, ((colour >> 8) & 255) / 255f, (colour & 255) / 255f, 1);
-    sprite(g, name, r);
-    g.setColor(1, 1, 1, 1);
-  }
-
   private void icon(GuiGraphics g, String name, Rect r) {
     sprite(g, name, r);
   }
@@ -282,7 +289,10 @@ public final class AutomationDrawer {
     layout();
     tooltip = null;
     faceTooltip = List.of();
-    tint(g, "drawer_tab", tab, 0x819bc2);
+    if (model.open())
+      SideDrawerRenderer.open(
+          g, tab, body, zone.moddev.mc.lib.gui.model.Element.Edge.RIGHT, 0x819bc2);
+    else SideDrawerRenderer.tab(g, tab, 0x819bc2);
     icon(g, "icon_side_config", new Rect(tab.x() + 3, tab.y() + 4, 16, 16));
     for (int index = 0; index < count(); index++) {
       var group = model.inventory.group(index);
@@ -308,8 +318,6 @@ public final class AutomationDrawer {
       highlight(g, hoveredGroup);
     }
     if (!model.open()) return;
-    tint(g, "drawer_panel", body, 0x819bc2);
-    g.fill(tab.x() + 2, tab.bottom(), tab.right() - 1, body.bottom(), 0xff425878);
     g.fill(
         body.x() + AutomationLayout.SELECTOR_WIDTH,
         body.y() + 5,
@@ -617,7 +625,7 @@ public final class AutomationDrawer {
   public List<Rect> exclusions() {
     layout();
     var result = new ArrayList<Rect>();
-    result.add(tab);
+    result.add(model.open() ? SideDrawerLayout.rail(tab, body) : tab);
     if (model.open()) {
       result.add(body);
     }
@@ -626,7 +634,8 @@ public final class AutomationDrawer {
 
   public boolean contains(double x, double y) {
     layout();
-    return tab.contains(x, y) || model.open() && body.contains(x, y);
+    return tab.contains(x, y)
+        || model.open() && (body.contains(x, y) || SideDrawerLayout.rail(tab, body).contains(x, y));
   }
 
   /** Returns true only for controls/background. Real item slots must reach vanilla handling. */
@@ -635,11 +644,12 @@ public final class AutomationDrawer {
     selectorFocused = false;
     if (button > 1) return false;
     if (tab.contains(x, y)) {
-      model.send(model.open() ? "close" : "select", model.selected(), -1, "", 0, "");
+      send(model.open() ? "close" : "select", model.selected(), -1, "", 0, "");
       return true;
     }
     if (colourBar.click(x, y)) return true;
     if (!model.open()) return false;
+    if (SideDrawerLayout.rail(tab, body).contains(x, y) && !screen.onDrawerTab(x, y)) return true;
     if (!body.contains(x, y)) closeEditorInput();
     if (x >= body.x() + 2
         && x < body.x() + AutomationLayout.SELECTOR_WIDTH
@@ -651,13 +661,13 @@ public final class AutomationDrawer {
         verticalOffset = Math.min(Math.max(0, count() - shown), verticalOffset + 1);
       else {
         int index = verticalOffset + ((int) y - selector.y()) / AutomationLayout.SELECTOR_PITCH;
-        if (index < count()) model.send("select", displayOrder.get(index), -1, "", 0, "");
+        if (index < count()) send("select", displayOrder.get(index), -1, "", 0, "");
       }
       return true;
     }
     for (int f = 0; f < 6; f++)
       if (face(f).contains(x, y)) {
-        model.send(
+        send(
             "face",
             model.selected(),
             -1,
@@ -670,7 +680,7 @@ public final class AutomationDrawer {
       if (model.supportsFilter(model.selected(), c)
           && !model.filter(model.selected(), c).isEmpty()
           && filterToggle(c).contains(x, y)) {
-        model.send("editor", model.selected(), c, "", 0, "");
+        send("editor", model.selected(), c, "", 0, "");
         return true;
       }
       if (module(c).contains(x, y)
@@ -732,7 +742,7 @@ public final class AutomationDrawer {
   }
 
   private void edit(String id, int entry, String value) {
-    model.send("edit", model.selected(), model.editor(), id, entry, value);
+    send("edit", model.selected(), model.editor(), id, entry, value);
   }
 
   public boolean scroll(double x, double y, double amount) {
@@ -773,7 +783,7 @@ public final class AutomationDrawer {
         return true;
       }
     if (model.open() && key == 256) {
-      model.send(model.editor() >= 0 ? "collapse" : "close", model.selected(), -1, "", 0, "");
+      send(model.editor() >= 0 ? "collapse" : "close", model.selected(), -1, "", 0, "");
       return true;
     }
     if (key == 295) { // F6 moves to the inventory selector; arrows move between inventories.
@@ -789,12 +799,12 @@ public final class AutomationDrawer {
               Math.floorMod(
                   displayOrder.indexOf(keyboardGroup) + (key == 264 || key == 262 ? 1 : -1),
                   count()));
-      model.send("select", keyboardGroup, -1, "", 0, "");
+      send("select", keyboardGroup, -1, "", 0, "");
       narrateSelection();
       return true;
     }
     if (selectorFocused && (key == 257 || key == 335)) {
-      model.send("select", keyboardGroup, -1, "", 0, "");
+      send("select", keyboardGroup, -1, "", 0, "");
       return true;
     }
     return false;

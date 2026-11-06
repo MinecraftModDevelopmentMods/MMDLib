@@ -13,6 +13,8 @@ import zone.moddev.mc.lib.gui.model.Element;
 /** Real client focus, text editing, captures, resize, navigation and acknowledged actions. */
 final class CompanionWidgetSmoke {
   private static int step;
+  private static zone.moddev.mc.lib.gui.layout.Rect compactPanel;
+  private static java.util.List<net.minecraft.world.inventory.Slot> originalSlots;
 
   private CompanionWidgetSmoke() {}
 
@@ -46,13 +48,45 @@ final class CompanionWidgetSmoke {
     var n = s.bounds(name);
     var r = s.bounds(slider);
     var l = s.bounds(selector);
+    if (originalSlots != null) {
+      for (int i = 0; i < menu.slots.size(); i++) {
+        var slot = menu.slots.get(i);
+        if (slot != originalSlots.get(i))
+          throw new AssertionError("View change replaced menu slot");
+        if (slot.container == mc.player.getInventory()) {
+          var expected =
+              zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(
+                  s.layout.inventory().orElseThrow(), slot.getSlotIndex());
+          if (slot.x != expected.x() + 1 || slot.y != expected.y() + 1)
+            throw new AssertionError("Resized player slot does not match its background");
+        }
+      }
+      for (var element : menu.elements) {
+        if (element instanceof Element.Slot slotElement) {
+          var slot = menu.slots.get(slotElement.index());
+          var expected =
+              zone.moddev.mc.lib.gui.layout.ScreenLayout.itemPosition(s.layout.bounds(element));
+          if (slot.x != expected[0] || slot.y != expected[1])
+            throw new AssertionError("Resized machine slot does not match its background");
+        }
+      }
+      if (s.guiLeft() != (s.width - s.panelBounds().width()) / 2
+          || s.guiTop() != (s.height - s.panelBounds().height()) / 2)
+        throw new AssertionError("Resized panel is not centred");
+    }
     switch (step) {
       case 0 -> {
+        compactPanel = s.panelBounds();
+        originalSlots = java.util.List.copyOf(menu.slots);
+        Screenshot.grab(
+            mc.gameDirectory, "widget-collapsed.png", mc.getMainRenderTarget(), message -> {});
         var open = s.bounds(menu.bound.screen().find("open_settings").orElseThrow());
         click(s, open.x() + 8, open.y() + 8);
       }
       case 1 -> {
         if (!s.visible(name) || !(menu.value(name, false) instanceof Component)) return false;
+        if (s.panelBounds().height() <= compactPanel.height())
+          throw new AssertionError("Settings did not expand the panel");
         // A recipe browser may remove the screen and later reinitialize the same object.
         s.removed();
         s.resize(mc, s.width, s.height);
@@ -91,6 +125,8 @@ final class CompanionWidgetSmoke {
       }
       case 5 -> {
         if (s.visible(name)) return false;
+        if (!s.panelBounds().equals(compactPanel))
+          throw new AssertionError("Closing Settings did not restore compact panel bounds");
         if (s.charTyped('z', 0)) throw new AssertionError("Hidden widget retained keyboard focus");
         var open = s.bounds(menu.bound.screen().find("open_settings").orElseThrow());
         click(s, open.x() + 8, open.y() + 8);

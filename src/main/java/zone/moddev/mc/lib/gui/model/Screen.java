@@ -57,7 +57,19 @@ public record Screen(
   /** Stable model fingerprint used to reject differing client/server screen definitions. */
   public String fingerprint() {
     String model =
-        id + "|" + title + "|" + blockEntity + "|" + playerInventory + "|" + body + "|" + tabs;
+        // The implicit equipment slots also change menu numbering, even with identical XML.
+        "equipment-v1|"
+            + id
+            + "|"
+            + title
+            + "|"
+            + blockEntity
+            + "|"
+            + playerInventory
+            + "|"
+            + body
+            + "|"
+            + tabs;
     try {
       return java.util.HexFormat.of()
           .formatHex(

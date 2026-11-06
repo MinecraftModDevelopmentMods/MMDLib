@@ -12,6 +12,8 @@ loaderVersion="${loader_version_range}" #mandatory This is typically bumped ever
 license="${mod_license}"
 # A URL to refer people to when problems occur with this mod
 issueTrackerURL="${issue_url}" #optional
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"
 # A list of mods - how many allowed here is determined by the individual mod loader
 [[mods]] #mandatory
 # The modid of the mod
@@ -63,6 +65,14 @@ ${mod_description}
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+# Optional: equipped item storage is available when Curios is installed.
+[[dependencies.${mod_id}]]
+    modId="curios"
+    type="optional"
+    versionRange="${curios_version_range}"
+    ordering="AFTER"
+    side="BOTH"
+
 # Optional: JEI shows crackhammer crushing recipes when installed; never required.
 [[dependencies.${mod_id}]]
     modId="jei"

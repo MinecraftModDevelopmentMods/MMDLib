@@ -173,8 +173,9 @@ public final class ScreenNetwork {
   }
 
   public static void register(RegisterPayloadHandlersEvent event) {
-    var r = event.registrar("3");
+    var r = event.registrar("6");
     AutomationNetwork.register(r);
+    ContainerDrawerNetwork.register(r);
     r.playToServer(
         Widget.TYPE,
         Widget.CODEC,

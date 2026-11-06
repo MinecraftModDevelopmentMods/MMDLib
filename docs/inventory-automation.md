@@ -20,10 +20,11 @@ on the left; inventory side configuration stays on the right. Filter controls oc
 scrollable region inside the configuration drawer below the addon slots. The arrow bar beneath
 the installed filter shows/hides this region; it has no duplicate selected-filter header.
 The drawer fits its
-visible controls and grows downward to fit an open filter, stopping four GUI pixels above the
-screen edge (with extra clearance for JEI's bottom toolbar when visible); overflow scrolls within
+visible controls and grows below the main panel as needed to fit an open filter, stopping at
+the screen margin or JEI toolbar limit; overflow scrolls within
 the filter region. The colour selector keeps its own compact
-height. Info drawers fit their text up to the main panel's bottom or the screen edge, whichever
+height. All drawers share the same frame renderer and four-pixel top inset. The configuration
+drawer can grow to the available screen height; inventory drawers retain the panel's bottom inset. Info drawers fit their text up to the inset bottom or the screen edge, whichever
 comes first.
 
 ## Define independent resource groups

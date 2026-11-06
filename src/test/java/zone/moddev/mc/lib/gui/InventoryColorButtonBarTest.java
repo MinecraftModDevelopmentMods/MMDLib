@@ -99,9 +99,9 @@ class InventoryColorButtonBarTest {
     var inventory = with.inventory().orElseThrow();
     var pause = with.bounds(screen.find("pause").orElseThrow());
     assertEquals(inventory.x(), row.x());
-    assertEquals(inventory.right(), pause.right());
+    assertEquals(ScreenLayout.playerSlot(inventory, 17).right(), pause.right());
     assertEquals(row.y(), pause.y());
     assertEquals(pause.x(), row.right() + ScreenLayout.GAP);
-    assertEquals(row.bottom() + ScreenLayout.GAP, inventory.y());
+    assertEquals(row.bottom() + ScreenLayout.GAP, ScreenLayout.playerSlot(inventory, 9).y());
   }
 }

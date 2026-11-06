@@ -194,6 +194,25 @@ public final class GuiClientSmoke {
         return;
       }
       GuiGaugeSmoke.check(screen);
+      var inventoryBounds = screen.layout.inventory().orElseThrow();
+      int equipment = 0;
+      for (var slot : screen.getMenu().slots) {
+        if (slot.container != mc.player.getInventory() || slot.getContainerSlot() < 36) continue;
+        var expected =
+            zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(
+                inventoryBounds, slot.getContainerSlot());
+        if (slot.x != expected.x() + 1
+            || slot.y != expected.y() + 1
+            || slot.getNoItemIcon() == null) {
+          fail(new AssertionError("Client equipment position or empty icon missing"));
+          return;
+        }
+        equipment++;
+      }
+      if (equipment != 5) {
+        fail(new AssertionError("Client equipment slots missing"));
+        return;
+      }
       Screenshot.grab(
           mc.gameDirectory,
           "gui-smoke.png",

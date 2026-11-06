@@ -15,6 +15,7 @@ import net.neoforged.neoforge.items.*;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import zone.moddev.mc.lib.api.*;
+import zone.moddev.mc.lib.api.automation.AutomationInventory;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.gui.*;
 import zone.moddev.mc.lib.gui.layout.*;
@@ -40,6 +41,8 @@ public class MachineMenu extends AbstractContainerMenu {
   @Nullable private final ReservedSlots reserved;
   private final Player owner;
   public final AutomationMenu automation;
+  public final ContainerDrawerMenu containerDrawer;
+  public final ContainerDrawerMenu curiosDrawer;
   private final int baseMachineSlots;
   private boolean initial = true;
   private boolean interacting;
@@ -221,6 +224,17 @@ public class MachineMenu extends AbstractContainerMenu {
     if (!bound.blockEntityClass().isInstance(entity))
       throw new IllegalArgumentException("Wrong screen block entity");
     elements = bound.screen().elements();
+    containerDrawer = new ContainerDrawerMenu(this, owner);
+    var equipmentIdentity = new ItemStack(net.minecraft.world.item.Items.ENDER_EYE);
+    curiosDrawer =
+        new ContainerDrawerMenu(
+            this,
+            owner,
+            () ->
+                bound.screen().playerInventory()
+                    ? EquippedContainers.equipment(owner, equipmentIdentity)
+                    : java.util.List.of(),
+            true);
     for (int i = 0; i < elements.size(); i++) elementIndexes.put(elements.get(i), i);
     if (elements.size() > 4096)
       throw new IllegalArgumentException("A screen may have at most 4096 elements");
@@ -252,7 +266,7 @@ public class MachineMenu extends AbstractContainerMenu {
     baseMachineSlots = count;
     machineSlots = count + (automation == null ? 0 : automation.slotCount());
     reserved = items instanceof ReservedSlots slots ? slots : null;
-    var layout =
+    layout =
         ScreenLayout.of(
             bound.screen(),
             owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
@@ -329,21 +343,66 @@ public class MachineMenu extends AbstractContainerMenu {
         .inventory()
         .ifPresent(
             r -> {
-              for (int row = 0; row < 3; row++)
-                for (int col = 0; col < 9; col++)
-                  addSlot(
-                      new Slot(
-                          inventory,
-                          9 + row * 9 + col,
-                          r.x() + col * 18 + 1,
-                          r.y() + 11 + row * 18 + 1));
-              for (int col = 0; col < 9; col++)
-                addSlot(new Slot(inventory, col, r.x() + col * 18 + 1, r.y() + 11 + 58 + 1));
+              // Keep the ordinary 36 slots contiguous and in their existing menu order.
+              for (int n = 0; n < 36; n++) {
+                int index = (n + 9) % 36;
+                int[] xy = ScreenLayout.itemPosition(ScreenLayout.playerSlot(r, index));
+                addSlot(new Slot(inventory, index, xy[0], xy[1]));
+              }
+              for (int index : new int[] {39, 38, 37, 36, 40}) {
+                int[] xy = ScreenLayout.itemPosition(ScreenLayout.playerSlot(r, index));
+                addSlot(new PlayerEquipmentSlot(inventory, index, xy[0], xy[1]));
+              }
             });
   }
 
   public Map<String, String> views() {
     return Map.copyOf(views);
+  }
+
+  private ScreenLayout layout;
+
+  /** Current geometry, shared by the screen and its persistent menu slots. */
+  public ScreenLayout layout() {
+    return layout;
+  }
+
+  private void relayout() {
+    layout =
+        ScreenLayout.of(
+            bound.screen(),
+            owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
+            automation != null,
+            views);
+    for (var element : elements) {
+      if (element instanceof Element.Slot slot) {
+        int[] xy = ScreenLayout.itemPosition(layout.bounds(element));
+        slots.get(slot.index()).x = xy[0];
+        slots.get(slot.index()).y = xy[1];
+      }
+    }
+    if (automation != null) {
+      for (int i = 0; i < automation.slotCount(); i++) {
+        var r =
+            AutomationLayout.item(i % AutomationInventory.SLOTS_PER_GROUP)
+                .offset(layout.panel().width() + AutomationLayout.RAIL, AutomationLayout.TOP);
+        var slot = slots.get(baseMachineSlots + i);
+        slot.x = r.x();
+        slot.y = r.y();
+      }
+    }
+    layout
+        .inventory()
+        .ifPresent(
+            r -> {
+              for (int i = machineSlots; i < slots.size(); i++) {
+                var slot = slots.get(i);
+                int[] xy =
+                    ScreenLayout.itemPosition(ScreenLayout.playerSlot(r, slot.getSlotIndex()));
+                slot.x = xy[0];
+                slot.y = xy[1];
+              }
+            });
   }
 
   public int index(Element element) {
@@ -404,6 +463,7 @@ public class MachineMenu extends AbstractContainerMenu {
         && !Objects.equals(views.get(context), view)) {
       views.put(context, view);
       visibility.clear();
+      relayout();
     }
   }
 
@@ -454,8 +514,9 @@ public class MachineMenu extends AbstractContainerMenu {
     var stack = source.getItem();
     var original = stack.copy();
     if (index < machineSlots && planned(index)) return quickMovePlanned(player, source);
-    if (index < machineSlots) {
-      if (!moveItemStackTo(stack, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
+    if (index < machineSlots || index >= machineSlots + 36) {
+      // Outputs go into storage/hotbar; shift-clicking equipment unequips it into that range.
+      if (!moveItemStackTo(stack, machineSlots, playerStorageEnd(), true)) return ItemStack.EMPTY;
     } else {
       if (host == null) return ItemStack.EMPTY;
       var destinations = new ArrayList<Slot>();
@@ -477,7 +538,7 @@ public class MachineMenu extends AbstractContainerMenu {
           moveItemStackTo(stack, slot.index, slot.index + 1, false);
       if (stack.getCount() == original.getCount()) return ItemStack.EMPTY;
     }
-    if (stack.isEmpty()) source.setByPlayer(ItemStack.EMPTY);
+    if (stack.isEmpty()) source.setByPlayer(ItemStack.EMPTY, original);
     else source.setChanged();
     source.onTake(player, stack);
     return original;
@@ -490,7 +551,7 @@ public class MachineMenu extends AbstractContainerMenu {
     if (free <= 0) return ItemStack.EMPTY;
     var moving = source.getItem().copyWithCount(free);
     var original = moving.copy();
-    if (!moveItemStackTo(moving, machineSlots, slots.size(), true)) return ItemStack.EMPTY;
+    if (!moveItemStackTo(moving, machineSlots, playerStorageEnd(), true)) return ItemStack.EMPTY;
     int moved = free - moving.getCount();
     var taken = source.remove(moved);
     source.onTake(player, taken);
@@ -503,6 +564,10 @@ public class MachineMenu extends AbstractContainerMenu {
         && index < baseMachineSlots
         && slots.get(index) instanceof SlotItemHandler
         && reserved.hasPlan(index);
+  }
+
+  private int playerStorageEnd() {
+    return Math.min(machineSlots + 36, slots.size());
   }
 
   @Override
@@ -519,6 +584,8 @@ public class MachineMenu extends AbstractContainerMenu {
   public void broadcastChanges() {
     if (automation != null) automation.beforeBroadcast();
     super.broadcastChanges();
+    containerDrawer.broadcast();
+    curiosDrawer.broadcast();
     if (automation != null) automation.broadcast();
     if (!(owner instanceof net.minecraft.server.level.ServerPlayer player)
         || !stillValid(owner)

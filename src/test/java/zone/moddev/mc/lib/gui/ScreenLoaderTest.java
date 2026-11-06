@@ -347,8 +347,10 @@ public final class ScreenLoaderTest {
             layout.bounds(
                 screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
         require(controls.y() > layout.bounds(screen.find("energy").orElseThrow()).bottom());
-        require(controls.bottom() < layout.inventory().orElseThrow().y());
-        require(pause.right() == layout.inventory().orElseThrow().right());
+        var inventory = layout.inventory().orElseThrow();
+        require(controls.y() == ScreenLayout.playerSlot(inventory, 39).y());
+        require(controls.bottom() + ScreenLayout.GAP == ScreenLayout.playerSlot(inventory, 9).y());
+        require(pause.right() == ScreenLayout.playerSlot(inventory, 17).right());
         var colours = layout.inventoryColors().orElseThrow();
         require(colours.x() == layout.inventory().orElseThrow().x());
         require(colours.y() == redstone.y() && colours.height() == redstone.height());
@@ -429,6 +431,40 @@ public final class ScreenLoaderTest {
     require(energy.bottom() < layout.inventory().orElseThrow().y());
   }
 
+  @Test
+  void settingsExpandAndCollapseThePanelAndInventory() throws Exception {
+    String name = "crusher";
+    try (var input =
+        java.nio.file.Files.newInputStream(
+            java.nio.file.Path.of("src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
+      var screen =
+          ScreenReader.read(
+              ResourceLocation.parse("mmdlib_companion:" + name),
+              name + ".xml",
+              input,
+              companionLayoutWidgets());
+      TextMeasure text = t -> t.fallback().orElse(t.key()).length() * 6;
+      var compact = ScreenLayout.of(screen, text, true);
+      var expanded = ScreenLayout.of(screen, text, true, java.util.Map.of("panel", "settings"));
+      var collapsed = ScreenLayout.of(screen, text, true, java.util.Map.of("panel", "machine"));
+      var context = screen.find("panel").orElseThrow();
+      int growth = expanded.panel().height() - compact.panel().height();
+      org.junit.jupiter.api.Assertions.assertTrue(growth > 0, name);
+      require(expanded.bounds(context).height() - compact.bounds(context).height() == growth);
+      require(
+          expanded.inventory().orElseThrow().y() - compact.inventory().orElseThrow().y() == growth);
+      require(compact.panel().equals(collapsed.panel()));
+      for (var element : screen.elements())
+        require(compact.bounds(element).equals(collapsed.bounds(element)));
+      for (var layout : java.util.List.of(compact, expanded)) {
+        var inventory = layout.inventory().orElseThrow();
+        require(inventory.bottom() == layout.panel().bottom() - ScreenLayout.PANEL_MARGIN);
+        require(
+            layout.bounds(screen.find("inventory_controls").orElseThrow()).y() == inventory.y());
+      }
+    }
+  }
+
   private static WidgetTypes companionLayoutWidgets() {
     // These checks only measure XML. The actual companion contract is exercised by game tests.
     var types = new WidgetTypes();
@@ -451,9 +487,11 @@ public final class ScreenLoaderTest {
     // Six pixels per character stands in for the font.
     var layout = ScreenLayout.of(screen, text -> text.key().length() * 6);
     var panel = layout.panel();
-    require(panel.width() >= 176);
+    require(panel.width() >= ScreenLayout.INVENTORY_WIDTH + 14);
     var inventory = layout.inventory().orElseThrow();
-    require(inventory.x() == (panel.width() - 162) / 2 && inventory.bottom() == panel.height() - 7);
+    require(
+        inventory.x() == (panel.width() - ScreenLayout.INVENTORY_WIDTH) / 2
+            && inventory.bottom() == panel.height() - 7);
     // A spacer pushes the rest of the bottom row against the root vbox's 7 px padding.
     var label =
         screen.elements().stream()
@@ -461,11 +499,12 @@ public final class ScreenLoaderTest {
             .findFirst()
             .orElseThrow();
     require(layout.bounds(label).right() == panel.width() - 7);
-    // Every view of a context area sits at the same place, sized to the largest.
+    // The context measures its default view; hidden views retain independent bounds.
     var context = (Element.Context) screen.find("main").orElseThrow();
     var machine = layout.bounds(context.views().get(0));
     var sides = layout.bounds(context.views().get(1));
-    require(machine.equals(sides) && machine.equals(layout.bounds(context)));
+    require(machine.equals(layout.bounds(context)));
+    require(machine.x() == sides.x() && machine.y() == sides.y());
     // The upgrade tab overlaps the panel's border; its slots start inside the panel's right edge.
     var tab = layout.bounds(screen.tabs().get(0));
     require(tab.x() == panel.width() - 4);

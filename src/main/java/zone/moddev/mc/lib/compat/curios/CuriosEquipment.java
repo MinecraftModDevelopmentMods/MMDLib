@@ -1,0 +1,139 @@
+package zone.moddev.mc.lib.compat.curios;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.IItemHandler;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotContext;
+import top.theillusivec4.curios.api.type.ISlotType;
+import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
+import zone.moddev.mc.lib.gui.runtime.EquippedContainers;
+import zone.moddev.mc.lib.gui.runtime.EquippedContainers.SlotInfo;
+
+/** Optional adapter. Every mutation goes through Curios' validating dynamic stack handlers. */
+public final class CuriosEquipment {
+  private CuriosEquipment() {}
+
+  private record Entry(SlotInfo info, IItemHandler handler, boolean active, boolean render) {}
+
+  public static List<EquippedContainers.Source> find(Player player, ItemStack identity) {
+    var entries = new ArrayList<Entry>();
+    var topology = new StringBuilder();
+    CuriosApi.getCuriosInventory(player)
+        .ifPresent(
+            inventory -> {
+              var groups = new ArrayList<>(inventory.getCurios().entrySet());
+              groups.sort(
+                  Comparator
+                      .<java.util.Map.Entry<
+                              String,
+                              top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler>>
+                          comparingInt(
+                              entry ->
+                                  CuriosApi.getSlot(entry.getKey(), player.level())
+                                      .map(ISlotType::getOrder)
+                                      .orElse(1000))
+                      .thenComparing(java.util.Map.Entry::getKey));
+              for (var group : groups) {
+                var stacks = group.getValue();
+                if (!stacks.isVisible()) continue;
+                var type = CuriosApi.getSlot(group.getKey(), player.level());
+                var icon =
+                    type.map(ISlotType::getIcon)
+                        .orElse(ResourceLocation.parse("curios:slot/empty_curio_slot"));
+                for (int i = 0;
+                    i < stacks.getStacks().getSlots()
+                        && entries.size() + 2 <= ContainerDrawerMenu.MAX_SLOTS;
+                    i++) {
+                  boolean cosmetic =
+                      stacks.hasCosmetic() && i < stacks.getCosmeticStacks().getSlots();
+                  boolean active = inventory.isSlotActive(group.getKey(), i);
+                  boolean render = i >= stacks.getRenders().size() || stacks.getRenders().get(i);
+                  entries.add(
+                      new Entry(
+                          new SlotInfo(group.getKey(), i, false, true, icon),
+                          stacks.getStacks(),
+                          active,
+                          render));
+                  entries.add(
+                      new Entry(
+                          new SlotInfo(
+                              group.getKey(),
+                              i,
+                              true,
+                              cosmetic,
+                              ResourceLocation.parse("curios:slot/empty_cosmetic_slot")),
+                          cosmetic ? stacks.getCosmeticStacks() : null,
+                          active,
+                          true));
+                  topology
+                      .append(group.getKey())
+                      .append(':')
+                      .append(i)
+                      .append(':')
+                      .append(cosmetic)
+                      .append(';');
+                }
+              }
+            });
+    if (entries.isEmpty()) return List.of();
+    var handler =
+        new EquippedContainers.DescribedHandler() {
+          private boolean valid(int slot) {
+            if (slot < 0 || slot >= entries.size()) return false;
+            var entry = entries.get(slot);
+            return entry.info.available() && entry.info.index() < entry.handler.getSlots();
+          }
+
+          public int getSlots() {
+            return entries.size();
+          }
+
+          public SlotInfo describe(int slot) {
+            return entries.get(slot).info;
+          }
+
+          public ItemStack getStackInSlot(int slot) {
+            return valid(slot)
+                ? entries.get(slot).handler.getStackInSlot(describe(slot).index())
+                : ItemStack.EMPTY;
+          }
+
+          public int getSlotLimit(int slot) {
+            return valid(slot) ? entries.get(slot).handler.getSlotLimit(describe(slot).index()) : 0;
+          }
+
+          public boolean isItemValid(int slot, ItemStack stack) {
+            return valid(slot)
+                && entries.get(slot).handler.isItemValid(describe(slot).index(), stack);
+          }
+
+          public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            return valid(slot)
+                ? entries.get(slot).handler.extractItem(describe(slot).index(), amount, simulate)
+                : ItemStack.EMPTY;
+          }
+
+          public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            if (!valid(slot)) return stack;
+            var entry = entries.get(slot);
+            var result = entry.handler.insertItem(entry.info.index(), stack, simulate);
+            if (!simulate
+                && result.getCount() < stack.getCount()
+                && entry.active
+                && !entry.info.cosmetic()) {
+              var context =
+                  new SlotContext(
+                      entry.info.identifier(), player, entry.info.index(), false, entry.render);
+              CuriosApi.getCurio(stack).ifPresent(curio -> curio.onEquipFromUse(context));
+            }
+            return result;
+          }
+        };
+    return List.of(new EquippedContainers.Source(topology.toString(), identity, handler));
+  }
+}
