@@ -1,0 +1,11 @@
+{
+  "parent": "neoforge:item/default",
+  "loader": "neoforge:fluid_container",
+  "fluid": "minecraft:empty",
+  "cover_is_mask": false,
+  "textures": {
+    "fluid": "minecraft:item/potion_overlay",
+    "cover": "minecraft:item/potion",
+    "particle": "minecraft:item/potion"
+  }
+}

@@ -377,5 +377,7 @@
   "screen.mmdlib.stats.cycles": "Cycles",
   "screen.mmdlib.stats.cycle_tip": "Click to cycle tick / second / minute. Right-click to cycle backwards.",
   "screen.mmdlib.stats.empty": "No statistics available.",
-  "screen.mmdlib.stats.tip": "Measured RF: latest 20 ticks. Cycles: up to 60 game seconds. Max cycles uses the active recipe duration; max use is peak recipe demand. Max transfer rates use one transfer per tick."
+  "screen.mmdlib.stats.tip": "Measured RF: latest 20 ticks. Cycles: up to 60 game seconds. Max cycles uses the active recipe duration; max use is peak recipe demand. Max transfer rates use one transfer per tick.",
+  "item.mmdlib.fluid_bottle": "Fluid Bottle",
+  "item.mmdlib.fluid_bottle.filled": "Bottle of %s"
 }

@@ -129,6 +129,7 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+<<<<<<< Updated upstream
   public static void itemUseHooks(GameTestHelper helper) {
     HookSmoke.use(helper);
   }
@@ -166,6 +167,20 @@ public final class MMDLibGameTests {
   @GameTest(template = EMPTY)
   public static void redstoneGate(GameTestHelper helper) {
     RedstoneSmoke.gate(helper, CENTER);
+=======
+  public static void fluidBottlesFromWorld(GameTestHelper helper) {
+    FluidBottleSmoke.world(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void fluidBottlesLeaveWaterToVanilla(GameTestHelper helper) {
+    FluidBottleSmoke.water(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void fluidBottlesAndTanks(GameTestHelper helper) {
+    FluidBottleSmoke.tanks(helper);
+>>>>>>> Stashed changes
   }
 
   @GameTest(template = EMPTY)
