@@ -451,6 +451,10 @@ public final class ScreenLoaderTest {
     return zone.moddev.mc.lib.gui.load.ScreenLoader.read(
         java.util.List.of(
             new zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot(
+                "mmdlib",
+                java.nio.file.Path.of("src/main/resources/mmdlib"),
+                ScreenLoaderTest.class.getClassLoader()),
+            new zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot(
                 "mmdlib_companion",
                 java.nio.file.Path.of("src/companion/resources/mmdlib"),
                 ScreenLoaderTest.class.getClassLoader())),

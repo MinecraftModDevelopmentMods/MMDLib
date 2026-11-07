@@ -1,5 +1,5 @@
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.dual_crusher" title-fallback="Dual Crusher"
-        block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib_companion:base_powered_machine">
+        block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib:base_powered_machine">
   <fill name="machine">
     <spacer/>
     <slot id="input" index="0"/>

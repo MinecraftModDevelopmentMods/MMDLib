@@ -1,5 +1,5 @@
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.transmuter" title-fallback="Iron-to-Gold Converter"
-        block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib_companion:base_powered_machine">
+        block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib:base_powered_machine">
   <fill name="heading">
     <label text="screen.mmdlib_companion.single" text-fallback="One iron in, one gold out"/>
   </fill>
