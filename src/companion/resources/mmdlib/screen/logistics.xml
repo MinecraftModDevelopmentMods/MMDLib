@@ -10,6 +10,6 @@
     <spacer/>
     <energy-gauge id="energy" length="3s"/>
   </hbox></vbox>
-  <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.logistics.info"
+  <popout id="info" kind="info" edge="left" text="{machineId}.info"
           text-fallback="Seven independent inventories. Install a module, enable a side, and configure its optional filter."/>
 </screen>

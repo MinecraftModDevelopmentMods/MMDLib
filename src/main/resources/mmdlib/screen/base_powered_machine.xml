@@ -15,5 +15,7 @@
       <processor-button id="toggle_0"/>
     </inventory-controls>
   </placeholder>
-  <placeholder name="info"/>
+  <placeholder name="info">
+    <popout id="info" kind="info" edge="left" text="{machineId}.info" value="#getWarnings"/>
+  </placeholder>
 </screen>

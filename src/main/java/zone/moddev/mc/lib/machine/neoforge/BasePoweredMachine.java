@@ -8,6 +8,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -69,6 +70,11 @@ public abstract class BasePoweredMachine extends BlockEntity
 
   public long getEnergyCapacity() {
     return energy.capacity();
+  }
+
+  /** Dynamic messages appended to the inherited info panel. */
+  public List<Component> getWarnings() {
+    return List.of();
   }
 
   public int getProgress() {

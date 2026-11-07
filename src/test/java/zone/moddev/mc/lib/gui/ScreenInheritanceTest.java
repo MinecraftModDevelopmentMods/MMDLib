@@ -75,6 +75,58 @@ class ScreenInheritanceTest {
     var button = (Element.Button) bound.screen().find("toggle_0").orElseThrow();
     assertTrue(button.processorControl());
     assertTrue(button.processorKey().isEmpty());
+    var info = (Element.Popout) bound.screen().find("info").orElseThrow();
+    assertEquals("test:powered.info", info.text().orElseThrow().key());
+    assertTrue(bound.values().containsKey(info));
+  }
+
+  @Test
+  void translationTokensUseEachConcreteChildIdAcrossNamespacesAndInheritanceChains()
+      throws Exception {
+    write(
+        "library:base",
+        "abstract=\"true\"",
+        """
+        <placeholder name="body">
+          <label id="label" text="{machineId}.label" text-fallback="Literal {machineId}"
+              tooltip="{machineId}.tip" tooltip-fallback="{value} / {max}"/>
+          <button id="button" value="#getProgress" icons="mmdlib:off mmdlib:on"
+              value-labels="{machineId}.off {machineId}.on" tooltip="{machineId}.state"/>
+        </placeholder>
+        <placeholder name="info"><popout id="info" kind="info" text="{machineId}.info"/></placeholder>
+        """);
+    write("test:middle", "abstract=\"true\" extends=\"library:base\"", "");
+    for (var name : List.of("first", "nested/second"))
+      write("test:" + name, "extends=\"test:middle\" title=\"{machineId}.title\"" + HOST, "");
+    var screens = ScreenLoader.load(List.of(source("library"), source("test")));
+    for (var name : List.of("first", "nested/second")) {
+      var id = "test:" + name;
+      var screen = screens.get(ResourceLocation.parse(id)).screen();
+      assertEquals(id + ".title", screen.title().key());
+      var label = (Element.Label) screen.find("label").orElseThrow();
+      assertEquals(id + ".label", label.text().key());
+      assertEquals("Literal {machineId}", label.text().fallback().orElseThrow());
+      assertEquals(id + ".tip", label.common().tooltip().orElseThrow().key());
+      assertEquals(
+          "{value} / {max}", label.common().tooltip().orElseThrow().fallback().orElseThrow());
+      var button = (Element.Button) screen.find("button").orElseThrow();
+      assertEquals(
+          List.of(id + ".off", id + ".on"),
+          button.valueLabels().stream().map(zone.moddev.mc.lib.gui.model.Text::key).toList());
+      var info = (Element.Popout) screen.find("info").orElseThrow();
+      assertEquals(id + ".info", info.text().orElseThrow().key());
+      assertTrue(screen.source(info.common()).endsWith("base.xml"));
+    }
+    write(
+        "test:custom",
+        "extends=\"test:middle\" title=\"test.custom\"" + HOST,
+        "<fill name=\"info\"><popout id=\"info\" kind=\"info\" text=\"custom.info\"/></fill>");
+    var custom =
+        ScreenLoader.load(List.of(source("library"), source("test")))
+            .get(ResourceLocation.parse("test:custom"));
+    assertEquals(
+        "custom.info",
+        ((Element.Popout) custom.screen().find("info").orElseThrow()).text().orElseThrow().key());
   }
 
   @Test

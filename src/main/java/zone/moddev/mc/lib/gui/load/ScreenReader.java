@@ -76,7 +76,7 @@ public final class ScreenReader {
   static Screen build(ResourceLocation id, Node root, WidgetTypes widgets) {
     validateExpanded(root);
     String source = root.source();
-    var screen = new Builder(source, widgets).screen(id, root);
+    var screen = new Builder(id, source, widgets).screen(id, root);
     check(screen);
     return screen;
   }
@@ -226,11 +226,13 @@ public final class ScreenReader {
   // Conversion to the model
 
   private static final class Builder {
+    private final String machineId;
     private final String source;
     private final WidgetTypes widgets;
     private final Map<Common, String> origins = new java.util.IdentityHashMap<>();
 
-    Builder(String source, WidgetTypes widgets) {
+    Builder(ResourceLocation id, String source, WidgetTypes widgets) {
+      this.machineId = id.toString();
       this.source = source;
       this.widgets = widgets;
     }
@@ -324,7 +326,7 @@ public final class ScreenReader {
                 Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse),
                 words(node, "icons").stream().map(ResourceLocation::parse).toList(),
                 words(node, "value-labels").stream()
-                    .map(key -> new Text(key, Optional.empty()))
+                    .map(key -> new Text(translationKey(key), Optional.empty()))
                     .toList(),
                 java.util.Set.of("true", "1")
                     .contains(node.attributes().getOrDefault("flat", "false")),
@@ -447,7 +449,11 @@ public final class ScreenReader {
           throw error(node, name + "-fallback needs " + name + " (a translation key)");
         return Optional.empty();
       }
-      return Optional.of(new Text(key, fallback));
+      return Optional.of(new Text(translationKey(key), fallback));
+    }
+
+    private String translationKey(String key) {
+      return key.replace("{machineId}", machineId);
     }
 
     private List<String> words(Node node, String name) {

@@ -8,7 +8,4 @@
     <slot id="input" index="0"/>
     <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:transmuting"/>
   </fill>
-  <fill name="info">
-    <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.transmuter" value="#getWarnings"/>
-  </fill>
 </screen>

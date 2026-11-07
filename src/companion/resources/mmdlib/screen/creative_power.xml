@@ -12,5 +12,5 @@
       <energy-gauge id="energy" length="3s"/>
     </hbox>
   </vbox>
-  <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.creative_power"/>
+  <popout id="info" kind="info" edge="left" text="{machineId}.info"/>
 </screen>

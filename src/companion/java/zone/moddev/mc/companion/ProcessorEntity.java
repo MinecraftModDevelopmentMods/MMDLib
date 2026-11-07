@@ -246,6 +246,7 @@ public final class ProcessorEntity extends BasePoweredMachine {
     return lanes.size() == 2 ? lanes.get(1).time() : 0;
   }
 
+  @Override
   public List<Component> getWarnings() {
     var warnings = new ArrayList<Component>();
     if (energy.stored() < energy.capacity() * reservePercent / 100)

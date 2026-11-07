@@ -23,7 +23,4 @@
       <processor-button id="toggle_1" processor-key="lane_1"/>
     </inventory-controls>
   </fill>
-  <fill name="info">
-    <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.dual_crusher" value="#getWarnings"/>
-  </fill>
 </screen>

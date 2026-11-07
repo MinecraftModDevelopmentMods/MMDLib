@@ -48,7 +48,4 @@
       </context>
     </vbox>
   </fill>
-  <fill name="info">
-    <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.crusher" value="#getWarnings"/>
-  </fill>
 </screen>
