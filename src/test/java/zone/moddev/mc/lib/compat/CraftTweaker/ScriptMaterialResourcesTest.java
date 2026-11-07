@@ -23,6 +23,28 @@ import zone.moddev.mc.lib.common.factories.MaterialFactory;
 final class ScriptMaterialResourcesTest {
   private static final Path TEMPLATES = Path.of("src/main/resources/mmdlib_templates");
 
+  @Test
+  void namesAndLootOptionsUseExistingGeneratedPackPaths() throws Exception {
+    var result = everything();
+    var options = Map.of(
+        "material|mmdlib:cold_iron", ScriptResourceOptions.DEFAULT.named("Bright Alloy"),
+        "item_module|mmdlib:ingot", ScriptResourceOptions.DEFAULT.named("__material__ Bar"),
+        "block_module|mmdlib:block", ScriptResourceOptions.DEFAULT.drops("none", ""));
+    var assets = ScriptMaterialResources.assets(List.of(result), List.of(), List.of(), Map.of(),
+        new MaterialTemplates(List.of(TEMPLATES)), TEMPLATES, options);
+    var lang = JsonParser.parseString(new String(assets.get("assets/mmdlib/lang/en_us.json"), StandardCharsets.UTF_8)).getAsJsonObject();
+    org.junit.jupiter.api.Assertions.assertEquals("Bright Alloy Bar", lang.get("item.mmdlib.cold_iron_ingot").getAsString());
+    var data = ScriptMaterialResources.data(List.of(result), List.of(), List.of(), Map.of(), options);
+    var path = "data/mmdlib/loot_table/blocks/cold_iron_block.json";
+    var empty = JsonParser.parseString(new String(data.get(path), StandardCharsets.UTF_8)).getAsJsonObject();
+    org.junit.jupiter.api.Assertions.assertEquals(0, empty.getAsJsonArray("pools").size());
+    var delegated = ScriptMaterialResources.data(List.of(result), List.of(), List.of(), Map.of(),
+        Map.of("block_module|mmdlib:block", ScriptResourceOptions.DEFAULT.drops("table", "minecraft:blocks/stone")));
+    var table = JsonParser.parseString(new String(delegated.get(path), StandardCharsets.UTF_8)).getAsJsonObject();
+    org.junit.jupiter.api.Assertions.assertEquals("minecraft:blocks/stone", table.getAsJsonArray("pools")
+        .get(0).getAsJsonObject().getAsJsonArray("entries").get(0).getAsJsonObject().get("value").getAsString());
+  }
+
   private static MaterialFactory.Result everything() {
     var material =
         MaterialBuilder.create()

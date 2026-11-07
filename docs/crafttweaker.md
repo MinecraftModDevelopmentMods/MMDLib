@@ -1,7 +1,7 @@
 # CraftTweaker definitions
 
-When CraftTweaker is installed, scripts can define MMDLib materials, blocks, and block
-modules. Scripts use the `mmdlib` loader and run once at startup, after every mod has
+When CraftTweaker is installed, scripts can define MMDLib materials, blocks, items,
+and reusable block and item modules. Scripts use the `mmdlib` loader and run once at startup, after every mod has
 constructed and before registry events. What they build is planned, checked, and
 registered like the matching `mmdlib/` files. Changing a script needs a restart;
 `/reload` does not run these scripts again.
@@ -10,6 +10,10 @@ The `mmdlib` loader inherits CraftTweaker's `crafttweaker` loader, so its types
 (`IData`, item stacks, and so on) are available. Anything that needs registries or a
 world, such as `<item:...>` brackets or recipe managers, cannot run this early; use a
 normal `crafttweaker` script for recipes.
+
+See the [complete API inventory and runtime capability audit](crafttweaker-api-inventory.md)
+for inherited members, factory-specific limits, and the boundary between stored
+definition fields and implemented behavior.
 
 ## Materials
 
@@ -50,6 +54,33 @@ or another script fails loading.
 | `items`, `blocks`, `harvestTags` | string[], read-only | see below |
 
 See [the material factory](material-factory.md) for what each stat drives.
+
+### Material runtime and tool settings
+
+MaterialBuilder also exposes these string properties. IDs are stored until normal
+runtime registration; sounds and map colors name vanilla constant keys.
+
+| Property | Default | Meaning |
+| --- | --- | --- |
+| `repairItem` | `""` | explicit repair item ID; empty restores the material's normal repair choice |
+| `incorrectBlocks` | `minecraft:incorrect_for_iron_tool` | block tag this material's tools cannot harvest |
+| `baseBlock` | `minecraft:iron_block` | base behavior for factories such as stairs |
+| `blockSetType` | `minecraft:iron` | behavior for doors, buttons and pressure plates |
+| `blockSound` | `""` | material block sound override, e.g. `wood`; empty keeps module sound |
+| `mapColor` | `""` | material map-color override, e.g. `gold`; empty keeps module map color |
+
+Named methods `toolDurability(int)`, `toolEfficiency(double)`,
+`attackDamage(double)`, and `enchantability(int)` write the existing special keys
+`tool_durability`, `tool_efficiency`, `base_attack_damage`, and `enchantability`.
+They return the builder for chaining. Durability must be at least 1; efficiency
+and enchantability must be nonnegative. Damage may be negative; decimal values
+must be finite and fit a float. `addSpecial`/`removeSpecial` still work; the last
+write to a key wins, and removing it restores the derived stat.
+
+These settings apply to the material's parts. They do not expose a separate tier
+registry or override every item factory's native behavior. Existing special stats
+can take precedence over derived values; a tool module can additionally scale
+material durability and efficiency.
 
 ### Collections
 
@@ -193,7 +224,7 @@ longbow.build();
 | `stackSize` | int | 1 to 99 |
 | `durability` | int | uses before breaking; 0 for none. Setting it also sets `stackSize` to 1 |
 | `fireResistant` | bool | survives fire and lava |
-| `useDuration` | int | ticks of use when right-clicked, like eating; 0 (default) for none. See [Hooks](#using-an-item-over-time) |
+| `useDuration` | int | ticks of use for the basic-item factory; 0 (default) for none. Other factories keep their native behavior. See [Hooks](#using-an-item-over-time) |
 | `useAnimation` | string | how it is held while used: `none`, `eat`, `drink`, `bow`... |
 | `container` | item ID | left in the crafting grid after use, such as `minecraft:bucket`; `""` for nothing |
 | `factoryData` | map | settings for the module's Java implementation |
@@ -230,6 +261,192 @@ tin.build();
 
 A module's tags go to every material part built from it. The part's art comes from
 the template of the module it was copied from, in the material color.
+
+## Fluent conveniences and generated resource controls
+
+Property assignment remains supported. The following fluent aliases return their
+properties builder and delegate to the same setters, so validation timing and
+errors remain the same. `build()` still returns void.
+
+| Builder/module | Fluent methods | Existing properties |
+| --- | --- | --- |
+| Item | `stacksTo(int)`, `craftRemainder(string or ItemReference)` | stackSize, container |
+| Block | `destroyTime(float)`, `explosionResistance(float)` | hardness, blastResistance |
+| Block | `strength(float)` or `strength(hardness, resistance)` | hardness and blastResistance |
+| Block | `noCollisions()`, `noOcclusion()` | collision=false, occlusion=false |
+| Block | `requiresToolToDrop()` or `requiresToolToDrop(bool)` | requiresCorrectTool |
+| Block | `noCorrespondingItem()` | hasItem=false |
+
+Chains return the shared property type. Use a variable when you need module-only
+members such as `factory` or `copy` after a chain.
+
+MaterialBuilder, ItemBuilder, BlockBuilder, ItemModule and BlockModule expose
+`displayName`. It overrides the English name generated in `en_us.json`; it does
+not change registry IDs, model names, texture paths, or other locales. Blank names
+are rejected. A material name supplies the base label for its generated parts;
+a module name overrides its selected parts' labels. The token `__material__` in
+a module label expands to that material's display name. Standalone builders inherit
+module resource settings at construction and can override them. Module `copy`
+snapshots these settings as well.
+
+```zenscript
+var block = new BlockBuilder("polished_stone");
+block.displayName = "Polished Workshop Stone";
+block.strength(2, 6).requiresToolToDrop().dropsSelf();
+block.build();
+```
+
+Blocks and block modules expose these generated-loot controls. The last call wins:
+
+| Method | Generated block loot |
+| --- | --- |
+| `dropsNormally()` | existing shape-aware rules: double slabs/slabs, doors and anvils retain their special handling |
+| `noDrops()` | an explicit empty table |
+| `dropsSelf()` | one corresponding block item, subject to explosion survival; requires hasItem=true |
+| `dropsFrom("namespace:path")` | a nested reference to an existing loot table, using the block's loot context |
+
+`dropsSelf` intentionally bypasses shape-specific rules. Prefer `dropsNormally`
+for slabs and doors. `noCorrespondingItem` suppresses the ordinary self-drop table;
+the existing double-slab-to-slab default remains intact. A referenced table must
+accept block-context parameters and must not recurse through this block's table.
+Direct self-reference is rejected; indirect cycles and missing external tables
+remain subject to vanilla loot validation. `dropsFrom` creates a generated wrapper;
+it does not change the core block's loot-table ID.
+
+These controls live entirely in the generated pack. Complex loot, custom models,
+and translations can be supplied in `scripts/mmdlibdata`. A file at
+`data/mmdlib/loot_table/blocks/<block_id_path>.json` overrides that block's generated
+table, including an empty table from noDrops. Name overrides go under
+`assets/mmdlib/lang/en_us.json`; other locales use their normal filenames. The
+folder pack remains above the generated pack, so author-supplied resources win.
+Material texture generation and directional templates are unchanged.
+
+## Typed references and module copies
+
+References are typed IDs, not registered objects. The types are
+`mods.mmdlib.ItemReference`, `BlockReference`, `BlockTagReference`,
+`ItemModuleReference`, and `BlockModuleReference`. Each takes a string ID and
+exposes read-only `id`. They do not query a registry at construction and have no
+method for obtaining a live game object. Tag IDs omit `#`.
+
+Existing string constructors/properties remain supported. These entry points also
+accept the corresponding reference:
+
+| Consumer | Typed entry point |
+| --- | --- |
+| ItemBuilder / BlockBuilder | second constructor argument: ItemModuleReference / BlockModuleReference |
+| ItemModule / BlockModule | second constructor argument: matching module reference |
+| ItemBuilder / BlockBuilder | `reference` getter returns ItemReference / BlockReference |
+| ItemModule / BlockModule | `reference` getter returns matching module reference |
+| MaterialBuilder | `repairWith(ItemReference)`, `baseBlockFrom(BlockReference)`, `incorrectBlocksTag(BlockTagReference)`, `addHarvestTag(BlockTagReference)` |
+| MaterialBuilder | `addItemModule(ItemModuleReference)`, `addBlockModule(BlockModuleReference)` |
+| ItemBuilder / ItemModule | `remainder(ItemReference)` |
+| BlockBuilder | `baseBlockFrom(BlockReference)` |
+| BlockBuilder / BlockModule | `addTag(BlockTagReference)` |
+| ToolSettings | `mineableTag(BlockTagReference)`, `fastOnTag(BlockTagReference)` |
+
+Each method unwraps the ID into the existing string-based consumer; it does not
+change resolution timing. Wrong reference kinds have no matching overload.
+Malformed IDs fail at reference construction. Modules must exist in the current
+catalog when selected; constructing a module reference alone does not register or
+validate a module. Item/block references may be created before their targets exist,
+but actual dependencies still obey the existing runtime registration order and
+missing-entry checks. No general forward-resolution guarantee is added.
+
+Both ItemModule and BlockModule provide `copy(newName)`. The source need not be
+built. This snapshots the current factory, template, factory data, tags, companion
+metadata, and block material-default setting. Later edits apply only to the chosen
+builder. New identity and resource ancestry are preserved separately; aliases are
+not inherited. Copying to the source's own ID fails. Duplicate destination modules
+still fail under the existing build validation.
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.ItemModule;
+import mods.mmdlib.ItemModuleReference;
+import mods.mmdlib.ItemBuilder;
+
+var base = new ItemModule("small_part", new ItemModuleReference("mmdlib:ingot"));
+base.stackSize = 16;
+var large = base.copy("large_part");
+large.stackSize = 4;
+base.build();
+large.build();
+new ItemBuilder("small_widget", base.reference).build();
+new ItemBuilder("large_widget", large.reference).build();
+```
+
+`copy` gives locally attached onXxx handlers new callback IDs and separate handler
+maps. Replacing a source handler or removing/changing bindings on one copy does
+not change the other's binding. The script function object itself is retained;
+mutable variables captured by that function are still shared. Explicit callback
+IDs supplied with addEvent remain shared references. Constructing a new module
+from an already registered module copies those callback IDs; use `copy` on the
+source builder when an independent snapshot of its locally owned handlers is
+needed. Class-only block-hook restrictions carry over to copies.
+
+This API copies supported MMDLib module configuration. It does not clone arbitrary
+registered vanilla/modded objects, provide a Java subclass, or copy standalone
+builder runtime overrides. Modules built earlier in the same script run supply
+their item tags to subsequent module and item builders.
+
+## Generic tool configuration
+
+`mods.mmdlib.ToolSettings` edits existing `mmdlib:tool` factory settings.
+`configureTool(settings)` is available on ItemBuilder and ItemModule and rejects a
+currently selected factory other than `mmdlib:tool`. Configure the factory before
+calling it. Normal planning still validates the resulting factory data at build.
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.ItemModule;
+import mods.mmdlib.ToolSettings;
+import mods.mmdlib.MaterialBuilder;
+
+var module = new ItemModule("custom_hammer", "mmdlib:crackhammer");
+var tool = new ToolSettings();
+tool.mineable = "minecraft:mineable/pickaxe";
+tool.fastOn = "minecraft:mineable/pickaxe";
+tool.attackDamage = 4;
+tool.attackSpeed = -2.5;
+tool.abilities("pickaxe");
+tool.durability(0.5, 1, "");
+tool.speed(0.5, 1, "");
+module.configureTool(tool);
+module.build();
+
+var material = new MaterialBuilder("custom_metal");
+material.removeItems("all").addItems("custom_hammer");
+material.removeBlocks("all");
+material.hasFluid = false;
+material.repairItem = "minecraft:diamond";
+material.incorrectBlocks = "minecraft:incorrect_for_wooden_tool";
+material.toolDurability(200).toolEfficiency(8).attackDamage(3).enchantability(17);
+material.build();
+```
+
+The helper has write-only `mineable`, `fastOn`, `attackDamage`, and `attackSpeed`
+properties. Tag values are IDs without `#`. `abilities(names...)` replaces the
+ability list (no arguments clears it); names use the existing runtime decoder's
+vanilla sets or NeoForge ability names. `durability(factor, minimum, stat)` and
+`speed(factor, minimum, stat)` replace their respective scaling records. An empty
+stat means no material-special override. A named special stat overrides the scaled
+value when present. Factors/minima are nonnegative and finite; durability minimum
+is at least 1.
+
+Only explicitly supplied keys replace module factory data; unrelated keys survive.
+Scaling records and ability lists replace whole records/lists. Helper values are
+snapshotted when applied; editing the helper later does not change a built item.
+A subsequent `factoryData = ...` replaces the entire map as before. The existing
+runtime codec checks the merged tool data, including the required mineable tag.
+This helper does not configure the separate vanilla pickaxe/sword factories.
+
+**Existing runtime limitation:** the generic tool computes scaled durability, but
+its vanilla `TieredItem` superclass then replaces it with the material tier's uses.
+Consequently `durability(...)` currently stores/validates the factory configuration
+but does not change the final item durability. Use material `toolDurability(...)`
+for effective durability. Speed scaling does apply. Fixing the constructor behavior
+requires a core change and is deferred by this integration-only plan.
 
 ## Redstone
 
@@ -459,16 +676,24 @@ items, blocks, and their resources are created at startup on both sides.
 
 ## Not covered yet
 
-* Material events, runtime settings (sound, map color, block set type), and parent
-  materials. These need the material file format for now.
+* Material-wide event bindings and parent materials still need the material file
+  format. Material runtime properties listed above are exposed in scripts.
 * Hooks without a contract yet: items ticking in an inventory, crafting and
   smelting, tossing and picking up, tooltips, burn time, entities inside a block,
   falling on a block. Each needs a contract like the others. The class-only ones
   (inventory tick, entity inside, fall) would work on MMDLib's own classes: every
   item, and the plain block.
-* Item template fields that are kept but not applied to registered items yet: lore,
-  food, use time and animation, attribute modifiers, and tool actions. Scripts do not
-  expose them until they work.
+* Food references, lore, general attribute modifiers, declared tool actions,
+  delayed-use `on_complete`, and custom creative-stack declarations are retained in
+  definitions but have no consumer in the standard runtime. Scripts do not expose
+  setters for these fields. Native tool attributes and generic-tool abilities are
+  separate supported paths.
+* Use duration and animation are exposed and applied by the basic-item factory.
+  Other item factories keep their native use behavior; these properties do not
+  turn an arbitrary sword or tool into an item used over time.
+* Rarity, feature flags, advanced block-property predicates, custom sound events,
+  independent tool tiers, and user-defined creative tabs have no matching exposed
+  definition path. The registrar supplies its existing materials tab.
 
 ## Implementation
 
@@ -477,3 +702,18 @@ finds its plugin and script classes by annotation. The only reference from the r
 of MMDLib is the `CraftTweakerInit.register(modBus)` call in MMDLib's constructor, made
 only when CraftTweaker is loaded. That call adds a code material source to
 `MaterialExtensions.GLOBAL`; see [startup definition loading](definition-loading.md#stages).
+
+## Verification and executable examples
+
+See the [verification report](crafttweaker-verification.md) for reproducible server,
+unit, packaging, and real-client checks, plus inspected screenshots. Tested scripts
+cover material/tool settings, typed references, copies, builder aliases, and loot.
+The client smoke uses isolated worlds and demonstrates generated English names,
+models, material textures, and four horizontal block facings, with separate launches
+with and without CraftTweaker. Software rendering is used for the documented
+headless environment; normal hardware drivers are not covered by that run.
+
+The [parity plan](crafttweaker-parity-plan.md) and
+[API inventory](crafttweaker-api-inventory.md) retain the boundary between supported
+features, integration conveniences, and deferred core work. In particular, per-tool
+durability scaling is still limited by TieredItem; material durability works.

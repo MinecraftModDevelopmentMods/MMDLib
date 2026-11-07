@@ -52,6 +52,30 @@ public final class ScriptItemModule extends ScriptItemProperties {
     this(mmdlibId(name, "item module"), ResourceLocation.parse(basedOn));
   }
 
+  @ZenCodeType.Constructor
+  public ScriptItemModule(String name, ScriptItemModuleReference basedOn) {
+    this(name, basedOn.getId());
+  }
+
+  @ZenCodeType.Getter("reference")
+  public ScriptItemModuleReference getReference() {
+    return new ScriptItemModuleReference(id.toString());
+  }
+
+  /** Snapshot current configuration under a new identity; source need not be built. */
+  @ZenCodeType.Method
+  public ScriptItemModule copy(String name) {
+    var targetId = mmdlibId(name, "item module");
+    if (targetId.equals(id)) throw new IllegalArgumentException("Copy needs a different module ID");
+    var snapshot = new DataModules.Item(factory, base.requiredMod(),
+        factoryData(), template(), base.part());
+    var target = new ScriptItemModule(targetId, baseId, snapshot);
+    target.removeTags("all"); target.addTags(tags().stream().map(Object::toString).toArray(String[]::new));
+    target.resourceOptions = resourceOptions;
+    copyHooksTo(target);
+    return target;
+  }
+
   private ScriptItemModule(ResourceLocation id, ResourceLocation baseId) {
     this(id, baseId, ScriptDefinitions.catalog().itemModule(baseId));
   }
@@ -59,6 +83,7 @@ public final class ScriptItemModule extends ScriptItemProperties {
   private ScriptItemModule(ResourceLocation id, ResourceLocation baseId, DataModules.Item base) {
     super(base.template(), base.factoryData(), ScriptDefinitions.itemTags().getOrDefault(baseId, Set.of()));
     this.id = id;
+    resourceOptions = ScriptDefinitions.resourceOptions("item_module", baseId);
     this.baseId = baseId;
     this.base = base;
     factory = base.factory();
@@ -106,6 +131,7 @@ public final class ScriptItemModule extends ScriptItemProperties {
                 factoryData(),
                 template(),
                 new PartMetadata(List.of(), part.entityFactory(), part.entityData(), part.blockEntity())));
+    ScriptDefinitions.resources("item_module", id, resourceOptions);
     ScriptDefinitions.module(id, baseId, tags());
   }
 }

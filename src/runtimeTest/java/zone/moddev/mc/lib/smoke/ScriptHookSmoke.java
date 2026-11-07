@@ -36,6 +36,101 @@ final class ScriptHookSmoke {
     return player;
   }
 
+  static void generatedLoot(GameTestHelper helper, BlockPos center) {
+    var level = helper.getLevel();
+    var held = new ItemStack(net.minecraft.world.item.Items.DIAMOND_PICKAXE);
+    var player = player(helper, held);
+    var expected = java.util.Map.of(
+        "phase4_default", "mmdlib:phase4_default",
+        "phase4_self", "mmdlib:phase4_self",
+        "phase4_none", "minecraft:air",
+        "phase4_reference", "minecraft:cobblestone",
+        "phase4_override", "minecraft:diamond",
+        "phase4_itemless", "minecraft:air");
+    int offset = 0;
+    for (var entry : expected.entrySet()) {
+      var pos = helper.absolutePos(center).offset(offset++ * 3, 0, 0);
+      var block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse("mmdlib:" + entry.getKey()));
+      level.setBlock(pos, block.defaultBlockState(), 3);
+      require(player.gameMode.destroyBlock(pos), "player broke " + entry.getKey());
+      var drops = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+          new net.minecraft.world.phys.AABB(pos).inflate(1));
+      if (entry.getValue().equals("minecraft:air")) require(drops.isEmpty(), "expected no drops: " + entry.getKey());
+      else require(drops.size() == 1 && drops.getFirst().getItem().getCount() == 1
+          && drops.getFirst().getItem().is(BuiltInRegistries.ITEM.get(ResourceLocation.parse(entry.getValue()))),
+          "expected drop " + entry.getValue() + " for " + entry.getKey());
+      drops.forEach(net.minecraft.world.entity.Entity::discard);
+    }
+    var item = stack("mmdlib:phase4_item");
+    require(item.getMaxStackSize() == 16 && item.getItem().getCraftingRemainingItem()
+        == net.minecraft.world.item.Items.BUCKET, "fluent item aliases applied");
+    helper.succeed();
+  }
+
+  static void referencesAndCopies(GameTestHelper helper, BlockPos center) {
+    var source = stack("mmdlib:phase3_source_item");
+    var copy = stack("mmdlib:phase3_copy_item");
+    var edited = stack("mmdlib:phase3_edited_item");
+    require(source.getUseDuration(helper.makeMockServerPlayerInLevel()) == 20,
+        "source retains own configuration");
+    require(copy.getUseDuration(helper.makeMockServerPlayerInLevel()) == 12,
+        "copy snapshots configuration before source edits");
+    for (var entry : java.util.Map.of(source, 9, copy, 6, edited, 3).entrySet()) {
+      var player = player(helper, entry.getKey());
+      player.gameMode.useItem(player, helper.getLevel(), entry.getKey(), InteractionHand.MAIN_HAND);
+      require(player.getUseItemRemainingTicks() == entry.getValue(), "copied handler map is independent");
+    }
+    require(source.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM,
+        ResourceLocation.parse("c:phase3_source"))), "same-run module tags inherited");
+    require(copy.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM,
+        ResourceLocation.parse("c:phase3_copy"))), "copy tags applied");
+    require(!source.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM,
+        ResourceLocation.parse("c:phase3_copy"))), "copy tag edits do not leak");
+    require(stack("mmdlib:phase3_remainder").getItem().getCraftingRemainingItem()
+        == stack("mmdlib:phase3_later").getItem(), "forward item reference resolves at registration");
+    int offset = 0;
+    for (var entry : java.util.Map.of("phase3_block", 8, "phase3_copy_block", 4).entrySet()) {
+      var pos = helper.absolutePos(center).offset(offset++, 0, 0);
+      var block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse("mmdlib:" + entry.getKey()));
+      helper.getLevel().setBlock(pos, block.defaultBlockState(), 3);
+      var player = player(helper, ItemStack.EMPTY);
+      var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+      player.gameMode.useItemOn(player, helper.getLevel(), ItemStack.EMPTY, InteractionHand.MAIN_HAND, hit);
+      require(helper.getLevel().getBlockState(pos).getValue(RedstoneBlock.OUTPUT) == entry.getValue(),
+          "block module callback snapshot");
+    }
+    helper.succeed();
+  }
+
+  static void toolSettings(GameTestHelper helper) {
+    var stack = stack("mmdlib:phase2_phase2_tool");
+    require(stack.getItem() instanceof zone.moddev.mc.lib.common.runtime.StandardItems.Tool,
+        "script configured generic tool registered");
+    var tool = (zone.moddev.mc.lib.common.runtime.StandardItems.Tool) stack.getItem();
+    var tier = tool.getTier();
+    require(stack.getMaxDamage() == 200, "material tier durability (TieredItem overrides factory scaling)");
+    require(tier.getSpeed() == 8 && tier.getAttackDamageBonus() == 3
+        && tier.getEnchantmentValue() == 17, "named material stats");
+    require(tier.getRepairIngredient().test(new ItemStack(net.minecraft.world.item.Items.DIAMOND)),
+        "explicit repair ingredient");
+    require(tier.getIncorrectBlocksForDrops().location().toString()
+        .equals("minecraft:incorrect_for_wooden_tool"), "harvest restriction tag");
+    require(stack.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.PICKAXE_DIG),
+        "configured tool ability");
+    require(tool.isValidRepairItem(stack, new ItemStack(net.minecraft.world.item.Items.DIAMOND)),
+        "tool accepts configured repair item");
+    require(stack.getDestroySpeed(Blocks.STONE.defaultBlockState()) == 4,
+        "scaled mining speed");
+    require(!stack.isCorrectToolForDrops(Blocks.IRON_ORE.defaultBlockState()),
+        "incorrect tag prevents harvesting iron ore");
+    var runtime = tool.material().runtime();
+    require(runtime.baseBlock().toString().equals("minecraft:stone")
+        && runtime.blockSetType().toString().equals("minecraft:oak")
+        && runtime.blockSound().orElseThrow().equals("wood")
+        && runtime.mapColor().orElseThrow().equals("gold"), "material runtime settings survive planning");
+    helper.succeed();
+  }
+
   /** Right-click on air, use start (duration 10 cut to 3) and finish. */
   static void item(GameTestHelper helper, BlockPos center) {
     var level = helper.getLevel();

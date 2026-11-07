@@ -89,6 +89,64 @@ public abstract class ScriptBlockProperties extends ScriptDefinitionProperties {
     hasItem = base.hasItem();
   }
 
+  @ZenCodeType.Method
+  public ScriptBlockProperties addTag(ScriptBlockTagReference tag) {
+    addTags(tag.getId());
+    return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties destroyTime(float value) { setHardness(value); return this; }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties explosionResistance(float value) { setBlastResistance(value); return this; }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties strength(float value) { return strength(value, value); }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties strength(float hardness, float resistance) {
+    setHardness(hardness); setBlastResistance(resistance); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties noCollisions() { setCollision(false); return this; }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties noOcclusion() { setOcclusion(false); return this; }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties requiresToolToDrop() { return requiresToolToDrop(true); }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties requiresToolToDrop(boolean value) { setRequiresCorrectTool(value); return this; }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties noCorrespondingItem() { setHasItem(false); return this; }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties noDrops() {
+    resourceOptions = resourceOptions.drops("none", ""); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties dropsNormally() {
+    resourceOptions = resourceOptions.drops("default", ""); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties dropsSelf() {
+    resourceOptions = resourceOptions.drops("self", ""); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptBlockProperties dropsFrom(String table) {
+    var id = ResourceLocation.parse(table);
+    var own = definitionId().withPrefix("blocks/");
+    if (id.equals(own)) throw new IllegalArgumentException("Loot table cannot reference itself: " + id);
+    resourceOptions = resourceOptions.drops("table", id.toString()); return this;
+  }
+
   /** Time to mine; -1 makes the block unbreakable. */
   @ZenCodeType.Getter("hardness")
   public float getHardness() {
@@ -449,6 +507,9 @@ public abstract class ScriptBlockProperties extends ScriptDefinitionProperties {
     return this;
   }
 
+  /** Preserve class-only hook validation when snapshotting a module. */
+  void copyClassHooksTo(ScriptBlockProperties target) { target.classHooks = classHooks; }
+
   /**
    * Checks the redstone settings and class-only hooks now, so the error points at the script.
    *
@@ -456,6 +517,8 @@ public abstract class ScriptBlockProperties extends ScriptDefinitionProperties {
    *     mmdlib:block}
    */
   void validateBlock() {
+    if (!hasItem && resourceOptions.loot().equals("self"))
+      throw new IllegalArgumentException("dropsSelf requires a corresponding item");
     if (classHooks && !factoryId().equals(BLOCK_FACTORY))
       throw new IllegalArgumentException(
           "onSteppedOn and onRandomTick need a block built by "

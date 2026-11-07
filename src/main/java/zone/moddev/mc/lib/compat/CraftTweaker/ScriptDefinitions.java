@@ -43,7 +43,22 @@ final class ScriptDefinitions {
   private static volatile Set<ResourceLocation> itemIds = Set.of();
   private static volatile Map<ResourceLocation, Set<ResourceLocation>> builtItemTags = Map.of();
   private static volatile Map<ResourceLocation, ResourceLocation> builtBasedOn = Map.of();
+  private static final Map<String, ScriptResourceOptions> resources = new LinkedHashMap<>();
+  private static volatile Map<String, ScriptResourceOptions> builtResources = Map.of();
   private static MaterialExtensions catalog;
+
+  static ScriptResourceOptions resourceOptions(String kind, ResourceLocation id) {
+    return resourceOptions().getOrDefault(ScriptResourceOptions.key(kind, id), ScriptResourceOptions.DEFAULT);
+  }
+
+  static Map<String, ScriptResourceOptions> resourceOptions() {
+    return catalog == null ? builtResources : Map.copyOf(resources);
+  }
+
+  static void resources(String kind, ResourceLocation id, ScriptResourceOptions options) {
+    catalog();
+    resources.put(ScriptResourceOptions.key(kind, id), options);
+  }
 
   private ScriptDefinitions() {}
 
@@ -56,6 +71,7 @@ final class ScriptDefinitions {
     items.clear();
     itemTags.clear();
     basedOn.clear();
+    resources.clear();
     catalog = api;
     try {
       CraftTweakerAPI.getScriptRunManager()
@@ -82,6 +98,7 @@ final class ScriptDefinitions {
     itemIds = Set.copyOf(items.keySet());
     builtItemTags = Map.copyOf(itemTags);
     builtBasedOn = Map.copyOf(basedOn);
+    builtResources = Map.copyOf(resources);
     var result = new MaterialExtensions.Definitions(materials.values(), blocks, items);
     materials.clear();
     blocks.clear();
@@ -149,7 +166,7 @@ final class ScriptDefinitions {
 
   /** Item tags of script items and item modules, by item or module ID. */
   static Map<ResourceLocation, Set<ResourceLocation>> itemTags() {
-    return builtItemTags;
+    return catalog == null ? builtItemTags : Map.copyOf(itemTags);
   }
 
   /** The module each script module was copied from. */

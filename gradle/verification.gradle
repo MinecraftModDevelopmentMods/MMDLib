@@ -57,6 +57,7 @@ tasks.named('check') { dependsOn gameTestTask }
 
 // Unit tests in src/test: JUnit 5, no running game. `./gradlew test` (part of `check`).
 dependencies {
+    testRuntimeOnly "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

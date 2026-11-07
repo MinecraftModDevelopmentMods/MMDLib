@@ -71,9 +71,9 @@ final class MaterialPacks {
               var items = ScriptDefinitions.itemResults();
               return type == PackType.CLIENT_RESOURCES
                   ? ScriptMaterialResources.assets(
-                      materials, blocks, items, ScriptDefinitions.basedOn(), templates(folder), folder)
+                      materials, blocks, items, ScriptDefinitions.basedOn(), templates(folder), folder, ScriptDefinitions.resourceOptions())
                   : ScriptMaterialResources.data(
-                      materials, blocks, items, ScriptDefinitions.itemTags());
+                      materials, blocks, items, ScriptDefinitions.itemTags(), ScriptDefinitions.resourceOptions());
             });
     var generated =
         new PackLocationInfo(

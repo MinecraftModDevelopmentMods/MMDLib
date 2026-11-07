@@ -51,12 +51,21 @@ public final class ScriptItemBuilder extends ScriptItemProperties {
     this(mmdlibId(name, "item"), ResourceLocation.parse(module));
   }
 
+  @ZenCodeType.Constructor
+  public ScriptItemBuilder(String name, ScriptItemModuleReference module) {
+    this(name, module.getId());
+  }
+
+  @ZenCodeType.Getter("reference")
+  public ScriptItemReference getReference() { return new ScriptItemReference(id.toString()); }
+
   private ScriptItemBuilder(ResourceLocation id, ResourceLocation module) {
     super(
         ScriptDefinitions.catalog().itemModule(module).template(),
         FactoryData.EMPTY,
         ScriptDefinitions.itemTags().getOrDefault(module, Set.of()));
     this.id = id;
+    resourceOptions = ScriptDefinitions.resourceOptions("item_module", module);
     this.module = module;
   }
 
@@ -104,5 +113,6 @@ public final class ScriptItemBuilder extends ScriptItemProperties {
     template.toBuilder().setName(module).forMaterial(id).setRegistryName(id).build();
     ScriptDefinitions.add(
         id, new StandaloneItem(module, factoryData(), Optional.of(template), runtime), tags());
+    ScriptDefinitions.resources("item", id, resourceOptions);
   }
 }

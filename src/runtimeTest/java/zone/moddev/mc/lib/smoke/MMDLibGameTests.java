@@ -59,6 +59,21 @@ public final class MMDLibGameTests {
   private MMDLibGameTests() {}
 
   @GameTest(template = EMPTY)
+  public static void scriptGeneratedLoot(GameTestHelper helper) {
+    ScriptHookSmoke.generatedLoot(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptReferencesAndCopies(GameTestHelper helper) {
+    ScriptHookSmoke.referencesAndCopies(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptToolSettings(GameTestHelper helper) {
+    ScriptHookSmoke.toolSettings(helper);
+  }
+
+  @GameTest(template = EMPTY)
   public static void equippedContainer(GameTestHelper helper) {
     ContainerDrawerSmoke.check(
         helper.getLevel(),

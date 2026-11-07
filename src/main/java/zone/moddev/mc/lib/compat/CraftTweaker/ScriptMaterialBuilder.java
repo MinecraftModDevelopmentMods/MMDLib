@@ -54,6 +54,7 @@ public final class ScriptMaterialBuilder {
   private final Set<MaterialPart> blocks;
   private final Set<ResourceLocation> harvestTags = new LinkedHashSet<>();
   private final Map<String, Double> special = new LinkedHashMap<>();
+  private String displayName = "";
   private String type = MaterialProperties.DEFAULT.type();
   private int color = MaterialProperties.DEFAULT.color();
   private double hardness;
@@ -62,6 +63,13 @@ public final class ScriptMaterialBuilder {
   private double damage;
   private boolean hasFluid;
   private ResourceLocation fluid;
+
+  private java.util.Optional<ResourceLocation> repairItem = MaterialRuntimeSettings.DEFAULT.repairItem();
+  private ResourceLocation incorrectBlocks = MaterialRuntimeSettings.DEFAULT.incorrectBlocks();
+  private ResourceLocation baseBlock = MaterialRuntimeSettings.DEFAULT.baseBlock();
+  private ResourceLocation blockSetType = MaterialRuntimeSettings.DEFAULT.blockSetType();
+  private java.util.Optional<String> blockSound = MaterialRuntimeSettings.DEFAULT.blockSound();
+  private java.util.Optional<String> mapColor = MaterialRuntimeSettings.DEFAULT.mapColor();
 
   /**
    * Starts a material. The name is a path such as {@code "copper"}; {@code "mmdlib:copper"} is also
@@ -305,18 +313,137 @@ public final class ScriptMaterialBuilder {
             .setRuntime(runtime())
             .build();
     ScriptDefinitions.add(material);
+    if (!displayName.isEmpty()) ScriptDefinitions.resources("material", name, ScriptResourceOptions.DEFAULT.named(displayName));
+  }
+
+  @ZenCodeType.Getter("repairItem")
+  public String getRepairItem() { return repairItem.map(Object::toString).orElse(""); }
+
+  @ZenCodeType.Setter("repairItem")
+  public void setRepairItem(String value) {
+    repairItem = value.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(ResourceLocation.parse(value));
+  }
+
+  @ZenCodeType.Getter("incorrectBlocks")
+  public String getIncorrectBlocks() { return incorrectBlocks.toString(); }
+
+  @ZenCodeType.Setter("incorrectBlocks")
+  public void setIncorrectBlocks(String value) {
+    incorrectBlocks = ResourceLocation.parse(value);
+  }
+
+  @ZenCodeType.Getter("baseBlock")
+  public String getBaseBlock() { return baseBlock.toString(); }
+
+  @ZenCodeType.Setter("baseBlock")
+  public void setBaseBlock(String value) {
+    baseBlock = ResourceLocation.parse(value);
+  }
+
+  @ZenCodeType.Getter("blockSetType")
+  public String getBlockSetType() { return blockSetType.toString(); }
+
+  @ZenCodeType.Setter("blockSetType")
+  public void setBlockSetType(String value) {
+    blockSetType = ResourceLocation.parse(value);
+  }
+
+  @ZenCodeType.Getter("blockSound")
+  public String getBlockSound() { return blockSound.map(Object::toString).orElse(""); }
+
+  @ZenCodeType.Setter("blockSound")
+  public void setBlockSound(String value) {
+    if (!value.isEmpty()) {
+      try { net.minecraft.world.level.block.SoundType.class.getField(value.toUpperCase(java.util.Locale.ROOT)); }
+      catch (ReflectiveOperationException ex) { throw new IllegalArgumentException("Unknown blockSound: " + value, ex); }
+    }
+    blockSound = value.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(value);
+  }
+
+  @ZenCodeType.Getter("mapColor")
+  public String getMapColor() { return mapColor.map(Object::toString).orElse(""); }
+
+  @ZenCodeType.Setter("mapColor")
+  public void setMapColor(String value) {
+    if (!value.isEmpty()) {
+      try { net.minecraft.world.level.material.MapColor.class.getField(value.toUpperCase(java.util.Locale.ROOT)); }
+      catch (ReflectiveOperationException ex) { throw new IllegalArgumentException("Unknown mapColor: " + value, ex); }
+    }
+    mapColor = value.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(value);
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder toolDurability(int value) {
+    if (value < 1) throw new IllegalArgumentException("Invalid toolDurability: " + value);
+    return addSpecial("tool_durability", value);
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder toolEfficiency(double value) {
+    if (!Double.isFinite(value) || value < 0 || value > Float.MAX_VALUE) throw new IllegalArgumentException("Invalid toolEfficiency: " + value);
+    return addSpecial("tool_efficiency", value);
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder attackDamage(double value) {
+    if (!Double.isFinite(value) || Math.abs(value) > Float.MAX_VALUE) throw new IllegalArgumentException("Invalid attackDamage: " + value);
+    return addSpecial("base_attack_damage", value);
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder enchantability(int value) {
+    if (value < 0) throw new IllegalArgumentException("Invalid enchantability: " + value);
+    return addSpecial("enchantability", value);
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder repairWith(ScriptItemReference item) {
+    setRepairItem(item.getId()); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder baseBlockFrom(ScriptBlockReference block) {
+    setBaseBlock(block.getId()); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder incorrectBlocksTag(ScriptBlockTagReference tag) {
+    setIncorrectBlocks(tag.getId()); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder addHarvestTag(ScriptBlockTagReference tag) {
+    return addHarvestTags(tag.getId());
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder addItemModule(ScriptItemModuleReference module) {
+    return addItems(module.getId());
+  }
+
+  @ZenCodeType.Method
+  public ScriptMaterialBuilder addBlockModule(ScriptBlockModuleReference module) {
+    return addBlocks(module.getId());
+  }
+
+  @ZenCodeType.Getter("displayName")
+  public String getDisplayName() { return displayName; }
+
+  @ZenCodeType.Setter("displayName")
+  public void setDisplayName(String value) {
+    ScriptResourceOptions.DEFAULT.named(value);
+    displayName = value;
   }
 
   private MaterialRuntimeSettings runtime() {
-    var d = MaterialRuntimeSettings.DEFAULT;
     return new MaterialRuntimeSettings(
-        d.repairItem(),
-        d.incorrectBlocks(),
-        d.baseBlock(),
-        d.blockSetType(),
+        repairItem,
+        incorrectBlocks,
+        baseBlock,
+        blockSetType,
         name,
-        d.blockSound(),
-        d.mapColor(),
+        blockSound,
+        mapColor,
         false,
         false);
   }

@@ -188,6 +188,39 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
         container.isEmpty() ? Optional.empty() : Optional.of(ResourceLocation.parse(container));
   }
 
+  /** Configure only an item/module whose selected implementation is mmdlib:tool. */
+  @ZenCodeType.Method
+  public ScriptItemProperties configureTool(ScriptToolSettings settings) {
+    var factory = this instanceof ScriptItemModule module
+        ? module.getFactory()
+        : ScriptDefinitions.catalog().itemModule(
+            ResourceLocation.parse(((ScriptItemBuilder) this).getModule())).factory().toString();
+    if (!factory.equals("mmdlib:tool"))
+      throw new IllegalArgumentException("configureTool requires factory mmdlib:tool, not " + factory);
+    var merged = factoryData().json().getAsJsonObject();
+    settings.json().entrySet().forEach(entry -> merged.add(entry.getKey(), entry.getValue()));
+    new FactoryData(merged).decode(zone.moddev.mc.lib.common.runtime.StandardItems.ToolSettings.CODEC)
+        .getOrThrow(message -> new IllegalArgumentException("Invalid tool settings: " + message));
+    setFactoryData(com.blamejared.crafttweaker.api.data.converter.JSONConverter.convert(merged));
+    return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptItemProperties remainder(ScriptItemReference item) {
+    setContainer(item.getId()); return this;
+  }
+
+  @ZenCodeType.Method
+  public ScriptItemProperties stacksTo(int size) { setStackSize(size); return this; }
+
+  @ZenCodeType.Method
+  public ScriptItemProperties craftRemainder(String item) { setContainer(item); return this; }
+
+  @ZenCodeType.Method
+  public ScriptItemProperties craftRemainder(ScriptItemReference item) {
+    return craftRemainder(item.getId());
+  }
+
   /** The template these values describe. */
   ItemTemplate template() {
     return new ItemTemplate(

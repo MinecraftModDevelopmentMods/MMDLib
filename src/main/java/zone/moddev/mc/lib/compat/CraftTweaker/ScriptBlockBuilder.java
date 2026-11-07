@@ -55,9 +55,18 @@ public final class ScriptBlockBuilder extends ScriptBlockProperties {
     this(mmdlibId(name, "block"), ResourceLocation.parse(module));
   }
 
+  @ZenCodeType.Constructor
+  public ScriptBlockBuilder(String name, ScriptBlockModuleReference module) {
+    this(name, module.getId());
+  }
+
+  @ZenCodeType.Getter("reference")
+  public ScriptBlockReference getReference() { return new ScriptBlockReference(id.toString()); }
+
   private ScriptBlockBuilder(ResourceLocation id, ResourceLocation module) {
     super(ScriptDefinitions.catalog().blockModule(module).template(), FactoryData.EMPTY);
     this.id = id;
+    resourceOptions = ScriptDefinitions.resourceOptions("block_module", module);
     this.module = module;
     addTags("minecraft:mineable/pickaxe");
   }
@@ -72,6 +81,11 @@ public final class ScriptBlockBuilder extends ScriptBlockProperties {
   @ZenCodeType.Getter("module")
   public String getModule() {
     return module.toString();
+  }
+
+  @ZenCodeType.Method
+  public ScriptBlockBuilder baseBlockFrom(ScriptBlockReference block) {
+    setBaseBlock(block.getId()); return this;
   }
 
   /** The block stairs copy their behavior from; default {@code minecraft:iron_block}. */
@@ -144,5 +158,6 @@ public final class ScriptBlockBuilder extends ScriptBlockProperties {
     ScriptDefinitions.add(
         id,
         new StandaloneBlock(module, factoryData(), Optional.of(template()), runtime, blockEntityData));
+    ScriptDefinitions.resources("block", id, resourceOptions);
   }
 }

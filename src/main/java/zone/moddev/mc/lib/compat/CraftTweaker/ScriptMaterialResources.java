@@ -55,6 +55,13 @@ final class ScriptMaterialResources {
       Map<ResourceLocation, ResourceLocation> basedOn,
       MaterialTemplates templates,
       Path userFolder) {
+    return assets(materials, blocks, items, basedOn, templates, userFolder, Map.of());
+  }
+
+  static SortedMap<String, byte[]> assets(
+      Collection<MaterialFactory.Result> materials, Collection<MaterialFactory.Result> blocks,
+      Collection<MaterialFactory.Result> items, Map<ResourceLocation, ResourceLocation> basedOn,
+      MaterialTemplates templates, Path userFolder, Map<String, ScriptResourceOptions> options) {
     var files = new TreeMap<String, byte[]>();
     var lang = new TreeMap<String, String>();
     for (var result : materials) {
@@ -116,17 +123,18 @@ final class ScriptMaterialResources {
                 .read("textures/" + texture + ".png.mcmeta")
                 .ifPresent(meta -> files.put(target + ".mcmeta", meta));
           });
-      var display = display(name);
+      var display = options.getOrDefault(ScriptResourceOptions.key("material",
+          material.name().orElseThrow()), ScriptResourceOptions.DEFAULT).label(display(name), display(name));
       plan.items()
           .forEach(
               (part, item) -> {
                 if (!plan.blocks().containsKey(part))
-                  lang.put("item." + NS + "." + item.name().getPath(), label(part.id(), display));
+                  lang.put("item." + NS + "." + item.name().getPath(), ScriptResourceOptions.find(options, "item", item.name(), "item_module", part.templateId()).label(label(part.id(), display), display));
               });
       plan.blocks()
           .forEach(
               (part, block) ->
-                  lang.put("block." + NS + "." + block.name().getPath(), label(part.id(), display)));
+                  lang.put("block." + NS + "." + block.name().getPath(), ScriptResourceOptions.find(options, "block", block.name(), "block_module", part.templateId()).label(label(part.id(), display), display)));
       plan.entities()
           .forEach(
               (part, entity) ->
@@ -143,7 +151,7 @@ final class ScriptMaterialResources {
           .forEach(
               (part, block) -> {
                 var id = block.name();
-                lang.put("block." + id.getNamespace() + "." + id.getPath(), display(id.getPath()));
+                lang.put("block." + id.getNamespace() + "." + id.getPath(), ScriptResourceOptions.find(options, "block", id, "block_module", part.templateId()).label(display(id.getPath()), display(id.getPath())));
                 var tpl =
                     templatePart(part, "blockstates/", templates, basedOn)
                         // A plain block that turns to face its placer gets front and top faces.
@@ -166,7 +174,7 @@ final class ScriptMaterialResources {
           .forEach(
               (part, item) -> {
                 var id = item.name();
-                lang.put("item." + id.getNamespace() + "." + id.getPath(), display(id.getPath()));
+                lang.put("item." + id.getNamespace() + "." + id.getPath(), ScriptResourceOptions.find(options, "item", id, "item_module", part.templateId()).label(display(id.getPath()), display(id.getPath())));
                 var tpl = templatePart(part, "models/item/", templates, basedOn);
                 if (tpl.isEmpty()) {
                   noTemplate("item", id, part);
@@ -293,6 +301,13 @@ final class ScriptMaterialResources {
       Collection<MaterialFactory.Result> blocks,
       Collection<MaterialFactory.Result> items,
       Map<ResourceLocation, Set<ResourceLocation>> itemTags) {
+    return data(materials, blocks, items, itemTags, Map.of());
+  }
+
+  static SortedMap<String, byte[]> data(
+      Collection<MaterialFactory.Result> materials, Collection<MaterialFactory.Result> blocks,
+      Collection<MaterialFactory.Result> items, Map<ResourceLocation, Set<ResourceLocation>> itemTags,
+      Map<String, ScriptResourceOptions> options) {
     var files = new TreeMap<String, byte[]>();
     var tags = new TreeMap<String, TreeSet<String>>();
     for (var result : materials) {
@@ -375,6 +390,38 @@ final class ScriptMaterialResources {
               "data/" + id.getNamespace() + "/tags/" + parts[0] + "/" + id.getPath() + ".json",
               json(body).getBytes(StandardCharsets.UTF_8));
         });
+    java.util.stream.Stream.concat(materials.stream(), blocks.stream()).forEach(result ->
+        result.content().blocks().forEach((part, block) -> {
+          var id = block.name();
+          var option = ScriptResourceOptions.find(options, "block", id, "block_module", part.templateId());
+          var path = "data/" + id.getNamespace() + "/loot_table/blocks/" + id.getPath() + ".json";
+          switch (option.loot()) {
+            case "default" -> {
+              // A double slab intentionally has no own item and drops its matching slabs.
+              if (block.item() == null && !part.factory().equals(ResourceLocation.parse("mmdlib:double_slab")))
+                files.remove(path);
+            }
+            case "none" -> files.put(path, "{\"type\":\"minecraft:block\",\"pools\":[]}".getBytes(StandardCharsets.UTF_8));
+            case "self" -> {
+              if (block.item() == null) throw new IllegalArgumentException("dropsSelf requires an item: " + id);
+              files.put(path, lootTable(ResourceLocation.parse("mmdlib:block"), id.toString(), null, false)
+                  .orElseThrow().getBytes(StandardCharsets.UTF_8));
+            }
+            case "table" -> {
+              if (option.table().equals(id.withPrefix("blocks/").toString()))
+                throw new IllegalArgumentException("Loot table cannot reference itself: " + id);
+              var table = new JsonObject();
+              table.addProperty("type", "minecraft:block");
+              var pool = new JsonObject(); pool.addProperty("rolls", 1);
+              var entry = new JsonObject(); entry.addProperty("type", "minecraft:loot_table");
+              entry.addProperty("value", option.table());
+              var entries = new JsonArray(); entries.add(entry); pool.add("entries", entries);
+              var pools = new JsonArray(); pools.add(pool); table.add("pools", pools);
+              files.put(path, json(table).getBytes(StandardCharsets.UTF_8));
+            }
+            default -> throw new IllegalArgumentException("Unknown loot mode: " + option.loot());
+          }
+        }));
     return files;
   }
 

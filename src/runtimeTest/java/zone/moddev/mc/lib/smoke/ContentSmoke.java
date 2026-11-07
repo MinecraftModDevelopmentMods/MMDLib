@@ -38,14 +38,14 @@ final class ContentSmoke {
    * from test resources; the hook block from the test script) and the item count.
    */
   static void registered() {
-    if (MMDLib.loadedMaterials().size() != 15) throw new AssertionError("Missing materials");
+    if (MMDLib.loadedMaterials().size() != 16) throw new AssertionError("Missing materials");
     var detector = BuiltInRegistries.BLOCK.get(ResourceLocation.parse("mmdlib:human_detector"));
-    if (MMDLib.standaloneBlocks().size() != 4
+    if (MMDLib.standaloneBlocks().size() != 12
         || !(detector instanceof StandardBlocks.DetectorPressurePlate))
       throw new AssertionError("Standalone player-only plate missing: " + detector);
     // 234 release items; from test resources the gate's and hook block's block items and the hook
-    // tool; from the test script the hook block's block item, the hook tool and the hammer.
-    if (registrar().items().size() != 240)
+    // tool; from the test script the hook block's block item, the hook tool, the hammer, the phase 2 material tool, and seven phase 3 entries.
+    if (registrar().items().size() != 254)
       throw new AssertionError("Wrong runtime item count: " + registrar().items().size());
   }
 
@@ -69,7 +69,7 @@ final class ContentSmoke {
       placed++;
     }
     // 59 release blocks, the test gate, the hook block and the script hook block.
-    if (placed != 62) throw new AssertionError("Wrong placed block count: " + placed);
+    if (placed != 69) throw new AssertionError("Wrong placed block count: " + placed);
   }
 
   /** Arrows and bolts keep their pickup item and its components across save and load. */

@@ -26,12 +26,21 @@ import zone.moddev.mc.lib.common.types.FactoryData;
 @ZenCodeType.Name("mods.mmdlib.DefinitionProperties")
 public abstract class ScriptDefinitionProperties {
   static final String ALL = "all";
+  ScriptResourceOptions resourceOptions = ScriptResourceOptions.DEFAULT;
+
+  @ZenCodeType.Getter("displayName")
+  public String getDisplayName() { return resourceOptions.displayName(); }
+
+  @ZenCodeType.Setter("displayName")
+  public void setDisplayName(String name) { resourceOptions = resourceOptions.named(name); }
+
 
   private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
 
   private final Set<ResourceLocation> tags;
   private final Map<String, ResourceLocation> events;
   private final Map<String, Object> hooks = new java.util.HashMap<>();
+  private final Map<String, java.util.function.BiConsumer<ScriptDefinitionProperties, Object>> hookCopiers = new java.util.HashMap<>();
   private JsonObject factoryData;
 
   ScriptDefinitionProperties(
@@ -63,6 +72,10 @@ public abstract class ScriptDefinitionProperties {
     var id = definitionId().withSuffix("/" + event.name());
     boolean first = !hooks.containsKey(event.name());
     hooks.put(event.name(), java.util.Objects.requireNonNull(handler));
+    hookCopiers.put(event.name(), (target, value) -> {
+      @SuppressWarnings("unchecked") H snapshot = (H) value;
+      target.hook(event, snapshot, invoke);
+    });
     if (first)
       ScriptDefinitions.catalog()
           .events()
@@ -79,6 +92,14 @@ public abstract class ScriptDefinitionProperties {
                 }
               });
     addEvent(event.name(), id.toString());
+  }
+
+  /** Rebind active owned hooks with independent maps; explicit external callbacks stay shared. */
+  void copyHooksTo(ScriptDefinitionProperties target) {
+    hooks.forEach((event, handler) -> {
+      if (definitionId().withSuffix("/" + event).equals(events.get(event)))
+        hookCopiers.get(event).accept(target, handler);
+    });
   }
 
   /** Settings for the Java implementation, such as {@code {detects: "players"}}. */

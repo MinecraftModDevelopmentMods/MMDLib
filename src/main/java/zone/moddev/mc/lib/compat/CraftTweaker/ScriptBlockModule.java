@@ -54,6 +54,30 @@ public final class ScriptBlockModule extends ScriptBlockProperties {
 
   private final ResourceLocation baseId;
 
+  @ZenCodeType.Constructor
+  public ScriptBlockModule(String name, ScriptBlockModuleReference basedOn) {
+    this(name, basedOn.getId());
+  }
+
+  @ZenCodeType.Getter("reference")
+  public ScriptBlockModuleReference getReference() {
+    return new ScriptBlockModuleReference(id.toString());
+  }
+
+  /** Snapshot current configuration under a new identity; source need not be built. */
+  @ZenCodeType.Method
+  public ScriptBlockModule copy(String name) {
+    var targetId = mmdlibId(name, "block module");
+    if (targetId.equals(id)) throw new IllegalArgumentException("Copy needs a different module ID");
+    var snapshot = new DataModules.Block(factory, base.requiredMod(),
+        materialDefaults, factoryData(), template(), base.part());
+    var target = new ScriptBlockModule(targetId, baseId, snapshot);
+    copyClassHooksTo(target);
+    target.resourceOptions = resourceOptions;
+    copyHooksTo(target);
+    return target;
+  }
+
   private ScriptBlockModule(ResourceLocation id, ResourceLocation baseId) {
     this(id, baseId, ScriptDefinitions.catalog().blockModule(baseId));
   }
@@ -61,6 +85,7 @@ public final class ScriptBlockModule extends ScriptBlockProperties {
   private ScriptBlockModule(ResourceLocation id, ResourceLocation baseId, DataModules.Block base) {
     super(base.template(), base.factoryData());
     this.id = id;
+    resourceOptions = ScriptDefinitions.resourceOptions("block_module", baseId);
     this.baseId = baseId;
     this.base = base;
     factory = base.factory();
@@ -127,6 +152,7 @@ public final class ScriptBlockModule extends ScriptBlockProperties {
                 factoryData(),
                 template(),
                 new PartMetadata(List.of(), part.entityFactory(), part.entityData(), part.blockEntity())));
+    ScriptDefinitions.resources("block_module", id, resourceOptions);
     ScriptDefinitions.module(id, baseId, java.util.Set.of());
   }
 }
