@@ -128,7 +128,16 @@ public final class MaterialEventContexts {
 
     /** The power arriving at the block's {@code face} (a world direction) right now. */
     public int signal(net.minecraft.core.Direction face) {
-      return level.getSignal(position.relative(face), face);
+      return signal(level, position, face);
+    }
+
+    /**
+     * The power arriving at {@code face} (a world direction) of the block at {@code pos}, as {@link
+     * net.minecraft.world.level.Level#getSignal} reports it from that neighbor.
+     */
+    public static int signal(
+        net.minecraft.world.level.Level level, BlockPos pos, net.minecraft.core.Direction face) {
+      return level.getSignal(pos.relative(face), face);
     }
   }
 

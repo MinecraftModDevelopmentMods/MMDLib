@@ -468,6 +468,17 @@ and run script functions. These properties write the block's
 side, and `remove...("all")` clears them. A block that reads only some sides runs its
 handler when any of them changes.
 
+On a directional block, compass names mean different things in the two places:
+
+* In `addInputFaces` and `addOutputFaces`, they are part of the block's definition,
+  so they name the block's own sides as if it faced north. The placed block turns
+  them with itself.
+* In `ctx.input(side)`, the handler is running in the world, so they are world
+  directions.
+
+`front`, `back`, `left` and `right` mean the same in both places; use them on
+directional blocks.
+
 Two handlers take script functions:
 
 * `onRedstoneChanged((ctx as RedstoneContext) => {...})` runs on the server when the

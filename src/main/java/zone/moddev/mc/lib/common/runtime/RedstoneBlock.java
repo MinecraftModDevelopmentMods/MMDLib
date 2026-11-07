@@ -390,9 +390,9 @@ public class RedstoneBlock extends Block {
     if (settings.input()) checkInput(state, level, pos);
   }
 
-  /** The power a face receives from its neighbor, as {@link Level#getSignal} reports it. */
+  /** The power a face receives from its neighbor; see {@link RedstoneChange#signal(Level, BlockPos, Direction)}. */
   public static int signal(Level level, BlockPos pos, Direction face) {
-    return level.getSignal(pos.relative(face), face);
+    return RedstoneChange.signal(level, pos, face);
   }
 
   private void checkInput(BlockState state, ServerLevel server, BlockPos pos) {
