@@ -1,0 +1,12 @@
+{
+  "module": "mmdlib:block",
+  "template": {
+    "properties": { "random_ticks": true },
+    "events": {
+      "block-placed": "mmdlib:test_placed",
+      "block-broken": "mmdlib:test_broken",
+      "block-stepped-on": "mmdlib:test_stepped_on",
+      "block-random-tick": "mmdlib:test_random_tick"
+    }
+  }
+}

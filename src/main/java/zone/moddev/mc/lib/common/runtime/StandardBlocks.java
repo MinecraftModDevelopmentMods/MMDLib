@@ -22,6 +22,36 @@ import zone.moddev.mc.lib.common.types.MaterialPart;
  * Select actual vanilla or BMe-derived stateful classes; never fall back for an unknown behavior.
  */
 public final class StandardBlocks {
+  /**
+   * {@code mmdlib:block} without redstone: a plain block that fires {@code block-stepped-on} and
+   * {@code block-random-tick}.
+   */
+  public static class Plain extends Block {
+    private final BlockHooks hooks;
+
+    /** A plain block whose events go to {@code hooks}. */
+    public Plain(Properties properties, BlockHooks hooks) {
+      super(properties);
+      this.hooks = hooks;
+    }
+
+    @Override
+    public void stepOn(Level level, BlockPos pos, BlockState state, Entity entity) {
+      super.stepOn(level, pos, state, entity);
+      hooks.steppedOn(level, pos, state, entity);
+    }
+
+    @Override
+    protected void randomTick(
+        BlockState state,
+        net.minecraft.server.level.ServerLevel level,
+        BlockPos pos,
+        net.minecraft.util.RandomSource random) {
+      super.randomTick(state, level, pos, random);
+      hooks.randomTick(level, pos, state);
+    }
+  }
+
   private StandardBlocks() {}
 
   /** {@code mmdlib:bookshelf}: a block that powers enchanting tables like a vanilla bookshelf. */

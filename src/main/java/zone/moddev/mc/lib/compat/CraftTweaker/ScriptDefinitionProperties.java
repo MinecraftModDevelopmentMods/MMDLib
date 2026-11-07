@@ -27,8 +27,11 @@ import zone.moddev.mc.lib.common.types.FactoryData;
 public abstract class ScriptDefinitionProperties {
   static final String ALL = "all";
 
+  private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+
   private final Set<ResourceLocation> tags;
   private final Map<String, ResourceLocation> events;
+  private final Map<String, Object> hooks = new java.util.HashMap<>();
   private JsonObject factoryData;
 
   ScriptDefinitionProperties(
@@ -44,6 +47,39 @@ public abstract class ScriptDefinitionProperties {
   /** Finishes the definition. Call it once. */
   @ZenCodeType.Method
   public abstract void build();
+
+  /** The registry or module ID, which names the definition's script callbacks. */
+  abstract ResourceLocation definitionId();
+
+  /**
+   * Binds a script function to {@code event}: registers a callback {@code <id>/<event>} the first
+   * time, which runs the latest function given; {@code invoke} hands the event's context to it. A
+   * function that throws is logged and the game carries on.
+   */
+  <C, H> void hook(
+      zone.moddev.mc.lib.api.MaterialEvent<C> event,
+      H handler,
+      java.util.function.BiConsumer<H, C> invoke) {
+    var id = definitionId().withSuffix("/" + event.name());
+    boolean first = !hooks.containsKey(event.name());
+    hooks.put(event.name(), java.util.Objects.requireNonNull(handler));
+    if (first)
+      ScriptDefinitions.catalog()
+          .events()
+          .registerCallback(
+              id,
+              event,
+              context -> {
+                @SuppressWarnings("unchecked")
+                var current = (H) hooks.get(event.name());
+                try {
+                  invoke.accept(current, context);
+                } catch (RuntimeException ex) {
+                  LOGGER.error("Script {} handler of {} failed", event.name(), definitionId(), ex);
+                }
+              });
+    addEvent(event.name(), id.toString());
+  }
 
   /** Settings for the Java implementation, such as {@code {detects: "players"}}. */
   @ZenCodeType.Getter("factoryData")

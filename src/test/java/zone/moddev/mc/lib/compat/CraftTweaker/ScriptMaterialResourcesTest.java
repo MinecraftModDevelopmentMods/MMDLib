@@ -161,6 +161,32 @@ final class ScriptMaterialResourcesTest {
     require(text(files, "assets/mmdlib/lang/en_us.json").contains("\"Tin Test Steps\""), "name");
   }
 
+  @Test
+  void directionalRedstoneBlocksTurnToFaceTheirPlacer() {
+    var block = net.minecraft.resources.ResourceLocation.parse("mmdlib:block");
+    var gate =
+        new zone.moddev.mc.lib.common.types.StandaloneBlock(
+                block,
+                new zone.moddev.mc.lib.common.types.FactoryData(
+                    JsonParser.parseString("{\"redstone\":{\"facing\":true,\"output\":\"state\"}}")),
+                Optional.empty(),
+                zone.moddev.mc.lib.common.types.MaterialRuntimeSettings.DEFAULT)
+            .resolve(
+                net.minecraft.resources.ResourceLocation.parse("mmdlib:nand_gate"),
+                MaterialExtensions.GLOBAL.blockModule(block));
+    var files =
+        ScriptMaterialResources.assets(
+            List.of(), List.of(gate), List.of(), Map.of(), new MaterialTemplates(List.of(TEMPLATES)), TEMPLATES);
+    var state = text(files, "assets/mmdlib/blockstates/nand_gate.json");
+    require(state.contains("facing=east") && state.contains("\"y\": 90"), "turned variants");
+    var model = text(files, "assets/mmdlib/models/block/nand_gate.json");
+    require(
+        model.contains("mmdlib:block/nand_gate_front")
+            && model.contains("mmdlib:block/nand_gate_top")
+            && model.contains("\"side\": \"mmdlib:block/nand_gate\""),
+        "front, top and side textures");
+  }
+
   private static MaterialFactory.Result item(String id, String module) {
     var rl = net.minecraft.resources.ResourceLocation.parse(module);
     return new zone.moddev.mc.lib.common.types.StandaloneItem(

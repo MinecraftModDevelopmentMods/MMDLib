@@ -17,7 +17,13 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 
 import net.neoforged.bus.api.IEventBus;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -82,6 +88,118 @@ public final class ItemEventBridge {
     bus.addListener(this::playerTick);
     bus.addListener(this::projectileDamage);
     bus.addListener(this::projectileHit);
+    bus.addListener(this::useStart);
+    bus.addListener(this::useTick);
+    bus.addListener(this::useStop);
+    bus.addListener(this::useFinish);
+    bus.addListener(this::meleeHit);
+    bus.addListener(this::blockBreak);
+    bus.addListener(this::blockPlace);
+  }
+
+  private void useStart(LivingEntityUseItemEvent.Start event) {
+    var use = use(event, UsePhase.START, MaterialEventTypes.ITEM_USE_START);
+    if (use == null) return;
+    event.setDuration(use.duration());
+    if (use.cancelled()) event.setCanceled(true);
+  }
+
+  private void useTick(LivingEntityUseItemEvent.Tick event) {
+    var use = use(event, UsePhase.TICK, MaterialEventTypes.ITEM_USE_TICK);
+    if (use != null && use.cancelled()) event.setCanceled(true);
+  }
+
+  private void useStop(LivingEntityUseItemEvent.Stop event) {
+    use(event, UsePhase.STOP, MaterialEventTypes.ITEM_USE_STOP);
+  }
+
+  private void useFinish(LivingEntityUseItemEvent.Finish event) {
+    var id = resolve(event.getItem(), MaterialEventTypes.ITEM_USE_FINISH);
+    if (id == null) return;
+    var use =
+        new ItemUse(
+            UsePhase.FINISH,
+            event.getEntity(),
+            event.getItem(),
+            event.getDuration(),
+            event.getResultStack());
+    events.dispatch(id, MaterialEventTypes.ITEM_USE_FINISH, use);
+    event.setResultStack(use.result());
+  }
+
+  /** Dispatches a use phase; null when the item binds no handler for it. */
+  private ItemUse use(LivingEntityUseItemEvent event, UsePhase phase, MaterialEvent<ItemUse> type) {
+    var id = resolve(event.getItem(), type);
+    if (id == null) return null;
+    var use = new ItemUse(phase, event.getEntity(), event.getItem(), event.getDuration(), event.getItem());
+    events.dispatch(id, type, use);
+    return use;
+  }
+
+  /**
+   * Server only, after damage was dealt. A melee hit is damage whose direct source is the attacker
+   * itself, which excludes projectiles, thorns and the like; the attacker's main-hand item is bound.
+   */
+  private void meleeHit(LivingDamageEvent.Post event) {
+    var target = event.getEntity();
+    var source = event.getSource();
+    if (target.level().isClientSide
+        || !(source.getEntity() instanceof LivingEntity attacker)
+        || source.getDirectEntity() != attacker) return;
+    var stack = attacker.getMainHandItem();
+    dispatch(
+        stack, MaterialEventTypes.ITEM_HIT, new ItemHit(attacker, target, stack, event.getNewDamage()));
+  }
+
+  /**
+   * Server only, before the block is removed: the held item's {@code item-break-block} first
+   * (skipped for blocks broken by its own {@link BlockBreak#mine}), then the block's {@code
+   * block-broken}. Either can cancel the break.
+   */
+  private void blockBreak(BlockEvent.BreakEvent event) {
+    if (!(event.getLevel() instanceof ServerLevel level)) return;
+    var player = event.getPlayer();
+    var tool = player.getMainHandItem();
+    var itemHandler = BlockBreak.mining() ? null : resolve(tool, MaterialEventTypes.ITEM_BREAK_BLOCK);
+    var block = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock());
+    var definition = blockDefinitions.apply(block);
+    var blockHandler =
+        definition == null
+            ? null
+            : binding(
+                definition.events(), blockMaterials.apply(block), MaterialEventTypes.BLOCK_BROKEN.name());
+    if (itemHandler == null && blockHandler == null) return;
+    var context =
+        new BlockBreak(player, level, event.getPos(), event.getState(), tool, face(player, event));
+    if (itemHandler != null)
+      events.dispatch(itemHandler, MaterialEventTypes.ITEM_BREAK_BLOCK, context);
+    if (blockHandler != null && !context.cancelled())
+      events.dispatch(blockHandler, MaterialEventTypes.BLOCK_BROKEN, context);
+    if (context.cancelled()) event.setCanceled(true);
+  }
+
+  /** The face the player is looking at on the broken block, or null when it is out of sight. */
+  private static Direction face(Player player, BlockEvent.BreakEvent event) {
+    var hit = player.pick(player.blockInteractionRange() + 1, 0, false);
+    return hit instanceof BlockHitResult block && block.getBlockPos().equals(event.getPos())
+        ? block.getDirection()
+        : null;
+  }
+
+  /** Server only, after the block is placed. */
+  private void blockPlace(BlockEvent.EntityPlaceEvent event) {
+    if (!(event.getLevel() instanceof Level level)) return;
+    var placed = event.getPlacedBlock();
+    var block = BuiltInRegistries.BLOCK.getKey(placed.getBlock());
+    var definition = blockDefinitions.apply(block);
+    if (definition == null) return;
+    var id =
+        binding(definition.events(), blockMaterials.apply(block), MaterialEventTypes.BLOCK_PLACED.name());
+    if (id != null)
+      events.dispatch(
+          id,
+          MaterialEventTypes.BLOCK_PLACED,
+          new BlockAction(level, event.getPos(), placed, event.getEntity()));
   }
 
   /**

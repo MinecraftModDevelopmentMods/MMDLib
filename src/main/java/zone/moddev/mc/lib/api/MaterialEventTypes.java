@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.api;
 
 import java.lang.invoke.MethodType;
+import java.util.List;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -80,6 +81,80 @@ public final class MaterialEventTypes {
   public static final MaterialEvent<RedstoneChange> REDSTONE_CHANGED =
       new MaterialEvent<>("redstone-changed", RedstoneChange.class);
 
+  /**
+   * A living entity starts using a bound item (eating, drawing a bow...), both sides; handler
+   * {@code (ItemUse)}, which can change the duration or cancel.
+   */
+  public static final MaterialEvent<ItemUse> ITEM_USE_START =
+      new MaterialEvent<>("item-use-start", ItemUse.class);
+
+  /** Each tick of using a bound item, both sides; handler {@code (ItemUse)}, which can cancel. */
+  public static final MaterialEvent<ItemUse> ITEM_USE_TICK =
+      new MaterialEvent<>("item-use-tick", ItemUse.class);
+
+  /** Use of a bound item stopped early, like a released bow, both sides; handler {@code (ItemUse)}. */
+  public static final MaterialEvent<ItemUse> ITEM_USE_STOP =
+      new MaterialEvent<>("item-use-stop", ItemUse.class);
+
+  /**
+   * Use of a bound item finished, both sides; handler {@code (ItemUse)}, which can replace the stack
+   * left in hand.
+   */
+  public static final MaterialEvent<ItemUse> ITEM_USE_FINISH =
+      new MaterialEvent<>("item-use-finish", ItemUse.class);
+
+  /**
+   * A melee hit with a bound item dealt damage, server side, after reductions; handler {@code
+   * (ItemHit)}.
+   */
+  public static final MaterialEvent<ItemHit> ITEM_HIT = new MaterialEvent<>("item-hit", ItemHit.class);
+
+  /**
+   * A player holding a bound item is breaking a block, server side, before it is removed; handler
+   * {@code (BlockBreak)}, which can cancel or {@code mine} more blocks.
+   */
+  public static final MaterialEvent<BlockBreak> ITEM_BREAK_BLOCK =
+      new MaterialEvent<>("item-break-block", BlockBreak.class);
+
+  /**
+   * A player is breaking a bound block, server side, before it is removed; handler {@code
+   * (BlockBreak)}, which can cancel.
+   */
+  public static final MaterialEvent<BlockBreak> BLOCK_BROKEN =
+      new MaterialEvent<>("block-broken", BlockBreak.class);
+
+  /** An entity placed a bound block, server side; handler {@code (BlockAction)}. */
+  public static final MaterialEvent<BlockAction> BLOCK_PLACED =
+      new MaterialEvent<>("block-placed", BlockAction.class);
+
+  /**
+   * An entity stepped on a bound block, both sides; fired by MMDLib's plain block ({@code
+   * mmdlib:block}) only; handler {@code (BlockAction)}.
+   */
+  public static final MaterialEvent<BlockAction> BLOCK_STEPPED_ON =
+      new MaterialEvent<>("block-stepped-on", BlockAction.class);
+
+  /**
+   * A bound block got a random tick, server side; fired by MMDLib's plain block with random ticks
+   * on; handler {@code (BlockAction)}.
+   */
+  public static final MaterialEvent<BlockAction> BLOCK_RANDOM_TICK =
+      new MaterialEvent<>("block-random-tick", BlockAction.class);
+
+  /** Every gameplay contract whose handler takes its context alone. */
+  private static final List<MaterialEvent<?>> SINGLE_CONTEXT =
+      List.of(
+          ITEM_USE_START,
+          ITEM_USE_TICK,
+          ITEM_USE_STOP,
+          ITEM_USE_FINISH,
+          ITEM_HIT,
+          ITEM_BREAK_BLOCK,
+          BLOCK_BROKEN,
+          BLOCK_PLACED,
+          BLOCK_STEPPED_ON,
+          BLOCK_RANDOM_TICK);
+
   public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenHover> GUI_HOVER =
       new MaterialEvent<>("gui-hover", zone.moddev.mc.lib.gui.runtime.ScreenHover.class);
 
@@ -87,6 +162,7 @@ public final class MaterialEventTypes {
       new MaterialEvent<>("gui-click", zone.moddev.mc.lib.gui.runtime.ScreenClick.class);
 
   static void install(MaterialEvents events) {
+    SINGLE_CONTEXT.forEach(event -> events.registerEvent(event.name(), event.contextType()));
     events.registerEvent(GUI_CLICK.name(), GUI_CLICK.contextType());
     events.registerEvent(GUI_HOVER.name(), GUI_HOVER.contextType());
     events.registerEvent(

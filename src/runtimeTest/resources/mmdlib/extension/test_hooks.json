@@ -1,0 +1,58 @@
+{
+  "events": [
+    {
+      "type": "item-use-start",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#useStart",
+      "id": "mmdlib:test_use_start",
+      "name": "Game test hook item-use-start"
+    },
+    {
+      "type": "item-use-stop",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#useStop",
+      "id": "mmdlib:test_use_stop",
+      "name": "Game test hook item-use-stop"
+    },
+    {
+      "type": "item-use-finish",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#useFinish",
+      "id": "mmdlib:test_use_finish",
+      "name": "Game test hook item-use-finish"
+    },
+    {
+      "type": "item-hit",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#hit",
+      "id": "mmdlib:test_hit",
+      "name": "Game test hook item-hit"
+    },
+    {
+      "type": "item-break-block",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#breakBlock",
+      "id": "mmdlib:test_break_block",
+      "name": "Game test hook item-break-block"
+    },
+    {
+      "type": "block-placed",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#placed",
+      "id": "mmdlib:test_placed",
+      "name": "Game test hook block-placed"
+    },
+    {
+      "type": "block-broken",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#broken",
+      "id": "mmdlib:test_broken",
+      "name": "Game test hook block-broken"
+    },
+    {
+      "type": "block-stepped-on",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#steppedOn",
+      "id": "mmdlib:test_stepped_on",
+      "name": "Game test hook block-stepped-on"
+    },
+    {
+      "type": "block-random-tick",
+      "handler": "zone.moddev.mc.lib.smoke.HookSmoke#randomTick",
+      "id": "mmdlib:test_random_tick",
+      "name": "Game test hook block-random-tick"
+    }
+  ]
+}

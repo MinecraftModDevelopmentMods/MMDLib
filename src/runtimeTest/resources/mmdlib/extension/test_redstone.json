@@ -1,0 +1,10 @@
+{
+  "events": [
+    {
+      "type": "redstone-changed",
+      "handler": "zone.moddev.mc.lib.smoke.RedstoneSmoke#nand",
+      "id": "mmdlib:test_nand_gate",
+      "name": "Game test NAND gate"
+    }
+  ]
+}

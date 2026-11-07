@@ -1,0 +1,14 @@
+{
+  "module": "mmdlib:block",
+  "factory_data": {
+    "redstone": {
+      "input": true,
+      "output": "state",
+      "facing": true,
+      "faces": ["front"],
+      "inputs": ["left", "right"],
+      "delay": 2
+    }
+  },
+  "template": { "events": { "redstone-changed": "mmdlib:test_nand_gate" } }
+}

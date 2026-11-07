@@ -78,6 +78,11 @@ public final class ScriptItemBuilder extends ScriptItemProperties {
    * @throws IllegalArgumentException if a value is invalid
    * @throws IllegalStateException if the name was already built
    */
+  @Override
+  ResourceLocation definitionId() {
+    return id;
+  }
+
   @ZenCodeType.Method
   @Override
   public void build() {

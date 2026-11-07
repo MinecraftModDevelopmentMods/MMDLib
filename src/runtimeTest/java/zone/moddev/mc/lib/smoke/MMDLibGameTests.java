@@ -114,6 +114,46 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void itemUseHooks(GameTestHelper helper) {
+    HookSmoke.use(helper);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void itemHitHook(GameTestHelper helper) {
+    HookSmoke.hit(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void miningHook(GameTestHelper helper) {
+    HookSmoke.mining(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void blockHooks(GameTestHelper helper) {
+    HookSmoke.block(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptItemHooks(GameTestHelper helper) {
+    ScriptHookSmoke.item(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptHammer(GameTestHelper helper) {
+    ScriptHookSmoke.hammer(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptBlockHooks(GameTestHelper helper) {
+    ScriptHookSmoke.block(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void redstoneGate(GameTestHelper helper) {
+    RedstoneSmoke.gate(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
   public static void capabilities(GameTestHelper helper) {
     CapabilitySmoke.check(helper.getLevel());
     helper.succeed();

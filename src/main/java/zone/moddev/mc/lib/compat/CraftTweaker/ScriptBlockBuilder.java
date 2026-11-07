@@ -114,9 +114,20 @@ public final class ScriptBlockBuilder extends ScriptBlockProperties {
    * @throws IllegalArgumentException if a value is invalid
    * @throws IllegalStateException if the name was already built
    */
+  @Override
+  ResourceLocation definitionId() {
+    return id;
+  }
+
+  @Override
+  ResourceLocation factoryId() {
+    return ScriptDefinitions.catalog().blockModule(module).factory();
+  }
+
   @ZenCodeType.Method
   @Override
   public void build() {
+    validateBlock();
     var d = MaterialRuntimeSettings.DEFAULT;
     var runtime =
         new MaterialRuntimeSettings(

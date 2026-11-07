@@ -193,6 +193,8 @@ longbow.build();
 | `stackSize` | int | 1 to 99 |
 | `durability` | int | uses before breaking; 0 for none. Setting it also sets `stackSize` to 1 |
 | `fireResistant` | bool | survives fire and lava |
+| `useDuration` | int | ticks of use when right-clicked, like eating; 0 (default) for none. See [Hooks](#using-an-item-over-time) |
+| `useAnimation` | string | how it is held while used: `none`, `eat`, `drink`, `bow`... |
 | `container` | item ID | left in the crafting grid after use, such as `minecraft:bucket`; `""` for nothing |
 | `factoryData` | map | settings for the module's Java implementation |
 | `tags`, `events` | string[], read-only | |
@@ -228,6 +230,180 @@ tin.build();
 
 A module's tags go to every material part built from it. The part's art comes from
 the template of the module it was copied from, in the material color.
+
+## Redstone
+
+A block built by `mmdlib:block` (the default module) can react to redstone, emit it,
+and run script functions. These properties write the block's
+`factory_data.redstone` (see [runtime behaviors](runtime-behaviors.md#redstone)):
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `redstoneInput` | bool | read the power reaching the block; set by `onRedstoneChanged` |
+| `redstoneOutput` | bool | emit a power that handlers set with `context.output` |
+| `strongPower` | bool | also power through the touching block, like a lever |
+| `directional` | bool | face the way the placer looked; sides can then be `front`, `back`, `left`, `right` |
+| `redstoneDelay` | int | ticks before `onRedstoneChanged` runs; 1 by default, 0 for at once |
+| `comparator` | string | what a comparator reads: `"input"`, `"output"`, or `""` |
+
+`addOutputFaces`/`removeOutputFaces` choose the sides the output leaves from, and
+`addInputFaces`/`removeInputFaces` the sides the block reads. Both default to every
+side, and `remove...("all")` clears them. A block that reads only some sides runs its
+handler when any of them changes.
+
+Two handlers take script functions:
+
+* `onRedstoneChanged((ctx as RedstoneContext) => {...})` runs on the server when the
+  power reaching the block changes, after `redstoneDelay` ticks.
+* `onRightClick((ctx as ClickContext) => {...})` runs when a player right-clicks the
+  block, on both sides. The click is used up, so the held item does nothing.
+
+Both contexts have:
+
+* `input(side)`: the power reaching one side;
+* `output`: the power emitted, read and set, clamped to 0-15 and ignored on the client;
+* `facing`, `x`, `y`, `z`, and `client`.
+
+`RedstoneContext` adds `power` (the strongest read input), `previous`, and
+`powered`. `ClickContext` adds `player`, `sneaking`, and `face`. A handler that
+throws is logged, and the game carries on.
+
+An analog lever: each click raises its output by one, wrapping after 15, and a
+sneaking click lowers it.
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.BlockBuilder;
+import mods.mmdlib.ClickContext;
+import mods.mmdlib.RedstoneContext;
+
+var lever = new BlockBuilder("analog_lever");
+lever.redstoneOutput = true;
+lever.strongPower = true;
+lever.comparator = "output";
+lever.onRightClick((ctx as ClickContext) => {
+    if (ctx.sneaking) {
+        ctx.output = ctx.output - 1;
+    } else {
+        ctx.output = (ctx.output + 1) % 16;
+    }
+});
+lever.build();
+```
+
+A NAND gate that reads its left and right sides and powers only its front:
+
+```zenscript
+var gate = new BlockBuilder("nand_gate");
+gate.directional = true;
+gate.redstoneOutput = true;
+gate.removeOutputFaces("all").addOutputFaces("front");
+gate.addInputFaces("left", "right");
+gate.onRedstoneChanged((ctx as RedstoneContext) => {
+    ctx.output = (ctx.input("left") > 0 && ctx.input("right") > 0) ? 0 : 15;
+});
+gate.build();
+```
+
+A directional block gets a front and a top texture as well as its sides:
+`block/nand_gate.png`, `block/nand_gate_front.png`, and `block/nand_gate_top.png`.
+The model turns with the block, so an arrow drawn on the top points the way it
+faces. Handlers on a block module apply to every block built from it, material parts
+included.
+
+## Hooks
+
+Script functions can react to what players do with blocks and items, much as a Java
+subclass would. Each `onXxx` method binds a function to one of MMDLib's
+[hook contracts](method-events.md#hook-contracts). Java code and JSON extension files
+can bind the same contracts. Calling a method again replaces the function. A function
+that throws is logged, and the game carries on.
+
+| Builder | Method | Context | Runs |
+|---|---|---|---|
+| item | `onRightClick` | `ItemClickContext`: `player`, `stack`, `target` (`air`, `block`, `entity`), `entity`, `x`/`y`/`z`, `face` | both sides |
+| item | `onUseStart`, `onUseTick`, `onUseStop`, `onUseFinish` | `ItemUseContext`: `entity`, `stack`, `phase`, `duration`, `result`, `cancel()` | both sides |
+| item | `onHit` | `HitContext`: `attacker`, `target`, `stack`, `damage` | server, after a melee hit |
+| item | `onBreakBlock` | `BreakContext`: `player`, `tool`, `block`, `x`/`y`/`z`, `face`, `cancel()`, `mine(x, y, z)` | server, before the block goes |
+| block | `onRightClick`, `onRedstoneChanged` | see [Redstone](#redstone) | |
+| block | `onBroken` | `BreakContext` | server, before the block goes |
+| block | `onPlaced`, `onSteppedOn`, `onRandomTick` | `BlockEventContext`: the block context plus `entity` | placed: server; stepped on: both sides; random tick: server |
+
+Entities, players and stacks are the real game objects as CraftTweaker exposes them,
+so their CraftTweaker methods work: `ctx.target.setRemainingFireTicks(100)`,
+`ctx.player.isShiftKeyDown()`, `ctx.stack.withAmount(2)`.
+
+Handlers that run on both sides should check `ctx.client` before changing the world.
+`duration` can only be set in `onUseStart`, `result` only in `onUseFinish`, and
+`cancel()` only works while use starts or ticks.
+
+`onSteppedOn` and `onRandomTick` need a block built by `mmdlib:block`, because only
+that block's class fires them; NeoForge has no event for either. Using them on stairs
+or a door fails at `build()` and says so. `onRandomTick` turns on `randomTicks`. Every
+other hook works on any block or item.
+
+### Using an item over time
+
+The use handlers need an item that is used over time. Food and bows already are. A
+plain item becomes one with `useDuration` (ticks) and `useAnimation` (`none`, `eat`,
+`drink`, `block`, `bow`, `spear`, `crossbow`, `spyglass`, `toot_horn`, `brush`):
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.ItemBuilder;
+import mods.mmdlib.ItemUseContext;
+
+var charm = new ItemBuilder("ember_charm");
+charm.useDuration = 30;
+charm.useAnimation = "bow";
+charm.onUseFinish((ctx as ItemUseContext) => {
+    if (!ctx.client) ctx.entity.setRemainingFireTicks(0);
+});
+charm.build();
+```
+
+### Weapon effects
+
+```zenscript
+import mods.mmdlib.HitContext;
+
+var blade = new ItemBuilder("ember_blade", "mmdlib:sword");
+blade.onHit((ctx as HitContext) => {
+    ctx.target.setRemainingFireTicks(100);
+});
+blade.build();
+```
+
+### A 3×3 hammer
+
+`mine(x, y, z)` breaks a block as the player would, with drops, experience, tool wear
+and protection mods' checks. It skips air, unbreakable blocks, blocks the tool can't
+harvest, and the block already being broken, and its breaks don't run the hammer's
+handler again. `face` tells which plane to clear:
+
+```zenscript
+import mods.mmdlib.BreakContext;
+
+var hammer = new ItemBuilder("hammer", "mmdlib:pickaxe");
+hammer.onBreakBlock((ctx as BreakContext) => {
+    if (ctx.player.isShiftKeyDown()) return;
+    for a in -1 .. 2 {
+        for b in -1 .. 2 {
+            if (ctx.face == "up" || ctx.face == "down") {
+                ctx.mine(ctx.x + a, ctx.y, ctx.z + b);
+            } else if (ctx.face == "north" || ctx.face == "south") {
+                ctx.mine(ctx.x + a, ctx.y + b, ctx.z);
+            } else {
+                ctx.mine(ctx.x, ctx.y + a, ctx.z + b);
+            }
+        }
+    }
+});
+hammer.build();
+```
+
+Sneaking mines a single block. The game tests run this hammer
+(`src/runtimeTest/scripts/mmdlib_hooks.zs`).
 
 ## Generated resources
 
@@ -285,7 +461,11 @@ items, blocks, and their resources are created at startup on both sides.
 
 * Material events, runtime settings (sound, map color, block set type), and parent
   materials. These need the material file format for now.
-* Behavior written in script: event handlers as script functions. This is next.
+* Hooks without a contract yet: items ticking in an inventory, crafting and
+  smelting, tossing and picking up, tooltips, burn time, entities inside a block,
+  falling on a block. Each needs a contract like the others. The class-only ones
+  (inventory tick, entity inside, fall) would work on MMDLib's own classes: every
+  item, and the plain block.
 * Item template fields that are kept but not applied to registered items yet: lore,
   food, use time and animation, attribute modifiers, and tool actions. Scripts do not
   expose them until they work.

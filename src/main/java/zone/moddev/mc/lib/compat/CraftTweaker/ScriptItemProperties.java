@@ -9,12 +9,14 @@ import net.minecraft.resources.ResourceLocation;
 
 import org.openzen.zencode.java.ZenCodeType;
 
+import zone.moddev.mc.lib.api.MaterialEventTypes;
 import zone.moddev.mc.lib.common.codecs.ItemTemplate;
 import zone.moddev.mc.lib.common.types.FactoryData;
 
 /**
- * What a script item and a script item module share: stack size, durability, fire resistance and
- * container, besides the tags (item tags), events and factory data of every definition. Values
+ * What a script item and a script item module share: stack size, durability, fire resistance,
+ * container, use time and script handlers, besides the tags (item tags), events and factory data of
+ * every definition. Values
  * start from the module the builder is based on.
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
@@ -25,6 +27,8 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
   private int durability;
   private boolean fireResistant;
   private Optional<ResourceLocation> container;
+  private int useDuration;
+  private String useAnimation;
 
   ScriptItemProperties(ItemTemplate base, FactoryData factoryData, Set<ResourceLocation> tags) {
     super(tags, base.events(), factoryData);
@@ -33,6 +37,106 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     durability = base.damage();
     fireResistant = base.fireResistant();
     container = base.container();
+    useDuration = base.delayedUse().map(ItemTemplate.DelayedUse::duration).orElse(0);
+    useAnimation =
+        base.delayedUse()
+            .map(use -> use.animation().name().toLowerCase(java.util.Locale.ROOT))
+            .orElse("none");
+  }
+
+  /**
+   * Ticks the item takes to use when right-clicked, like eating or drawing a bow; 0 (the default)
+   * for an item that is not used over time. Plain items need it for the {@code onUse...} handlers;
+   * items that are already used over time (food, bows) have their own.
+   */
+  @ZenCodeType.Getter("useDuration")
+  public int getUseDuration() {
+    return useDuration;
+  }
+
+  @ZenCodeType.Setter("useDuration")
+  public void setUseDuration(int useDuration) {
+    this.useDuration = useDuration;
+  }
+
+  /**
+   * How the player holds the item while using it: {@code none}, {@code eat}, {@code drink}, {@code
+   * block}, {@code bow}, {@code spear}, {@code crossbow}, {@code spyglass}, {@code toot_horn} or
+   * {@code brush}.
+   */
+  @ZenCodeType.Getter("useAnimation")
+  public String getUseAnimation() {
+    return useAnimation;
+  }
+
+  @ZenCodeType.Setter("useAnimation")
+  public void setUseAnimation(String useAnimation) {
+    net.minecraft.world.item.UseAnim.valueOf(useAnimation.toUpperCase(java.util.Locale.ROOT));
+    this.useAnimation = useAnimation;
+  }
+
+  /** Runs {@code handler} when an entity starts using the item; it can change the duration or cancel. */
+  @ZenCodeType.Method
+  public ScriptItemProperties onUseStart(ScriptItemUseHandler handler) {
+    return use(MaterialEventTypes.ITEM_USE_START, handler);
+  }
+
+  /** Runs {@code handler} each tick the item is used; it can cancel. */
+  @ZenCodeType.Method
+  public ScriptItemProperties onUseTick(ScriptItemUseHandler handler) {
+    return use(MaterialEventTypes.ITEM_USE_TICK, handler);
+  }
+
+  /** Runs {@code handler} when use stops early, like releasing a bow. */
+  @ZenCodeType.Method
+  public ScriptItemProperties onUseStop(ScriptItemUseHandler handler) {
+    return use(MaterialEventTypes.ITEM_USE_STOP, handler);
+  }
+
+  /** Runs {@code handler} when use finishes; it can replace the stack left in hand. */
+  @ZenCodeType.Method
+  public ScriptItemProperties onUseFinish(ScriptItemUseHandler handler) {
+    return use(MaterialEventTypes.ITEM_USE_FINISH, handler);
+  }
+
+  private ScriptItemProperties use(
+      zone.moddev.mc.lib.api.MaterialEvent<zone.moddev.mc.lib.api.MaterialEventContexts.ItemUse> event,
+      ScriptItemUseHandler handler) {
+    hook(event, handler, (h, use) -> h.handle(new ScriptItemUseContext(use)));
+    return this;
+  }
+
+  /** Runs {@code handler} on the server after a melee hit with the item has dealt damage. */
+  @ZenCodeType.Method
+  public ScriptItemProperties onHit(ScriptHitHandler handler) {
+    hook(MaterialEventTypes.ITEM_HIT, handler, (h, hit) -> h.handle(new ScriptHitContext(hit)));
+    return this;
+  }
+
+  /**
+   * Runs {@code handler} on the server when a player holding the item is about to break a block; it
+   * can cancel, or {@code mine} more blocks (a 3x3 pickaxe).
+   */
+  @ZenCodeType.Method
+  public ScriptItemProperties onBreakBlock(ScriptBreakHandler handler) {
+    hook(
+        MaterialEventTypes.ITEM_BREAK_BLOCK,
+        handler,
+        (h, broken) -> h.handle(new ScriptBreakContext(broken)));
+    return this;
+  }
+
+  /**
+   * Runs {@code handler} when a player right-clicks with the item on air, a block or an entity, on
+   * both sides, alongside the item's own use.
+   */
+  @ZenCodeType.Method
+  public ScriptItemProperties onRightClick(ScriptItemClickHandler handler) {
+    hook(
+        MaterialEventTypes.TOOL_RIGHT_CLICK,
+        handler,
+        (h, click) -> h.handle(new ScriptItemClickContext(click)));
+    return this;
   }
 
   /** How many fit in one stack, 1 to 99. */
@@ -95,7 +199,14 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
         fireResistant,
         base.food(),
         container,
-        base.delayedUse(),
+        useDuration > 0
+            ? Optional.of(
+                new ItemTemplate.DelayedUse(
+                    useDuration,
+                    net.minecraft.world.item.UseAnim.valueOf(
+                        useAnimation.toUpperCase(java.util.Locale.ROOT)),
+                    base.delayedUse().flatMap(ItemTemplate.DelayedUse::onComplete)))
+            : Optional.empty(),
         base.colorHandler(),
         base.lore(),
         base.actions(),

@@ -40,6 +40,10 @@ IDs must be unique across loaded files and code-registered callbacks.
 | `projectile-damage` | `Projectile projectile, LivingEntity target, ItemStack ammo, DamageContainer damage` | Yes |
 | `projectile-hit` | `Projectile projectile, LivingEntity target, ItemStack ammo` | Yes |
 | `redstone-changed` | `MaterialEventContexts.RedstoneChange change` | Yes |
+| `item-use-start`, `item-use-tick`, `item-use-stop`, `item-use-finish` | `MaterialEventContexts.ItemUse use` | Yes |
+| `item-hit` | `MaterialEventContexts.ItemHit hit` | Yes |
+| `item-break-block`, `block-broken` | `MaterialEventContexts.BlockBreak broken` | Yes |
+| `block-placed`, `block-stepped-on`, `block-random-tick` | `MaterialEventContexts.BlockAction action` | Yes |
 
 `ItemEventBridge` dispatches every built-in contract; see [item and material
 bindings](#item-and-material-bindings) for the NeoForge events and sides.
@@ -223,7 +227,8 @@ Item templates bind handlers by event name in `events`:
 for any registered item or block whose ID has a loaded MMDLib definition (including
 custom types registered through the extension API), whatever its Java class. The item definition's binding wins; otherwise the item's material binding
 applies. Click and tick events fire on both logical sides; world-changing handlers
-must check the side. It never cancels the NeoForge event.
+must check the side. It cancels the NeoForge event only when a handler asks: a
+consumed block click, or a cancelled use or break (see [hook contracts](#hook-contracts)).
 
 | NeoForge event | Binding | Target |
 |---|---|---|
@@ -238,6 +243,10 @@ must check the side. It never cancels the NeoForge event.
 | `PlayerTickEvent.Post` (worn armor and both hands) | `player-tick` | `Player` |
 | `LivingIncomingDamageEvent` (server, projectile direct source) | `projectile-damage` | `ProjectileDamage` |
 | `LivingDamageEvent.Post` (server, projectile direct source) | `projectile-hit` | `ProjectileHit` |
+| `LivingEntityUseItemEvent.Start` / `.Tick` / `.Stop` / `.Finish` (both sides) | `item-use-start` / `-tick` / `-stop` / `-finish` | `ItemUse` |
+| `LivingDamageEvent.Post` (server, the attacker is the direct source: melee) | `item-hit`, by the attacker's main-hand item | `ItemHit` |
+| `BlockEvent.BreakEvent` (server) | `item-break-block` by the main-hand item, then `block-broken` by the block | `BlockBreak` |
+| `BlockEvent.EntityPlaceEvent` (server) | `block-placed` | `BlockAction` |
 
 `player-tick` runs each bound callback once per tick however many worn or held items
 share it: a material binding is a per-material effect, and its handler can count the
@@ -250,6 +259,45 @@ they spawn.
 Vanilla follows an unconsumed block click with an item use, so a right-click on a
 block can dispatch a `BlockTarget` and then an `AirTarget`. Item bindings are
 validated against the callback catalog when materials load.
+
+## Hook contracts
+
+These contracts let content react the way a Java subclass would, without one. Their
+handlers take the context alone, and some contexts carry a result that is written back
+to the game after the handler returns.
+
+| Contract | Context | Results |
+|---|---|---|
+| `item-use-start` | `ItemUse` (phase `START`, total duration) | `setDuration`, `cancel` |
+| `item-use-tick` | `ItemUse` (ticks left) | `cancel` |
+| `item-use-stop` | `ItemUse` (ticks left; released early) | none |
+| `item-use-finish` | `ItemUse` (`result` is the stack left in hand) | `setResult` |
+| `item-hit` | `ItemHit`: attacker, target, stack, damage dealt | none |
+| `item-break-block`, `block-broken` | `BlockBreak`: player, level, position, state, tool, face mined | `cancel`; `mine(pos)` |
+| `block-placed` | `BlockAction` with the placing entity | none |
+| `block-stepped-on` | `BlockAction` with the entity | none |
+| `block-random-tick` | `BlockAction` without an entity | none |
+
+The use events need an item that is used over time. Food, bows and the like already
+are. A plain item (`mmdlib:basic_item`) is used over time when its template sets
+`delayed_use`:
+
+```json
+{"template": {"delayed_use": {"duration": 20, "animation": "bow"},
+              "events": {"item-use-finish": "example:charge_finished"}}}
+```
+
+`BlockBreak.mine(pos)` breaks another block as the player would, with drops,
+experience, tool wear and other mods' break checks. It skips air, unbreakable blocks,
+blocks the tool cannot harvest, and the block already being broken, and its breaks
+are not reported to `item-break-block` again. This is how a 3×3 tool works. `face()`
+is the face the player is looking at, or null when the block is out of sight.
+
+**Where each hook works.** Every hook except two is fired from a NeoForge event, so it
+works for any MMDLib item or block, whatever its class. `block-stepped-on` and
+`block-random-tick` have no NeoForge event; only MMDLib's plain block (`mmdlib:block`,
+with or without redstone) fires them, and `block-random-tick` also needs
+`random_ticks` on. Binding them to another block form is allowed, but nothing fires.
 
 ## Custom method signatures
 

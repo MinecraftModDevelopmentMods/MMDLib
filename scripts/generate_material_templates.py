@@ -348,6 +348,15 @@ def models_from(jar, output):
              'elements': [{'from': [0, 0, 0], 'to': [16, 16, 16], 'faces': faces('#base')},
                           {'from': [0, 0, 0], 'to': [16, 16, 16], 'faces': faces('#overlay')}]})
         put('models/item/' + TOKEN + '_' + part, {'parent': T + '_' + part})
+    # A directional block (redstone "facing"): front, side and top textures, turned to face the
+    # way it was placed. Used for standalone blocks; materials have no directional part.
+    put('blockstates/' + TOKEN + '_block_facing',
+        {'variants': {f'facing={d}': ({'model': T + '_block_facing', 'y': y} if y else {'model': T + '_block_facing'})
+                      for d, y in [('north', 0), ('east', 90), ('south', 180), ('west', 270)]}})
+    put('models/block/' + TOKEN + '_block_facing',
+        {'parent': 'minecraft:block/orientable',
+         'textures': {'front': T + '_block_facing_front', 'side': T + '_block', 'top': T + '_block_facing_top'}})
+    put('models/item/' + TOKEN + '_block_facing', {'parent': T + '_block_facing'})
     # The molten fluid: rendered by its fluid type, so the block itself has no model.
     put('blockstates/' + TOKEN + '_molten', {'variants': {'': {'model': 'minecraft:block/air'}}})
     put('models/item/' + TOKEN + '_molten_bucket',

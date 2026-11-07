@@ -102,9 +102,20 @@ public final class ScriptBlockModule extends ScriptBlockProperties {
    *
    * @throws IllegalArgumentException if a value is invalid or the name is taken
    */
+  @Override
+  ResourceLocation definitionId() {
+    return id;
+  }
+
+  @Override
+  ResourceLocation factoryId() {
+    return factory;
+  }
+
   @ZenCodeType.Method
   @Override
   public void build() {
+    validateBlock();
     var part = base.part();
     ScriptDefinitions.catalog()
         .registerBlockModule(

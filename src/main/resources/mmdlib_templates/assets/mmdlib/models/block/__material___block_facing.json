@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "front": "mmdlib:block/__material___block_facing_front",
+    "side": "mmdlib:block/__material___block",
+    "top": "mmdlib:block/__material___block_facing_top"
+  }
+}

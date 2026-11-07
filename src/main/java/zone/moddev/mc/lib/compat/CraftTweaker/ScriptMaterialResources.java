@@ -144,7 +144,10 @@ final class ScriptMaterialResources {
               (part, block) -> {
                 var id = block.name();
                 lang.put("block." + id.getNamespace() + "." + id.getPath(), display(id.getPath()));
-                var tpl = templatePart(part, "blockstates/", templates, basedOn);
+                var tpl =
+                    templatePart(part, "blockstates/", templates, basedOn)
+                        // A plain block that turns to face its placer gets front and top faces.
+                        .map(found -> found.equals("block") && directional(part) ? "block_facing" : found);
                 if (tpl.isEmpty()) {
                   noTemplate("block", id, part);
                   return;
@@ -181,6 +184,16 @@ final class ScriptMaterialResources {
     if (!lang.isEmpty())
       files.put("assets/" + NS + "/lang/en_us.json", json(lang).getBytes(StandardCharsets.UTF_8));
     return files;
+  }
+
+  /** Whether the part's redstone settings turn it to face its placer. */
+  private static boolean directional(MaterialPart part) {
+    var json = part.factoryData().json();
+    if (!json.isJsonObject() || !json.getAsJsonObject().has("redstone")) return false;
+    var redstone = json.getAsJsonObject().get("redstone");
+    return redstone.isJsonObject()
+        && redstone.getAsJsonObject().has("facing")
+        && redstone.getAsJsonObject().get("facing").getAsBoolean();
   }
 
   private static void noTemplate(String kind, ResourceLocation id, MaterialPart part) {
