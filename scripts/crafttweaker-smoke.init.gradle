@@ -15,7 +15,10 @@ allprojects {
                     smokeDir.mkdirs()
                     new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\npauseOnLostFocus:false\nrenderDistance:5\n'
                     project.delete(new File(smokeDir, 'scripts'))
-                    if (!absent) project.copy { from 'src/clientSmoke/scripts'; into new File(smokeDir, 'scripts') }
+                    if (!absent) {
+                        project.copy { from 'src/clientSmoke/scripts'; into new File(smokeDir, 'scripts') }
+                        project.copy { from 'src/runtimeTest/scripts/crusher_recipes.zs'; into new File(smokeDir, 'scripts') }
+                    }
                 }
                 doLast {
                     def report = new File(smokeDir, 'logs/latest.log')

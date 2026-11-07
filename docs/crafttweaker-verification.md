@@ -74,3 +74,14 @@ static assets and packaging. Inspection of
 `build/libs/mmdlib-2.0.0.121012-development.jar` confirmed that the integration
 classes are included and smoke classes, fixture scripts and fixture resource IDs
 are absent. No commit or remote publication was performed.
+
+## Shared crushing recipe follow-up
+
+The separate recipe integration is documented in [crushing recipe scripting](crafttweaker-crusher.md).
+Normal `check build` passed with 190 unit tests, 89 MMDLib GameTests and 52
+companion GameTests. The ordinary recipe fixture covers add/query/remove/replace,
+JSON additions, tag ingredients, invalid arguments, and crackhammer consumption.
+The client smoke now reloads server resources and verifies recipes are reapplied
+without duplicate IDs; both installed and absent-mod client launches passed.
+Release JAR inspection confirmed the two crusher integration classes are included
+and smoke classes/scripts remain excluded.
