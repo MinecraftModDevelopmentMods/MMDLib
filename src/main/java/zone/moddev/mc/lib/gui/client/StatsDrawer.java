@@ -22,7 +22,7 @@ final class StatsDrawer {
   private int cachedWidth = -1;
   private net.minecraft.client.gui.Font cachedFont;
   private net.minecraft.locale.Language cachedLanguage;
-  private static final int COLOUR = 0x85b9c7;
+  private static final int COLOUR = 0xa7cdd6;
   private static final float SCALE = .75f;
 
   StatsDrawer(MachineScreen screen) {
