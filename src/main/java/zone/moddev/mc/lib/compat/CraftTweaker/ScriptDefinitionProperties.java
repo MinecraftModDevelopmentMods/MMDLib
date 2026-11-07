@@ -69,6 +69,8 @@ public abstract class ScriptDefinitionProperties {
       zone.moddev.mc.lib.api.MaterialEvent<C> event,
       H handler,
       java.util.function.BiConsumer<H, C> invoke) {
+    // Checked before any change, so a handler cannot be swapped on a live definition after startup.
+    var catalog = ScriptDefinitions.catalog();
     var id = definitionId().withSuffix("/" + event.name());
     boolean first = !hooks.containsKey(event.name());
     hooks.put(event.name(), java.util.Objects.requireNonNull(handler));
@@ -77,7 +79,7 @@ public abstract class ScriptDefinitionProperties {
       target.hook(event, snapshot, invoke);
     });
     if (first)
-      ScriptDefinitions.catalog()
+      catalog
           .events()
           .registerCallback(
               id,

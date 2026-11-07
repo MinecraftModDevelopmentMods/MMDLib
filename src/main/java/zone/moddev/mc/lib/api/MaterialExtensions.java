@@ -457,11 +457,15 @@ public final class MaterialExtensions {
    * same checks as definition files. Content outside MMDLib's namespace is only registered by its
    * own mod's {@link zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar}.
    *
-   * @param name names the source in loading errors
+   * @param name names the source in loading errors; unique among sources
    * @param source supplies the definitions
+   * @throws IllegalArgumentException if a source with this name is already registered
    */
-  public void registerDefinitionSource(String name, DefinitionSource source) {
-    definitionSources.add(new NamedSource(name, source));
+  public synchronized void registerDefinitionSource(String name, DefinitionSource source) {
+    var named = new NamedSource(name, source);
+    if (definitionSources.stream().anyMatch(existing -> existing.name().equals(name)))
+      throw new IllegalArgumentException("Duplicate definition source '" + name + "'");
+    definitionSources.add(named);
   }
 
   /** The registered definition sources, in registration order. */

@@ -156,7 +156,8 @@ public final class DefinitionLoader {
     var sourced = new LinkedHashMap<String, MaterialExtensions.Definitions>();
     for (var source : api.definitionSources()) {
       var origin = "definition source '" + source.name() + "'";
-      sourced.put(origin, Objects.requireNonNull(source.source().load(api), origin));
+      if (sourced.put(origin, Objects.requireNonNull(source.source().load(api), origin)) != null)
+        throw new IllegalArgumentException("Duplicate " + origin);
     }
     var factory = new MaterialFactory(api, installed);
     var materials = new TreeMap<ResourceLocation, MaterialFactory.Result>();
@@ -221,7 +222,7 @@ public final class DefinitionLoader {
               (id, definition) -> {
                 if (standalone.containsKey(id))
                   throw new IllegalArgumentException(
-                      "Duplicate standalone block " + id + ": a definition file and " + origin);
+                      "Duplicate standalone block " + id + ": " + origin + " and an earlier definition");
                 try {
                   var module = api.blockModule(definition.module());
                   if (module.requiredMod().isPresent()
@@ -265,7 +266,7 @@ public final class DefinitionLoader {
               (id, definition) -> {
                 if (standaloneItems.containsKey(id))
                   throw new IllegalArgumentException(
-                      "Duplicate standalone item " + id + ": a definition file and " + origin);
+                      "Duplicate standalone item " + id + ": " + origin + " and an earlier definition");
                 try {
                   var module = api.itemModule(definition.module());
                   if (module.requiredMod().isPresent()

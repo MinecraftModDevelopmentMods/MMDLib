@@ -53,6 +53,8 @@ public abstract class ScriptBlockProperties extends ScriptDefinitionProperties {
   private boolean directional;
   private int redstoneDelay = 1;
   private String comparator = "";
+  // A constant 0-15 output copied from the base module; scripts only set "state" output.
+  private Integer constantOutput;
   private Set<String> outputFaces;
   private Set<String> inputFaces;
   private boolean classHooks;
@@ -65,6 +67,7 @@ public abstract class ScriptBlockProperties extends ScriptDefinitionProperties {
       redstone = true;
       redstoneInput = r.has("input") && r.get("input").getAsBoolean();
       redstoneOutput = r.has("output") && r.get("output").getAsString().equals("state");
+      if (r.has("output") && !redstoneOutput) constantOutput = r.get("output").getAsInt();
       strongPower = r.has("strong") && r.get("strong").getAsBoolean();
       directional = r.has("facing") && r.get("facing").getAsBoolean();
       redstoneDelay = r.has("delay") ? r.get("delay").getAsInt() : 0;
@@ -548,10 +551,13 @@ public abstract class ScriptBlockProperties extends ScriptDefinitionProperties {
     var settings = new JsonObject();
     if (redstoneInput) settings.addProperty("input", true);
     if (redstoneOutput) settings.addProperty("output", "state");
+    else if (constantOutput != null) settings.addProperty("output", constantOutput);
     if (strongPower) settings.addProperty("strong", true);
     if (directional) settings.addProperty("facing", true);
     if (redstoneInput && redstoneDelay > 0) settings.addProperty("delay", redstoneDelay);
-    if (!comparator.isEmpty()) settings.addProperty("comparator", comparator);
+    // A constant comparator level must stay a number: RedstoneBlock reads strings as property names.
+    if (comparator.matches("\\d+")) settings.addProperty("comparator", Integer.parseInt(comparator));
+    else if (!comparator.isEmpty()) settings.addProperty("comparator", comparator);
     if (outputFaces != null) settings.add("faces", array(outputFaces));
     if (inputFaces != null && redstoneInput) settings.add("inputs", array(inputFaces));
     json.add("redstone", settings);

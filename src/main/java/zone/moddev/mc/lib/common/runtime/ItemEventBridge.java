@@ -137,15 +137,21 @@ public final class ItemEventBridge {
   }
 
   /**
-   * Server only, after damage was dealt. A melee hit is damage whose direct source is the attacker
-   * itself, which excludes projectiles, thorns and the like; the attacker's main-hand item is bound.
+   * Server only, after damage was dealt. A melee hit is player or mob attack damage dealt directly
+   * by the attacker, which excludes projectiles, thorns, explosions and the like (thorns and an
+   * exploding creeper also name the entity as both direct and causing source); the attacker's
+   * main-hand item is bound.
    */
   private void meleeHit(LivingDamageEvent.Post event) {
     var target = event.getEntity();
     var source = event.getSource();
     if (target.level().isClientSide
         || !(source.getEntity() instanceof LivingEntity attacker)
-        || source.getDirectEntity() != attacker) return;
+        || source.getDirectEntity() != attacker
+        || !(source.is(net.minecraft.world.damagesource.DamageTypes.PLAYER_ATTACK)
+            || source.is(net.minecraft.world.damagesource.DamageTypes.MOB_ATTACK)
+            || source.is(net.minecraft.world.damagesource.DamageTypes.MOB_ATTACK_NO_AGGRO)))
+      return;
     var stack = attacker.getMainHandItem();
     dispatch(
         stack, MaterialEventTypes.ITEM_HIT, new ItemHit(attacker, target, stack, event.getNewDamage()));

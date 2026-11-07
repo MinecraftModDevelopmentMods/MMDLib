@@ -354,7 +354,12 @@ public final class StandardItems {
         net.minecraft.world.level.Level level,
         net.minecraft.world.entity.player.Player player,
         net.minecraft.world.InteractionHand hand) {
-      if (useDuration <= 0) return super.use(level, player, hand);
+      // Food keeps vanilla's use, which refuses to start eating when the player cannot eat.
+      if (useDuration <= 0
+          || player
+              .getItemInHand(hand)
+              .has(net.minecraft.core.component.DataComponents.FOOD))
+        return super.use(level, player, hand);
       player.startUsingItem(hand);
       return net.minecraft.world.InteractionResultHolder.consume(player.getItemInHand(hand));
     }

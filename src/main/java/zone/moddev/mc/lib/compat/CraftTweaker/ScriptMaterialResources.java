@@ -328,6 +328,7 @@ final class ScriptMaterialResources {
       var hardness = properties.hardness();
       var level =
           hardness >= 10 ? "diamond" : hardness >= 8 ? "iron" : hardness >= 5 ? "stone" : null;
+      var hasSlab = plan.blocks().keySet().stream().anyMatch(other -> other.id().equals("slab"));
       plan.blocks()
           .forEach(
               (part, block) -> {
@@ -336,8 +337,6 @@ final class ScriptMaterialResources {
                 properties.harvestTags().forEach(tag -> tag(tags, "block", tag.toString(), id));
                 tag(tags, "block", "minecraft:mineable/pickaxe", id);
                 if (level != null) tag(tags, "block", "minecraft:needs_" + level + "_tool", id);
-                var hasSlab =
-                    plan.blocks().keySet().stream().anyMatch(other -> other.id().equals("slab"));
                 lootTable(part.factory(), id, NS + ":" + name + "_slab", hasSlab)
                     .ifPresent(
                         table ->
