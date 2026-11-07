@@ -39,6 +39,10 @@ repositories {
 configurations {
     localRuntime
     runtimeClasspath.extendsFrom localRuntime
+    // CraftTweaker for dev runs, in its own configuration so the machine (companion) and GUI smoke
+    // runs can leave it out: they don't test it, and it slows their clients' world loading.
+    craftTweakerDevRuntime
+    localRuntime.extendsFrom craftTweakerDevRuntime
     // CraftTweaker's processor path brings slf4j-api 1.8 betas, whose ServiceLoader lookup finds
     // Gradle's own provider from another classloader and fails; 1.7.x binds statically instead.
     annotationProcessor {
@@ -63,7 +67,7 @@ dependencies {
     annotationProcessor "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
     // Dev runs include CraftTweaker; pass -PwithoutCraftTweaker to launch without it.
     if (!providers.gradleProperty('withoutCraftTweaker').isPresent()) {
-        localRuntime "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
+        craftTweakerDevRuntime "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
     }
 }
 

@@ -35,7 +35,14 @@ import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 @EventBusSubscriber(modid = CompanionMod.ID, value = Dist.CLIENT)
 public final class CompanionClientSmoke {
   private static final BlockPos POS = new BlockPos(0, 100, 0);
-  private static final long DEADLINE = System.currentTimeMillis() + 240_000;
+  /**
+   * Time the whole smoke may take once the title screen is up. Launch time is not counted: it varies
+   * with the machine, and a slow CI runner with software rendering needs most of this budget for the
+   * menus alone. A menu that never renders still fails within 400 ticks (see {@link #tick}).
+   */
+  private static final long BUDGET_MILLIS = 360_000;
+
+  private static long deadline = Long.MAX_VALUE;
   private static boolean started, opening, menuRequested, finished;
   private static int stage, frames, waitingTicks, drawerStage, fluidStage, controlStage;
   private static boolean controlFixtureRequested;
@@ -58,9 +65,10 @@ public final class CompanionClientSmoke {
     if (!Boolean.getBoolean("mmdlib.companionSmoke") || finished) return;
     var mc = Minecraft.getInstance();
     try {
-      if (System.currentTimeMillis() > DEADLINE)
+      if (System.currentTimeMillis() > deadline)
         throw new AssertionError("Timed out on " + mc.screen);
       if (!started && mc.screen instanceof TitleScreen) {
+        deadline = System.currentTimeMillis() + BUDGET_MILLIS;
         if (!net.neoforged.fml.ModList.get().isLoaded("jade"))
           throw new AssertionError("Jade must be installed in companion runs");
         MMDLib.LOGGER.info("JADE_COMPANION_PRESENT");
