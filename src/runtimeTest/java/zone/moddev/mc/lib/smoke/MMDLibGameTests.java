@@ -169,6 +169,21 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void fluidBottlesFromWorld(GameTestHelper helper) {
+    FluidBottleSmoke.world(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void fluidBottlesLeaveWaterToVanilla(GameTestHelper helper) {
+    FluidBottleSmoke.water(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void fluidBottlesAndTanks(GameTestHelper helper) {
+    FluidBottleSmoke.tanks(helper);
+  }
+
+  @GameTest(template = EMPTY)
   public static void capabilities(GameTestHelper helper) {
     CapabilitySmoke.check(helper.getLevel());
     helper.succeed();

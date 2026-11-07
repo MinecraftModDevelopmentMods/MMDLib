@@ -117,6 +117,7 @@ public class MMDLib {
     NeoForge.EVENT_BUS.addListener(
         zone.moddev.mc.lib.machine.neoforge.MachinePartsLoader::register);
     modBus.addListener(zone.moddev.mc.lib.util.Registries::register);
+    zone.moddev.mc.lib.common.fluid.FluidBottles.register(modBus);
 
     if (ModList.get().isLoaded("crafttweaker")) CraftTweakerInit.register(modBus);
 
