@@ -28,14 +28,14 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.fluids.FluidUtil;
 
 import zone.moddev.mc.lib.common.runtime.DropsContents;
-import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine;
 
 /** Explicit block hooks for a code-registered machine. */
 public final class DemoBlock extends Block implements EntityBlock {
   public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-  private final Supplier<BlockEntityType<DemoEntity>> type;
+  private final Supplier<BlockEntityType<BasePoweredMachine>> type;
 
-  public DemoBlock(Properties properties, Supplier<BlockEntityType<DemoEntity>> type) {
+  public DemoBlock(Properties properties, Supplier<BlockEntityType<BasePoweredMachine>> type) {
     super(properties);
     this.type = type;
     registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
@@ -86,7 +86,7 @@ public final class DemoBlock extends Block implements EntityBlock {
   public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
       Level level, BlockState state, BlockEntityType<T> requested) {
     if (level.isClientSide() || requested != type.get()) return null;
-    return (world, pos, blockState, entity) -> ((DemoEntity) entity).serverTick();
+    return (world, pos, blockState, entity) -> ((BasePoweredMachine) entity).serverTick();
   }
 
   @Override
@@ -122,7 +122,8 @@ public final class DemoBlock extends Block implements EntityBlock {
   @Override
   protected InteractionResult useWithoutItem(
       BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-    return ScreenRuntime.open(player, level.getBlockEntity(pos))
+    return level.getBlockEntity(pos) instanceof BasePoweredMachine machine
+            && machine.openScreen(player)
         ? InteractionResult.sidedSuccess(level.isClientSide())
         : InteractionResult.PASS;
   }

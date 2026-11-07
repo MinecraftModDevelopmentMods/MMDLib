@@ -1,16 +1,12 @@
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.creative_power" title-fallback="Creative Power Source"
-        block-entity="zone.moddev.mc.companion.CreativePowerEntity" inventory="none">
-  <vbox padding="7" spacing="4">
-    <hbox spacing="6" align="center">
-      <vbox spacing="4">
-        <spacer/>
-        <label text="screen.mmdlib_companion.power" text-fallback="Powers adjacent blocks on enabled sides"/>
-        <label text="screen.mmdlib_companion.rate" text-fallback="1,000 FE per face per tick"/>
-        <spacer/>
-      </vbox>
+        block-entity="zone.moddev.mc.companion.CreativePowerEntity" inventory="none" extends="mmdlib:base_powered_machine">
+  <fill name="machine">
+    <vbox spacing="4">
       <spacer/>
-      <energy-gauge id="energy" length="3s"/>
-    </hbox>
-  </vbox>
-  <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.creative_power"/>
+      <label text="screen.mmdlib_companion.power" text-fallback="Powers adjacent blocks on enabled sides"/>
+      <label text="screen.mmdlib_companion.rate" text-fallback="1,000 FE per face per tick"/>
+      <spacer/>
+    </vbox>
+  </fill>
+  <fill name="inventory_controls"/>
 </screen>

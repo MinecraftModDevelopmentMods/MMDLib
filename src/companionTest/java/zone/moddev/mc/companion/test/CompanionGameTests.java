@@ -39,6 +39,299 @@ public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
   @GameTest(template = "empty")
+  public static void poweredBasePreservesSavesAndSeparatesFeatureUpdates(GameTestHelper helper) {
+    var level = helper.getLevel();
+    var registries = level.registryAccess();
+    var pos = helper.absolutePos(CENTER);
+    for (var definition :
+        java.util.List.of(
+            CompanionMod.CRUSHER,
+            CompanionMod.TRANSMUTER,
+            CompanionMod.DUAL_CRUSHER,
+            CompanionMod.LOGISTICS,
+            CompanionMod.CREATIVE_POWER)) {
+      level.setBlock(pos, definition.block.get().defaultBlockState(), 3);
+      var machine =
+          (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine) level.getBlockEntity(pos);
+      machine.energy.setStored(7_321);
+      require(
+          machine.getEnergy() == 7_321 && machine.getEnergyCapacity() == 100_000,
+          "Shared getters expose the owned buffer");
+      require(
+          machine.screenFeatures() == machine.features
+              && machine.screenStats().getFirst() == machine.energy,
+          "Screen features and statistics use the same owned parts");
+      if (machine instanceof ProcessorEntity processor) {
+        processor.items.insertItem(0, new ItemStack(Items.IRON_INGOT), false);
+        processor.setReservePercent(25);
+        processor.features.setProcessorPaused("lane_0", true);
+        processor.redstone.migrate(1);
+      }
+      var saved = machine.saveWithFullMetadata(registries);
+      var copy =
+          (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine)
+              BlockEntity.loadStatic(pos, machine.getBlockState(), saved, registries);
+      require(copy.getEnergy() == 7_321, "Power survives a full save/load for every machine");
+      if (copy instanceof ProcessorEntity processor) {
+        require(
+            processor.getPaused() && processor.getReservePercent() == 25,
+            "Base feature state and subclass metadata both survive loading");
+        require(
+            processor.redstone.save(registries).equals(saved.getCompound("redstone_control")),
+            "Redstone configuration survives loading");
+      }
+      var beforeUpdate = copy.saveWithFullMetadata(registries);
+      copy.loadWithComponents(machine.getUpdateTag(registries), registries);
+      var afterUpdate = copy.saveWithFullMetadata(registries);
+      for (var key :
+          java.util.List.of(
+              "energy",
+              "items",
+              "fluids",
+              "automation",
+              "redstone_control",
+              "machine_name",
+              "reserve_percent"))
+        require(
+            java.util.Objects.equals(beforeUpdate.get(key), afterUpdate.get(key)),
+            "Feature update preserves " + key);
+      copy.clearContent();
+      require(copy.getEnergy() == 0, "Shared clear resets owned power");
+      machine.clearContent();
+      level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void keylessProcessorButtonSamplesAndTogglesTheFirstProcessor(GameTestHelper helper)
+      throws ReflectiveOperationException {
+    var machine = place(helper, CompanionMod.TRANSMUTER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    var menu = new MachineMenu(43, player.getInventory(), machine);
+    player.containerMenu = menu;
+    var button =
+        (zone.moddev.mc.lib.gui.model.Element.Button)
+            menu.bound.screen().find("toggle_0").orElseThrow();
+    require(
+        button.processorControl() && button.processorKey().isEmpty(),
+        "Inherited control uses no machine-specific key");
+    // Mock players have no negotiated GUI channel; inspect the actual server snapshot directly.
+    var read =
+        Class.forName("zone.moddev.mc.lib.gui.runtime.ScreenSnapshots")
+            .getDeclaredMethod(
+                "read", BlockEntity.class, zone.moddev.mc.lib.gui.load.ScreenBinder.Bound.class);
+    read.setAccessible(true);
+    var snapshot = (java.util.Map<?, ?>) read.invoke(null, machine, menu.bound);
+    require(
+        zone.moddev.mc.lib.gui.model.ProcessorButtonState.IDLE
+            .wireValue()
+            .equals(snapshot.get(menu.index(button) * 2)),
+        "Keyless control samples the first processor");
+    var action = new ScreenNetwork.Action(43, menu.index(button), 0, 0, 0, 0);
+    menu.action(player, action);
+    snapshot = (java.util.Map<?, ?>) read.invoke(null, machine, menu.bound);
+    require(
+        machine.lanes.getFirst().paused()
+            && zone.moddev.mc.lib.gui.model.ProcessorButtonState.PAUSED
+                .wireValue()
+                .equals(snapshot.get(menu.index(button) * 2)),
+        "Keyless click pauses and synchronizes the same processor");
+    menu.action(player, action);
+    require(!machine.lanes.getFirst().paused(), "Keyless click resumes the same processor");
+    var dual = place(helper, CompanionMod.DUAL_CRUSHER);
+    var features =
+        new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> {})
+            .add(
+                new zone.moddev.mc.lib.machine.feature.MachineFeature<Integer>() {
+                  public String key() {
+                    return "auxiliary";
+                  }
+
+                  public com.mojang.serialization.Codec<Integer> codec() {
+                    return com.mojang.serialization.Codec.INT;
+                  }
+
+                  public Integer state() {
+                    return 0;
+                  }
+
+                  public void restore(Integer value) {}
+                })
+            .add(dual.lanes.get(1))
+            .add(dual.lanes.getFirst());
+    require(
+        features.processor(java.util.Optional.empty()).orElseThrow() == dual.lanes.get(1),
+        "Default is the first registered recipe processor, skipping other features");
+    require(
+        features.processor(java.util.Optional.of("lane_0")).orElseThrow() == dual.lanes.getFirst()
+            && features.processor(java.util.Optional.of("missing")).isEmpty(),
+        "Explicit keys never fall back to the first processor");
+    var emptyHost =
+        new zone.moddev.mc.lib.gui.runtime.ScreenHost() {
+          public zone.moddev.mc.lib.api.capabilities.ItemStorage screenItems() {
+            return machine.items;
+          }
+
+          public zone.moddev.mc.lib.machine.feature.FeatureHost screenFeatures() {
+            return new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> {});
+          }
+        };
+    try {
+      zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(
+          menu.bound.screen(), emptyHost);
+      throw new AssertionError("A keyless processor control requires a processor");
+    } catch (zone.moddev.mc.lib.gui.load.ScreenException expected) {
+      require(
+          expected.getMessage().contains("at least one recipe processor"),
+          "Missing default processor has a clear error");
+    }
+    player.containerMenu = player.inventoryMenu;
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void processorActivityTracksWorkAndHostGates(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var processor = machine.lanes.getFirst();
+    require(!processor.paused() && !processor.processing(), "New processors are unpaused and idle");
+    machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 16));
+    machine.energy.setStored(100000);
+    tick(machine, 2);
+    require(processor.processing(), "Available work and energy start processing");
+    machine.energy.setStored(0);
+    machine.serverTick();
+    require(
+        !processor.processing() && !processor.paused(),
+        "An energy stall is idle, not manually paused");
+    machine.energy.setStored(100000);
+    machine.serverTick();
+    machine.setReservePercent(100);
+    machine.serverTick();
+    require(
+        !processor.processing() && !processor.paused(),
+        "An energy-reserve hold is not active processing");
+    machine.setReservePercent(0);
+    machine.serverTick();
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.READ);
+    machine.redstone.range(0, 0, 15);
+    machine.serverTick();
+    require(
+        !processor.processing() && !processor.paused() && machine.items.hasPlan(0),
+        "Redstone holds work without manually pausing or releasing its reservation");
+    processor.pause();
+    require(processor.paused() && !processor.processing(), "Manual pause has its own state");
+    processor.resume();
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.IGNORE);
+    machine.serverTick();
+    for (int ticks = 0; ticks < 200 && processor.progress() < processor.time() - 1; ticks++)
+      machine.serverTick();
+    require(processor.progress() == processor.time() - 1, "Resumed work reaches its final tick");
+    machine.serverTick();
+    require(
+        processor.completedCycles().signum() > 0 && processor.processing(),
+        "The completion tick remains processing so the icon does not flicker between cycles");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void genericProcessorButtonsRespectRedstoneAndLaneKeys(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.DUAL_CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    var menu = new MachineMenu(42, player.getInventory(), machine);
+    player.containerMenu = menu;
+    var button =
+        (zone.moddev.mc.lib.gui.model.Element.Button)
+            menu.bound.screen().find("toggle_1").orElseThrow();
+    require(
+        button.processorKey().orElseThrow().equals("lane_1") && !button.common().clicks().any(),
+        "The generic control targets a stable key without callbacks");
+    int index = menu.index(button);
+    menu.action(player, new ScreenNetwork.Action(42, index, 0, 1, 0, 0));
+    require(!machine.lanes.get(1).paused(), "Right click cannot toggle the processor");
+    menu.action(player, new ScreenNetwork.Action(42, index, 0, 0, 0, 1));
+    require(!machine.lanes.get(1).paused(), "Invalid options cannot toggle the processor");
+    var action = new ScreenNetwork.Action(42, index, 0, 0, 0, 0);
+    menu.action(player, action);
+    require(
+        machine.lanes.get(1).paused() && !machine.lanes.getFirst().paused(),
+        "Only the keyed lane pauses");
+    require(
+        !menu.redstone.watching() && !menu.redstone.conflicts(true),
+        "No input watching means no conflict indicator");
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.EMIT);
+    require(!menu.redstone.watching(), "Output-only redstone does not watch inputs");
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.READ);
+    machine.redstone.range(0, 0, 15);
+    machine.redstone.readInputs();
+    require(
+        menu.redstone.watching()
+            && menu.redstone.paused()
+            && !menu.redstone.conflicts(true)
+            && menu.redstone.conflicts(false),
+        "A redstone hold conflicts only with an enabled manual state");
+    menu.action(player, action);
+    require(
+        !machine.lanes.get(1).paused() && menu.redstone.paused(),
+        "Resume changes the manual state while redstone still holds processing");
+    machine.redstone.outside(0, true);
+    machine.redstone.readInputs();
+    require(
+        !menu.redstone.paused() && menu.redstone.conflicts(true) && !menu.redstone.conflicts(false),
+        "Redstone allowing work conflicts with manual pause");
+
+    int[] changes = {0}, syncs = {0};
+    var host =
+        new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> changes[0]++, () -> syncs[0]++)
+            .add(machine.lanes.get(1));
+    require(
+        host.setProcessorPaused("lane_1", true) && changes[0] == 1 && syncs[0] == 1,
+        "Manual changes persist and sync without a processing tick");
+    require(
+        !host.setProcessorPaused("lane_1", true)
+            && !host.setProcessorPaused("missing", true)
+            && changes[0] == 1
+            && syncs[0] == 1,
+        "Repeated states and unknown keys are inert");
+    machine.lanes.get(1).pause();
+    machine.lanes.get(1).setPaused(false);
+    require(!machine.lanes.get(1).paused(), "The public pause setter resumes too");
+    var invalid =
+        new zone.moddev.mc.lib.gui.model.Element.Button(
+            button.common(),
+            button.text(),
+            button.icon(),
+            button.shows(),
+            button.icons(),
+            button.valueLabels(),
+            button.flat(),
+            java.util.Optional.of("missing"));
+    var original = menu.bound.screen();
+    var invalidScreen =
+        new zone.moddev.mc.lib.gui.model.Screen(
+            original.id(),
+            original.source(),
+            original.title(),
+            original.blockEntity(),
+            original.playerInventory(),
+            java.util.List.of(invalid),
+            java.util.List.of());
+    try {
+      zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(invalidScreen, machine);
+      throw new AssertionError("Unknown processor key accepted");
+    } catch (zone.moddev.mc.lib.gui.load.ScreenException expected) {
+      require(
+          expected.getMessage().contains("Unknown processor-key: missing"),
+          "An invalid control identifies its missing key");
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void heldProcessorsSaveSyncAndResumeWithoutReleasingReservations(
       GameTestHelper helper) {
     var machine = place(helper, CompanionMod.CRUSHER);
@@ -617,7 +910,8 @@ public final class CompanionGameTests {
             state.getValue(zone.moddev.mc.companion.DemoBlock.FACING) == look.getOpposite(),
             "Placed machine faces its player: " + look);
         level.setBlock(pos, state, 3);
-        var entity = (zone.moddev.mc.companion.DemoEntity) level.getBlockEntity(pos);
+        var entity =
+            (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine) level.getBlockEntity(pos);
         var host = (zone.moddev.mc.lib.gui.runtime.ScreenHost) entity;
         for (var group : host.screenAutomation().groups())
           require(

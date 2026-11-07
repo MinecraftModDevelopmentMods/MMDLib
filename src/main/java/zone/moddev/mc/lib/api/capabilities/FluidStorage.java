@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.api.capabilities;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
@@ -33,6 +34,9 @@ import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag> {
   private final List<FluidTank> tanks = new ArrayList<>();
   private final List<Role> roles = new ArrayList<>();
+  private final List<String> tankIds = new ArrayList<>();
+  private final List<Predicate<FluidStack>> insertionRules = new ArrayList<>();
+  private final ListTag recovery = new ListTag();
   private final ReservationPlans<TankPlan> plans =
       new ReservationPlans<>(
           0,
@@ -109,6 +113,8 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
           }
         });
     roles.add(role);
+    tankIds.add(null);
+    insertionRules.add(fluid -> true);
     plans.add();
     revision++;
     return tanks.size() - 1;
@@ -125,6 +131,55 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
    */
   public FluidTank tank(int index) {
     return tanks.get(index);
+  }
+
+  /** Stable save identity; saves without identities continue to load by index. */
+  public FluidStorage tankId(int tank, String id) {
+    if (!inRange(tank) || id == null || id.isBlank())
+      throw new IllegalArgumentException("Invalid tank ID: " + id);
+    for (int i = 0; i < tankIds.size(); i++)
+      if (i != tank && id.equals(tankIds.get(i)))
+        throw new IllegalArgumentException("Duplicate tank ID: " + id);
+    tankIds.set(tank, id);
+    return this;
+  }
+
+  /** Additional external insertion rule; machine products use fillResult and bypass this rule. */
+  public FluidStorage restrict(Predicate<FluidStack> rule, int... indexes) {
+    for (int tank : indexes) insertionRules.set(tank, insertionRules.get(tank).and(rule));
+    revision++;
+    return this;
+  }
+
+  /** Machine product insertion, retaining the tank's structural filter and reservation. */
+  public int fillResult(int tank, FluidStack fluid, FluidAction action) {
+    return tank(tank).fill(fluid, action);
+  }
+
+  /** Unchecked restoration for save loading and transaction rollback. */
+  public void restoreFluid(int tank, FluidStack fluid) {
+    tank(tank).setFluid(fluid.copy());
+  }
+
+  public ListTag recoveryContents() {
+    return recovery.copy();
+  }
+
+  /** Explicitly discards contents, displaced fluids and plans. Stop owning processors first. */
+  public void clear() {
+    recovery.clear();
+    for (int tank = 0; tank < getTanks(); tank++) {
+      setPlan(tank, TankPlan.NONE);
+      restoreFluid(tank, FluidStack.EMPTY);
+    }
+    revision++;
+    onChange.run();
+  }
+
+  public void recover(Consumer<CompoundTag> receiver) {
+    StorageRecovery.handoff(recovery, "mmdlib:fluids", "fluid", receiver);
+    revision++;
+    onChange.run();
   }
 
   /** Shared plan table, including transaction tracking for groups over this storage. */
@@ -177,7 +232,10 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
 
   @Override
   public boolean isFluidValid(int tank, FluidStack stack) {
-    return inRange(tank) && roles.get(tank) != Role.OUTPUT && tanks.get(tank).isFluidValid(stack);
+    return inRange(tank)
+        && roles.get(tank) != Role.OUTPUT
+        && insertionRules.get(tank).test(stack)
+        && tanks.get(tank).isFluidValid(stack);
   }
 
   @Override
@@ -264,10 +322,12 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     int target = -1;
     for (int i = 0; i < tanks.size() && target < 0; i++)
       if (allowed.test(i)
+          && insertionRules.get(i).test(resource)
           && FluidStack.isSameFluidSameComponents(tanks.get(i).getFluid(), resource)
           && tanks.get(i).fill(resource, FluidAction.SIMULATE) > 0) target = i;
     for (int i = 0; i < tanks.size() && target < 0; i++)
       if (allowed.test(i)
+          && insertionRules.get(i).test(resource)
           && tanks.get(i).isEmpty()
           && tanks.get(i).fill(resource, FluidAction.SIMULATE) > 0) target = i;
     return target < 0 ? 0 : tanks.get(target).fill(resource, action);
@@ -297,19 +357,74 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
   @Override
   public CompoundTag serializeNBT(HolderLookup.Provider provider) {
     ListTag list = new ListTag();
-    for (FluidTank tank : tanks) list.add(tank.writeToNBT(provider, new CompoundTag()));
+    for (int i = 0; i < tanks.size(); i++) {
+      var entry = tanks.get(i).writeToNBT(provider, new CompoundTag());
+      if (tankIds.get(i) != null) entry.putString("TankId", tankIds.get(i));
+      list.add(entry);
+    }
     CompoundTag tag = new CompoundTag();
     tag.put("Tanks", list);
+    tag.put("Recovery", recovery.copy());
     return tag;
   }
 
-  /** Loads tank contents by index; tanks missing from the save are emptied, extra ones ignored. */
+  /** Loads by stable identity or legacy index, preserving removed tanks and capacity overflow. */
   @Override
   public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-    ListTag list = tag.getList("Tanks", Tag.TAG_COMPOUND);
-    for (int i = 0; i < tanks.size(); i++) {
-      if (i < list.size()) tanks.get(i).readFromNBT(provider, list.getCompound(i));
-      else tanks.get(i).setFluid(FluidStack.EMPTY);
+    deserializeNBT(provider, tag, java.util.function.IntUnaryOperator.identity());
+  }
+
+  /** Explicit index migration for pre-identity saves. The host selects this by its save version. */
+  public void deserializeNBT(
+      HolderLookup.Provider provider,
+      CompoundTag tag,
+      java.util.function.IntUnaryOperator legacyTanks) {
+    var saved = tag.getList("Tanks", Tag.TAG_COMPOUND);
+    var list = new ListTag();
+    for (int i = 0; i < saved.size(); i++) {
+      var tank = saved.getCompound(i);
+      var entry = tank.getCompound("Fluid").copy();
+      if (entry.isEmpty()) continue;
+      entry.putInt("Tank", i);
+      if (tank.contains("TankId")) entry.putString("TankId", tank.getString("TankId"));
+      list.add(entry);
     }
+    list.addAll(tag.getList("Recovery", Tag.TAG_COMPOUND).copy());
+    recovery.clear();
+    for (var tank : tanks) tank.setFluid(FluidStack.EMPTY);
+    for (var value : list) {
+      var entry = (CompoundTag) value;
+      int index =
+          entry.contains("TankId")
+              ? tankIds.indexOf(entry.getString("TankId"))
+              : legacyTanks.applyAsInt(entry.getInt("Tank"));
+      if (!entry.contains("TankId")) {
+        entry.putInt("Tank", index);
+        if (inRange(index) && tankIds.get(index) != null)
+          entry.putString("TankId", tankIds.get(index));
+      }
+      var fluid = FluidStack.parseOptional(provider, entry);
+      if (fluid.isEmpty()) {
+        if (entry.contains("id")) recovery.add(entry.copy());
+        continue;
+      }
+      if (!inRange(index)
+          || (!tanks.get(index).isEmpty()
+              && !FluidStack.isSameFluidSameComponents(tanks.get(index).getFluid(), fluid))) {
+        recovery.add(entry.copy());
+        continue;
+      }
+      int held = tanks.get(index).getFluidAmount();
+      int accepted =
+          Math.min(fluid.getAmount(), Math.max(0, tanks.get(index).getCapacity() - held));
+      restoreFluid(index, fluid.copyWithAmount(held + accepted));
+      if (accepted < fluid.getAmount()) {
+        var extra = entry.copy();
+        extra.putInt("amount", fluid.getAmount() - accepted);
+        recovery.add(extra);
+      }
+    }
+    revision++;
+    onChange.run();
   }
 }

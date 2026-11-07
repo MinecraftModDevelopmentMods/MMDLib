@@ -1,6 +1,6 @@
 # Machine companion
 
-The optional `mmdlib_companion` mod contains four playable examples of the machine processor.
+The optional `mmdlib_companion` mod contains five playable machine examples.
 It uses Minecraft 1.21.1, NeoForge 21.1.247 and this branch's MMDLib. Its classes and resources live
 in `src/companion` and are packaged separately from the library.
 
@@ -26,14 +26,17 @@ choose their front from placement. Walking around a machine does not change its 
 Faces cycle between Output and Disabled. Disabled faces block both automatic delivery and
 external extraction; settings survive reloads. Existing sources start with all six faces enabled.
 
-JEI is included in development runs; add `-PwithoutJei`
-to run without it.
+JEI and Jade are included in playable companion development runs. Add `-PwithoutJei`
+to run without JEI; Jade remains installed. Neither mod is bundled into the companion jar.
+Mock server GameTests exclude Jade and Curios because their fake connections cannot negotiate
+those mods' login payloads; real client smoke runs include them.
 
 | Block ID (prefix `mmdlib_companion:`) | What it does |
 | --- | --- |
 | `crusher` | One input slot, two output slots, one processor, and a water/lava preview tank |
 | `transmuter` | One slot limited to one item; converts an iron ingot into a gold ingot |
 | `dual_crusher` | Two independently pausable processors share the same input and output slots |
+| `logistics` | Seven independent resource groups for testing automation, filters and side configuration; no recipe processing |
 | `creative_power` | Refills its buffer and supplies up to 1,000 FE per enabled adjacent face per tick |
 
 The crusher recipes take 100 ticks and 2,000 FE per cycle: cobblestone becomes gravel, gravel becomes
@@ -51,16 +54,24 @@ starting empty. The Dual Crusher keeps its existing shared single-output layout.
 
 The bottom of each processor panel has a compact, right-aligned row of icon buttons above the inventory,
 with thin dark borders and flat grey backgrounds.
-Click the pause icon to interrupt a lane and release its reservations; it becomes a green play
-icon while paused. Click again to resume. This works without power. The Dual Crusher has separate
-buttons marked A and B; pausing one lane releases only its share, and the other can continue.
-The redstone button cycles **Ignore / Run when powered / Run when unpowered**. Redstone holds
-progress and energy use while keeping reservations; it never overrides manual pause. Both the
-selected redstone mode and each lane's pause state survive save/load. Hover a button for its state
-and action. The yellow info tab opens a matching drawer to the left with machine guidance and
-any current power-stall or blocked-finish warnings. Click the icon again to close it; scroll
-inside to read longer text. All four screens place a vertical battery on the right, using the
-reusable `<energy-gauge>` XML widget. Its red charge bars fill upwards inside a slim casing.
+The generic processor button shows its **current** state: pause when manually paused, stop while
+working, play while idle. Click to unpause, stop and release reservations, or pause idle work,
+respectively. Resumable progress is retained. The Dual Crusher targets each lane explicitly;
+pausing one releases only its share. Single-processor machines inherit a keyless button from the base.
+
+Redstone face settings control whether processing may run. A redstone hold keeps progress and
+reservations; manual pause takes priority and is never undone by a signal change. With input
+watching configured, the drawer icon adds a green play or yellow pause overlay for the resolved
+gate. A small red dot on a processor button marks disagreement with manual pause; its compact
+multiline tooltip explains which setting prevents work. Settings and manual pause survive saves.
+See [redstone face controls](gui-screens.md#redstone-face-drawer) for the per-face modes and ranges.
+
+Every screen inherits the yellow Info popout from `mmdlib:base_powered_machine`. Its translation is
+`{machineId}.info`, such as `mmdlib_companion:transmuter.info`, plus dynamic warnings from the base
+entity. The base reports processor power stalls, blocked finishes and host holds; Crusher can also
+report its configured energy reserve. Click the icon to close the drawer; scroll longer text.
+All five screens place a vertical battery on the right using `<energy-gauge>`.
+Its red charge bars fill upwards inside a slim casing.
 The energy and fluid gauges share matching edges and medium-grey empty backgrounds, darker than slots.
 Energy bars are thin with a soft reflection; cylindrical glass shading covers only the fluid.
 The Crusher centers its input, a circular progress dial and two adjacent output slots. The dial is a
@@ -98,7 +109,9 @@ fully before switching between water and lava. Rejected bucket transfers leave t
 The tank saves with the machine and is only a display example; crushing recipes do not consume it.
 Breaking the machine discards its fluid.
 
-Hoppers and pipes can insert into input slots and extract from output slots on any face. The
+Hoppers and pipes obey each group's configured side modes and storage roles. Recipe-linked
+inputs accept only ingredients allowed by compatible recipes; decorative tanks retain their own
+filters. Recipe reloads update those admission rules. The
 converter's single slot permits both operations, subject to reservations. Its capacity of one is
 deliberate: leftover iron would prevent a gold product from fitting. Remove the gold before adding
 the next iron. Because the converter shares one slot for input and output, an extracting hopper can
@@ -115,6 +128,7 @@ including reserved inputs. Normal `/setblock` and `/fill` replacement clears con
 ```sh
 ./gradlew build companionJar
 ./gradlew check
+# Optional full graphical check; normally covered by CI:
 ./gradlew runCompanionClientSmoke
 ```
 
@@ -127,8 +141,8 @@ publication. Release uploads select only the exact library, sources and Javadoc 
 the tag. Run `./gradlew clean` when updating a checkout that still has companion jars in
 `build/libs`; packaging verification rejects those stale jars.
 
-`check` includes the companion's thirteen server game tests and checks both jars for leaked classes and
-resources. `runCompanionGameTestServer` runs just those tests. They cover all four registrations and
+`check` includes the companion server game tests and checks both jars for leaked classes and
+resources. `runCompanionGameTestServer` runs just those tests. They cover all five registrations and
 menus, recipe loading, adjacent power, the one-slot limit and interruption through the menu, two
 shared lanes across save/load, command replacement versus destruction, tank capacity and persistence,
 refusal to mix fluids, bucket filling/draining through the block interaction, and cursor-container
@@ -139,7 +153,7 @@ Redstone tests cover all modes on all three processors, signal changes, independ
 retained reservations, saved settings, and safe defaults for older or invalid saves.
 
 `runCompanionClientSmoke` creates a separate test world under `build/companion-client-smoke`, opens
-all four menus over the network and captures them under its `screenshots` directory. It is separate
+all five menus over the network and captures them under its `screenshots` directory. It is separate
 from `check` because it needs a graphical client. It also accepts `-PwithoutJei`.
 The shared `build_status.yml` workflow runs `check`, builds both jars, and runs the companion
 and library GUI smoke tests. The library smoke is exercised with and without JEI.
@@ -148,11 +162,27 @@ It also clicks the gauge to drain a lava bucket and pour it back, verifying curs
 The client smoke also clicks pause and redstone controls and waits for their synchronized states;
 `crusher-paused.png` and `crusher-redstone.png` capture their alternate icons.
 
+All five entities extend `BasePoweredMachine`, and all five XML screens extend the library base.
+Creative Power and Logistics remove the inherited processor-control area with an empty fill.
+Crusher replaces the body to retain its settings context. The shared Info popup is never duplicated
+in a child screen; each machine supplies its own language entry.
+
+Stable slot/tank IDs preserve contents when definitions move. Displaced contents remain in recovery
+and are handed to the companion's Recovery Capsule on removal; use the capsule on a machine to
+restore items, fluids or power, retaining any remainder. Ordinary fluid and energy destruction is
+still separate from displaced-content recovery. See [storage recovery](capabilities.md#stable-storage-identities-and-recovery).
+
+For local edits, run focused XML/layout/processor tests and relevant server GameTests. Do not run
+the full UI smoke suite after every edit or PR update; CI supplies full GUI coverage. Run it locally
+when explicitly requested or when a broad regression needs it. The base regression fixture also
+checks omitted power registration, common warnings, custom client packets and world-save isolation.
+
 ## Code to read
 
 - `CompanionMod`: registers blocks, items, block-entity types, recipe types, capabilities and actions.
 - `DemoBlock`: block creation, server ticking, menu opening and the contents-drop hook.
-- `ProcessorEntity`: storages, group keys, shared lanes, saving after storages, and feature sync.
+- `BasePoweredMachine` (in MMDLib): owned power, common ticking/persistence, warnings and client-sync hooks.
+- `ProcessorEntity`: resource groups, recipe-linked inputs, shared lanes and machine-specific metadata.
 - `CreativePowerEntity`: the external energy capability and adjacent transfer.
 - `src/companion/resources/mmdlib/screen`: XML screens, bound to public getters at startup.
 - `src/companion/resources/data/mmdlib_companion/recipe`: data-driven machine recipes.

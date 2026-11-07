@@ -27,6 +27,59 @@ height. All drawers share the same frame renderer and four-pixel top inset. The 
 drawer can grow to the available screen height; inventory drawers retain the panel's bottom inset. Info drawers fit their text up to the inset bottom or the screen edge, whichever
 comes first.
 
+## Shared machine resource definitions
+
+`machine.neoforge.MachineResources` defines group membership once for automation, recipes and
+screen highlights. Construct it after defining the physical `ItemStorage`, `FluidStorage` and
+`EnergyBuffer`; resource-group IDs are separate from stable slot/tank save IDs.
+
+```java
+var resources = new MachineResources(this, this::facing)
+    .items(inputGroup, items)
+    .items(outputGroup, items)
+    .fluids(coolantGroup, fluids)
+    .energy(energyGroup, energy)
+    .recipeInputs(MyRecipes.PROCESSING, "input", "coolant")
+    .build();
+automation = resources.automation();
+features.add(new RecipeProcessor("work", MyRecipes.PROCESSING, resources.recipes()));
+```
+
+Here the supplied groups have IDs `input`, `output`, `coolant` and `energy`. The resulting recipe
+inventory uses those IDs as keys. `recipeGroup("combined", "left", "right")` can define an alternate
+recipe mapping over groups from the same physical storage; it creates no extra automation group.
+Finish all bindings/aliases/input links before the single `build()` call.
+
+Validation rejects duplicate group IDs, empty/out-of-range membership, overlapping physical groups,
+role/IO contradictions, and multiple physical storages for the same resource type. A group's active
+transfer view is restricted to its own members. `recipes()` and `automation()` require a completed
+build. `ScreenInventoryValidation.validate(this)` can validate after construction; menus repeat
+validation on opening, checking real slot bounds, highlight IDs and processor-button targets.
+
+`recipeInputs(type, keys...)` links admission rules only to specified input groups. Items/fluids
+are accepted if an input ingredient of a compatible recipe allows them; matching current amounts,
+available power and output room is not required just to insert an ingredient. Compatibility means
+the machine exposes all referenced input/output groups with the required resource kinds.
+Several types or overlapping recipe aliases accept their union; the result is intersected with
+the storage's existing rules. Unlinked decorative tanks or general storage keep their own filters.
+If there is no level or no compatible recipe, a linked input accepts nothing. Lookups consult the
+current recipe manager, so server reloads and client recipe synchronization update admission rules.
+Product insertion and save restoration do not pass through these external recipe-input checks.
+
+Use `MachineInventoryLifecycle(owner, features, automation, energy)` to compose persistence and
+recovery. Register storage through `.items(saveKey, items)`, `.fluids(saveKey, fluids)` and
+`.energy(saveKey, energy)`. Save keys must be unique, cannot be `features` or `automation`, and
+each physical storage is registered once. `BasePoweredMachine` supplies this integration and
+guarantees its own `energy` binding; see [block entities](block-entities.md#basepoweredmachine).
+
+The lifecycle saves storages, automation and features together. Loading resets old feature plans,
+loads contents, then automation and feature state. Its `tick(processingAllowed, paused, policy)`
+can pause processing only, transfers only, both or neither; the separate processing gate always
+applies. Owed energy refunds settle even during a pause. Destruction hands off displaced storage
+and escrow before clearing ownership, releases plans and drops ordinary item contents. Normal
+fluid/buffer destruction remains the machine's policy. Explicit `clear()` discards all registered
+contents and resets features, including manual pause and resumable progress.
+
 ## Define independent resource groups
 
 A `ResourceGroup<T>` declares a stable save ID, translated name, RGB colour, `ResourceType<T>`,
@@ -60,7 +113,8 @@ cleared. Do not also drop the same addon slots separately. This hook handles tra
 normal tank/buffer contents remain the host's separate break policy.
 
 The companion drops a **Recovery Capsule**, a companion item carrying this data. Use it on a
-companion machine to restore fluids into accepting tanks and energy into available buffer space.
+companion machine to restore displaced items into accepting slots, fluids into accepting tanks
+and energy into available buffer space.
 Partial restoration leaves the remainder in the same capsule; a fully restored capsule is consumed,
 including in creative mode. Unknown resource payloads remain preserved. No recovery item is
 registered by MMDLib itself.

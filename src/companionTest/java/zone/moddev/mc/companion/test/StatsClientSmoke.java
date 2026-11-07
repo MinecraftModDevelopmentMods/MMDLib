@@ -25,7 +25,6 @@ final class StatsClientSmoke {
             info.bottom() + 2,
             AutomationLayout.RAIL,
             AutomationLayout.TAB_HEIGHT);
-    int x = tab.x() - Math.min(160, tab.x() - 4), top = panel.y() + AutomationLayout.TOP;
     String name = menu.bound.screen().id().getPath();
     var mc = Minecraft.getInstance();
     switch (step) {
@@ -67,23 +66,23 @@ final class StatsClientSmoke {
             mc.gameDirectory, name + "-stats-tick.png", mc.getMainRenderTarget(), m -> {});
       }
       case 3 -> {
-        click(screen, tab.x() - 35, top + 10, 0);
+        clickUnit(screen, 0);
         requireUnit(screen, 1);
       }
       case 4 ->
           Screenshot.grab(
               mc.gameDirectory, name + "-stats-second.png", mc.getMainRenderTarget(), m -> {});
       case 5 -> {
-        click(screen, tab.x() - 35, top + 10, 0);
+        clickUnit(screen, 0);
         requireUnit(screen, 2);
       }
       case 6 ->
           Screenshot.grab(
               mc.gameDirectory, name + "-stats-minute.png", mc.getMainRenderTarget(), m -> {});
       case 7 -> {
-        click(screen, tab.x() - 35, top + 10, 0);
+        clickUnit(screen, 0);
         requireUnit(screen, 0);
-        click(screen, tab.x() - 35, top + 10, 1);
+        clickUnit(screen, 1);
         requireUnit(screen, 2);
       }
       case 8 ->
@@ -106,6 +105,23 @@ final class StatsClientSmoke {
     return false;
   }
 
+  private static void clickUnit(MachineScreen screen, int button) {
+    try {
+      var field = MachineScreen.class.getDeclaredField("stats");
+      field.setAccessible(true);
+      var drawer = field.get(screen);
+      var layout = drawer.getClass().getDeclaredMethod("layout");
+      layout.setAccessible(true);
+      layout.invoke(drawer);
+      var bounds = drawer.getClass().getDeclaredMethod("unitBounds");
+      bounds.setAccessible(true);
+      var rect = (Rect) bounds.invoke(drawer);
+      click(screen, rect.x() + rect.width() / 2, rect.y() + rect.height() / 2, button);
+    } catch (ReflectiveOperationException error) {
+      throw new AssertionError(error);
+    }
+  }
+
   private static void requireUnit(MachineScreen screen, int expected) {
     try {
       var field = MachineScreen.class.getDeclaredField("stats");
@@ -114,7 +130,13 @@ final class StatsClientSmoke {
       var unit = drawer.getClass().getDeclaredField("unit");
       unit.setAccessible(true);
       if (unit.getInt(drawer) != expected)
-        throw new AssertionError("Timescale did not cycle to " + expected);
+        throw new AssertionError(
+            "Timescale did not cycle to "
+                + expected
+                + "; actual="
+                + unit.getInt(drawer)
+                + "; screen="
+                + screen.getMenu().bound.screen().id());
     } catch (ReflectiveOperationException error) {
       throw new AssertionError(error);
     }

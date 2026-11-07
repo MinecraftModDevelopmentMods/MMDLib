@@ -1,20 +1,11 @@
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.transmuter" title-fallback="Iron-to-Gold Converter"
-        block-entity="zone.moddev.mc.companion.ProcessorEntity">
-  <vbox padding="7" spacing="4">
+        block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib:base_powered_machine">
+  <fill name="heading">
     <label text="screen.mmdlib_companion.single" text-fallback="One iron in, one gold out"/>
-    <hbox spacing="6" align="center">
-      <spacer/>
-      <slot id="input" index="0"/>
-      <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:transmuting"/>
-      <spacer/>
-      <energy-gauge id="energy" length="3s"/>
-    </hbox>
-  </vbox>
-  <inventory-controls id="inventory_controls">
-    <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
-            icons="mmdlib:icon_pause mmdlib:icon_resume"
-            value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
-            tooltip="screen.mmdlib_companion.pause.tip"/>
-  </inventory-controls>
-  <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.transmuter" value="#getWarnings"/>
+  </fill>
+  <fill name="machine">
+    <spacer/>
+    <slot id="input" index="0"/>
+    <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:transmuting"/>
+  </fill>
 </screen>

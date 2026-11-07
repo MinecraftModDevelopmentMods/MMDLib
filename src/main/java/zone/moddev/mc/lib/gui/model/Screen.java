@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.gui.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -19,6 +20,8 @@ import net.minecraft.resources.ResourceLocation;
  *     player-inventory} element places it)
  * @param body the main panel's elements
  * @param tabs side tabs and pop-outs, in document order
+ * @param origins original XML files by element attributes; diagnostic only, excluded from the
+ *     fingerprint
  */
 public record Screen(
     ResourceLocation id,
@@ -27,11 +30,29 @@ public record Screen(
     String blockEntity,
     boolean playerInventory,
     List<Element> body,
-    List<Element> tabs) {
+    List<Element> tabs,
+    Map<Common, String> origins) {
   /** Copies the lists. */
   public Screen {
     body = List.copyOf(body);
     tabs = List.copyOf(tabs);
+    origins = java.util.Collections.unmodifiableMap(new java.util.IdentityHashMap<>(origins));
+  }
+
+  public Screen(
+      ResourceLocation id,
+      String source,
+      Text title,
+      String blockEntity,
+      boolean playerInventory,
+      List<Element> body,
+      List<Element> tabs) {
+    this(id, source, title, blockEntity, playerInventory, body, tabs, Map.of());
+  }
+
+  /** Original XML file of an element, including elements inherited from a base screen. */
+  public String source(Common common) {
+    return origins.getOrDefault(common, source);
   }
 
   /** Visits every element, depth first in document order: the body, then the tabs. */

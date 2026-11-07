@@ -131,6 +131,11 @@ public final class AutomationInventory {
     return slots;
   }
 
+  /** The installed addon/filter items, separate from the machine's resource contents. */
+  public ItemStackHandler addonSlots() {
+    return slots;
+  }
+
   private void viewChanged() {
     viewRevision++;
     owner.setChanged();

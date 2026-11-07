@@ -61,6 +61,9 @@ public final class CompanionClientSmoke {
       if (System.currentTimeMillis() > DEADLINE)
         throw new AssertionError("Timed out on " + mc.screen);
       if (!started && mc.screen instanceof TitleScreen) {
+        if (!net.neoforged.fml.ModList.get().isLoaded("jade"))
+          throw new AssertionError("Jade must be installed in companion runs");
+        MMDLib.LOGGER.info("JADE_COMPANION_PRESENT");
         started = true;
         var settings =
             new LevelSettings(
@@ -286,6 +289,11 @@ public final class CompanionClientSmoke {
         waitingTicks = 0;
         return;
       }
+      if (stage == 0 && !ProcessorButtonClientSmoke.run(screen)) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
       if ((stage == 0 || stage == 2) && !StatsClientSmoke.run(screen)) {
         frames = 0;
         waitingTicks = 0;
@@ -299,7 +307,11 @@ public final class CompanionClientSmoke {
       if (stage == 0 && controlStage < 3) {
         var dial = menu.bound.screen().find("progress").orElseThrow();
         var pause = menu.bound.screen().find("toggle_0").orElseThrow();
-        if (!(menu.value(pause, false) instanceof Boolean paused)) return;
+        var state =
+            zone.moddev.mc.lib.gui.model.ProcessorButtonState.fromWire(menu.value(pause, false));
+        if (state.isEmpty()) return;
+        boolean paused =
+            state.orElseThrow() == zone.moddev.mc.lib.gui.model.ProcessorButtonState.PAUSED;
         if (controlStage == 0 && !paused || controlStage == 1 && paused) {
           var bounds = screen.bounds(dial);
           screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);

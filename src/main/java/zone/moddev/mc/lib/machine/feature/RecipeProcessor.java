@@ -297,11 +297,23 @@ public final class RecipeProcessor
   }
 
   /**
+   * Actual server-tick activity, including the completion tick; false while the host is suspended.
+   */
+  public boolean processing() {
+    return redstoneRunning;
+  }
+
+  /**
    * Pauses the processor: stops drawing energy, releases the running cycle's reservations so its
    * items can be taken, and starts nothing new until {@link #resume}. Works without power and
    * whatever the status. The recipe and progress are kept for the resume.
    */
   public void interrupt() {
+    pause();
+  }
+
+  /** Pauses manually, preserving resumable progress and releasing item/fluid reservations. */
+  public void pause() {
     if (paused) return;
     if (cycle != null) {
       cycle.release(inventory);
@@ -327,6 +339,12 @@ public final class RecipeProcessor
     searchDelay = 0;
     status = Status.IDLE;
     changed = true;
+  }
+
+  /** Sets the manual pause independently of redstone and other host processing gates. */
+  public void setPaused(boolean value) {
+    if (value) pause();
+    else resume();
   }
 
   /** Cancels work, releases reservations and forgets progress and pause state. */
