@@ -4,7 +4,7 @@
     <hbox spacing="6" align="center">
       <vbox spacing="4">
         <spacer/>
-        <label text="screen.mmdlib_companion.power" text-fallback="Powers all six adjacent blocks"/>
+        <label text="screen.mmdlib_companion.power" text-fallback="Powers adjacent blocks on enabled sides"/>
         <label text="screen.mmdlib_companion.rate" text-fallback="1,000 FE per face per tick"/>
         <spacer/>
       </vbox>
@@ -12,4 +12,5 @@
       <energy-gauge id="energy" length="3s"/>
     </hbox>
   </vbox>
+  <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.creative_power"/>
 </screen>

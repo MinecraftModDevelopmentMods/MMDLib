@@ -310,6 +310,9 @@ public final class AutomationRecoveryTests {
     require(
         power.stored() == 932 && a.pendingRefund() == 0,
         "Refund returns once when room becomes available");
+    require(
+        power.inserted().signum() == 0 && power.used().signum() == 0,
+        "Reserved and refunded transfer charges never count as input or processor use");
     h.succeed();
   }
 

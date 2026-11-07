@@ -1,5 +1,7 @@
 package zone.moddev.mc.lib.api.automation;
 
+import static zone.moddev.mc.lib.api.automation.AutomationInventory.COLUMNS;
+
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -241,11 +243,12 @@ public final class AutomationTransfers {
     var level = inventory.owner().getLevel();
     if (level == null || level.isClientSide) return;
     inventory.revalidate();
+    inventory.recover(null);
     inventory.settleRefund(power);
-    int total = inventory.groups().size() * 4;
+    int total = inventory.groups().size() * COLUMNS;
     int start = (int) Math.floorMod(level.getGameTime(), total);
     for (int n = 0; n < total; n++) {
-      int index = (start + n) % total, g = index / 4, c = index % 4;
+      int index = (start + n) % total, g = index / COLUMNS, c = index % COLUMNS;
       var group = inventory.group(g);
       var stack = inventory.addon(g, c);
       var addon = stack.getCapability(AddonCapabilities.ADDON);
@@ -291,7 +294,7 @@ public final class AutomationTransfers {
           state.putInt("face", face);
         }
         long reserved = cost * max;
-        if (!power.consume(reserved)) break;
+        if (!power.reserve(reserved)) break;
         int moved;
         try {
           moved = move(group, inventory, direction, input, pending, max, accepts, state);

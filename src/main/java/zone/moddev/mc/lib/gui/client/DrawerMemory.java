@@ -2,8 +2,11 @@ package zone.moddev.mc.lib.gui.client;
 
 import java.util.EnumMap;
 import java.util.Map;
+
 import net.minecraft.client.Minecraft;
+
 import net.neoforged.neoforge.network.PacketDistributor;
+
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
 
@@ -33,6 +36,11 @@ final class DrawerMemory {
 
   void userInput() {
     restoring.clear();
+  }
+
+  void statsIntent(boolean open) {
+    if (open) remembered.put(Element.Edge.LEFT, new Selection("stats", "", 0));
+    else remembered.remove(Element.Edge.LEFT);
   }
 
   void restore(MachineScreen screen, java.util.Set<Element.Popout> open) {
@@ -76,6 +84,9 @@ final class DrawerMemory {
           restoring.remove(edge);
           screen.closeLeftDrawers();
         }
+      } else if (selection.kind().equals("stats")) {
+        if (!screen.stats.show()) continue;
+        restoring.remove(edge);
       } else if (selection.kind().equals("redstone")) {
         var redstone = menu.redstone;
         if (redstone == null) {
@@ -176,6 +187,7 @@ final class DrawerMemory {
                     state.keys().get(state.selected()),
                     state.offset());
         }
+        if (screen.stats.open) selection = new Selection("stats", "", 0);
       } else if (menu.redstone != null && menu.redstone.open()) {
         selection = new Selection("redstone", "", menu.redstone.selected());
       } else if (menu.automation != null && menu.automation.open()) {

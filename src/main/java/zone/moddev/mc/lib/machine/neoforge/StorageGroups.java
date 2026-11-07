@@ -3,11 +3,11 @@ package zone.moddev.mc.lib.machine.neoforge;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.world.item.ItemStack;
 
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
+
+import org.jetbrains.annotations.Nullable;
 
 import zone.moddev.mc.lib.api.capabilities.EnergyBuffer;
 import zone.moddev.mc.lib.api.capabilities.FluidStorage;
@@ -171,7 +171,6 @@ public final class StorageGroups {
             return () -> storage.setStackInSlot(index, before);
           });
     }
-
   }
 
   private record FluidTanks(FluidStorage storage, int[] indexes) implements FluidGroup {
@@ -297,10 +296,21 @@ public final class StorageGroups {
             return () -> storage.tank(index).setFluid(before);
           });
     }
-
   }
 
   private record EnergyStore(EnergyBuffer buffer) implements EnergyGroup {
+    @Override
+    public Object statisticsResource() {
+      return buffer;
+    }
+
+    @Override
+    public long consume(long amount, MachineTx tx) {
+      if (amount <= 0 || amount > buffer.stored()) return 0;
+      track(tx);
+      return buffer.consume(amount) ? amount : 0;
+    }
+
     @Override
     public long stored() {
       return buffer.stored();
@@ -326,12 +336,7 @@ public final class StorageGroups {
     }
 
     private void track(MachineTx tx) {
-      tx.track(
-          buffer,
-          () -> {
-            long before = buffer.stored();
-            return () -> buffer.setStored(before);
-          });
+      tx.track(buffer, buffer::checkpoint);
     }
   }
 }

@@ -27,6 +27,49 @@ public final class AutomationGameTests {
   }
 
   @GameTest(template = "empty")
+  public static void menuRecoveryReturnsOnlyTheCurrentPlayersDetachedFilter(GameTestHelper h) {
+    var machine = place(h);
+    var a = machine.automation;
+    a.slots().setStackInSlot(0, new ItemStack(CompanionAddons.PULLER.get()));
+    a.slots().setStackInSlot(4, new ItemStack(CompanionAddons.ITEM_FILTER.get()));
+    a.slots().extractItem(0, 1, false);
+    a.load(a.save(h.getLevel().registryAccess()), h.getLevel().registryAccess());
+    a.slots().setStackInSlot(0, new ItemStack(CompanionAddons.PULLER.get()));
+    a.slots().setStackInSlot(4, new ItemStack(CompanionAddons.ITEM_FILTER.get()));
+    var player = h.makeMockServerPlayerInLevel();
+    player.setPos(
+        machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ());
+    var menu = new MachineMenu(72, player.getInventory(), machine);
+    player.containerMenu = menu;
+    menu.automation.action(
+        player,
+        new AutomationNetwork.Action(
+            72, menu.widgetSession(), 1, "select", 0, -1, 0, 0, "", 0, ""));
+    menu.clicked(
+        menu.automation.slotStart(), 0, net.minecraft.world.inventory.ClickType.PICKUP, player);
+    require(
+        player.getInventory().countItem(CompanionAddons.ITEM_FILTER.get()) == 1,
+        "Only the filter detached by this player's click goes to that player");
+    var drops =
+        h.getLevel()
+            .getEntitiesOfClass(
+                net.minecraft.world.entity.item.ItemEntity.class,
+                new net.minecraft.world.phys.AABB(machine.getBlockPos()).inflate(2),
+                e -> e.getItem().is(CompanionAddons.ITEM_FILTER.get()));
+    require(
+        drops.size() == 1 && drops.getFirst().getItem().getCount() == 1,
+        "Previously queued recovery drops at the block");
+    var other = h.makeMockServerPlayerInLevel();
+    var otherMenu = new MachineMenu(73, other.getInventory(), machine);
+    otherMenu.clicked(-999, 0, net.minecraft.world.inventory.ClickType.PICKUP, other);
+    require(
+        other.getInventory().countItem(CompanionAddons.ITEM_FILTER.get()) == 0,
+        "A later viewer receives no leftovers");
+    player.containerMenu = player.inventoryMenu;
+    h.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void fullInventoryDropsConfiguredFilterOnce(GameTestHelper h) {
     var machine = place(h);
     var a = machine.automation;
@@ -272,7 +315,8 @@ public final class AutomationGameTests {
   }
 
   @GameTest(template = "empty")
-  public static void menuActionsAreSessionAndGenerationBound(GameTestHelper h) {
+  public static void menuActionsAreSessionAndGenerationBound(GameTestHelper h)
+      throws ReflectiveOperationException {
     var machine = place(h);
     var player = h.makeMockServerPlayerInLevel();
     player.setPos(
@@ -311,6 +355,17 @@ public final class AutomationGameTests {
         new AutomationNetwork.Action(
             71, menu.widgetSession(), 3, "select", 1, -1, 0, 0, "", 0, ""));
     require(a.selected() == 0, "Replay refused");
+    var revision = AutomationMenu.class.getDeclaredField("lastInventoryRevision");
+    revision.setAccessible(true);
+    var selection = AutomationMenu.class.getDeclaredField("lastSelected");
+    selection.setAccessible(true);
+    var open = AutomationMenu.class.getDeclaredField("lastOpen");
+    open.setAccessible(true);
+    require(
+        revision.getLong(a) == machine.automation.viewRevision()
+            && selection.getInt(a) == a.selected()
+            && open.getBoolean(a) == a.open(),
+        "Action acknowledgement advances the broadcast markers, preventing a duplicate snapshot");
     player.containerMenu = player.inventoryMenu;
     h.succeed();
   }

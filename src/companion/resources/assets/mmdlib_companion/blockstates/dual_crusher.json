@@ -1,7 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=north": {
       "model": "mmdlib_companion:block/dual_crusher"
+    },
+    "facing=east": {
+      "model": "mmdlib_companion:block/dual_crusher",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mmdlib_companion:block/dual_crusher",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mmdlib_companion:block/dual_crusher",
+      "y": 270
     }
   }
 }

@@ -1,5 +1,7 @@
 package zone.moddev.mc.lib.gui.client;
 
+import static zone.moddev.mc.lib.api.automation.AutomationInventory.COLUMNS;
+
 import java.util.*;
 
 import net.minecraft.client.Minecraft;
@@ -90,11 +92,15 @@ public final class AutomationDrawer {
             panel.right(), panel.y() + AutomationLayout.TOP, RAIL, AutomationLayout.TAB_HEIGHT);
     syncEditor();
     boolean hasFilterSlot = false, hasFilter = false;
-    for (int c = 0; c < 4; c++) {
+    for (int c = 0; c < COLUMNS; c++) {
       hasFilterSlot |= model.supportsFilter(model.selected(), c);
       hasFilter |= !model.filter(model.selected(), c).isEmpty();
     }
-    int contentHeight = AutomationLayout.contentHeight(hasFilterSlot, hasFilter);
+    int contentHeight =
+        model.addonsEnabled()
+            ? AutomationLayout.contentHeight(hasFilterSlot, hasFilter)
+            : AutomationLayout.face(RelativeFace.BOTTOM.ordinal()).bottom()
+                + AutomationLayout.PADDING;
     int baseHeight =
         Math.max(
             contentHeight,
@@ -332,7 +338,7 @@ public final class AutomationDrawer {
       arrow(g, new Rect(selector.x() + 3, selector.bottom() + 1, 8, 6), true, true);
     }
     for (int f = 0; f < 6; f++) drawFace(g, f, mx, my);
-    for (int c = 0; c < 4; c++) {
+    for (int c = 0; model.addonsEnabled() && c < COLUMNS; c++) {
       sprite(g, "slot", module(c));
       if (module(c).contains(mx, my) && model.addon(model.selected(), c).isEmpty())
         tooltip =
@@ -614,7 +620,7 @@ public final class AutomationDrawer {
             button == 1 ? "reverse" : "");
         return true;
       }
-    for (int c = 0; c < 4; c++) {
+    for (int c = 0; c < COLUMNS; c++) {
       if (model.supportsFilter(model.selected(), c)
           && !model.filter(model.selected(), c).isEmpty()
           && filterToggle(c).contains(x, y)) {

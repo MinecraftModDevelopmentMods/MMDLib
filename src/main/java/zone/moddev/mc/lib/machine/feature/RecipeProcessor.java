@@ -1,22 +1,24 @@
 package zone.moddev.mc.lib.machine.feature;
 
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.IntSupplier;
-import net.minecraft.network.chat.Component;
-import zone.moddev.mc.lib.api.redstone.IRedstoneOutput;
-import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
-import zone.moddev.mc.lib.api.redstone.RedstoneControl;
-
-import org.jetbrains.annotations.Nullable;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
+import org.jetbrains.annotations.Nullable;
+
+import zone.moddev.mc.lib.api.redstone.IRedstoneOutput;
+import zone.moddev.mc.lib.api.redstone.RedstoneControl;
+import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
+import zone.moddev.mc.lib.api.stats.Statistics;
+import zone.moddev.mc.lib.api.stats.StatsProvider;
 import zone.moddev.mc.lib.machine.inventory.EnergyGroup;
 import zone.moddev.mc.lib.machine.inventory.MachineInventory;
 import zone.moddev.mc.lib.machine.recipe.CyclePlan;
@@ -33,7 +35,7 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
  * <p>Several processors may share an inventory; a processor sees what the others reserved.
  */
 public final class RecipeProcessor
-    implements MachineFeature<RecipeProcessor.State>, IRedstoneOutput {
+    implements MachineFeature<RecipeProcessor.State>, IRedstoneOutput, StatsProvider {
   private static final int SEARCH_RETRY_INTERVAL = 20;
 
   /** What the processor is doing. */
@@ -46,6 +48,8 @@ public final class RecipeProcessor
     STALLED,
     /** A cycle has run its time but cannot finish, say an input was taken; retried each tick. */
     BLOCKED,
+    /** Held by the host's processing gate; progress and reservations are retained. */
+    HELD,
     /** Held by an interrupt. */
     PAUSED
   }
@@ -116,6 +120,18 @@ public final class RecipeProcessor
   private boolean paused;
   private boolean changed;
   private Status status = Status.IDLE;
+  private java.math.BigInteger completedCycles = java.math.BigInteger.ZERO;
+  private final Component displayName;
+
+  /** Successful recipe completions during this processor instance's lifetime; not saved. */
+  public java.math.BigInteger completedCycles() {
+    return completedCycles;
+  }
+
+  public Component displayName() {
+    return displayName.copy();
+  }
+
   private Status marked = Status.IDLE;
   private int markedTime;
   @Nullable private CyclePlan justFinished;
@@ -134,6 +150,7 @@ public final class RecipeProcessor
       String key, MachineRecipeType type, MachineInventory inventory, Component displayName) {
     this.key = key;
     outputPrefix = outputPrefix(key);
+    this.displayName = displayName.copy();
     this.inventory = inventory;
     this.type = type;
     lookup = type.lookup();
@@ -190,6 +207,13 @@ public final class RecipeProcessor
   public void suspended(FeatureHost host) {
     redstoneRunning = false;
     justFinished = null;
+    var held = paused ? Status.PAUSED : Status.HELD;
+    if (changed || status != held) {
+      changed = false;
+      status = held;
+      host.markChanged();
+    }
+    syncStatus(host);
   }
 
   @Override
@@ -321,6 +345,32 @@ public final class RecipeProcessor
     changed = true;
   }
 
+  @Override
+  public Statistics statistics() {
+    var plan = cycle != null ? cycle : justFinished;
+    var maximum =
+        plan == null
+            ? new Statistics.Text(Statistics.label("no_recipe"))
+            : (Statistics.Value) new Statistics.Rate(java.math.BigInteger.ONE, plan.time());
+    var uses = new java.util.ArrayList<Statistics.EnergyUse>();
+    if (plan != null)
+      for (var need : plan.energy().entrySet()) {
+        if (inventory.group(need.getKey()).orElse(null) instanceof EnergyGroup group) {
+          long total = need.getValue();
+          long peak = total / plan.time() + (total % plan.time() == 0 ? 0 : 1);
+          uses.add(
+              new Statistics.EnergyUse(
+                  group.statisticsResource(), java.math.BigInteger.valueOf(peak)));
+        }
+      }
+    return new Statistics(
+        displayName,
+        java.util.List.of(
+            Statistics.cycles("cycles", new Statistics.Counter(completedCycles, 1200)),
+            Statistics.cycles("cycles_max", maximum)),
+        uses);
+  }
+
   /** What the processor is doing. */
   public Status status() {
     return status;
@@ -350,6 +400,10 @@ public final class RecipeProcessor
     justFinished = null;
     run(host);
     redstoneRunning = !paused && (status == Status.RUNNING || justFinished != null);
+    syncStatus(host);
+  }
+
+  private void syncStatus(FeatureHost host) {
     var seen = justFinished != null ? Status.RUNNING : status;
     int seenTime = justFinished != null ? justFinished.time() : time();
     if (seen != marked || seenTime != markedTime) {
@@ -401,6 +455,7 @@ public final class RecipeProcessor
     }
     if (progress >= cycle.time()) {
       if (cycle.finish(inventory, level.getRandom())) {
+        completedCycles = completedCycles.add(java.math.BigInteger.ONE);
         justFinished = cycle;
         cycle = null;
         progress = 0;
@@ -473,7 +528,7 @@ public final class RecipeProcessor
       for (var need : cycle.energy().entrySet()) {
         long share = EnergySchedule.share(need.getValue(), cycle.time(), progress);
         if (!(inventory.group(need.getKey()).orElse(null) instanceof EnergyGroup group)
-            || group.extract(share, tx) < share) return false;
+            || group.consume(share, tx) < share) return false;
       }
       tx.commit();
       return true;

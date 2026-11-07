@@ -1,5 +1,8 @@
 package zone.moddev.mc.lib.gui.runtime;
 
+import static zone.moddev.mc.lib.api.automation.AutomationInventory.COLUMNS;
+import static zone.moddev.mc.lib.api.automation.AutomationInventory.SLOTS_PER_GROUP;
+
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -23,6 +26,7 @@ public final class AutomationMenu {
   private final MachineMenu menu;
   private final Player owner;
   private final boolean client;
+  private final boolean addons;
   private final ItemStackHandler items;
   private final List<Slot> slots = new ArrayList<>();
   private int selected, editor = -1, start, lastRequest, nextRequest, pendingTicks;
@@ -42,8 +46,9 @@ public final class AutomationMenu {
     this.inventory = inventory;
     this.owner = owner;
     this.client = client;
+    addons = !(menu.blockEntity instanceof ScreenHost host) || host.screenAutomationAddons();
     modes = new int[inventory.groups().size() * 6];
-    generations = new long[inventory.groups().size() * 4];
+    generations = new long[inventory.groups().size() * COLUMNS];
     revisions = new long[generations.length];
     items =
         client
@@ -55,10 +60,10 @@ public final class AutomationMenu {
 
               @Override
               public boolean isItemValid(int slot, ItemStack stack) {
-                int g = slot / 8, sub = slot % 8;
-                if (sub < 4)
+                int g = slot / SLOTS_PER_GROUP, sub = slot % SLOTS_PER_GROUP;
+                if (sub < COLUMNS)
                   return AutomationInventory.acceptsAddon(inventory.group(g), this, slot, stack);
-                var parent = getStackInSlot(g * 8 + sub - 4);
+                var parent = getStackInSlot(g * SLOTS_PER_GROUP + sub - COLUMNS);
                 var addon = parent.getCapability(AddonCapabilities.ADDON);
                 return addon != null
                     && addon.specification(parent).accepts(inventory.group(g))
@@ -69,7 +74,11 @@ public final class AutomationMenu {
   }
 
   public int slotCount() {
-    return items.getSlots();
+    return addons ? items.getSlots() : 0;
+  }
+
+  public boolean addonsEnabled() {
+    return addons;
   }
 
   public int selected() {
@@ -98,19 +107,19 @@ public final class AutomationMenu {
   }
 
   public ItemStack addon(int g, int c) {
-    return items.getStackInSlot(g * 8 + c);
+    return addons ? items.getStackInSlot(g * SLOTS_PER_GROUP + c) : ItemStack.EMPTY;
   }
 
   public ItemStack filter(int g, int c) {
-    return items.getStackInSlot(g * 8 + 4 + c);
+    return addons ? items.getStackInSlot(g * SLOTS_PER_GROUP + COLUMNS + c) : ItemStack.EMPTY;
   }
 
   public long generation(int g, int c) {
-    return client ? generations[g * 4 + c] : inventory.generation(g, c);
+    return client ? generations[g * COLUMNS + c] : inventory.generation(g, c);
   }
 
   public long revision(int g, int c) {
-    return client ? revisions[g * 4 + c] : inventory.revision(g, c);
+    return client ? revisions[g * COLUMNS + c] : inventory.revision(g, c);
   }
 
   public IoMode mode(int g, int face) {
@@ -129,18 +138,18 @@ public final class AutomationMenu {
 
   public void addSlots(Consumer<Slot> add, int start, int bodyX) {
     this.start = start;
-    for (int i = 0; i < items.getSlots(); i++) {
+    for (int i = 0; i < slotCount(); i++) {
       final int index = i;
-      var bounds = AutomationLayout.item(i % 8).offset(bodyX, AutomationLayout.TOP);
+      var bounds = AutomationLayout.item(i % SLOTS_PER_GROUP).offset(bodyX, AutomationLayout.TOP);
       var slot =
           new SlotItemHandler(items, index, bounds.x(), bounds.y()) {
             @Override
             public boolean isActive() {
               return open
-                  && index / 8 == selected
-                  && (index % 8 < 4
-                      || supportsFilter(index / 8, index % 4)
-                      || !filter(index / 8, index % 4).isEmpty())
+                  && index / SLOTS_PER_GROUP == selected
+                  && (index % SLOTS_PER_GROUP < COLUMNS
+                      || supportsFilter(index / SLOTS_PER_GROUP, index % COLUMNS)
+                      || !filter(index / SLOTS_PER_GROUP, index % COLUMNS).isEmpty())
                   && (!client || !pending);
             }
 
@@ -167,6 +176,14 @@ public final class AutomationMenu {
           };
       slots.add(slot);
       add.accept(slot);
+    }
+  }
+
+  /** Flush unattributed recoveries before this player's synchronous inventory operation. */
+  public void beforeInteraction() {
+    if (!client) {
+      inventory.revalidate();
+      inventory.recover(null);
     }
   }
 
@@ -200,8 +217,8 @@ public final class AutomationMenu {
 
   public boolean send(String kind, int group, int column, String control, int entry, String value) {
     if (!client || pending || nextRequest == Integer.MAX_VALUE) return false;
-    long generation = column >= 0 && column < 4 ? generation(group, column) : 0;
-    long revision = column >= 0 && column < 4 ? revision(group, column) : 0;
+    long generation = column >= 0 && column < COLUMNS ? generation(group, column) : 0;
+    long revision = column >= 0 && column < COLUMNS ? revision(group, column) : 0;
     pending = true;
     pendingTicks = 0;
     PacketDistributor.sendToServer(
@@ -269,7 +286,7 @@ public final class AutomationMenu {
           if (open
               && g == selected
               && c >= 0
-              && c < 4
+              && c < COLUMNS
               && supportsFilter(g, c)
               && !filter(g, c).isEmpty()
               && inventory.generation(g, c) == action.generation()) {
@@ -291,7 +308,7 @@ public final class AutomationMenu {
           if (open
               && g == selected
               && c >= 0
-              && c < 4
+              && c < COLUMNS
               && editor == c
               && action.generation() == editorGeneration)
             accepted =
@@ -322,15 +339,15 @@ public final class AutomationMenu {
   private AutomationNetwork.State snapshot(boolean accepted) {
     int n = inventory.groups().size();
     int[] modes = new int[n * 6];
-    long[] gens = new long[n * 4], revs = new long[n * 4];
+    long[] gens = new long[n * COLUMNS], revs = new long[n * COLUMNS];
     String[] ids = new String[n];
     for (int g = 0; g < n; g++) {
       ids[g] = inventory.group(g).definitionKey();
       for (int f = 0; f < 6; f++)
         modes[g * 6 + f] = inventory.group(g).sides().get(RelativeFace.values()[f]).ordinal();
-      for (int c = 0; c < 4; c++) {
-        gens[g * 4 + c] = inventory.generation(g, c);
-        revs[g * 4 + c] = inventory.revision(g, c);
+      for (int c = 0; c < COLUMNS; c++) {
+        gens[g * COLUMNS + c] = inventory.generation(g, c);
+        revs[g * COLUMNS + c] = inventory.revision(g, c);
       }
     }
     return new AutomationNetwork.State(
@@ -351,6 +368,10 @@ public final class AutomationMenu {
     if (owner instanceof net.minecraft.server.level.ServerPlayer player
         && player.connection.hasChannel(AutomationNetwork.State.TYPE))
       PacketDistributor.sendToPlayer(player, snapshot(accepted));
+    lastInventoryRevision = inventory.viewRevision();
+    lastSelected = selected;
+    lastOpen = open;
+    lastEditor = editor;
   }
 
   public void broadcast() {
@@ -360,10 +381,6 @@ public final class AutomationMenu {
         || selected != lastSelected
         || open != lastOpen
         || editor != lastEditor) {
-      lastInventoryRevision = revision;
-      lastSelected = selected;
-      lastOpen = open;
-      lastEditor = editor;
       transmit(true);
     }
   }

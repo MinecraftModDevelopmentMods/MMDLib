@@ -25,6 +25,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   public ScreenLayout layout;
   private final AutomationDrawer automation;
   private final RedstoneDrawer redstone;
+  final StatsDrawer stats = new StatsDrawer(this);
   private final ReservationOverlay reservations = new ReservationOverlay();
   private final ContainerDrawer containerDrawer;
   private final ContainerDrawer curiosDrawer;
@@ -227,16 +228,39 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     drawerMemory.redstoneIntent(menu.redstone.open(), kind, face);
   }
 
+  void rememberStatsIntent() {
+    drawerMemory.statsIntent(stats.open);
+  }
+
   void closeRightPopouts() {
     open.removeIf(p -> p.edge() == Element.Edge.RIGHT);
   }
 
   void closeLeftDrawers() {
+    stats.open = false;
     open.removeIf(p -> p.edge() == Element.Edge.LEFT);
   }
 
-  boolean onDrawerTab(double x, double y) {
+  void openStatsDrawer() {
+    closeLeftDrawers();
+    containerDrawer.close();
+    curiosDrawer.close();
+  }
+
+  boolean onOtherLeftDrawerTab(double x, double y) {
     return containerDrawer.tabContains(x, y)
+        || curiosDrawer.tabContains(x, y)
+        || menu.bound.screen().tabs().stream()
+            .anyMatch(
+                e ->
+                    e instanceof Element.Popout p
+                        && p.edge() == Element.Edge.LEFT
+                        && bounds(e).contains(x, y));
+  }
+
+  boolean onDrawerTab(double x, double y) {
+    return stats.tabContains(x, y)
+        || containerDrawer.tabContains(x, y)
         || curiosDrawer.tabContains(x, y)
         || menu.bound.screen().tabs().stream().anyMatch(e -> bounds(e).contains(x, y));
   }
@@ -321,11 +345,13 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
             });
     if (automation != null) automation.drawBackground(g, mx, my);
     if (redstone != null) redstone.render(g, mx, my);
-    if (automation != null) automation.renderTab(g);
     containerDrawer.render(g, mx, my);
     curiosDrawer.render(g, mx, my);
+    stats.render(g, mx, my);
     containerDrawer.renderTab(g);
     curiosDrawer.renderTab(g);
+    if (automation != null) automation.renderTab(g);
+    if (redstone != null) redstone.renderTab(g);
   }
 
   private void draw(GuiGraphics g, Element e, Rect r, int mx, int my, float partial) {
@@ -581,6 +607,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     if (redstone != null) result.addAll(redstone.exclusions());
     result.addAll(containerDrawer.exclusions());
     result.addAll(curiosDrawer.exclusions());
+    result.addAll(stats.exclusions());
     return result;
   }
 
@@ -673,6 +700,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     if (redstone != null) redstone.tooltip(g, mx, my);
     containerDrawer.tooltip(g, mx, my);
     curiosDrawer.tooltip(g, mx, my);
+    stats.tooltip(g, mx, my);
   }
 
   private void hover(Element e, boolean enter) {
@@ -773,6 +801,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   public boolean mouseClicked(double mx, double my, int button) {
     drawerMemory.userInput();
+    if (stats.click(mx, my, button)) {
+      widgetInput.clearFocus();
+      return true;
+    }
     if (containerDrawer.click(mx, my, button) || curiosDrawer.click(mx, my, button)) {
       widgetInput.clearFocus();
       return true;
@@ -809,6 +841,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
       if (button > 1) continue;
       if (e instanceof Element.Popout p) {
         if (p.edge() == Element.Edge.LEFT) {
+          stats.open = false;
           containerDrawer.close();
           curiosDrawer.close();
         }
@@ -895,6 +928,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
   @Override
   public boolean keyPressed(int key, int scan, int modifiers) {
     drawerMemory.userInput();
+    if (stats.key(key)) return true;
     // A lost drawer acknowledgment must never trap the player in the screen.
     if ((menu.containerDrawer.pending()
             || menu.curiosDrawer.pending()
@@ -940,6 +974,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseScrolled(double mx, double my, double dx, double dy) {
+    if (stats.scroll(mx, my, dy)) return true;
     if (curiosDrawer.scroll(mx, my, dy) || containerDrawer.scroll(mx, my, dy)) return true;
     if (redstone != null && redstone.scroll(mx, my, dy)) return true;
     if (automation != null && automation.scroll(mx, my, dy)) return true;
@@ -979,6 +1014,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    if (stats.drag()) return true;
     if (containerDrawer.drag(x, y, button) || curiosDrawer.drag(x, y, button)) return true;
     if (redstone != null && redstone.drag(x, y, button)) return true;
     if (automation != null && automation.drag(x, y, button, dx, dy)) return true;
@@ -988,6 +1024,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   public boolean mouseReleased(double x, double y, int button) {
+    if (stats.release()) return true;
     boolean curiosReleased = curiosDrawer.release(x, y, button);
     if (containerDrawer.release(x, y, button) || curiosReleased) return true;
     if (redstone != null && redstone.release(x, y, button)) return true;
@@ -1011,7 +1048,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
   @Override
   protected boolean hasClickedOutside(double x, double y, int left, int top, int button) {
-    return (redstone == null || !redstone.contains(x, y))
+    return !stats.contains(x, y)
+        && (redstone == null || !redstone.contains(x, y))
         && (automation == null || !automation.contains(x, y))
         && !containerDrawer.contains(x, y)
         && !curiosDrawer.contains(x, y)

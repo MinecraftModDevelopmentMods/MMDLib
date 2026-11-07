@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.*;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
@@ -35,6 +36,15 @@ public class MachineMenu extends AbstractContainerMenu {
   private final Map<Element, Boolean> visibility = new IdentityHashMap<>();
   private final Map<Element, Integer> elementIndexes = new IdentityHashMap<>();
   private final Map<Integer, Object> values = new HashMap<>();
+  private final ScreenStats stats;
+
+  /** Server-synchronized stats for tick, second or minute rate display. */
+  public List<Component> stats(int unit) {
+    Object value = values.get(ScreenStats.KEY + Math.clamp(unit, 0, 2));
+    if (!(value instanceof List<?> list)) return List.of();
+    return list.stream().filter(Component.class::isInstance).map(Component.class::cast).toList();
+  }
+
   private final ScreenHost host;
   private final int machineSlots;
   private final IItemHandler items;
@@ -253,6 +263,7 @@ public class MachineMenu extends AbstractContainerMenu {
       if (element instanceof Element.SideConfig config && config.groups().size() > 682)
         throw new IllegalArgumentException("Too many side configuration groups");
     host = entity instanceof ScreenHost h ? h : null;
+    stats = client || host == null ? new ScreenStats() : ScreenStats.forHost(host);
     automation =
         host != null && host.screenAutomation() != null
             ? new AutomationMenu(this, host.screenAutomation(), owner, client)
@@ -497,6 +508,7 @@ public class MachineMenu extends AbstractContainerMenu {
   public void clicked(int slot, int button, ClickType type, Player player) {
     if (slot >= 0 && slot < slots.size() && !slots.get(slot).isActive()) return;
     boolean previous = interacting;
+    if (!previous && automation != null) automation.beforeInteraction();
     interacting = true;
     try {
       super.clicked(slot, button, type, player);
@@ -516,6 +528,7 @@ public class MachineMenu extends AbstractContainerMenu {
   @Override
   public ItemStack quickMoveStack(Player player, int index) {
     boolean previous = interacting;
+    if (!previous && automation != null) automation.beforeInteraction();
     interacting = true;
     try {
       return moveStack(player, index);
@@ -630,6 +643,7 @@ public class MachineMenu extends AbstractContainerMenu {
         snapshot.put(Integer.MIN_VALUE + i, java.math.BigInteger.valueOf(selected));
       }
     snapshot.putAll(reservationSnapshot());
+    snapshot.putAll(stats.read(host, blockEntity.getLevel().getGameTime()));
     var delta = ScreenValues.changed(values, snapshot, initial);
     for (int key : widgetRefreshKeys) delta.put(key, snapshot.get(key));
     widgetRefreshKeys.clear();

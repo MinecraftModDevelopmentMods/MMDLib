@@ -14,7 +14,19 @@ apply to `runClient` and `runCompanionClient` only and stay outside the reposito
 Minecraft uses its default window size. Automated smoke runs retain their own fixed dimensions.
 
 Place a **Creative Power Source** next to a machine, then right-click the machine to open its screen.
-The source supplies all six adjacent faces. JEI is included in development runs; add `-PwithoutJei`
+
+Open the Creative Power Source and use its right-hand side configuration tab to configure each
+output face. Its screen has only side configuration, Info and Statistics panels, with no player
+inventory, equipment drawers or addon/filter slots.
+Machines face the player when placed. Left/right in the face grid are viewed from that front,
+so neighbor icons and side controls follow the same orientation. Rotation and mirroring update
+that facing. Blocks placed before facing was recorded keep the north default; replace them to
+choose their front from placement. Walking around a machine does not change its configured front.
+
+Faces cycle between Output and Disabled. Disabled faces block both automatic delivery and
+external extraction; settings survive reloads. Existing sources start with all six faces enabled.
+
+JEI is included in development runs; add `-PwithoutJei`
 to run without it.
 
 | Block ID (prefix `mmdlib_companion:`) | What it does |
@@ -22,7 +34,7 @@ to run without it.
 | `crusher` | One input slot, two output slots, one processor, and a water/lava preview tank |
 | `transmuter` | One slot limited to one item; converts an iron ingot into a gold ingot |
 | `dual_crusher` | Two independently pausable processors share the same input and output slots |
-| `creative_power` | Refills its buffer and supplies up to 1,000 FE per adjacent face per tick |
+| `creative_power` | Refills its buffer and supplies up to 1,000 FE per enabled adjacent face per tick |
 
 The crusher recipes take 100 ticks and 2,000 FE per cycle: cobblestone becomes gravel, gravel becomes
 sand, and copper/iron/gold ore becomes two of the corresponding raw material. The converter takes

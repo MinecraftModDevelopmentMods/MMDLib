@@ -3,10 +3,8 @@ package zone.moddev.mc.lib.api.automation;
 import java.util.*;
 import java.util.function.Consumer;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
@@ -14,10 +12,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
+
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import zone.moddev.mc.lib.api.capabilities.*;
 
@@ -151,7 +151,7 @@ public final class AutomationInventory {
   public void refund(EnergyBuffer power, long amount) {
     if (amount < 0) throw new IllegalArgumentException("Negative refund");
     if (amount == 0) return;
-    refund = Math.addExact(refund, amount - power.insert(amount, false));
+    refund = Math.addExact(refund, amount - power.refund(amount));
     owner.setChanged();
   }
 
@@ -161,7 +161,7 @@ public final class AutomationInventory {
 
   public void settleRefund(EnergyBuffer power) {
     if (refund == 0) return;
-    long restored = power.insert(refund, false);
+    long restored = power.refund(refund);
     refund -= restored;
     if (restored != 0) owner.setChanged();
   }
