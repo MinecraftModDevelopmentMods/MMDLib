@@ -3,6 +3,8 @@ package zone.moddev.mc.lib.smoke;
 import java.util.*;
 
 import net.minecraft.core.*;
+import net.minecraft.core.component.DataComponentPredicate;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -13,6 +15,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.material.Fluids;
 
+import net.neoforged.neoforge.common.crafting.DataComponentIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -110,6 +113,16 @@ final class InventoryArchitectureSmoke {
     original.addTank(2000, Role.INPUT);
     original.addTank(2000, Role.INPUT);
     original.tankId(0, "water").tankId(1, "lava");
+    for (int invalid : new int[] {-1, 2}) {
+      try {
+        original.restrict(stack -> false, 0, invalid);
+        throw new AssertionError("Invalid tank index must fail");
+      } catch (IndexOutOfBoundsException expected) {
+        require(
+            original.isFluidValid(0, new FluidStack(Fluids.WATER, 1)),
+            "Invalid restrictions must not partially change valid tanks");
+      }
+    }
     original.restoreFluid(0, new FluidStack(Fluids.WATER, 1500));
     original.restoreFluid(1, new FluidStack(Fluids.LAVA, 700));
     var smaller = new FluidStorage();
@@ -214,8 +227,14 @@ final class InventoryArchitectureSmoke {
             .items(left, storage)
             .items(right, storage)
             .items(items("result", IoMode.OUTPUT, 2), storage)
-            .recipeGroup("ingredients", "left", "right")
-            .build();
+            .recipeGroup("ingredients", "left", "right");
+    rejected(() -> resources.recipeGroup("left", "left", "result"), "left");
+    rejected(() -> resources.recipeGroup("ingredients", "result"), "ingredients");
+    rejected(() -> resources.items(items("ingredients", IoMode.INPUT, 0), storage), "ingredients");
+    resources.build();
+    require(
+        ((ItemGroup) resources.recipes().group("left").orElseThrow()).size() == 1,
+        "Rejected alias must preserve the original group");
     var port = left.port(Direction.NORTH);
     require(port.getSlots() == 3, "group ports keep physical slot numbering");
     require(
@@ -275,12 +294,12 @@ final class InventoryArchitectureSmoke {
               "validation.xml",
               new java.io.ByteArrayInputStream(
                   xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-      if (variant == 0)
+      if (variant != 2)
         zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(screen, host);
       else
         rejected(
             () -> zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(screen, host),
-            variant == 1 ? "missing screen element 'input'" : "index 2");
+            "index 2");
     }
   }
 
@@ -387,6 +406,41 @@ final class InventoryArchitectureSmoke {
           fluids.isFluidValid(0, new FluidStack(Fluids.LAVA, 1))
               && !fluids.isFluidValid(0, new FluidStack(Fluids.WATER, 1)),
           "recipe replacement immediately updates fluid admission");
+      int[] indexed = {0};
+      var namedIngredient =
+          new DataComponentIngredient(
+              HolderSet.direct(Items.DIAMOND.builtInRegistryHolder()),
+              DataComponentPredicate.builder()
+                  .expect(DataComponents.CUSTOM_NAME, Component.literal("Accepted"))
+                  .build(),
+              false) {
+            @Override
+            public boolean isSimple() {
+              indexed[0]++;
+              return false;
+            }
+          }.toVanilla();
+      changed.set(
+          changed.size() - 1,
+          new RecipeHolder<>(
+              ResourceLocation.parse("mmdlib_smoke:admission"),
+              new MachineRecipeEntry(
+                  MachineRecipeTypeSmoke.GRINDING,
+                  new MachineRecipe(
+                      Map.of("input", List.of(new MachineIngredient.ItemPart(namedIngredient, 1))),
+                      Map.of(),
+                      20))));
+      manager.replaceRecipes(changed);
+      var named = new ItemStack(Items.DIAMOND);
+      for (int check = 0; check < 100; check++) {
+        named.set(DataComponents.CUSTOM_NAME, Component.literal("Accepted"));
+        require(storage.isItemValid(0, named), "Custom ingredient accepts matching components");
+        named.remove(DataComponents.CUSTOM_NAME);
+        require(
+            !storage.isItemValid(0, named),
+            "Same-ID, same-count reload invalidates cache; custom predicates inspect each stack");
+      }
+      require(indexed[0] == 1, "Repeated insertion probes reuse the ingredient index");
       changed.removeIf(holder -> holder.value().getType() == MachineRecipeTypeSmoke.GRINDING);
       manager.replaceRecipes(changed);
       require(

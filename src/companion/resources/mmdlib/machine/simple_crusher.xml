@@ -1,0 +1,18 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_powered_machine" name="Simple Crusher">
+  <appearance preset="cube-front"
+              front="minecraft:block/furnace_front"
+              side="minecraft:block/iron_block"
+              top="minecraft:block/smooth_stone"/>
+  <storage>
+    <items id="items">
+      <slots id="input" count="1" role="input"/>
+      <slots id="output" count="2" role="output"/>
+    </items>
+  </storage>
+  <recipe-type id="mmdlib_companion:simple_crushing" declare="true" name="Simple Crushing">
+    <generator class="zone.moddev.mc.lib.machine.recipe.generation.OreToIngotGenerator"
+               hardness-level-ratio=".10"/>
+  </recipe-type>
+  <processor id="crusher" recipe-type="mmdlib_companion:simple_crushing" filter-inputs="input"/>
+</machine>

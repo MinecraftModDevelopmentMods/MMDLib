@@ -11,6 +11,7 @@ src/main/resources/mmdlib/
   fluid/coolant.json
   extension/armor_effects.json
   material/copper.json
+  machine/simple_crusher.xml
 ```
 
 IDs use the owning mod's namespace and the relative path below the section,
@@ -19,6 +20,13 @@ and the material is `example:copper`. For a file declaring several mods, the
 root-level directory belongs to the first mod declared in its metadata. Extension
 files also have file IDs, but their callable handler IDs come from the explicit
 `id` fields in their `events` array.
+
+Machine XML uses the same namespace/path rule, without `.xml`. It is loaded after
+the other startup definitions and composed with the screen templates. See
+[XML machines](xml-machines.md) for inherited storage, generated screen fills,
+recipe generators and the complete SimpleCrusher example. The generic machine
+runtime registers concrete definitions; abstract definitions provide reusable
+configuration only.
 
 The existing baseline under `data/mmdlib/{item,block,fluid}` remains loaded through
 `ModuleCatalog.bundled()`. The startup scanner does not scan that catalog again or

@@ -35,10 +35,30 @@ public final class ScreenLoader {
    * @throws IllegalArgumentException if two files have the same ID
    */
   public static Map<ResourceLocation, ScreenBinder.Bound> load(List<SourceRoot> sources) {
+    return load(
+        sources,
+        Map.of(),
+        (id, node) -> {
+          throw new ScreenException(node.source(), node.line(), "No generator context for " + id);
+        });
+  }
+
+  /** Loads embedded machine screens through the same composition and validation pipeline. */
+  public static Map<ResourceLocation, ScreenBinder.Bound> load(
+      List<SourceRoot> sources,
+      Map<ResourceLocation, ScreenReader.Node> embedded,
+      java.util.function.BiFunction<ResourceLocation, ScreenReader.Node, List<ScreenReader.Node>>
+          generator) {
     WidgetTypes.GLOBAL.freeze();
     var discovered = discover(sources);
     var screens = new TreeMap<ResourceLocation, ScreenBinder.Bound>();
-    read(discovered.nodes(), WidgetTypes.GLOBAL)
+    embedded.forEach(
+        (id, node) -> {
+          if (discovered.nodes().putIfAbsent(id, node) != null)
+            throw new IllegalArgumentException("Duplicate screen " + id + ": " + node.source());
+          discovered.loaders().put(id, ScreenLoader.class.getClassLoader());
+        });
+    read(discovered.nodes(), WidgetTypes.GLOBAL, generator)
         .forEach((id, screen) -> screens.put(id, bind(screen, discovered.loaders().get(id))));
     return screens;
   }
@@ -77,8 +97,22 @@ public final class ScreenLoader {
 
   private static Map<ResourceLocation, Screen> read(
       Map<ResourceLocation, ScreenReader.Node> definitions, WidgetTypes widgets) {
+    return read(
+        definitions,
+        widgets,
+        (id, node) -> {
+          throw new ScreenException(node.source(), node.line(), "No generator context for " + id);
+        });
+  }
+
+  /** Compiles definition trees, useful for generators and definition validation tools. */
+  public static Map<ResourceLocation, Screen> read(
+      Map<ResourceLocation, ScreenReader.Node> definitions,
+      WidgetTypes widgets,
+      java.util.function.BiFunction<ResourceLocation, ScreenReader.Node, List<ScreenReader.Node>>
+          generator) {
     var screens = new TreeMap<ResourceLocation, Screen>();
-    var templates = new ScreenTemplates(definitions);
+    var templates = new ScreenTemplates(definitions, generator);
     // Discover all definitions first: bases may be in later files or another mod.
     for (var id : definitions.keySet()) templates.resolve(id);
     for (var id : definitions.keySet()) {

@@ -20,6 +20,11 @@ public interface ScreenHost {
    */
   IItemHandlerModifiable screenItems();
 
+  /** Extra startup-definition identity checked alongside the screen before constructing a menu. */
+  default String screenDefinitionFingerprint() {
+    return "";
+  }
+
   /** Registered machine features used by generic processor controls. */
   default zone.moddev.mc.lib.machine.feature.FeatureHost screenFeatures() {
     return null;

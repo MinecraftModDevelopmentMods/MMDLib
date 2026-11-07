@@ -7,7 +7,23 @@ import java.util.Optional;
 public enum ProcessorButtonState {
   PAUSED,
   PROCESSING,
-  IDLE;
+  IDLE,
+  STALLED,
+  BLOCKED,
+  HELD;
+
+  public static ProcessorButtonState of(
+      zone.moddev.mc.lib.machine.feature.RecipeProcessor processor) {
+    if (processor.paused() || processor.processing())
+      return of(processor.paused(), processor.processing());
+    return switch (processor.status()) {
+      case RUNNING -> PROCESSING;
+      case STALLED -> STALLED;
+      case BLOCKED -> BLOCKED;
+      case HELD -> HELD;
+      default -> IDLE;
+    };
+  }
 
   public static ProcessorButtonState of(boolean paused, boolean processing) {
     return paused ? PAUSED : processing ? PROCESSING : IDLE;

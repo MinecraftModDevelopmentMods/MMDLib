@@ -58,13 +58,23 @@ class ProcessorButtonTest {
         ResourceLocation.parse("mmdlib:icon_processor_play"),
         button.iconFor(ProcessorButtonState.of(false, false).wireValue()).orElseThrow());
     assertEquals(ProcessorButtonState.PAUSED, ProcessorButtonState.of(true, true));
+    for (var state :
+        new ProcessorButtonState[] {
+          ProcessorButtonState.STALLED, ProcessorButtonState.BLOCKED, ProcessorButtonState.HELD
+        })
+      assertEquals(
+          ResourceLocation.parse("mmdlib:icon_processor_stop"),
+          button.iconFor(state.wireValue()).orElseThrow());
     assertTrue(button.common().tooltip().isPresent());
   }
 
   @Test
   void stateDecodingNeverTreatsAnUnknownSnapshotAsAManualPause() {
     assertTrue(ProcessorButtonState.fromWire(null).isEmpty());
-    assertTrue(ProcessorButtonState.fromWire(java.math.BigInteger.valueOf(3)).isEmpty());
+    assertTrue(
+        ProcessorButtonState.fromWire(
+                java.math.BigInteger.valueOf(ProcessorButtonState.values().length))
+            .isEmpty());
     for (var state : ProcessorButtonState.values())
       assertEquals(state, ProcessorButtonState.fromWire(state.wireValue()).orElseThrow());
   }

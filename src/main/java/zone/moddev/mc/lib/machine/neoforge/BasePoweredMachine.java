@@ -190,6 +190,14 @@ public abstract class BasePoweredMachine extends BlockEntity
   protected void loadMachineData(CompoundTag tag, HolderLookup.Provider registries) {}
 
   /**
+   * Maps old numeric item/tank indices before storage and processor restoration. Stable IDs bypass
+   * it.
+   */
+  protected java.util.function.IntUnaryOperator legacySlots(String key, CompoundTag tag) {
+    return java.util.function.IntUnaryOperator.identity();
+  }
+
+  /**
    * Writes extra client state into a dedicated compound, separate from storage and feature data.
    */
   protected void saveClientData(CompoundTag tag, HolderLookup.Provider registries) {}
@@ -227,7 +235,7 @@ public abstract class BasePoweredMachine extends BlockEntity
     }
     super.loadAdditional(tag, registries);
     var inventory = configuredInventory();
-    if (inventory != null) inventory.load(tag, registries);
+    if (inventory != null) inventory.load(tag, registries, this::legacySlots);
     else {
       features.reset();
       if (tag.contains("energy")) energy.deserializeNBT(registries, tag.get("energy"));

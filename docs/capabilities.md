@@ -80,6 +80,15 @@ index, or through the explicit `deserializeNBT(registries, tag, IntUnaryOperator
 overload. Select that mapping by your machine's save version; it applies only to legacy entries.
 Keep slot/tank IDs stable when reordering a definition.
 
+For `BasePoweredMachine`, override `protected IntUnaryOperator legacySlots(String key,
+CompoundTag tag)`. The key identifies the storage and `tag` is the complete world-save tag, so
+the hook can read your saved version before `loadMachineData` runs. It defaults to identity
+and applies to both items and fluids before features restore their reservations. Entries with
+stable IDs bypass the mapping. Direct lifecycle users can pass the same resolver to `load`.
+
+Storage save keys cannot use `automation`, `features`, `redstone_control`, `redstone_mode`,
+`id`, `components`, `mmdlib_features`, or `mmdlib_machine`; those belong to persistence or sync.
+
 Storage keeps its configured shape. Removed slots/tanks, overflow after reducing limits/capacity,
 incompatible colliding contents and undecodable entries are retained in raw `Recovery` data,
 instead of being discarded. Subsequent loads retry recovery entries, allowing returning IDs or
@@ -99,6 +108,9 @@ input rules are installed by [MachineResources](inventory-automation.md#shared-m
 They supplement existing filters and reservations. Machine products use `insertResult` for items
 or `fillResult` for fluids to bypass external admission rules; fluid products still obey the
 tank's structural filter and capacity. Restoring a saved item explicitly can use `restoreStack`.
+Recipe-linked filters index accepted items and fluids per recipe-manager snapshot and rebuild
+after reload or client recipe synchronization. Component-sensitive custom ingredients still test
+the actual stack on every probe; item identity alone cannot decide those matches.
 
 ## Example
 

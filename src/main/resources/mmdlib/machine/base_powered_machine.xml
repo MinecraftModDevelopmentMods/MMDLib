@@ -1,0 +1,13 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true">
+  <block hardness="3.5" facing="horizontal" drop="self"
+         mineable="minecraft:mineable/pickaxe" requires-tool="true"/>
+  <storage>
+    <energy id="energy" capacity="100000" input-rate="1000" output-rate="0"/>
+  </storage>
+  <groups>
+    <group id="energy" storage="energy" mode="input" color="#d85b5b"/>
+  </groups>
+  <redstone enabled="true" pause="processing-only"/>
+  <recovery policy="capsule"/>
+  <screen xmlns="https://moddev.zone/mmdlib/screen" extends="mmdlib:base_powered_machine"/>
+</machine>

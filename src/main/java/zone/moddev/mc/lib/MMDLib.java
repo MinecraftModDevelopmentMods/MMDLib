@@ -104,6 +104,7 @@ public class MMDLib {
   public MMDLib(IEventBus modBus, ModContainer container) {
     container.registerConfig(ModConfig.Type.SERVER, MMDLibConfig.SERVER_SPEC);
     zone.moddev.mc.lib.gui.runtime.ScreenRuntime.register(modBus);
+    zone.moddev.mc.lib.machine.neoforge.MachineContent.register(modBus);
     BLOCKS.register(modBus);
     ITEMS.register(modBus);
     machineTypes.register(modBus);
@@ -182,7 +183,7 @@ public class MMDLib {
         .filter(result -> result.material().name().orElseThrow().getNamespace().equals(MODID))
         .forEach(runtime::queue);
     runtime.blockEntityHandles().values().forEach(handle -> handle.register(machineTypes));
-    zone.moddev.mc.lib.gui.Screens.install(zone.moddev.mc.lib.gui.load.ScreenLoader.load(roots));
+    zone.moddev.mc.lib.machine.neoforge.MachineContent.load(roots);
     zone.moddev.mc.lib.gui.runtime.ScreenRuntime.validate();
     LOGGER.info(
         "Loaded MMDLib definitions: {} item modules, {} block modules, {} fluid modules, {}"

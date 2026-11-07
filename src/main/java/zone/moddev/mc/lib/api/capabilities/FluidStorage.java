@@ -146,6 +146,9 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
 
   /** Additional external insertion rule; machine products use fillResult and bypass this rule. */
   public FluidStorage restrict(Predicate<FluidStack> rule, int... indexes) {
+    for (int tank : indexes)
+      if (!inRange(tank))
+        throw new IndexOutOfBoundsException("Tank " + tank + " not in [0," + getTanks() + ")");
     for (int tank : indexes) insertionRules.set(tank, insertionRules.get(tank).and(rule));
     revision++;
     return this;

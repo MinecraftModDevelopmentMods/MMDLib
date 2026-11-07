@@ -97,6 +97,14 @@ public final class MMDLibJeiPlugin implements IModPlugin {
    */
   @Override
   public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
+    zone.moddev.mc.lib.machine.neoforge.MachineContent.definitions()
+        .forEach(
+            (id, machine) ->
+                registration.addRecipeCatalyst(
+                    new net.minecraft.world.item.ItemStack(BuiltInRegistries.ITEM.get(id)),
+                    MachineRecipeCategory.recipeType(
+                        zone.moddev.mc.lib.machine.neoforge.MachineContent.recipeType(
+                            machine.recipeType().id()))));
     var materials = MMDLib.itemMaterials();
     MMDLib.itemDefinitions()
         .forEach(

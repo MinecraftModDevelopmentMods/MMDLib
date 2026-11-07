@@ -4,7 +4,7 @@
     <vbox padding="7" spacing="4">
       <placeholder name="heading"/>
       <hbox spacing="6" align="center">
-        <placeholder name="machine" required="true"/>
+        <placeholder name="machine" generator="mmdlib:processing"/>
         <spacer/>
         <energy-gauge id="energy" length="3s"/>
       </hbox>

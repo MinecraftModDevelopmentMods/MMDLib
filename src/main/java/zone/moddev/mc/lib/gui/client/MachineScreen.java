@@ -769,7 +769,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                         state ->
                             switch (state) {
                               case PAUSED -> "screen.mmdlib.processor.action.unpause";
-                              case PROCESSING -> "screen.mmdlib.processor.action.stop";
+                              case PROCESSING, STALLED, BLOCKED, HELD ->
+                                  "screen.mmdlib.processor.action.stop";
                               case IDLE -> "screen.mmdlib.processor.action.pause";
                             })
                     .map(key -> Component.translatable(key).getString())

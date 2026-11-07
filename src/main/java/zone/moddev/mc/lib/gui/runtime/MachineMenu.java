@@ -211,9 +211,9 @@ public class MachineMenu extends AbstractContainerMenu {
     String expected = data.readUtf(64);
     var screen =
         Screens.get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType())).orElseThrow();
-    if (!ScreenRuntime.fingerprint(screen.screen()).equals(expected))
+    if (!ScreenRuntime.fingerprint(screen.screen(), entity).equals(expected))
       throw new IllegalStateException(
-          "Client/server screen definitions differ: " + screen.screen().id());
+          "Client/server screen or machine definitions differ: " + screen.screen().id());
     return entity;
   }
 
@@ -308,7 +308,10 @@ public class MachineMenu extends AbstractContainerMenu {
               .map(e -> (Element.Slot) e)
               .findFirst()
               .orElse(null);
-      if (element != null && element.kind() != Element.SlotKind.GHOST && index >= items.getSlots())
+      if (host == null
+          && element != null
+          && element.kind() != Element.SlotKind.GHOST
+          && index >= items.getSlots())
         throw new IllegalArgumentException("Screen slot outside storage: " + index);
       int[] xy =
           element == null

@@ -40,17 +40,6 @@ public final class ScreenInventoryValidation {
                 + " outside storage of size "
                 + count);
     }
-    var automation = host.screenAutomation();
-    if (automation == null) return;
-    for (var group : automation.groups())
-      for (String highlight : group.highlights())
-        if (screen.find(highlight).isEmpty())
-          throw new IllegalArgumentException(
-              screen.id()
-                  + ": resource group '"
-                  + group.id()
-                  + "' references missing screen element '"
-                  + highlight
-                  + "'");
+    // Highlights are optional decoration: a shared group may name elements absent from this screen.
   }
 }

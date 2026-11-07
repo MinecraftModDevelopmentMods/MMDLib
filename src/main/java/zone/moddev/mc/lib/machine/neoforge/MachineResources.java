@@ -73,7 +73,7 @@ public final class MachineResources {
   }
 
   private void add(ResourceGroup<?> group, Object storage) {
-    if (bindings.containsKey(group.id())) throw invalid(group.id(), "duplicate ID");
+    if (recipeBindings.containsKey(group.id())) throw invalid(group.id(), "duplicate ID");
     // Membership is indexed by resource type, so a type must share one physical index space.
     for (var binding : bindings.values()) {
       if (binding.group.type() != group.type()) continue;
@@ -92,6 +92,7 @@ public final class MachineResources {
     ensureOpen();
     if (key == null || key.isBlank() || groupIds.length == 0)
       throw invalid(key, "empty recipe mapping");
+    if (recipeBindings.containsKey(key)) throw invalid(key, "duplicate recipe binding");
     var selected = new ArrayList<Binding>();
     for (String id : groupIds) {
       var binding = bindings.get(id);

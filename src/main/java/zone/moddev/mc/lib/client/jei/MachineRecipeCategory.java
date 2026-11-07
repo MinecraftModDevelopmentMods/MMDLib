@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.network.chat.Component;
@@ -39,19 +40,20 @@ public final class MachineRecipeCategory
   private static final int CELL = 18, COLUMNS = 3, ARROW = 24, GAP = 4, TEXT = 10;
   private static final int TEXT_COLOR = 0xFF808080;
 
-  private final int inputColumns, rows;
+  private final int inputColumns, rows, contentX;
 
   private MachineRecipeCategory(
-      MachineRecipeType type, int inputColumns, int outputColumns, int rows) {
+      MachineRecipeType type, int inputColumns, int outputColumns, int rows, int textWidth) {
     super(
         recipeType(type),
         Component.translatableWithFallback(
             "jei." + type.id().getNamespace() + "." + type.id().getPath(), type.id().toString()),
         null,
-        inputColumns * CELL + GAP + ARROW + GAP + outputColumns * CELL,
+        Math.max(inputColumns * CELL + GAP + ARROW + GAP + outputColumns * CELL, textWidth),
         rows * CELL + TEXT);
     this.inputColumns = inputColumns;
     this.rows = rows;
+    contentX = (getWidth() - (inputColumns * CELL + GAP + ARROW + GAP + outputColumns * CELL)) / 2;
   }
 
   /** The JEI recipe type of {@code type}, for catalysts and recipe lookups. */
@@ -80,14 +82,16 @@ public final class MachineRecipeCategory
   /** A category for {@code type}, wide and tall enough for every recipe in {@code recipes}. */
   static MachineRecipeCategory create(
       MachineRecipeType type, Collection<RecipeHolder<MachineRecipeEntry>> recipes) {
-    int inputs = 1, outputs = 1;
+    int inputs = 1, outputs = 1, textWidth = 0;
     for (var holder : recipes) {
       inputs = Math.max(inputs, inputSlots(holder.value().recipe()));
       outputs = Math.max(outputs, outputSlots(holder.value().recipe()));
+      textWidth =
+          Math.max(textWidth, Minecraft.getInstance().font.width(details(holder.value().recipe())));
     }
     int inputColumns = Math.min(COLUMNS, inputs), outputColumns = Math.min(COLUMNS, outputs);
     int rows = Math.max(ceil(inputs, inputColumns), ceil(outputs, outputColumns));
-    return new MachineRecipeCategory(type, inputColumns, outputColumns, rows);
+    return new MachineRecipeCategory(type, inputColumns, outputColumns, rows, textWidth);
   }
 
   @Override
@@ -99,13 +103,13 @@ public final class MachineRecipeCategory
       for (var part : parts) {
         switch (part) {
           case MachineIngredient.ItemPart items ->
-              slot(builder, RecipeIngredientRole.INPUT, 0, index++)
+              slot(builder, RecipeIngredientRole.INPUT, contentX, index++)
                   .addItemStacks(
                       Arrays.stream(items.items().getItems())
                           .map(stack -> stack.copyWithCount(items.count()))
                           .toList());
           case MachineIngredient.FluidPart fluids -> {
-            var slot = slot(builder, RecipeIngredientRole.INPUT, 0, index++);
+            var slot = slot(builder, RecipeIngredientRole.INPUT, contentX, index++);
             for (var fluid : sources(fluids.fluids()))
               slot.addFluidStack(fluid.value(), fluids.millibuckets());
             slot.setFluidRenderer(fluids.millibuckets(), false, 16, 16);
@@ -113,7 +117,7 @@ public final class MachineRecipeCategory
           case MachineIngredient.EnergyPart energy -> {}
         }
       }
-    int outputX = inputColumns * CELL + GAP + ARROW + GAP;
+    int outputX = contentX + inputColumns * CELL + GAP + ARROW + GAP;
     index = 0;
     for (var products : recipe.outputs().values())
       for (var product : products) {
@@ -139,7 +143,16 @@ public final class MachineRecipeCategory
   public void createRecipeExtras(
       IRecipeExtrasBuilder builder, RecipeHolder<MachineRecipeEntry> holder, IFocusGroup focuses) {
     var recipe = holder.value().recipe();
-    builder.addRecipeArrowWidget().setPosition(inputColumns * CELL + GAP, (rows * CELL - 17) / 2);
+    builder
+        .addRecipeArrowWidget()
+        .setPosition(contentX + inputColumns * CELL + GAP, (rows * CELL - 17) / 2);
+    builder
+        .addText(details(recipe), getWidth(), TEXT)
+        .setPosition(0, rows * CELL + 1)
+        .setColor(TEXT_COLOR);
+  }
+
+  private static Component details(MachineRecipe recipe) {
     var lines = new ArrayList<Component>();
     long energy =
         recipe.inputs().values().stream()
@@ -153,10 +166,7 @@ public final class MachineRecipeCategory
               "jei.mmdlib.machine.energy",
               NumberFormat.getIntegerInstance(Locale.ROOT).format(energy)));
     lines.add(Component.translatable("jei.mmdlib.machine.time", seconds(recipe.time())));
-    builder
-        .addText(joined(lines), getWidth(), TEXT)
-        .setPosition(0, rows * CELL + 1)
-        .setColor(TEXT_COLOR);
+    return joined(lines);
   }
 
   private IRecipeSlotBuilder slot(

@@ -57,6 +57,8 @@ neoForge {
             sourceSet = sourceSets.companionTest
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
             systemProperty 'mmdlib.companionSmoke', 'true'
+            if (project.hasProperty('processorButtonSmokeOnly'))
+                systemProperty 'mmdlib.processorButtonSmokeOnly', 'true'
             programArguments.addAll '--width', '1280', '--height', '960'
         }
         companionGameTestServer {
@@ -66,12 +68,33 @@ neoForge {
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
             systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib_companion'
         }
+        simpleCrusherClientSmoke {
+            client()
+            gameDirectory = layout.buildDirectory.dir('simple-crusher-client-smoke')
+            sourceSet = sourceSets.companionTest
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
+            systemProperty 'mmdlib.simpleCrusherSmoke', 'true'
+            programArguments.addAll '--width', '1280', '--height', '960'
+        }
+    }
+}
+
+tasks.matching { it.name == 'runSimpleCrusherClientSmoke' }.configureEach {
+    doFirst {
+        def smokeDir = layout.buildDirectory.dir('simple-crusher-client-smoke').get().asFile
+        smokeDir.mkdirs()
+        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\npauseOnLostFocus:false\n'
+    }
+    doLast {
+        def log = layout.buildDirectory.file('simple-crusher-client-smoke/logs/latest.log').get().asFile
+        if (!log.exists() || !log.text.contains('SIMPLE_CRUSHER_CLIENT_PASS') || log.text.contains('SIMPLE_CRUSHER_CLIENT_FAIL'))
+            throw new GradleException('SimpleCrusher client smoke failed; inspect ' + log)
     }
 }
 
 def companionJar = tasks.register('companionJar', Jar) {
     group = 'build'
-    description = 'Builds the optional four-machine companion mod.'
+    description = 'Builds the optional six-machine companion mod.'
     archiveBaseName = 'mmdlib-companion'
     destinationDirectory = layout.buildDirectory.dir('companion/libs')
     from sourceSets.companion.output
