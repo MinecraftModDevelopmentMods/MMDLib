@@ -117,13 +117,10 @@ public class MMDLib {
     NeoForge.EVENT_BUS.addListener(
         zone.moddev.mc.lib.machine.neoforge.MachinePartsLoader::register);
     modBus.addListener(zone.moddev.mc.lib.util.Registries::register);
-<<<<<<< Updated upstream
+    zone.moddev.mc.lib.common.fluid.FluidBottles.register(modBus);
 
     if (ModList.get().isLoaded("crafttweaker")) CraftTweakerInit.register(modBus);
 
-=======
-    zone.moddev.mc.lib.common.fluid.FluidBottles.register(modBus);
->>>>>>> Stashed changes
     modBus.addListener(this::publishDefinitions);
     modBus.addListener((FMLConstructModEvent event) -> event.enqueueWork(this::loadDefinitions));
     new ItemEventBridge(
