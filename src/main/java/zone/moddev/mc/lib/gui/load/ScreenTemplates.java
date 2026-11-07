@@ -53,8 +53,9 @@ final class ScreenTemplates {
         if (!used.contains(entry.getKey()))
           throw error(entry.getValue(), "Fill targets a replaced placeholder: " + entry.getKey());
       var attributes = new LinkedHashMap<>(root.attributes());
-      if (!attributes.containsKey("inventory") && base.attributes().containsKey("inventory"))
-        attributes.put("inventory", base.attributes().get("inventory"));
+      for (var attribute : List.of("inventory", "block-entity"))
+        if (!attributes.containsKey(attribute) && base.attributes().containsKey(attribute))
+          attributes.put(attribute, base.attributes().get(attribute));
       result = new Node(root.name(), attributes, children, root.source(), root.line());
     } else {
       for (var child : root.children())
@@ -63,7 +64,7 @@ final class ScreenTemplates {
     placeholders(result); // Reject ambiguous names, including newly introduced extension points.
     if (!flag(root, "abstract")) {
       for (var attribute : List.of("title", "block-entity"))
-        if (!root.attributes().containsKey(attribute))
+        if (!result.attributes().containsKey(attribute))
           throw error(root, "A concrete screen requires its own " + attribute);
     }
     visiting.remove(id);

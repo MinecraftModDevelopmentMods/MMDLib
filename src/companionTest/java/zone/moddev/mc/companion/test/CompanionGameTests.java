@@ -39,6 +39,71 @@ public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
   @GameTest(template = "empty")
+  public static void poweredBasePreservesSavesAndSeparatesFeatureUpdates(GameTestHelper helper) {
+    var level = helper.getLevel();
+    var registries = level.registryAccess();
+    var pos = helper.absolutePos(CENTER);
+    for (var definition :
+        java.util.List.of(
+            CompanionMod.CRUSHER,
+            CompanionMod.TRANSMUTER,
+            CompanionMod.DUAL_CRUSHER,
+            CompanionMod.LOGISTICS,
+            CompanionMod.CREATIVE_POWER)) {
+      level.setBlock(pos, definition.block.get().defaultBlockState(), 3);
+      var machine =
+          (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine) level.getBlockEntity(pos);
+      machine.energy.setStored(7_321);
+      require(
+          machine.getEnergy() == 7_321 && machine.getEnergyCapacity() == 100_000,
+          "Shared getters expose the owned buffer");
+      require(
+          machine.screenFeatures() == machine.features
+              && machine.screenStats().getFirst() == machine.energy,
+          "Screen features and statistics use the same owned parts");
+      if (machine instanceof ProcessorEntity processor) {
+        processor.items.insertItem(0, new ItemStack(Items.IRON_INGOT), false);
+        processor.setReservePercent(25);
+        processor.features.setProcessorPaused("lane_0", true);
+        processor.redstone.migrate(1);
+      }
+      var saved = machine.saveWithFullMetadata(registries);
+      var copy =
+          (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine)
+              BlockEntity.loadStatic(pos, machine.getBlockState(), saved, registries);
+      require(copy.getEnergy() == 7_321, "Power survives a full save/load for every machine");
+      if (copy instanceof ProcessorEntity processor) {
+        require(
+            processor.getPaused() && processor.getReservePercent() == 25,
+            "Base feature state and subclass metadata both survive loading");
+        require(
+            processor.redstone.save(registries).equals(saved.getCompound("redstone_control")),
+            "Redstone configuration survives loading");
+      }
+      var beforeUpdate = copy.saveWithFullMetadata(registries);
+      copy.loadWithComponents(machine.getUpdateTag(registries), registries);
+      var afterUpdate = copy.saveWithFullMetadata(registries);
+      for (var key :
+          java.util.List.of(
+              "energy",
+              "items",
+              "fluids",
+              "automation",
+              "redstone_control",
+              "machine_name",
+              "reserve_percent"))
+        require(
+            java.util.Objects.equals(beforeUpdate.get(key), afterUpdate.get(key)),
+            "Feature update preserves " + key);
+      copy.clearContent();
+      require(copy.getEnergy() == 0, "Shared clear resets owned power");
+      machine.clearContent();
+      level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void keylessProcessorButtonSamplesAndTogglesTheFirstProcessor(GameTestHelper helper)
       throws ReflectiveOperationException {
     var machine = place(helper, CompanionMod.TRANSMUTER);
@@ -845,7 +910,8 @@ public final class CompanionGameTests {
             state.getValue(zone.moddev.mc.companion.DemoBlock.FACING) == look.getOpposite(),
             "Placed machine faces its player: " + look);
         level.setBlock(pos, state, 3);
-        var entity = (zone.moddev.mc.companion.DemoEntity) level.getBlockEntity(pos);
+        var entity =
+            (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine) level.getBlockEntity(pos);
         var host = (zone.moddev.mc.lib.gui.runtime.ScreenHost) entity;
         for (var group : host.screenAutomation().groups())
           require(

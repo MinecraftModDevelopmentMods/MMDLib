@@ -2,10 +2,8 @@ package zone.moddev.mc.companion;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -18,18 +16,17 @@ import zone.moddev.mc.lib.api.automation.ResourceType;
 import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.ItemStorage;
 import zone.moddev.mc.lib.api.capabilities.SideConfig;
-import zone.moddev.mc.lib.common.runtime.DropsContents;
-import zone.moddev.mc.lib.gui.runtime.ScreenHost;
+import zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine;
+import zone.moddev.mc.lib.machine.neoforge.MachineInventoryLifecycle;
 
 /** Refills each tick and supplies up to 1,000 FE per adjacent face per tick. */
-public final class CreativePowerEntity extends DemoEntity
-    implements ScreenHost, DropsContents, Clearable {
+public final class CreativePowerEntity extends BasePoweredMachine {
   private final ItemStorage empty = new ItemStorage(0);
   public final AutomationInventory automation;
+  private final MachineInventoryLifecycle inventoryLifecycle;
 
   public CreativePowerEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
-    super(type, pos, state);
-    energy.setRates(0, 1_000);
+    super(type, pos, state, 100_000, 0, 1_000);
     energy.setStored(energy.capacity());
     var group =
         new ResourceGroup<>(
@@ -46,12 +43,17 @@ public final class CreativePowerEntity extends DemoEntity
             .energy(group, energy)
             .build()
             .automation();
+    inventoryLifecycle = poweredInventory(automation);
     zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(this);
   }
 
   @Override
-  public void serverTick() {
+  protected void beforeMachineTick() {
     energy.insert(energy.space(), false);
+  }
+
+  @Override
+  protected void afterMachineTick() {
     for (var side : Direction.values()) {
       if (!automation.mode(ResourceType.ENERGY, 0, side).canExtract()) continue;
       var target = worldPosition.relative(side);
@@ -69,43 +71,22 @@ public final class CreativePowerEntity extends DemoEntity
   }
 
   @Override
-  public AutomationInventory screenAutomation() {
-    return automation;
-  }
-
-  @Override
   public boolean screenAutomationAddons() {
     return false;
   }
 
   @Override
-  protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-    super.saveAdditional(tag, registries);
-    tag.put("automation", automation.save(registries));
+  protected MachineInventoryLifecycle machineInventory() {
+    return inventoryLifecycle;
   }
 
   @Override
-  protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-    super.loadAdditional(tag, registries);
-    if (tag.contains("automation")) automation.load(tag.getCompound("automation"), registries);
-  }
-
-  @Override
-  public void dropContents(Level level, BlockPos pos) {
-    automation.dropAll(
-        payload ->
-            net.minecraft.world.Containers.dropItemStack(
-                level,
-                pos.getX() + .5,
-                pos.getY() + .5,
-                pos.getZ() + .5,
-                RecoveryCapsuleItem.create(payload)));
-  }
-
-  @Override
-  public void clearContent() {
-    automation.clear();
-    energy.setStored(0);
-    setChanged();
+  protected void recoverResources(Level level, BlockPos pos, CompoundTag payload) {
+    net.minecraft.world.Containers.dropItemStack(
+        level,
+        pos.getX() + .5,
+        pos.getY() + .5,
+        pos.getZ() + .5,
+        RecoveryCapsuleItem.create(payload));
   }
 }

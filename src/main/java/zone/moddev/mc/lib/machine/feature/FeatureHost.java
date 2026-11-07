@@ -81,6 +81,14 @@ public final class FeatureHost implements IRedstoneOutput {
             .findFirst();
   }
 
+  /** Feature statistics in registration order; features without statistics are omitted. */
+  public List<zone.moddev.mc.lib.api.stats.StatsProvider> statisticsProviders() {
+    return features.values().stream()
+        .filter(zone.moddev.mc.lib.api.stats.StatsProvider.class::isInstance)
+        .map(zone.moddev.mc.lib.api.stats.StatsProvider.class::cast)
+        .toList();
+  }
+
   /** Persists and synchronizes manual changes even while the host's processing tick is held. */
   public boolean setProcessorPaused(String key, boolean paused) {
     var processor = processor(key).orElse(null);

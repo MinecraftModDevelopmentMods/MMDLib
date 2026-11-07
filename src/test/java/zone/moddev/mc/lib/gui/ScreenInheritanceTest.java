@@ -50,6 +50,34 @@ class ScreenInheritanceTest {
   }
 
   @Test
+  void poweredTemplateSuppliesItsEntityAndCommonBindings() throws Exception {
+    write(
+        "test:powered",
+        "extends=\"mmdlib:base_powered_machine\" title=\"test.powered\"",
+        "<fill name=\"machine\"><progress id=\"progress\" value=\"#getProgress\""
+            + " max=\"#getTime\"/></fill>");
+    var bound =
+        ScreenLoader.load(
+                List.of(
+                    source("test"),
+                    new SourceRoot(
+                        "mmdlib",
+                        Path.of("src/main/resources/mmdlib"),
+                        getClass().getClassLoader())))
+            .get(ResourceLocation.parse("test:powered"));
+    assertEquals(
+        "zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine", bound.screen().blockEntity());
+    for (var id : List.of("energy", "progress")) {
+      var element = bound.screen().find(id).orElseThrow();
+      assertTrue(bound.values().containsKey(element));
+      assertTrue(bound.maxima().containsKey(element));
+    }
+    var button = (Element.Button) bound.screen().find("toggle_0").orElseThrow();
+    assertTrue(button.processorControl());
+    assertTrue(button.processorKey().isEmpty());
+  }
+
+  @Test
   void baseProcessorControlNeedsNoMachineSpecificKeyOrFill() throws Exception {
     base(
         "<label text=\"test.machine\"/><inventory-controls><processor-button"

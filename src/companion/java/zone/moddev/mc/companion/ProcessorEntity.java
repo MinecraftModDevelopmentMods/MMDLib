@@ -7,11 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -26,17 +22,13 @@ import zone.moddev.mc.lib.api.capabilities.ItemStorage;
 import zone.moddev.mc.lib.api.capabilities.Role;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
-import zone.moddev.mc.lib.common.runtime.DropsContents;
-import zone.moddev.mc.lib.gui.runtime.ScreenHost;
-import zone.moddev.mc.lib.machine.feature.FeatureHost;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
-import zone.moddev.mc.lib.machine.neoforge.FeatureSync;
+import zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine;
 import zone.moddev.mc.lib.machine.neoforge.MachineInventoryLifecycle;
 import zone.moddev.mc.lib.machine.neoforge.MachineResources;
 
 /** The dual crusher deliberately runs two lanes over the same input and output groups. */
-public final class ProcessorEntity extends DemoEntity
-    implements ScreenHost, DropsContents, Clearable {
+public final class ProcessorEntity extends BasePoweredMachine {
   public enum Kind {
     CRUSHER,
     TRANSMUTER,
@@ -50,8 +42,6 @@ public final class ProcessorEntity extends DemoEntity
   public final MachineInventoryLifecycle inventoryLifecycle;
   public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
   public final List<RecipeProcessor> lanes;
-  public final FeatureHost features =
-      new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
   private final Kind kind;
   public final RedstoneControl redstone;
   private String machineName = "Crusher";
@@ -159,10 +149,7 @@ public final class ProcessorEntity extends DemoEntity
     }
     lanes = List.copyOf(processors);
     inventoryLifecycle =
-        new MachineInventoryLifecycle(this, features, automation, energy)
-            .items("items", items)
-            .fluids("fluids", fluids)
-            .energy("energy", energy);
+        poweredInventory(automation).items("items", items).fluids("fluids", fluids);
     var outputParts = new ArrayList<Object>();
     for (var group : automation.groups())
       outputParts.add(
@@ -217,25 +204,6 @@ public final class ProcessorEntity extends DemoEntity
     return redstone;
   }
 
-  @Override
-  public FeatureHost screenFeatures() {
-    return features;
-  }
-
-  public AutomationInventory screenAutomation() {
-    return automation;
-  }
-
-  @Override
-  public void serverTick() {
-    redstone.readInputs();
-    inventoryLifecycle.tick(
-        kind != Kind.LOGISTICS && energy.stored() >= energy.capacity() * reservePercent / 100,
-        !redstoneAllowsRun(),
-        MachineInventoryLifecycle.PausePolicy.PROCESSING_ONLY);
-    redstone.updateOutputs();
-  }
-
   public FluidStack getTank1() {
     return fluids.getFluidInTank(1);
   }
@@ -258,18 +226,6 @@ public final class ProcessorEntity extends DemoEntity
     features.setProcessorPaused(processor.key(), !processor.paused());
   }
 
-  public int getProgress() {
-    return lanes.getFirst().progress();
-  }
-
-  @Override
-  public List<zone.moddev.mc.lib.api.stats.StatsProvider> screenStats() {
-    var parts = new ArrayList<zone.moddev.mc.lib.api.stats.StatsProvider>();
-    parts.add(energy);
-    parts.addAll(lanes);
-    return List.copyOf(parts);
-  }
-
   public boolean hasTank() {
     return fluids.getTanks() > 0;
   }
@@ -282,20 +238,12 @@ public final class ProcessorEntity extends DemoEntity
     return fluids.getTankCapacity(0);
   }
 
-  public int getTime() {
-    return lanes.getFirst().time();
-  }
-
   public int getSecondProgress() {
     return lanes.size() == 2 ? lanes.get(1).progress() : 0;
   }
 
   public int getSecondTime() {
     return lanes.size() == 2 ? lanes.get(1).time() : 0;
-  }
-
-  public boolean getPaused() {
-    return lanes.getFirst().paused();
   }
 
   public List<Component> getWarnings() {
@@ -333,41 +281,13 @@ public final class ProcessorEntity extends DemoEntity
   }
 
   @Override
-  public void dropContents(Level level, BlockPos pos) {
-    inventoryLifecycle.dropContents(
-        payload ->
-            net.minecraft.world.Containers.dropItemStack(
-                level,
-                pos.getX() + .5,
-                pos.getY() + .5,
-                pos.getZ() + .5,
-                RecoveryCapsuleItem.create(payload)));
-  }
-
-  @Override
-  public void clearContent() {
-    inventoryLifecycle.clear();
-    FeatureSync.send(this);
-  }
-
-  @Override
-  protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-    super.saveAdditional(tag, registries);
-    inventoryLifecycle.save(tag, registries);
-    tag.put("redstone_control", redstone.save(registries));
+  protected void saveMachineData(CompoundTag tag, HolderLookup.Provider registries) {
     tag.putString("machine_name", machineName);
     tag.putInt("reserve_percent", reservePercent);
   }
 
   @Override
-  protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-    if (FeatureSync.read(features, tag, registries)) return;
-    super.loadAdditional(tag, registries);
-    int savedMode = tag.getInt("redstone_mode");
-    int redstoneMode = savedMode >= 0 && savedMode <= 2 ? savedMode : 0;
-    if (tag.contains("redstone_control"))
-      redstone.load(tag.getCompound("redstone_control"), registries);
-    else redstone.migrate(redstoneMode);
+  protected void loadMachineData(CompoundTag tag, HolderLookup.Provider registries) {
     String savedName = tag.getString("machine_name");
     machineName =
         !savedName.isBlank()
@@ -376,16 +296,25 @@ public final class ProcessorEntity extends DemoEntity
             ? savedName.strip()
             : "Crusher";
     reservePercent = Math.clamp(tag.getInt("reserve_percent"), 0, 100);
-    inventoryLifecycle.load(tag, registries);
   }
 
   @Override
-  public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-    return FeatureSync.updateTag(features, registries);
+  protected MachineInventoryLifecycle machineInventory() {
+    return inventoryLifecycle;
   }
 
   @Override
-  public Packet<ClientGamePacketListener> getUpdatePacket() {
-    return ClientboundBlockEntityDataPacket.create(this);
+  protected boolean processingAllowed() {
+    return kind != Kind.LOGISTICS && energy.stored() >= energy.capacity() * reservePercent / 100;
+  }
+
+  @Override
+  protected void recoverResources(Level level, BlockPos pos, CompoundTag payload) {
+    net.minecraft.world.Containers.dropItemStack(
+        level,
+        pos.getX() + .5,
+        pos.getY() + .5,
+        pos.getZ() + .5,
+        RecoveryCapsuleItem.create(payload));
   }
 }

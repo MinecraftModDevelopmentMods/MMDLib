@@ -1,4 +1,5 @@
-<screen xmlns="https://moddev.zone/mmdlib/screen" abstract="true">
+<screen xmlns="https://moddev.zone/mmdlib/screen" abstract="true"
+        block-entity="zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine">
   <vbox padding="7" spacing="4">
     <placeholder name="heading"/>
     <hbox spacing="6" align="center">

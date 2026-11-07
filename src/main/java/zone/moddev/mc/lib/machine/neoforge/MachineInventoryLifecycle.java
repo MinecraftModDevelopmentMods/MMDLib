@@ -64,6 +64,10 @@ public final class MachineInventoryLifecycle {
     return add(saveKey, storage);
   }
 
+  public AutomationInventory automation() {
+    return automation;
+  }
+
   private MachineInventoryLifecycle add(String key, Object storage) {
     Objects.requireNonNull(storage);
     if (key == null
