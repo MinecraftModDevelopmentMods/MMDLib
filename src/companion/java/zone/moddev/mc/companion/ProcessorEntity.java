@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -23,12 +22,12 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import zone.moddev.mc.lib.api.automation.*;
-import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
-import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.api.capabilities.FluidStorage;
 import zone.moddev.mc.lib.api.capabilities.ItemStorage;
 import zone.moddev.mc.lib.api.capabilities.Role;
+import zone.moddev.mc.lib.api.redstone.RedstoneControl;
+import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
 import zone.moddev.mc.lib.common.runtime.DropsContents;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 import zone.moddev.mc.lib.machine.feature.FeatureHost;
@@ -144,7 +143,7 @@ public final class ProcessorEntity extends DemoEntity
               new SideConfig(
                   kind == Kind.CRUSHER ? IoMode.BOTH : (i < 2 ? IoMode.INPUT : IoMode.OUTPUT)));
       group.bind(
-          () -> Direction.NORTH,
+          this::facing,
           side -> fluids.view(index -> index == tank ? group.mode(side) : IoMode.DISABLED));
       groups.add(group);
     }
@@ -159,7 +158,7 @@ public final class ProcessorEntity extends DemoEntity
             List.of("energy"),
             new SideConfig(kind == Kind.LOGISTICS ? IoMode.BOTH : IoMode.INPUT));
     if (kind == Kind.LOGISTICS) energy.setRates(1000, 1000);
-    energyGroup.bind(() -> Direction.NORTH, side -> energy.view(() -> energyGroup.mode(side)));
+    energyGroup.bind(this::facing, side -> energy.view(() -> energyGroup.mode(side)));
     groups.add(energyGroup);
     automation = new AutomationInventory(this, groups);
     var outputParts = new ArrayList<Object>();
@@ -208,7 +207,7 @@ public final class ProcessorEntity extends DemoEntity
                 .toList(),
             new SideConfig(mode));
     return group.bind(
-        () -> Direction.NORTH,
+        this::facing,
         side -> items.view(index -> group.contains(index) ? group.mode(side) : IoMode.DISABLED));
   }
 
@@ -261,6 +260,16 @@ public final class ProcessorEntity extends DemoEntity
 
   public int getProgress() {
     return lanes.getFirst().progress();
+  }
+
+  @Override
+  public List<zone.moddev.mc.lib.api.stats.StatsProvider> screenStats() {
+    var parts = new ArrayList<zone.moddev.mc.lib.api.stats.StatsProvider>();
+    parts.add(energy);
+    parts.add(items);
+    parts.add(fluids);
+    parts.addAll(lanes);
+    return List.copyOf(parts);
   }
 
   public boolean hasTank() {

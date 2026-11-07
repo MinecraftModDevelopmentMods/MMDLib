@@ -18,6 +18,14 @@ public abstract class DemoEntity extends BlockEntity {
 
   public abstract void serverTick();
 
+  public net.minecraft.core.Direction facing() {
+    return zone.moddev.mc.lib.api.capabilities.RelativeFace.facing(getBlockState());
+  }
+
+  public java.util.List<? extends zone.moddev.mc.lib.api.stats.StatsProvider> screenStats() {
+    return java.util.List.of(energy);
+  }
+
   public long getEnergy() {
     return energy.stored();
   }

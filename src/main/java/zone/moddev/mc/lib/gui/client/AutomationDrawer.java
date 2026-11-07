@@ -94,7 +94,11 @@ public final class AutomationDrawer {
       hasFilterSlot |= model.supportsFilter(model.selected(), c);
       hasFilter |= !model.filter(model.selected(), c).isEmpty();
     }
-    int contentHeight = AutomationLayout.contentHeight(hasFilterSlot, hasFilter);
+    int contentHeight =
+        model.addonsEnabled()
+            ? AutomationLayout.contentHeight(hasFilterSlot, hasFilter)
+            : AutomationLayout.face(RelativeFace.BOTTOM.ordinal()).bottom()
+                + AutomationLayout.PADDING;
     int baseHeight =
         Math.max(
             contentHeight,
@@ -332,7 +336,7 @@ public final class AutomationDrawer {
       arrow(g, new Rect(selector.x() + 3, selector.bottom() + 1, 8, 6), true, true);
     }
     for (int f = 0; f < 6; f++) drawFace(g, f, mx, my);
-    for (int c = 0; c < 4; c++) {
+    for (int c = 0; model.addonsEnabled() && c < 4; c++) {
       sprite(g, "slot", module(c));
       if (module(c).contains(mx, my) && model.addon(model.selected(), c).isEmpty())
         tooltip =

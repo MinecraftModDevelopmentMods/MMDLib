@@ -20,6 +20,11 @@ public interface ScreenHost {
    */
   IItemHandlerModifiable screenItems();
 
+  /** Parts contributing statistics, in display order. Providers are only sampled on the server. */
+  default java.util.List<? extends zone.moddev.mc.lib.api.stats.StatsProvider> screenStats() {
+    return java.util.List.of();
+  }
+
   /** Opt in to the independent redstone face drawer. */
   default zone.moddev.mc.lib.api.redstone.RedstoneControl screenRedstone() {
     return null;
@@ -28,6 +33,11 @@ public interface ScreenHost {
   /** Opt in to coloured resource groups and the interactive inventory drawer. */
   default zone.moddev.mc.lib.api.automation.AutomationInventory screenAutomation() {
     return null;
+  }
+
+  /** False exposes only resource selection and side modes, with no addon/filter slots. */
+  default boolean screenAutomationAddons() {
+    return true;
   }
 
   /** Ordered destinations for a player inventory stack; storage still decides what it accepts. */

@@ -23,6 +23,7 @@ public final class AutomationMenu {
   private final MachineMenu menu;
   private final Player owner;
   private final boolean client;
+  private final boolean addons;
   private final ItemStackHandler items;
   private final List<Slot> slots = new ArrayList<>();
   private int selected, editor = -1, start, lastRequest, nextRequest, pendingTicks;
@@ -42,6 +43,7 @@ public final class AutomationMenu {
     this.inventory = inventory;
     this.owner = owner;
     this.client = client;
+    addons = !(menu.blockEntity instanceof ScreenHost host) || host.screenAutomationAddons();
     modes = new int[inventory.groups().size() * 6];
     generations = new long[inventory.groups().size() * 4];
     revisions = new long[generations.length];
@@ -69,7 +71,11 @@ public final class AutomationMenu {
   }
 
   public int slotCount() {
-    return items.getSlots();
+    return addons ? items.getSlots() : 0;
+  }
+
+  public boolean addonsEnabled() {
+    return addons;
   }
 
   public int selected() {
@@ -98,11 +104,11 @@ public final class AutomationMenu {
   }
 
   public ItemStack addon(int g, int c) {
-    return items.getStackInSlot(g * 8 + c);
+    return addons ? items.getStackInSlot(g * 8 + c) : ItemStack.EMPTY;
   }
 
   public ItemStack filter(int g, int c) {
-    return items.getStackInSlot(g * 8 + 4 + c);
+    return addons ? items.getStackInSlot(g * 8 + 4 + c) : ItemStack.EMPTY;
   }
 
   public long generation(int g, int c) {
@@ -129,7 +135,7 @@ public final class AutomationMenu {
 
   public void addSlots(Consumer<Slot> add, int start, int bodyX) {
     this.start = start;
-    for (int i = 0; i < items.getSlots(); i++) {
+    for (int i = 0; i < slotCount(); i++) {
       final int index = i;
       var bounds = AutomationLayout.item(i % 8).offset(bodyX, AutomationLayout.TOP);
       var slot =

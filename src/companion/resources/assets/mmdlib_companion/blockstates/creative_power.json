@@ -1,7 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=north": {
       "model": "mmdlib_companion:block/creative_power"
+    },
+    "facing=east": {
+      "model": "mmdlib_companion:block/creative_power",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mmdlib_companion:block/creative_power",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mmdlib_companion:block/creative_power",
+      "y": 270
     }
   }
 }

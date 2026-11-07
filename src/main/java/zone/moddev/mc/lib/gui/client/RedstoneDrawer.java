@@ -1,16 +1,18 @@
 package zone.moddev.mc.lib.gui.client;
 
 import java.util.*;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.locale.Language;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.redstone.*;
 import zone.moddev.mc.lib.gui.layout.*;
@@ -385,6 +387,12 @@ final class RedstoneDrawer {
 
   void tooltip(GuiGraphics g, int x, int y) {
     if (!tooltip.isEmpty()) g.renderComponentTooltip(Minecraft.getInstance().font, tooltip, x, y);
+  }
+
+  void renderTab(GuiGraphics g) {
+    layout();
+    SideDrawerRenderer.tab(g, tab, 0xc78181);
+    g.renderItem(tabIcon, tab.x() + 3, tab.y() + 4);
   }
 
   List<Rect> exclusions() {
