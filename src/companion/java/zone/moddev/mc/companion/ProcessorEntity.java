@@ -216,10 +216,6 @@ public final class ProcessorEntity extends BasePoweredMachine {
     return fluids.getFluidInTank(3);
   }
 
-  private boolean redstoneAllowsRun() {
-    return !redstone.paused();
-  }
-
   public void toggle(int index) {
     if (index < 0 || index >= lanes.size()) return;
     var processor = lanes.get(index);
@@ -248,25 +244,10 @@ public final class ProcessorEntity extends BasePoweredMachine {
 
   @Override
   public List<Component> getWarnings() {
-    var warnings = new ArrayList<Component>();
+    var warnings = new ArrayList<Component>(super.getWarnings());
     if (energy.stored() < energy.capacity() * reservePercent / 100)
       warnings.add(
           Component.translatable("screen.mmdlib_companion.reserve.waiting", reservePercent));
-    if (!redstoneAllowsRun())
-      warnings.add(Component.translatable("screen.mmdlib_companion.redstone.waiting"));
-    for (int i = 0; i < lanes.size(); i++) {
-      var status = lanes.get(i).status();
-      if (status == RecipeProcessor.Status.STALLED
-          || status == RecipeProcessor.Status.BLOCKED
-          || status == RecipeProcessor.Status.HELD)
-        warnings.add(
-            Component.translatable("screen.mmdlib_companion.lane_" + (i == 0 ? "a" : "b"))
-                .append(": ")
-                .append(
-                    Component.translatable(
-                        "status.mmdlib_companion."
-                            + status.name().toLowerCase(java.util.Locale.ROOT))));
-    }
     return warnings;
   }
 

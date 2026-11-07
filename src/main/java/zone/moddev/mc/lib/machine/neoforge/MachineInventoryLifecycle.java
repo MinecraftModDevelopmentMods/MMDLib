@@ -68,6 +68,14 @@ public final class MachineInventoryLifecycle {
     return automation;
   }
 
+  /** Ensures a powered base cannot omit its owned buffer or attach another machine's lifecycle. */
+  void bindPower(BlockEntity owner, FeatureHost features, EnergyBuffer power) {
+    if (this.owner != owner || this.features != features || this.power != power)
+      throw new IllegalArgumentException(
+          "Powered lifecycle must use its machine's owner, features and energy");
+    if (storages.get("energy") != power) add("energy", power);
+  }
+
   private MachineInventoryLifecycle add(String key, Object storage) {
     Objects.requireNonNull(storage);
     if (key == null

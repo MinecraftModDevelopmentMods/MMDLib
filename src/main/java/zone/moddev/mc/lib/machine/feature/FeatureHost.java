@@ -89,6 +89,14 @@ public final class FeatureHost implements IRedstoneOutput {
         .toList();
   }
 
+  /** Recipe processors in registration order, excluding unrelated features. */
+  public List<RecipeProcessor> processors() {
+    return features.values().stream()
+        .filter(RecipeProcessor.class::isInstance)
+        .map(RecipeProcessor.class::cast)
+        .toList();
+  }
+
   /** Persists and synchronizes manual changes even while the host's processing tick is held. */
   public boolean setProcessorPaused(String key, boolean paused) {
     var processor = processor(key).orElse(null);

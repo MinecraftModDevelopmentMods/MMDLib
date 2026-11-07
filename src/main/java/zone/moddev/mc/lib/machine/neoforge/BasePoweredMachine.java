@@ -8,6 +8,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -40,6 +41,7 @@ public abstract class BasePoweredMachine extends BlockEntity
     implements ScreenHost, DropsContents, Clearable {
   public static final ResourceLocation SCREEN_TEMPLATE =
       ResourceLocation.parse("mmdlib:base_powered_machine");
+  private static final String CLIENT_DATA = "mmdlib_machine";
 
   public final EnergyBuffer energy;
   public final FeatureHost features =
@@ -72,9 +74,28 @@ public abstract class BasePoweredMachine extends BlockEntity
     return energy.capacity();
   }
 
-  /** Dynamic messages appended to the inherited info panel. */
+  /** Common warnings for the inherited info panel; subclasses may append their own messages. */
   public List<Component> getWarnings() {
-    return List.of();
+    var warnings = new ArrayList<Component>();
+    var redstone = screenRedstone();
+    if (redstone != null && !pausePolicy().processingEnabled(redstone.paused()))
+      warnings.add(Component.translatable("screen.mmdlib.machine.redstone_waiting"));
+    for (var processor : features.processors()) {
+      var key =
+          switch (processor.status()) {
+            case STALLED -> "screen.mmdlib.machine.stalled";
+            case BLOCKED -> "screen.mmdlib.machine.blocked";
+            case HELD -> "screen.mmdlib.machine.held";
+            default -> null;
+          };
+      if (key != null)
+        warnings.add(
+            Component.translatable(
+                "screen.mmdlib.machine.processor_warning",
+                processor.displayName(),
+                Component.translatable(key)));
+    }
+    return List.copyOf(warnings);
   }
 
   public int getProgress() {
@@ -111,12 +132,18 @@ public abstract class BasePoweredMachine extends BlockEntity
   }
 
   /**
-   * Return the lifecycle configured by the subclass after its inventories are constructed. It must
-   * include this machine's energy buffer under the save key {@code energy}. Without a lifecycle,
-   * the base persists energy and features only.
+   * Return the lifecycle configured by the subclass after its inventories are constructed. The base
+   * registers its energy buffer under {@code energy} automatically and rejects conflicting
+   * bindings. Without a lifecycle, the base persists energy and features only.
    */
   protected MachineInventoryLifecycle machineInventory() {
     return null;
+  }
+
+  private MachineInventoryLifecycle configuredInventory() {
+    var inventory = machineInventory();
+    if (inventory != null) inventory.bindPower(this, features, energy);
+    return inventory;
   }
 
   /** Starts a lifecycle with this base's power storage and feature host already wired. */
@@ -127,7 +154,7 @@ public abstract class BasePoweredMachine extends BlockEntity
 
   @Override
   public AutomationInventory screenAutomation() {
-    var inventory = machineInventory();
+    var inventory = configuredInventory();
     return inventory == null ? null : inventory.automation();
   }
 
@@ -149,7 +176,7 @@ public abstract class BasePoweredMachine extends BlockEntity
     if (redstone != null) redstone.readInputs();
     beforeMachineTick();
     boolean paused = redstone != null && redstone.paused();
-    var inventory = machineInventory();
+    var inventory = configuredInventory();
     if (inventory != null) inventory.tick(processingAllowed(), paused, pausePolicy());
     else features.tick(level, processingAllowed() && pausePolicy().processingEnabled(paused));
     afterMachineTick();
@@ -162,10 +189,25 @@ public abstract class BasePoweredMachine extends BlockEntity
   /** Additional machine metadata; never called for a feature-only client update. */
   protected void loadMachineData(CompoundTag tag, HolderLookup.Provider registries) {}
 
+  /**
+   * Writes extra client state into a dedicated compound, separate from storage and feature data.
+   */
+  protected void saveClientData(CompoundTag tag, HolderLookup.Provider registries) {}
+
+  /** Reads extra client state after feature synchronization, never while loading a world save. */
+  protected void loadClientData(CompoundTag tag, HolderLookup.Provider registries) {}
+
+  /**
+   * Sends current feature and custom client state; call setChanged separately for persistent edits.
+   */
+  protected final void syncToClient() {
+    FeatureSync.send(this);
+  }
+
   @Override
   protected final void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
     super.saveAdditional(tag, registries);
-    var inventory = machineInventory();
+    var inventory = configuredInventory();
     if (inventory != null) inventory.save(tag, registries);
     else {
       tag.put("energy", energy.serializeNBT(registries));
@@ -178,9 +220,13 @@ public abstract class BasePoweredMachine extends BlockEntity
 
   @Override
   protected final void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-    if (FeatureSync.read(features, tag, registries)) return;
+    if (FeatureSync.read(features, tag, registries)) {
+      if (tag.contains(CLIENT_DATA, Tag.TAG_COMPOUND))
+        loadClientData(tag.getCompound(CLIENT_DATA), registries);
+      return;
+    }
     super.loadAdditional(tag, registries);
-    var inventory = machineInventory();
+    var inventory = configuredInventory();
     if (inventory != null) inventory.load(tag, registries);
     else {
       features.reset();
@@ -202,7 +248,11 @@ public abstract class BasePoweredMachine extends BlockEntity
 
   @Override
   public final CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-    return FeatureSync.updateTag(features, registries);
+    var tag = FeatureSync.updateTag(features, registries);
+    var clientData = new CompoundTag();
+    saveClientData(clientData, registries);
+    tag.put(CLIENT_DATA, clientData);
+    return tag;
   }
 
   @Override
@@ -212,7 +262,7 @@ public abstract class BasePoweredMachine extends BlockEntity
 
   @Override
   public void clearContent() {
-    var inventory = machineInventory();
+    var inventory = configuredInventory();
     if (inventory != null) inventory.clear();
     else {
       features.reset();
@@ -224,7 +274,7 @@ public abstract class BasePoweredMachine extends BlockEntity
 
   @Override
   public void dropContents(Level level, BlockPos pos) {
-    var inventory = machineInventory();
+    var inventory = configuredInventory();
     if (inventory != null) inventory.dropContents(payload -> recoverResources(level, pos, payload));
   }
 
