@@ -13,6 +13,20 @@ import zone.moddev.mc.lib.api.stats.StatsProvider;
 final class ScreenStats {
   static final int KEY = 1 << 21;
 
+  // Menus own the sampler; weak keys AND values prevent provider closures retaining machines.
+  private static final Map<ScreenHost, java.lang.ref.WeakReference<ScreenStats>> SHARED =
+      new WeakHashMap<>();
+
+  static ScreenStats forHost(ScreenHost host) {
+    var reference = SHARED.get(host);
+    var shared = reference == null ? null : reference.get();
+    if (shared == null) {
+      shared = new ScreenStats();
+      SHARED.put(host, new java.lang.ref.WeakReference<>(shared));
+    }
+    return shared;
+  }
+
   private record Sampled(int window, CounterRate rate) {}
 
   private record Part(StatsProvider provider, Statistics section) {}

@@ -17,6 +17,57 @@ import zone.moddev.mc.lib.api.stats.StatsProvider;
 
 class ScreenStatsTest {
   @Test
+  void viewersOfOneHostShareSamplingAndCounterHistory() {
+    var calls = new AtomicInteger();
+    var total = new AtomicReference<>(BigInteger.ZERO);
+    StatsProvider provider =
+        () -> {
+          calls.incrementAndGet();
+          return new Statistics(
+              Component.literal("Part"),
+              List.of(Statistics.rf("in", new Statistics.Counter(total.get(), 20))));
+        };
+    ScreenHost host =
+        new ScreenHost() {
+          public net.neoforged.neoforge.items.IItemHandlerModifiable screenItems() {
+            return null;
+          }
+
+          public List<? extends StatsProvider> screenStats() {
+            return List.of(provider);
+          }
+        };
+    var first = ScreenStats.forHost(host);
+    var initial = first.read(host, 0);
+    var second = ScreenStats.forHost(host);
+    assertSame(first, second);
+    assertSame(initial, second.read(host, 10));
+    total.set(BigInteger.valueOf(100));
+    var next = second.read(host, 20);
+    assertSame(next, first.read(host, 20));
+    assertEquals(2, calls.get());
+    assertTrue(lines(next, 1).get(1).contains(": 100 RF/"));
+  }
+
+  @Test
+  void transferEscrowDoesNotMasqueradeAsInputOutputOrProcessorUse() {
+    var energy = new EnergyBuffer(1000, 1000);
+    energy.setStored(1000);
+    assertTrue(energy.reserve(640));
+    assertEquals(640, energy.refund(640));
+    assertEquals(1000, energy.stored());
+    assertFalse(energy.reserve(1001));
+    assertTrue(energy.reserve(640));
+    assertEquals(600, energy.refund(600)); // 40 RF actually spent on transfers
+    assertEquals(960, energy.stored());
+    assertEquals(BigInteger.ZERO, energy.inserted());
+    assertEquals(BigInteger.ZERO, energy.extracted());
+    assertEquals(BigInteger.ZERO, energy.used());
+    assertTrue(energy.consume(20));
+    assertEquals(BigInteger.valueOf(20), energy.used());
+  }
+
+  @Test
   void transferMaximaFollowTheSelectedTimescale() {
     var energy = new EnergyBuffer(10000, 1000, 500);
     var values = new ScreenStats().readParts(List.of(energy), 0);

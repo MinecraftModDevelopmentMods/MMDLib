@@ -1,5 +1,7 @@
 package zone.moddev.mc.lib.gui.layout;
 
+import static zone.moddev.mc.lib.api.automation.AutomationInventory.COLUMNS;
+
 /** Shared geometry for automation rendering, real menu slots, hit boxes and exclusions. */
 public final class AutomationLayout {
   public static final int WIDTH = 112, RAIL = ScreenLayout.POPOUT_TAB;
@@ -31,8 +33,8 @@ public final class AutomationLayout {
 
   /** Item bounds inside a frame, relative to the drawer body; addon slots precede filters. */
   public static Rect item(int subSlot) {
-    var frame = subSlot < 4 ? addon(subSlot) : filter(subSlot - 4);
-    int size = subSlot < 4 ? 16 : FILTER_ITEM_SIZE;
+    var frame = subSlot < COLUMNS ? addon(subSlot) : filter(subSlot - COLUMNS);
+    int size = subSlot < COLUMNS ? 16 : FILTER_ITEM_SIZE;
     return new Rect(frame.x() + 1, frame.y() + 1, size, size);
   }
 

@@ -24,6 +24,7 @@
   "screen.mmdlib_companion.rate": "1,000 FE per face per tick",
   "status.mmdlib_companion.stalled": "Needs power",
   "status.mmdlib_companion.blocked": "Blocked",
+  "status.mmdlib_companion.held": "Held by machine controls",
   "block.mmdlib_companion.crusher": "Crusher",
   "block.mmdlib_companion.transmuter": "Iron-to-Gold Converter",
   "block.mmdlib_companion.dual_crusher": "Dual Crusher",

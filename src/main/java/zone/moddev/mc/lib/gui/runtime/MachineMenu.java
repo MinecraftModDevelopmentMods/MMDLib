@@ -36,7 +36,7 @@ public class MachineMenu extends AbstractContainerMenu {
   private final Map<Element, Boolean> visibility = new IdentityHashMap<>();
   private final Map<Element, Integer> elementIndexes = new IdentityHashMap<>();
   private final Map<Integer, Object> values = new HashMap<>();
-  private final ScreenStats stats = new ScreenStats();
+  private final ScreenStats stats;
 
   /** Server-synchronized stats for tick, second or minute rate display. */
   public List<Component> stats(int unit) {
@@ -264,6 +264,7 @@ public class MachineMenu extends AbstractContainerMenu {
         throw new IllegalArgumentException("Too many side configuration groups");
     host = entity instanceof ScreenHost h ? h : null;
     if (host != null) ScreenInventoryValidation.validate(bound.screen(), host);
+    stats = client || host == null ? new ScreenStats() : ScreenStats.forHost(host);
     automation =
         host != null && host.screenAutomation() != null
             ? new AutomationMenu(this, host.screenAutomation(), owner, client)
@@ -519,6 +520,7 @@ public class MachineMenu extends AbstractContainerMenu {
   public void clicked(int slot, int button, ClickType type, Player player) {
     if (slot >= 0 && slot < slots.size() && !slots.get(slot).isActive()) return;
     boolean previous = interacting;
+    if (!previous && automation != null) automation.beforeInteraction();
     interacting = true;
     try {
       super.clicked(slot, button, type, player);
@@ -538,6 +540,7 @@ public class MachineMenu extends AbstractContainerMenu {
   @Override
   public ItemStack quickMoveStack(Player player, int index) {
     boolean previous = interacting;
+    if (!previous && automation != null) automation.beforeInteraction();
     interacting = true;
     try {
       return moveStack(player, index);

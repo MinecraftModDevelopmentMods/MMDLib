@@ -19,8 +19,6 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
-import zone.moddev.mc.lib.api.stats.StatsProvider;
-
 /**
  * A machine inventory: an {@link ItemStackHandler} with a {@link Role}, filter and limit per slot,
  * and a change callback. The owning block entity and its screen use it directly; automation gets a
@@ -30,12 +28,7 @@ import zone.moddev.mc.lib.api.stats.StatsProvider;
  * refuse placement, so players cannot put items into outputs. The machine fills outputs with {@link
  * #insertResult}.
  */
-public class ItemStorage extends PlannedItemHandler implements StatsProvider {
-  @Override
-  public zone.moddev.mc.lib.api.stats.Statistics statistics() {
-    return zone.moddev.mc.lib.api.stats.Statistics.EMPTY;
-  }
-
+public class ItemStorage extends PlannedItemHandler {
   private final Role[] roles;
   private final int[] limits;
 

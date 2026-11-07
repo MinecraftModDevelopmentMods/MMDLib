@@ -160,6 +160,20 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
     return true;
   }
 
+  /** Escrows a transfer charge without counting it as processor use or external output. */
+  public boolean reserve(long amount) {
+    if (amount < 0 || amount > stored) return false;
+    setStored(stored - amount);
+    return true;
+  }
+
+  /** Returns unused transfer escrow without counting it as external input. */
+  public long refund(long amount) {
+    long accepted = Math.clamp(amount, 0, space());
+    setStored(stored + accepted);
+    return accepted;
+  }
+
   @Override
   public int receiveEnergy(int toReceive, boolean simulate) {
     return (int) insert(Math.min(toReceive, maxInsert), simulate);
