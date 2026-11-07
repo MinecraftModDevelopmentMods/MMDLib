@@ -351,6 +351,11 @@ public final class ScreenLoaderTest {
       require(firstPause.y() == pause.y());
       require(pause.width() == 14 && pause.height() == 14);
       require(((Element.Button) screen.find("toggle_0").orElseThrow()).flat());
+      if (!name.equals("dual_crusher"))
+        require(
+            screen
+                .source(screen.find("toggle_0").orElseThrow().common())
+                .endsWith("base_powered_machine.xml"));
     }
   }
 
@@ -386,17 +391,7 @@ public final class ScreenLoaderTest {
 
   @Test
   void crusherPlacesProcessingBeforeRightEnergyGauge() throws Exception {
-    Screen screen;
-    try (var input =
-        java.nio.file.Files.newInputStream(
-            java.nio.file.Path.of("src/companion/resources/mmdlib/screen/crusher.xml"))) {
-      screen =
-          ScreenReader.read(
-              ResourceLocation.parse("mmdlib_companion:crusher"),
-              "crusher.xml",
-              input,
-              companionLayoutWidgets());
-    }
+    var screen = companionScreens().get(ResourceLocation.parse("mmdlib_companion:crusher"));
     var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
     var energy = layout.bounds(screen.find("energy").orElseThrow());
     var tank = layout.bounds(screen.find("tank").orElseThrow());
@@ -416,34 +411,24 @@ public final class ScreenLoaderTest {
   @Test
   void settingsExpandAndCollapseThePanelAndInventory() throws Exception {
     String name = "crusher";
-    try (var input =
-        java.nio.file.Files.newInputStream(
-            java.nio.file.Path.of("src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
-      var screen =
-          ScreenReader.read(
-              ResourceLocation.parse("mmdlib_companion:" + name),
-              name + ".xml",
-              input,
-              companionLayoutWidgets());
-      TextMeasure text = t -> t.fallback().orElse(t.key()).length() * 6;
-      var compact = ScreenLayout.of(screen, text, true);
-      var expanded = ScreenLayout.of(screen, text, true, java.util.Map.of("panel", "settings"));
-      var collapsed = ScreenLayout.of(screen, text, true, java.util.Map.of("panel", "machine"));
-      var context = screen.find("panel").orElseThrow();
-      int growth = expanded.panel().height() - compact.panel().height();
-      org.junit.jupiter.api.Assertions.assertTrue(growth > 0, name);
-      require(expanded.bounds(context).height() - compact.bounds(context).height() == growth);
-      require(
-          expanded.inventory().orElseThrow().y() - compact.inventory().orElseThrow().y() == growth);
-      require(compact.panel().equals(collapsed.panel()));
-      for (var element : screen.elements())
-        require(compact.bounds(element).equals(collapsed.bounds(element)));
-      for (var layout : java.util.List.of(compact, expanded)) {
-        var inventory = layout.inventory().orElseThrow();
-        require(inventory.bottom() == layout.panel().bottom() - ScreenLayout.PANEL_MARGIN);
-        require(
-            layout.bounds(screen.find("inventory_controls").orElseThrow()).y() == inventory.y());
-      }
+    var screen = companionScreens().get(ResourceLocation.parse("mmdlib_companion:" + name));
+    TextMeasure text = t -> t.fallback().orElse(t.key()).length() * 6;
+    var compact = ScreenLayout.of(screen, text, true);
+    var expanded = ScreenLayout.of(screen, text, true, java.util.Map.of("panel", "settings"));
+    var collapsed = ScreenLayout.of(screen, text, true, java.util.Map.of("panel", "machine"));
+    var context = screen.find("panel").orElseThrow();
+    int growth = expanded.panel().height() - compact.panel().height();
+    org.junit.jupiter.api.Assertions.assertTrue(growth > 0, name);
+    require(expanded.bounds(context).height() - compact.bounds(context).height() == growth);
+    require(
+        expanded.inventory().orElseThrow().y() - compact.inventory().orElseThrow().y() == growth);
+    require(compact.panel().equals(collapsed.panel()));
+    for (var element : screen.elements())
+      require(compact.bounds(element).equals(collapsed.bounds(element)));
+    for (var layout : java.util.List.of(compact, expanded)) {
+      var inventory = layout.inventory().orElseThrow();
+      require(inventory.bottom() == layout.panel().bottom() - ScreenLayout.PANEL_MARGIN);
+      require(layout.bounds(screen.find("inventory_controls").orElseThrow()).y() == inventory.y());
     }
   }
 
