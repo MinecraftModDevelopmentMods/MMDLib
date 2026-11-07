@@ -20,6 +20,11 @@ public interface ScreenHost {
    */
   IItemHandlerModifiable screenItems();
 
+  /** Registered machine features used by generic processor controls. */
+  default zone.moddev.mc.lib.machine.feature.FeatureHost screenFeatures() {
+    return null;
+  }
+
   /** Parts contributing statistics, in display order. Providers are only sampled on the server. */
   default java.util.List<? extends zone.moddev.mc.lib.api.stats.StatsProvider> screenStats() {
     return java.util.List.of();

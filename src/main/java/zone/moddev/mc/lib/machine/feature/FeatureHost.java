@@ -1,19 +1,20 @@
 package zone.moddev.mc.lib.machine.feature;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
-import zone.moddev.mc.lib.api.redstone.IRedstoneOutput;
-import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
-
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.DynamicOps;
 
 import net.minecraft.world.level.Level;
+
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+
+import zone.moddev.mc.lib.api.redstone.IRedstoneOutput;
+import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
 
 /**
  * Runs and saves a machine's {@link MachineFeature}s. The block entity ticks it and saves it with
@@ -57,6 +58,53 @@ public final class FeatureHost implements IRedstoneOutput {
       throw new IllegalArgumentException("Duplicate machine feature " + feature.key());
     syncs |= feature.syncsToClient();
     return this;
+  }
+
+  public void reset() {
+    features.values().forEach(MachineFeature::reset);
+  }
+
+  /** Finds a recipe processor by its stable feature/persistence key. */
+  public java.util.Optional<RecipeProcessor> processor(String key) {
+    return features.get(key) instanceof RecipeProcessor processor
+        ? java.util.Optional.of(processor)
+        : java.util.Optional.empty();
+  }
+
+  /** An omitted key selects the first recipe processor in feature registration order. */
+  public java.util.Optional<RecipeProcessor> processor(java.util.Optional<String> key) {
+    return key.isPresent()
+        ? processor(key.orElseThrow())
+        : features.values().stream()
+            .filter(RecipeProcessor.class::isInstance)
+            .map(RecipeProcessor.class::cast)
+            .findFirst();
+  }
+
+  /** Feature statistics in registration order; features without statistics are omitted. */
+  public List<zone.moddev.mc.lib.api.stats.StatsProvider> statisticsProviders() {
+    return features.values().stream()
+        .filter(zone.moddev.mc.lib.api.stats.StatsProvider.class::isInstance)
+        .map(zone.moddev.mc.lib.api.stats.StatsProvider.class::cast)
+        .toList();
+  }
+
+  /** Recipe processors in registration order, excluding unrelated features. */
+  public List<RecipeProcessor> processors() {
+    return features.values().stream()
+        .filter(RecipeProcessor.class::isInstance)
+        .map(RecipeProcessor.class::cast)
+        .toList();
+  }
+
+  /** Persists and synchronizes manual changes even while the host's processing tick is held. */
+  public boolean setProcessorPaused(String key, boolean paused) {
+    var processor = processor(key).orElse(null);
+    if (processor == null || processor.paused() == paused) return false;
+    processor.setPaused(paused);
+    onChange.run();
+    if (processor.syncsToClient()) onSync.run();
+    return true;
   }
 
   /**

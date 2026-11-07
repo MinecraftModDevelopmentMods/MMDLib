@@ -29,6 +29,10 @@ icons and progress arrows are full colour.
 | `icon_side_config` | 16×16 | none | Central machine with connected cyan/orange ports for the side-configuration drawer |
 | `side_mode_input`, `side_mode_output`, `side_mode_both`, `side_mode_disabled` | 14×14 | none | Outlined cyan insertion arrow, orange extraction arrow, opposing arrows, or grey cross. The drawer draws 7×7 corner badges: input at top-right, output at bottom-right, both badges for bidirectional sides, or a bottom-right cross when disabled. |
 | `icon_pause`, `icon_resume` | 16×16 | none | Gold pause bars and green play triangle; `_a` and `_b` variants identify independent lanes |
+| `icon_processor_pause`, `icon_processor_stop`, `icon_processor_play` | 12×12 | none | Centered current-state glyphs for the generic processor control: manually paused, working, idle |
+| `icon_processor_conflict` | 5×5 | none | Red bottom-right conflict overlay for manual pause versus watched redstone inputs |
+| `icon_redstone_running`, `icon_redstone_paused` | 5×5 | none | Green play / yellow pause overlays for the redstone drawer's input permission |
+| `icon_stop` | 16×16 | none | Standalone stop glyph |
 | `button_flat`, `button_flat_highlighted` | 14×14 | nine-slice, border 1 | Compact button with a uniform dark outline and flat grey fill; hover lightens only the interior |
 | `icon_filter_whitelist`, `icon_filter_blacklist` | 10×10 | none | White/black list cards on the filter's flat grey mode toggle |
 | `icon_processor_progress` | 16x16 | none | Three rising blue bars for per-processor recipe progress. |

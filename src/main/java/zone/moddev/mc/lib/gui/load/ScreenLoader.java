@@ -11,8 +11,10 @@ import java.util.TreeMap;
 import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot;
+import zone.moddev.mc.lib.gui.WidgetTypes;
 import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
+import zone.moddev.mc.lib.gui.model.Screen;
 
 /**
  * Finds and loads every screen file: {@code mmdlib/screen/<path>.xml} in each mod, whose ID is
@@ -33,8 +35,25 @@ public final class ScreenLoader {
    * @throws IllegalArgumentException if two files have the same ID
    */
   public static Map<ResourceLocation, ScreenBinder.Bound> load(List<SourceRoot> sources) {
-    zone.moddev.mc.lib.gui.WidgetTypes.GLOBAL.freeze();
+    WidgetTypes.GLOBAL.freeze();
+    var discovered = discover(sources);
     var screens = new TreeMap<ResourceLocation, ScreenBinder.Bound>();
+    read(discovered.nodes(), WidgetTypes.GLOBAL)
+        .forEach((id, screen) -> screens.put(id, bind(screen, discovered.loaders().get(id))));
+    return screens;
+  }
+
+  /** Reads and composes concrete screens without loading host classes, for layout tools. */
+  public static Map<ResourceLocation, Screen> read(List<SourceRoot> sources, WidgetTypes widgets) {
+    return read(discover(sources).nodes(), widgets);
+  }
+
+  private record Definitions(
+      Map<ResourceLocation, ScreenReader.Node> nodes, Map<ResourceLocation, ClassLoader> loaders) {}
+
+  private static Definitions discover(List<SourceRoot> sources) {
+    var definitions = new TreeMap<ResourceLocation, ScreenReader.Node>();
+    var loaders = new TreeMap<ResourceLocation, ClassLoader>();
     for (var source : sources) {
       var folder = source.root().resolve(SECTION);
       if (!Files.isDirectory(folder)) continue;
@@ -42,19 +61,35 @@ public final class ScreenLoader {
         for (var file :
             files.filter(Files::isRegularFile).filter(ScreenLoader::isXml).sorted().toList()) {
           var id = id(source.namespace(), folder, file);
-          var bound = loadFile(id, file, source.classLoader());
-          if (screens.putIfAbsent(id, bound) != null)
-            throw new IllegalArgumentException("Duplicate screen " + id + ": " + file);
+          try (var input = Files.newInputStream(file)) {
+            var definition = ScreenReader.parse(file.toString(), input);
+            if (definitions.putIfAbsent(id, definition) != null)
+              throw new IllegalArgumentException("Duplicate screen " + id + ": " + file);
+            loaders.put(id, source.classLoader());
+          }
         }
       } catch (IOException ex) {
         throw new UncheckedIOException("Cannot read screens in " + folder, ex);
       }
     }
+    return new Definitions(definitions, loaders);
+  }
+
+  private static Map<ResourceLocation, Screen> read(
+      Map<ResourceLocation, ScreenReader.Node> definitions, WidgetTypes widgets) {
+    var screens = new TreeMap<ResourceLocation, Screen>();
+    var templates = new ScreenTemplates(definitions);
+    // Discover all definitions first: bases may be in later files or another mod.
+    for (var id : definitions.keySet()) templates.resolve(id);
+    for (var id : definitions.keySet()) {
+      if (ScreenTemplates.flag(definitions.get(id), "abstract")) continue;
+      screens.put(id, ScreenReader.build(id, templates.expand(id), widgets));
+    }
     return screens;
   }
 
   /**
-   * Reads and binds one screen file.
+   * Reads and binds one standalone screen file. Use {@link #load} to resolve bases across files.
    *
    * @throws ScreenException if it is invalid
    * @throws IOException if it cannot be read
@@ -63,14 +98,18 @@ public final class ScreenLoader {
       throws IOException {
     try (var input = Files.newInputStream(file)) {
       var screen = ScreenReader.read(id, file.toString(), input);
-      try {
-        // Heights never depend on text, so whether the tabs fit can be checked without a font.
-        ScreenLayout.of(screen, TextMeasure.NONE);
-      } catch (IllegalArgumentException ex) {
-        throw new ScreenException(file.toString(), 0, ex.getMessage(), ex);
-      }
-      return ScreenBinder.bind(screen, loader);
+      return bind(screen, loader);
     }
+  }
+
+  private static ScreenBinder.Bound bind(Screen screen, ClassLoader loader) {
+    try {
+      // Heights never depend on text, so whether the tabs fit can be checked without a font.
+      ScreenLayout.of(screen, TextMeasure.NONE);
+    } catch (IllegalArgumentException ex) {
+      throw new ScreenException(screen.source(), 0, ex.getMessage(), ex);
+    }
+    return ScreenBinder.bind(screen, loader);
   }
 
   private static boolean isXml(Path file) {

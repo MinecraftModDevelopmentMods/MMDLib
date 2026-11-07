@@ -1,8 +1,11 @@
 package zone.moddev.mc.lib.gui.runtime;
 
 import java.util.*;
+
 import net.minecraft.world.entity.player.Player;
+
 import net.neoforged.neoforge.network.PacketDistributor;
+
 import zone.moddev.mc.lib.api.redstone.*;
 import zone.moddev.mc.lib.gui.layout.*;
 
@@ -37,6 +40,21 @@ public final class RedstoneMenu {
 
   public boolean open() {
     return open;
+  }
+
+  /** Whether any face is configured to gate processing from an input signal. */
+  public boolean watching() {
+    for (int face = 0; face < 6; face++) if (mode(face) == RedstoneControl.Mode.READ) return true;
+    return false;
+  }
+
+  /** Authoritative resolved gate, also synchronized while the drawer is closed. */
+  public boolean paused() {
+    return client ? state != null && state.paused() : control.paused();
+  }
+
+  public boolean conflicts(boolean manuallyPaused) {
+    return watching() && manuallyPaused != paused();
   }
 
   public int selected() {

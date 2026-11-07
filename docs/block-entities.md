@@ -131,10 +131,116 @@ The block delegates `newBlockEntity` and `getTicker` to `binding.prepared()`, as
 it, `DropsContents` is never called and nothing reports the missing hook. It reads `binding.type()` only after registration (for example
 when a block entity is created), never in its constructor.
 
+## BasePoweredMachine
+
+`zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine` is an optional abstract `BlockEntity`
+for code-defined machines. It implements `ScreenHost`, `DropsContents` and `Clearable`. It owns
+`energy` and `features`, exposes their screen/statistics bindings, and supplies ticking, persistence,
+feature synchronization and common warnings. It does not register blocks, capabilities, recipes
+or a recovery item for the consuming mod.
+
+The default constructor configures 100,000 FE capacity, 1,000 FE input and no external output.
+The overload `(type, pos, state, capacity, maxInput, maxOutput)` accepts different values, including
+an output-only generator. The owning machine's energy operations bypass external transfer rates.
+
+Define items/tanks and resource groups in the subclass, then connect them once:
+
+```java
+// In a BasePoweredMachine subclass constructor, after defining the three ResourceGroups:
+resources = new MachineResources(this, this::facing)
+    .items(inputGroup, items)
+    .items(outputGroup, items)
+    .energy(energyGroup, energy)
+    .recipeInputs(MyRecipes.PRESSING, "input")
+    .build();
+features.add(new RecipeProcessor("work", MyRecipes.PRESSING, resources.recipes(),
+    Component.translatable("example.press.processor")));
+inventory = poweredInventory(resources.automation())
+    .items("items", items)
+    .fluids("fluids", fluids);
+ScreenInventoryValidation.validate(this);
+
+// Subclass methods; inventory is the configured MachineInventoryLifecycle field.
+@Override public ItemStorage screenItems() { return items; }
+@Override protected MachineInventoryLifecycle machineInventory() { return inventory; }
+@Override protected void recoverResources(Level level, BlockPos pos, CompoundTag payload) {
+    // Consumer-owned item that durably retains the complete payload:
+    Containers.dropItemStack(level, pos.getX() + .5, pos.getY() + .5, pos.getZ() + .5,
+        MyRecoveryItem.create(payload));
+}
+```
+
+Group IDs in this fragment are `input`, `output` and `energy`; recipe files must use the matching
+keys. See [resource definitions and filtering](inventory-automation.md#shared-machine-resource-definitions).
+`MyRecipes` and `MyRecoveryItem` are consumer implementations, not library registrations.
+
+The base automatically registers its own buffer under the save key `energy`, even when the
+subclass returns a directly constructed lifecycle instead of using `poweredInventory`. A lifecycle
+must belong to this entity and use its `features` and `energy`; conflicting energy bindings are
+rejected. Without a lifecycle, the base saves/restores features and energy only. Custom items and
+tanks must be registered with the lifecycle to participate in persistence, clearing and dropping.
+
+| Base behavior | Subclass extension |
+|---|---|
+| `getEnergy()`, `getEnergyCapacity()` | Backed by the owned buffer |
+| `getProgress()`, `getTime()`, `getPaused()` | First registered recipe processor; zero/false if none |
+| `screenFeatures()`, `screenStats()` | Owned host; statistics include energy and all feature statistics providers |
+| `screenAutomation()` | Lifecycle's automation inventory, when configured |
+| `getWarnings()` | Redstone processing gate plus `STALLED`, `BLOCKED`, `HELD` processor warnings, using each processor's display name; append custom messages to `super.getWarnings()` |
+| `screenRedstone()` | Opt in with a configured `RedstoneControl`; base reads it before processing and updates outputs afterward |
+| `processingAllowed()` | Additional processing gate, default true |
+| `pausePolicy()` | Default `PROCESSING_ONLY`; controls redstone gating of processing and automation transfers |
+| `beforeMachineTick()`, `afterMachineTick()` | Work around the common processing/transfer tick, such as generator refilling and output |
+| `saveMachineData()`, `loadMachineData()` | Additional persistent metadata, after the common lifecycle; never used for client-only packets |
+| `recoverResources()` | Required durable handoff for displaced storage and transfer escrow |
+
+The final no-argument `serverTick()` is server-only. Register its block ticker with
+`(level, pos, state, entity) -> entity.serverTick()`. Custom before/after tick hooks run even when
+the processing gate is held, so gate any custom work explicitly if necessary. Manual processor
+pause remains independent of the redstone transfer policy.
+
+`MachineInventoryLifecycle` resets features before loading storage, then restores automation and
+features, so reservations are rebuilt against loaded contents. It settles owed energy refunds even
+when transfers are paused. `clearContent()` destructively clears registered contents, recovery,
+automation and feature state. `dropContents()` recovers displaced contents and transfer escrow,
+releases plans and drops ordinary items. Normal tank contents and stored power are not converted
+to recovery payloads on destruction. Custom blocks still need the `DropsContents.onRemove` hook.
+
+Screen XML extends `mmdlib:base_powered_machine`; `SCREEN_TEMPLATE` exposes that ID in Java.
+The final `openScreen(player)` opens the concrete type's screen, not the abstract template.
+See [screen inheritance](gui-screens.md#inherited-screens) for the shared energy display,
+processor control, info text and placeholders. The mod still supplies a screen under each type ID.
+
+### Additional client state
+
+The base's final update packet/tag methods always include feature synchronization. Extend them
+through these protected hooks instead of overriding the packet methods:
+
+```java
+@Override protected void saveClientData(CompoundTag tag, HolderLookup.Provider registries) {
+    tag.putInt("visual_mode", visualMode);
+}
+@Override protected void loadClientData(CompoundTag tag, HolderLookup.Provider registries) {
+    visualMode = tag.getInt("visual_mode");
+}
+// After a server-side change that should reach tracking clients:
+syncToClient();
+```
+
+Custom data occupies a separate `mmdlib_machine` compound; it cannot replace the root feature or
+storage fields. Features restore first, followed by `loadClientData`. Older feature-only packets
+leave custom client state alone. World saves never invoke these hooks, and packet loads never
+invoke `loadMachineData` or reload inventories. Persist any value that must survive a world reload
+separately in the machine-data hooks and call `setChanged()` when changing it; `syncToClient()`
+only sends current state. Exact screen values still use the menu's getter synchronization.
+
 ## Machine features
 
 The separately packaged [machine companion](machine-companion.md) provides playable examples of
 the processor, a one-slot converter, shared lanes and a creative power source.
+
+The manual wiring below is for a plain `BlockEntity`. When extending `BasePoweredMachine`, use its
+owned `features` and lifecycle instead of redeclaring the host or overriding final save/tick methods.
 
 A `FeatureHost` runs a machine's `MachineFeature`s, such as a `RecipeProcessor`, and saves each
 under its key. The block entity ticks it from `serverTick` with `features.tick(level)`, and saves
@@ -164,8 +270,9 @@ BlockEntityTicker<CrusherEntity> ticker =
 
 `status()` is one of: `IDLE`, no cycle is running; `RUNNING`, a cycle is running; `STALLED`, a
 cycle is waiting for energy and keeps its progress and reservations; `BLOCKED`, a cycle has run its
-time but cannot finish, say an input was taken, and retries each tick; and `PAUSED`, held by an
-interrupt. `progress()` and `time()` give the ticks done and the ticks the cycle takes, for a
+time but cannot finish, say an input was taken, and retries each tick; `HELD`, suspended by a host
+gate with progress and reservations retained; and `PAUSED`, held by a manual interrupt.
+`progress()` and `time()` give the ticks done and the ticks the cycle takes, for a
 screen; `time()` is 0 when idle or paused.
 
 On `/reload` a running cycle finishes as planned, and the next cycle uses the new recipes.
@@ -181,13 +288,17 @@ until `resume()`; `paused()` says whether it is held. It works without power and
 status. It also releases the running cycle's reservations, so the items it locked can be taken
 out. This is the trap for players: an unpowered machine keeps its inputs and outputs locked, and
 the only ways to get them back are an interrupt or breaking the block. A mod should give the
-player a button, an `Element.Button` in the screen XML with a `gui-click` handler (see
-[GUI screens](gui-screens.md)) that calls `interrupt()` or `resume()`. Resuming reserves the paused
+player a generic `<processor-button>` (see [GUI screens](gui-screens.md#generic-processor-control)).
+`pause()`, `resume()` and `setPaused(boolean)` expose the same processor operations. For actions
+on a hosted processor, use `FeatureHost.setProcessorPaused(key, paused)`: it marks changes dirty
+and synchronizes immediately, even while host processing is held. Direct processor calls require
+the caller to arrange persistence/sync. Resuming reserves the paused
 recipe again if it still can. Progress is kept only if that recipe still exists, can reserve its
 inputs and output space again, and has the same `time`; otherwise progress resets.
 
-**Groups.** The processor reaches storage through the inventory's group keys. Groups in one
-inventory must not overlap: use one key for each set of slots or tanks. Multiple processor lanes
+**Groups.** The processor reaches storage through the inventory's group keys. Physical groups in
+`MachineResources` cannot overlap; recipe aliases may expose the same storage through alternate
+keys. Avoid describing the same physical input/output twice within one recipe. Multiple processor lanes
 can share that inventory and reserve the same slot, provided enough unreserved inputs and output
 space remain; each lane holds only its own share of the slot's plan.
 
@@ -217,7 +328,8 @@ given back.
 Custom blocks can call `DropsContents.onRemove(state, level, pos, replacement)` before their
 superclass removal hook to use the same server-only, different-block guard.
 
-**Syncing to clients.** Nothing is sent to clients unless the block entity opts in. A feature that
+**Syncing to clients.** `BasePoweredMachine` wires this automatically. A plain block entity must
+opt in. A feature that
 should be readable on the client, for a renderer, particles or a tooltip, returns true from
 `syncsToClient()`; `RecipeProcessor` does. The block entity then wires `FeatureSync`:
 
@@ -243,8 +355,10 @@ protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries)
 }
 ```
 
-The host sends at most once every 10 ticks (`FeatureHost.SYNC_INTERVAL`), and always sends the
-latest change. Storages are not part of the update.
+Tick-driven feature changes are throttled to one send every 10 ticks (`FeatureHost.SYNC_INTERVAL`),
+with the latest change retained. Hosted manual pause changes synchronize immediately. Storages
+are not part of the feature update. `features.tick(level, false)` still calls each feature's
+`suspended(host)` hook, allowing processors to publish `HELD` rather than leaving stale running state.
 
 A feature controls what clients get with two methods. `clientState()` is the state to send, by
 default what `state()` saves; a feature overrides it for a moment clients shouldn't see.

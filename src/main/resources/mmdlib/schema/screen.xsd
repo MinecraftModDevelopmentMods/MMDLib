@@ -145,11 +145,13 @@
       <xs:element ref="progress"/>
       <xs:element ref="label"/>
       <xs:element ref="button"/>
+      <xs:element ref="processor-button"/>
       <xs:element ref="checkbox"/>
       <xs:element ref="radio-group"/>
       <xs:element ref="context"/>
       <xs:element ref="side-config"/>
       <xs:element ref="player-inventory"/>
+      <xs:element ref="placeholder"/>
     </xs:choice>
   </xs:group>
 
@@ -183,18 +185,23 @@
   <xs:element name="screen">
     <xs:annotation><xs:documentation>The root. title is a translation key; block-entity is the class whose getters #method values call.</xs:documentation></xs:annotation>
     <xs:complexType>
-      <xs:sequence>
-        <xs:group ref="widget" minOccurs="1" maxOccurs="unbounded"/>
-        <xs:element ref="inventory-controls" minOccurs="0"/>
-        <xs:choice minOccurs="0" maxOccurs="unbounded">
-          <xs:element ref="side-tab"/>
-          <xs:element ref="popout"/>
-        </xs:choice>
-      </xs:sequence>
-      <xs:attribute name="title" type="translationKey" use="required"/>
+      <xs:choice>
+        <xs:sequence>
+          <xs:group ref="widget" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element ref="inventory-controls" minOccurs="0"/>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="side-tab"/>
+            <xs:element ref="popout"/>
+          </xs:choice>
+        </xs:sequence>
+        <xs:element ref="fill" minOccurs="1" maxOccurs="unbounded"/>
+      </xs:choice>
+      <xs:attribute name="abstract" type="xs:boolean"/>
+      <xs:attribute name="extends" type="resourceId"/>
+      <xs:attribute name="title" type="translationKey"/>
       <xs:attribute name="title-fallback" type="xs:string"/>
-      <xs:attribute name="block-entity" type="className" use="required"/>
-      <xs:attribute name="inventory" default="default">
+      <xs:attribute name="block-entity" type="className"/>
+      <xs:attribute name="inventory">
         <xs:simpleType>
           <xs:restriction base="xs:string">
             <xs:enumeration value="default"/><xs:enumeration value="none"/>
@@ -204,9 +211,33 @@
     </xs:complexType>
   </xs:element>
 
+  <xs:complexType name="templateContent">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="widget"/>
+      <xs:element ref="inventory-controls"/>
+      <xs:element ref="side-tab"/>
+      <xs:element ref="popout"/>
+    </xs:choice>
+    <xs:attribute name="name" type="elementId" use="required"/>
+  </xs:complexType>
+
+  <xs:element name="fill" type="templateContent"/>
+  <xs:element name="placeholder">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="templateContent">
+          <xs:attribute name="required" type="xs:boolean"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
   <xs:element name="inventory-controls">
     <xs:complexType>
-      <xs:sequence><xs:element ref="button" minOccurs="1" maxOccurs="unbounded"/></xs:sequence>
+      <xs:choice minOccurs="1" maxOccurs="unbounded">
+        <xs:element ref="button"/>
+        <xs:element ref="processor-button"/>
+      </xs:choice>
       <xs:attributeGroup ref="common"/>
     </xs:complexType>
   </xs:element>
@@ -359,6 +390,19 @@
           <xs:attribute name="flat" type="xs:boolean" default="false"/>
           <xs:attribute name="icons"><xs:simpleType><xs:list itemType="resourceId"/></xs:simpleType></xs:attribute>
           <xs:attribute name="value-labels"><xs:simpleType><xs:list itemType="translationKey"/></xs:simpleType></xs:attribute>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="processor-button">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="processor-key" type="xs:string"/>
+          <xs:attribute name="text" type="translationKey"/>
+          <xs:attribute name="text-fallback" type="xs:string"/>
+          <xs:attribute name="flat" type="xs:boolean" default="true"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>

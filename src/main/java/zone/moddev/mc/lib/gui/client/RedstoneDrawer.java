@@ -31,7 +31,9 @@ final class RedstoneDrawer {
       BETWEEN = ResourceLocation.parse("mmdlib:icon_redstone_between"),
       OUTSIDE = ResourceLocation.parse("mmdlib:icon_redstone_outside"),
       REVERT = ResourceLocation.parse("mmdlib:icon_redstone_revert"),
-      REVERT_ON = ResourceLocation.parse("mmdlib:icon_redstone_revert_on");
+      REVERT_ON = ResourceLocation.parse("mmdlib:icon_redstone_revert_on"),
+      RUNNING = ResourceLocation.parse("mmdlib:icon_redstone_running"),
+      PAUSED = ResourceLocation.parse("mmdlib:icon_redstone_paused");
   private Language textLanguage;
   private Font textFont;
   private long infoRevision = -1;
@@ -102,7 +104,7 @@ final class RedstoneDrawer {
     tooltip = List.of();
     if (model.open()) SideDrawerRenderer.open(g, tab, body, Element.Edge.RIGHT, 0xc78181);
     else SideDrawerRenderer.tab(g, tab, 0xc78181);
-    g.renderItem(tabIcon, tab.x() + 3, tab.y() + 4);
+    renderTabIcon(g);
     if (tab.contains(mx, my)) tooltip = List.of(text("title"));
     if (!model.open()) return;
     g.enableScissor(body.x(), body.y(), body.right(), body.bottom());
@@ -392,7 +394,17 @@ final class RedstoneDrawer {
   void renderTab(GuiGraphics g) {
     layout();
     SideDrawerRenderer.tab(g, tab, 0xc78181);
+    renderTabIcon(g);
+  }
+
+  private void renderTabIcon(GuiGraphics g) {
     g.renderItem(tabIcon, tab.x() + 3, tab.y() + 4);
+    if (model.watching()) {
+      g.pose().pushPose();
+      g.pose().translate(0, 0, 200);
+      g.blitSprite(model.paused() ? PAUSED : RUNNING, tab.right() - 9, tab.bottom() - 9, 7, 7);
+      g.pose().popPose();
+    }
   }
 
   List<Rect> exclusions() {

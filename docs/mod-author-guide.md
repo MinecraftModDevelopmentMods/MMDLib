@@ -448,6 +448,15 @@ optional mods when their requiredMod gate is set.
 
 ## 8. Verify in a running mod
 
+For code-defined powered machines, [BasePoweredMachine](block-entities.md#basepoweredmachine)
+provides energy, feature lifecycle, warnings and client-sync hooks. Define resources with
+[MachineResources](inventory-automation.md#shared-machine-resource-definitions), including stable
+slot/tank identities and recipe-linked input filtering, then extend the library's
+[`mmdlib:base_powered_machine` screen](gui-screens.md#library-powered-machine-screen). The consuming
+mod still registers blocks/types/capabilities, supplies recipes and machine-specific inventories,
+and preserves displaced contents through its recovery callback. The
+[companion](machine-companion.md) demonstrates all of these together.
+
 The MMDLib build checks definition codecs and planning. Your consuming mod still
 needs to verify registration, resource reloads, harvesting levels, repair tags,
 scythe protection events, crackhammer counts/durability, all block placement states,

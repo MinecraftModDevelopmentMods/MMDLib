@@ -1,4 +1,4 @@
-# GUI screens (design)
+# GUI screens
 
 > **Status: implemented; runtime validation is described below.** Screens load at startup,
 > open through `block-right-click`, and use one generic menu with custom value packets.
@@ -17,6 +17,7 @@ embedded editor without adding per-filter XML to each screen.
 | Reading and checks | `gui.load.ScreenReader`: hardened SAX parser (no DOCTYPE, no external entities), schema validation, then the checks below | Done |
 | Getter binding | `gui.load.ScreenBinder`: `#method` / `Class#method` resolved to method handles, return kinds checked per element | Done |
 | Discovery | `gui.load.ScreenLoader`, called at startup; results in `gui.Screens` | Done |
+| Inheritance | `gui.load.ScreenTemplates`: cross-mod bases, placeholders/fills, source-aware expansion | Done |
 | Layout | `gui.layout.ScreenLayout`: positions in GUI pixels; tab fit checked at load | Done |
 | Menu and opening | `gui.runtime.MachineMenu`, `ScreenRuntime`, `BlockEvents.openMenu` | Implemented |
 | Value sync | `gui.runtime.ScreenNetwork`, `ScreenValues`, `ScreenSnapshots` | Implemented |
@@ -24,7 +25,8 @@ embedded editor without adding per-filter XML to each screen.
 | Optional JEI | `client.jei.MachineJei`, loaded only by the JEI plugin | Implemented |
 
 Checks made at load, beyond the schema: unique `id`s and slot indexes; `shows`, `hover-shows`
-and `side-config groups` name existing elements; buttons have a tooltip and text or an icon; a
+and `side-config groups` name existing elements; buttons have a tooltip and text or an icon
+(generic processor controls supply their own defaults); a
 `-fallback` attribute has its key; `max` has a `value`; gauges, meters and progress indicators
 have both; checkboxes and radio groups have a `value`; info pop-outs have text and
 warning/error pop-outs a `value`; `spacer` sits directly in a box; at most one
@@ -444,6 +446,118 @@ to the module's ID. Adding one later would break nothing, while removing one wou
 existing packs, so it will be added only if early users ask for it. If it is added, it must
 not hide a missing or misnamed screen file without a log entry.
 
+## Inherited screens
+
+Use `abstract="true"` for a template and `extends="namespace:screen_id"` for a child. Templates
+are discovered across mod namespaces but are not bound or opened themselves. Each concrete screen
+still has its own file ID and must provide its own `title`. It can inherit `block-entity` and
+`inventory`, or override either; getters bind against the resulting block-entity class.
+Inheritance does not replace the type-ID screen lookup described above.
+
+```xml
+<!-- mmdlib/screen/base_press.xml in mod example -->
+<screen xmlns="https://moddev.zone/mmdlib/screen" abstract="true"
+        block-entity="example.PressEntity">
+  <vbox padding="7">
+    <placeholder name="machine" required="true"/>
+  </vbox>
+  <placeholder name="help">
+    <popout kind="info" text="{machineId}.info"/>
+  </placeholder>
+</screen>
+```
+
+```xml
+<!-- mmdlib/screen/press.xml in mod example -->
+<screen xmlns="https://moddev.zone/mmdlib/screen" extends="example:base_press"
+        title="block.example.press">
+  <fill name="machine"><slot id="input" index="0"/></fill>
+</screen>
+```
+
+- Children supply content only through top-level `<fill name="...">` elements. A fill replaces
+  the named placeholder's contents; an empty fill removes its default content.
+- An unfilled optional placeholder uses its children, or nothing when it has none. A required
+  placeholder must be filled and cannot also have default content.
+- Chains can introduce placeholders and override earlier fills. Replacing an outer placeholder
+  removes its nested extension points; also filling a removed inner point is an error.
+- Unknown bases/fills, duplicate placeholders/fills and cycles fail at load. Expanded slots, IDs,
+  widget structure, bindings and layout are validated together. Errors retain the originating
+  file and line; a sibling's fills never mutate the shared template.
+
+`{machineId}` in translation keys expands to the concrete screen ID, including namespace and any
+path, after inheritance: `{machineId}.info` becomes `example:press.info`, never the base ID.
+It works in `text`, `title`, `label`, `tooltip`, `tooltip-shift` and button `value-labels`.
+Literal `*-fallback` strings and runtime placeholders such as `{value}` / `{max}` are unchanged.
+Declare the resulting key in the consuming mod's language file.
+
+### Library powered-machine screen
+
+MMDLib ships `mmdlib:base_powered_machine`, paired with
+[`BasePoweredMachine`](block-entities.md#basepoweredmachine). A one-processor child can be:
+
+```xml
+<screen xmlns="https://moddev.zone/mmdlib/screen"
+        extends="mmdlib:base_powered_machine" title="block.example.press">
+  <fill name="machine">
+    <slot id="input" index="0"/>
+    <progress value="#getProgress" max="#getTime"/>
+    <slot id="output" index="1"/>
+  </fill>
+</screen>
+```
+
+The base supplies the entity binding, padded layout, right-side energy gauge, default player
+inventory, keyless processor control and left info popout. Its info text is `{machineId}.info`,
+with dynamic `#getWarnings` from the entity. Override `block-entity` when child widgets use getters
+available only on the concrete subclass. Inventory/redstone/statistics drawers still come from
+runtime host interfaces; XML inheritance does not configure their backing data.
+
+| Placeholder | Default |
+|---|---|
+| `body` | Entire padded machine area; replace for layouts with contexts/settings views |
+| `heading` | Empty, above the machine row |
+| `machine` | Required machine-specific contents, before the energy gauge |
+| `inventory_controls` | `<inventory-controls id="inventory_controls"><processor-button id="toggle_0"/></inventory-controls>` |
+| `info` | `<popout id="info" kind="info" edge="left" text="{machineId}.info" value="#getWarnings"/>` |
+
+Replacing `body` also replaces its nested `heading` and `machine` placeholders. Machines without
+a recipe processor use `<fill name="inventory_controls"/>`; generators can also set
+`inventory="none"`. Multi-processor machines can fill that control area with explicitly keyed buttons.
+
+### Generic processor control
+
+```xml
+<processor-button id="pause"/>
+<!-- Or select a particular registered RecipeProcessor: -->
+<processor-button id="pause_second" processor-key="lane_1"/>
+```
+
+The host exposes a `FeatureHost` through `screenFeatures()`; `BasePoweredMachine` supplies it.
+An omitted key selects the first registered **recipe processor**, skipping other features. An
+explicit key must match exactly and never falls back; blank keys and hosts with no matching
+processor are errors. The menu validates this before opening and resolves clicks on the server.
+The control owns its state binding and pause action, so it needs no per-machine getter or click
+handler. Do not supply its `value`, `max`, `on-click`, `on-right-click`, `shows`, `icons` or `value-labels`.
+
+Icons show the current state, not the next action:
+
+| Processor state | Icon | Tooltip lines / click |
+|---|---|---|
+| Manually paused | Pause | `Paused` / `Click to unpause` |
+| Not paused and processing | Stop | `Working` / `Click to stop and clear reservations` |
+| Not paused and not processing | Play | `Idle` / `Click to pause` |
+
+Tooltips are compact and multiline. Manual pause releases reservations, keeps resumable progress,
+marks the machine changed and synchronizes immediately. Redstone/host holds preserve reservations
+and cannot override a manual pause. Removing a redstone hold never resumes a manually paused lane.
+
+When input watching is configured, a small red dot at the button's bottom right marks disagreement
+between manual pause and the redstone gate. The extra tooltip explains either that manual pause
+takes priority or that redstone is preventing processing. The redstone drawer icon has a small
+green play overlay when watched inputs allow processing, or a yellow pause overlay when they
+block it. With no input watching, neither the overlay nor conflict dot is shown.
+
 ## Example
 
 A processing machine with an energy gauge, an input, a progress arrow, two outputs, a fluid tank,
@@ -652,7 +766,8 @@ player, menu, and element before running the handler. Hover never reaches the se
 
 | Element | Purpose | Notable attributes |
 |---|---|---|
-| `screen` | Root | `title`, `block-entity`, `inventory` |
+| `screen` | Root | `title`, `block-entity`, `inventory`, `abstract`, `extends` |
+| `placeholder`, `fill` | Template extension point / child replacement | `name`; placeholders can be `required` |
 | `vbox`, `hbox` | Layout boxes | `padding`, `spacing`, `align` |
 | `spacer` | Fills leftover room in a box | |
 | `group` | Recessed grouping panel | `label`, `tint`, `padding` |
@@ -663,6 +778,8 @@ player, menu, and element before running the handler. Hover never reaches the se
 | `progress` | Fill-in progress indicator | `icon` (default arrow), `direction`, `jei-recipes` |
 | `label` | Text | `text` |
 | `button` | Vanilla-style button | `text` or `icon`, `tooltip` (required), `shows` (`context:view`) |
+| `processor-button` | Generic server-controlled pause/stop/resume button | Optional `processor-key`; built-in state icons, tooltip and action |
+| `inventory-controls` | Controls above player slots, right-aligned alongside the colour selector | Top-level container after the machine body |
 | `checkbox` | Checkbox | `text` |
 | `radio-group`, `radio` | Radio buttons; the group's value is the selected index | `label`, `text` |
 | `side-tab` | Tab growing out of the panel edge | `edge` |
@@ -925,7 +1042,7 @@ bright green incoming strength for Read, orange emitted strength for Emit, with 
   simplify only the info text to For N / Except N; ranges touching 0 or 15 use a single
   above/below condition (including equality for Between). The icon stays unchanged. Processing pauses when
   the face receives a highlighted level.
-  The default is Between 1–15. Dragging previews locally, release applies both endpoints atomically,
+  The default is Between 1â€“15. Dragging previews locally, release applies both endpoints atomically,
   and Escape cancels the drag. Any Read face requesting pause holds processing.
 - **Emit:** click the colour swatch or sprite and source name to cycle outputs; right-click
   cycles backwards. Resource fullness entries come first in the companion, followed by each

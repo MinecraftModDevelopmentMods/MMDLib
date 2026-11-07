@@ -1,11 +1,13 @@
 package zone.moddev.mc.companion.test;
 
 import java.util.function.Consumer;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
 import zone.moddev.mc.companion.ProcessorEntity;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
@@ -72,6 +74,12 @@ final class ReservationClientSmoke {
       }
       case 4 -> {
         if (!menu.reservationPlan(0).isNone() || !menu.reservationPlan(1).isNone()) return false;
+        require(
+            menu.getSlot(0).mayPlace(new ItemStack(Items.COPPER_ORE)),
+            "Client recipe sync admits a valid ingredient before a recipe starts");
+        require(
+            !menu.getSlot(0).mayPlace(new ItemStack(Items.DIAMOND)),
+            "Client prediction rejects unrelated items without relying on reservations");
         capture("reservations-cleared.png");
         server(
             player ->

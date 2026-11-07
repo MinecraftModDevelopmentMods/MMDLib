@@ -21,6 +21,9 @@ public interface MachineFeature<S> {
   /** Takes on loaded state. */
   void restore(S state);
 
+  /** Releases transient ownership before replacing storage contents or destroying the host. */
+  default void reset() {}
+
   /**
    * Whether nearby clients should hold this feature's state too, so a renderer or tooltip can read
    * it. The block entity sends it with {@link FeatureHost#saveForClient}.

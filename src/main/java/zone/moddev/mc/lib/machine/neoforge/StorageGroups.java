@@ -168,7 +168,7 @@ public final class StorageGroups {
           new Key(storage, index),
           () -> {
             var before = storage.getStackInSlot(index).copy();
-            return () -> storage.setStackInSlot(index, before);
+            return () -> storage.restoreStack(index, before);
           });
     }
   }
@@ -223,9 +223,9 @@ public final class StorageGroups {
       if (!valid(tank) || fluid.isEmpty()) return 0;
       var handler = storage.tank(indexes[tank]);
       var stack = FluidStacks.stack(fluid);
-      if (handler.fill(stack, FluidAction.SIMULATE) <= 0) return 0;
+      if (storage.fillResult(indexes[tank], stack, FluidAction.SIMULATE) <= 0) return 0;
       track(indexes[tank], tx);
-      return handler.fill(stack, FluidAction.EXECUTE);
+      return storage.fillResult(indexes[tank], stack, FluidAction.EXECUTE);
     }
 
     @Override
@@ -293,7 +293,7 @@ public final class StorageGroups {
           new Key(storage, index),
           () -> {
             var before = storage.tank(index).getFluid().copy();
-            return () -> storage.tank(index).setFluid(before);
+            return () -> storage.restoreFluid(index, before);
           });
     }
   }

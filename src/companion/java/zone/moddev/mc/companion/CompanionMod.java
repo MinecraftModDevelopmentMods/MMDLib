@@ -29,6 +29,7 @@ import zone.moddev.mc.lib.api.MaterialEventTypes;
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.api.capabilities.MachineCapabilities;
 import zone.moddev.mc.lib.gui.runtime.ScreenClick;
+import zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine;
 import zone.moddev.mc.lib.machine.neoforge.MachineRecipeTypes;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
@@ -92,18 +93,15 @@ public final class CompanionMod {
             id("tank_container"),
             MaterialEventTypes.GUI_CLICK,
             CompanionMod::transferTankContainer);
-    for (int lane = 0; lane < 2; lane++) {
-      int index = lane;
-      MaterialExtensions.GLOBAL
-          .events()
-          .registerCallback(
-              id("toggle_" + lane),
-              MaterialEventTypes.GUI_CLICK,
-              click -> {
-                if (click.menu().blockEntity instanceof ProcessorEntity machine)
-                  machine.toggle(index);
-              });
-    }
+    // The custom progress dial remains clickable; processor buttons have a library-owned action.
+    MaterialExtensions.GLOBAL
+        .events()
+        .registerCallback(
+            id("toggle_0"),
+            MaterialEventTypes.GUI_CLICK,
+            click -> {
+              if (click.menu().blockEntity instanceof ProcessorEntity machine) machine.toggle(0);
+            });
   }
 
   private static void transferTankContainer(ScreenClick click) {
@@ -190,7 +188,7 @@ public final class CompanionMod {
   /** Each block has its own type and XML screen, while processors share one implementation. */
   public static final class Machine {
     public final DeferredHolder<Block, DemoBlock> block;
-    public final DeferredHolder<BlockEntityType<?>, BlockEntityType<DemoEntity>> type;
+    public final DeferredHolder<BlockEntityType<?>, BlockEntityType<BasePoweredMachine>> type;
     private final ProcessorEntity.Kind kind;
 
     private Machine(String name, ProcessorEntity.Kind kind) {
@@ -208,11 +206,11 @@ public final class CompanionMod {
       ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
 
-    private BlockEntityType<DemoEntity> entityType() {
+    private BlockEntityType<BasePoweredMachine> entityType() {
       return type.get();
     }
 
-    private DemoEntity create(BlockPos pos, BlockState state) {
+    private BasePoweredMachine create(BlockPos pos, BlockState state) {
       return kind == null
           ? new CreativePowerEntity(type.get(), pos, state)
           : new ProcessorEntity(type.get(), pos, state, kind);

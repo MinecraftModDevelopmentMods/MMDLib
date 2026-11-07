@@ -52,7 +52,19 @@ public final class RecoveryCapsuleItem extends Item {
       var entry = resources.getCompound(i);
       var data = entry.getCompound("data");
       String type = entry.getString("type");
-      if (type.equals(ResourceType.FLUIDS.id().toString())) {
+      if (type.equals(ResourceType.ITEMS.id().toString())) {
+        var item =
+            ItemStack.parseOptional(target.getLevel().registryAccess(), data.getCompound("item"));
+        if (!item.isEmpty()) {
+          var remaining =
+              zone.moddev.mc.lib.api.capabilities.Transfer.insert(target.items, item, false);
+          if (remaining.getCount() < item.getCount()) {
+            changed = true;
+            if (remaining.isEmpty()) data.remove("item");
+            else data.put("item", remaining.save(target.getLevel().registryAccess()));
+          }
+        }
+      } else if (type.equals(ResourceType.FLUIDS.id().toString())) {
         var fluid =
             FluidStack.parseOptional(target.getLevel().registryAccess(), data.getCompound("fluid"));
         int moved = target.fluids.fill(fluid, IFluidHandler.FluidAction.EXECUTE);

@@ -70,7 +70,13 @@ public final class ScreenReader {
       ResourceLocation id, String source, InputStream input, WidgetTypes widgets)
       throws IOException {
     Node root = parse(source, input);
-    var screen = new Builder(source, widgets).screen(id, root);
+    return build(id, new ScreenTemplates(Map.of(id, root)).expand(id), widgets);
+  }
+
+  static Screen build(ResourceLocation id, Node root, WidgetTypes widgets) {
+    validateExpanded(root);
+    String source = root.source();
+    var screen = new Builder(id, source, widgets).screen(id, root);
     check(screen);
     return screen;
   }
@@ -78,9 +84,14 @@ public final class ScreenReader {
   // Parsing
 
   /** One parsed element, with its attributes as written (schema defaults filled in). */
-  private record Node(String name, Map<String, String> attributes, List<Node> children, int line) {}
+  record Node(
+      String name, Map<String, String> attributes, List<Node> children, String source, int line) {
+    Node withChildren(List<Node> children) {
+      return new Node(name, attributes, children, source, line);
+    }
+  }
 
-  private static Node parse(String source, InputStream input) throws IOException {
+  static Node parse(String source, InputStream input) throws IOException {
     try {
       var factory = SAXParserFactory.newInstance();
       factory.setNamespaceAware(true);
@@ -102,6 +113,50 @@ public final class ScreenReader {
     } catch (SAXException | ParserConfigurationException ex) {
       throw new ScreenException(source, 0, ex.getMessage(), ex);
     }
+  }
+
+  /** Check placement again after fills are spliced into their destination containers. */
+  private static void validateExpanded(Node root) {
+    var validator = SCHEMA.newValidatorHandler();
+    var locator = new org.xml.sax.helpers.LocatorImpl();
+    validator.setDocumentLocator(locator);
+    validator.setErrorHandler(
+        new DefaultHandler() {
+          @Override
+          public void error(SAXParseException ex) throws SAXException {
+            throw ex;
+          }
+
+          @Override
+          public void fatalError(SAXParseException ex) throws SAXException {
+            throw ex;
+          }
+        });
+    try {
+      validator.startDocument();
+      validateNode(root, validator, locator);
+      validator.endDocument();
+    } catch (SAXException ex) {
+      throw new ScreenException(
+          locator.getSystemId(), locator.getLineNumber(), ex.getMessage(), ex);
+    }
+  }
+
+  private static void validateNode(
+      Node node,
+      javax.xml.validation.ValidatorHandler validator,
+      org.xml.sax.helpers.LocatorImpl locator)
+      throws SAXException {
+    locator.setSystemId(node.source());
+    locator.setLineNumber(node.line());
+    var attributes = new org.xml.sax.helpers.AttributesImpl();
+    node.attributes()
+        .forEach((name, value) -> attributes.addAttribute("", name, name, "CDATA", value));
+    validator.startElement(NAMESPACE, node.name(), node.name(), attributes);
+    for (var child : node.children()) validateNode(child, validator, locator);
+    locator.setSystemId(node.source());
+    locator.setLineNumber(node.line());
+    validator.endElement(NAMESPACE, node.name(), node.name());
   }
 
   private static Schema loadSchema() {
@@ -144,7 +199,7 @@ public final class ScreenReader {
         if (attributes.getURI(i).isEmpty())
           values.put(attributes.getLocalName(i), attributes.getValue(i));
       var children = new ArrayList<Node>();
-      var node = new Node(local, values, children, locator.getLineNumber());
+      var node = new Node(local, values, children, source, locator.getLineNumber());
       if (stack.isEmpty()) root = node;
       else open.getLast().add(node);
       stack.add(node);
@@ -171,10 +226,13 @@ public final class ScreenReader {
   // Conversion to the model
 
   private static final class Builder {
+    private final String machineId;
     private final String source;
     private final WidgetTypes widgets;
+    private final Map<Common, String> origins = new java.util.IdentityHashMap<>();
 
-    Builder(String source, WidgetTypes widgets) {
+    Builder(ResourceLocation id, String source, WidgetTypes widgets) {
+      this.machineId = id.toString();
       this.source = source;
       this.widgets = widgets;
     }
@@ -187,6 +245,8 @@ public final class ScreenReader {
         if (element instanceof SideTab || element instanceof Popout) tabs.add(element);
         else body.add(element);
       }
+      if (body.isEmpty() || body.getFirst() instanceof InventoryControls)
+        throw error(root, "A screen requires at least one body element");
       return new Screen(
           id,
           source,
@@ -194,7 +254,8 @@ public final class ScreenReader {
           root.attributes().get("block-entity"),
           !"none".equals(root.attributes().get("inventory")),
           body,
-          tabs);
+          tabs,
+          origins);
     }
 
     private List<Element> children(Node node) {
@@ -203,6 +264,7 @@ public final class ScreenReader {
 
     private Element element(Node node) {
       if (node.name().equals("energy-gauge")) node = energyDefaults(node);
+      if (node.name().equals("processor-button")) node = processorDefaults(node);
       var c = common(node);
       return switch (node.name()) {
         case "vbox", "hbox" ->
@@ -256,7 +318,7 @@ public final class ScreenReader {
         case "progress" ->
             new Progress(c, id(node, "icon"), enumValue(Direction.class, node, "direction"));
         case "label" -> new Label(c, text(node, "text").orElseThrow());
-        case "button" ->
+        case "button", "processor-button" ->
             new Button(
                 c,
                 text(node, "text"),
@@ -264,10 +326,12 @@ public final class ScreenReader {
                 Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse),
                 words(node, "icons").stream().map(ResourceLocation::parse).toList(),
                 words(node, "value-labels").stream()
-                    .map(key -> new Text(key, Optional.empty()))
+                    .map(key -> new Text(translationKey(key), Optional.empty()))
                     .toList(),
                 java.util.Set.of("true", "1")
-                    .contains(node.attributes().getOrDefault("flat", "false")));
+                    .contains(node.attributes().getOrDefault("flat", "false")),
+                Optional.ofNullable(node.attributes().get("processor-key")),
+                node.name().equals("processor-button"));
         case "checkbox" -> new Checkbox(c, text(node, "text").orElseThrow());
         case "radio-group" ->
             new RadioGroup(
@@ -313,7 +377,8 @@ public final class ScreenReader {
           throw new IllegalArgumentException("This widget does not accept a value binding");
         type.validator().accept(element);
       } catch (RuntimeException ex) {
-        throw new ScreenException(source, node.line(), element.type() + ": " + ex.getMessage(), ex);
+        throw new ScreenException(
+            node.source(), node.line(), element.type() + ": " + ex.getMessage(), ex);
       }
       return element;
     }
@@ -327,33 +392,53 @@ public final class ScreenReader {
         attributes.put("tooltip", "screen.mmdlib.energy");
         attributes.putIfAbsent("tooltip-fallback", "{value} / {max} FE");
       }
-      return new Node(node.name(), attributes, node.children(), node.line());
+      return new Node(node.name(), attributes, node.children(), node.source(), node.line());
+    }
+
+    private Node processorDefaults(Node node) {
+      if (node.attributes().containsKey("processor-key")
+          && node.attributes().get("processor-key").isBlank())
+        throw error(node, "processor-key must not be blank");
+      var attributes = new LinkedHashMap<>(node.attributes());
+      attributes.put(
+          "icons",
+          "mmdlib:icon_processor_pause mmdlib:icon_processor_stop mmdlib:icon_processor_play");
+      attributes.put(
+          "value-labels",
+          "screen.mmdlib.processor.paused screen.mmdlib.processor.processing"
+              + " screen.mmdlib.processor.idle");
+      if (!attributes.containsKey("tooltip"))
+        attributes.put("tooltip", "screen.mmdlib.processor.toggle");
+      return new Node(node.name(), attributes, node.children(), node.source(), node.line());
     }
 
     private Common common(Node node) {
       var a = node.attributes();
       var recipes = a.get("jei-recipes");
-      return new Common(
-          Optional.ofNullable(a.get("id")),
-          value(node, "value"),
-          value(node, "max"),
-          text(node, "tooltip"),
-          text(node, "tooltip-shift"),
-          new Common.Clicks(
-              id(node, "on-click"),
-              id(node, "on-right-click"),
-              id(node, "on-shift-click"),
-              id(node, "on-shift-right-click")),
-          id(node, "on-hover"),
-          Optional.ofNullable(a.get("hover-shows")),
-          recipes == null || recipes.isBlank()
-              ? List.of()
-              : java.util.Arrays.stream(recipes.trim().split("\\s+"))
-                  .map(ResourceLocation::parse)
-                  .toList(),
-          a.containsKey("offset-x") ? offset(node, "offset-x") : 0,
-          a.containsKey("offset-y") ? offset(node, "offset-y") : 0,
-          node.line());
+      var common =
+          new Common(
+              Optional.ofNullable(a.get("id")),
+              value(node, "value"),
+              value(node, "max"),
+              text(node, "tooltip"),
+              text(node, "tooltip-shift"),
+              new Common.Clicks(
+                  id(node, "on-click"),
+                  id(node, "on-right-click"),
+                  id(node, "on-shift-click"),
+                  id(node, "on-shift-right-click")),
+              id(node, "on-hover"),
+              Optional.ofNullable(a.get("hover-shows")),
+              recipes == null || recipes.isBlank()
+                  ? List.of()
+                  : java.util.Arrays.stream(recipes.trim().split("\\s+"))
+                      .map(ResourceLocation::parse)
+                      .toList(),
+              a.containsKey("offset-x") ? offset(node, "offset-x") : 0,
+              a.containsKey("offset-y") ? offset(node, "offset-y") : 0,
+              node.line());
+      origins.put(common, node.source());
+      return common;
     }
 
     private Optional<Text> text(Node node, String name) {
@@ -364,7 +449,11 @@ public final class ScreenReader {
           throw error(node, name + "-fallback needs " + name + " (a translation key)");
         return Optional.empty();
       }
-      return Optional.of(new Text(key, fallback));
+      return Optional.of(new Text(translationKey(key), fallback));
+    }
+
+    private String translationKey(String key) {
+      return key.replace("{machineId}", machineId);
     }
 
     private List<String> words(Node node, String name) {
@@ -439,20 +528,20 @@ public final class ScreenReader {
     }
 
     private ScreenException error(Node node, String message) {
-      return new ScreenException(source, node.line(), message);
+      return new ScreenException(node.source(), node.line(), message);
     }
   }
 
   // Checks a schema cannot express
 
   private static void check(Screen screen) {
-    var source = screen.source();
     var ids = new HashMap<String, Element>();
     var slots = new HashMap<Integer, Element>();
     var contexts = new HashMap<String, Set<String>>();
     Element inventory = null;
     for (var element : screen.elements()) {
       var c = element.common();
+      var source = screen.source(c);
       if (c.id().isPresent() && ids.putIfAbsent(c.id().get(), element) != null)
         throw new ScreenException(source, c.line(), "Duplicate id: " + c.id().get());
       if (element instanceof Slot slot && slots.putIfAbsent(slot.index(), element) != null)
@@ -465,7 +554,9 @@ public final class ScreenReader {
         for (var view : context.views())
           if (view.common().id().isEmpty())
             throw new ScreenException(
-                source, view.common().line(), "<view> needs an id for buttons to name");
+                screen.source(view.common()),
+                view.common().line(),
+                "<view> needs an id for buttons to name");
           else views.add(view.common().id().get());
         contexts.put(c.id().get(), views);
       }
@@ -477,11 +568,12 @@ public final class ScreenReader {
     }
     if (inventory != null && !screen.playerInventory())
       throw new ScreenException(
-          source,
+          screen.source(inventory.common()),
           inventory.common().line(),
           "<player-inventory> cannot be placed on a screen with inventory=\"none\"");
     for (var element : screen.elements()) {
       var c = element.common();
+      var source = screen.source(c);
       int line = c.line();
       if (c.hoverShows().isPresent() && !ids.containsKey(c.hoverShows().get()))
         throw new ScreenException(
@@ -490,6 +582,16 @@ public final class ScreenReader {
         throw new ScreenException(source, line, "max needs value");
       switch (element) {
         case Button button -> {
+          if (button.processorControl()
+              && (c.value().isPresent()
+                  || c.max().isPresent()
+                  || c.clicks().any()
+                  || !c.jeiRecipes().isEmpty()))
+            throw new ScreenException(
+                source,
+                line,
+                "<processor-button> owns its state and click action; value, max, click handlers and"
+                    + " jei-recipes are not allowed");
           if (button.flat() && button.text().isPresent())
             throw new ScreenException(
                 source, line, "A flat button uses an icon, not a text caption");
@@ -497,7 +599,8 @@ public final class ScreenReader {
             throw new ScreenException(source, line, "<button> needs a tooltip saying what it does");
           if (button.text().isEmpty() && button.icon().isEmpty() && button.icons().isEmpty())
             throw new ScreenException(source, line, "<button> needs text or icon");
-          if (!button.icons().isEmpty() || !button.valueLabels().isEmpty())
+          if (!button.processorControl()
+              && (!button.icons().isEmpty() || !button.valueLabels().isEmpty()))
             requireValue(source, element, "a stateful <button>", false);
           if (!button.icons().isEmpty()
               && !button.valueLabels().isEmpty()
@@ -545,8 +648,8 @@ public final class ScreenReader {
       }
     }
     checkSpacers(screen);
-    for (var element : screen.body()) checkFill(screen.source(), element, true);
-    for (var element : screen.tabs()) checkFill(screen.source(), element, true);
+    for (var element : screen.body()) checkFill(screen, element, true);
+    for (var element : screen.tabs()) checkFill(screen, element, true);
   }
 
   /**
@@ -556,7 +659,8 @@ public final class ScreenReader {
    *
    * @param verticalParent whether the element's parent stacks its children vertically
    */
-  private static void checkFill(String source, Element element, boolean verticalParent) {
+  private static void checkFill(Screen screen, Element element, boolean verticalParent) {
+    var source = screen.source(element.common());
     Orientation orientation = null;
     if (element instanceof Gauge gauge && gauge.fills()) orientation = gauge.orientation();
     if (element instanceof EnergyGauge gauge && gauge.fills()) orientation = gauge.orientation();
@@ -574,7 +678,7 @@ public final class ScreenReader {
           "A horizontal length=\"fill\" matches the width of its column, so it belongs directly"
               + " in a <vbox>, <group>, <view> or <side-tab>");
     boolean vertical = !(element instanceof Box box && !box.vertical());
-    for (var child : element.children()) checkFill(source, child, vertical);
+    for (var child : element.children()) checkFill(screen, child, vertical);
   }
 
   private static void requireValue(String source, Element element, String what, boolean needsMax) {
@@ -592,13 +696,13 @@ public final class ScreenReader {
         for (var child : element.children())
           if (child instanceof Spacer)
             throw new ScreenException(
-                screen.source(),
+                screen.source(child.common()),
                 child.common().line(),
                 "<spacer> belongs directly inside a vbox or hbox");
     for (var element : screen.body())
       if (element instanceof Spacer)
         throw new ScreenException(
-            screen.source(),
+            screen.source(element.common()),
             element.common().line(),
             "<spacer> belongs directly inside a vbox or hbox");
   }
