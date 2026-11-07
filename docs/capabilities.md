@@ -68,6 +68,38 @@ What a plan does to the calls on the storage:
 Plans are not saved by the storages. A feature saves its own cycle and puts the plans back when it
 loads, so load the storages first.
 
+## Stable storage identities and recovery
+
+Assign durable identities with `items.slotId(index, "input")` and `fluids.tankId(index, "coolant")`.
+IDs must be nonblank and unique within that storage. They are save identities, separate from
+numeric recipe/menu indexes and from resource-group or XML element IDs.
+
+Saves include `SlotId` / `TankId` where configured. Loading matches identified entries by ID;
+an unknown ID never falls back to its former numeric position. Saves without identities load by
+index, or through the explicit `deserializeNBT(registries, tag, IntUnaryOperator)` migration
+overload. Select that mapping by your machine's save version; it applies only to legacy entries.
+Keep slot/tank IDs stable when reordering a definition.
+
+Storage keeps its configured shape. Removed slots/tanks, overflow after reducing limits/capacity,
+incompatible colliding contents and undecodable entries are retained in raw `Recovery` data,
+instead of being discarded. Subsequent loads retry recovery entries, allowing returning IDs or
+registrations to make them usable again. Loading restores existing contents without treating them
+as a new insertion through recipe filters.
+
+`recoveryContents()` returns a snapshot. `recover(Consumer<CompoundTag>)` hands displaced contents
+to a durable consumer-owned sink, clearing them only after the callback succeeds. `StorageRecovery`
+uses the same `resources` envelope as automation escrow, with `mmdlib:items` / `mmdlib:fluids`
+payloads. MMDLib does not register a recovery item; the companion demonstrates a Recovery Capsule.
+Use `MachineInventoryLifecycle` or [BasePoweredMachine](block-entities.md#basepoweredmachine) to
+coordinate storage, reservations, saving, clearing and this handoff. Explicit `clear()` destroys
+both ordinary and recovery contents; stop/reset owning features first.
+
+External admission rules can be combined with `restrict(predicate, indexes...)`. Recipe-linked
+input rules are installed by [MachineResources](inventory-automation.md#shared-machine-resource-definitions).
+They supplement existing filters and reservations. Machine products use `insertResult` for items
+or `fillResult` for fluids to bypass external admission rules; fluid products still obey the
+tank's structural filter and capacity. Restoring a saved item explicitly can use `restoreStack`.
+
 ## Example
 
 ```java
@@ -126,10 +158,11 @@ is checked every tick, keep a NeoForge `BlockCapabilityCache` instead.
   the block entity returns them from `ScreenHost.screenSides()`. A view still takes one mode per
   face for the whole storage, so the mod's `sides` function decides how groups combine. When
   groups differ by `Role`, take insert from the input group and extract from the output group.
-  A per-slot mode in the views, which would remove that step, is not implemented.
+  Per-slot/per-tank mode functions are also supported. Prefer `MachineResources` and
+  `automation.mode(type, index, side)` for independent groups sharing a storage.
 
-- `ItemStorage` keeps the slot count given to its constructor. Loading a save that has more
-  slots drops the stacks that no longer fit. `FluidStorage` loads its tanks by index.
+- `ItemStorage` keeps its configured slot count and `FluidStorage` its configured tanks. Entries
+  that cannot be restored remain in recovery; see stable identities above.
 - `EnergyBuffer` stores up to `Long.MAX_VALUE`. Screens show the full `long` through a getter
   such as `#getEnergy` (`stored()`), while other mods see at most `Integer.MAX_VALUE`.
 - The runtime smoke test covers roles, filters, limits, faces, out-of-range indices, transfer,
