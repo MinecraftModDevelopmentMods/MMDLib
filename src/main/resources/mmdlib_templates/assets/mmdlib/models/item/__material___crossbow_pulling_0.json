@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/crossbow",
+  "textures": {
+    "layer0": "mmdlib:item/__material___crossbow_pulling_0"
+  }
+}

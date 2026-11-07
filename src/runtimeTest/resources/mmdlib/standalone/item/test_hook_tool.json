@@ -1,0 +1,14 @@
+{
+  "module": "mmdlib:ingot",
+  "template": {
+    "max_stack_size": 1,
+    "delayed_use": { "duration": 20, "animation": "bow" },
+    "events": {
+      "item-use-start": "mmdlib:test_use_start",
+      "item-use-stop": "mmdlib:test_use_stop",
+      "item-use-finish": "mmdlib:test_use_finish",
+      "item-hit": "mmdlib:test_hit",
+      "item-break-block": "mmdlib:test_break_block"
+    }
+  }
+}

@@ -192,9 +192,42 @@ public final class RuntimeBehaviorTest {
                 redstone.apply("{\"output\":\"state\",\"comparator\":\"output\"}"))
             .orElseThrow()
             .stateOutput());
+    var gate =
+        RedstoneBlock.Settings.of(
+                redstone.apply(
+                    "{\"input\":true,\"output\":\"state\",\"facing\":true,\"faces\":[\"front\"],"
+                        + "\"inputs\":[\"left\",\"right\",\"back\"],\"delay\":2}"))
+            .orElseThrow();
+    require(
+        gate.facing()
+            && gate.delay() == 2
+            && gate.perFace()
+            && gate.faces().equals(java.util.Set.of(net.minecraft.core.Direction.NORTH))
+            && gate.inputs()
+                .equals(
+                    java.util.Set.of(
+                        net.minecraft.core.Direction.WEST,
+                        net.minecraft.core.Direction.EAST,
+                        net.minecraft.core.Direction.SOUTH)));
+    require(!lamp.perFace() && !lamp.facing() && lamp.delay() == 0);
+    // Facing east, the front is east and the left is north; up and down never turn.
+    var north = net.minecraft.core.Direction.NORTH;
+    var east = net.minecraft.core.Direction.EAST;
+    var west = net.minecraft.core.Direction.WEST;
+    require(RedstoneBlock.rotate(north, east) == east);
+    require(RedstoneBlock.rotate(west, east) == north);
+    require(RedstoneBlock.rotate(net.minecraft.core.Direction.UP, east) == net.minecraft.core.Direction.UP);
+    for (var face : net.minecraft.core.Direction.values())
+      for (var facing : net.minecraft.core.Direction.Plane.HORIZONTAL)
+        require(RedstoneBlock.unrotate(RedstoneBlock.rotate(face, facing), facing) == face);
     for (String bad :
         java.util.List.of(
             "{\"output\":16}",
+            "{\"faces\":[\"front\"]}",
+            "{\"inputs\":[\"north\"]}",
+            "{\"input\":true,\"inputs\":[]}",
+            "{\"input\":true,\"delay\":-1}",
+            "{\"delay\":2}",
             "{\"output\":\"loud\"}",
             "{\"faces\":[\"sideways\"]}",
             "{\"comparator\":\"input\"}",

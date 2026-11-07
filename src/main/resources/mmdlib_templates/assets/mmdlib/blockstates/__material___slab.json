@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "mmdlib:block/__material___slab"
+    },
+    "type=double": {
+      "model": "mmdlib:block/__material___slab_double"
+    },
+    "type=top": {
+      "model": "mmdlib:block/__material___slab_top"
+    }
+  }
+}

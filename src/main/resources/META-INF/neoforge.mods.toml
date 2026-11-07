@@ -80,3 +80,11 @@ ${mod_description}
     versionRange="${jei_version_range}"
     ordering="NONE"
     side="CLIENT"
+
+# Optional: CraftTweaker scripting integration when installed; never required.
+[[dependencies.${mod_id}]]
+    modId="crafttweaker"
+    type="optional"
+    versionRange="${crafttweaker_version_range}"
+    ordering="NONE"
+    side="BOTH"

@@ -1,0 +1,22 @@
+#loader mmdlib
+import mods.mmdlib.MaterialBuilder;
+import mods.mmdlib.BlockBuilder;
+import mods.mmdlib.ItemBuilder;
+var alloy = new MaterialBuilder("client_alloy");
+alloy.displayName = "Amber Alloy";
+alloy.color = 0xFFFFA020;
+alloy.strength = 8;
+alloy.hardness = 6;
+alloy.hasFluid = false;
+alloy.removeItems("all").addItems("ingot", "pickaxe");
+alloy.removeBlocks("all").addBlocks("block");
+alloy.build();
+var gate = new BlockBuilder("client_gate");
+gate.displayName = "Directional Test Gate";
+gate.directional = true;
+gate.redstoneOutput = true;
+gate.build();
+var widget = new ItemBuilder("client_widget");
+widget.displayName = "Named Test Widget";
+widget.stacksTo(16);
+widget.build();

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/bookshelf",
+  "textures": {
+    "end": "mmdlib:block/__material___block"
+  }
+}

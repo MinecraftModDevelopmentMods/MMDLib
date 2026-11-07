@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cobblestone_wall_inventory",
+  "textures": {
+    "wall": "mmdlib:block/__material___block"
+  }
+}

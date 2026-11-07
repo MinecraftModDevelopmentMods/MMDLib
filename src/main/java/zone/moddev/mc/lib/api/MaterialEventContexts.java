@@ -125,6 +125,20 @@ public final class MaterialEventContexts {
     public boolean powered() {
       return power > 0;
     }
+
+    /** The power arriving at the block's {@code face} (a world direction) right now. */
+    public int signal(net.minecraft.core.Direction face) {
+      return signal(level, position, face);
+    }
+
+    /**
+     * The power arriving at {@code face} (a world direction) of the block at {@code pos}, as {@link
+     * net.minecraft.world.level.Level#getSignal} reports it from that neighbor.
+     */
+    public static int signal(
+        net.minecraft.world.level.Level level, BlockPos pos, net.minecraft.core.Direction face) {
+      return level.getSignal(pos.relative(face), face);
+    }
   }
 
   /** Context of {@code block-right-click}: who clicked, and the click itself. */
@@ -254,6 +268,229 @@ public final class MaterialEventContexts {
     public AirTarget {
       Objects.requireNonNull(hand);
       Objects.requireNonNull(stack);
+    }
+  }
+
+  /** Which part of using an item (eating, drawing a bow, ...) an {@link ItemUse} reports. */
+  public enum UsePhase {
+    /** The entity starts using the item; the duration can be changed, or the use cancelled. */
+    START,
+    /** Each tick of use; the use can be cancelled. */
+    TICK,
+    /** The entity let go before the use finished, like releasing a bow. */
+    STOP,
+    /** The use finished; the stack left in hand can be replaced. */
+    FINISH
+  }
+
+  /**
+   * Context of the {@code item-use-*} events: an entity using a bound item over time. Both sides.
+   * Results set here are written back to the NeoForge event after the handler runs.
+   */
+  public static final class ItemUse {
+    private final UsePhase phase;
+    private final LivingEntity entity;
+    private final ItemStack stack;
+    private int duration;
+    private ItemStack result;
+    private boolean cancelled;
+
+    /**
+     * @param duration ticks of use: the total at {@link UsePhase#START}, the ticks left otherwise
+     * @param result the stack left in hand at {@link UsePhase#FINISH}, else the used stack
+     */
+    public ItemUse(
+        UsePhase phase, LivingEntity entity, ItemStack stack, int duration, ItemStack result) {
+      this.phase = Objects.requireNonNull(phase);
+      this.entity = Objects.requireNonNull(entity);
+      this.stack = Objects.requireNonNull(stack);
+      this.duration = duration;
+      this.result = Objects.requireNonNull(result);
+    }
+
+    public UsePhase phase() {
+      return phase;
+    }
+
+    public LivingEntity entity() {
+      return entity;
+    }
+
+    public ItemStack stack() {
+      return stack;
+    }
+
+    /** The total ticks of use at start; the ticks left in later phases. */
+    public int duration() {
+      return duration;
+    }
+
+    /**
+     * Changes the total ticks of use.
+     *
+     * @throws IllegalStateException outside {@link UsePhase#START}
+     */
+    public void setDuration(int duration) {
+      if (phase != UsePhase.START)
+        throw new IllegalStateException("The use duration can only change when use starts");
+      this.duration = Math.max(0, duration);
+    }
+
+    /** The stack left in hand when use finishes. */
+    public ItemStack result() {
+      return result;
+    }
+
+    /**
+     * Replaces the stack left in hand.
+     *
+     * @throws IllegalStateException outside {@link UsePhase#FINISH}
+     */
+    public void setResult(ItemStack result) {
+      if (phase != UsePhase.FINISH)
+        throw new IllegalStateException("The result can only be set when use finishes");
+      this.result = Objects.requireNonNull(result);
+    }
+
+    /**
+     * Stops the use.
+     *
+     * @throws IllegalStateException outside {@link UsePhase#START} and {@link UsePhase#TICK}
+     */
+    public void cancel() {
+      if (phase != UsePhase.START && phase != UsePhase.TICK)
+        throw new IllegalStateException("Only starting or ongoing use can be cancelled");
+      cancelled = true;
+    }
+
+    public boolean cancelled() {
+      return cancelled;
+    }
+  }
+
+  /**
+   * Context of {@code item-hit}: a melee hit with a bound item has dealt {@code damage} to {@code
+   * target}, after armor and other reductions. Server side.
+   */
+  public record ItemHit(LivingEntity attacker, LivingEntity target, ItemStack stack, float damage) {
+    /** Requires every component. */
+    public ItemHit {
+      Objects.requireNonNull(attacker);
+      Objects.requireNonNull(target);
+      Objects.requireNonNull(stack);
+    }
+  }
+
+  /**
+   * Context of {@code item-break-block} (keyed by the held item) and {@code block-broken} (keyed by
+   * the block): a player is about to break a block. Server side, before the block is removed.
+   */
+  public static final class BlockBreak {
+    // Blocks broken through mine() are not reported to item-break-block again, so a 3x3 tool does
+    // not set off 3x3 breaks of its own.
+    private static final ThreadLocal<Boolean> MINING = ThreadLocal.withInitial(() -> false);
+
+    private final Player player;
+    private final ServerLevel level;
+    private final BlockPos position;
+    private final BlockState state;
+    private final ItemStack tool;
+    private final Direction face;
+    private boolean cancelled;
+
+    /** @param face the face being mined, or null when it is not known */
+    public BlockBreak(
+        Player player,
+        ServerLevel level,
+        BlockPos position,
+        BlockState state,
+        ItemStack tool,
+        Direction face) {
+      this.player = Objects.requireNonNull(player);
+      this.level = Objects.requireNonNull(level);
+      this.position = Objects.requireNonNull(position).immutable();
+      this.state = Objects.requireNonNull(state);
+      this.tool = Objects.requireNonNull(tool);
+      this.face = face;
+    }
+
+    public Player player() {
+      return player;
+    }
+
+    public ServerLevel level() {
+      return level;
+    }
+
+    public BlockPos position() {
+      return position;
+    }
+
+    public BlockState state() {
+      return state;
+    }
+
+    /** The item in the player's main hand; empty for bare hands. */
+    public ItemStack tool() {
+      return tool;
+    }
+
+    /** The face being mined, or null when it is not known. */
+    public Direction face() {
+      return face;
+    }
+
+    /** Keeps the block: it is not broken and drops nothing. */
+    public void cancel() {
+      cancelled = true;
+    }
+
+    public boolean cancelled() {
+      return cancelled;
+    }
+
+    /**
+     * Breaks another block as this player would, with their tool: drops, experience, tool wear and
+     * other mods' break checks all apply. The block must be one the player could break; air,
+     * unbreakable blocks, blocks the tool cannot harvest, and this break's own block (which is
+     * already being broken) are skipped.
+     *
+     * @return whether the block was broken
+     */
+    public boolean mine(BlockPos other) {
+      if (!(player instanceof net.minecraft.server.level.ServerPlayer server)
+          || other.equals(position)) return false;
+      var target = level.getBlockState(other);
+      if (target.isAir()
+          || target.getDestroySpeed(level, other) < 0
+          || (target.requiresCorrectToolForDrops() && !tool.isCorrectToolForDrops(target)))
+        return false;
+      boolean outer = MINING.get();
+      MINING.set(true);
+      try {
+        return server.gameMode.destroyBlock(other);
+      } finally {
+        MINING.set(outer);
+      }
+    }
+
+    /** Whether a break now comes from {@link #mine}, inside another break's handler. */
+    public static boolean mining() {
+      return MINING.get();
+    }
+  }
+
+  /**
+   * Context of {@code block-placed}, {@code block-stepped-on} and {@code block-random-tick}: something
+   * happened to a bound block. {@code entity} is the placer or the entity stepping on it, and null
+   * for random ticks.
+   */
+  public record BlockAction(Level level, BlockPos position, BlockState state, Entity entity) {
+    /** Requires the level, position and state. */
+    public BlockAction {
+      Objects.requireNonNull(level);
+      position = Objects.requireNonNull(position).immutable();
+      Objects.requireNonNull(state);
     }
   }
 }

@@ -300,15 +300,32 @@ public final class StandardItems {
   public static class Basic extends Item implements MaterialBacked {
     private final MMDMaterial material;
     private final java.util.function.Supplier<net.minecraft.world.item.crafting.Ingredient> repair;
+    private final int useDuration;
+    private final net.minecraft.world.item.UseAnim useAnimation;
 
     /** A plain item; {@code repair} gives the ingredient that repairs it. */
     public Basic(
         MMDMaterial material,
         java.util.function.Supplier<net.minecraft.world.item.crafting.Ingredient> repair,
         Item.Properties properties) {
+      this(material, repair, 0, net.minecraft.world.item.UseAnim.NONE, properties);
+    }
+
+    /**
+     * A plain item that is used over {@code useDuration} ticks with {@code useAnimation} when
+     * right-clicked, firing the {@code item-use-*} events; 0 for an item that is not used.
+     */
+    public Basic(
+        MMDMaterial material,
+        java.util.function.Supplier<net.minecraft.world.item.crafting.Ingredient> repair,
+        int useDuration,
+        net.minecraft.world.item.UseAnim useAnimation,
+        Item.Properties properties) {
       super(properties);
       this.material = Objects.requireNonNull(material);
       this.repair = Objects.requireNonNull(repair);
+      this.useDuration = useDuration;
+      this.useAnimation = Objects.requireNonNull(useAnimation);
     }
 
     @Override
@@ -319,6 +336,32 @@ public final class StandardItems {
     @Override
     public boolean isValidRepairItem(ItemStack damaged, ItemStack ingredient) {
       return repair.get().test(ingredient) || super.isValidRepairItem(damaged, ingredient);
+    }
+
+    // A use time of 0 keeps vanilla behavior, including food components.
+    @Override
+    public int getUseDuration(ItemStack stack, net.minecraft.world.entity.LivingEntity entity) {
+      return useDuration > 0 ? useDuration : super.getUseDuration(stack, entity);
+    }
+
+    @Override
+    public net.minecraft.world.item.UseAnim getUseAnimation(ItemStack stack) {
+      return useDuration > 0 ? useAnimation : super.getUseAnimation(stack);
+    }
+
+    @Override
+    public net.minecraft.world.InteractionResultHolder<ItemStack> use(
+        net.minecraft.world.level.Level level,
+        net.minecraft.world.entity.player.Player player,
+        net.minecraft.world.InteractionHand hand) {
+      // Food keeps vanilla's use, which refuses to start eating when the player cannot eat.
+      if (useDuration <= 0
+          || player
+              .getItemInHand(hand)
+              .has(net.minecraft.core.component.DataComponents.FOOD))
+        return super.use(level, player, hand);
+      player.startUsingItem(hand);
+      return net.minecraft.world.InteractionResultHolder.consume(player.getItemInHand(hand));
     }
   }
 
@@ -502,7 +545,22 @@ public final class StandardItems {
 
     /** A plain item that burns for {@code burn} ticks. */
     public Fuel(MMDMaterial material, int burn, Item.Properties properties) {
-      super(material, () -> net.minecraft.world.item.crafting.Ingredient.EMPTY, properties);
+      this(material, burn, 0, net.minecraft.world.item.UseAnim.NONE, properties);
+    }
+
+    /** A plain item that burns for {@code burn} ticks and is used as {@link Basic} describes. */
+    public Fuel(
+        MMDMaterial material,
+        int burn,
+        int useDuration,
+        net.minecraft.world.item.UseAnim useAnimation,
+        Item.Properties properties) {
+      super(
+          material,
+          () -> net.minecraft.world.item.crafting.Ingredient.EMPTY,
+          useDuration,
+          useAnimation,
+          properties);
       this.burn = burn;
     }
 

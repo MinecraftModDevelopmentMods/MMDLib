@@ -154,6 +154,8 @@ public final class StandardImplementations {
                   "fuel_" + c.part().templateId().getPath(),
                   stats.integer("item_burn_time", 0, 0),
                   0),
+              c.definition().useTime(),
+              c.definition().useAnim(),
               c.properties());
         });
     item(
@@ -178,7 +180,11 @@ public final class StandardImplementations {
                         settings ->
                             new RedstoneBlock(
                                 c.properties(), settings, c.events(), c.definition(), c.material()))
-                    .orElseGet(() -> new Block(c.properties())),
+                    .orElseGet(
+                        () ->
+                            new StandardBlocks.Plain(
+                                c.properties(),
+                                new BlockHooks(c.events(), c.definition(), c.material()))),
             RedstoneBlock.Settings::of,
             null));
     block(

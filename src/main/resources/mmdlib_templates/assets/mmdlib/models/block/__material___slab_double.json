@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cut_copper",
+  "textures": {
+    "all": "mmdlib:block/__material___block"
+  }
+}

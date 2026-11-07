@@ -1,0 +1,28 @@
+// xvfb-run -a ./gradlew --offline runClient -I scripts/crafttweaker-smoke.init.gradle
+// Repeat with -PwithoutCraftTweaker. Uses isolated worlds and scripts under build/.
+// Run normal check afterward to restore main output and verify release packaging.
+allprojects {
+    afterEvaluate {
+        if (extensions.findByName('neoForge') != null) {
+            sourceSets.main.java.srcDir(file('src/clientSmoke/java'))
+            def absent = providers.gradleProperty('withoutCraftTweaker').isPresent()
+            def smokeDir = file(absent ? 'build/ct-smoke-absent' : 'build/ct-smoke-present')
+            neoForge.runs.client.gameDirectory = smokeDir
+            neoForge.runs.client.programArguments.set(['--width', '1280', '--height', '960'])
+            neoForge.runs.client.systemProperty 'mmdlib.craftTweakerSmoke', 'true'
+            tasks.named('runClient') {
+                doFirst {
+                    smokeDir.mkdirs()
+                    new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\npauseOnLostFocus:false\nrenderDistance:5\n'
+                    project.delete(new File(smokeDir, 'scripts'))
+                    if (!absent) project.copy { from 'src/clientSmoke/scripts'; into new File(smokeDir, 'scripts') }
+                }
+                doLast {
+                    def report = new File(smokeDir, 'logs/latest.log')
+                    if (!report.exists() || !report.text.contains('MMDLIB_CT_CLIENT_PASS') || report.text.contains('MMDLIB_CT_CLIENT_FAIL'))
+                        throw new GradleException('CraftTweaker client smoke failed; inspect ' + report)
+                }
+            }
+        }
+    }
+}

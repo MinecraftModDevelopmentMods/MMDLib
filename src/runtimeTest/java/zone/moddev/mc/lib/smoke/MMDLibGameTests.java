@@ -59,6 +59,21 @@ public final class MMDLibGameTests {
   private MMDLibGameTests() {}
 
   @GameTest(template = EMPTY)
+  public static void scriptGeneratedLoot(GameTestHelper helper) {
+    ScriptHookSmoke.generatedLoot(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptReferencesAndCopies(GameTestHelper helper) {
+    ScriptHookSmoke.referencesAndCopies(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptToolSettings(GameTestHelper helper) {
+    ScriptHookSmoke.toolSettings(helper);
+  }
+
+  @GameTest(template = EMPTY)
   public static void equippedContainer(GameTestHelper helper) {
     ContainerDrawerSmoke.check(
         helper.getLevel(),
@@ -111,6 +126,46 @@ public final class MMDLibGameTests {
   public static void toolsAndArmor(GameTestHelper helper) throws Exception {
     ContentSmoke.toolsAndArmor();
     helper.succeed();
+  }
+
+  @GameTest(template = EMPTY)
+  public static void itemUseHooks(GameTestHelper helper) {
+    HookSmoke.use(helper);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void itemHitHook(GameTestHelper helper) {
+    HookSmoke.hit(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void miningHook(GameTestHelper helper) {
+    HookSmoke.mining(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void blockHooks(GameTestHelper helper) {
+    HookSmoke.block(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptItemHooks(GameTestHelper helper) {
+    ScriptHookSmoke.item(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptHammer(GameTestHelper helper) {
+    ScriptHookSmoke.hammer(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void scriptBlockHooks(GameTestHelper helper) {
+    ScriptHookSmoke.block(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void redstoneGate(GameTestHelper helper) {
+    RedstoneSmoke.gate(helper, CENTER);
   }
 
   @GameTest(template = EMPTY)

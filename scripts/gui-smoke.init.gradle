@@ -4,6 +4,8 @@
 allprojects {
     afterEvaluate {
         if (extensions.findByName('neoForge') != null) {
+            // The GUI smoke doesn't test CraftTweaker (the game tests do); keep it out of this client.
+            configurations.named('craftTweakerDevRuntime') { dependencies.clear() }
             sourceSets.main.java.srcDir(file('src/runtimeTest/java'))
             sourceSets.main.resources.srcDir(file('src/runtimeTest/resources'))
             def smokeDir = file(providers.gradleProperty('withoutJei').isPresent() ? 'build/gui-smoke-without-jei' : 'build/gui-smoke')

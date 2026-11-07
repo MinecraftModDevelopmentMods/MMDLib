@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/iron_bars_side_alt",
+  "textures": {
+    "particle": "mmdlib:block/__material___bars",
+    "bars": "mmdlib:block/__material___bars",
+    "edge": "mmdlib:block/__material___bars"
+  },
+  "render_type": "minecraft:cutout"
+}

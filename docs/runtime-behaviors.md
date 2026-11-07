@@ -212,10 +212,26 @@ Only the block-state properties its settings use are added.
 | `strong` | `true` / `false` | Also power through the touching block, like a lever's attached face (default weak) |
 | `faces` | list of `down`, `up`, `north`, `south`, `west`, `east` | Faces that emit (default all) |
 | `comparator` | `0`-`15`, `"input"`, or `"output"` | Comparator reading; `"input"` needs `input`, `"output"` needs `output: "state"` |
+| `facing` | `true` / `false` | The block faces the way its placer looked (a `facing` property, turned by structure rotation); `faces` and `inputs` may then name `front`, `back`, `left`, `right` |
+| `inputs` | list of faces | Faces read (default all); needs `input`. Reading only some fires `redstone-changed` whenever one of them changes, even if the strongest stays the same, and once when placed (or on the first update after loading); changes on other faces are ignored |
+| `delay` | `0`-`100` | Ticks between a neighbour change and reading the inputs (default 0, at once); needs `input` |
+
+A single-block gate reads its sides and powers its front:
+
+```json
+"redstone": { "input": true, "output": "state", "facing": true,
+              "inputs": ["left", "right"], "faces": ["front"], "delay": 2 }
+```
+
+Its `redstone-changed` handler reads each side with `RedstoneChange.signal(face)`,
+turning relative faces into world ones with `RedstoneBlock.toWorld(state, face)`
+(`north` is the front, `west` the left), and sets its output with `setOutput`.
 
 Unknown keys and out-of-range values fail when the definition loads. A block that
-both reads and emits can latch itself on through neighbouring dust; that is a wiring
-choice for the author. Comparator readings from a block-entity getter wait for
+both reads and emits on the same face can latch itself on through neighbouring dust;
+keep `inputs` and `faces` apart to avoid it. With `delay` 0, handlers run inside the
+neighbour update that caused them, so blocks wired into a loop recurse; a delay of 1
+or more advances such loops one step per scheduled tick, like repeaters. Comparator readings from a block-entity getter wait for
 block-entity runtime support.
 
 The native blocks still need the appropriate tags, blockstate models, loot tables,

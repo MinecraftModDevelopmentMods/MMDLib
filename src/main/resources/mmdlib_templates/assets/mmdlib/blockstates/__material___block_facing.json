@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mmdlib:block/__material___block_facing"
+    },
+    "facing=east": {
+      "model": "mmdlib:block/__material___block_facing",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mmdlib:block/__material___block_facing",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mmdlib:block/__material___block_facing",
+      "y": 270
+    }
+  }
+}

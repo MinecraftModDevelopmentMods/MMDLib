@@ -100,12 +100,19 @@ registered when that mod queues them on its own `RuntimeContentRegistrar`
 2. After that phase completes, discover/decode item, block, and fluid modules in
    parallel across mod files. Collect material paths without decoding them.
 3. Merge results in a defined order and install the modules, rejecting duplicate IDs.
-4. Decode materials against the completed module/callback catalog, bind their IDs,
-   build content plans, and check generated registry IDs for collisions. Every
-   planned item and block definition's `events` bindings, custom types included,
-   are validated against the callback catalog; an unknown event or callback fails
-   loading with the material file and definition named.
-5. Retain results, index their item and block definitions (and owning materials)
+4. Call each definition source registered with
+   `MaterialExtensions.registerDefinitionSource`, such as MMDLib's
+   [CraftTweaker scripts](crafttweaker.md), once. A source may register item and
+   block modules and callbacks; everything decoded below can use them. It returns
+   materials, standalone blocks and standalone items.
+5. Decode materials against the completed module/callback catalog, bind their IDs,
+   build content plans, and check generated registry IDs for collisions. Then plan
+   the sources' materials with the same checks. Every planned item and block
+   definition's `events` bindings, custom types included, are validated against the
+   callback catalog; an unknown event or callback fails loading with the material
+   file (or source) and definition named. A source material, standalone block or item
+   whose ID matches a file's, or another source's, fails loading.
+6. Retain results, index their item and block definitions (and owning materials)
    for the runtime event bridge, queue MMDLib's playable example content, and
    publish definitions during NeoForge registry events.
 

@@ -1,0 +1,52 @@
+{
+  "variants": {
+    "power=0": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate"
+    },
+    "power=1": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=10": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=11": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=12": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=13": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=14": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=15": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=2": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=3": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=4": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=5": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=6": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=7": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=8": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    },
+    "power=9": {
+      "model": "mmdlib:block/__material___weighted_pressure_plate_down"
+    }
+  }
+}

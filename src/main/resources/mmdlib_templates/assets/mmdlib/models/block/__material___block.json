@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/iron_block",
+  "textures": {
+    "all": "mmdlib:block/__material___block"
+  }
+}

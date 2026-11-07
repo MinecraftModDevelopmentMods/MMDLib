@@ -1,7 +1,11 @@
+// The companion's machine runs don't test CraftTweaker (the library's game tests do), so they run
+// without it and its ZenCode libraries.
+def mainRuntimeWithoutCraftTweaker = sourceSets.main.runtimeClasspath.minus(configurations.craftTweakerDevRuntime)
+
 sourceSets {
     companion {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+        runtimeClasspath += sourceSets.main.output + mainRuntimeWithoutCraftTweaker
     }
     companionTest {
         compileClasspath += sourceSets.companion.output + sourceSets.companion.compileClasspath
@@ -10,7 +14,7 @@ sourceSets {
     // Mock GameTest connections cannot negotiate Curios/Jade login-sync payloads.
     // Reuse the compiled fixtures, but keep optional mods for real client/server smoke runs.
     companionServerTest {
-        runtimeClasspath += sourceSets.companionTest.output + sourceSets.companion.output + sourceSets.main.output + sourceSets.main.runtimeClasspath
+        runtimeClasspath += sourceSets.companionTest.output + sourceSets.companion.output + sourceSets.main.output + mainRuntimeWithoutCraftTweaker
     }
 }
 

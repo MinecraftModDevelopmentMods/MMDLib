@@ -38,12 +38,26 @@ neoForge {
 neoForge.runs.matching { it.name != 'gameTestServer' }.configureEach {
     loadedMods = [neoForge.mods.named(mod_id).get()]
 }
+// Game tests also run the CraftTweaker integration: CraftTweaker is on this run's classpath only,
+// and the scripts in src/runtimeTest/scripts are copied into the fresh game directory.
+dependencies {
+    runtimeTestRuntimeOnly "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
+}
 def gameTestTask = tasks.named('runGameTestServer')
-gameTestTask.configure { it.doFirst { project.delete(gameTestDir); gameTestDir.get().asFile.mkdirs() } }
+gameTestTask.configure {
+    def scripts = file('src/runtimeTest/scripts')
+    inputs.dir(scripts)
+    it.doFirst {
+        project.delete(gameTestDir)
+        gameTestDir.get().asFile.mkdirs()
+        project.copy { from scripts; into gameTestDir.get().dir('scripts') }
+    }
+}
 tasks.named('check') { dependsOn gameTestTask }
 
 // Unit tests in src/test: JUnit 5, no running game. `./gradlew test` (part of `check`).
 dependencies {
+    testRuntimeOnly "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

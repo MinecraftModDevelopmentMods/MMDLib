@@ -1,5 +1,50 @@
 # Roadmap
 
+## TODO: food and creative tabs
+
+These are follow-up work for Java, JSON, and CraftTweaker users, outside the
+current [CraftTweaker parity implementation](crafttweaker-parity-plan.md).
+The policy choices below remain open; these items are not implemented or verified.
+
+- [ ] **Food definitions and consumption.** Complete the stored food reference's
+  path from definition to actual item behavior using one public API shared by
+  Java, JSON, and CraftTweaker. Add reusable food definitions and consider inline
+  definitions, retaining existing ID-based declarations. Cover nutrition,
+  saturation, always-edible behavior, eating duration, consumption remainder, and
+  effects/probabilities. Resolve and validate registry references through the
+  normal loading path; apply resolved food properties during item construction.
+  Add CraftTweaker builders/accessors over that public functionality, and exercise
+  the same API with MMDLib-owned example content.
+  **Decisions needed:** saturation value versus multiplier; conflicting timed-use
+  settings; supported item factories; definition ownership/loading; distinguish
+  crafting remainders from consumption remainders.
+  **Verification:** equivalent Java/JSON/script definitions; invalid/missing
+  reference errors; server consumption tests for hunger, saturation, fullness,
+  quantity, duration, remainders, effects, and use callbacks; real-client eating
+  and animation checks. Storing a food ID alone does not satisfy this item.
+  **Source:** [ItemBuilder.setFood](../src/main/java/zone/moddev/mc/lib/common/builders/ItemBuilder.java),
+  [ItemTemplate](../src/main/java/zone/moddev/mc/lib/common/codecs/ItemTemplate.java),
+  [RuntimeProperties.item](../src/main/java/zone/moddev/mc/lib/common/runtime/RuntimeProperties.java),
+  [StandardItems.Basic](../src/main/java/zone/moddev/mc/lib/common/runtime/StandardItems.java).
+
+- [ ] **Creative-tab membership and custom tabs.** First apply existing `group`
+  and `creative_menu_stacks` declarations to the requested vanilla or modded tabs.
+  Then add public custom-tab definitions/registration for Java and JSON, with
+  CraftTweaker wrappers using that same path: ID, translated title, icon stack,
+  contents, relative placement, and basic presentation. Use the public mechanism
+  for MMDLib's own materials tab.
+  **Decisions needed:** duplicate entries, ordering, visibility, missing tab IDs,
+  default materials-tab membership for explicitly assigned items, and modern
+  component-aware stack definitions versus the existing legacy `tag` field.
+  Keep tab registration at startup; do not imply `/reload` can add registry IDs.
+  **Verification:** equivalent Java/JSON/script tab definitions and membership;
+  invalid-reference and duplicate/order tests; real-client inspection of vanilla,
+  modded, and custom tabs, titles/icons, component-bearing stacks, and default-tab
+  behavior; launch without CraftTweaker to verify optional integration.
+  **Source:** [ItemTemplate](../src/main/java/zone/moddev/mc/lib/common/codecs/ItemTemplate.java),
+  [MMDItem.CreativeStack](../src/main/java/zone/moddev/mc/lib/common/types/MMDItem.java),
+  [RuntimeContentRegistrar materials tab](../src/main/java/zone/moddev/mc/lib/common/runtime/RuntimeContentRegistrar.java).
+
 ## Remaining MMDLib 1.0 parity
 
 - **GUI gameplay and visual review.** The GUI runtime is implemented; validate addon-specific
