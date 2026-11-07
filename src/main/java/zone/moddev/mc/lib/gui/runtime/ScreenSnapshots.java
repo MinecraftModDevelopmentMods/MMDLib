@@ -32,11 +32,10 @@ final class ScreenSnapshots {
     for (int i = 0; i < elements.size(); i++) {
       var e = elements.get(i);
       if (e instanceof zone.moddev.mc.lib.gui.model.Element.Button button
-          && button.processorKey().isPresent()
+          && button.processorControl()
           && entity instanceof ScreenHost host
           && host.screenFeatures() != null) {
-        var processor =
-            host.screenFeatures().processor(button.processorKey().orElseThrow()).orElse(null);
+        var processor = host.screenFeatures().processor(button.processorKey()).orElse(null);
         if (processor != null)
           result.put(
               i * 2,

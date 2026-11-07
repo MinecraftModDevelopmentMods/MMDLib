@@ -39,6 +39,95 @@ public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
   @GameTest(template = "empty")
+  public static void keylessProcessorButtonSamplesAndTogglesTheFirstProcessor(GameTestHelper helper)
+      throws ReflectiveOperationException {
+    var machine = place(helper, CompanionMod.TRANSMUTER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    var menu = new MachineMenu(43, player.getInventory(), machine);
+    player.containerMenu = menu;
+    var button =
+        (zone.moddev.mc.lib.gui.model.Element.Button)
+            menu.bound.screen().find("toggle_0").orElseThrow();
+    require(
+        button.processorControl() && button.processorKey().isEmpty(),
+        "Inherited control uses no machine-specific key");
+    // Mock players have no negotiated GUI channel; inspect the actual server snapshot directly.
+    var read =
+        Class.forName("zone.moddev.mc.lib.gui.runtime.ScreenSnapshots")
+            .getDeclaredMethod(
+                "read", BlockEntity.class, zone.moddev.mc.lib.gui.load.ScreenBinder.Bound.class);
+    read.setAccessible(true);
+    var snapshot = (java.util.Map<?, ?>) read.invoke(null, machine, menu.bound);
+    require(
+        zone.moddev.mc.lib.gui.model.ProcessorButtonState.IDLE
+            .wireValue()
+            .equals(snapshot.get(menu.index(button) * 2)),
+        "Keyless control samples the first processor");
+    var action = new ScreenNetwork.Action(43, menu.index(button), 0, 0, 0, 0);
+    menu.action(player, action);
+    snapshot = (java.util.Map<?, ?>) read.invoke(null, machine, menu.bound);
+    require(
+        machine.lanes.getFirst().paused()
+            && zone.moddev.mc.lib.gui.model.ProcessorButtonState.PAUSED
+                .wireValue()
+                .equals(snapshot.get(menu.index(button) * 2)),
+        "Keyless click pauses and synchronizes the same processor");
+    menu.action(player, action);
+    require(!machine.lanes.getFirst().paused(), "Keyless click resumes the same processor");
+    var dual = place(helper, CompanionMod.DUAL_CRUSHER);
+    var features =
+        new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> {})
+            .add(
+                new zone.moddev.mc.lib.machine.feature.MachineFeature<Integer>() {
+                  public String key() {
+                    return "auxiliary";
+                  }
+
+                  public com.mojang.serialization.Codec<Integer> codec() {
+                    return com.mojang.serialization.Codec.INT;
+                  }
+
+                  public Integer state() {
+                    return 0;
+                  }
+
+                  public void restore(Integer value) {}
+                })
+            .add(dual.lanes.get(1))
+            .add(dual.lanes.getFirst());
+    require(
+        features.processor(java.util.Optional.empty()).orElseThrow() == dual.lanes.get(1),
+        "Default is the first registered recipe processor, skipping other features");
+    require(
+        features.processor(java.util.Optional.of("lane_0")).orElseThrow() == dual.lanes.getFirst()
+            && features.processor(java.util.Optional.of("missing")).isEmpty(),
+        "Explicit keys never fall back to the first processor");
+    var emptyHost =
+        new zone.moddev.mc.lib.gui.runtime.ScreenHost() {
+          public zone.moddev.mc.lib.api.capabilities.ItemStorage screenItems() {
+            return machine.items;
+          }
+
+          public zone.moddev.mc.lib.machine.feature.FeatureHost screenFeatures() {
+            return new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> {});
+          }
+        };
+    try {
+      zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(
+          menu.bound.screen(), emptyHost);
+      throw new AssertionError("A keyless processor control requires a processor");
+    } catch (zone.moddev.mc.lib.gui.load.ScreenException expected) {
+      require(
+          expected.getMessage().contains("at least one recipe processor"),
+          "Missing default processor has a clear error");
+    }
+    player.containerMenu = player.inventoryMenu;
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void processorActivityTracksWorkAndHostGates(GameTestHelper helper) {
     var machine = place(helper, CompanionMod.CRUSHER);
     var processor = machine.lanes.getFirst();

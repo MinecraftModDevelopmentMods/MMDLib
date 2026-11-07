@@ -277,7 +277,8 @@ public sealed interface Element {
    * @param icons optional icons indexed by its boolean or whole-number value
    * @param valueLabels optional translated names for those states in the tooltip
    * @param flat whether to use a compact icon with a flat border and background
-   * @param processorKey a generic processor control's stable feature key, if present
+   * @param processorKey a generic processor control's stable feature key; absent selects the first
+   * @param processorControl whether this button controls a processor
    */
   record Button(
       Common common,
@@ -287,11 +288,33 @@ public sealed interface Element {
       List<ResourceLocation> icons,
       List<Text> valueLabels,
       boolean flat,
-      Optional<String> processorKey)
+      Optional<String> processorKey,
+      boolean processorControl)
       implements Element {
     public Button {
       icons = List.copyOf(icons);
       valueLabels = List.copyOf(valueLabels);
+    }
+
+    public Button(
+        Common common,
+        Optional<Text> text,
+        Optional<ResourceLocation> icon,
+        Optional<ViewRef> shows,
+        List<ResourceLocation> icons,
+        List<Text> valueLabels,
+        boolean flat,
+        Optional<String> processorKey) {
+      this(
+          common,
+          text,
+          icon,
+          shows,
+          icons,
+          valueLabels,
+          flat,
+          processorKey,
+          processorKey.isPresent());
     }
 
     public Button(

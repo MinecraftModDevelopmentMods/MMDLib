@@ -49,6 +49,21 @@ class ScreenInheritanceTest {
     return ScreenLoader.load(List.of(source("test")));
   }
 
+  @Test
+  void baseProcessorControlNeedsNoMachineSpecificKeyOrFill() throws Exception {
+    base(
+        "<label text=\"test.machine\"/><inventory-controls><processor-button"
+            + " id=\"toggle\"/></inventory-controls>");
+    child("");
+    var screen =
+        ScreenLoader.read(List.of(source("test")), new zone.moddev.mc.lib.gui.WidgetTypes())
+            .get(ResourceLocation.parse("test:child"));
+    var button = (Element.Button) screen.find("toggle").orElseThrow();
+    assertTrue(button.processorControl());
+    assertTrue(button.processorKey().isEmpty());
+    assertTrue(screen.source(button.common()).endsWith("base.xml"));
+  }
+
   private String failure(String message) {
     var error = assertThrows(ScreenException.class, this::load);
     assertTrue(error.getMessage().contains(message), error.getMessage());

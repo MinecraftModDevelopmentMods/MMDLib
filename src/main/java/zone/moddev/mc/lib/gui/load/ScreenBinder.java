@@ -73,7 +73,7 @@ public final class ScreenBinder {
       var c = element.common();
       var elementSource = screen.source(c);
       if (element instanceof Button button
-          && button.processorKey().isPresent()
+          && button.processorControl()
           && !zone.moddev.mc.lib.gui.runtime.ScreenHost.class.isAssignableFrom(owner))
         throw new ScreenException(
             elementSource, c.line(), "<processor-button> requires a ScreenHost");

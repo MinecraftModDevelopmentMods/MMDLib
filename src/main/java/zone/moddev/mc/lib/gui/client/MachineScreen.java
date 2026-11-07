@@ -762,7 +762,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                               .orElseGet(() -> ScreenText.number(menu.value(e, false), shift))
                           : ScreenText.number(menu.value(e, false), shift))
                   .replace("{max}", ScreenText.number(menu.value(e, true), shift));
-          if (e instanceof Element.Button button && button.processorKey().isPresent()) {
+          if (e instanceof Element.Button button && button.processorControl()) {
             var action =
                 ProcessorButtonState.fromWire(menu.value(button, false))
                     .map(
@@ -894,7 +894,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                 button == 1 ? ItemStack.EMPTY : menu.getCarried().copyWithCount(1)));
         return true;
       }
-      if (e instanceof Element.Button b && b.processorKey().isPresent()) {
+      if (e instanceof Element.Button b && b.processorControl()) {
         if (button == 0) send(e, 0, button, 0);
         return true;
       }

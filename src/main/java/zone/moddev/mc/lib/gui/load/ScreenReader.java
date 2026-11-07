@@ -328,7 +328,8 @@ public final class ScreenReader {
                     .toList(),
                 java.util.Set.of("true", "1")
                     .contains(node.attributes().getOrDefault("flat", "false")),
-                Optional.ofNullable(node.attributes().get("processor-key")));
+                Optional.ofNullable(node.attributes().get("processor-key")),
+                node.name().equals("processor-button"));
         case "checkbox" -> new Checkbox(c, text(node, "text").orElseThrow());
         case "radio-group" ->
             new RadioGroup(
@@ -393,7 +394,8 @@ public final class ScreenReader {
     }
 
     private Node processorDefaults(Node node) {
-      if (node.attributes().get("processor-key").isBlank())
+      if (node.attributes().containsKey("processor-key")
+          && node.attributes().get("processor-key").isBlank())
         throw error(node, "processor-key must not be blank");
       var attributes = new LinkedHashMap<>(node.attributes());
       attributes.put(
@@ -574,7 +576,7 @@ public final class ScreenReader {
         throw new ScreenException(source, line, "max needs value");
       switch (element) {
         case Button button -> {
-          if (button.processorKey().isPresent()
+          if (button.processorControl()
               && (c.value().isPresent()
                   || c.max().isPresent()
                   || c.clicks().any()
@@ -591,7 +593,7 @@ public final class ScreenReader {
             throw new ScreenException(source, line, "<button> needs a tooltip saying what it does");
           if (button.text().isEmpty() && button.icon().isEmpty() && button.icons().isEmpty())
             throw new ScreenException(source, line, "<button> needs text or icon");
-          if (button.processorKey().isEmpty()
+          if (!button.processorControl()
               && (!button.icons().isEmpty() || !button.valueLabels().isEmpty()))
             requireValue(source, element, "a stateful <button>", false);
           if (!button.icons().isEmpty()

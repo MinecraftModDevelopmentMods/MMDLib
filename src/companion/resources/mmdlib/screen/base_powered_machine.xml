@@ -9,7 +9,7 @@
   </vbox>
   <placeholder name="inventory_controls">
     <inventory-controls id="inventory_controls">
-      <processor-button id="toggle_0" processor-key="lane_0"/>
+      <processor-button id="toggle_0"/>
     </inventory-controls>
   </placeholder>
   <placeholder name="info"/>

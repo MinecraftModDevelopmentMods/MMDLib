@@ -450,7 +450,7 @@ public class MachineMenu extends AbstractContainerMenu {
   }
 
   public boolean processorConflict(Element.Button button) {
-    return button.processorKey().isPresent()
+    return button.processorControl()
         && redstone != null
         && zone.moddev.mc.lib.gui.model.ProcessorButtonState.fromWire(value(button, false))
             .map(
@@ -723,18 +723,18 @@ public class MachineMenu extends AbstractContainerMenu {
       return;
     }
     if (action.kind() != 0) return;
-    if (element instanceof Element.Button button && button.processorKey().isPresent()) {
+    if (element instanceof Element.Button button && button.processorControl()) {
       if (action.button() != 0
           || action.option() != 0
           || host == null
           || host.screenFeatures() == null) return;
       var features = host.screenFeatures();
-      var key = button.processorKey().orElseThrow();
+      var key = button.processorKey();
       features
           .processor(key)
           .ifPresent(
               processor -> {
-                if (features.setProcessorPaused(key, !processor.paused())) {
+                if (features.setProcessorPaused(processor.key(), !processor.paused())) {
                   ScreenSnapshots.invalidate(blockEntity);
                   broadcastChanges();
                 }

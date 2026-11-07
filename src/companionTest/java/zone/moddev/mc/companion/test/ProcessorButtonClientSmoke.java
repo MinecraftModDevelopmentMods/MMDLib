@@ -31,7 +31,7 @@ final class ProcessorButtonClientSmoke {
     if (step > 0 && !ready) return false;
     var menu = screen.getMenu();
     var button = (Element.Button) menu.bound.screen().find("toggle_0").orElseThrow();
-    if (button.processorKey().isEmpty())
+    if (!button.processorControl())
       throw new AssertionError("Companion must use the generic control");
     var wireState = menu.value(button, false);
     var state = ProcessorButtonState.fromWire(wireState).orElse(null);

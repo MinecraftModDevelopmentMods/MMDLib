@@ -17,6 +17,17 @@ import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
 import zone.moddev.mc.lib.gui.model.Screen;
 
 class ProcessorButtonTest {
+  @Test
+  void omittedKeyStillCreatesAProcessorControl() throws Exception {
+    var button = (Element.Button) read("<processor-button/>").body().getFirst();
+    assertTrue(button.processorControl());
+    assertTrue(button.processorKey().isEmpty());
+    var ordinary =
+        (Element.Button)
+            read("<button icon=\"mmdlib:icon_info\" tooltip=\"test.tip\"/>").body().getFirst();
+    assertFalse(ordinary.processorControl());
+  }
+
   private Screen read(String body) throws Exception {
     var xml =
         "<screen xmlns=\"https://moddev.zone/mmdlib/screen\" title=\"test.screen\""
@@ -75,11 +86,13 @@ class ProcessorButtonTest {
   }
 
   @Test
-  void rejectsMissingKeysAndConflictingActionsOrBindings() {
+  void rejectsBlankKeysAndConflictingActionsOrBindings() {
     for (var attributes :
         new String[] {
-          "",
+          "processor-key=\"\"",
           "processor-key=\"   \"",
+          "value=\"#getEnergy\"",
+          "on-click=\"test:toggle\"",
           "processor-key=\"x\" value=\"#getEnergy\"",
           "processor-key=\"x\" max=\"#getEnergy\"",
           "processor-key=\"x\" on-click=\"test:toggle\"",
@@ -91,7 +104,7 @@ class ProcessorButtonTest {
 
   @Test
   void requiresHostSupportAtBinding() throws Exception {
-    var screen = read("<processor-button processor-key=\"lane_0\"/>");
+    var screen = read("<processor-button/>");
     var error =
         assertThrows(
             ScreenException.class, () -> ScreenBinder.bind(screen, getClass().getClassLoader()));

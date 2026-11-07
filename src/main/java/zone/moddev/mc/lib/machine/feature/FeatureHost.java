@@ -71,6 +71,16 @@ public final class FeatureHost implements IRedstoneOutput {
         : java.util.Optional.empty();
   }
 
+  /** An omitted key selects the first recipe processor in feature registration order. */
+  public java.util.Optional<RecipeProcessor> processor(java.util.Optional<String> key) {
+    return key.isPresent()
+        ? processor(key.orElseThrow())
+        : features.values().stream()
+            .filter(RecipeProcessor.class::isInstance)
+            .map(RecipeProcessor.class::cast)
+            .findFirst();
+  }
+
   /** Persists and synchronizes manual changes even while the host's processing tick is held. */
   public boolean setProcessorPaused(String key, boolean paused) {
     var processor = processor(key).orElse(null);

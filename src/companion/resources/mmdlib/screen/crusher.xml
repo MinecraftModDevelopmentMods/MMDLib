@@ -47,7 +47,7 @@
     </context>
   </vbox>
   <inventory-controls id="inventory_controls">
-    <processor-button id="toggle_0" processor-key="lane_0"/>
+    <processor-button id="toggle_0"/>
   </inventory-controls>
   <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.crusher" value="#getWarnings"/>
 </screen>

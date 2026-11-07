@@ -19,13 +19,14 @@ public final class ScreenInventoryValidation {
   public static void validate(Screen screen, ScreenHost host) {
     int count = host.screenItems().getSlots();
     for (var element : screen.elements()) {
-      if (element instanceof Element.Button button && button.processorKey().isPresent()) {
-        var key = button.processorKey().orElseThrow();
+      if (element instanceof Element.Button button && button.processorControl()) {
+        var key = button.processorKey();
         if (host.screenFeatures() == null || host.screenFeatures().processor(key).isEmpty())
           throw new zone.moddev.mc.lib.gui.load.ScreenException(
               screen.source(button.common()),
               button.common().line(),
-              "Unknown processor-key: " + key);
+              key.map(value -> "Unknown processor-key: " + value)
+                  .orElse("<processor-button> requires at least one recipe processor"));
       }
       if (element instanceof Element.Slot slot
           && slot.kind() != Element.SlotKind.GHOST

@@ -399,7 +399,7 @@
     <xs:complexType>
       <xs:complexContent>
         <xs:extension base="leaf">
-          <xs:attribute name="processor-key" type="xs:string" use="required"/>
+          <xs:attribute name="processor-key" type="xs:string"/>
           <xs:attribute name="text" type="translationKey"/>
           <xs:attribute name="text-fallback" type="xs:string"/>
           <xs:attribute name="flat" type="xs:boolean" default="true"/>
