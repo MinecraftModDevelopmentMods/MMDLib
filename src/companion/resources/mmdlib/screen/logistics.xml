@@ -1,15 +1,16 @@
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.logistics" title-fallback="Logistics Workbench"
-        block-entity="zone.moddev.mc.companion.ProcessorEntity">
-  <vbox padding="7"><hbox spacing="4" align="center">
-    <gauge id="tank" length="3s" value="#getTankFluid" max="#getTankCapacity"/>
-    <gauge id="tank_1" length="3s" value="#getTank1" max="#getTankCapacity"/>
-    <slot id="input" index="0"/>
-    <slot id="output" index="1"/>
-    <gauge id="tank_2" length="3s" value="#getTank2" max="#getTankCapacity"/>
-    <gauge id="tank_3" length="3s" value="#getTank3" max="#getTankCapacity"/>
-    <spacer/>
-    <energy-gauge id="energy" length="3s"/>
-  </hbox></vbox>
-  <popout id="info" kind="info" edge="left" text="{machineId}.info"
-          text-fallback="Seven independent inventories. Install a module, enable a side, and configure its optional filter."/>
+        block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib:base_powered_machine">
+  <fill name="body">
+    <vbox padding="7"><hbox spacing="4" align="center">
+      <gauge id="tank" length="3s" value="#getTankFluid" max="#getTankCapacity"/>
+      <gauge id="tank_1" length="3s" value="#getTank1" max="#getTankCapacity"/>
+      <slot id="input" index="0"/>
+      <slot id="output" index="1"/>
+      <gauge id="tank_2" length="3s" value="#getTank2" max="#getTankCapacity"/>
+      <gauge id="tank_3" length="3s" value="#getTank3" max="#getTankCapacity"/>
+      <spacer/>
+      <energy-gauge id="energy" length="3s"/>
+    </hbox></vbox>
+  </fill>
+  <fill name="inventory_controls"/>
 </screen>

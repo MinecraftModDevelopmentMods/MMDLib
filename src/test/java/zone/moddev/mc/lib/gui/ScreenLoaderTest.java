@@ -362,8 +362,17 @@ public final class ScreenLoaderTest {
   @Test
   void allCompanionScreensPlaceBatteryAtRightMargin() throws Exception {
     var screens = companionScreens();
-    for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power")) {
+    for (var name :
+        java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power", "logistics")) {
       var screen = screens.get(ResourceLocation.parse("mmdlib_companion:" + name));
+      var info = (Element.Popout) screen.find("info").orElseThrow();
+      require(screen.source(info.common()).endsWith("base_powered_machine.xml"));
+      require(info.text().orElseThrow().key().equals("mmdlib_companion:" + name + ".info"));
+      if (name.equals("creative_power") || name.equals("logistics"))
+        require(
+            screen.elements().stream()
+                .noneMatch(e -> e instanceof Element.Button button && button.processorControl()));
+      require(screen.playerInventory() != name.equals("creative_power"));
       var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
       var energy = screen.find("energy").orElseThrow();
       require(energy instanceof Element.EnergyGauge);

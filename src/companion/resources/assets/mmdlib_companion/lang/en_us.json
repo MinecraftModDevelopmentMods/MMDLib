@@ -63,6 +63,7 @@
   "item.mmdlib_companion.tag_filter": "Tag Filter",
   "item.mmdlib_companion.fluid_filter": "Fluid Filter",
   "block.mmdlib_companion.logistics": "Logistics Workbench",
+  "mmdlib_companion:logistics.info": "Seven independent inventories. Install a module, enable a side, and configure its optional filter.",
   "screen.mmdlib_companion.group.input": "Item input",
   "screen.mmdlib_companion.group.output": "Item output",
   "screen.mmdlib_companion.group.energy": "Energy",
