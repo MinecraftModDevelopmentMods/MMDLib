@@ -38,6 +38,103 @@ import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
 public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
+  @GameTest(template = "empty")
+  public static void heldProcessorsSaveSyncAndResumeWithoutReleasingReservations(
+      GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var lane = machine.lanes.getFirst();
+    machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 4));
+    machine.energy.setStored(100000);
+    machine.serverTick();
+    machine.serverTick();
+    int progress = lane.progress();
+    var plan = machine.items.plan(0);
+    var changes = new java.util.concurrent.atomic.AtomicInteger();
+    var syncs = new java.util.concurrent.atomic.AtomicInteger();
+    var host =
+        new zone.moddev.mc.lib.machine.feature.FeatureHost(
+                changes::incrementAndGet, syncs::incrementAndGet)
+            .add(lane);
+    host.tick(helper.getLevel(), false);
+    require(lane.status() == Status.HELD && !lane.paused(), "Host hold differs from manual pause");
+    require(changes.get() == 1 && syncs.get() == 1, "Entering hold saves and synchronizes status");
+    require(
+        lane.state().status().orElseThrow() == Status.HELD
+            && lane.clientState().status().orElseThrow() == Status.HELD,
+        "Save and client snapshots show hold");
+    require(
+        lane.progress() == progress && machine.items.plan(0).equals(plan),
+        "Hold retains progress and reservations");
+    for (int i = 0; i < 20; i++) host.tick(helper.getLevel(), false);
+    require(
+        changes.get() == 1 && syncs.get() == 1, "Unchanged hold does not repeatedly save or sync");
+    host.tick(helper.getLevel(), true);
+    require(
+        lane.status() == Status.RUNNING && lane.progress() == progress + 1 && syncs.get() == 2,
+        "Releasing hold resumes and synchronizes the running state");
+    machine.setReservePercent(100);
+    machine.serverTick();
+    require(lane.status() == Status.HELD, "Energy reserve gate reports held");
+    machine.setReservePercent(0);
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.READ);
+    machine.redstone.range(0, 0, 15);
+    machine.redstone.outside(0, false);
+    machine.serverTick();
+    require(lane.status() == Status.HELD, "Redstone gate reports held");
+    lane.interrupt();
+    host.tick(helper.getLevel(), false);
+    require(
+        lane.status() == Status.PAUSED && machine.items.plan(0).take() == 0,
+        "Manual pause remains visible and releases reservations even during a host hold");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void statisticsProvidersDescribeCurrentRecipes(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.DUAL_CRUSHER);
+    var first = machine.lanes.getFirst();
+    require(
+        machine.screenStats().size() == 1 + machine.lanes.size(),
+        "Only energy and processors contribute statistics");
+    require(
+        first.statistics().rows().get(1).value()
+            instanceof zone.moddev.mc.lib.api.stats.Statistics.Text,
+        "Idle processor maximum explicitly has no recipe");
+    machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 16));
+    machine.energy.setStored(100000);
+    machine.serverTick();
+    long peak = 0;
+    for (var lane : machine.lanes) {
+      var section = lane.statistics();
+      require(
+          section.title().equals(lane.displayName()) && section.rows().size() == 2,
+          "Processor provides a named section with exactly two rows");
+      var maximum = (zone.moddev.mc.lib.api.stats.Statistics.Rate) section.rows().get(1).value();
+      require(
+          maximum.amount().equals(java.math.BigInteger.ONE) && maximum.ticks() == 100,
+          "Maximum throughput uses the current copper recipe's duration");
+      require(
+          section.maximumUses().size() == 1
+              && section.maximumUses().getFirst().resource() == machine.energy,
+          "Demand is attributed to the backing buffer, not the group's wrapper");
+      peak += section.maximumUses().getFirst().perTick().longValueExact();
+    }
+    require(peak == 40, "Two current processors contribute 20 RF/t each");
+    machine.serverTick();
+    require(
+        machine.energy.used().equals(java.math.BigInteger.valueOf(40))
+            && machine.energy.extracted().signum() == 0,
+        "Recipe consumption is used RF, not output RF");
+    first.reset();
+    require(first.statistics().maximumUses().isEmpty(), "Reset removes stale recipe demand");
+    require(
+        first.statistics().rows().get(1).value()
+            instanceof zone.moddev.mc.lib.api.stats.Statistics.Text,
+        "Reset removes stale maximum cycle rate");
+    helper.getLevel().setBlock(machine.getBlockPos(), Blocks.AIR.defaultBlockState(), 3);
+    helper.succeed();
+  }
+
   private static <T> ScreenNetwork.Widget widgetPacket(
       MachineMenu menu,
       String element,
@@ -498,6 +595,137 @@ public final class CompanionGameTests {
   }
 
   @GameTest(template = "empty")
+  public static void placementFacingKeepsNeighboursAndPortsOnTheSameSide(GameTestHelper helper) {
+    var level = helper.getLevel();
+    var pos = helper.absolutePos(CENTER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var leftFace = zone.moddev.mc.lib.api.capabilities.RelativeFace.LEFT;
+    var disabled = zone.moddev.mc.lib.api.capabilities.IoMode.DISABLED;
+    var output = zone.moddev.mc.lib.api.capabilities.IoMode.OUTPUT;
+    for (var look : Direction.Plane.HORIZONTAL) {
+      player.setYRot(look.toYRot());
+      var left = look.getCounterClockWise();
+      for (var machine : CompanionMod.MACHINES) {
+        var context =
+            new net.minecraft.world.item.context.BlockPlaceContext(
+                player,
+                InteractionHand.MAIN_HAND,
+                new ItemStack(machine.block.get()),
+                new BlockHitResult(Vec3.atCenterOf(pos.below()), Direction.UP, pos.below(), false));
+        var state = machine.block.get().getStateForPlacement(context);
+        require(
+            state.getValue(zone.moddev.mc.companion.DemoBlock.FACING) == look.getOpposite(),
+            "Placed machine faces its player: " + look);
+        level.setBlock(pos, state, 3);
+        var entity = (zone.moddev.mc.companion.DemoEntity) level.getBlockEntity(pos);
+        var host = (zone.moddev.mc.lib.gui.runtime.ScreenHost) entity;
+        for (var group : host.screenAutomation().groups())
+          require(
+              group.world(leftFace) == left, "Every resource group uses placement-relative left");
+        if (entity instanceof ProcessorEntity processor)
+          require(
+              processor.redstone.world(leftFace.ordinal()) == left,
+              "Redstone and resource drawers agree on left");
+        var rotated = state.rotate(net.minecraft.world.level.block.Rotation.CLOCKWISE_90);
+        require(
+            rotated.getValue(zone.moddev.mc.companion.DemoBlock.FACING)
+                == look.getOpposite().getClockWise(),
+            "Rotation changes the stored facing");
+        var mirrored = state.mirror(net.minecraft.world.level.block.Mirror.LEFT_RIGHT);
+        var expectedMirror = look.getAxis() == Direction.Axis.Z ? look : look.getOpposite();
+        require(
+            mirrored.getValue(zone.moddev.mc.companion.DemoBlock.FACING) == expectedMirror,
+            "Mirror changes the stored facing");
+        if (entity instanceof CreativePowerEntity power) {
+          level.setBlock(
+              pos.relative(left),
+              CompanionMod.CRUSHER.block.get().getStateForPlacement(context),
+              3);
+          var receiver = (ProcessorEntity) level.getBlockEntity(pos.relative(left));
+          require(
+              receiver.facing() == power.facing(),
+              "Both placements from one position share a facing");
+          var group = power.automation.group(0);
+          for (var face : zone.moddev.mc.lib.api.capabilities.RelativeFace.values())
+            group.sides().set(face, disabled);
+          group.sides().set(leftFace, output);
+          var port = level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, left);
+          require(port.canExtract(), "Left capability is enabled");
+          require(
+              !level
+                  .getCapability(Capabilities.EnergyStorage.BLOCK, pos, left.getOpposite())
+                  .canExtract(),
+              "Right capability stays disabled");
+          power.serverTick();
+          require(receiver.energy.stored() == 1000, "Left output powers the left neighbour");
+          group.sides().set(leftFace, disabled);
+          power.serverTick();
+          require(
+              receiver.energy.stored() == 1000 && !port.canExtract(),
+              "Disabling left blocks the neighbour and the cached capability");
+          group.sides().set(leftFace, output);
+          level.setBlock(pos, rotated, 3);
+          require(
+              level.getBlockEntity(pos) == power && group.world(leftFace) == left.getClockWise(),
+              "Existing group follows block rotation");
+          require(!port.canExtract(), "Cached world-side capability follows rotation");
+          level.setBlock(pos.relative(left), Blocks.AIR.defaultBlockState(), 3);
+        }
+        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+      }
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void creativePowerSidesGatePushAndPullAndPersist(GameTestHelper helper) {
+    var level = helper.getLevel();
+    var pos = helper.absolutePos(CENTER);
+    level.setBlock(pos, CompanionMod.CREATIVE_POWER.block.get().defaultBlockState(), 3);
+    level.setBlock(pos.above(), CompanionMod.CRUSHER.block.get().defaultBlockState(), 3);
+    var power = (CreativePowerEntity) level.getBlockEntity(pos);
+    var receiver = (ProcessorEntity) level.getBlockEntity(pos.above());
+    var port = level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, Direction.UP);
+    var group = power.automation.group(0);
+    var top = zone.moddev.mc.lib.api.capabilities.RelativeFace.TOP;
+    var output = zone.moddev.mc.lib.api.capabilities.IoMode.OUTPUT;
+    var disabled = zone.moddev.mc.lib.api.capabilities.IoMode.DISABLED;
+    require(power.screenAutomation() == power.automation, "Generator exposes side drawer");
+    var menu = new MachineMenu(46, helper.makeMockServerPlayerInLevel().getInventory(), power);
+    require(
+        menu.slots.isEmpty()
+            && menu.automation.slotCount() == 0
+            && !menu.automation.addonsEnabled(),
+        "Generator side configuration exposes no inventory slots");
+    require(menu.bound.screen().find("info").isPresent(), "Generator has an Info panel");
+    require(group.cycle(top, output, false), "Output side can be disabled");
+    require(
+        !port.canExtract() && port.extractEnergy(1000, false) == 0,
+        "Existing capability follows disabled side");
+    power.serverTick();
+    require(receiver.energy.stored() == 0, "Disabled side does not push energy");
+    var saved = power.saveWithFullMetadata(level.registryAccess());
+    var copy =
+        (CreativePowerEntity)
+            BlockEntity.loadStatic(pos, power.getBlockState(), saved, level.registryAccess());
+    require(copy.automation.group(0).sides().get(top) == disabled, "Disabled side survives reload");
+    saved.remove("automation");
+    var legacy =
+        (CreativePowerEntity)
+            BlockEntity.loadStatic(pos, power.getBlockState(), saved, level.registryAccess());
+    require(
+        legacy.automation.group(0).sides().get(top) == output,
+        "Older generators retain all outputs");
+    require(group.cycle(top, disabled, false), "Disabled side cycles back to output");
+    require(port.canExtract() && !port.canReceive(), "Generator remains output-only");
+    power.serverTick();
+    require(receiver.energy.stored() == 1000, "Re-enabled side pushes energy");
+    level.setBlock(pos.above(), Blocks.AIR.defaultBlockState(), 3);
+    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void creativePowerFeedsAllFaces(GameTestHelper helper) {
     var level = helper.getLevel();
     var pos = helper.absolutePos(CENTER);
@@ -674,6 +902,9 @@ public final class CompanionGameTests {
     machine.energy.setStored(0);
     machine.serverTick();
     require(machine.lanes.getFirst().status() == Status.STALLED, "Stalls without power");
+    require(
+        machine.lanes.getFirst().completedCycles().signum() == 0,
+        "Progress and energy stalls are not completed cycles");
 
     var player = helper.makeMockServerPlayerInLevel();
     player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
@@ -686,12 +917,18 @@ public final class CompanionGameTests {
         machine.getPaused() && !machine.items.hasPlan(0),
         "The screen frees reservations without power");
     require(automation.extractItem(0, 1, true).getCount() == 1, "Paused iron can be taken");
+    require(
+        machine.lanes.getFirst().completedCycles().signum() == 0,
+        "Interrupts do not count as completed cycles");
     menu.clickMenuButton(player, action);
     machine.energy.setStored(100_000);
     tick(machine, 150);
     require(
         machine.items.getStackInSlot(0).is(Items.GOLD_INGOT),
         "Resume finishes from saved progress");
+    require(
+        machine.lanes.getFirst().completedCycles().equals(java.math.BigInteger.ONE),
+        "A resumed recipe counts exactly once when it finishes");
     require(automation.extractItem(0, 1, false).is(Items.GOLD_INGOT), "Gold can be extracted");
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     helper.succeed();
@@ -722,6 +959,11 @@ public final class CompanionGameTests {
     tick(copy, 70);
     require(copy.items.getStackInSlot(0).isEmpty(), "Both lanes consumed their own ore");
     require(copy.items.getStackInSlot(1).getCount() == 4, "Both lanes produced exactly two copper");
+    require(
+        copy.screenStats().containsAll(copy.lanes)
+            && copy.lanes.stream()
+                .allMatch(lane -> lane.completedCycles().equals(java.math.BigInteger.ONE)),
+        "Each processor exposes its own completed-cycle count");
     machine.clearContent();
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     helper.succeed();

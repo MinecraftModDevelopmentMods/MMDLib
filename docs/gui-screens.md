@@ -149,6 +149,82 @@ under `build/gui-smoke*`, checks server actions and full codecs, opens the actua
 synced values, and saves `screenshots/gui-smoke.png`. Run a normal build afterward to remove
 injected smoke classes from main output; release verification rejects any leaked smoke classes.
 
+For a side-configuration-only drawer, return `false` from
+`ScreenHost.screenAutomationAddons()`. The menu registers no addon/filter slots and the drawer
+ends below its face controls. Combine this with `inventory="none"` to omit player inventory and
+equipment drawers, as in the companion Creative Power Source.
+
+## Statistics drawer
+
+The left Statistics drawer shows sections supplied by machine parts through
+`api.stats.StatsProvider`. The menu knows only this interface, not concrete storage or processor
+classes. Return the contributing parts from `ScreenHost.screenStats()` in display order:
+
+```java
+@Override public List<StatsProvider> screenStats() {
+    var parts = new ArrayList<StatsProvider>();
+    parts.add(energy);
+    parts.add(items);
+    parts.add(fluids);
+    parts.addAll(lanes);
+    return List.copyOf(parts);
+}
+```
+
+Return stable part instances so the menu can retain counter history. Repeated references to the
+same part are sampled once. Providers run only on the server, once per 20 game ticks per menu;
+unit changes are local and use the existing synchronized values channel.
+
+A provider returns `Statistics`: a translated section title, rows with stable IDs, and optional
+energy-demand contributions. Rows describe a cumulative `Counter`, an exact `Rate`, explanatory
+`Text`, or aggregate `MaximumUse`. Each row declares its label, unit, precision and whether it
+scales with time. `row.whenUsed(resource)` hides it unless a provider reports positive
+energy demand for that exact resource. The drawer handles sampling and formatting. Custom parts can implement this
+interface without changing the menu or renderer. Each section supports at most 64 distinct rows;
+the combined wire snapshot is limited to 4,096 lines. Empty sections add no title or rows.
+
+Built-in providers:
+
+- `ItemStorage` and `FluidStorage` return `Statistics.EMPTY`.
+- `RecipeProcessor` uses its display name as header, followed by measured cycles and maximum
+  cycles per selected timescale. The maximum is based on the active recipe's duration; without an
+  active plan it says No recipe. A manually interrupted processor has released its plan, so its
+  maximum is unavailable until it reserves again. The just-finished plan bridges the one-tick
+  gap before the next recipe. Idle/reset processors do not retain stale recipe limits.
+- `EnergyBuffer` shows RF in and its maximum transfer rate when it supports input, and RF out and
+  its maximum transfer rate when it supports output. RF used and RF max use appear only while
+  registered processors report positive current-recipe demand for this buffer. Generators and idle
+  buffers omit both usage rows. Beneath the Energy header there are two rows per supported
+  direction, plus two usage rows when applicable.
+
+Input/output maxima follow the selected timescale: the configured transfer limit is the RF/t
+baseline, multiplied by 20 for RF/s or 1,200 for RF/min. This uses one transfer per tick;
+the capability still enforces the limit per call, so multiple callers can exceed this nominal
+rate. Measured input/output continues to report actual total flow.
+Maximum processing use is the sum of each registered processor's active recipe peak
+`ceil(recipe energy / recipe duration)` for this buffer, scaled to the selected time unit.
+`EnergyGroup.statisticsResource()` identifies the backing storage; `StorageGroups.energy` returns
+the exact buffer instance. This attributes demand correctly when lanes share buffers or a machine
+has multiple independent buffers. Register all contributing processors, not just the buffer.
+
+`EnergyBuffer.insert` counts incoming energy, `extract` counts outgoing energy, and `consume`
+counts processing use separately. Simulations, direct assignments, loading and resizing do not
+count. Recipe processors call `EnergyGroup.consume`; its default delegates to `extract` for custom
+implementations, while the built-in adapter records use separately. Transactions restore all
+three counters along with stored energy on rollback. Creative Power refills through `insert`.
+Counters are transient; saved NBT remains unchanged.
+
+Measured RF uses the most recent 20 ticks. Completed cycles use up to 1,200 ticks (60 game seconds),
+warming up from menu opening. Stalls, interruptions and unsuccessful output commits do not count
+as completions. Rates use game time at 20 ticks per second, not wall-clock time. A first sample
+shows a dash until enough time has elapsed. RF values are grouped integers; cycles have exactly
+two decimal places. For example: 24,000 RF/min and 12.00 cycles/min.
+
+The compact header selector cycles Per tick / Per second / Per minute; right-click reverses.
+Info, Statistics and equipment drawers replace each other on the left. Right-side automation
+and redstone drawers remain independent. Statistics scrolls when needed, reserves its bounds
+from JEI, closes on Escape, and remembers its open state for the connection.
+
 ## Registering custom widget types
 
 A consuming mod can add a leaf widget without replacing MMDLib's screen or menu. Register its

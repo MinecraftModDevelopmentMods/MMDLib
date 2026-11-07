@@ -1,5 +1,7 @@
 package zone.moddev.mc.lib.gui.runtime;
 
+import static zone.moddev.mc.lib.api.automation.AutomationInventory.COLUMNS;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -109,10 +111,10 @@ public final class AutomationNetwork {
               if (modes.length != count * 6) throw new IllegalArgumentException("Face count");
               for (int mode : modes)
                 if (mode < 0 || mode > 3) throw new IllegalArgumentException("Face mode");
-              long[] generations = new long[count * 4], revisions = new long[count * 4];
+              long[] generations = new long[count * COLUMNS], revisions = new long[count * COLUMNS];
               for (int i = 0; i < generations.length; i++) generations[i] = b.readLong();
               for (int i = 0; i < revisions.length; i++) revisions[i] = b.readLong();
-              if (selected < 0 || selected >= count || editor < -1 || editor >= 4)
+              if (selected < 0 || selected >= count || editor < -1 || editor >= COLUMNS)
                 throw new IllegalArgumentException("Drawer selection");
               return new State(
                   menu,

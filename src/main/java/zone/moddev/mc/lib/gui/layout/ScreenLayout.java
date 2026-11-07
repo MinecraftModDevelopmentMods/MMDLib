@@ -133,8 +133,7 @@ public final class ScreenLayout {
       // The inventory already reserves one slot row beside the helmet. Only taller controls
       // need more space; ordinary flat controls and colour selectors use that existing row.
       int extraHeight = Math.max(0, rowHeight - 18);
-      layout.bounds.replaceAll(
-          (element, rect) -> rect.y() >= start ? rect.offset(0, extraHeight) : rect);
+      for (var element : screen.body()) layout.shiftInventoryBody(element, start, extraHeight);
       layout.inventoryColors = new Rect(layout.inventory.x(), start, colourWidth, rowHeight - GAP);
       if (controls != null)
         layout.placeAt(
@@ -144,6 +143,12 @@ public final class ScreenLayout {
     }
     layout.applyOffsets(screen);
     return layout;
+  }
+
+  private void shiftInventoryBody(Element element, int start, int dy) {
+    var rect = bounds.get(element);
+    if (rect != null && rect.y() >= start) bounds.put(element, rect.offset(0, dy));
+    for (var child : element.children()) shiftInventoryBody(child, start, dy);
   }
 
   /** The main panel, at (0, 0). */

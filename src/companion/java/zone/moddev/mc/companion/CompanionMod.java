@@ -27,7 +27,6 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import zone.moddev.mc.lib.api.MaterialEventTypes;
 import zone.moddev.mc.lib.api.MaterialExtensions;
-import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.MachineCapabilities;
 import zone.moddev.mc.lib.gui.runtime.ScreenClick;
 import zone.moddev.mc.lib.machine.neoforge.MachineRecipeTypes;
@@ -138,7 +137,13 @@ public final class CompanionMod {
     for (var machine : MACHINES) {
       if (machine == CREATIVE_POWER) {
         MachineCapabilities.energy(
-            event, machine.type.get(), entity -> entity.energy, (entity, side) -> IoMode.OUTPUT);
+            event,
+            machine.type.get(),
+            entity -> entity.energy,
+            (entity, side) ->
+                ((CreativePowerEntity) entity)
+                    .automation.mode(
+                        zone.moddev.mc.lib.api.automation.ResourceType.ENERGY, 0, side));
         continue;
       }
       event.registerBlockEntity(

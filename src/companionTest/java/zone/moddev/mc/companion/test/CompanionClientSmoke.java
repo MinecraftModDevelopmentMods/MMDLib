@@ -39,6 +39,7 @@ public final class CompanionClientSmoke {
   private static boolean started, opening, menuRequested, finished;
   private static int stage, frames, waitingTicks, drawerStage, fluidStage, controlStage;
   private static boolean controlFixtureRequested;
+  private static boolean redstoneSmokeDone;
   private static volatile boolean controlFixtureReady;
 
   @SubscribeEvent
@@ -156,6 +157,29 @@ public final class CompanionClientSmoke {
                       3);
                   level.setBlock(
                       POS, CompanionMod.MACHINES.get(current).block.get().defaultBlockState(), 3);
+                  if (current == 3) {
+                    // Player stands south of both machines: the western neighbour is on the left.
+                    level.setBlock(
+                        POS,
+                        CompanionMod.CREATIVE_POWER
+                            .block
+                            .get()
+                            .defaultBlockState()
+                            .setValue(
+                                zone.moddev.mc.companion.DemoBlock.FACING,
+                                net.minecraft.core.Direction.SOUTH),
+                        3);
+                    level.setBlock(
+                        POS.west(),
+                        CompanionMod.CRUSHER
+                            .block
+                            .get()
+                            .defaultBlockState()
+                            .setValue(
+                                zone.moddev.mc.companion.DemoBlock.FACING,
+                                net.minecraft.core.Direction.SOUTH),
+                        3);
+                  }
                   var entity = level.getBlockEntity(POS);
                   if (entity instanceof ProcessorEntity machine) {
                     machine.energy.setStored(
@@ -227,7 +251,7 @@ public final class CompanionClientSmoke {
         waitingTicks = 0;
         return;
       }
-      if (menu.automation != null) {
+      if (menu.automation != null && menu.bound.screen().playerInventory()) {
         var row = screen.layout.inventoryColors().orElseThrow();
         var inventory = screen.layout.inventory().orElseThrow();
         if (row.x() != inventory.x())
@@ -255,7 +279,19 @@ public final class CompanionClientSmoke {
         throw new AssertionError("Energy must sit against the right panel margin");
       if (!(menu.value(energy, false) instanceof Number))
         throw new AssertionError("Energy was not synced");
-      if (stage == 0 && !RedstoneClientSmoke.run(screen)) {
+      if (stage == 0
+          && !redstoneSmokeDone
+          && !(redstoneSmokeDone = RedstoneClientSmoke.run(screen))) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
+      if ((stage == 0 || stage == 2) && !StatsClientSmoke.run(screen)) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
+      if (stage == 3 && !CreativePowerClientSmoke.run(screen)) {
         frames = 0;
         waitingTicks = 0;
         return;
@@ -369,7 +405,7 @@ public final class CompanionClientSmoke {
           screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
           var exclusions = screen.exclusions();
           if (exclusions.size()
-                  != 3
+                  != 4
                       + (menu.redstone == null ? 0 : 1)
                       + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1)
               || exclusions.get(1).right() != tab.x())
@@ -388,7 +424,7 @@ public final class CompanionClientSmoke {
             mc.gameDirectory, name + "-drawer.png", mc.getMainRenderTarget(), message -> {});
         // The compact panel puts equipment tabs at the bottom of the same rail.
         // Exercise empty rail below the info tab, not another drawer's tab.
-        int railY = tab.bottom() + 4;
+        int railY = tab.bottom() + 1; // Gap before the Statistics tab.
         if (!screen.mouseClicked(tab.x() + 10, railY, 0))
           throw new AssertionError("Clicks on the drawer rail must not pass through the screen");
         // Vanilla returns true even for unused buttons. Observe its recorded press to verify
@@ -408,7 +444,7 @@ public final class CompanionClientSmoke {
             if (lastButton.getInt(screen) != button)
               throw new AssertionError("Drawer swallowed mouse button " + button);
             if (screen.exclusions().size()
-                != 3
+                != 4
                     + (menu.redstone == null ? 0 : 1)
                     + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
               throw new AssertionError("Extra mouse button changed the drawer state");
@@ -416,7 +452,7 @@ public final class CompanionClientSmoke {
         screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
         screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
         if (screen.exclusions().size()
-            != 2
+            != 3
                 + (menu.redstone == null ? 0 : 1)
                 + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
           throw new AssertionError("The icon tab did not close its drawer");
