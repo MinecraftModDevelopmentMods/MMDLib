@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/iron_door_top_left_open",
+  "textures": {
+    "bottom": "mmdlib:block/__material___door_lower",
+    "top": "mmdlib:block/__material___door_upper"
+  },
+  "render_type": "minecraft:cutout"
+}

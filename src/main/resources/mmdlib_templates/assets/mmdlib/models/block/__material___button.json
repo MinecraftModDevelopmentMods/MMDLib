@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/stone_button",
+  "textures": {
+    "texture": "mmdlib:block/__material___block"
+  }
+}

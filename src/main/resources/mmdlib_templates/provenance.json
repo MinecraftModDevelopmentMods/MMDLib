@@ -1,0 +1,270 @@
+{
+  "block/__material___anvil_base": {
+    "sha256": "fe36821a9b622e089847e799004a925bba7bfc937957d80ea44ad6826914f2ed",
+    "source": "textures/block/adamantine_anvil_base.png",
+    "untinted": false
+  },
+  "block/__material___anvil_top_damaged_0": {
+    "sha256": "65c3bad09ff94d8a229b5ca69264b95e89ff649b4a3ac3bd958f4518563c1cd0",
+    "source": "textures/block/adamantine_anvil_top_damaged_0.png",
+    "untinted": false
+  },
+  "block/__material___anvil_top_damaged_1": {
+    "sha256": "dedba5078ad6beab32fe610a7df63831259846a8355eb256eb1c5c8ded6d3222",
+    "source": "textures/block/adamantine_anvil_top_damaged_1.png",
+    "untinted": false
+  },
+  "block/__material___anvil_top_damaged_2": {
+    "sha256": "4da8dcff1e71de22bdbb86bee7d697da4cb5b357a2152a388170f93c42a636b1",
+    "source": "textures/block/adamantine_anvil_top_damaged_2.png",
+    "untinted": false
+  },
+  "block/__material___bars": {
+    "sha256": "55746e0ba402c046109f9f6ae19909f484dc714a8677d480dc09343f288db1b6",
+    "source": "textures/block/aquarium_bars.png",
+    "untinted": false
+  },
+  "block/__material___block": {
+    "sha256": "9a1e68c1a04d92c6bbd69e42770abb30956676a7f9c757977e926ff2aaf973eb",
+    "source": "textures/block/aquarium_block.png",
+    "untinted": false
+  },
+  "block/__material___door_lower": {
+    "sha256": "de96fbf3f1d4491cc62b832537dfa74fa96291f4b218fc85e1bd8e1dd81f2097",
+    "source": "textures/block/aquarium_door_lower.png",
+    "untinted": false
+  },
+  "block/__material___door_upper": {
+    "sha256": "4e012a0eb6cd777bae53827051ea00f2d9a3d9e24f7150922a6176094e43637d",
+    "source": "textures/block/aquarium_door_upper.png",
+    "untinted": false
+  },
+  "block/__material___ladder": {
+    "derived": "rails and rungs cut from block",
+    "untinted": false
+  },
+  "block/__material___ore_overlay": {
+    "sha256": "76d1bb9c9eacb71919c5f01ab8c8e79080338b1421cf0c731206a5908a02f034",
+    "source": "textures/block/ore_overlays/antimony_ore.png",
+    "untinted": false
+  },
+  "block/__material___plate": {
+    "sha256": "9a1e68c1a04d92c6bbd69e42770abb30956676a7f9c757977e926ff2aaf973eb",
+    "source": "textures/block/aquarium_plate.png",
+    "untinted": false
+  },
+  "block/__material___trapdoor": {
+    "sha256": "35f7c3343a428640bc86e6a332627e46a9f397eca6c5475a30e308b0af36356b",
+    "source": "textures/block/aquarium_trapdoor.png",
+    "untinted": false
+  },
+  "entity/horse/armor/horse_armor___material__": {
+    "sha256": "d105a1aa619dfed486dea582d5069489d13adbbedf7be0a4a7cafabc6150ea88",
+    "source": "textures/entity/horse/armor/horse_armor_aquarium.png",
+    "untinted": false
+  },
+  "item/__material___arrow": {
+    "sha256": "7e1eb191e357a119f759d8b74fc2900a17fdf9165ca34193dbddb3ee7e84a681",
+    "source": "textures/item/aquarium_arrow.png",
+    "untinted": true
+  },
+  "item/__material___axe": {
+    "sha256": "15961910441163b00a3c74e3b1fd641624f33adbddd0b80e4c7f18be486bfcb5",
+    "source": "textures/item/aquarium_axe.png",
+    "untinted": true
+  },
+  "item/__material___blend": {
+    "sha256": "d3c5a6dd548f4aadb9039e9d7e75adb2a677387957bc8ee3dac7e53978f3f1f8",
+    "source": "textures/item/aquarium_blend.png",
+    "untinted": false
+  },
+  "item/__material___bolt": {
+    "sha256": "a4a827bcbf20567560453571cbc62abed219d3101ed95e54ab30b6d71ec99b5a",
+    "source": "textures/item/aquarium_bolt.png",
+    "untinted": false
+  },
+  "item/__material___boots": {
+    "sha256": "96cfac1c139950eaedf91ed47cb7b42c9acc2901e517df65e66db9f10fa4544f",
+    "source": "textures/item/aquarium_boots.png",
+    "untinted": false
+  },
+  "item/__material___bow_pulling_0": {
+    "sha256": "6e9266f5199e1080b8de6d8432a8ab45ce12f255d856b59af903b1e510112c94",
+    "source": "textures/item/aquarium_bow_pulling_0.png",
+    "untinted": true
+  },
+  "item/__material___bow_pulling_1": {
+    "sha256": "2de4e743d42000bf48a1df98a4faf799392b7b9c2962a898636b4d0b5e0cf938",
+    "source": "textures/item/aquarium_bow_pulling_1.png",
+    "untinted": true
+  },
+  "item/__material___bow_pulling_2": {
+    "sha256": "faadf2ed5398580483a14f6fb3ce98945e52ebc6fc10fd4cf94c3023f67b5886",
+    "source": "textures/item/aquarium_bow_pulling_2.png",
+    "untinted": true
+  },
+  "item/__material___bow_standby": {
+    "sha256": "9f1a0a3ebc96316c8777148a69051c0b331dcfbc2968b9e2b824093edbfbbc20",
+    "source": "textures/item/aquarium_bow_standby.png",
+    "untinted": true
+  },
+  "item/__material___chestplate": {
+    "sha256": "9c1437952f31939e7f3f84c569f1987cfa25b1d505a147556c313aff4dfd0c16",
+    "source": "textures/item/aquarium_chestplate.png",
+    "untinted": false
+  },
+  "item/__material___clump": {
+    "sha256": "848ef33d934f477f84f00b9253b021d6b8172dd6716386e955884502fc302dab",
+    "source": "textures/item/starsteel_clump.png",
+    "untinted": false
+  },
+  "item/__material___crackhammer": {
+    "sha256": "0eb9af2fef27c07d55a7453bac27e80ad28db3ac93c0570bdd9601d5e5a92ec3",
+    "source": "textures/item/aquarium_crackhammer.png",
+    "untinted": true
+  },
+  "item/__material___crossbow_pulling_0": {
+    "sha256": "5fd9cbae7f6cf70a57fcae39dee2705b8ae2076d93c4c4385452103b81ef4514",
+    "source": "textures/item/aquarium_crossbow_pulling_0.png",
+    "untinted": true
+  },
+  "item/__material___crossbow_pulling_1": {
+    "sha256": "cbfe8ceaa8d915a79d0c177c1b7ef74e5d5242eea9e5768e54c6558d9cccc90d",
+    "source": "textures/item/aquarium_crossbow_pulling_1.png",
+    "untinted": true
+  },
+  "item/__material___crossbow_pulling_2": {
+    "sha256": "3e7b70d705ab5b3d51d640b26f53af664f5bacb45e2f8aaabaa57cbd180291a0",
+    "source": "textures/item/aquarium_crossbow_pulling_2.png",
+    "untinted": true
+  },
+  "item/__material___crossbow_standby": {
+    "sha256": "0ef60e11f856dec83e3e125eb92c4c449bb621cb5b61ace1db2d634fa02b1508",
+    "source": "textures/item/aquarium_crossbow_standby.png",
+    "untinted": true
+  },
+  "item/__material___crystal": {
+    "sha256": "83f6c79204a97b956d5ca67e2459c44a3e9d1810e94ac33225572d256f9bddac",
+    "source": "textures/item/starsteel_crystal.png",
+    "untinted": false
+  },
+  "item/__material___door": {
+    "derived": "door halves stacked and halved",
+    "untinted": false
+  },
+  "item/__material___dust": {
+    "sha256": "d184a8105999118f13bc22a995660085dfb8ba346370b33de1db3b47d10e1ee4",
+    "source": "textures/item/aquarium_powder.png",
+    "untinted": false
+  },
+  "item/__material___fishing_rod_cast": {
+    "sha256": "27c4b78d134165952b331937c865ef0ddc641bc4d6d7330bc01d0319bb9fc1df",
+    "source": "textures/item/aquarium_fishing_rod_cast.png",
+    "untinted": true
+  },
+  "item/__material___fishing_rod_uncast": {
+    "sha256": "605c65b849050b44c1c89b1eb6478a1da52a51344ab0fb726b1ab62f02c986e8",
+    "source": "textures/item/aquarium_fishing_rod_uncast.png",
+    "untinted": true
+  },
+  "item/__material___gear": {
+    "sha256": "7c216b3086fe72842da2f1eeb0bfc0a1bafeea9fd55f715387e332c2bf45ac59",
+    "source": "textures/item/aquarium_gear.png",
+    "untinted": false
+  },
+  "item/__material___gem": {
+    "sha256": "83f6c79204a97b956d5ca67e2459c44a3e9d1810e94ac33225572d256f9bddac",
+    "source": "textures/item/starsteel_crystal.png",
+    "untinted": false
+  },
+  "item/__material___helmet": {
+    "sha256": "b3a50cc52af22945f555ef2e4bdd31adb40d16e9f738775f45603a3825dd0c57",
+    "source": "textures/item/aquarium_helmet.png",
+    "untinted": false
+  },
+  "item/__material___hoe": {
+    "sha256": "8cf36c24baaf8eee1db7c2a0fdcb108e39258be55048dd06d9b0e6d615249141",
+    "source": "textures/item/aquarium_hoe.png",
+    "untinted": true
+  },
+  "item/__material___horse_armor": {
+    "sha256": "f0d1ef1f2c639594b8a1eee1318f8ea69144840a814ba5994529c361896824df",
+    "source": "textures/item/aquarium_horse_armor.png",
+    "untinted": false
+  },
+  "item/__material___ingot": {
+    "sha256": "71ab16d7d0be039f3e64c183e4e260e101a245f4b87307edc61338adbc5c8391",
+    "source": "textures/item/aquarium_ingot.png",
+    "untinted": false
+  },
+  "item/__material___leggings": {
+    "sha256": "8c9d5639bd5073df28d5d996a4a859019fd0ed9bb8084f3fa1c5821cd5080ef2",
+    "source": "textures/item/aquarium_leggings.png",
+    "untinted": false
+  },
+  "item/__material___nugget": {
+    "sha256": "9c117529b4e8aae3bc29d0acfc8a7f5faa13b8e442695d1f22c67a3e3c033b9c",
+    "source": "textures/item/aquarium_nugget.png",
+    "untinted": false
+  },
+  "item/__material___pickaxe": {
+    "sha256": "71ccc5796b930d48601047fbb515d456a4ac2891572d549a58187843bc2e8ee0",
+    "source": "textures/item/aquarium_pickaxe.png",
+    "untinted": true
+  },
+  "item/__material___powder_dirty": {
+    "sha256": "7c9678d9bb353094dee03f155e0c63571fb229752256cf7ee8f7373f1884f6e4",
+    "source": "textures/item/starsteel_powder_dirty.png",
+    "untinted": false
+  },
+  "item/__material___rod": {
+    "sha256": "a4e451a068a6b8a6849d5d7cd928b9f75f2a67e81bd4acf90c2a4deefdf67681",
+    "source": "textures/item/aquarium_rod.png",
+    "untinted": false
+  },
+  "item/__material___scythe": {
+    "sha256": "70c932a111557cc4a77420c60b72808a191e781cd156fc0a8697b9c0f7aff255",
+    "source": "textures/item/aquarium_scythe.png",
+    "untinted": true
+  },
+  "item/__material___shard": {
+    "sha256": "f56231997cd4c28665865d2966ed92635a760806fb17404ee5fcedfe123569a5",
+    "source": "textures/item/starsteel_shard.png",
+    "untinted": false
+  },
+  "item/__material___shears": {
+    "sha256": "1ab29d5ed2c4ba81fb2b8ce74bd910451a5f7208e4d9e631d42767fc9e239c48",
+    "source": "textures/item/aquarium_shears.png",
+    "untinted": true
+  },
+  "item/__material___shovel": {
+    "sha256": "20723037c47d7e44bd74110dd183b9fb705a29ca14ab94bddbb1237264c3555a",
+    "source": "textures/item/aquarium_shovel.png",
+    "untinted": true
+  },
+  "item/__material___smallblend": {
+    "sha256": "2e6aa2e88515ffb2faa8451c3cb8957b2ecf8a49abe226fc9d29741cc0806775",
+    "source": "textures/item/aquarium_smallblend.png",
+    "untinted": false
+  },
+  "item/__material___smallpowder": {
+    "sha256": "afacab5646f0601d7957c0dc3a57f0e03ea33cc5e0299f6181f67b8e2346c42f",
+    "source": "textures/item/aquarium_smallpowder.png",
+    "untinted": false
+  },
+  "item/__material___sword": {
+    "sha256": "ec06fecc7cec7d97cf096cbe4fb20652f72c450b8a76fccb3d0dd50bc15888cb",
+    "source": "textures/item/aquarium_sword.png",
+    "untinted": true
+  },
+  "models/armor/__material___layer_1": {
+    "sha256": "3287829ced564d4ed599d37b26eaf8bff76ade035189e2accabdd3a95405b5a2",
+    "source": "textures/models/armor/aquarium_layer_1.png",
+    "untinted": false
+  },
+  "models/armor/__material___layer_2": {
+    "sha256": "c609b895a07692faca7e3596f735904f5364ce6bc52f43eb0cd7d9fb924c8efd",
+    "source": "textures/models/armor/aquarium_layer_2.png",
+    "untinted": false
+  }
+}

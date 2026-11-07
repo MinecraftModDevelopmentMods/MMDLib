@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/oak_fence_gate_wall",
+  "textures": {
+    "texture": "mmdlib:block/__material___block"
+  }
+}

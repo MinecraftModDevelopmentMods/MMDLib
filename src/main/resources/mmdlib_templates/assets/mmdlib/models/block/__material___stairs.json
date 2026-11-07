@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cut_copper_stairs",
+  "textures": {
+    "bottom": "mmdlib:block/__material___block",
+    "side": "mmdlib:block/__material___block",
+    "top": "mmdlib:block/__material___block"
+  }
+}

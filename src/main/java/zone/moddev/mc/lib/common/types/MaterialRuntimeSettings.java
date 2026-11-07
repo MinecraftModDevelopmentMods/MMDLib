@@ -7,7 +7,12 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.resources.ResourceLocation;
 
-/** Registry references used by runtime implementations, supplied by material data. */
+/**
+ * Registry references used by runtime implementations, supplied by material data.
+ *
+ * @param tinted whether the client tints the material's items and blocks with its color; false
+ *     for artwork that is already colored
+ */
 public record MaterialRuntimeSettings(
     Optional<ResourceLocation> repairItem,
     ResourceLocation incorrectBlocks,
@@ -16,7 +21,8 @@ public record MaterialRuntimeSettings(
     ResourceLocation armorTexture,
     Optional<String> blockSound,
     Optional<String> mapColor,
-    boolean tintedArmor) {
+    boolean tintedArmor,
+    boolean tinted) {
   public static final MaterialRuntimeSettings DEFAULT =
       new MaterialRuntimeSettings(
           Optional.empty(),
@@ -26,7 +32,31 @@ public record MaterialRuntimeSettings(
           ResourceLocation.parse("minecraft:iron"),
           Optional.empty(),
           Optional.empty(),
-          false);
+          false,
+          true);
+
+  /** Settings whose items and blocks are tinted with the material color. */
+  public MaterialRuntimeSettings(
+      Optional<ResourceLocation> repairItem,
+      ResourceLocation incorrectBlocks,
+      ResourceLocation baseBlock,
+      ResourceLocation blockSetType,
+      ResourceLocation armorTexture,
+      Optional<String> blockSound,
+      Optional<String> mapColor,
+      boolean tintedArmor) {
+    this(
+        repairItem,
+        incorrectBlocks,
+        baseBlock,
+        blockSetType,
+        armorTexture,
+        blockSound,
+        mapColor,
+        tintedArmor,
+        true);
+  }
+
   public static final Codec<MaterialRuntimeSettings> CODEC =
       RecordCodecBuilder.create(
           i ->
@@ -54,6 +84,9 @@ public record MaterialRuntimeSettings(
                           .forGetter(MaterialRuntimeSettings::mapColor),
                       Codec.BOOL
                           .optionalFieldOf("tinted_armor", false)
-                          .forGetter(MaterialRuntimeSettings::tintedArmor))
+                          .forGetter(MaterialRuntimeSettings::tintedArmor),
+                      Codec.BOOL
+                          .optionalFieldOf("tinted", true)
+                          .forGetter(MaterialRuntimeSettings::tinted))
                   .apply(i, MaterialRuntimeSettings::new));
 }

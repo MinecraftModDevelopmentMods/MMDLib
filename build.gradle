@@ -23,7 +23,7 @@ java {
 
 repositories {
     mavenCentral()
-    // JEI (optional integration; compile-time API only)
+    // JEI and CraftTweaker (optional integrations)
     maven { url = 'https://maven.blamejared.com' }
     maven {
         url = 'https://maven.theillusivec4.top/'
@@ -39,6 +39,11 @@ repositories {
 configurations {
     localRuntime
     runtimeClasspath.extendsFrom localRuntime
+    // CraftTweaker's processor path brings slf4j-api 1.8 betas, whose ServiceLoader lookup finds
+    // Gradle's own provider from another classloader and fails; 1.7.x binds statically instead.
+    annotationProcessor {
+        resolutionStrategy.force 'org.slf4j:slf4j-api:1.7.36'
+    }
 }
 
 dependencies {
@@ -50,6 +55,15 @@ dependencies {
     // Dev runs include JEI; pass -PwithoutJei to launch without it.
     if (!providers.gradleProperty('withoutJei').isPresent()) {
         localRuntime "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
+    }
+    // Optional CraftTweaker integration: compiled against, never bundled or required.
+    compileOnly "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
+    // Validates @ZenRegister/@ZenCodeType usage at compile time; needs CraftTweaker on its path too.
+    annotationProcessor "com.blamejared.crafttweaker:Crafttweaker_Annotation_Processors:${crafttweaker_ap_version}"
+    annotationProcessor "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
+    // Dev runs include CraftTweaker; pass -PwithoutCraftTweaker to launch without it.
+    if (!providers.gradleProperty('withoutCraftTweaker').isPresent()) {
+        localRuntime "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
     }
 }
 
@@ -109,6 +123,7 @@ tasks.named('processResources', ProcessResources) {
             neoforge_version_range: neoforge_version_range,
             loader_version_range: loader_version_range,
             jei_version_range: jei_version_range,
+            crafttweaker_version_range: crafttweaker_version_range,
             curios_version_range: curios_version_range,
             mod_id: mod_id,
             mod_name: mod_name,

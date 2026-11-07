@@ -32,6 +32,7 @@ import zone.moddev.mc.lib.common.runtime.ItemEventBridge;
 import zone.moddev.mc.lib.common.types.MMDBlock;
 import zone.moddev.mc.lib.common.types.MMDItem;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
+import zone.moddev.mc.lib.compat.CraftTweaker.CraftTweakerInit;
 
 /**
  * MMDLib's mod entry point. At mod construction it loads every mod's {@code mmdlib/} definitions
@@ -116,6 +117,9 @@ public class MMDLib {
     NeoForge.EVENT_BUS.addListener(
         zone.moddev.mc.lib.machine.neoforge.MachinePartsLoader::register);
     modBus.addListener(zone.moddev.mc.lib.util.Registries::register);
+
+    if (ModList.get().isLoaded("crafttweaker")) CraftTweakerInit.register(modBus);
+
     modBus.addListener(this::publishDefinitions);
     modBus.addListener((FMLConstructModEvent event) -> event.enqueueWork(this::loadDefinitions));
     new ItemEventBridge(

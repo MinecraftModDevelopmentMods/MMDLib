@@ -41,6 +41,62 @@ public final class MaterialExtensions {
   public record BlockType(BlockTypeFactory<?> factory, Optional<String> requiredMod) {}
 
   /**
+   * Definitions built in code rather than read from {@code mmdlib/} files.
+   *
+   * @param materials named materials, planned like {@code mmdlib/material} files
+   * @param standaloneBlocks standalone blocks by registry ID, planned like {@code
+   *     mmdlib/standalone/block} files
+   * @param standaloneItems standalone items by registry ID, planned like {@code
+   *     mmdlib/standalone/item} files
+   */
+  public record Definitions(
+      java.util.Collection<MMDMaterial> materials,
+      Map<ResourceLocation, StandaloneBlock> standaloneBlocks,
+      Map<ResourceLocation, StandaloneItem> standaloneItems) {
+    /** Nothing. */
+    public static final Definitions EMPTY = new Definitions(java.util.List.of(), Map.of(), Map.of());
+
+    /** Copies every collection. */
+    public Definitions {
+      materials = java.util.List.copyOf(materials);
+      standaloneBlocks = Map.copyOf(standaloneBlocks);
+      standaloneItems = Map.copyOf(standaloneItems);
+    }
+
+    /** Materials and standalone blocks, without standalone items. */
+    public Definitions(
+        java.util.Collection<MMDMaterial> materials,
+        Map<ResourceLocation, StandaloneBlock> standaloneBlocks) {
+      this(materials, standaloneBlocks, Map.of());
+    }
+  }
+
+  /**
+   * Supplies {@link Definitions} built in code. The definition loader calls it once, after every
+   * extension file and data module is installed and before any material file is decoded, so it may
+   * register item and block modules and callbacks on {@code api} that material files then use.
+   */
+  @FunctionalInterface
+  public interface DefinitionSource {
+    /** Registers any modules and callbacks on {@code api} and returns the definitions. */
+    Definitions load(MaterialExtensions api);
+  }
+
+  /**
+   * A registered definition source.
+   *
+   * @param name names the source in loading errors, such as {@code "CraftTweaker scripts"}
+   * @param source the source
+   */
+  public record NamedSource(String name, DefinitionSource source) {
+    /** Checks that both values are present and the name is not blank. */
+    public NamedSource {
+      Objects.requireNonNull(source);
+      if (name.isBlank()) throw new IllegalArgumentException("Definition source needs a name");
+    }
+  }
+
+  /**
    * An immutable copy of the registered item and block parts at one moment. Decoding takes a
    * snapshot, so a definition decoded earlier is not changed by later registrations.
    */
@@ -80,6 +136,8 @@ public final class MaterialExtensions {
   private final ConcurrentHashMap<ResourceLocation, ItemType> items = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<ResourceLocation, BlockType> blocks = new ConcurrentHashMap<>();
   private final MaterialEvents events = new MaterialEvents();
+  private final java.util.List<NamedSource> definitionSources =
+      new java.util.concurrent.CopyOnWriteArrayList<>();
   private final ConcurrentHashMap<ResourceLocation, ItemImplementation<?>> itemImplementations =
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<ResourceLocation, BlockImplementation<?>> blockImplementations =
@@ -391,6 +449,24 @@ public final class MaterialExtensions {
   /** The event registry used by this catalog's definitions. */
   public MaterialEvents events() {
     return events;
+  }
+
+  /**
+   * Adds code-built definitions to definition loading. Register during mod construction. The
+   * loader calls each source once (see {@link DefinitionSource}) and plans what it returns with the
+   * same checks as definition files. Content outside MMDLib's namespace is only registered by its
+   * own mod's {@link zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar}.
+   *
+   * @param name names the source in loading errors
+   * @param source supplies the definitions
+   */
+  public void registerDefinitionSource(String name, DefinitionSource source) {
+    definitionSources.add(new NamedSource(name, source));
+  }
+
+  /** The registered definition sources, in registration order. */
+  public java.util.List<NamedSource> definitionSources() {
+    return java.util.List.copyOf(definitionSources);
   }
 
   /**

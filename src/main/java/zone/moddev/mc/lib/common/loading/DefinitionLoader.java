@@ -25,8 +25,9 @@ import zone.moddev.mc.lib.common.types.StandaloneItem;
 /**
  * Loads every definition MMDLib finds in mods' {@code mmdlib/} directories at startup. Files are
  * discovered and decoded in parallel; they are then installed in a fixed order so results do not
- * depend on timing: extension files (event handlers), then modules, then materials, then standalone
- * blocks and items. See {@code docs/definition-loading.md}.
+ * depend on timing: extension files (event handlers), then modules, then code-built definitions
+ * from {@link MaterialExtensions#registerDefinitionSource} (which may add modules), then
+ * materials, then standalone blocks and items from files and sources. See {@code docs/definition-loading.md}.
  */
 public final class DefinitionLoader {
   private DefinitionLoader() {}
@@ -150,37 +151,51 @@ public final class DefinitionLoader {
         (id, source) -> install(source, () -> api.registerBlockModule(id, source.value())));
     all.fluids.forEach(
         (id, source) -> install(source, () -> api.registerFluidModule(id, source.value())));
+    // Code sources run once, now: modules and callbacks they register are visible to every
+    // material decoded below, from files as well as from the sources themselves.
+    var sourced = new LinkedHashMap<String, MaterialExtensions.Definitions>();
+    for (var source : api.definitionSources()) {
+      var origin = "definition source '" + source.name() + "'";
+      sourced.put(origin, Objects.requireNonNull(source.source().load(api), origin));
+    }
     var factory = new MaterialFactory(api, installed);
     var materials = new TreeMap<ResourceLocation, MaterialFactory.Result>();
-    var concreteIds = new HashMap<String, Map<ResourceLocation, Path>>();
+    var concreteIds = new HashMap<String, Map<ResourceLocation, Object>>();
+    var materialOrigins = new HashMap<ResourceLocation, Object>();
     all.materials.forEach(
         (id, source) -> {
           try {
             var result = factory.load(id, source.path());
             validateConcreteIds(result, source.path(), concreteIds);
-            var plan = result.content();
-            var bindings =
-                new java.util.LinkedHashMap<ResourceLocation, Map<String, ResourceLocation>>();
-            java.util.stream.Stream.of(plan.items().values(), plan.extraItems().values())
-                .flatMap(java.util.Collection::stream)
-                .forEach(item -> bindings.put(item.name(), item.events()));
-            java.util.stream.Stream.of(plan.blocks().values(), plan.extraBlocks().values())
-                .flatMap(java.util.Collection::stream)
-                .forEach(block -> bindings.put(block.name(), block.events()));
-            bindings.forEach(
-                (name, events) -> {
-                  try {
-                    api.events().validate(events);
-                  } catch (IllegalArgumentException ex) {
-                    throw new IllegalArgumentException(
-                        source.path() + ": " + name + ": " + ex.getMessage(), ex);
-                  }
-                });
+            validateBindings(result, source.path(), api);
             materials.put(id, result);
+            materialOrigins.put(id, source.path());
           } catch (IOException ex) {
             throw new UncheckedIOException("Cannot read material " + source.path(), ex);
           }
         });
+    for (var entry : sourced.entrySet()) {
+      var origin = entry.getKey();
+      for (var material : entry.getValue().materials()) {
+        var id =
+            material
+                .name()
+                .orElseThrow(() -> new IllegalArgumentException(origin + ": unnamed material"));
+        var previous = materialOrigins.putIfAbsent(id, origin);
+        if (previous != null)
+          throw new IllegalArgumentException(
+              "Duplicate material " + id + ": " + previous + " and " + origin);
+        MaterialFactory.Result result;
+        try {
+          result = factory.create(material);
+        } catch (IllegalArgumentException ex) {
+          throw new IllegalArgumentException(origin + ": " + ex.getMessage(), ex);
+        }
+        validateConcreteIds(result, origin, concreteIds);
+        validateBindings(result, origin, api);
+        materials.put(id, result);
+      }
+    }
     var standalone = new TreeMap<ResourceLocation, MaterialFactory.Result>();
     all.standalone.forEach(
         (id, source) ->
@@ -199,6 +214,32 @@ public final class DefinitionLoader {
                       .forEach(block -> api.events().validate(block.events()));
                   standalone.put(id, result);
                 }));
+    for (var entry : sourced.entrySet()) {
+      var origin = entry.getKey();
+      new TreeMap<>(entry.getValue().standaloneBlocks())
+          .forEach(
+              (id, definition) -> {
+                if (standalone.containsKey(id))
+                  throw new IllegalArgumentException(
+                      "Duplicate standalone block " + id + ": a definition file and " + origin);
+                try {
+                  var module = api.blockModule(definition.module());
+                  if (module.requiredMod().isPresent()
+                      && !installed.test(module.requiredMod().get())) return;
+                  var result = definition.resolve(id, module);
+                  validateConcreteIds(result, origin, concreteIds);
+                  result
+                      .content()
+                      .blocks()
+                      .values()
+                      .forEach(block -> api.events().validate(block.events()));
+                  standalone.put(id, result);
+                } catch (IllegalArgumentException ex) {
+                  throw new IllegalArgumentException(
+                      origin + ": " + id + ": " + ex.getMessage(), ex);
+                }
+              });
+    }
     var standaloneItems = new TreeMap<ResourceLocation, MaterialFactory.Result>();
     all.standaloneItems.forEach(
         (id, source) ->
@@ -217,6 +258,32 @@ public final class DefinitionLoader {
                       .forEach(item -> api.events().validate(item.events()));
                   standaloneItems.put(id, result);
                 }));
+    for (var entry : sourced.entrySet()) {
+      var origin = entry.getKey();
+      new TreeMap<>(entry.getValue().standaloneItems())
+          .forEach(
+              (id, definition) -> {
+                if (standaloneItems.containsKey(id))
+                  throw new IllegalArgumentException(
+                      "Duplicate standalone item " + id + ": a definition file and " + origin);
+                try {
+                  var module = api.itemModule(definition.module());
+                  if (module.requiredMod().isPresent()
+                      && !installed.test(module.requiredMod().get())) return;
+                  var result = definition.resolve(id, module);
+                  validateConcreteIds(result, origin, concreteIds);
+                  result
+                      .content()
+                      .items()
+                      .values()
+                      .forEach(item -> api.events().validate(item.events()));
+                  standaloneItems.put(id, result);
+                } catch (IllegalArgumentException ex) {
+                  throw new IllegalArgumentException(
+                      origin + ": " + id + ": " + ex.getMessage(), ex);
+                }
+              });
+    }
     return new Loaded(
         new ModuleCatalog(values(all.items), values(all.blocks), values(all.fluids)),
         values(all.extensions),
@@ -332,10 +399,31 @@ public final class DefinitionLoader {
     return Collections.unmodifiableMap(new TreeMap<>(values));
   }
 
+  /** Checks every planned item's and block's event bindings against the callback catalog. */
+  private static void validateBindings(
+      MaterialFactory.Result result, Object source, MaterialExtensions api) {
+    var plan = result.content();
+    var bindings = new LinkedHashMap<ResourceLocation, Map<String, ResourceLocation>>();
+    java.util.stream.Stream.of(plan.items().values(), plan.extraItems().values())
+        .flatMap(Collection::stream)
+        .forEach(item -> bindings.put(item.name(), item.events()));
+    java.util.stream.Stream.of(plan.blocks().values(), plan.extraBlocks().values())
+        .flatMap(Collection::stream)
+        .forEach(block -> bindings.put(block.name(), block.events()));
+    bindings.forEach(
+        (name, events) -> {
+          try {
+            api.events().validate(events);
+          } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(source + ": " + name + ": " + ex.getMessage(), ex);
+          }
+        });
+  }
+
   private static void validateConcreteIds(
       MaterialFactory.Result result,
-      Path source,
-      Map<String, Map<ResourceLocation, Path>> registries) {
+      Object source,
+      Map<String, Map<ResourceLocation, Object>> registries) {
     var plan = result.content();
     plan.itemDefinitions().keySet().forEach(id -> unique(registries, "item", id, source));
     plan.blockDefinitions().keySet().forEach(id -> unique(registries, "block", id, source));
@@ -347,10 +435,10 @@ public final class DefinitionLoader {
   }
 
   private static void unique(
-      Map<String, Map<ResourceLocation, Path>> registries,
+      Map<String, Map<ResourceLocation, Object>> registries,
       String registry,
       ResourceLocation id,
-      Path source) {
+      Object source) {
     var previous =
         registries.computeIfAbsent(registry, key -> new HashMap<>()).putIfAbsent(id, source);
     if (previous != null)

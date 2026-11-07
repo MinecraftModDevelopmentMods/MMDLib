@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/oak_fence_inventory",
+  "textures": {
+    "texture": "mmdlib:block/__material___block"
+  }
+}

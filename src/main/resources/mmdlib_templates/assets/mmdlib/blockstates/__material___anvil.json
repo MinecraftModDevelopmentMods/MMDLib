@@ -1,0 +1,49 @@
+{
+  "variants": {
+    "damage=0,facing=east": {
+      "model": "mmdlib:block/__material___anvil",
+      "y": 270
+    },
+    "damage=1,facing=east": {
+      "model": "mmdlib:block/__material___anvil_chipped",
+      "y": 270
+    },
+    "damage=2,facing=east": {
+      "model": "mmdlib:block/__material___anvil_damaged",
+      "y": 270
+    },
+    "damage=0,facing=north": {
+      "model": "mmdlib:block/__material___anvil",
+      "y": 180
+    },
+    "damage=1,facing=north": {
+      "model": "mmdlib:block/__material___anvil_chipped",
+      "y": 180
+    },
+    "damage=2,facing=north": {
+      "model": "mmdlib:block/__material___anvil_damaged",
+      "y": 180
+    },
+    "damage=0,facing=south": {
+      "model": "mmdlib:block/__material___anvil"
+    },
+    "damage=1,facing=south": {
+      "model": "mmdlib:block/__material___anvil_chipped"
+    },
+    "damage=2,facing=south": {
+      "model": "mmdlib:block/__material___anvil_damaged"
+    },
+    "damage=0,facing=west": {
+      "model": "mmdlib:block/__material___anvil",
+      "y": 90
+    },
+    "damage=1,facing=west": {
+      "model": "mmdlib:block/__material___anvil_chipped",
+      "y": 90
+    },
+    "damage=2,facing=west": {
+      "model": "mmdlib:block/__material___anvil_damaged",
+      "y": 90
+    }
+  }
+}

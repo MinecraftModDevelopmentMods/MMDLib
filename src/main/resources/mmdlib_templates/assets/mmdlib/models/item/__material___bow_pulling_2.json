@@ -1,0 +1,6 @@
+{
+  "parent": "mmdlib:item/__material___bow",
+  "textures": {
+    "layer0": "mmdlib:item/__material___bow_pulling_2"
+  }
+}

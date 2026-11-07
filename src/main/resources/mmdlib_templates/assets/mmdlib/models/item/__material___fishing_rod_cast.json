@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/fishing_rod",
+  "textures": {
+    "layer0": "mmdlib:item/__material___fishing_rod_cast"
+  }
+}

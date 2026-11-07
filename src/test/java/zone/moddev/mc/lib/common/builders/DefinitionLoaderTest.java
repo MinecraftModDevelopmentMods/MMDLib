@@ -266,6 +266,132 @@ public final class DefinitionLoaderTest {
     }
   }
 
+  @Test
+  void plansCodeMaterialSources() throws Exception {
+    Path temporary = Files.createTempDirectory("mmdlib-sources");
+    var loader = DefinitionLoaderTest.class.getClassLoader();
+    try {
+      var root = temporary.resolve("alpha/mmdlib");
+      write(root, "material/copper.json", "{\"items\":\"\",\"blocks\":\"\",\"has_fluid\":false}");
+      var sources = List.of(new SourceRoot("alpha", root, loader));
+
+      var api = api();
+      api.registerDefinitionSource("scripts", materials(codeMaterial("alpha:tin")));
+      var loaded = DefinitionLoader.load(sources, api, mod -> false);
+      require(
+          loaded.materials().keySet().equals(java.util.Set.of(id("alpha:copper"), id("alpha:tin"))));
+
+      // A source's module is installed before material files decode, so files can select it.
+      write(root, "material/stone.json", "{\"items\":\"\",\"blocks\":\"alpha:pillar\",\"has_fluid\":false}");
+      MaterialExtensions.DefinitionSource pillarSource =
+          catalog -> {
+            catalog.registerBlockModule(
+                id("alpha:pillar"),
+                zone.moddev.mc.lib.common.modules.DataModules.Block.CODEC
+                    .parse(
+                        com.mojang.serialization.JsonOps.INSTANCE,
+                        com.google.gson.JsonParser.parseString(
+                            "{\"factory\":\"alpha:pillar_block\",\"template\":{}}"))
+                    .getOrThrow());
+            catalog.registerItemModule(
+                id("alpha:token"),
+                zone.moddev.mc.lib.common.modules.DataModules.Item.CODEC
+                    .parse(
+                        com.mojang.serialization.JsonOps.INSTANCE,
+                        com.google.gson.JsonParser.parseString(
+                            "{\"factory\":\"alpha:basic\",\"template\":{}}"))
+                    .getOrThrow());
+            return new MaterialExtensions.Definitions(
+                List.of(),
+                Map.of(
+                    id("alpha:marble"),
+                    new zone.moddev.mc.lib.common.types.StandaloneBlock(
+                        id("alpha:pillar"),
+                        zone.moddev.mc.lib.common.types.FactoryData.EMPTY,
+                        java.util.Optional.empty(),
+                        zone.moddev.mc.lib.common.types.MaterialRuntimeSettings.DEFAULT)),
+                Map.of(
+                    id("alpha:coin"),
+                    new zone.moddev.mc.lib.common.types.StandaloneItem(
+                        id("alpha:token"),
+                        zone.moddev.mc.lib.common.types.FactoryData.EMPTY,
+                        java.util.Optional.empty(),
+                        zone.moddev.mc.lib.common.types.MaterialRuntimeSettings.DEFAULT)));
+          };
+      var withModule = api();
+      withModule.registerDefinitionSource("scripts", pillarSource);
+      var moduled = DefinitionLoader.load(sources, withModule, mod -> false);
+      require(
+          moduled.materials().get(id("alpha:stone")).content().blockDefinitions()
+              .containsKey(id("alpha:stone_pillar")));
+      require(
+          moduled.standalone().get(id("alpha:marble")).content().blockDefinitions()
+              .containsKey(id("alpha:marble")));
+      require(
+          moduled.standaloneItems().get(id("alpha:coin")).content().itemDefinitions()
+              .containsKey(id("alpha:coin")));
+      write(root, "standalone/block/marble.json", "{\"module\":\"alpha:pillar\"}");
+      var again = api();
+      again.registerDefinitionSource("scripts", pillarSource);
+      expectFailure(
+          () -> DefinitionLoader.load(sources, again, mod -> false),
+          "Duplicate standalone block alpha:marble",
+          "definition source 'scripts'");
+      Files.delete(root.resolve("standalone/block/marble.json"));
+      Files.delete(root.resolve("material/stone.json"));
+
+      var clash = api();
+      clash.registerDefinitionSource("scripts", materials(codeMaterial("alpha:copper")));
+      expectFailure(
+          () -> DefinitionLoader.load(sources, clash, mod -> false),
+          "Duplicate material alpha:copper",
+          "alpha/mmdlib/material/copper.json",
+          "definition source 'scripts'");
+
+      var twice = api();
+      twice.registerDefinitionSource(
+          "scripts", materials(codeMaterial("alpha:tin"), codeMaterial("alpha:tin")));
+      expectFailure(
+          () -> DefinitionLoader.load(List.of(), twice, mod -> false),
+          "Duplicate material alpha:tin");
+
+      var unnamed = api();
+      unnamed.registerDefinitionSource(
+          "scripts",
+          materials(
+                  new zone.moddev.mc.lib.common.types.MMDMaterial(
+                      java.util.Optional.empty(),
+                      java.util.Optional.empty(),
+                      zone.moddev.mc.lib.common.types.MaterialProperties.DEFAULT,
+                      nothing(),
+                      Map.of(),
+                      zone.moddev.mc.lib.common.types.MaterialRuntimeSettings.DEFAULT)));
+      expectFailure(
+          () -> DefinitionLoader.load(List.of(), unnamed, mod -> false),
+          "definition source 'scripts'",
+          "unnamed material");
+    } finally {
+      try (var paths = Files.walk(temporary)) {
+        for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList())
+          Files.delete(path);
+      }
+    }
+  }
+
+  private static MaterialExtensions.DefinitionSource materials(
+      zone.moddev.mc.lib.common.types.MMDMaterial... materials) {
+    return api -> new MaterialExtensions.Definitions(List.of(materials), Map.of());
+  }
+
+  private static zone.moddev.mc.lib.common.types.MMDMaterial codeMaterial(String name) {
+    return MaterialBuilder.create().setName(name).setSelection(nothing()).build();
+  }
+
+  private static zone.moddev.mc.lib.common.types.MaterialSelection nothing() {
+    return new zone.moddev.mc.lib.common.types.MaterialSelection(
+        java.util.Set.of(), java.util.Set.of(), java.util.Set.of(), false);
+  }
+
   private static MaterialExtensions api() {
     var api = new MaterialExtensions(false);
     api.events().registerEvent("test:probe", String.class);

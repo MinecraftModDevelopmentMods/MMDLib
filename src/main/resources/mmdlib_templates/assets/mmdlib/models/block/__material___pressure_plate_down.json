@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/stone_pressure_plate_down",
+  "textures": {
+    "texture": "mmdlib:block/__material___block"
+  }
+}
