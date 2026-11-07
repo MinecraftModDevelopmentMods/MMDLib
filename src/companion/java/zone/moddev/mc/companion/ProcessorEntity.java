@@ -266,8 +266,6 @@ public final class ProcessorEntity extends DemoEntity
   public List<zone.moddev.mc.lib.api.stats.StatsProvider> screenStats() {
     var parts = new ArrayList<zone.moddev.mc.lib.api.stats.StatsProvider>();
     parts.add(energy);
-    parts.add(items);
-    parts.add(fluids);
     parts.addAll(lanes);
     return List.copyOf(parts);
   }
@@ -313,7 +311,9 @@ public final class ProcessorEntity extends DemoEntity
       warnings.add(Component.translatable("screen.mmdlib_companion.redstone.waiting"));
     for (int i = 0; i < lanes.size(); i++) {
       var status = lanes.get(i).status();
-      if (status == RecipeProcessor.Status.STALLED || status == RecipeProcessor.Status.BLOCKED)
+      if (status == RecipeProcessor.Status.STALLED
+          || status == RecipeProcessor.Status.BLOCKED
+          || status == RecipeProcessor.Status.HELD)
         warnings.add(
             Component.translatable("screen.mmdlib_companion.lane_" + (i == 0 ? "a" : "b"))
                 .append(": ")

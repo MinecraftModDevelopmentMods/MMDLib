@@ -39,12 +39,63 @@ public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
   @GameTest(template = "empty")
+  public static void heldProcessorsSaveSyncAndResumeWithoutReleasingReservations(
+      GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var lane = machine.lanes.getFirst();
+    machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 4));
+    machine.energy.setStored(100000);
+    machine.serverTick();
+    machine.serverTick();
+    int progress = lane.progress();
+    var plan = machine.items.plan(0);
+    var changes = new java.util.concurrent.atomic.AtomicInteger();
+    var syncs = new java.util.concurrent.atomic.AtomicInteger();
+    var host =
+        new zone.moddev.mc.lib.machine.feature.FeatureHost(
+                changes::incrementAndGet, syncs::incrementAndGet)
+            .add(lane);
+    host.tick(helper.getLevel(), false);
+    require(lane.status() == Status.HELD && !lane.paused(), "Host hold differs from manual pause");
+    require(changes.get() == 1 && syncs.get() == 1, "Entering hold saves and synchronizes status");
+    require(
+        lane.state().status().orElseThrow() == Status.HELD
+            && lane.clientState().status().orElseThrow() == Status.HELD,
+        "Save and client snapshots show hold");
+    require(
+        lane.progress() == progress && machine.items.plan(0).equals(plan),
+        "Hold retains progress and reservations");
+    for (int i = 0; i < 20; i++) host.tick(helper.getLevel(), false);
+    require(
+        changes.get() == 1 && syncs.get() == 1, "Unchanged hold does not repeatedly save or sync");
+    host.tick(helper.getLevel(), true);
+    require(
+        lane.status() == Status.RUNNING && lane.progress() == progress + 1 && syncs.get() == 2,
+        "Releasing hold resumes and synchronizes the running state");
+    machine.setReservePercent(100);
+    machine.serverTick();
+    require(lane.status() == Status.HELD, "Energy reserve gate reports held");
+    machine.setReservePercent(0);
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.READ);
+    machine.redstone.range(0, 0, 15);
+    machine.redstone.outside(0, false);
+    machine.serverTick();
+    require(lane.status() == Status.HELD, "Redstone gate reports held");
+    lane.interrupt();
+    host.tick(helper.getLevel(), false);
+    require(
+        lane.status() == Status.PAUSED && machine.items.plan(0).take() == 0,
+        "Manual pause remains visible and releases reservations even during a host hold");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void statisticsProvidersDescribeCurrentRecipes(GameTestHelper helper) {
     var machine = place(helper, CompanionMod.DUAL_CRUSHER);
     var first = machine.lanes.getFirst();
     require(
-        machine.items.statistics().rows().isEmpty() && machine.fluids.statistics().rows().isEmpty(),
-        "Item and fluid inventories contribute no statistics");
+        machine.screenStats().size() == 1 + machine.lanes.size(),
+        "Only energy and processors contribute statistics");
     require(
         first.statistics().rows().get(1).value()
             instanceof zone.moddev.mc.lib.api.stats.Statistics.Text,

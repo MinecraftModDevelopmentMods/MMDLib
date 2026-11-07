@@ -48,6 +48,8 @@ public final class RecipeProcessor
     STALLED,
     /** A cycle has run its time but cannot finish, say an input was taken; retried each tick. */
     BLOCKED,
+    /** Held by the host's processing gate; progress and reservations are retained. */
+    HELD,
     /** Held by an interrupt. */
     PAUSED
   }
@@ -205,6 +207,13 @@ public final class RecipeProcessor
   public void suspended(FeatureHost host) {
     redstoneRunning = false;
     justFinished = null;
+    var held = paused ? Status.PAUSED : Status.HELD;
+    if (changed || status != held) {
+      changed = false;
+      status = held;
+      host.markChanged();
+    }
+    syncStatus(host);
   }
 
   @Override
@@ -391,6 +400,10 @@ public final class RecipeProcessor
     justFinished = null;
     run(host);
     redstoneRunning = !paused && (status == Status.RUNNING || justFinished != null);
+    syncStatus(host);
+  }
+
+  private void syncStatus(FeatureHost host) {
     var seen = justFinished != null ? Status.RUNNING : status;
     int seenTime = justFinished != null ? justFinished.time() : time();
     if (seen != marked || seenTime != markedTime) {

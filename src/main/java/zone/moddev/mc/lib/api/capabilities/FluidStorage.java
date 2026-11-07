@@ -17,7 +17,6 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
-import zone.moddev.mc.lib.api.stats.StatsProvider;
 import zone.moddev.mc.lib.machine.inventory.ReservationPlans;
 import zone.moddev.mc.lib.machine.inventory.TankPlan;
 import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
@@ -31,12 +30,7 @@ import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
  * accepts it. Draining picks the first tank holding the requested fluid, or for an amount, the
  * first tank that is not empty.
  */
-public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag>, StatsProvider {
-  @Override
-  public zone.moddev.mc.lib.api.stats.Statistics statistics() {
-    return zone.moddev.mc.lib.api.stats.Statistics.EMPTY;
-  }
-
+public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag> {
   private final List<FluidTank> tanks = new ArrayList<>();
   private final List<Role> roles = new ArrayList<>();
   private final ReservationPlans<TankPlan> plans =
