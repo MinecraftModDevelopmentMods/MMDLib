@@ -18,8 +18,12 @@ import zone.moddev.mc.lib.common.runtime.RedstoneBlock;
 public final class RedstoneSmoke {
   private RedstoneSmoke() {}
 
+  private static final java.util.concurrent.atomic.AtomicInteger calls =
+      new java.util.concurrent.atomic.AtomicInteger();
+
   /** The gate's {@code redstone-changed} handler: off only while both sides are powered. */
   public static void nand(RedstoneChange change) {
+    calls.incrementAndGet();
     var block = (RedstoneBlock) change.state().getBlock();
     boolean left = change.signal(block.toWorld(change.state(), Direction.WEST)) > 0;
     boolean right = change.signal(block.toWorld(change.state(), Direction.EAST)) > 0;
@@ -37,11 +41,18 @@ public final class RedstoneSmoke {
     var left = pos.north();
     var right = pos.south();
     var back = pos.west();
+    var mark = new int[1];
     helper
         .startSequence()
         .thenExecuteAfter(3, () -> expect(helper, pos, 15, "unpowered gate is on"))
+        .thenExecute(() -> mark[0] = calls.get())
         .thenExecute(() -> level.setBlock(back, Blocks.REDSTONE_BLOCK.defaultBlockState(), 3))
         .thenExecuteAfter(3, () -> expect(helper, pos, 15, "the back side is not read"))
+        .thenExecute(
+            () -> {
+              if (calls.get() != mark[0])
+                throw new AssertionError("an unread side's change ran the handler");
+            })
         .thenExecute(() -> level.setBlock(left, Blocks.REDSTONE_BLOCK.defaultBlockState(), 3))
         .thenExecuteAfter(3, () -> expect(helper, pos, 15, "one input keeps it on"))
         .thenExecute(() -> level.setBlock(right, Blocks.REDSTONE_BLOCK.defaultBlockState(), 3))

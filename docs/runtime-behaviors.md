@@ -213,7 +213,7 @@ Only the block-state properties its settings use are added.
 | `faces` | list of `down`, `up`, `north`, `south`, `west`, `east` | Faces that emit (default all) |
 | `comparator` | `0`-`15`, `"input"`, or `"output"` | Comparator reading; `"input"` needs `input`, `"output"` needs `output: "state"` |
 | `facing` | `true` / `false` | The block faces the way its placer looked (a `facing` property, turned by structure rotation); `faces` and `inputs` may then name `front`, `back`, `left`, `right` |
-| `inputs` | list of faces | Faces read (default all); needs `input`. Reading only some fires `redstone-changed` whenever any of them changes, even if the strongest stays the same |
+| `inputs` | list of faces | Faces read (default all); needs `input`. Reading only some fires `redstone-changed` whenever one of them changes, even if the strongest stays the same, and once when placed (or on the first update after loading); changes on other faces are ignored |
 | `delay` | `0`-`100` | Ticks between a neighbour change and reading the inputs (default 0, at once); needs `input` |
 
 A single-block gate reads its sides and powers its front:

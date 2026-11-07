@@ -1,6 +1,12 @@
 package zone.moddev.mc.lib.common.runtime;
 
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.Optional;
 import java.util.Set;
 
@@ -101,8 +107,9 @@ public class RedstoneBlock extends Block {
     }
 
     /**
-     * Whether {@code redstone-changed} fires on any read face's change rather than only when the
-     * strongest input changes: true when only some faces are read.
+     * Whether {@code redstone-changed} fires when any read face's power changes rather than only
+     * when the strongest input changes: true when only some faces are read. Such a block also fires
+     * once when placed, or on its first update after loading.
      */
     public boolean perFace() {
       return inputs.size() < Direction.values().length;
@@ -229,6 +236,13 @@ public class RedstoneBlock extends Block {
       return new IllegalArgumentException("Invalid redstone settings for " + part + ": " + message);
     }
   }
+
+  /**
+   * The last power on each read face (by local face ordinal) of blocks that read single faces, by
+   * position, per level. Block state has no room for six levels of 0-15. Server thread only; an
+   * entry goes when its block is removed, and a level's entries go with the level.
+   */
+  private static final Map<ServerLevel, Long2ObjectMap<int[]>> FACE_POWER = new WeakHashMap<>();
 
   // createBlockStateDefinition runs inside Block's constructor, before fields are set.
   private static final ThreadLocal<Settings> CONSTRUCTING = new ThreadLocal<>();
@@ -365,6 +379,10 @@ public class RedstoneBlock extends Block {
   protected void onRemove(
       BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
     boolean emitting = !moved && !state.is(replacement.getBlock()) && settings.emits();
+    if (!state.is(replacement.getBlock()) && level instanceof ServerLevel server) {
+      var known = FACE_POWER.get(server);
+      if (known != null) known.remove(pos.asLong());
+    }
     super.onRemove(state, level, pos, replacement, moved);
     if (emitting) updateNeighbours(level, pos, state);
   }
@@ -397,10 +415,19 @@ public class RedstoneBlock extends Block {
 
   private void checkInput(BlockState state, ServerLevel server, BlockPos pos) {
     int previous = state.getValue(INPUT), power = 0;
-    for (Direction face : settings.inputs())
-      power = Math.max(power, signal(server, pos, toWorld(state, face)));
-    // Blocks reading single faces react to any face's change; the strongest may stay the same.
-    if (previous == power && !settings.perFace()) return;
+    var faces = new int[Direction.values().length];
+    for (Direction face : settings.inputs()) {
+      int signal = signal(server, pos, toWorld(state, face));
+      faces[face.ordinal()] = signal;
+      power = Math.max(power, signal);
+    }
+    if (settings.perFace()) {
+      // A block reading single faces reacts when any of them changes, even if the strongest stays
+      // the same; with no record (just placed, or loaded since) it reacts once to start.
+      var known = FACE_POWER.computeIfAbsent(server, level -> new Long2ObjectOpenHashMap<>());
+      int[] last = known.put(pos.asLong(), faces);
+      if (last != null && Arrays.equals(last, faces)) return;
+    } else if (previous == power) return;
     BlockState updated = state.setValue(INPUT, power);
     if (previous != power) server.setBlock(pos, updated, Block.UPDATE_CLIENTS);
     var handler =
