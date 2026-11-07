@@ -33,6 +33,22 @@ public final class DemoBlock extends Block implements EntityBlock {
   }
 
   @Override
+  protected boolean isSignalSource(BlockState state) {
+    return true;
+  }
+
+  @Override
+  protected int getSignal(
+      BlockState state,
+      net.minecraft.world.level.BlockGetter level,
+      BlockPos pos,
+      net.minecraft.core.Direction side) {
+    return level.getBlockEntity(pos) instanceof ProcessorEntity entity
+        ? entity.redstone.signal(side)
+        : 0;
+  }
+
+  @Override
   public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
     return type.get().create(pos, state);
   }

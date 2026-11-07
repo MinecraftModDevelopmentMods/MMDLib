@@ -21,6 +21,13 @@ public final class CuriosEquipment {
   private record Entry(SlotInfo info, IItemHandler handler, boolean active, boolean render) {}
 
   public static List<EquippedContainers.Source> find(Player player, ItemStack identity) {
+    return discover(player, identity).equipment();
+  }
+
+  public static EquippedContainers.Snapshot discover(Player player, ItemStack identity) {
+    var containerSlots =
+        new java.util.LinkedHashSet<>(zone.moddev.mc.lib.MMDLibConfig.CONTAINER_SLOTS.get());
+    var containers = new java.util.HashMap<String, List<EquippedContainers.Source>>();
     var entries = new ArrayList<Entry>();
     var topology = new StringBuilder();
     CuriosApi.getCuriosInventory(player)
@@ -40,6 +47,25 @@ public final class CuriosEquipment {
                       .thenComparing(java.util.Map.Entry::getKey));
               for (var group : groups) {
                 var stacks = group.getValue();
+                if (containerSlots.contains(group.getKey())) {
+                  var found = new ArrayList<EquippedContainers.Source>();
+                  for (int i = 0;
+                      i < stacks.getStacks().getSlots()
+                          && found.size() < ContainerDrawerMenu.MAX_CONTAINERS;
+                      i++) {
+                    var stack = stacks.getStacks().getStackInSlot(i);
+                    if (stack.isEmpty() || !inventory.isSlotActive(group.getKey(), i)) continue;
+                    var storage =
+                        stack.getCapability(
+                            net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.ITEM);
+                    if (storage != null
+                        && storage.getSlots() > 0
+                        && storage.getSlots() <= ContainerDrawerMenu.MAX_SLOTS)
+                      found.add(
+                          new EquippedContainers.Source(group.getKey() + ":" + i, stack, storage));
+                  }
+                  containers.put(group.getKey(), found);
+                }
                 if (!stacks.isVisible()) continue;
                 var type = CuriosApi.getSlot(group.getKey(), player.level());
                 var icon =
@@ -80,7 +106,12 @@ public final class CuriosEquipment {
                 }
               }
             });
-    if (entries.isEmpty()) return List.of();
+    var backpacks =
+        containerSlots.stream()
+            .flatMap(name -> containers.getOrDefault(name, List.of()).stream())
+            .limit(ContainerDrawerMenu.MAX_CONTAINERS)
+            .toList();
+    if (entries.isEmpty()) return new EquippedContainers.Snapshot(backpacks, List.of());
     var handler =
         new EquippedContainers.DescribedHandler() {
           private boolean valid(int slot) {
@@ -140,6 +171,7 @@ public final class CuriosEquipment {
             return result;
           }
         };
-    return List.of(new EquippedContainers.Source(topology.toString(), identity, handler));
+    return new EquippedContainers.Snapshot(
+        backpacks, List.of(new EquippedContainers.Source(topology.toString(), identity, handler)));
   }
 }

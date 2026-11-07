@@ -255,38 +255,27 @@ public final class CompanionClientSmoke {
         throw new AssertionError("Energy must sit against the right panel margin");
       if (!(menu.value(energy, false) instanceof Number))
         throw new AssertionError("Energy was not synced");
-      if (stage == 0 && controlStage < 5) {
+      if (stage == 0 && !RedstoneClientSmoke.run(screen)) {
+        frames = 0;
+        waitingTicks = 0;
+        return;
+      }
+      if (stage == 0 && controlStage < 3) {
         var dial = menu.bound.screen().find("progress").orElseThrow();
-        if (!(dial instanceof zone.moddev.mc.lib.gui.model.Element.Custom)
-            || !(menu.value(dial, false) instanceof Number)
-            || !(menu.value(dial, true) instanceof Number))
-          throw new AssertionError("The mod-defined dial and its values must reach the client");
         var pause = menu.bound.screen().find("toggle_0").orElseThrow();
-        var redstone = menu.bound.screen().find("redstone").orElseThrow();
-        if (!(menu.value(pause, false) instanceof Boolean paused)
-            || !(menu.value(redstone, false) instanceof Number mode)) return;
-        if (controlStage == 0 && !paused && mode.intValue() == 0) {
+        if (!(menu.value(pause, false) instanceof Boolean paused)) return;
+        if (controlStage == 0 && !paused || controlStage == 1 && paused) {
           var bounds = screen.bounds(dial);
           screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
-        } else if (controlStage == 1 && paused) {
-          Screenshot.grab(
-              mc.gameDirectory, "crusher-paused.png", mc.getMainRenderTarget(), message -> {});
-          var bounds = screen.bounds(redstone);
-          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
-        } else if (controlStage == 2 && mode.intValue() == 1) {
-          var bounds = screen.bounds(dial);
-          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
-        } else if (controlStage == 3 && !paused && mode.intValue() == 1) {
-          Screenshot.grab(
-              mc.gameDirectory, "crusher-redstone.png", mc.getMainRenderTarget(), message -> {});
-          var bounds = screen.bounds(redstone);
-          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
-          screen.mouseClicked(bounds.x() + 10, bounds.y() + 10, 0);
-        } else if (controlStage == 4 && !paused && mode.intValue() == 0) {
-          // Wait for the server to acknowledge the redstone reset before checking the cycle.
-        } else return;
+          screen.mouseReleased(bounds.x() + 10, bounds.y() + 10, 0);
+        } else if (controlStage != 2 || paused) return;
         controlStage++;
         frames = 0;
+        return;
+      }
+      if (stage == 0 && !ReservationClientSmoke.run(screen)) {
+        frames = 0;
+        waitingTicks = 0;
         return;
       }
       // The empty-tank/empty-energy screenshot intentionally leaves the crusher idle.
@@ -379,7 +368,10 @@ public final class CompanionClientSmoke {
           Screenshot.grab(mc.gameDirectory, name + ".png", mc.getMainRenderTarget(), message -> {});
           screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
           var exclusions = screen.exclusions();
-          if (exclusions.size() != 3 + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1)
+          if (exclusions.size()
+                  != 3
+                      + (menu.redstone == null ? 0 : 1)
+                      + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1)
               || exclusions.get(1).right() != tab.x())
             throw new AssertionError("The drawer must extend left while retaining its icon tab");
           if (exclusions.get(0).bottom() != exclusions.get(1).bottom()
@@ -416,12 +408,17 @@ public final class CompanionClientSmoke {
             if (lastButton.getInt(screen) != button)
               throw new AssertionError("Drawer swallowed mouse button " + button);
             if (screen.exclusions().size()
-                != 3 + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
+                != 3
+                    + (menu.redstone == null ? 0 : 1)
+                    + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
               throw new AssertionError("Extra mouse button changed the drawer state");
           }
         screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
         screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
-        if (screen.exclusions().size() != 2 + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
+        if (screen.exclusions().size()
+            != 2
+                + (menu.redstone == null ? 0 : 1)
+                + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
           throw new AssertionError("The icon tab did not close its drawer");
         drawerStage = 0;
         if (stage == 0) {

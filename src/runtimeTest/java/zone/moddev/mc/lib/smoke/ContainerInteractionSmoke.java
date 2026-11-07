@@ -106,7 +106,9 @@ final class ContainerInteractionSmoke {
     var stale = request(drawer, menu, ContainerDrawerMenu.SWAP, 0, List.of(0));
     items.setStackInSlot(6, new ItemStack(Items.STONE));
     drawer.action(player, stale);
-    require(items.getStackInSlot(0).isEmpty(), "Stale swap rejected");
+    require(
+        items.getStackInSlot(0).is(Items.DIAMOND) && player.getInventory().getItem(0).isEmpty(),
+        "An unrelated live slot update does not reject a hotbar swap");
     var rejecting =
         new ItemStackHandler(1) {
           public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {

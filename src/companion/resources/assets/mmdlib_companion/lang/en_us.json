@@ -1,4 +1,5 @@
 {
+  "screen.mmdlib_companion.processor": "Processor %s",
   "itemGroup.mmdlib_companion": "MMDLib Machines",
   "screen.mmdlib_companion.energy": "Energy",
   "jei.mmdlib_companion.crushing": "Crushing",

@@ -398,7 +398,7 @@ public final class AutomationRecoveryTests {
     require(
         unsided.extractEnergy(100, false) == 100 && sided.extractEnergy(100, false) == 0,
         "Unsided energy preserves buffer operations while sided access honours input role");
-    // Exercise a host with more underlying storage than its two displayed slots.
+    // Exercise a host with more underlying storage than its three displayed slots.
     var field = ProcessorEntity.class.getDeclaredField("items");
     field.setAccessible(true);
     var original = machine.items;
@@ -407,7 +407,7 @@ public final class AutomationRecoveryTests {
       var player = h.makeMockServerPlayerInLevel();
       var menu = new MachineMenu(91, player.getInventory(), machine);
       require(
-          menu.automation.slotStart() == 2 && menu.reservationSnapshot().size() == 2,
+          menu.automation.slotStart() == 3 && menu.reservationSnapshot().size() == 3,
           "Reservation snapshot includes only displayed base slots, not hidden underlying slots or"
               + " addon indices");
     } finally {

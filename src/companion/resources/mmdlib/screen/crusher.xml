@@ -16,7 +16,10 @@
               tooltip-fallback="Progress: {value} / {max} ticks. Click to pause or resume.">
         <property name="color" value="#55CC88"/>
       </custom>
-      <slot id="output" index="1"/>
+      <hbox spacing="2">
+        <slot id="output" index="1"/>
+        <slot id="output_2" index="2"/>
+      </hbox>
       <spacer/>
       <energy-gauge id="energy" length="3s"/>
     </hbox>
@@ -44,10 +47,6 @@
     </context>
   </vbox>
   <inventory-controls id="inventory_controls">
-    <button flat="true" id="redstone" value="#getRedstoneMode" on-click="mmdlib_companion:redstone"
-            icons="mmdlib:icon_redstone_ignore mmdlib:icon_redstone_high mmdlib:icon_redstone_low"
-            value-labels="screen.mmdlib_companion.redstone.ignore screen.mmdlib_companion.redstone.high screen.mmdlib_companion.redstone.low"
-            tooltip="screen.mmdlib_companion.redstone.tip"/>
     <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
             icons="mmdlib:icon_pause mmdlib:icon_resume"
             value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"

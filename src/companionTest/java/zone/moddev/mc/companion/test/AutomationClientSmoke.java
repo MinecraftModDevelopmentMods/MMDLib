@@ -117,7 +117,8 @@ final class AutomationClientSmoke {
     if (stage == 3) {
       if (a.editor() != 0) throw new AssertionError("Filter editor opens");
       var exclusions = screen.exclusions();
-      if (exclusions.stream().filter(rect -> rect.x() >= screen.panelBounds().right()).count() != 2)
+      if (exclusions.stream().filter(rect -> rect.x() >= screen.panelBounds().right()).count()
+          != 2 + (screen.getMenu().redstone == null ? 0 : 1))
         throw new AssertionError("Filter must remain inside the existing drawer exclusion");
       var drawer = automationBounds(screen);
       if (drawer.y() != screen.guiTop() + ScreenLayout.TAB_PADDING

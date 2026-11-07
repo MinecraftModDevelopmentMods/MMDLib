@@ -76,6 +76,11 @@ public final class AutomationMenu {
     return selected;
   }
 
+  public void closeServer() {
+    open = false;
+    editor = -1;
+  }
+
   public boolean open() {
     return open;
   }
@@ -306,6 +311,7 @@ public final class AutomationMenu {
     }
     processingAction = true;
     try {
+      if (open && menu.redstone != null) menu.redstone.closeServer();
       menu.broadcastChanges();
     } finally {
       processingAction = false;

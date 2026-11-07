@@ -103,6 +103,38 @@ final class ProcessorSmoke {
   /** The crusher's worked run, with inputs reserved rather than taken at the start. */
   static void workedRun(ServerLevel level) {
     var rig = ProcessorRig.crusher(3, 1_000, 3_000);
+    var ids = new java.util.HashSet<String>();
+    var names =
+        List.of(
+            "work",
+            "MainProcessor",
+            "mainprocessor",
+            "main processor",
+            "",
+            "炉",
+            "x".repeat(108),
+            "x".repeat(512));
+    var namesHost = new FeatureHost(() -> {}, () -> {});
+    for (String key : names) {
+      var processor = new RecipeProcessor(key, MachineRecipeTypeSmoke.REFINING, rig.inventory);
+      namesHost.add(processor);
+      require(processor.key().equals(key), "Original persistence key is retained");
+      var again = new RecipeProcessor(key, MachineRecipeTypeSmoke.REFINING, rig.inventory);
+      for (int i = 0; i < 3; i++) {
+        String id = processor.redstoneOutputs().get(i).id();
+        require(
+            id.matches("[a-z0-9_.:/-]{1,128}") && ids.add(id),
+            "Arbitrary processor keys produce bounded, distinct output IDs");
+        require(
+            id.equals(again.redstoneOutputs().get(i).id()), "Output IDs survive reconstruction");
+      }
+    }
+    require(
+        namesHost.save(JsonOps.INSTANCE).getAsJsonObject().keySet().equals(Set.copyOf(names)),
+        "Save data still uses the original processor names");
+    require(
+        rig.processor.redstoneOutputs().getFirst().id().equals("processor/work/processing"),
+        "Compatible existing source IDs are unchanged");
 
     rig.ticks(level, 1);
     expect(rig, Status.RUNNING, 0, "tick 0");

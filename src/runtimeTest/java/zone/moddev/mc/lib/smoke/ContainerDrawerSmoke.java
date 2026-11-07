@@ -112,12 +112,30 @@ final class ContainerDrawerSmoke {
     backing.setStackInSlot(2, new ItemStack(Items.IRON_INGOT, 9));
     send(drawer, menu, player, ContainerDrawerMenu.PICKUP, 4);
     require(menu.getCarried().isEmpty(), "Extraction filter honored");
-    var stale = request(drawer, menu, ContainerDrawerMenu.PICKUP, 0);
+    var live = request(drawer, menu, ContainerDrawerMenu.PICKUP, 0);
     backing.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 60));
-    drawer.action(player, stale);
+    icon.set(DataComponents.CUSTOM_NAME, Component.literal("Live container update"));
+    drawer.action(player, live);
     require(
-        menu.getCarried().isEmpty() && backing.getStackInSlot(0).getCount() == 60,
-        "Stale revision refused");
+        menu.getCarried().getCount() == 60 && backing.getStackInSlot(0).isEmpty(),
+        "Live contents and icon updates do not starve requests; transfers use current contents");
+    menu.setCarried(ItemStack.EMPTY);
+    backing.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 60));
+    var stale = request(drawer, menu, ContainerDrawerMenu.PICKUP, 0);
+    send(drawer, menu, player, ContainerDrawerMenu.PAGE, 27);
+    drawer.action(
+        player,
+        new ContainerDrawerNetwork.Request(
+            menu.containerId,
+            menu.widgetSession(),
+            stale.revision(),
+            drawer.state().acknowledged() + 1,
+            ContainerDrawerMenu.PICKUP,
+            54,
+            27,
+            ItemStack.EMPTY));
+    require(menu.getCarried().isEmpty(), "Old view revision cannot target a newly selected page");
+    send(drawer, menu, player, ContainerDrawerMenu.PAGE, 0);
     var wrongCursor = request(drawer, menu, ContainerDrawerMenu.PICKUP, 0);
     menu.setCarried(new ItemStack(Items.DIAMOND));
     drawer.action(player, wrongCursor);

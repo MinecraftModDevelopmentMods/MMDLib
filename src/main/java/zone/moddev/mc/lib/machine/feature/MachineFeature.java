@@ -47,4 +47,9 @@ public interface MachineFeature<S> {
 
   /** Runs once a tick on the server. */
   default void tick(FeatureHost host) {}
+
+  /**
+   * Called instead of tick when the host holds processing (for example, redstone or reserve gates).
+   */
+  default void suspended(FeatureHost host) {}
 }

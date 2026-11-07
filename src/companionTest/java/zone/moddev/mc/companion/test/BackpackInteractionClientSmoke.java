@@ -165,8 +165,16 @@ final class BackpackInteractionClientSmoke {
       case 17 -> {
         if (!ready || menu.getCarried().getCount() != 10) return false;
         beginDrag(screen, 0, layout.cell(3), playerCell(screen, 9), playerCell(screen, 10));
+        setup(
+            player ->
+                ((net.neoforged.neoforge.items.IItemHandlerModifiable)
+                        EquippedContainers.find(player).getFirst().items())
+                    .setStackInSlot(1, new ItemStack(Items.COPPER_INGOT, 13)));
       }
-      case 18 -> release(screen, 0, playerCell(screen, 10));
+      case 18 -> {
+        if (!ready || state.contents().get(1).getCount() != 13) return false;
+        release(screen, 0, playerCell(screen, 10));
+      }
       case 19 -> {
         require(
             menu.getCarried().getCount() == 1

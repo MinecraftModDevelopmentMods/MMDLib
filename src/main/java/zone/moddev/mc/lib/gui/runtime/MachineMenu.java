@@ -41,6 +41,7 @@ public class MachineMenu extends AbstractContainerMenu {
   @Nullable private final ReservedSlots reserved;
   private final Player owner;
   public final AutomationMenu automation;
+  public final RedstoneMenu redstone;
   public final ContainerDrawerMenu containerDrawer;
   public final ContainerDrawerMenu curiosDrawer;
   private final int baseMachineSlots;
@@ -224,17 +225,27 @@ public class MachineMenu extends AbstractContainerMenu {
     if (!bound.blockEntityClass().isInstance(entity))
       throw new IllegalArgumentException("Wrong screen block entity");
     elements = bound.screen().elements();
-    containerDrawer = new ContainerDrawerMenu(this, owner);
-    var equipmentIdentity = new ItemStack(net.minecraft.world.item.Items.ENDER_EYE);
+    var equipmentDiscovery = new EquippedContainers.Discovery(owner);
+    containerDrawer =
+        new ContainerDrawerMenu(
+            this,
+            owner,
+            () ->
+                bound.screen().playerInventory()
+                    ? equipmentDiscovery.get().containers()
+                    : List.of(),
+            false,
+            equipmentDiscovery::invalidate);
     curiosDrawer =
         new ContainerDrawerMenu(
             this,
             owner,
             () ->
                 bound.screen().playerInventory()
-                    ? EquippedContainers.equipment(owner, equipmentIdentity)
+                    ? equipmentDiscovery.get().equipment()
                     : java.util.List.of(),
-            true);
+            true,
+            equipmentDiscovery::invalidate);
     for (int i = 0; i < elements.size(); i++) elementIndexes.put(elements.get(i), i);
     if (elements.size() > 4096)
       throw new IllegalArgumentException("A screen may have at most 4096 elements");
@@ -245,6 +256,10 @@ public class MachineMenu extends AbstractContainerMenu {
     automation =
         host != null && host.screenAutomation() != null
             ? new AutomationMenu(this, host.screenAutomation(), owner, client)
+            : null;
+    redstone =
+        host != null && host.screenRedstone() != null
+            ? new RedstoneMenu(this, owner, host.screenRedstone(), client)
             : null;
     elements.forEach(
         e -> {
@@ -270,7 +285,9 @@ public class MachineMenu extends AbstractContainerMenu {
         ScreenLayout.of(
             bound.screen(),
             owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
-            automation != null);
+            automation != null,
+            redstone != null,
+            views);
     for (int n = 0; n < count; n++) {
       final int index = n;
       var element =
@@ -373,6 +390,7 @@ public class MachineMenu extends AbstractContainerMenu {
             bound.screen(),
             owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
             automation != null,
+            redstone != null,
             views);
     for (var element : elements) {
       if (element instanceof Element.Slot slot) {
@@ -558,12 +576,18 @@ public class MachineMenu extends AbstractContainerMenu {
     return original.copyWithCount(moved);
   }
 
+  /** Whether a menu index represents a real machine item slot, excluding filters and drawers. */
+  public boolean isMachineItemSlot(int index) {
+    return index >= 0 && index < baseMachineSlots && slots.get(index) instanceof SlotItemHandler;
+  }
+
   private boolean planned(int index) {
-    return reserved != null
-        && index >= 0
-        && index < baseMachineSlots
-        && slots.get(index) instanceof SlotItemHandler
-        && reserved.hasPlan(index);
+    return reserved != null && isMachineItemSlot(index) && reserved.hasPlan(index);
+  }
+
+  /** The synchronized plan for a real machine slot; other slots have no reservation overlay. */
+  public SlotPlan reservationPlan(int index) {
+    return planned(index) ? reserved.plan(index) : SlotPlan.NONE;
   }
 
   private int playerStorageEnd() {
@@ -587,6 +611,7 @@ public class MachineMenu extends AbstractContainerMenu {
     containerDrawer.broadcast();
     curiosDrawer.broadcast();
     if (automation != null) automation.broadcast();
+    if (redstone != null) redstone.broadcast();
     if (!(owner instanceof net.minecraft.server.level.ServerPlayer player)
         || !stillValid(owner)
         || !player.connection.hasChannel(ScreenNetwork.Values.TYPE)) return;
