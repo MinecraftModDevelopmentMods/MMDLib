@@ -3,10 +3,8 @@ package zone.moddev.mc.lib.api.automation;
 import java.util.*;
 import java.util.function.Consumer;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
@@ -14,10 +12,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
+
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import zone.moddev.mc.lib.api.capabilities.*;
 
@@ -128,6 +128,11 @@ public final class AutomationInventory {
   }
 
   public ItemStackHandler slots() {
+    return slots;
+  }
+
+  /** The installed addon/filter items, separate from the machine's resource contents. */
+  public ItemStackHandler addonSlots() {
     return slots;
   }
 

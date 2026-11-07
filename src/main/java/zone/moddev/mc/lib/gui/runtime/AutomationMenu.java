@@ -49,7 +49,7 @@ public final class AutomationMenu {
     revisions = new long[generations.length];
     items =
         client
-            ? new ItemStackHandler(inventory.slots().getSlots()) {
+            ? new ItemStackHandler(inventory.addonSlots().getSlots()) {
               @Override
               public int getSlotLimit(int slot) {
                 return 1;
@@ -67,7 +67,7 @@ public final class AutomationMenu {
                     && addon.acceptsFilter(parent, stack);
               }
             }
-            : inventory.slots();
+            : inventory.addonSlots();
   }
 
   public int slotCount() {

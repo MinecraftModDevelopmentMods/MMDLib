@@ -1,4 +1,13 @@
 {
+  "screen.mmdlib.processor.processing": "Working",
+  "screen.mmdlib.processor.idle": "Idle",
+  "screen.mmdlib.processor.paused": "Paused",
+  "screen.mmdlib.processor.toggle": "{value}\n{action}",
+  "screen.mmdlib.processor.action.unpause": "Click to unpause",
+  "screen.mmdlib.processor.action.stop": "Click to stop and clear reservations",
+  "screen.mmdlib.processor.action.pause": "Click to pause",
+  "screen.mmdlib.processor.conflict.manual": "Redstone settings conflict:\nManual pause takes priority.",
+  "screen.mmdlib.processor.conflict.redstone": "Redstone settings conflict:\nPaused by redstone.",
   "screen.mmdlib.reservation.input": "Reserved for input: %s",
   "screen.mmdlib.reservation.output": "Reserved output: %s x %s",
   "screen.mmdlib.energy": "{value} / {max} FE",

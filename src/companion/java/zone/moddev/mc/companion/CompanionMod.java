@@ -92,18 +92,15 @@ public final class CompanionMod {
             id("tank_container"),
             MaterialEventTypes.GUI_CLICK,
             CompanionMod::transferTankContainer);
-    for (int lane = 0; lane < 2; lane++) {
-      int index = lane;
-      MaterialExtensions.GLOBAL
-          .events()
-          .registerCallback(
-              id("toggle_" + lane),
-              MaterialEventTypes.GUI_CLICK,
-              click -> {
-                if (click.menu().blockEntity instanceof ProcessorEntity machine)
-                  machine.toggle(index);
-              });
-    }
+    // The custom progress dial remains clickable; processor buttons have a library-owned action.
+    MaterialExtensions.GLOBAL
+        .events()
+        .registerCallback(
+            id("toggle_0"),
+            MaterialEventTypes.GUI_CLICK,
+            click -> {
+              if (click.menu().blockEntity instanceof ProcessorEntity machine) machine.toggle(0);
+            });
   }
 
   private static void transferTankContainer(ScreenClick click) {

@@ -31,6 +31,19 @@ final class ScreenSnapshots {
     var elements = bound.screen().elements();
     for (int i = 0; i < elements.size(); i++) {
       var e = elements.get(i);
+      if (e instanceof zone.moddev.mc.lib.gui.model.Element.Button button
+          && button.processorKey().isPresent()
+          && entity instanceof ScreenHost host
+          && host.screenFeatures() != null) {
+        var processor =
+            host.screenFeatures().processor(button.processorKey().orElseThrow()).orElse(null);
+        if (processor != null)
+          result.put(
+              i * 2,
+              zone.moddev.mc.lib.gui.model.ProcessorButtonState.of(
+                      processor.paused(), processor.processing())
+                  .wireValue());
+      }
       for (int max = 0; max < 2; max++) {
         var getter = (max == 0 ? bound.values() : bound.maxima()).get(e);
         if (getter == null) continue;

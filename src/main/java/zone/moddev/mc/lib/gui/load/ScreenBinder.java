@@ -71,13 +71,25 @@ public final class ScreenBinder {
     var maxima = new IdentityHashMap<Element, BoundValue>();
     for (var element : screen.elements()) {
       var c = element.common();
+      var elementSource = screen.source(c);
+      if (element instanceof Button button
+          && button.processorKey().isPresent()
+          && !zone.moddev.mc.lib.gui.runtime.ScreenHost.class.isAssignableFrom(owner))
+        throw new ScreenException(
+            elementSource, c.line(), "<processor-button> requires a ScreenHost");
       if (c.value().isPresent())
         values.put(
             element,
             resolve(
-                c.value().get(), owner, loader, source, c.line(), valueKinds(element, widgets)));
+                c.value().get(),
+                owner,
+                loader,
+                elementSource,
+                c.line(),
+                valueKinds(element, widgets)));
       if (c.max().isPresent())
-        maxima.put(element, resolve(c.max().get(), owner, loader, source, c.line(), NUMBERS));
+        maxima.put(
+            element, resolve(c.max().get(), owner, loader, elementSource, c.line(), NUMBERS));
     }
     return new Bound(screen, owner, values, maxima);
   }

@@ -1,0 +1,16 @@
+<screen xmlns="https://moddev.zone/mmdlib/screen" abstract="true">
+  <vbox padding="7" spacing="4">
+    <placeholder name="heading"/>
+    <hbox spacing="6" align="center">
+      <placeholder name="machine" required="true"/>
+      <spacer/>
+      <energy-gauge id="energy" length="3s"/>
+    </hbox>
+  </vbox>
+  <placeholder name="inventory_controls">
+    <inventory-controls id="inventory_controls">
+      <processor-button id="toggle_0" processor-key="lane_0"/>
+    </inventory-controls>
+  </placeholder>
+  <placeholder name="info"/>
+</screen>

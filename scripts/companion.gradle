@@ -7,7 +7,7 @@ sourceSets {
         compileClasspath += sourceSets.companion.output + sourceSets.companion.compileClasspath
         runtimeClasspath += sourceSets.companion.output + sourceSets.companion.runtimeClasspath
     }
-    // Mock GameTest connections cannot negotiate Curios' login-sync payloads.
+    // Mock GameTest connections cannot negotiate Curios/Jade login-sync payloads.
     // Reuse the compiled fixtures, but keep optional mods for real client/server smoke runs.
     companionServerTest {
         runtimeClasspath += sourceSets.companionTest.output + sourceSets.companion.output + sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -17,6 +17,12 @@ sourceSets {
 neoForge.addModdingDependenciesTo(sourceSets.companion)
 neoForge.addModdingDependenciesTo(sourceSets.companionTest)
 neoForge.addModdingDependenciesTo(sourceSets.companionServerTest)
+
+// Jade is present in playable companion and real-client smoke runs, including their integrated server.
+// Keep mock GameTest connections isolated, as with Curios below; publish neither runtime fixture.
+dependencies {
+    companionRuntimeOnly "maven.modrinth:jade:${jade_version}"
+}
 
 // Development fixtures only: do not add backpack APIs or required mod metadata to either jar.
 // -PwithoutBackpacks retains a companion run without Curios or backpack mods.

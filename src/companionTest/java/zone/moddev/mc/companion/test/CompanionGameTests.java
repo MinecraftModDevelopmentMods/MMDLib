@@ -39,6 +39,145 @@ public final class CompanionGameTests {
   private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
   @GameTest(template = "empty")
+  public static void processorActivityTracksWorkAndHostGates(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var processor = machine.lanes.getFirst();
+    require(!processor.paused() && !processor.processing(), "New processors are unpaused and idle");
+    machine.items.setStackInSlot(0, new ItemStack(Items.COPPER_ORE, 16));
+    machine.energy.setStored(100000);
+    tick(machine, 2);
+    require(processor.processing(), "Available work and energy start processing");
+    machine.energy.setStored(0);
+    machine.serverTick();
+    require(
+        !processor.processing() && !processor.paused(),
+        "An energy stall is idle, not manually paused");
+    machine.energy.setStored(100000);
+    machine.serverTick();
+    machine.setReservePercent(100);
+    machine.serverTick();
+    require(
+        !processor.processing() && !processor.paused(),
+        "An energy-reserve hold is not active processing");
+    machine.setReservePercent(0);
+    machine.serverTick();
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.READ);
+    machine.redstone.range(0, 0, 15);
+    machine.serverTick();
+    require(
+        !processor.processing() && !processor.paused() && machine.items.hasPlan(0),
+        "Redstone holds work without manually pausing or releasing its reservation");
+    processor.pause();
+    require(processor.paused() && !processor.processing(), "Manual pause has its own state");
+    processor.resume();
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.IGNORE);
+    machine.serverTick();
+    for (int ticks = 0; ticks < 200 && processor.progress() < processor.time() - 1; ticks++)
+      machine.serverTick();
+    require(processor.progress() == processor.time() - 1, "Resumed work reaches its final tick");
+    machine.serverTick();
+    require(
+        processor.completedCycles().signum() > 0 && processor.processing(),
+        "The completion tick remains processing so the icon does not flicker between cycles");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void genericProcessorButtonsRespectRedstoneAndLaneKeys(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.DUAL_CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    var menu = new MachineMenu(42, player.getInventory(), machine);
+    player.containerMenu = menu;
+    var button =
+        (zone.moddev.mc.lib.gui.model.Element.Button)
+            menu.bound.screen().find("toggle_1").orElseThrow();
+    require(
+        button.processorKey().orElseThrow().equals("lane_1") && !button.common().clicks().any(),
+        "The generic control targets a stable key without callbacks");
+    int index = menu.index(button);
+    menu.action(player, new ScreenNetwork.Action(42, index, 0, 1, 0, 0));
+    require(!machine.lanes.get(1).paused(), "Right click cannot toggle the processor");
+    menu.action(player, new ScreenNetwork.Action(42, index, 0, 0, 0, 1));
+    require(!machine.lanes.get(1).paused(), "Invalid options cannot toggle the processor");
+    var action = new ScreenNetwork.Action(42, index, 0, 0, 0, 0);
+    menu.action(player, action);
+    require(
+        machine.lanes.get(1).paused() && !machine.lanes.getFirst().paused(),
+        "Only the keyed lane pauses");
+    require(
+        !menu.redstone.watching() && !menu.redstone.conflicts(true),
+        "No input watching means no conflict indicator");
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.EMIT);
+    require(!menu.redstone.watching(), "Output-only redstone does not watch inputs");
+    machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.READ);
+    machine.redstone.range(0, 0, 15);
+    machine.redstone.readInputs();
+    require(
+        menu.redstone.watching()
+            && menu.redstone.paused()
+            && !menu.redstone.conflicts(true)
+            && menu.redstone.conflicts(false),
+        "A redstone hold conflicts only with an enabled manual state");
+    menu.action(player, action);
+    require(
+        !machine.lanes.get(1).paused() && menu.redstone.paused(),
+        "Resume changes the manual state while redstone still holds processing");
+    machine.redstone.outside(0, true);
+    machine.redstone.readInputs();
+    require(
+        !menu.redstone.paused() && menu.redstone.conflicts(true) && !menu.redstone.conflicts(false),
+        "Redstone allowing work conflicts with manual pause");
+
+    int[] changes = {0}, syncs = {0};
+    var host =
+        new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> changes[0]++, () -> syncs[0]++)
+            .add(machine.lanes.get(1));
+    require(
+        host.setProcessorPaused("lane_1", true) && changes[0] == 1 && syncs[0] == 1,
+        "Manual changes persist and sync without a processing tick");
+    require(
+        !host.setProcessorPaused("lane_1", true)
+            && !host.setProcessorPaused("missing", true)
+            && changes[0] == 1
+            && syncs[0] == 1,
+        "Repeated states and unknown keys are inert");
+    machine.lanes.get(1).pause();
+    machine.lanes.get(1).setPaused(false);
+    require(!machine.lanes.get(1).paused(), "The public pause setter resumes too");
+    var invalid =
+        new zone.moddev.mc.lib.gui.model.Element.Button(
+            button.common(),
+            button.text(),
+            button.icon(),
+            button.shows(),
+            button.icons(),
+            button.valueLabels(),
+            button.flat(),
+            java.util.Optional.of("missing"));
+    var original = menu.bound.screen();
+    var invalidScreen =
+        new zone.moddev.mc.lib.gui.model.Screen(
+            original.id(),
+            original.source(),
+            original.title(),
+            original.blockEntity(),
+            original.playerInventory(),
+            java.util.List.of(invalid),
+            java.util.List.of());
+    try {
+      zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(invalidScreen, machine);
+      throw new AssertionError("Unknown processor key accepted");
+    } catch (zone.moddev.mc.lib.gui.load.ScreenException expected) {
+      require(
+          expected.getMessage().contains("Unknown processor-key: missing"),
+          "An invalid control identifies its missing key");
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void statisticsProvidersDescribeCurrentRecipes(GameTestHelper helper) {
     var machine = place(helper, CompanionMod.DUAL_CRUSHER);
     var first = machine.lanes.getFirst();

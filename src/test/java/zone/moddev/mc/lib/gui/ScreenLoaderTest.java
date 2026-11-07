@@ -329,74 +329,56 @@ public final class ScreenLoaderTest {
 
   @Test
   void companionControlsSitAboveInventoryAtRightMargin() throws Exception {
+    var screens = companionScreens();
     for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher")) {
-      try (var input =
-          java.nio.file.Files.newInputStream(
-              java.nio.file.Path.of("src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
-        var screen =
-            ScreenReader.read(
-                ResourceLocation.parse("mmdlib_companion:" + name),
-                name + ".xml",
-                input,
-                companionLayoutWidgets());
-        var layout =
-            ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
-        var controls = layout.bounds(screen.find("inventory_controls").orElseThrow());
-        require(screen.find("redstone").isEmpty());
-        var firstPause = layout.bounds(screen.find("toggle_0").orElseThrow());
-        var pause =
-            layout.bounds(
-                screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
-        require(controls.y() > layout.bounds(screen.find("energy").orElseThrow()).bottom());
-        var inventory = layout.inventory().orElseThrow();
-        require(controls.y() == ScreenLayout.playerSlot(inventory, 39).y());
-        require(controls.bottom() + ScreenLayout.GAP == ScreenLayout.playerSlot(inventory, 9).y());
-        require(pause.right() == ScreenLayout.playerSlot(inventory, 17).right());
-        var colours = layout.inventoryColors().orElseThrow();
-        require(colours.x() == layout.inventory().orElseThrow().x());
-        require(colours.y() == firstPause.y() && colours.height() == firstPause.height());
-        require(colours.right() + ScreenLayout.GAP == firstPause.x());
-        require(firstPause.y() == pause.y());
-        require(pause.width() == 14 && pause.height() == 14);
-        require(((Element.Button) screen.find("toggle_0").orElseThrow()).flat());
-      }
+      var screen = screens.get(ResourceLocation.parse("mmdlib_companion:" + name));
+      var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+      var controls = layout.bounds(screen.find("inventory_controls").orElseThrow());
+      require(screen.find("redstone").isEmpty());
+      var firstPause = layout.bounds(screen.find("toggle_0").orElseThrow());
+      var pause =
+          layout.bounds(
+              screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
+      require(controls.y() > layout.bounds(screen.find("energy").orElseThrow()).bottom());
+      var inventory = layout.inventory().orElseThrow();
+      require(controls.y() == ScreenLayout.playerSlot(inventory, 39).y());
+      require(controls.bottom() + ScreenLayout.GAP == ScreenLayout.playerSlot(inventory, 9).y());
+      require(pause.right() == ScreenLayout.playerSlot(inventory, 17).right());
+      var colours = layout.inventoryColors().orElseThrow();
+      require(colours.x() == layout.inventory().orElseThrow().x());
+      require(colours.y() == firstPause.y() && colours.height() == firstPause.height());
+      require(colours.right() + ScreenLayout.GAP == firstPause.x());
+      require(firstPause.y() == pause.y());
+      require(pause.width() == 14 && pause.height() == 14);
+      require(((Element.Button) screen.find("toggle_0").orElseThrow()).flat());
     }
   }
 
   @Test
   void allCompanionScreensPlaceBatteryAtRightMargin() throws Exception {
+    var screens = companionScreens();
     for (var name : java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power")) {
-      try (var input =
-          java.nio.file.Files.newInputStream(
-              java.nio.file.Path.of("src/companion/resources/mmdlib/screen/" + name + ".xml"))) {
-        var screen =
-            ScreenReader.read(
-                ResourceLocation.parse("mmdlib_companion:" + name),
-                name + ".xml",
-                input,
-                companionLayoutWidgets());
-        var layout =
-            ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
-        var energy = screen.find("energy").orElseThrow();
-        require(energy instanceof Element.EnergyGauge);
-        var bounds = layout.bounds(energy);
-        require(bounds.right() == layout.panel().width() - 7);
-        require(bounds.height() == 54 && bounds.width() == 18);
-        for (var element : screen.elements()) {
-          if (screen.find("settings").filter(view -> containsElement(view, element)).isPresent())
-            continue;
-          if (element instanceof Element.Slot
-              || element instanceof Element.Progress
-              || element instanceof Element.Custom
-              || element instanceof Element.Checkbox
-              || element instanceof Element.Label) {
-            var other = layout.bounds(element);
-            require(
-                other.right() <= bounds.x()
-                    || other.x() >= bounds.right()
-                    || other.bottom() <= bounds.y()
-                    || other.y() >= bounds.bottom());
-          }
+      var screen = screens.get(ResourceLocation.parse("mmdlib_companion:" + name));
+      var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
+      var energy = screen.find("energy").orElseThrow();
+      require(energy instanceof Element.EnergyGauge);
+      var bounds = layout.bounds(energy);
+      require(bounds.right() == layout.panel().width() - 7);
+      require(bounds.height() == 54 && bounds.width() == 18);
+      for (var element : screen.elements()) {
+        if (screen.find("settings").filter(view -> containsElement(view, element)).isPresent())
+          continue;
+        if (element instanceof Element.Slot
+            || element instanceof Element.Progress
+            || element instanceof Element.Custom
+            || element instanceof Element.Checkbox
+            || element instanceof Element.Label) {
+          var other = layout.bounds(element);
+          require(
+              other.right() <= bounds.x()
+                  || other.x() >= bounds.right()
+                  || other.bottom() <= bounds.y()
+                  || other.y() >= bounds.bottom());
         }
       }
     }
@@ -463,6 +445,16 @@ public final class ScreenLoaderTest {
             layout.bounds(screen.find("inventory_controls").orElseThrow()).y() == inventory.y());
       }
     }
+  }
+
+  private static java.util.Map<ResourceLocation, Screen> companionScreens() {
+    return zone.moddev.mc.lib.gui.load.ScreenLoader.read(
+        java.util.List.of(
+            new zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot(
+                "mmdlib_companion",
+                java.nio.file.Path.of("src/companion/resources/mmdlib"),
+                ScreenLoaderTest.class.getClassLoader())),
+        companionLayoutWidgets());
   }
 
   private static WidgetTypes companionLayoutWidgets() {

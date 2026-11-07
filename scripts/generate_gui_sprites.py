@@ -275,16 +275,43 @@ def write_control_icons():
                 if bit != ".": img[y + dy][x + dx] = ink
 
     pause = ["##...##"] * 9
+    stop = ["#######"] * 7
     play = ["#......", "###....", "#####..", "#######", "#######", "#####..", "###....", "#......"]
     letters = {"a": [".#.", "#.#", "###", "#.#", "#.#"],
                "b": ["##.", "#.#", "##.", "#.#", "##."]}
-    for name, rows, ink in (("pause", pause, (240, 198, 70, 255)),
+    for name, rows, ink in (("stop", stop, (232, 86, 72, 255)),
+                            ("pause", pause, (240, 198, 70, 255)),
                             ("resume", play, (100, 216, 112, 255))):
-        for lane in ("", "a", "b"):
+        for lane in (("",) if name == "stop" else ("", "a", "b")):
             img = canvas(16, 16)
             glyph(img, rows, 3 if lane else 4, 2 if lane else 3, ink)
             if lane: glyph(img, letters[lane], 11, 9, grey(245))
             write_png("icon_" + name + ("_" + lane if lane else ""), img)
+
+    # Native 12px sprites for the compact processor controls: no 16-to-12 scaling.
+    # All three glyphs, including their shadow, occupy the same centered 8x8 box.
+    for name, rows, ink in (
+        ("pause", ["##...##"] * 7, (240, 198, 70, 255)),
+        ("stop", ["#######"] * 7, (232, 86, 72, 255)),
+        ("play", ["#......", "###....", "#####..", "#######", "#####..", "###....", "#......"], (100, 216, 112, 255)),
+    ):
+        img = canvas(12, 12)
+        glyph(img, rows, 2, 2, ink)
+        write_png("icon_processor_" + name, img)
+
+    for name, rows, ink in (
+        ("running", ["#....", "###..", "#####", "###..", "#...."], (100, 216, 112, 255)),
+        ("paused", ["##.##"] * 5, (240, 198, 70, 255)),
+    ):
+        img = canvas(7, 7)
+        glyph(img, rows, 0, 0, ink)
+        write_png("icon_redstone_" + name, img)
+
+    img = canvas(5, 5)
+    for y, row in enumerate([".###.", "#####", "#####", "#####", ".###."]):
+        for x, bit in enumerate(row):
+            if bit == "#": img[y][x] = (244, 55, 55, 255)
+    write_png("icon_processor_conflict", img)
 
     torch = [".###.", "#####", "#####", ".###.", "..#..", "..#..", "..#..", "..#..", "..#.."]
     badges = {"ignore": ["#.#", ".#.", "#.#"],

@@ -263,6 +263,7 @@ public class MachineMenu extends AbstractContainerMenu {
       if (element instanceof Element.SideConfig config && config.groups().size() > 682)
         throw new IllegalArgumentException("Too many side configuration groups");
     host = entity instanceof ScreenHost h ? h : null;
+    if (host != null) ScreenInventoryValidation.validate(bound.screen(), host);
     automation =
         host != null && host.screenAutomation() != null
             ? new AutomationMenu(this, host.screenAutomation(), owner, client)
@@ -445,6 +446,17 @@ public class MachineMenu extends AbstractContainerMenu {
 
   public Object wireValue(int key) {
     return values.get(key);
+  }
+
+  public boolean processorConflict(Element.Button button) {
+    return button.processorKey().isPresent()
+        && redstone != null
+        && zone.moddev.mc.lib.gui.model.ProcessorButtonState.fromWire(value(button, false))
+            .map(
+                state ->
+                    redstone.conflicts(
+                        state == zone.moddev.mc.lib.gui.model.ProcessorButtonState.PAUSED))
+            .orElse(false);
   }
 
   public void apply(Map<Integer, Object> delta) {
@@ -708,6 +720,24 @@ public class MachineMenu extends AbstractContainerMenu {
       return;
     }
     if (action.kind() != 0) return;
+    if (element instanceof Element.Button button && button.processorKey().isPresent()) {
+      if (action.button() != 0
+          || action.option() != 0
+          || host == null
+          || host.screenFeatures() == null) return;
+      var features = host.screenFeatures();
+      var key = button.processorKey().orElseThrow();
+      features
+          .processor(key)
+          .ifPresent(
+              processor -> {
+                if (features.setProcessorPaused(key, !processor.paused())) {
+                  ScreenSnapshots.invalidate(blockEntity);
+                  broadcastChanges();
+                }
+              });
+      return;
+    }
     var clicks = element.common().clicks();
     boolean shift = (action.modifiers() & 1) != 0;
     var normal = action.button() == 0 ? clicks.click() : clicks.rightClick();

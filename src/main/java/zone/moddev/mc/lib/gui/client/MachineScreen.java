@@ -426,6 +426,13 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                         r.y() + (r.height() - iconSize) / 2,
                         iconSize,
                         iconSize));
+        if (menu.processorConflict(b))
+          g.blitSprite(
+              ResourceLocation.parse("mmdlib:icon_processor_conflict"),
+              r.right() - 6,
+              r.bottom() - 6,
+              5,
+              5);
       }
       case Element.Checkbox c -> {
         sprite(
@@ -755,10 +762,33 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                               .orElseGet(() -> ScreenText.number(menu.value(e, false), shift))
                           : ScreenText.number(menu.value(e, false), shift))
                   .replace("{max}", ScreenText.number(menu.value(e, true), shift));
-          lines.add(Component.literal(translated));
+          if (e instanceof Element.Button button && button.processorKey().isPresent()) {
+            var action =
+                ProcessorButtonState.fromWire(menu.value(button, false))
+                    .map(
+                        state ->
+                            switch (state) {
+                              case PAUSED -> "screen.mmdlib.processor.action.unpause";
+                              case PROCESSING -> "screen.mmdlib.processor.action.stop";
+                              case IDLE -> "screen.mmdlib.processor.action.pause";
+                            })
+                    .map(key -> Component.translatable(key).getString())
+                    .orElse("");
+            translated = translated.replace("{action}", action);
+          }
+          translated.lines().map(Component::literal).forEach(lines::add);
         });
     if (c.tooltipShift().isPresent() && !shift)
       lines.add(Component.translatable("screen.mmdlib.shift_for_more"));
+    if (e instanceof Element.Button button && menu.processorConflict(button))
+      Component.translatable(
+              menu.redstone.paused()
+                  ? "screen.mmdlib.processor.conflict.redstone"
+                  : "screen.mmdlib.processor.conflict.manual")
+          .getString()
+          .lines()
+          .map(Component::literal)
+          .forEach(lines::add);
     if (e instanceof Element.Slot slot) {
       var plan = menu.reservationPlan(slot.index());
       if (plan.take() > 0)
@@ -862,6 +892,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                 menu.containerId,
                 i,
                 button == 1 ? ItemStack.EMPTY : menu.getCarried().copyWithCount(1)));
+        return true;
+      }
+      if (e instanceof Element.Button b && b.processorKey().isPresent()) {
+        if (button == 0) send(e, 0, button, 0);
         return true;
       }
       if (e instanceof Element.Button b && b.shows().isPresent()) {

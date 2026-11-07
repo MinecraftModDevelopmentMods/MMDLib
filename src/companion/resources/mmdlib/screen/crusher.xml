@@ -47,10 +47,7 @@
     </context>
   </vbox>
   <inventory-controls id="inventory_controls">
-    <button flat="true" id="toggle_0" value="#getPaused" on-click="mmdlib_companion:toggle_0"
-            icons="mmdlib:icon_pause mmdlib:icon_resume"
-            value-labels="screen.mmdlib_companion.pause.off screen.mmdlib_companion.pause.on"
-            tooltip="screen.mmdlib_companion.pause.tip"/>
+    <processor-button id="toggle_0" processor-key="lane_0"/>
   </inventory-controls>
   <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.info.crusher" value="#getWarnings"/>
 </screen>

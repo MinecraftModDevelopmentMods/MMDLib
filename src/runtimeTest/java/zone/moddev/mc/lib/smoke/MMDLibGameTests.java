@@ -16,6 +16,36 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class MMDLibGameTests {
   @GameTest(template = "empty")
+  public static void inventoryScreenReferences(GameTestHelper helper) throws Exception {
+    InventoryArchitectureSmoke.screenValidation(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void inventoryItemMigration(GameTestHelper helper) {
+    InventoryArchitectureSmoke.itemMigration(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void inventoryFluidMigration(GameTestHelper helper) {
+    InventoryArchitectureSmoke.fluidMigration(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void inventoryGroupBindings(GameTestHelper helper) {
+    InventoryArchitectureSmoke.bindings(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void inventoryRecipeAdmission(GameTestHelper helper) {
+    InventoryArchitectureSmoke.recipeFilters(helper.getLevel());
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void processorIdleSearchBackoff(GameTestHelper helper) {
     ProcessorSmoke.idleSearchBackoff(helper.getLevel());
     helper.succeed();
@@ -30,7 +60,9 @@ public final class MMDLibGameTests {
 
   @GameTest(template = EMPTY)
   public static void equippedContainer(GameTestHelper helper) {
-    ContainerDrawerSmoke.check(helper.getLevel(), helper.absolutePos(CENTER),
+    ContainerDrawerSmoke.check(
+        helper.getLevel(),
+        helper.absolutePos(CENTER),
         helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
     helper.succeed();
   }

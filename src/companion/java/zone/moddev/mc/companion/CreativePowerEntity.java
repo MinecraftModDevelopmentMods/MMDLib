@@ -41,8 +41,12 @@ public final class CreativePowerEntity extends DemoEntity
             java.util.List.of(0),
             java.util.List.of("energy"),
             new SideConfig(IoMode.OUTPUT));
-    group.bind(this::facing, side -> energy.view(() -> group.mode(side)));
-    automation = new AutomationInventory(this, java.util.List.of(group));
+    automation =
+        new zone.moddev.mc.lib.machine.neoforge.MachineResources(this, this::facing)
+            .energy(group, energy)
+            .build()
+            .automation();
+    zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(this);
   }
 
   @Override
