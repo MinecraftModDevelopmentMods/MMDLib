@@ -2,6 +2,7 @@ package zone.moddev.mc.companion.test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.IntUnaryOperator;
 
 import com.mojang.serialization.Codec;
 
@@ -16,7 +17,9 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.Fluids;
 
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -25,6 +28,7 @@ import zone.moddev.mc.companion.ProcessorEntity;
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
+import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
 import zone.moddev.mc.lib.machine.feature.*;
 import zone.moddev.mc.lib.machine.neoforge.*;
 
@@ -33,6 +37,63 @@ import zone.moddev.mc.lib.machine.neoforge.*;
 public final class BasePoweredMachineTests {
   private static void require(boolean condition, String message) {
     if (!condition) throw new AssertionError(message);
+  }
+
+  @GameTest(template = "empty")
+  public static void legacyMappingsRunBeforeFeaturesAndRespectStableIds(GameTestHelper helper) {
+    var registries = helper.getLevel().registryAccess();
+    var probe = new Probe(helper, 1);
+    probe.metadata = 1;
+    probe.featureValue = 7;
+    var saved = probe.saveWithoutMetadata(registries);
+    var oldItems = new ItemStorage(2);
+    oldItems.restoreStack(0, new ItemStack(Items.DIAMOND, 3));
+    oldItems.restoreStack(1, new ItemStack(Items.EMERALD, 4));
+    var oldTanks = new FluidStorage();
+    oldTanks.addTank(2000, Role.STORAGE);
+    oldTanks.addTank(2000, Role.STORAGE);
+    oldTanks.restoreFluid(0, new FluidStack(Fluids.WATER, 500));
+    oldTanks.restoreFluid(1, new FluidStack(Fluids.LAVA, 700));
+    saved.put("items", oldItems.serializeNBT(registries));
+    saved.put("fluids", oldTanks.serializeNBT(registries));
+    for (int pass = 0; pass < 2; pass++) {
+      var restored = new Probe(helper, 1);
+      restored.loadWithComponents(saved, registries);
+      require(
+          restored.items.getStackInSlot(0).is(Items.EMERALD)
+              && restored.items.getStackInSlot(1).getCount() == 3
+              && restored.tanks.getFluidInTank(0).is(Fluids.LAVA)
+              && restored.tanks.getFluidInTank(1).getAmount() == 500,
+          "Legacy indexes remap once; subsequent identified entries retain their identities");
+      require(
+          restored.itemAtRestore.is(Items.EMERALD) && restored.featureValue == 7,
+          "Features see migrated storage before custom world metadata is restored");
+      saved = restored.saveWithoutMetadata(registries);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void lifecycleRejectsReservedSaveKeys(GameTestHelper helper) {
+    var probe = new Probe(helper, 1);
+    for (var key :
+        List.of(
+            "automation",
+            "features",
+            "redstone_control",
+            "redstone_mode",
+            "id",
+            "components",
+            "mmdlib_features",
+            "mmdlib_machine")) {
+      try {
+        probe.lifecycle.items(key, new ItemStorage(1));
+        throw new AssertionError("Reserved storage key accepted: " + key);
+      } catch (IllegalArgumentException expected) {
+        require(expected.getMessage().contains(key), "Diagnostic names the reserved key");
+      }
+    }
+    helper.succeed();
   }
 
   @GameTest(template = "empty")
@@ -140,6 +201,11 @@ public final class BasePoweredMachineTests {
               0,
               Optional.empty(),
               Optional.of(status)));
+      require(
+          ProcessorButtonState.of(first)
+              .name()
+              .equals(status == RecipeProcessor.Status.RUNNING ? "PROCESSING" : status.name()),
+          "Processor button distinguishes every current state, including automatic holds");
       var key =
           switch (status) {
             case STALLED -> "screen.mmdlib.machine.stalled";
@@ -180,7 +246,9 @@ public final class BasePoweredMachineTests {
   }
 
   private static final class Probe extends BasePoweredMachine {
-    final ItemStorage items = new ItemStorage(1);
+    final ItemStorage items = new ItemStorage(2).slotId(0, "second").slotId(1, "first");
+    final FluidStorage tanks = new FluidStorage();
+    ItemStack itemAtRestore = ItemStack.EMPTY;
     final MachineInventoryLifecycle lifecycle;
     final RedstoneControl redstone = new RedstoneControl(this, List.of());
     MachineInventoryLifecycle.PausePolicy policy =
@@ -197,6 +265,9 @@ public final class BasePoweredMachineTests {
           40,
           20);
       setLevel(helper.getLevel());
+      tanks.addTank(2000, Role.STORAGE);
+      tanks.addTank(2000, Role.STORAGE);
+      tanks.tankId(0, "second").tankId(1, "first");
       var group =
           new ResourceGroup<net.neoforged.neoforge.energy.IEnergyStorage>(
               "energy",
@@ -214,7 +285,8 @@ public final class BasePoweredMachineTests {
               : (mode == 1
                       ? new MachineInventoryLifecycle(this, features, automation, energy)
                       : poweredInventory(automation))
-                  .items("items", items);
+                  .items("items", items)
+                  .fluids("fluids", tanks);
       features.add(
           new MachineFeature<Integer>() {
             public String key() {
@@ -232,6 +304,7 @@ public final class BasePoweredMachineTests {
             public void restore(Integer value) {
               featureValue = value;
               powerAtRestore = energy.stored();
+              itemAtRestore = items.getStackInSlot(0).copy();
             }
 
             public void reset() {
@@ -262,6 +335,13 @@ public final class BasePoweredMachineTests {
     @Override
     protected MachineInventoryLifecycle.PausePolicy pausePolicy() {
       return policy;
+    }
+
+    @Override
+    protected IntUnaryOperator legacySlots(String key, CompoundTag tag) {
+      return tag.getInt("metadata") == 1 && (key.equals("items") || key.equals("fluids"))
+          ? index -> 1 - index
+          : IntUnaryOperator.identity();
     }
 
     @Override

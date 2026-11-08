@@ -15,7 +15,9 @@ available for mods that own their loading stage.
 registries, including ammunition, armor, stateful blocks, fluid families, and
 client hooks. MMDLib uses it for its [playable vanilla extensions](vanilla-extensions.md).
 Mods must still supply their assets/recipes, or a generator appropriate to their
-forms. Machines and custom world entities use their dedicated typed factory APIs.
+forms. Powered item-processing machines can use [XML definitions](xml-machines.md),
+including inherited storage, generated screens and dynamic recipes. More specialized
+machines and custom world entities use their dedicated typed factory APIs.
 The manual wiring below remains an alternative; do not queue objects twice.
 
 ## 1. Lay out the data

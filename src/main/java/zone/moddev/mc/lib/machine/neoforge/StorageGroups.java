@@ -221,7 +221,6 @@ public final class StorageGroups {
     @Override
     public int insert(int tank, FluidAmount fluid, MachineTx tx) {
       if (!valid(tank) || fluid.isEmpty()) return 0;
-      var handler = storage.tank(indexes[tank]);
       var stack = FluidStacks.stack(fluid);
       if (storage.fillResult(indexes[tank], stack, FluidAction.SIMULATE) <= 0) return 0;
       track(indexes[tank], tx);

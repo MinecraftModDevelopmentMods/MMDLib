@@ -225,10 +225,13 @@ tasks.register('format') {
         if (!jar.isFile())
             throw new GradleException("google-java-format not found at ${jar}; see build.gradle")
         // Imports are left in place here and grouped by the script below instead.
-        providers.exec {
-            commandLine([java, '-jar', jar.absolutePath, '--skip-sorting-imports', '--replace'] +
-                    sources.files.collect { it.absolutePath })
-        }.result.get()
+        // Keep each invocation below Windows' command-line length limit as the library grows.
+        sources.files.toList().collate(40).each { batch ->
+            providers.exec {
+                commandLine([java, '-jar', jar.absolutePath, '--skip-sorting-imports', '--replace'] +
+                        batch.collect { it.absolutePath })
+            }.result.get()
+        }
         def grouping = providers.exec {
             commandLine python, file('scripts/group_imports.py').absolutePath, file('src').absolutePath
         }

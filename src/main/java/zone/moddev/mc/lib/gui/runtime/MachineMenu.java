@@ -29,6 +29,28 @@ public class MachineMenu extends AbstractContainerMenu {
   /** Slot plans sync under this key plus the slot, above every element key. */
   public static final int PLAN_KEYS = 1 << 20;
 
+  private static final int TOOLTIP_KEYS = 1 << 22;
+
+  /** Server-authored, viewer-specific lines; getters and fluid filters never run on the client. */
+  public List<Component> tooltip(Element element) {
+    var value = values.get(TOOLTIP_KEYS + index(element));
+    if (!(value instanceof List<?> list)) return List.of();
+    return list.stream().filter(Component.class::isInstance).map(Component.class::cast).toList();
+  }
+
+  public Map<Integer, Object> tooltipSnapshot() {
+    var snapshot = new HashMap<Integer, Object>();
+    if (host != null)
+      for (int i = 0; i < elements.size(); i++)
+        if (elements.get(i) instanceof Element.Gauge)
+          snapshot.put(
+              TOOLTIP_KEYS + i,
+              ScreenValues.snapshot(
+                  host.screenTankTooltip(elements.get(i), getCarried().copy()),
+                  blockEntity.getLevel().registryAccess()));
+    return snapshot;
+  }
+
   public final BlockEntity blockEntity;
   public final ScreenBinder.Bound bound;
   public final List<Element> elements;
@@ -211,9 +233,9 @@ public class MachineMenu extends AbstractContainerMenu {
     String expected = data.readUtf(64);
     var screen =
         Screens.get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType())).orElseThrow();
-    if (!ScreenRuntime.fingerprint(screen.screen()).equals(expected))
+    if (!ScreenRuntime.fingerprint(screen.screen(), entity).equals(expected))
       throw new IllegalStateException(
-          "Client/server screen definitions differ: " + screen.screen().id());
+          "Client/server screen or machine definitions differ: " + screen.screen().id());
     return entity;
   }
 
@@ -308,7 +330,10 @@ public class MachineMenu extends AbstractContainerMenu {
               .map(e -> (Element.Slot) e)
               .findFirst()
               .orElse(null);
-      if (element != null && element.kind() != Element.SlotKind.GHOST && index >= items.getSlots())
+      if (host == null
+          && element != null
+          && element.kind() != Element.SlotKind.GHOST
+          && index >= items.getSlots())
         throw new IllegalArgumentException("Screen slot outside storage: " + index);
       int[] xy =
           element == null
@@ -655,6 +680,7 @@ public class MachineMenu extends AbstractContainerMenu {
         snapshot.put(Integer.MIN_VALUE + i, java.math.BigInteger.valueOf(selected));
       }
     snapshot.putAll(reservationSnapshot());
+    snapshot.putAll(tooltipSnapshot());
     snapshot.putAll(stats.read(host, blockEntity.getLevel().getGameTime()));
     var delta = ScreenValues.changed(values, snapshot, initial);
     for (int key : widgetRefreshKeys) delta.put(key, snapshot.get(key));

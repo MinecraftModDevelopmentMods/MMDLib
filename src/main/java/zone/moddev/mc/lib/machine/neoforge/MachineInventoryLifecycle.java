@@ -1,7 +1,9 @@
 package zone.moddev.mc.lib.machine.neoforge;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.IntUnaryOperator;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -11,6 +13,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.machine.feature.FeatureHost;
+import zone.moddev.mc.lib.machine.inventory.MachineStorageKeys;
 
 /**
  * Composes storage persistence, processor restoration, transfer policy and displaced-content
@@ -49,7 +52,7 @@ public final class MachineInventoryLifecycle {
     this.owner = Objects.requireNonNull(owner);
     this.features = Objects.requireNonNull(features);
     this.automation = Objects.requireNonNull(automation);
-    this.power = Objects.requireNonNull(power);
+    this.power = power;
   }
 
   public MachineInventoryLifecycle items(String saveKey, ItemStorage storage) {
@@ -72,16 +75,15 @@ public final class MachineInventoryLifecycle {
   void bindPower(BlockEntity owner, FeatureHost features, EnergyBuffer power) {
     if (this.owner != owner || this.features != features || this.power != power)
       throw new IllegalArgumentException(
-          "Powered lifecycle must use its machine's owner, features and energy");
-    if (storages.get("energy") != power) add("energy", power);
+          "Lifecycle must use its machine's owner, features and optional energy");
+    if (power != null && storages.get("energy") != power) add("energy", power);
   }
 
   private MachineInventoryLifecycle add(String key, Object storage) {
     Objects.requireNonNull(storage);
     if (key == null
         || key.isBlank()
-        || key.equals("automation")
-        || key.equals("features")
+        || MachineStorageKeys.RESERVED.contains(key)
         || storages.containsKey(key)
         || storages.containsValue(storage))
       throw new IllegalArgumentException("Duplicate or reserved storage key: " + key);
@@ -102,13 +104,21 @@ public final class MachineInventoryLifecycle {
   }
 
   public void load(CompoundTag tag, HolderLookup.Provider registries) {
+    load(tag, registries, (key, saved) -> IntUnaryOperator.identity());
+  }
+
+  /** Resolves pre-ID item/tank index mappings from each storage key and the complete world save. */
+  public void load(
+      CompoundTag tag,
+      HolderLookup.Provider registries,
+      BiFunction<String, CompoundTag, IntUnaryOperator> legacySlots) {
     features.reset();
     storages.forEach(
         (key, storage) -> {
           if (storage instanceof ItemStorage items)
-            items.deserializeNBT(registries, tag.getCompound(key));
+            items.deserializeNBT(registries, tag.getCompound(key), legacySlots.apply(key, tag));
           else if (storage instanceof FluidStorage fluids)
-            fluids.deserializeNBT(registries, tag.getCompound(key));
+            fluids.deserializeNBT(registries, tag.getCompound(key), legacySlots.apply(key, tag));
           else if (tag.contains(key))
             ((EnergyBuffer) storage).deserializeNBT(registries, tag.get(key));
         });
@@ -146,12 +156,12 @@ public final class MachineInventoryLifecycle {
     var level = owner.getLevel();
     if (level == null || level.isClientSide) return;
     for (var storage : storages.values()) {
-      if (storage instanceof ItemStorage items) items.recover(recoverResources);
-      else if (storage instanceof FluidStorage fluids) fluids.recover(recoverResources);
+      if (storage instanceof FluidStorage fluids) fluids.recover(recoverResources);
     }
     automation.dropAll(recoverResources);
     features.reset();
     for (var storage : storages.values())
-      if (storage instanceof ItemStorage items) items.dropAll(level, owner.getBlockPos());
+      if (storage instanceof ItemStorage items)
+        items.dropAll(level, owner.getBlockPos(), recoverResources);
   }
 }

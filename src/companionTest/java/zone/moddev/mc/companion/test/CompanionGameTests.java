@@ -205,7 +205,11 @@ public final class CompanionGameTests {
     machine.serverTick();
     require(
         !processor.processing() && !processor.paused(),
-        "An energy stall is idle, not manually paused");
+        "An energy stall stops work without manually pausing");
+    require(
+        zone.moddev.mc.lib.gui.model.ProcessorButtonState.of(processor)
+            == zone.moddev.mc.lib.gui.model.ProcessorButtonState.STALLED,
+        "The processor control shows the energy stall instead of idle");
     machine.energy.setStored(100000);
     machine.serverTick();
     machine.setReservePercent(100);
@@ -223,6 +227,9 @@ public final class CompanionGameTests {
         "Redstone holds work without manually pausing or releasing its reservation");
     processor.pause();
     require(processor.paused() && !processor.processing(), "Manual pause has its own state");
+    require(
+        !machine.items.hasPlan(0) && processor.progress() > 0,
+        "Manual pause releases reservations but keeps progress as the tooltip promises");
     processor.resume();
     machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.IGNORE);
     machine.serverTick();

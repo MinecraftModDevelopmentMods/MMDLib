@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.gui.runtime;
 
 import java.util.Map;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
@@ -19,6 +20,17 @@ public interface ScreenHost {
    * including its plan snapshots, so both menu sides enforce the same reservations.
    */
   IItemHandlerModifiable screenItems();
+
+  /** Per-viewer tooltip lines, sampled on the server with the item carried by this menu. */
+  default java.util.List<Component> screenTankTooltip(
+      zone.moddev.mc.lib.gui.model.Element element, ItemStack carried) {
+    return java.util.List.of();
+  }
+
+  /** Extra startup-definition identity checked alongside the screen before constructing a menu. */
+  default String screenDefinitionFingerprint() {
+    return "";
+  }
 
   /** Registered machine features used by generic processor controls. */
   default zone.moddev.mc.lib.machine.feature.FeatureHost screenFeatures() {

@@ -246,6 +246,7 @@ public final class AutomationTransfers {
     inventory.recover(null);
     inventory.settleRefund(power);
     int total = inventory.groups().size() * COLUMNS;
+    if (total == 0) return;
     int start = (int) Math.floorMod(level.getGameTime(), total);
     for (int n = 0; n < total; n++) {
       int index = (start + n) % total, g = index / COLUMNS, c = index % COLUMNS;
@@ -260,7 +261,8 @@ public final class AutomationTransfers {
       long cost = pending ? state.getLong("cost") : spec.energyPerUnit();
       int batch = pending ? state.getInt("batch") : spec.batch();
       if (!pending && Math.floorMod(level.getGameTime() + index, spec.interval()) != 0) continue;
-      int max = (int) Math.min(batch, cost == 0 ? batch : power.stored() / cost);
+      int max =
+          (int) Math.min(batch, cost == 0 ? batch : power == null ? 0 : power.stored() / cost);
       if (max <= 0) continue;
       var filter = inventory.filter(g, c);
       var predicate = filter.getCapability(AddonCapabilities.FILTER);
@@ -294,7 +296,7 @@ public final class AutomationTransfers {
           state.putInt("face", face);
         }
         long reserved = cost * max;
-        if (!power.reserve(reserved)) break;
+        if (reserved > 0 && (power == null || !power.reserve(reserved))) break;
         int moved;
         try {
           moved = move(group, inventory, direction, input, pending, max, accepts, state);

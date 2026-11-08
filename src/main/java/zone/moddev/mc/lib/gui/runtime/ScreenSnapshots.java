@@ -38,10 +38,7 @@ final class ScreenSnapshots {
         var processor = host.screenFeatures().processor(button.processorKey()).orElse(null);
         if (processor != null)
           result.put(
-              i * 2,
-              zone.moddev.mc.lib.gui.model.ProcessorButtonState.of(
-                      processor.paused(), processor.processing())
-                  .wireValue());
+              i * 2, zone.moddev.mc.lib.gui.model.ProcessorButtonState.of(processor).wireValue());
       }
       for (int max = 0; max < 2; max++) {
         var getter = (max == 0 ? bound.values() : bound.maxima()).get(e);

@@ -242,6 +242,16 @@ public final class CompanionClientSmoke {
     var expected = CompanionMod.MACHINES.get(stage).type.get();
     if (menu.blockEntity.getType() != expected || ++frames < 25) return;
     try {
+      if (Boolean.getBoolean("mmdlib.processorButtonSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!ProcessorButtonClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: focused processor button states, tooltips and clicks");
+        mc.stop();
+        return;
+      }
       if (stage == 0 && (!CuriosClientSmoke.run(screen) || !BackpackClientSmoke.run(screen))) {
         frames = 0;
         waitingTicks = 0;

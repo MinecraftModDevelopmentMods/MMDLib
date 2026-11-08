@@ -25,6 +25,7 @@ import zone.moddev.mc.lib.gui.model.ValueRef;
  * <ul>
  *   <li>{@code #method}: a no-argument instance method of the block-entity class, a superclass or
  *       an interface.
+ *   <li>{@code #method(index)}: an instance getter taking one fixed nonnegative integer.
  *   <li>{@code Class#method}: a static method taking one parameter the block entity can be passed
  *       as.
  * </ul>
@@ -127,6 +128,7 @@ public final class ScreenBinder {
     Method method =
         switch (ref) {
           case ValueRef.Instance instance -> instanceMethod(owner, instance, source, line);
+          case ValueRef.Indexed indexed -> indexedMethod(owner, indexed, source, line);
           case ValueRef.Static fixed -> staticMethod(owner, fixed, loader, source, line);
         };
     var kind = Kind.of(method.getReturnType());
@@ -141,6 +143,8 @@ public final class ScreenBinder {
               + describe(allowed));
     try {
       MethodHandle handle = MethodHandles.publicLookup().unreflect(method);
+      if (ref instanceof ValueRef.Indexed indexed)
+        handle = MethodHandles.insertArguments(handle, 1, indexed.index());
       return new BoundValue(
           ref, kind, handle.asType(MethodType.methodType(Object.class, Object.class)));
     } catch (IllegalAccessException ex) {
@@ -161,6 +165,22 @@ public final class ScreenBinder {
           source,
           line,
           "No public no-argument method " + ref.method() + "() on " + owner.getName(),
+          ex);
+    }
+  }
+
+  private static Method indexedMethod(
+      Class<?> owner, ValueRef.Indexed ref, String source, int line) {
+    try {
+      var method = owner.getMethod(ref.method(), int.class);
+      if (Modifier.isStatic(method.getModifiers()))
+        throw new ScreenException(source, line, ref.text() + " must be an instance getter");
+      return method;
+    } catch (NoSuchMethodException ex) {
+      throw new ScreenException(
+          source,
+          line,
+          "No public indexed getter " + ref.method() + "(int) on " + owner.getName(),
           ex);
     }
   }

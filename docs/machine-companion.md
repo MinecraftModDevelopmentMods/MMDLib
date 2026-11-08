@@ -1,6 +1,6 @@
 # Machine companion
 
-The optional `mmdlib_companion` mod contains five playable machine examples.
+The optional `mmdlib_companion` mod contains six playable machine examples.
 It uses Minecraft 1.21.1, NeoForge 21.1.247 and this branch's MMDLib. Its classes and resources live
 in `src/companion` and are packaged separately from the library.
 
@@ -38,11 +38,22 @@ those mods' login payloads; real client smoke runs include them.
 | `dual_crusher` | Two independently pausable processors share the same input and output slots |
 | `logistics` | Seven independent resource groups for testing automation, filters and side configuration; no recipe processing |
 | `creative_power` | Refills its buffer and supplies up to 1,000 FE per enabled adjacent face per tick |
+| `simple_crusher` | XML-only definition with inherited power, generated screen contents, and tag-generated ore-to-ingot recipes; in the **Data-defined Machines** tab |
 
 The crusher recipes take 100 ticks and 2,000 FE per cycle: cobblestone becomes gravel, gravel becomes
 sand, and copper/iron/gold ore becomes two of the corresponding raw material. The converter takes
 200 ticks and 4,000 FE. The dual crusher runs the same recipes in both lanes when there are enough
 inputs and output space.
+
+SimpleCrusher converts one ore to two ingots. Its `.10` hardness scaling increases
+the base 100 ticks / 2,000 FE to 130 ticks / 2,600 FE for regular iron ore.
+Its recipe generator joins `c:ores/<metal>` and `c:ingots/<metal>` tags, including
+metals added by other mods. It has no companion Java block or entity class. See
+[XML machines](xml-machines.md) for the complete definition and generator contract.
+For focused verification of this example, run `./gradlew runSimpleCrusherClientSmoke`.
+It opens the generated screen, checks the model and synchronized recipes, reloads
+server resources, and saves before/after screenshots under
+`build/simple-crusher-client-smoke/screenshots/`.
 
 The Crusher's two outputs share one inventory and colour/side configuration. For testing, both
 allow insertion and extraction, so you can manually fill them with any item; reservations still
@@ -55,8 +66,9 @@ starting empty. The Dual Crusher keeps its existing shared single-output layout.
 The bottom of each processor panel has a compact, right-aligned row of icon buttons above the inventory,
 with thin dark borders and flat grey backgrounds.
 The generic processor button shows its **current** state: pause when manually paused, stop while
-working, play while idle. Click to unpause, stop and release reservations, or pause idle work,
-respectively. Resumable progress is retained. The Dual Crusher targets each lane explicitly;
+working or held, play while idle. Tooltips distinguish waiting for power, blocked completion and
+host holds. Click to unpause, pause and release reservations, or pause idle work, respectively.
+The pause tooltip explicitly says progress is kept. The Dual Crusher targets each lane explicitly;
 pausing one releases only its share. Single-processor machines inherit a keyless button from the base.
 
 Redstone face settings control whether processing may run. A redstone hold keeps progress and
@@ -70,7 +82,7 @@ Every screen inherits the yellow Info popout from `mmdlib:base_powered_machine`.
 `{machineId}.info`, such as `mmdlib_companion:transmuter.info`, plus dynamic warnings from the base
 entity. The base reports processor power stalls, blocked finishes and host holds; Crusher can also
 report its configured energy reserve. Click the icon to close the drawer; scroll longer text.
-All five screens place a vertical battery on the right using `<energy-gauge>`.
+All six screens place a vertical battery on the right using `<energy-gauge>`.
 Its red charge bars fill upwards inside a slim casing.
 The energy and fluid gauges share matching edges and medium-grey empty backgrounds, darker than slots.
 Energy bars are thin with a soft reflection; cylindrical glass shading covers only the fluid.

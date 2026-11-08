@@ -1,0 +1,23 @@
+{
+  "type": "mmdlib:machine_recipes",
+  "recipes": {
+    "cobblestone": {
+      "type": "mmdlib_companion:simple_crushing",
+      "inputs": {
+        "input": [{"items": {"item": "minecraft:cobblestone"}}],
+        "energy": [{"energy": 2000}]
+      },
+      "outputs": {"output": [{"item": {"id": "minecraft:gravel"}}]},
+      "time": 100
+    },
+    "gravel": {
+      "type": "mmdlib_companion:simple_crushing",
+      "inputs": {
+        "input": [{"items": {"item": "minecraft:gravel"}}],
+        "energy": [{"energy": 2000}]
+      },
+      "outputs": {"output": [{"item": {"id": "minecraft:sand"}}]},
+      "time": 100
+    }
+  }
+}

@@ -90,6 +90,22 @@ public final class ScreenRuntime {
     return screen.fingerprint();
   }
 
+  /** Includes host storage/group configuration even when it produces an identical screen. */
+  public static String fingerprint(zone.moddev.mc.lib.gui.model.Screen screen, BlockEntity entity) {
+    var definition = entity instanceof ScreenHost host ? host.screenDefinitionFingerprint() : "";
+    if (definition.isEmpty()) return fingerprint(screen);
+    try {
+      return java.util.HexFormat.of()
+          .formatHex(
+              java.security.MessageDigest.getInstance("SHA-256")
+                  .digest(
+                      (fingerprint(screen) + "|" + definition)
+                          .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    } catch (java.security.NoSuchAlgorithmException impossible) {
+      throw new AssertionError(impossible);
+    }
+  }
+
   public static boolean open(Player player, BlockEntity entity) {
     if (entity == null) return false;
     var bound = Screens.get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()));
@@ -106,7 +122,7 @@ public final class ScreenRuntime {
               (id, inventory, p) -> new MachineMenu(id, inventory, entity, session), title),
           buf -> {
             buf.writeBlockPos(entity.getBlockPos());
-            buf.writeUtf(fingerprint(bound.get().screen()));
+            buf.writeUtf(fingerprint(bound.get().screen(), entity));
             buf.writeLong(session);
           });
     }

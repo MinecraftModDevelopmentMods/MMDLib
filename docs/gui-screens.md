@@ -143,6 +143,8 @@ Repeated references to one getter are evaluated once per machine per tick, share
 Navigation is checked on the server and its selection is synced back to the client. Opening also
 compares a screen-model fingerprint, so differing XML definitions fail explicitly instead of
 assigning values or actions to the wrong elements.
+`ScreenHost.screenDefinitionFingerprint()` can contribute additional startup configuration;
+XML machines supply their resolved definition CRC, including inherited storage settings.
 
 `./gradlew check` includes numeric protocol and layout regression checks. The isolated graphical
 smoke run is `xvfb-run -a ./gradlew runClient --offline -I scripts/gui-smoke.init.gradle`; repeat
@@ -479,6 +481,12 @@ Inheritance does not replace the type-ID screen lookup described above.
   the named placeholder's contents; an empty fill removes its default content.
 - An unfilled optional placeholder uses its children, or nothing when it has none. A required
   placeholder must be filled and cannot also have default content.
+- A placeholder may instead supply `generator="namespace:id"` and generator options.
+  An explicit fill replaces that generator, even when empty; a fill can choose its own
+  generator. Generated fills cannot also contain literal children. Generators return normal
+  screen elements, which undergo the same expanded validation. See
+  [machine screen generators](xml-machines.md#generated-screen-fills) for the available
+  machine-aware generators and registration API.
 - Chains can introduce placeholders and override earlier fills. Replacing an outer placeholder
   removes its nested extension points; also filling a removed inner point is an error.
 - Unknown bases/fills, duplicate placeholders/fills and cycles fail at load. Expanded slots, IDs,
@@ -545,8 +553,11 @@ Icons show the current state, not the next action:
 | Processor state | Icon | Tooltip lines / click |
 |---|---|---|
 | Manually paused | Pause | `Paused` / `Click to unpause` |
-| Not paused and processing | Stop | `Working` / `Click to stop and clear reservations` |
-| Not paused and not processing | Play | `Idle` / `Click to pause` |
+| Processing | Stop | `Working` / `Click to pause and release reservations` / `Progress is kept` |
+| Waiting for energy | Stop | `Needs power` / same pause action |
+| Cannot complete the recipe | Stop | `Recipe cannot finish` / same pause action |
+| Held by the host | Stop | `Held by machine controls` / same pause action |
+| Idle | Play | `Idle` / `Click to pause` |
 
 Tooltips are compact and multiline. Manual pause releases reservations, keeps resumable progress,
 marks the machine changed and synchronizes immediately. Redstone/host holds preserve reservations
@@ -724,6 +735,7 @@ the block at a position), and that instance is what the getters are called on:
 | Form | Resolves to | Called as |
 |---|---|---|
 | `#method` | A public instance method on the screen's `block-entity` class (or a superclass or interface of it), taking no parameters | `blockEntity.method()` |
+| `#method(index)` | A public instance getter taking one fixed nonnegative `int`, e.g. `#getTankFluid(0)` | `blockEntity.method(index)` |
 | `Class#method` | A public **static** method taking the block entity (or a supertype) as its only parameter, e.g. a helper shared by several machines | `Class.method(blockEntity)` |
 
 Resolution happens in two steps. At load, each reference is looked up from the class and name
@@ -731,6 +743,9 @@ alone (`findVirtual` / `findStatic`) and checked; no instance is involved. When 
 the screen, the server binds the handles to that menu's block entity, after checking it is an
 instance of the declared `block-entity` class. An instance method on any other class has no
 instance to call and is rejected at load.
+
+Indexed references support generated gauges for multiple tanks without one Java
+getter per tank. For example, `value="#getTankFluid(0)" max="#getTankCapacity(0)"`.
 
 Getters run only on the server, each tick while the screen is open. The client never calls
 them; it only receives the values.
@@ -870,6 +885,7 @@ When JEI is installed:
   offers, each naming the `id` of the element that shows it (a `<group>`, `<gauge>`, ...).
   While a group is selected in the side-configuration view, that element's background is
   highlighted when it is visible on the screen, so the player sees which slots or tank they are changing.
+  Highlight targets are optional: missing elements are skipped and do not prevent the menu opening.
   Numbering is unaffected: every face still shows every slot, and a group's setting only
   allows or refuses operations on its own slots.
 - **Block-entity registration is a hybrid.** For a data-defined machine, MMDLib validates the

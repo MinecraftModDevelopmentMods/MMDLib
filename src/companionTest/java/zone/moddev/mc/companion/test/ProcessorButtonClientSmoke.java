@@ -56,7 +56,12 @@ final class ProcessorButtonClientSmoke {
       case 1 -> {
         if (state != ProcessorButtonState.PROCESSING || menu.redstone.watching()) return false;
         require(!menu.processorConflict(button), "No monitoring means no red dot");
-        tooltip(screen, button, "Working", "Click to stop and clear reservations");
+        tooltip(
+            screen,
+            button,
+            "Working",
+            "Click to pause and release reservations",
+            "Progress is kept");
         require(
             button.iconFor(wireState).orElseThrow().getPath().equals("icon_processor_stop"),
             "An actively processing machine shows Stop");
@@ -71,16 +76,17 @@ final class ProcessorButtonClientSmoke {
       case 2 -> {
         if (!menu.redstone.watching()
             || !menu.redstone.paused()
-            || state != ProcessorButtonState.IDLE) return false;
+            || state != ProcessorButtonState.HELD) return false;
         require(
-            button.iconFor(wireState).orElseThrow().getPath().equals("icon_processor_play"),
-            "A redstone-held processor is not processing and shows Play");
+            button.iconFor(wireState).orElseThrow().getPath().equals("icon_processor_stop"),
+            "A redstone-held processor retains work and shows Stop");
         require(menu.processorConflict(button), "Enabled processor conflicts with redstone hold");
         tooltip(
             screen,
             button,
-            "Idle",
-            "Click to pause",
+            "Held by machine controls",
+            "Click to pause and release reservations",
+            "Progress is kept",
             "Redstone settings conflict:",
             "Paused by redstone.");
         capture("processor-redstone-hold.png");
@@ -121,14 +127,19 @@ final class ProcessorButtonClientSmoke {
         server(machine -> machine.energy.setStored(0));
       }
       case 6 -> {
-        if (state != ProcessorButtonState.IDLE) return false;
+        if (state != ProcessorButtonState.STALLED) return false;
         require(
             !menu.processorConflict(button), "Lack of power is not a manual/redstone disagreement");
-        tooltip(screen, button, "Idle", "Click to pause");
+        tooltip(
+            screen,
+            button,
+            "Needs power",
+            "Click to pause and release reservations",
+            "Progress is kept");
         require(
-            button.iconFor(wireState).orElseThrow().getPath().equals("icon_processor_play"),
-            "An unpaused processor without power shows Play");
-        capture("processor-idle-no-power.png");
+            button.iconFor(wireState).orElseThrow().getPath().equals("icon_processor_stop"),
+            "A stalled processor without power retains work and shows Stop");
+        capture("processor-stalled-no-power.png");
         server(
             machine -> {
               machine.energy.setStored(savedEnergy);

@@ -31,6 +31,7 @@ import zone.moddev.mc.lib.gui.WidgetTypes;
 import zone.moddev.mc.lib.gui.model.Common;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Element.*;
+import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
 import zone.moddev.mc.lib.gui.model.Screen;
 import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.model.ValueRef;
@@ -74,7 +75,7 @@ public final class ScreenReader {
   }
 
   static Screen build(ResourceLocation id, Node root, WidgetTypes widgets) {
-    validateExpanded(root);
+    root = validateExpanded(root);
     String source = root.source();
     var screen = new Builder(id, source, widgets).screen(id, root);
     check(screen);
@@ -84,14 +85,24 @@ public final class ScreenReader {
   // Parsing
 
   /** One parsed element, with its attributes as written (schema defaults filled in). */
-  record Node(
+  public record Node(
       String name, Map<String, String> attributes, List<Node> children, String source, int line) {
-    Node withChildren(List<Node> children) {
+    public Node withChildren(List<Node> children) {
       return new Node(name, attributes, children, source, line);
     }
   }
 
   static Node parse(String source, InputStream input) throws IOException {
+    return parseTree(source, input, true);
+  }
+
+  /** Secure, source-aware tree reader for machine definitions containing embedded screens. */
+  public static Node parseMachine(String source, InputStream input) throws IOException {
+    return parseTree(source, input, false);
+  }
+
+  private static Node parseTree(String source, InputStream input, boolean screen)
+      throws IOException {
     try {
       var factory = SAXParserFactory.newInstance();
       factory.setNamespaceAware(true);
@@ -101,13 +112,13 @@ public final class ScreenReader {
       factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
       factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
       factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-      factory.setSchema(SCHEMA);
-      var handler = new TreeHandler(source);
+      if (screen) factory.setSchema(SCHEMA);
+      var handler = new TreeHandler(source, screen);
       var parser = factory.newSAXParser();
       parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
       parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
       parser.parse(new InputSource(input), handler);
-      return handler.root;
+      return freeze(handler.root);
     } catch (SAXParseException ex) {
       throw new ScreenException(source, ex.getLineNumber(), ex.getMessage(), ex);
     } catch (SAXException | ParserConfigurationException ex) {
@@ -115,11 +126,23 @@ public final class ScreenReader {
     }
   }
 
+  private static Node freeze(Node node) {
+    return new Node(
+        node.name(),
+        Map.copyOf(node.attributes()),
+        node.children().stream().map(ScreenReader::freeze).toList(),
+        node.source(),
+        node.line());
+  }
+
   /** Check placement again after fills are spliced into their destination containers. */
-  private static void validateExpanded(Node root) {
+  private static Node validateExpanded(Node root) {
     var validator = SCHEMA.newValidatorHandler();
     var locator = new org.xml.sax.helpers.LocatorImpl();
     validator.setDocumentLocator(locator);
+    var tree = new TreeHandler(root.source(), true);
+    tree.setDocumentLocator(locator);
+    validator.setContentHandler(tree);
     validator.setErrorHandler(
         new DefaultHandler() {
           @Override
@@ -136,6 +159,7 @@ public final class ScreenReader {
       validator.startDocument();
       validateNode(root, validator, locator);
       validator.endDocument();
+      return freeze(tree.root);
     } catch (SAXException ex) {
       throw new ScreenException(
           locator.getSystemId(), locator.getLineNumber(), ex.getMessage(), ex);
@@ -178,9 +202,11 @@ public final class ScreenReader {
     private final List<Node> stack = new ArrayList<>();
     private Locator locator;
     private Node root;
+    private final boolean screen;
 
-    TreeHandler(String source) {
+    TreeHandler(String source, boolean screen) {
       this.source = source;
+      this.screen = screen;
     }
 
     @Override
@@ -191,7 +217,7 @@ public final class ScreenReader {
     @Override
     public void startElement(String uri, String local, String qName, Attributes attributes)
         throws SAXException {
-      if (!NAMESPACE.equals(uri))
+      if (!NAMESPACE.equals(uri) && (screen || !"https://moddev.zone/mmdlib/machine".equals(uri)))
         throw new SAXParseException(
             "Element <" + qName + "> is not in the screen namespace " + NAMESPACE, locator);
       var values = new LinkedHashMap<String, String>();
@@ -199,7 +225,13 @@ public final class ScreenReader {
         if (attributes.getURI(i).isEmpty())
           values.put(attributes.getLocalName(i), attributes.getValue(i));
       var children = new ArrayList<Node>();
-      var node = new Node(local, values, children, source, locator.getLineNumber());
+      var node =
+          new Node(
+              local,
+              values,
+              children,
+              locator.getSystemId() == null ? source : locator.getSystemId(),
+              locator.getLineNumber());
       if (stack.isEmpty()) root = node;
       else open.getLast().add(node);
       stack.add(node);
@@ -402,11 +434,14 @@ public final class ScreenReader {
       var attributes = new LinkedHashMap<>(node.attributes());
       attributes.put(
           "icons",
-          "mmdlib:icon_processor_pause mmdlib:icon_processor_stop mmdlib:icon_processor_play");
+          java.util.Arrays.stream(ProcessorButtonState.values())
+              .map(state -> state.icon().toString())
+              .collect(java.util.stream.Collectors.joining(" ")));
       attributes.put(
           "value-labels",
-          "screen.mmdlib.processor.paused screen.mmdlib.processor.processing"
-              + " screen.mmdlib.processor.idle");
+          java.util.Arrays.stream(ProcessorButtonState.values())
+              .map(ProcessorButtonState::label)
+              .collect(java.util.stream.Collectors.joining(" ")));
       if (!attributes.containsKey("tooltip"))
         attributes.put("tooltip", "screen.mmdlib.processor.toggle");
       return new Node(node.name(), attributes, node.children(), node.source(), node.line());
