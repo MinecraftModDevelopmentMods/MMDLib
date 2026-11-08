@@ -1,21 +1,7 @@
 <screen xmlns="https://moddev.zone/mmdlib/screen" abstract="true"
+        extends="mmdlib:base_machine"
         block-entity="zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine">
-  <placeholder name="body">
-    <vbox padding="7" spacing="4">
-      <placeholder name="heading"/>
-      <hbox spacing="6" align="center">
-        <placeholder name="machine" generator="mmdlib:processing"/>
-        <spacer/>
-        <energy-gauge id="energy" length="3s"/>
-      </hbox>
-    </vbox>
-  </placeholder>
-  <placeholder name="inventory_controls">
-    <inventory-controls id="inventory_controls">
-      <processor-button id="toggle_0"/>
-    </inventory-controls>
-  </placeholder>
-  <placeholder name="info">
-    <popout id="info" kind="info" edge="left" text="{machineId}.info" value="#getWarnings"/>
-  </placeholder>
+  <fill name="energy">
+    <energy-gauge id="energy" length="3s"/>
+  </fill>
 </screen>

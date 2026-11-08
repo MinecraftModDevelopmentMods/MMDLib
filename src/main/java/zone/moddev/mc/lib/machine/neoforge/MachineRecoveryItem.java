@@ -5,6 +5,9 @@ import net.minecraft.nbt.*;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.component.CustomData;
 
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+
 import zone.moddev.mc.lib.api.automation.ResourceType;
 import zone.moddev.mc.lib.api.capabilities.Transfer;
 
@@ -47,7 +50,17 @@ public final class MachineRecoveryItem extends Item {
             else data.put("item", remaining.save(target.getLevel().registryAccess()));
           }
         }
-      } else if (type.equals(ResourceType.ENERGY.id().toString())) {
+      } else if (type.equals(ResourceType.FLUIDS.id().toString())) {
+        var fluid =
+            FluidStack.parseOptional(target.getLevel().registryAccess(), data.getCompound("fluid"));
+        int moved = target.fluids.fill(fluid, IFluidHandler.FluidAction.EXECUTE);
+        if (moved > 0) {
+          changed = true;
+          fluid.shrink(moved);
+          if (fluid.isEmpty()) data.remove("fluid");
+          else data.put("fluid", fluid.save(target.getLevel().registryAccess()));
+        }
+      } else if (type.equals(ResourceType.ENERGY.id().toString()) && target.energy != null) {
         long amount = Math.max(0, data.getLong("energy")),
             moved = target.energy.insert(amount, false);
         if (moved > 0) {
@@ -59,7 +72,7 @@ public final class MachineRecoveryItem extends Item {
       if (data.isEmpty()) entries.remove(i);
     }
     long refund = Math.max(0, payload.getLong("refund")),
-        moved = target.energy.insert(refund, false);
+        moved = target.energy == null ? 0 : target.energy.insert(refund, false);
     if (moved > 0) changed = true;
     if (!changed) return false;
     if (moved == refund) payload.remove("refund");

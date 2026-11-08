@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.Fluids;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.capabilities.*;
@@ -171,6 +172,19 @@ public final class MachineContent {
   }
 
   private static void capabilities(RegisterCapabilitiesEvent event) {
+    // Capabilities register after fluids, including fluids supplied by other installed mods.
+    for (var definition : definitions.values())
+      if (definition.fluids() != null)
+        for (var tank : definition.fluids().tanks())
+          if (tank.fluid() != null
+              && (!BuiltInRegistries.FLUID.containsKey(tank.fluid())
+                  || BuiltInRegistries.FLUID.get(tank.fluid()) == Fluids.EMPTY))
+            throw new IllegalArgumentException(
+                definition.id()
+                    + ": unknown or empty fluid "
+                    + tank.fluid()
+                    + " in tank "
+                    + tank.id());
     for (var type : entities.values()) {
       event.registerBlockEntity(
           Capabilities.ItemHandler.BLOCK,
@@ -179,14 +193,25 @@ public final class MachineContent {
               entity.items.view(
                   index -> entity.resources.automation().mode(ResourceType.ITEMS, index, side)));
       event.registerBlockEntity(
+          Capabilities.FluidHandler.BLOCK,
+          type,
+          (entity, side) ->
+              entity.fluids.getTanks() == 0
+                  ? null
+                  : entity.fluids.view(
+                      index ->
+                          entity.resources.automation().mode(ResourceType.FLUIDS, index, side)));
+      event.registerBlockEntity(
           Capabilities.EnergyStorage.BLOCK,
           type,
           (entity, side) ->
-              entity.energy.view(
-                  () ->
-                      side == null
-                          ? IoMode.INPUT
-                          : entity.resources.automation().mode(ResourceType.ENERGY, 0, side)));
+              entity.energy == null
+                  ? null
+                  : entity.energy.view(
+                      () ->
+                          side == null
+                              ? IoMode.INPUT
+                              : entity.resources.automation().mode(ResourceType.ENERGY, 0, side)));
     }
   }
 }

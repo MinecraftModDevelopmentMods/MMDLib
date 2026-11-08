@@ -735,6 +735,7 @@ the block at a position), and that instance is what the getters are called on:
 | Form | Resolves to | Called as |
 |---|---|---|
 | `#method` | A public instance method on the screen's `block-entity` class (or a superclass or interface of it), taking no parameters | `blockEntity.method()` |
+| `#method(index)` | A public instance getter taking one fixed nonnegative `int`, e.g. `#getTankFluid(0)` | `blockEntity.method(index)` |
 | `Class#method` | A public **static** method taking the block entity (or a supertype) as its only parameter, e.g. a helper shared by several machines | `Class.method(blockEntity)` |
 
 Resolution happens in two steps. At load, each reference is looked up from the class and name
@@ -742,6 +743,9 @@ alone (`findVirtual` / `findStatic`) and checked; no instance is involved. When 
 the screen, the server binds the handles to that menu's block entity, after checking it is an
 instance of the declared `block-entity` class. An instance method on any other class has no
 instance to call and is rejected at load.
+
+Indexed references support generated gauges for multiple tanks without one Java
+getter per tank. For example, `value="#getTankFluid(0)" max="#getTankCapacity(0)"`.
 
 Getters run only on the server, each tick while the screen is open. The client never calls
 them; it only receives the values.

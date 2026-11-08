@@ -5,9 +5,11 @@ import java.util.*;
 import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.api.capabilities.IoMode;
+import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenReader.Node;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Screen;
+import zone.moddev.mc.lib.gui.model.ValueRef;
 
 /** Registered fragment builders; templates retain ownership of the enclosing screen. */
 public final class MachineScreenGenerators {
@@ -21,6 +23,7 @@ public final class MachineScreenGenerators {
   static {
     register(ResourceLocation.parse("mmdlib:processing"), MachineScreenGenerators::processing);
     register(ResourceLocation.parse("mmdlib:resource-groups"), MachineScreenGenerators::resources);
+    register(ResourceLocation.parse("mmdlib:tanks"), MachineScreenGenerators::tanks);
     register(
         ResourceLocation.parse("mmdlib:processors"),
         (machine, node) -> {
@@ -48,17 +51,30 @@ public final class MachineScreenGenerators {
   /** Checks references against the resolved machine before any block can be placed. */
   public static void validate(MachineDefinition machine, Screen screen) {
     for (var element : screen.elements()) {
+      if (element instanceof Element.EnergyGauge && machine.power() == null)
+        throw new ScreenException(
+            screen.source(element.common()),
+            element.common().line(),
+            "Energy gauge requires energy storage");
+      for (var ref : List.of(element.common().value(), element.common().max()))
+        if (ref.orElse(null) instanceof ValueRef.Indexed indexed
+            && Set.of("getTankFluid", "getTankCapacity").contains(indexed.method())
+            && (machine.fluids() == null || indexed.index() >= machine.fluids().tanks().size()))
+          throw new ScreenException(
+              screen.source(element.common()),
+              element.common().line(),
+              "Tank index outside machine storage: " + indexed.index());
       if (element instanceof Element.Slot slot
           && slot.kind() != Element.SlotKind.GHOST
           && (slot.index() < 0 || slot.index() >= machine.slots().size()))
-        throw new zone.moddev.mc.lib.gui.load.ScreenException(
+        throw new ScreenException(
             screen.source(slot.common()),
             slot.common().line(),
             "Slot index outside machine storage: " + slot.index());
       if (element instanceof Element.Button button
           && button.processorControl()
           && button.processorKey().filter(key -> !key.equals(machine.processor())).isPresent())
-        throw new zone.moddev.mc.lib.gui.load.ScreenException(
+        throw new ScreenException(
             screen.source(button.common()),
             button.common().line(),
             "Unknown processor-key: " + button.processorKey().orElseThrow());
@@ -75,12 +91,25 @@ public final class MachineScreenGenerators {
       highlights.put(group.id(), new ArrayList<>());
       group.members().forEach(index -> slots.put(index, group.id()));
     }
-    highlights.put(machine.power().id(), new ArrayList<>());
+    if (machine.power() != null) highlights.put(machine.power().id(), new ArrayList<>());
+    var tanks = new HashMap<Integer, String>();
+    if (machine.fluids() != null)
+      for (var group : machine.fluids().groups()) {
+        highlights.put(group.id(), new ArrayList<>());
+        group.members().forEach(index -> tanks.put(index, group.id()));
+      }
     for (var element : screen.elements()) {
       var group =
           element instanceof Element.Slot slot
               ? slots.get(slot.index())
-              : element instanceof Element.EnergyGauge ? machine.power().id() : null;
+              : element instanceof Element.EnergyGauge && machine.power() != null
+                  ? machine.power().id()
+                  : element instanceof Element.Gauge
+                          && element.common().value().orElse(null)
+                              instanceof ValueRef.Indexed indexed
+                          && indexed.method().equals("getTankFluid")
+                      ? tanks.get(indexed.index())
+                      : null;
       if (group != null) element.common().id().ifPresent(id -> highlights.get(group).add(id));
     }
     highlights.replaceAll((key, ids) -> List.copyOf(ids));
@@ -149,6 +178,28 @@ public final class MachineScreenGenerators {
     }
     if (columns < 1 || columns > 9) throw MachineDefinitions.error(node, "columns must be 1..9");
     return groups(machine, node, mode, columns);
+  }
+
+  private static List<Node> tanks(MachineDefinition machine, Node node) {
+    options(node, Set.of());
+    var result = new ArrayList<Node>();
+    if (machine.fluids() == null) return result;
+    for (int index = 0; index < machine.fluids().tanks().size(); index++)
+      result.add(
+          n(
+              node,
+              "gauge",
+              Map.of(
+                  "id",
+                  "tank_" + index,
+                  "length",
+                  "3s",
+                  "value",
+                  "#getTankFluid(" + index + ")",
+                  "max",
+                  "#getTankCapacity(" + index + ")"),
+              List.of()));
+    return result;
   }
 
   private static List<Node> groups(MachineDefinition machine, Node node, IoMode mode, int columns) {

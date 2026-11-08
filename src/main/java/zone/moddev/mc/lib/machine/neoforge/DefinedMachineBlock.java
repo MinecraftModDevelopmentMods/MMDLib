@@ -14,6 +14,8 @@ import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.level.block.state.properties.*;
 import net.minecraft.world.phys.BlockHitResult;
 
+import net.neoforged.neoforge.fluids.FluidUtil;
+
 import zone.moddev.mc.lib.common.runtime.DropsContents;
 
 /** Standard placement, interaction and lifecycle hooks for XML machines. */
@@ -88,6 +90,14 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
         && level.getBlockEntity(pos) instanceof DefinedMachineEntity machine) {
       if (level.isClientSide()) return ItemInteractionResult.SUCCESS;
       return MachineRecoveryItem.restore(stack, machine)
+          ? ItemInteractionResult.CONSUME
+          : ItemInteractionResult.FAIL;
+    }
+    if (level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
+        && machine.fluids.getTanks() > 0
+        && FluidUtil.getFluidHandler(stack).isPresent()) {
+      if (level.isClientSide()) return ItemInteractionResult.SUCCESS;
+      return FluidUtil.interactWithFluidHandler(player, hand, machine.fluids)
           ? ItemInteractionResult.CONSUME
           : ItemInteractionResult.FAIL;
     }

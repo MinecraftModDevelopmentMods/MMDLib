@@ -412,6 +412,7 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
         continue;
       }
       if (!inRange(index)
+          || !tanks.get(index).isFluidValid(fluid)
           || (!tanks.get(index).isEmpty()
               && !FluidStack.isSameFluidSameComponents(tanks.get(index).getFluid(), fluid))) {
         recovery.add(entry.copy());

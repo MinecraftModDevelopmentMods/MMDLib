@@ -1,0 +1,18 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Simple Lava Furnace">
+  <appearance preset="cube-front" front="minecraft:block/furnace_front"
+              side="minecraft:block/nether_bricks" top="minecraft:block/polished_blackstone"/>
+  <storage>
+    <items id="items">
+      <slots id="input" count="1" role="input"/>
+      <slots id="output" count="1" role="output"/>
+    </items>
+    <fluids id="fluids">
+      <tank id="fuel" capacity="8000" role="input" fluid="minecraft:lava"/>
+    </fluids>
+  </storage>
+  <recipe-type id="mmdlib_companion:lava_smelting" declare="true" name="Lava Smelting">
+    <generator class="zone.moddev.mc.companion.recipe.LavaSmeltingRecipes"/>
+  </recipe-type>
+  <processor id="furnace" recipe-type="mmdlib_companion:lava_smelting" filter-inputs="input fuel"/>
+</machine>

@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.Block;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeBuilder;
 
 /** Reusable ore processing: joins nonempty c:ores/material and c:ingots/material item tags. */
-public final class OreToIngotGenerator implements MachineRecipeGenerator {
+public class OreToIngotGenerator implements MachineRecipeGenerator {
   public static final int INPUT_COUNT = 1;
   public static final int OUTPUT_COUNT = 2;
   public static final int DEFAULT_TIME = 100;

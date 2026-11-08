@@ -24,20 +24,25 @@ import zone.moddev.mc.lib.machine.neoforge.*;
 /** Focused real-client check of XML registration, generated layout, recipes and /reload. */
 @EventBusSubscriber(modid = "mmdlib_companion", value = Dist.CLIENT)
 public final class SimpleCrusherClientSmoke {
+  private static final boolean LAVA = Boolean.getBoolean("mmdlib.simpleLavaFurnaceSmoke");
+  private static final String NAME = LAVA ? "simple-lava-furnace" : "simple-crusher";
+  private static final String MARKER = LAVA ? "SIMPLE_LAVA_FURNACE" : "SIMPLE_CRUSHER";
   private static final ResourceLocation ID =
-      ResourceLocation.parse("mmdlib_companion:simple_crusher");
+      ResourceLocation.parse(
+          "mmdlib_companion:" + (LAVA ? "simple_lava_furnace" : "simple_crusher"));
   private static final ResourceLocation TYPE =
-      ResourceLocation.parse("mmdlib_companion:simple_crushing");
+      ResourceLocation.parse("mmdlib_companion:" + (LAVA ? "lava_smelting" : "simple_crushing"));
   private static final BlockPos POS = new BlockPos(0, 100, 0);
   private static final long DEADLINE = System.currentTimeMillis() + 240000;
   private static boolean started, placed, requested, finished, reloadRequested;
   private static volatile boolean reloaded;
   private static boolean recipesOpened;
   private static int frames;
+  private static int tooltipStage;
 
   @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {
-    if (!Boolean.getBoolean("mmdlib.simpleCrusherSmoke") || finished) return;
+    if ((!Boolean.getBoolean("mmdlib.simpleCrusherSmoke") && !LAVA) || finished) return;
     var mc = Minecraft.getInstance();
     try {
       if (System.currentTimeMillis() > DEADLINE)
@@ -46,7 +51,7 @@ public final class SimpleCrusherClientSmoke {
         started = true;
         var settings =
             new LevelSettings(
-                "SimpleCrusher smoke",
+                NAME + " smoke",
                 GameType.CREATIVE,
                 false,
                 Difficulty.PEACEFUL,
@@ -55,7 +60,7 @@ public final class SimpleCrusherClientSmoke {
                 WorldDataConfiguration.DEFAULT);
         mc.createWorldOpenFlows()
             .createFreshLevel(
-                "simple-crusher-" + System.currentTimeMillis(),
+                NAME + "-" + System.currentTimeMillis(),
                 settings,
                 new WorldOptions(1, false, false),
                 registries ->
@@ -85,7 +90,12 @@ public final class SimpleCrusherClientSmoke {
                 player.teleportTo(.5, 100, 3.5);
                 level.setBlock(POS, BuiltInRegistries.BLOCK.get(ID).defaultBlockState(), 3);
                 var machine = (DefinedMachineEntity) level.getBlockEntity(POS);
-                machine.energy.setStored(90000);
+                if (LAVA)
+                  machine.fluids.fill(
+                      new net.neoforged.neoforge.fluids.FluidStack(
+                          net.minecraft.world.level.material.Fluids.LAVA, 4000),
+                      net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE);
+                else machine.energy.setStored(90000);
                 machine.items.insertItem(0, new ItemStack(Items.IRON_ORE, 32), false);
                 for (int i = 0; i < 31; i++) machine.serverTick();
               } catch (Throwable error) {
@@ -113,15 +123,16 @@ public final class SimpleCrusherClientSmoke {
 
   @SubscribeEvent
   public static void rendered(RenderFrameEvent.Post event) {
-    if (!Boolean.getBoolean("mmdlib.simpleCrusherSmoke") || finished) return;
+    if ((!Boolean.getBoolean("mmdlib.simpleCrusherSmoke") && !LAVA) || finished) return;
     var mc = Minecraft.getInstance();
     if (recipesOpened) {
       if (++frames < 10) return;
       finished = true;
       Screenshot.grab(
-          mc.gameDirectory, "simple-crusher-recipes.png", mc.getMainRenderTarget(), message -> {});
+          mc.gameDirectory, NAME + "-recipes.png", mc.getMainRenderTarget(), message -> {});
       MMDLib.LOGGER.info(
-          "SIMPLE_CRUSHER_CLIENT_PASS: centered screen, arrow recipe click, assets, synchronized"
+          MARKER
+              + "_CLIENT_PASS: centered screen, arrow recipe click, assets, synchronized"
               + " recipes and reload");
       mc.stop();
       return;
@@ -136,18 +147,76 @@ public final class SimpleCrusherClientSmoke {
         throw new AssertionError("Progress maximum not synced");
       if (MachineContent.recipeType(TYPE).recipes(mc.level.getRecipeManager()).isEmpty())
         throw new AssertionError("Generated recipes not synced");
-      for (var name : java.util.List.of("cobblestone", "gravel"))
-        if (mc.level
-            .getRecipeManager()
-            .byKey(ResourceLocation.parse("mmdlib_companion:simple_crushing/stone/" + name))
-            .isEmpty()) throw new AssertionError("Bundled recipe not synchronized: " + name);
+      if (LAVA) {
+        var gauge = menu.bound.screen().find("tank_0").orElseThrow();
+        var gaugeBounds = screen.bounds(gauge);
+        org.lwjgl.glfw.GLFW.glfwSetCursorPos(
+            mc.getWindow().getWindow(),
+            (gaugeBounds.x() + gaugeBounds.width() / 2.)
+                * mc.getWindow().getScreenWidth()
+                / mc.getWindow().getGuiScaledWidth(),
+            (gaugeBounds.y() + gaugeBounds.height() / 2.)
+                * mc.getWindow().getScreenHeight()
+                / mc.getWindow().getGuiScaledHeight());
+        if (!(menu.value(gauge, false) instanceof net.neoforged.neoforge.fluids.FluidStack fluid)
+            || fluid.getAmount() <= 0
+            || fluid.getFluid() != net.minecraft.world.level.material.Fluids.LAVA)
+          throw new AssertionError("Lava gauge did not synchronize");
+        if (menu.bound.screen().find("energy").isPresent())
+          throw new AssertionError("Unexpected FE gauge");
+        var tooltip = screen.tooltipLines(gauge, 0, 0);
+        if (tooltip.size() < 3
+            || !tooltip.get(0).getString().equals("fuel")
+            || !tooltip.get(1).getString().contains("mB of Lava")
+            || !tooltip.get(2).getString().equals("Accepts: Lava"))
+          throw new AssertionError("Tank tooltip did not synchronize: " + tooltip);
+        if (tooltipStage < 3) {
+          if (tooltipStage > 0) {
+            String expected =
+                tooltipStage == 1 ? "Accepts Lava in Bucket" : "Doesn't accept Water in Bucket";
+            var color =
+                tooltipStage == 1
+                    ? net.minecraft.ChatFormatting.BLUE
+                    : net.minecraft.ChatFormatting.RED;
+            if (!tooltip.getLast().getString().equals(expected)
+                || tooltip.getLast().getStyle().getColor().getValue() != color.getColor())
+              throw new AssertionError("Wrong carried-container tooltip: " + tooltip);
+            Screenshot.grab(
+                mc.gameDirectory,
+                NAME + "-tooltip-" + tooltipStage + ".png",
+                mc.getMainRenderTarget(),
+                message -> {});
+          }
+          final ItemStack next =
+              tooltipStage == 0
+                  ? new ItemStack(Items.LAVA_BUCKET)
+                  : tooltipStage == 1 ? new ItemStack(Items.WATER_BUCKET) : ItemStack.EMPTY;
+          mc.getSingleplayerServer()
+              .execute(
+                  () ->
+                      mc.getSingleplayerServer()
+                          .getPlayerList()
+                          .getPlayers()
+                          .getFirst()
+                          .containerMenu
+                          .setCarried(next));
+          tooltipStage++;
+          frames = 0;
+          return;
+        }
+      }
+      if (!LAVA)
+        for (var name : java.util.List.of("cobblestone", "gravel"))
+          if (mc.level
+              .getRecipeManager()
+              .byKey(ResourceLocation.parse("mmdlib_companion:simple_crushing/stone/" + name))
+              .isEmpty()) throw new AssertionError("Bundled recipe not synchronized: " + name);
       var model = mc.getBlockRenderer().getBlockModel(mc.level.getBlockState(POS));
       if (model.getParticleIcon().contents().name().getPath().equals("missingno"))
         throw new AssertionError("Generated block model missing");
       if (!reloadRequested) {
         reloadRequested = true;
-        Screenshot.grab(
-            mc.gameDirectory, "simple-crusher.png", mc.getMainRenderTarget(), message -> {});
+        Screenshot.grab(mc.gameDirectory, NAME + ".png", mc.getMainRenderTarget(), message -> {});
         var server = mc.getSingleplayerServer();
         server.execute(
             () -> {
@@ -181,7 +250,7 @@ public final class SimpleCrusherClientSmoke {
       }
       if (!reloaded) return;
       Screenshot.grab(
-          mc.gameDirectory, "simple-crusher-reloaded.png", mc.getMainRenderTarget(), message -> {});
+          mc.gameDirectory, NAME + "-reloaded.png", mc.getMainRenderTarget(), message -> {});
       var field =
           Class.forName("zone.moddev.mc.lib.client.jei.MachineJei").getDeclaredField("runtime");
       field.setAccessible(true);
@@ -192,17 +261,18 @@ public final class SimpleCrusherClientSmoke {
       if (runtime == null
           || runtime.getRecipeManager().createRecipeLookup(type).get().findAny().isEmpty())
         throw new AssertionError("JEI crusher recipes unavailable");
-      if (runtime
-          .getRecipeManager()
-          .createRecipeLookup(type)
-          .get()
-          .noneMatch(
-              holder ->
-                  holder
-                      .id()
-                      .equals(
-                          ResourceLocation.parse(
-                              "mmdlib_companion:simple_crushing/stone/cobblestone"))))
+      if (!LAVA
+          && runtime
+              .getRecipeManager()
+              .createRecipeLookup(type)
+              .get()
+              .noneMatch(
+                  holder ->
+                      holder
+                          .id()
+                          .equals(
+                              ResourceLocation.parse(
+                                  "mmdlib_companion:simple_crushing/stone/cobblestone"))))
         throw new AssertionError("Bundled recipe missing from JEI after reload");
       var longestExpectedDetails =
           net.minecraft.network.chat.Component.translatable("jei.mmdlib.machine.energy", "2,900")
@@ -210,8 +280,9 @@ public final class SimpleCrusherClientSmoke {
               .append(
                   net.minecraft.network.chat.Component.translatable(
                       "jei.mmdlib.machine.time", "7.25"));
-      if (runtime.getRecipeManager().getRecipeCategory(type).getWidth()
-          < mc.font.width(longestExpectedDetails))
+      if (!LAVA
+          && runtime.getRecipeManager().getRecipeCategory(type).getWidth()
+              < mc.font.width(longestExpectedDetails))
         throw new AssertionError("JEI category clips fractional processing time");
       var bounds = screen.bounds(progress);
       if (!screen.mouseClicked(
@@ -227,7 +298,7 @@ public final class SimpleCrusherClientSmoke {
 
   private static void fail(Throwable error) {
     finished = true;
-    MMDLib.LOGGER.error("SIMPLE_CRUSHER_CLIENT_FAIL", error);
+    MMDLib.LOGGER.error(MARKER + "_CLIENT_FAIL", error);
     Minecraft.getInstance().execute(() -> Minecraft.getInstance().stop());
   }
 

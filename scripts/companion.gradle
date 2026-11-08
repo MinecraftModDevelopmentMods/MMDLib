@@ -76,6 +76,14 @@ neoForge {
             systemProperty 'mmdlib.simpleCrusherSmoke', 'true'
             programArguments.addAll '--width', '1280', '--height', '960'
         }
+        simpleLavaFurnaceClientSmoke {
+            client()
+            gameDirectory = layout.buildDirectory.dir('simple-lava-furnace-client-smoke')
+            sourceSet = sourceSets.companionTest
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
+            systemProperty 'mmdlib.simpleLavaFurnaceSmoke', 'true'
+            programArguments.addAll '--width', '1280', '--height', '960'
+        }
     }
 }
 
@@ -89,6 +97,19 @@ tasks.matching { it.name == 'runSimpleCrusherClientSmoke' }.configureEach {
         def log = layout.buildDirectory.file('simple-crusher-client-smoke/logs/latest.log').get().asFile
         if (!log.exists() || !log.text.contains('SIMPLE_CRUSHER_CLIENT_PASS') || log.text.contains('SIMPLE_CRUSHER_CLIENT_FAIL'))
             throw new GradleException('SimpleCrusher client smoke failed; inspect ' + log)
+    }
+}
+
+tasks.matching { it.name == 'runSimpleLavaFurnaceClientSmoke' }.configureEach {
+    doFirst {
+        def smokeDir = layout.buildDirectory.dir('simple-lava-furnace-client-smoke').get().asFile
+        smokeDir.mkdirs()
+        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\npauseOnLostFocus:false\n'
+    }
+    doLast {
+        def log = layout.buildDirectory.file('simple-lava-furnace-client-smoke/logs/latest.log').get().asFile
+        if (!log.exists() || !log.text.contains('SIMPLE_LAVA_FURNACE_CLIENT_PASS') || log.text.contains('SIMPLE_LAVA_FURNACE_CLIENT_FAIL'))
+            throw new GradleException('SimpleLavaFurnace client smoke failed; inspect ' + log)
     }
 }
 

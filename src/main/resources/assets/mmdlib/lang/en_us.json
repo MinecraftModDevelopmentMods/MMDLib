@@ -1,4 +1,10 @@
 {
+  "screen.mmdlib.tank.empty": "Empty",
+  "screen.mmdlib.tank.contents": "%s mB of %s",
+  "screen.mmdlib.tank.accepts": "Accepts: %s",
+  "screen.mmdlib.tank.none": "None",
+  "screen.mmdlib.tank.container_accepts": "Accepts %s in %s",
+  "screen.mmdlib.tank.container_rejects": "Doesn't accept %s in %s",
   "screen.mmdlib.machine.redstone_waiting": "Redstone input does not permit processing",
   "screen.mmdlib.machine.processor_warning": "%s: %s",
   "screen.mmdlib.machine.stalled": "Needs power",

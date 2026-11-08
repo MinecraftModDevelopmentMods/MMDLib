@@ -21,6 +21,43 @@ import zone.moddev.mc.lib.machine.definition.*;
 class ScreenFillGeneratorTest {
   @TempDir Path directory;
 
+  @Test
+  void multipleTankGaugesBindSeparateIndexesAndReplaceableFill() throws Exception {
+    Files.createDirectories(directory.resolve("machine"));
+    Files.writeString(
+        directory.resolve("machine/furnace.xml"),
+        Files.readString(Path.of("src/companion/resources/mmdlib/machine/simple_lava_furnace.xml"))
+            .replace("<tank id=\"fuel\"", "<tanks count=\"2\" id=\"fuel\""));
+    var sources =
+        List.of(
+            new SourceRoot(
+                "mmdlib", Path.of("src/main/resources/mmdlib"), getClass().getClassLoader()),
+            new SourceRoot("test", directory, getClass().getClassLoader()));
+    var machines = MachineDefinitions.load(sources);
+    var id = ResourceLocation.parse("test:furnace");
+    var screen =
+        ScreenLoader.load(
+                sources,
+                Map.of(id, machines.get(id).screen()),
+                (key, node) -> MachineScreenGenerators.generate(machines.get(key), node))
+            .get(id)
+            .screen();
+    var highlights = MachineScreenGenerators.compileHighlights(machines.get(id), screen);
+    assertEquals(List.of("tank_0", "tank_1"), highlights.get("fuel"));
+    assertTrue(screen.find("energy").isEmpty());
+    for (int index = 0; index < 2; index++) {
+      var tank = screen.find("tank_" + index).orElseThrow();
+      assertEquals("#getTankFluid(" + index + ")", tank.common().value().orElseThrow().text());
+      assertEquals("#getTankCapacity(" + index + ")", tank.common().max().orElseThrow().text());
+    }
+    var layout = ScreenLayout.of(screen, TextMeasure.NONE);
+    var tank = layout.bounds(screen.find("tank_0").orElseThrow());
+    var input = layout.bounds(screen.find("slot_0").orElseThrow());
+    var output = layout.bounds(screen.find("slot_1").orElseThrow());
+    assertEquals(7 + tank.x() - 6, input.x() + output.right(), 1);
+    assertTrue(layout.bounds(screen.find("tank_1").orElseThrow()).x() >= tank.right());
+  }
+
   private void write(String name, String attrs, String body) throws Exception {
     Files.createDirectories(directory.resolve("screen"));
     Files.writeString(
@@ -141,9 +178,11 @@ class ScreenFillGeneratorTest {
             List.of(sources.getFirst()),
             Map.of(id, machines.get(id).screen()),
             (key, node) ->
-                List.of(
-                    new Node(
-                        "slot", Map.of("index", "99"), List.of(), node.source(), node.line())));
+                node.attributes().get("generator").equals("mmdlib:tanks")
+                    ? List.of()
+                    : List.of(
+                        new Node(
+                            "slot", Map.of("index", "99"), List.of(), node.source(), node.line())));
     assertThrows(
         IllegalArgumentException.class,
         () -> MachineScreenGenerators.validate(machines.get(id), invalid.get(id).screen()));

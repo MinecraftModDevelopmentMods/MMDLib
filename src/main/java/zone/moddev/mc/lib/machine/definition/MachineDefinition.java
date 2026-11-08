@@ -19,6 +19,7 @@ public record MachineDefinition(
     boolean requiresTool,
     Map<String, String> textures,
     Power power,
+    Fluids fluids,
     String itemStorageId,
     List<Slot> slots,
     List<Group> groups,
@@ -36,6 +37,15 @@ public record MachineDefinition(
   public record Power(String id, long capacity, long input, long output, int color) {}
 
   public record Slot(String id, Role role, int limit) {}
+
+  public record Tank(String id, Role role, int capacity, ResourceLocation fluid) {}
+
+  public record Fluids(String id, List<Tank> tanks, List<Group> groups) {
+    public Fluids {
+      tanks = List.copyOf(tanks);
+      groups = List.copyOf(groups);
+    }
+  }
 
   public record Group(String id, List<Integer> members, IoMode mode, int color) {
     public Group {

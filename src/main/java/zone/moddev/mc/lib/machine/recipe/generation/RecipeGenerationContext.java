@@ -17,4 +17,8 @@ public record RecipeGenerationContext(
   public RecipeGenerationContext {
     recipes = List.copyOf(recipes);
   }
+
+  public RecipeGenerationContext withProperties(GeneratorProperties replacement) {
+    return new RecipeGenerationContext(recipeType, registries, tags, recipes, replacement);
+  }
 }

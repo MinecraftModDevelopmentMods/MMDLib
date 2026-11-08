@@ -33,6 +33,32 @@ class MachineDefinitionsTest {
   }
 
   @Test
+  void lavaFurnaceInheritsGenericBaseAndExpandsTanksWithoutPower() throws Exception {
+    var xml =
+        Files.readString(Path.of("src/companion/resources/mmdlib/machine/simple_lava_furnace.xml"));
+    write(xml.replace("<tank id=\"fuel\"", "<tanks count=\"2\" id=\"fuel\""));
+    var plan = MachineDefinitions.load(sources()).get(ResourceLocation.parse("test:crusher"));
+    assertNull(plan.power());
+    assertEquals(
+        List.of("fuel/0", "fuel/1"), plan.fluids().tanks().stream().map(t -> t.id()).toList());
+    assertEquals(List.of(0, 1), plan.fluids().groups().getFirst().members());
+    assertEquals(8000, plan.fluids().tanks().getFirst().capacity());
+    assertEquals(
+        ResourceLocation.parse("minecraft:lava"), plan.fluids().tanks().getFirst().fluid());
+    for (var invalid :
+        List.of(
+            xml.replace("capacity=\"8000\"", "capacity=\"0\""),
+            xml.replace("fluid=\"minecraft:lava\"", "fluid=\"Invalid:lava\""),
+            xml.replace("<fluids id=\"fluids\"", "<fluids id=\"items\""),
+            xml.replace("<tank id=\"fuel\"", "<tank id=\"input\""),
+            xml.replace("input fuel", "input"))) {
+      write(invalid);
+      assertThrows(
+          IllegalArgumentException.class, () -> MachineDefinitions.load(sources()), invalid);
+    }
+  }
+
+  @Test
   void inheritsPowerAndExpandsStableGroupsAndCustomProperties() throws Exception {
     write(
         crusher()
@@ -141,7 +167,9 @@ class MachineDefinitionsTest {
     assertEquals(
         original,
         MachineDefinitions.load(
-                List.of(new SourceRoot("test", copied, getClass().getClassLoader())))
+                List.of(
+                    sources().getFirst(),
+                    new SourceRoot("test", copied, getClass().getClassLoader())))
             .get(id)
             .checksum());
     write(child);
@@ -209,7 +237,7 @@ class MachineDefinitionsTest {
                     + " text=\"base_end\"/></hbox></screen>");
     Files.writeString(directory.resolve("machine/base.xml"), base);
     var plan = MachineDefinitions.load(sources()).get(ResourceLocation.parse("test:crusher"));
-    var children = plan.screen().children();
+    var children = plan.screen().children().stream().filter(n -> n.name().equals("hbox")).toList();
     assertEquals(4, children.size());
     assertEquals(
         List.of("first", "second", "base_end", "third", "fourth", "fifth"),
@@ -217,9 +245,18 @@ class MachineDefinitionsTest {
             .flatMap(n -> n.children().stream())
             .map(n -> n.attributes().get("text"))
             .toList());
+    var standaloneAttributes = new HashMap<>(plan.screen().attributes());
+    standaloneAttributes.remove("extends");
     var built =
         zone.moddev.mc.lib.gui.load.ScreenLoader.read(
-            Map.of(plan.id(), plan.screen()),
+            Map.of(
+                plan.id(),
+                new zone.moddev.mc.lib.gui.load.ScreenReader.Node(
+                    "screen",
+                    standaloneAttributes,
+                    children,
+                    plan.screen().source(),
+                    plan.screen().line())),
             new zone.moddev.mc.lib.gui.WidgetTypes(),
             zone.moddev.mc.lib.gui.load.ScreenFillGenerator.UNAVAILABLE);
     assertEquals(
@@ -277,7 +314,7 @@ class MachineDefinitionsTest {
             .replace("<storage>", "<block hardness=\"3.5\"/><storage>"));
     Files.writeString(
         directory.resolve("machine/base.xml"),
-        Files.readString(Path.of("src/main/resources/mmdlib/machine/base_powered_machine.xml"))
+        Files.readString(Path.of("src/main/resources/mmdlib/machine/base_machine.xml"))
             .replace("hardness=\"3.5\"", "hardness=\"3,5\""));
     var inheritedError =
         assertThrows(

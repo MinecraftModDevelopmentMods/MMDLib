@@ -122,6 +122,9 @@ public final class MachineDefinitions {
           Map.entry("appearance", Set.of("preset", "front", "side", "top", "bottom")),
           Map.entry("storage", Set.of()),
           Map.entry("items", Set.of("id")),
+          Map.entry("fluids", Set.of("id")),
+          Map.entry("tank", Set.of("id", "capacity", "role", "fluid")),
+          Map.entry("tanks", Set.of("id", "count", "capacity", "role", "fluid")),
           Map.entry("energy", Set.of("id", "capacity", "input-rate", "output-rate")),
           Map.entry("slots", Set.of("id", "count", "role", "limit")),
           Map.entry("slot", Set.of("id", "role", "limit")),
@@ -145,7 +148,9 @@ public final class MachineDefinitions {
               "recovery",
               "screen"),
           "storage",
-          Set.of("energy", "items"),
+          Set.of("energy", "items", "fluids"),
+          "fluids",
+          Set.of("tank", "tanks"),
           "items",
           Set.of("slot", "slots"),
           "groups",
@@ -169,6 +174,7 @@ public final class MachineDefinitions {
           case "appearance" -> List.of("front", "side", "top", "bottom");
           case "recipe-type" -> List.of("id");
           case "processor" -> List.of("recipe-type");
+          case "tank", "tanks" -> List.of("fluid");
           default -> List.<String>of();
         };
     for (var attribute : resources)
@@ -202,16 +208,45 @@ public final class MachineDefinitions {
             ? resource(appearance, "bottom").toString()
             : textures.get("side"));
     var storage = one(root, "storage");
-    var power = one(storage, "energy");
+    var power = optional(storage, "energy");
     var items = one(storage, "items");
     if (required(items, "id").equals("energy")
         || MachineStorageKeys.RESERVED.contains(required(items, "id")))
       throw error(items, "Reserved storage ID " + required(items, "id"));
-    String powerId = required(power, "id");
+    String powerId = power == null ? null : required(power, "id");
     // BasePoweredMachine owns this stable save key.
-    if (!powerId.equals("energy"))
+    if (powerId != null && !powerId.equals("energy"))
       throw error(power, "Powered machines require energy id='energy'");
     int energyColor = 0xd85b5b;
+    var fluidNode = optional(storage, "fluids");
+    var tanks = new ArrayList<Tank>();
+    var fluidGroups = new LinkedHashMap<String, Group>();
+    var tankIds = new HashMap<String, Integer>();
+    if (fluidNode != null) {
+      String fluidId = required(fluidNode, "id");
+      if (fluidId.equals("energy")
+          || fluidId.equals(required(items, "id"))
+          || MachineStorageKeys.RESERVED.contains(fluidId))
+        throw error(fluidNode, "Duplicate or reserved storage ID " + fluidId);
+      for (var node : fluidNode.children()) {
+        String tankId = required(node, "id");
+        Role role = role(node);
+        int count = node.name().equals("tanks") ? (int) number(node, "count", 1, 16) : 1;
+        int capacity = (int) number(node, "capacity", 1, Integer.MAX_VALUE);
+        var filter = node.attributes().containsKey("fluid") ? resource(node, "fluid") : null;
+        var members = new ArrayList<Integer>();
+        for (int i = 0; i < count; i++) {
+          String member = node.name().equals("tanks") ? tankId + "/" + i : tankId;
+          if (tankIds.putIfAbsent(member, tanks.size()) != null)
+            throw error(node, "Duplicate tank " + member);
+          members.add(tanks.size());
+          tanks.add(new Tank(member, role, capacity, filter));
+        }
+        if (fluidGroups.putIfAbsent(tankId, new Group(tankId, members, mode(role), 0xf0a13b))
+            != null) throw error(node, "Duplicate fluid group " + tankId);
+      }
+      if (tanks.isEmpty() || tanks.size() > 16) throw error(fluidNode, "Expected 1..16 tanks");
+    }
     var slots = new ArrayList<Slot>();
     var groups = new LinkedHashMap<String, Group>();
     var ids = new HashMap<String, Integer>();
@@ -259,6 +294,28 @@ public final class MachineDefinitions {
           energyColor = color(node, energyColor);
           continue;
         }
+        if (fluidNode != null && required(node, "storage").equals(required(fluidNode, "id"))) {
+          var prior = fluidGroups.get(groupId);
+          if (prior == null) throw error(node, "Unknown automatic fluid group " + groupId);
+          if (node.attributes().containsKey("members")) {
+            var members = new ArrayList<Integer>();
+            for (var member : required(node, "members").split("\\s+")) {
+              if (!tankIds.containsKey(member)) throw error(node, "Unknown tank " + member);
+              members.add(tankIds.get(member));
+            }
+            if (!prior.members().equals(members))
+              throw error(node, "Conflicting automatic fluid group " + groupId);
+          }
+          IoMode mode;
+          try {
+            mode = IoMode.valueOf(required(node, "mode").toUpperCase(Locale.ROOT));
+          } catch (IllegalArgumentException ex) {
+            throw error(node, "Invalid group mode");
+          }
+          fluidGroups.put(
+              groupId, new Group(groupId, prior.members(), mode, color(node, prior.color())));
+          continue;
+        }
         if (!required(node, "storage").equals(required(items, "id")))
           throw error(node, "Unknown storage");
         var prior = groups.get(groupId);
@@ -294,6 +351,16 @@ public final class MachineDefinitions {
       }
     if (covered.size() != slots.size()) throw error(items, "Every slot must belong to a group");
     if (groups.containsKey(powerId)) throw error(items, "Item group conflicts with energy");
+    for (var group : fluidGroups.values()) {
+      if (groups.containsKey(group.id()) || group.id().equals(powerId))
+        throw error(fluidNode, "Duplicate resource group " + group.id());
+      for (int index : group.members()) {
+        var role = tanks.get(index).role();
+        if ((group.mode().canInsert() && !role.canInsert())
+            || (group.mode().canExtract() && !role.canExtract()))
+          throw error(fluidNode, "Group mode conflicts with tank role: " + group.id());
+      }
+    }
     var recipe = one(root, "recipe-type");
     var generatorNode = optional(recipe, "generator");
     Generator generator = null;
@@ -320,9 +387,12 @@ public final class MachineDefinitions {
     var processor = one(root, "processor");
     if (!recipeId.equals(resource(processor, "recipe-type")))
       throw error(processor, "Unknown recipe type");
-    // All item input groups are linked automatically; an explicit list must agree.
+    // All input groups are linked automatically; an explicit list must agree.
     var inputs =
-        groups.values().stream().filter(g -> g.mode() == IoMode.INPUT).map(Group::id).toList();
+        java.util.stream.Stream.concat(groups.values().stream(), fluidGroups.values().stream())
+            .filter(g -> g.mode() == IoMode.INPUT)
+            .map(Group::id)
+            .toList();
     if (processor.attributes().containsKey("filter-inputs")
         && !new HashSet<>(Arrays.asList(required(processor, "filter-inputs").split("\\s+")))
             .equals(new HashSet<>(inputs)))
@@ -345,12 +415,17 @@ public final class MachineDefinitions {
         resource(block, "mineable"),
         bool(block, "requires-tool", false),
         textures,
-        new Power(
-            powerId,
-            number(power, "capacity", 1, Long.MAX_VALUE),
-            number(power, "input-rate", 0, Long.MAX_VALUE),
-            number(power, "output-rate", 0, Long.MAX_VALUE),
-            energyColor),
+        power == null
+            ? null
+            : new Power(
+                powerId,
+                number(power, "capacity", 1, Long.MAX_VALUE),
+                number(power, "input-rate", 0, Long.MAX_VALUE),
+                number(power, "output-rate", 0, Long.MAX_VALUE),
+                energyColor),
+        fluidNode == null
+            ? null
+            : new Fluids(required(fluidNode, "id"), tanks, List.copyOf(fluidGroups.values())),
         required(items, "id"),
         slots,
         List.copyOf(groups.values()),
@@ -365,6 +440,23 @@ public final class MachineDefinitions {
     var value = node.attributes().get(key);
     if (value == null || value.isBlank()) throw error(node, "Missing " + key);
     return value;
+  }
+
+  private static Role role(Node node) {
+    try {
+      return Role.valueOf(required(node, "role").toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException ex) {
+      throw error(node, "Invalid role");
+    }
+  }
+
+  private static IoMode mode(Role role) {
+    return switch (role) {
+      case INPUT -> IoMode.INPUT;
+      case OUTPUT -> IoMode.OUTPUT;
+      case STORAGE -> IoMode.BOTH;
+      case MANUAL -> IoMode.DISABLED;
+    };
   }
 
   public static ResourceLocation resource(Node node, String key) {

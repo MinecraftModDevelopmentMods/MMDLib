@@ -355,7 +355,7 @@ public final class ScreenLoaderTest {
         require(
             screen
                 .source(screen.find("toggle_0").orElseThrow().common())
-                .endsWith("base_powered_machine.xml"));
+                .endsWith("base_machine.xml"));
     }
   }
 
@@ -366,7 +366,7 @@ public final class ScreenLoaderTest {
         java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power", "logistics")) {
       var screen = screens.get(ResourceLocation.parse("mmdlib_companion:" + name));
       var info = (Element.Popout) screen.find("info").orElseThrow();
-      require(screen.source(info.common()).endsWith("base_powered_machine.xml"));
+      require(screen.source(info.common()).endsWith("base_machine.xml"));
       require(info.text().orElseThrow().key().equals("mmdlib_companion:" + name + ".info"));
       if (name.equals("creative_power") || name.equals("logistics"))
         require(

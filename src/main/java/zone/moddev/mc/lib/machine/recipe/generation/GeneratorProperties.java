@@ -16,6 +16,13 @@ public record GeneratorProperties(Map<String, String> values, String source, int
       if (!allowed.contains(name)) throw error("Unknown generator property " + name);
   }
 
+  /** Removes subclass-specific options before passing the remaining options to a generator. */
+  public GeneratorProperties without(String... names) {
+    var remaining = new LinkedHashMap<>(values);
+    for (var name : names) remaining.remove(name);
+    return new GeneratorProperties(remaining, source, line);
+  }
+
   public String requiredString(String name) {
     var value = values.get(name);
     if (value == null || value.isBlank()) throw error("Missing generator property " + name);

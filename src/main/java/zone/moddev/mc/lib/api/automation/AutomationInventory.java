@@ -151,7 +151,7 @@ public final class AutomationInventory {
   public void refund(EnergyBuffer power, long amount) {
     if (amount < 0) throw new IllegalArgumentException("Negative refund");
     if (amount == 0) return;
-    refund = Math.addExact(refund, amount - power.refund(amount));
+    refund = Math.addExact(refund, amount - (power == null ? 0 : power.refund(amount)));
     owner.setChanged();
   }
 
@@ -160,7 +160,7 @@ public final class AutomationInventory {
   }
 
   public void settleRefund(EnergyBuffer power) {
-    if (refund == 0) return;
+    if (refund == 0 || power == null) return;
     long restored = power.refund(refund);
     refund -= restored;
     if (restored != 0) owner.setChanged();

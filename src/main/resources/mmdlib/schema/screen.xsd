@@ -51,7 +51,7 @@
   <xs:simpleType name="valueRef">
     <xs:annotation><xs:documentation>#method (instance getter on the block entity) or fully.qualified.Class#method (static, taking the block entity).</xs:documentation></xs:annotation>
     <xs:restriction base="xs:string">
-      <xs:pattern value="([A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*)?#[A-Za-z_$][A-Za-z0-9_$]*"/>
+      <xs:pattern value="(([A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*)?#[A-Za-z_$][A-Za-z0-9_$]*|#[A-Za-z_$][A-Za-z0-9_$]*\([0-9]+\))"/>
     </xs:restriction>
   </xs:simpleType>
 

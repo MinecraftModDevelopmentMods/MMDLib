@@ -1,6 +1,6 @@
 # XML machines
 
-An installed mod can declare a powered item-processing machine in
+An installed mod can declare an item-processing machine with optional energy and fluid storage in
 `src/main/resources/mmdlib/machine/<path>.xml`. Its ID is `<modid>:<path>`.
 MMDLib registers the block, item, block-entity type, declared recipe type and
 serializer, capabilities, screen and JEI catalyst. All instances use the shared
@@ -63,30 +63,31 @@ The companion's SimpleCrusher is in the **Data-defined Machines** creative tab.
 
 ## Base machine and storage
 
-The library's separate machine definition
-[`base_powered_machine.xml`](../src/main/resources/mmdlib/machine/base_powered_machine.xml)
-provides:
+The generic [`base_machine.xml`](../src/main/resources/mmdlib/machine/base_machine.xml)
+provides block settings, redstone control, recovery and the common screen with generated
+tank fills. It declares no storage. The powered base extends it:
 
 ```xml
-<machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true">
-  <block hardness="3.5" facing="horizontal" drop="self"
-         mineable="minecraft:mineable/pickaxe" requires-tool="true"/>
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true"
+         extends="mmdlib:base_machine">
   <storage>
     <energy id="energy" capacity="100000" input-rate="1000" output-rate="0"/>
   </storage>
   <groups>
     <group id="energy" storage="energy" mode="input" color="#d85b5b"/>
   </groups>
-  <redstone enabled="true" pause="processing-only"/>
-  <recovery policy="capsule"/>
   <screen xmlns="https://moddev.zone/mmdlib/screen" extends="mmdlib:base_powered_machine"/>
 </machine>
 ```
 
+The Java runtime follows the same split: `BaseMachine` owns the common lifecycle;
+`BasePoweredMachine` adds an FE buffer for existing Java machines. XML machines use
+`DefinedMachineEntity`, allocating an FE buffer only when `<energy>` is declared.
+
 Machine and screen definitions have separate namespaces of IDs, so these two
 `mmdlib:base_powered_machine` resources serve different purposes. The machine
 inherits common configuration; its screen inherits the reusable visual template.
-Abstract machines register nothing. Single-valued sections (`items`, `energy`,
+Abstract machines register nothing. Single-valued sections (`items`, `fluids`, `energy`,
 `recipe-type`, `processor`, and the other machine sections) merge by element name,
 so a child may change their IDs. Repeated slots/groups merge by element name and
 `id`; fills merge by `name`. A child can override just the energy capacity while
@@ -117,23 +118,116 @@ modes are respectively `input`, `output`, `both`, and `disabled`. A group cannot
 grant automation permissions that its members' roles prohibit. Slot `limit`
 defaults to 64. There must be 1–54 item slots overall.
 
-The initial runtime supports one item storage, the inherited energy buffer
-named `energy`, one recipe type and one processor per machine. Energy automation
+The runtime supports one item storage, an optional fluid storage, an optional energy
+buffer named `energy`, one recipe type and one processor per machine. Energy automation
 uses the `energy/input` group. Item storage IDs `energy`, `features`, `automation`,
 `redstone_control`, `redstone_mode`, `id`, `components`, `mmdlib_features`, and
-`mmdlib_machine` are reserved. Input-mode item groups are automatically linked to
+`mmdlib_machine` are reserved. Input-mode item and fluid groups are automatically linked to
 the processor's recipes; an explicit `filter-inputs` list must name those groups.
 Processor `name` optionally overrides the displayed machine name.
 
 Stable storage IDs, processing reservations and side settings survive saves.
 Displaced resources use `mmdlib:machine_recovery_capsule`; use a capsule on an XML
-machine to restore compatible items and energy. Overflow and unknown resource
+machine to restore compatible items, fluids and energy. Overflow and unknown resource
 entries remain in the capsule.
+
+## Simple Lava Furnace
+
+[`simple_lava_furnace.xml`](../src/companion/resources/mmdlib/machine/simple_lava_furnace.xml)
+extends `mmdlib:base_machine`, with one input slot, one output slot and this storage:
+
+```xml
+<fluids id="fluids">
+  <tank id="fuel" capacity="8000" role="input" fluid="minecraft:lava"/>
+</fluids>
+```
+
+There is no base fluid machine. The furnace owns its tank definition and has no FE
+buffer or FE capability. Right-click it with a lava bucket or fill it through its
+fluid capability. The generated gauge and side controls use the `fuel` group.
+Wrong fluids are rejected; a failed bucket interaction does not spill fluid into the world.
+
+Generated tank tooltips show the resource group name, current amount/fluid (or
+`Empty`), and accepted fluid names. Carry a filled fluid container on the cursor
+to see a blue `Accepts Lava in Bucket` or red `Doesn't accept Water in Tank` line.
+Modded containers use their display name; empty containers add no compatibility
+line. The server evaluates each viewer's carried stack against the tank's role,
+recipe filter and current fluid, using simulation only. Acceptance describes
+fluid compatibility, not free capacity. These lines update when recipes reload.
+
+Both `<tank>` and `<tanks count="2">` create automatic groups. The latter expands
+stable tank IDs to `fuel/0`, `fuel/1`, etc. Capacity is per tank, in mB, and must be
+positive. Declare 1–16 tanks per fluid storage. The optional `fluid` attribute names
+one registered fluid; omit it to allow any fluid accepted by the recipe filter.
+Roles are `input`, `output`, `storage` or `manual`, as for slots. Explicit fluid
+`<group>` entries may override an automatic group's mode/color, but cannot regroup
+its members. Item, fluid and energy group IDs must be distinct. Storage IDs must be
+distinct and cannot use the lifecycle's reserved keys. An explicit `filter-inputs`
+list includes fluid input groups: the furnace uses `filter-inputs="input fuel"`.
+Fluid products, reservations, stable IDs, save/load, recovery and side automation
+use the same machinery as Java machines. Paid automation requires an FE buffer;
+free automation also works on machines without one.
+
+The generic base includes `<fill name="tanks" generator="mmdlib:tanks"/>`.
+An explicit `<fill name="tanks">…</fill>` replaces it (including an empty fill).
+Generated gauges bind `#getTankFluid(0)` and `#getTankCapacity(0)`, then index 1,
+and so on. Indexed references call a public instance getter with one fixed
+nonnegative `int` argument on the server; its result is synchronized like an
+ordinary getter. Invalid tank indexes fail startup screen validation.
+
+### Smelting and energy-to-fluid recipe adapters
+
+The furnace selects its mod-owned generator:
+
+```xml
+<generator class="zone.moddev.mc.companion.recipe.LavaSmeltingRecipes"/>
+```
+
+MMDLib's `SmeltingRecipeGenerator` adapts all existing `SmeltingRecipe` entries,
+including recipes added by mods/datapacks. It preserves the input ingredient,
+output stack (including count/components), and cooking duration. This includes
+non-ore smelting, such as sand to glass. Furnace experience rewards are not copied.
+The optional `input-group`, `output-group`, and `energy-group` default to `input`,
+`output`, and `energy`; `energy-per-tick` defaults to 20.
+
+The companion's [`LavaSmeltingRecipes`](../src/companion/java/zone/moddev/mc/companion/recipe/LavaSmeltingRecipes.java)
+subclasses this generator and wraps its output. It replaces FE with lava before
+emitting recipes for validation and publication. Optional `fluid-group` defaults
+to `fuel` and `energy-per-mb` defaults to 40. Thus a 200-tick vanilla recipe costs
+100 mB lava and yields the original one ingot. Generated IDs have the form
+`<machine-type-namespace>:generated/<machine-type-path>/smelting/<source-namespace>/<source-path>`.
+Authored recipes can override these IDs; `/reload` rebuilds them from current recipes.
+
+The same pattern works with `OreToIngotGenerator` directly:
+
+```java
+public final class LavaOres extends OreToIngotGenerator {
+  @Override
+  public void generate(RecipeGenerationContext ctx, MachineRecipeOutput output) {
+    long rate = ctx.properties().longValue("energy-per-mb", 40, 1, Long.MAX_VALUE);
+    var lava = ctx.registries().lookupOrThrow(Registries.FLUID)
+        .getOrThrow(Fluids.LAVA.builtInRegistryHolder().key());
+    super.generate(ctx.withProperties(ctx.properties().without("energy-per-mb")),
+        (id, recipe) -> output.accept(id, RecipeTransforms.energyToFluid(
+            recipe, "fuel", HolderSet.direct(lava), rate)));
+  }
+}
+```
+
+Use holders from the context's registry lookup: reload candidates may have a
+different holder owner from the globally registered fluid.
+`GeneratorProperties.without(...)` removes only the subclass's custom options so
+its parent still rejects misspelled options. `RecipeTransforms.energyToFluid`
+sums all energy inputs with overflow checks, removes them, and adds one fluid
+input using `ceil(total FE / FE per mB)`. It preserves other inputs, outputs and
+duration. Recipes with no FE inputs remain unchanged. This ore subclass retains
+the ore generator's default 1 → 2 yield and hardness/tool scaling; the furnace's
+smelting adapter preserves the existing smelting yield instead.
 
 ## Generated screen fills
 
-The base screen supplies the power gauge, player inventory, processor button,
-side/redstone controls, Info and Statistics. Its machine-specific region is:
+The generic base screen supplies player inventory, a processor button,
+side/redstone controls, Info and Statistics. The powered screen adds the power gauge. Its machine-specific region is:
 
 ```xml
 <placeholder name="machine" generator="mmdlib:processing"/>
@@ -178,6 +272,7 @@ Custom screen templates can use these fragment generators on their placeholders:
 | `mmdlib:processing` | None | Complete processor region, excluding inherited frame/controls |
 | `mmdlib:resource-groups` | `role="input\|output\|storage"`, optional `columns="1..9"` (default 3) | Slots for matching groups; storage includes manual groups |
 | `mmdlib:processors` | None | The single processor's progress arrow |
+| `mmdlib:tanks` | None | One indexed fluid gauge per tank, in declaration order |
 
 Register custom namespaced builders with `MachineScreenGenerators.register`
 before definitions load. A builder receives the resolved `MachineDefinition`
@@ -362,6 +457,6 @@ declarations must agree on name, generator class and properties. A definition
 referencing it with `declare="false"` must not supply a generator. Types registered
 only by Java are not currently resolved by this XML loader.
 
-This delivery covers powered item processing and cube appearances. XML fluid
-storage, multiple processors, world-interaction features and standalone loose
-content packs remain outside this format's implemented scope.
+This delivery covers item processing with optional FE and fluids, and cube appearances.
+Multiple processors, world-interaction features and standalone loose content packs
+remain outside this format's implemented scope.

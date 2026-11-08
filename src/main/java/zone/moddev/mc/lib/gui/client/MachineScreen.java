@@ -748,6 +748,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     boolean shift = hasShiftDown();
     var text = shift ? c.tooltipShift().or(c::tooltip) : c.tooltip();
     var lines = new ArrayList<Component>();
+    lines.addAll(menu.tooltip(e));
     text.ifPresent(
         t -> {
           String translated =

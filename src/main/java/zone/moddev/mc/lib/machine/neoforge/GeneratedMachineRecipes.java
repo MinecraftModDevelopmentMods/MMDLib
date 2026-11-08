@@ -3,10 +3,16 @@ package zone.moddev.mc.lib.machine.neoforge;
 import java.lang.reflect.Constructor;
 import java.util.*;
 
+import com.google.gson.JsonElement;
+
 import com.mojang.serialization.JsonOps;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.*;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -95,9 +101,7 @@ public final class GeneratedMachineRecipes {
    * Builds a fresh candidate; exposed to runtime tests without altering the active recipe manager.
    */
   public static List<RecipeHolder<?>> generate(
-      List<RecipeHolder<?>> authored,
-      net.minecraft.core.HolderLookup.Provider registries,
-      ReloadTags tags) {
+      List<RecipeHolder<?>> authored, HolderLookup.Provider registries, ReloadTags tags) {
     var expanded = expand(authored);
     var generated = new TreeMap<ResourceLocation, RecipeHolder<?>>();
     var original = new TreeMap<ResourceLocation, RecipeHolder<?>>();
@@ -119,7 +123,7 @@ public final class GeneratedMachineRecipes {
                             "Generated recipe must use namespace " + id.getNamespace());
                       // Round-trip validates every amount/product and takes an independent
                       // snapshot.
-                      var ops = registries.createSerializationContext(JsonOps.INSTANCE);
+                      var ops = generationOps(registries);
                       var encoded =
                           MachineRecipe.CODEC.codec().encodeStart(ops, recipe).getOrThrow();
                       var snapshot = MachineRecipe.CODEC.codec().parse(ops, encoded).getOrThrow();
@@ -145,6 +149,28 @@ public final class GeneratedMachineRecipes {
     generated.putAll(original); // Authored files replace generated entries with the same ID.
     generated.values().forEach(GeneratedMachineRecipes::validateRecipe);
     return List.copyOf(generated.values());
+  }
+
+  /** Keep reload's tag getter, but use its underlying owner when encoding registry holders. */
+  private static RegistryOps<JsonElement> generationOps(HolderLookup.Provider registries) {
+    return RegistryOps.create(
+        JsonOps.INSTANCE,
+        new RegistryOps.RegistryInfoLookup() {
+          @Override
+          public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(
+              ResourceKey<? extends Registry<? extends T>> key) {
+            return registries
+                .lookup(key)
+                .map(
+                    lookup -> {
+                      var owner = lookup;
+                      while (owner instanceof HolderLookup.RegistryLookup.Delegate<T> delegate)
+                        owner = delegate.parent();
+                      return new RegistryOps.RegistryInfo<>(
+                          owner, lookup, lookup.registryLifecycle());
+                    });
+          }
+        });
   }
 
   private static List<RecipeHolder<?>> expand(List<RecipeHolder<?>> authored) {
@@ -195,11 +221,14 @@ public final class GeneratedMachineRecipes {
       if (machine.recipeType().id().equals(type.id())) {
         var items = new HashSet<String>();
         machine.groups().forEach(g -> items.add(g.id()));
+        var fluids = new HashSet<String>();
+        if (machine.fluids() != null) machine.fluids().groups().forEach(g -> fluids.add(g.id()));
+        String energy = machine.power() == null ? null : machine.power().id();
         recipe
             .inputs()
             .forEach(
                 (key, parts) -> {
-                  if (!items.contains(key) && !key.equals(machine.power().id()))
+                  if (!items.contains(key) && !fluids.contains(key) && !key.equals(energy))
                     throw new IllegalArgumentException(
                         machine.id() + ": unknown recipe input group " + key);
                   parts.forEach(
@@ -207,8 +236,10 @@ public final class GeneratedMachineRecipes {
                         boolean valid =
                             part instanceof MachineIngredient.ItemPart
                                 ? items.contains(key)
-                                : part instanceof MachineIngredient.EnergyPart
-                                    && key.equals(machine.power().id());
+                                : part instanceof MachineIngredient.FluidPart
+                                    ? fluids.contains(key)
+                                    : part instanceof MachineIngredient.EnergyPart
+                                        && key.equals(energy);
                         if (!valid)
                           throw new IllegalArgumentException(
                               machine.id() + ": incompatible recipe input group " + key);
@@ -218,12 +249,14 @@ public final class GeneratedMachineRecipes {
             .outputs()
             .forEach(
                 (key, parts) -> {
-                  if (!items.contains(key))
+                  if (!items.contains(key) && !fluids.contains(key))
                     throw new IllegalArgumentException(
                         machine.id() + ": unknown recipe output group " + key);
                   parts.forEach(
                       part -> {
-                        if (!(part instanceof MachineProduct.ItemProduct) || !items.contains(key))
+                        if (!(part instanceof MachineProduct.ItemProduct && items.contains(key))
+                            && !(part instanceof MachineProduct.FluidProduct
+                                && fluids.contains(key)))
                           throw new IllegalArgumentException(
                               machine.id() + ": incompatible recipe output group " + key);
                       });

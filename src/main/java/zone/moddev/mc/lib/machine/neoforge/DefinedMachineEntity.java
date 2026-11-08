@@ -3,12 +3,15 @@ package zone.moddev.mc.lib.machine.neoforge;
 import java.util.*;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
@@ -18,9 +21,11 @@ import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
 /** Shared runtime assembled from XML. There is no per-machine Java subclass. */
-public final class DefinedMachineEntity extends BasePoweredMachine {
+public final class DefinedMachineEntity extends BaseMachine {
   public final MachineDefinition definition;
   public final ItemStorage items;
+  public final FluidStorage fluids;
+  public final EnergyBuffer energy;
   public final MachineResources resources;
   public final MachineInventoryLifecycle inventory;
   private final RedstoneControl redstone;
@@ -31,14 +36,29 @@ public final class DefinedMachineEntity extends BasePoweredMachine {
       BlockState state,
       MachineDefinition definition,
       MachineRecipeType recipes) {
-    super(
-        type,
-        pos,
-        state,
-        definition.power().capacity(),
-        definition.power().input(),
-        definition.power().output());
+    super(type, pos, state);
     this.definition = definition;
+    var power = definition.power();
+    energy =
+        power == null
+            ? null
+            : new EnergyBuffer(power.capacity(), power.input(), power.output())
+                .onChange(this::setChanged);
+    fluids = new FluidStorage().onChange(this::setChanged);
+    if (definition.fluids() != null)
+      for (var tank : definition.fluids().tanks()) {
+        var filter = tank.fluid();
+        if (filter != null && !BuiltInRegistries.FLUID.containsKey(filter))
+          throw new IllegalArgumentException("Unknown tank fluid " + filter);
+        int index =
+            fluids.addTank(
+                tank.capacity(),
+                tank.role(),
+                stack ->
+                    filter == null
+                        || BuiltInRegistries.FLUID.getKey(stack.getFluid()).equals(filter));
+        fluids.tankId(index, tank.id());
+      }
     items = new ItemStorage(definition.slots().size()).onChange(this::setChanged);
     for (int i = 0; i < definition.slots().size(); i++) {
       var slot = definition.slots().get(i);
@@ -59,17 +79,33 @@ public final class DefinedMachineEntity extends BasePoweredMachine {
               new SideConfig(group.mode())),
           items);
     }
-    resources.energy(
-        new ResourceGroup<>(
-            "energy",
-            Component.literal("Energy"),
-            definition.power().color(),
-            ResourceType.ENERGY,
-            IoMode.INPUT,
-            List.of(0),
-            highlights.get(definition.power().id()),
-            new SideConfig(IoMode.INPUT)),
-        energy);
+    if (energy != null)
+      resources.energy(
+          new ResourceGroup<>(
+              "energy",
+              Component.literal("Energy"),
+              definition.power().color(),
+              ResourceType.ENERGY,
+              IoMode.INPUT,
+              List.of(0),
+              highlights.get(definition.power().id()),
+              new SideConfig(IoMode.INPUT)),
+          energy);
+    if (definition.fluids() != null)
+      for (var group : definition.fluids().groups()) {
+        resources.fluids(
+            new ResourceGroup<>(
+                group.id(),
+                Component.literal(group.id()),
+                group.color(),
+                ResourceType.FLUIDS,
+                group.mode(),
+                group.members(),
+                highlights.get(group.id()),
+                new SideConfig(group.mode())),
+            fluids);
+        if (group.mode() == IoMode.INPUT) resources.recipeInputs(recipes, group.id());
+      }
     for (var group : definition.groups())
       if (group.mode() == IoMode.INPUT) resources.recipeInputs(recipes, group.id());
     resources.build();
@@ -79,8 +115,70 @@ public final class DefinedMachineEntity extends BasePoweredMachine {
             recipes,
             resources.recipes(),
             Component.literal(definition.processorName())));
-    inventory = poweredInventory(resources.automation()).items(definition.itemStorageId(), items);
+    inventory = genericInventory(resources.automation()).items(definition.itemStorageId(), items);
+    if (definition.fluids() != null) inventory.fluids(definition.fluids().id(), fluids);
     redstone = definition.redstone() ? new RedstoneControl(this, List.of(features)) : null;
+  }
+
+  @Override
+  protected EnergyBuffer powerStorage() {
+    return energy;
+  }
+
+  public FluidStack getTankFluid(int index) {
+    return fluids.getFluidInTank(index).copy();
+  }
+
+  public int getTankCapacity(int index) {
+    return fluids.getTankCapacity(index);
+  }
+
+  @Override
+  public List<Component> screenTankTooltip(
+      zone.moddev.mc.lib.gui.model.Element element, net.minecraft.world.item.ItemStack carried) {
+    if (!(element instanceof zone.moddev.mc.lib.gui.model.Element.Gauge)
+        || !(element.common().value().orElse(null)
+            instanceof zone.moddev.mc.lib.gui.model.ValueRef.Indexed getter)
+        || !getter.method().equals("getTankFluid")
+        || definition.fluids() == null) return List.of();
+    int index = getter.index();
+    if (index < 0 || index >= fluids.getTanks()) return List.of();
+    var group =
+        definition.fluids().groups().stream()
+            .filter(g -> g.members().contains(index))
+            .findFirst()
+            .orElseThrow();
+    var tank = definition.fluids().tanks().get(index);
+    var name =
+        resources.automation().groups().stream()
+            .filter(g -> g.id().equals(group.id()))
+            .findFirst()
+            .orElseThrow()
+            .name();
+    java.util.function.Predicate<FluidStack> accepts =
+        stack ->
+            tank.role().canInsert()
+                && group.mode().canInsert()
+                && fluids.isFluidValid(index, stack);
+    var candidates =
+        tank.fluid() == null
+            ? BuiltInRegistries.FLUID.stream()
+            : java.util.stream.Stream.of(BuiltInRegistries.FLUID.get(tank.fluid()));
+    var accepted =
+        candidates
+            .filter(
+                fluid ->
+                    fluid != net.minecraft.world.level.material.Fluids.EMPTY
+                        && fluid.isSource(fluid.defaultFluidState()))
+            .filter(
+                fluid ->
+                    tank.fluid() == null
+                        || BuiltInRegistries.FLUID.getKey(fluid).equals(tank.fluid()))
+            .map(fluid -> new FluidStack(fluid, 1))
+            .filter(accepts)
+            .map(FluidStack::getHoverName)
+            .toList();
+    return FluidTankTooltip.lines(name, fluids.getFluidInTank(index), accepted, carried, accepts);
   }
 
   @Override
