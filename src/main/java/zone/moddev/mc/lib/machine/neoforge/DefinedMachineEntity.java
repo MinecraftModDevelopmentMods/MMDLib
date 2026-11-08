@@ -13,9 +13,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
-import zone.moddev.mc.lib.gui.Screens;
-import zone.moddev.mc.lib.gui.model.Element;
-import zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
@@ -48,13 +45,8 @@ public final class DefinedMachineEntity extends BasePoweredMachine {
       items.slotId(i, slot.id()).role(slot.role(), i).limit(slot.limit(), i);
     }
     resources = new MachineResources(this, this::facing);
-    var screen = Screens.get(definition.id()).orElseThrow().screen();
+    var highlights = MachineContent.screenHighlights(definition.id());
     for (var group : definition.groups()) {
-      var highlights =
-          screen.elements().stream()
-              .filter(e -> e instanceof Element.Slot s && group.members().contains(s.index()))
-              .flatMap(e -> e.common().id().stream())
-              .toList();
       resources.items(
           new ResourceGroup<>(
               group.id(),
@@ -63,15 +55,10 @@ public final class DefinedMachineEntity extends BasePoweredMachine {
               ResourceType.ITEMS,
               group.mode(),
               group.members(),
-              highlights,
+              highlights.get(group.id()),
               new SideConfig(group.mode())),
           items);
     }
-    var energyHighlights =
-        screen.elements().stream()
-            .filter(e -> e instanceof Element.EnergyGauge)
-            .flatMap(e -> e.common().id().stream())
-            .toList();
     resources.energy(
         new ResourceGroup<>(
             "energy",
@@ -80,7 +67,7 @@ public final class DefinedMachineEntity extends BasePoweredMachine {
             ResourceType.ENERGY,
             IoMode.INPUT,
             List.of(0),
-            energyHighlights,
+            highlights.get(definition.power().id()),
             new SideConfig(IoMode.INPUT)),
         energy);
     for (var group : definition.groups())
@@ -94,7 +81,6 @@ public final class DefinedMachineEntity extends BasePoweredMachine {
             Component.literal(definition.processorName())));
     inventory = poweredInventory(resources.automation()).items(definition.itemStorageId(), items);
     redstone = definition.redstone() ? new RedstoneControl(this, List.of(features)) : null;
-    ScreenInventoryValidation.validate(this);
   }
 
   @Override

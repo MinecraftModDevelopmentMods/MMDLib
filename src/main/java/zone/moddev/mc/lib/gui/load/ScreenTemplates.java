@@ -15,21 +15,32 @@ final class ScreenTemplates {
   private final Map<ResourceLocation, Node> definitions;
   private final Map<ResourceLocation, Node> resolved = new LinkedHashMap<>();
   private final LinkedHashSet<ResourceLocation> visiting = new LinkedHashSet<>();
-  private final java.util.function.BiFunction<ResourceLocation, Node, List<Node>> generator;
+  private final ScreenFillGenerator generator;
 
   ScreenTemplates(Map<ResourceLocation, Node> definitions) {
-    this(
-        definitions,
-        (id, node) -> {
-          throw error(node, "No generator context for " + id);
-        });
+    this(definitions, ScreenFillGenerator.UNAVAILABLE);
   }
 
-  ScreenTemplates(
-      Map<ResourceLocation, Node> definitions,
-      java.util.function.BiFunction<ResourceLocation, Node, List<Node>> generator) {
+  ScreenTemplates(Map<ResourceLocation, Node> definitions, ScreenFillGenerator generator) {
     this.definitions = Map.copyOf(definitions);
     this.generator = generator;
+    definitions.values().forEach(ScreenTemplates::validateAttributes);
+  }
+
+  private static void validateAttributes(Node node) {
+    if (node.name().equals("fill") || node.name().equals("placeholder")) {
+      boolean generated = node.attributes().containsKey("generator");
+      if (generated && ResourceLocation.tryParse(node.attributes().get("generator")) == null)
+        throw error(node, "Invalid generator='" + node.attributes().get("generator") + "'");
+      for (var key : node.attributes().keySet())
+        if (!key.equals("name")
+            && !key.equals("generator")
+            && !(node.name().equals("placeholder") && key.equals("required"))
+            && !generated)
+          throw error(
+              node, "Unknown attribute " + key + " on <" + node.name() + "> without a generator");
+    }
+    node.children().forEach(ScreenTemplates::validateAttributes);
   }
 
   static boolean flag(Node node, String attribute) {
@@ -46,7 +57,8 @@ final class ScreenTemplates {
     var parent = root.attributes().get("extends");
     Node result = root;
     if (parent != null) {
-      var parentId = ResourceLocation.parse(parent);
+      var parentId = ResourceLocation.tryParse(parent);
+      if (parentId == null) throw error(root, "Invalid extends='" + parent + "'");
       if (!definitions.containsKey(parentId)) throw error(root, "Unknown base screen: " + parent);
       var base = resolve(parentId);
       var placeholders = placeholders(base);
@@ -135,7 +147,7 @@ final class ScreenTemplates {
         if (flag(node, "required"))
           throw error(node, "Missing required fill: " + node.attributes().get("name"));
         if (node.attributes().containsKey("generator")) {
-          var generated = generator.apply(id, node);
+          var generated = generator.generate(id, node);
           for (var child : generated) rejectTemplates(child);
           result.addAll(generated);
         } else result.addAll(expand(id, node.children()));

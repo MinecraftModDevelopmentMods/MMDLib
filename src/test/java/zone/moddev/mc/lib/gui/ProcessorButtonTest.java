@@ -58,6 +58,10 @@ class ProcessorButtonTest {
         ResourceLocation.parse("mmdlib:icon_processor_play"),
         button.iconFor(ProcessorButtonState.of(false, false).wireValue()).orElseThrow());
     assertEquals(ProcessorButtonState.PAUSED, ProcessorButtonState.of(true, true));
+    for (var state : ProcessorButtonState.values()) {
+      assertEquals(state.icon(), button.iconFor(state.wireValue()).orElseThrow());
+      assertEquals(state.label(), button.labelFor(state.wireValue()).orElseThrow().key());
+    }
     for (var state :
         new ProcessorButtonState[] {
           ProcessorButtonState.STALLED, ProcessorButtonState.BLOCKED, ProcessorButtonState.HELD

@@ -86,10 +86,18 @@ provides:
 Machine and screen definitions have separate namespaces of IDs, so these two
 `mmdlib:base_powered_machine` resources serve different purposes. The machine
 inherits common configuration; its screen inherits the reusable visual template.
-Abstract machines register nothing. Attributes and children merge through the
-inheritance chain by element name and `id` (or `name` for fills). A child can
-override just the energy capacity while retaining the base rates. Generator and
-fill elements replace their inherited counterparts completely.
+Abstract machines register nothing. Single-valued sections (`items`, `energy`,
+`recipe-type`, `processor`, and the other machine sections) merge by element name,
+so a child may change their IDs. Repeated slots/groups merge by element name and
+`id`; fills merge by `name`. A child can override just the energy capacity while
+retaining the base rates. Generator and fill elements replace their inherited
+counterparts completely. Unnamed screen siblings remain in order: inherited
+content first, followed by child content. Duplicated single-valued sections in
+one file are errors, even if they have different IDs.
+
+Numbers use locale-independent syntax with a dot decimal separator, such as
+`hardness="3.5"`. Invalid hardness values and resource locations report the source
+file, line, attribute and value, including when authored in an inherited base.
 
 `<slots id="input" count="2" role="input"/>` creates stable member IDs `input/0`
 and `input/1`, plus a recipe/automation group named `input`. Growing the count
@@ -157,7 +165,10 @@ A machine can replace that region:
 This screen inherits `extends` from the machine base. To replace the generator
 instead, use `<fill name="machine" generator="example:custom"/>`. An explicit
 fill always replaces the template's default, including an empty fill. The nearest
-fill in the inheritance chain wins. A generator cannot have literal children,
+fill in the inheritance chain wins. Extra attributes are allowed only when a
+generator is present, and that generator validates its own options. Literal fills
+and placeholders reject unknown attributes even when later overridden.
+A generator cannot have literal children,
 and required placeholders cannot also have defaults.
 
 Custom screen templates can use these fragment generators on their placeholders:

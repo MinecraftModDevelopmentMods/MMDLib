@@ -220,6 +220,8 @@
     </xs:choice>
     <xs:attribute name="name" type="elementId" use="required"/>
     <xs:attribute name="generator" type="xs:string"/>
+    <!-- XSD 1.0 cannot condition attributes on generator presence. ScreenTemplates rejects
+         extra attributes on literal content; the selected generator validates its options. -->
     <xs:anyAttribute processContents="skip"/>
   </xs:complexType>
 

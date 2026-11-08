@@ -27,6 +27,7 @@ public final class MachineContent {
   public static final ResourceLocation RECOVERY =
       ResourceLocation.parse("mmdlib:machine_recovery_capsule");
   private static Map<ResourceLocation, MachineDefinition> definitions = Map.of();
+  private static Map<ResourceLocation, Map<String, List<String>>> screenHighlights = Map.of();
   private static final Map<ResourceLocation, MachineRecipeType> recipes = new TreeMap<>();
   private static final Map<ResourceLocation, DefinedMachineBlock> blocks = new TreeMap<>();
   private static final Map<ResourceLocation, BlockEntityType<DefinedMachineEntity>> entities =
@@ -43,6 +44,10 @@ public final class MachineContent {
 
   public static Map<ResourceLocation, MachineDefinition> definitions() {
     return definitions;
+  }
+
+  static Map<String, List<String>> screenHighlights(ResourceLocation id) {
+    return Objects.requireNonNull(screenHighlights.get(id), "No compiled screen for " + id);
   }
 
   public static MachineRecipeType recipeType(ResourceLocation id) {
@@ -81,8 +86,12 @@ public final class MachineContent {
             roots,
             embedded,
             (id, node) -> MachineScreenGenerators.generate(definitions.get(id), node));
+    var highlights = new TreeMap<ResourceLocation, Map<String, List<String>>>();
     definitions.forEach(
-        (id, machine) -> MachineScreenGenerators.validate(machine, screens.get(id).screen()));
+        (id, machine) ->
+            highlights.put(
+                id, MachineScreenGenerators.compileHighlights(machine, screens.get(id).screen())));
+    screenHighlights = Map.copyOf(highlights);
     Screens.install(screens);
   }
 

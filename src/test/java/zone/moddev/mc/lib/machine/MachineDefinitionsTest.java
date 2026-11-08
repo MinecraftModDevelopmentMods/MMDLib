@@ -162,6 +162,133 @@ class MachineDefinitionsTest {
   }
 
   @Test
+  void singletonOverridesCanChangeTheirIds() throws Exception {
+    write(
+        """
+        <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="test:base" name="Child">
+          <storage><items id="renamed_items"/></storage>
+          <recipe-type id="test:other"/>
+          <processor id="other_processor" recipe-type="test:other"/>
+        </machine>
+        """);
+    Files.writeString(
+        directory.resolve("machine/base.xml"),
+        crusher().replace("<machine ", "<machine abstract=\"true\" "));
+    var plan = MachineDefinitions.load(sources()).get(ResourceLocation.parse("test:crusher"));
+    assertEquals("renamed_items", plan.itemStorageId());
+    assertEquals("other_processor", plan.processor());
+    assertEquals(ResourceLocation.parse("test:other"), plan.recipeType().id());
+    assertEquals(3, plan.slots().size());
+    assertNotNull(plan.recipeType().generator());
+    assertEquals(100000, plan.power().capacity());
+    write(
+        crusher()
+            .replace(
+                "</machine>",
+                "<processor id=\"duplicate\" recipe-type=\"test:other\"/></machine>"));
+    assertTrue(
+        assertThrows(IllegalArgumentException.class, () -> MachineDefinitions.load(sources()))
+            .getMessage()
+            .contains("Duplicate definition processor"));
+  }
+
+  @Test
+  void inheritedScreensPreserveEveryUnnamedSiblingInOrder() throws Exception {
+    write(
+        crusher()
+            .replace("mmdlib:base_powered_machine", "test:base")
+            .replace(
+                "</machine>",
+                "<screen><hbox><label text=\"third\"/><label text=\"fourth\"/></hbox><hbox><label"
+                    + " text=\"fifth\"/></hbox></screen></machine>"));
+    var base =
+        Files.readString(Path.of("src/main/resources/mmdlib/machine/base_powered_machine.xml"))
+            .replace(
+                "extends=\"mmdlib:base_powered_machine\"/>",
+                "><hbox><label text=\"first\"/><label text=\"second\"/></hbox><hbox><label"
+                    + " text=\"base_end\"/></hbox></screen>");
+    Files.writeString(directory.resolve("machine/base.xml"), base);
+    var plan = MachineDefinitions.load(sources()).get(ResourceLocation.parse("test:crusher"));
+    var children = plan.screen().children();
+    assertEquals(4, children.size());
+    assertEquals(
+        List.of("first", "second", "base_end", "third", "fourth", "fifth"),
+        children.stream()
+            .flatMap(n -> n.children().stream())
+            .map(n -> n.attributes().get("text"))
+            .toList());
+    var built =
+        zone.moddev.mc.lib.gui.load.ScreenLoader.read(
+            Map.of(plan.id(), plan.screen()),
+            new zone.moddev.mc.lib.gui.WidgetTypes(),
+            zone.moddev.mc.lib.gui.load.ScreenFillGenerator.UNAVAILABLE);
+    assertEquals(
+        6,
+        built.get(plan.id()).elements().stream()
+            .filter(e -> e instanceof zone.moddev.mc.lib.gui.model.Element.Label)
+            .count());
+  }
+
+  @Test
+  void malformedValuesNameTheirSourceAttributeAndValue() throws Exception {
+    var edits = new LinkedHashMap<String, String>();
+    edits.put(
+        "extends='Invalid:base'", crusher().replace("mmdlib:base_powered_machine", "Invalid:base"));
+    edits.put(
+        "front='Invalid:front'",
+        crusher().replace("minecraft:block/furnace_front", "Invalid:front"));
+    edits.put(
+        "bottom='Invalid:bottom'",
+        crusher()
+            .replace("preset=\"cube-front\"", "preset=\"cube-front\" bottom=\"Invalid:bottom\""));
+    edits.put(
+        "mineable='Invalid:tool'",
+        crusher().replace("<storage>", "<block mineable=\"Invalid:tool\"/><storage>"));
+    edits.put(
+        "id='Invalid:type'",
+        crusher()
+            .replace(
+                "<recipe-type id=\"mmdlib_companion:simple_crushing\"",
+                "<recipe-type id=\"Invalid:type\""));
+    edits.put(
+        "recipe-type='Invalid:type'",
+        crusher()
+            .replace(
+                "recipe-type=\"mmdlib_companion:simple_crushing\"",
+                "recipe-type=\"Invalid:type\""));
+    for (var value : List.of("3,5", "broken", "NaN", "Infinity", "-1"))
+      edits.put(
+          "hardness='" + value + "'",
+          crusher().replace("<storage>", "<block hardness=\"" + value + "\"/><storage>"));
+    for (var edit : edits.entrySet()) {
+      write(edit.getValue());
+      var message =
+          assertThrows(
+                  zone.moddev.mc.lib.gui.load.ScreenException.class,
+                  () -> MachineDefinitions.load(sources()))
+              .getMessage();
+      assertTrue(message.matches("(?s).*crusher\\.xml:[1-9][0-9]*:.*"), message);
+      assertTrue(message.contains(edit.getKey()), message);
+      if (edit.getKey().contains("3,5")) assertTrue(message.contains("3.5"), message);
+    }
+    write(
+        crusher()
+            .replace("mmdlib:base_powered_machine", "test:base")
+            .replace("<storage>", "<block hardness=\"3.5\"/><storage>"));
+    Files.writeString(
+        directory.resolve("machine/base.xml"),
+        Files.readString(Path.of("src/main/resources/mmdlib/machine/base_powered_machine.xml"))
+            .replace("hardness=\"3.5\"", "hardness=\"3,5\""));
+    var inheritedError =
+        assertThrows(
+                zone.moddev.mc.lib.gui.load.ScreenException.class,
+                () -> MachineDefinitions.load(sources()))
+            .getMessage();
+    assertTrue(
+        inheritedError.matches("(?s).*base\\.xml:[1-9][0-9]*:.*hardness='3,5'.*"), inheritedError);
+  }
+
+  @Test
   void rejectsCyclesBeforeProducingPlans() throws Exception {
     write(
         "<machine xmlns=\"https://moddev.zone/mmdlib/machine\" version=\"1\""

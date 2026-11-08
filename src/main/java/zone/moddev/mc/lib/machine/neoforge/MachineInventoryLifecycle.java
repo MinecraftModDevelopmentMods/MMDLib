@@ -13,23 +13,13 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.machine.feature.FeatureHost;
+import zone.moddev.mc.lib.machine.inventory.MachineStorageKeys;
 
 /**
  * Composes storage persistence, processor restoration, transfer policy and displaced-content
  * recovery.
  */
 public final class MachineInventoryLifecycle {
-  private static final Set<String> RESERVED_KEYS =
-      Set.of(
-          "automation",
-          "features",
-          "redstone_control",
-          "redstone_mode",
-          "id",
-          "components",
-          "mmdlib_features",
-          "mmdlib_machine");
-
   public enum PausePolicy {
     PROCESSING_ONLY(true, false),
     TRANSFERS_ONLY(false, true),
@@ -93,7 +83,7 @@ public final class MachineInventoryLifecycle {
     Objects.requireNonNull(storage);
     if (key == null
         || key.isBlank()
-        || RESERVED_KEYS.contains(key)
+        || MachineStorageKeys.RESERVED.contains(key)
         || storages.containsKey(key)
         || storages.containsValue(storage))
       throw new IllegalArgumentException("Duplicate or reserved storage key: " + key);

@@ -14,6 +14,7 @@ import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
 import zone.moddev.mc.lib.gui.load.ScreenReader.Node;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition.*;
+import zone.moddev.mc.lib.machine.inventory.MachineStorageKeys;
 
 /**
  * Discovers machine XML, composes inheritance, then validates concrete plans before registration.
@@ -69,34 +70,49 @@ public final class MachineDefinitions {
     if (node == null) throw new IllegalArgumentException("Unknown base machine " + id);
     if (!visiting.add(id)) throw error(node, "Machine inheritance cycle " + visiting);
     var parent = node.attributes().get("extends");
-    var result =
-        parent == null
-            ? node
-            : merge(resolve(ResourceLocation.parse(parent), nodes, resolved, visiting), node);
+    var result = node;
+    if (parent != null) {
+      var parentId = resource(node, "extends");
+      if (!nodes.containsKey(parentId)) throw error(node, "Unknown base machine " + parent);
+      result = merge(resolve(parentId, nodes, resolved, visiting), node);
+    }
     visiting.remove(id);
     resolved.put(id, result);
     return result;
   }
 
-  private static String key(Node node) {
-    return node.name()
-        + ":"
-        + node.attributes().getOrDefault("id", node.attributes().getOrDefault("name", ""));
+  private static String key(Node parent, Node node) {
+    // These sections contain singletons; their ID is configuration, not merge identity.
+    if (Set.of("machine", "storage", "recipe-type").contains(parent.name())) return node.name();
+    var id = node.attributes().getOrDefault("id", node.attributes().get("name"));
+    // Ordinary unnamed screen siblings are ordered content, never implicit overrides.
+    return id == null ? null : node.name() + ":" + id;
   }
 
   private static Node merge(Node base, Node child) {
     if (child.name().equals("generator") || child.name().equals("fill")) return child;
     var attrs = new LinkedHashMap<>(base.attributes());
     attrs.putAll(child.attributes());
-    var children = new LinkedHashMap<String, Node>();
-    base.children().forEach(n -> children.put(key(n), n));
-    for (var n : child.children()) children.merge(key(n), n, MachineDefinitions::merge);
+    var children = new ArrayList<>(base.children());
+    var indexes = new HashMap<String, Integer>();
+    for (int i = 0; i < children.size(); i++) {
+      var key = key(base, children.get(i));
+      if (key != null && indexes.putIfAbsent(key, i) != null)
+        throw error(children.get(i), "Duplicate definition " + key);
+    }
+    var seen = new HashSet<String>();
+    for (var node : child.children()) {
+      var key = key(child, node);
+      if (key != null && !seen.add(key)) throw error(node, "Duplicate definition " + key);
+      var index = key == null ? null : indexes.get(key);
+      if (index != null) children.set(index, merge(children.get(index), node));
+      else {
+        if (key != null) indexes.put(key, children.size());
+        children.add(node);
+      }
+    }
     return new Node(
-        child.name(),
-        Map.copyOf(attrs),
-        List.copyOf(children.values()),
-        child.source(),
-        child.line());
+        child.name(), Map.copyOf(attrs), List.copyOf(children), child.source(), child.line());
   }
 
   private static final Map<String, Set<String>> ATTRIBUTES =
@@ -145,11 +161,25 @@ public final class MachineDefinitions {
       for (var attr : node.attributes().keySet())
         if (!allowed.contains(attr)) throw error(node, "Unknown attribute " + attr);
     }
+    // Validate values where they were authored, before inherited attributes acquire a child source.
+    var resources =
+        switch (node.name()) {
+          case "machine" -> List.of("extends");
+          case "block" -> List.of("mineable");
+          case "appearance" -> List.of("front", "side", "top", "bottom");
+          case "recipe-type" -> List.of("id");
+          case "processor" -> List.of("recipe-type");
+          default -> List.<String>of();
+        };
+    for (var attribute : resources)
+      if (node.attributes().containsKey(attribute)) resource(node, attribute);
+    if (node.name().equals("block") && node.attributes().containsKey("hardness")) hardness(node);
     var seen = new HashSet<String>();
     for (var child : node.children()) {
       if (!CHILDREN.getOrDefault(node.name(), Set.of()).contains(child.name()))
         throw error(child, "Unexpected child of " + node.name());
-      if (!seen.add(key(child))) throw error(child, "Duplicate definition " + key(child));
+      var key = key(node, child);
+      if (key != null && !seen.add(key)) throw error(child, "Duplicate definition " + key);
       validateTree(child);
     }
   }
@@ -165,25 +195,17 @@ public final class MachineDefinitions {
     requireChoice(appearance, "preset", "cube-front");
     var textures = new HashMap<String, String>();
     for (var face : List.of("front", "side", "top"))
-      textures.put(face, ResourceLocation.parse(required(appearance, face)).toString());
+      textures.put(face, resource(appearance, face).toString());
     textures.put(
         "bottom",
-        ResourceLocation.parse(appearance.attributes().getOrDefault("bottom", textures.get("side")))
-            .toString());
+        appearance.attributes().containsKey("bottom")
+            ? resource(appearance, "bottom").toString()
+            : textures.get("side"));
     var storage = one(root, "storage");
     var power = one(storage, "energy");
     var items = one(storage, "items");
-    if (Set.of(
-            "energy",
-            "features",
-            "automation",
-            "redstone_control",
-            "redstone_mode",
-            "id",
-            "components",
-            "mmdlib_features",
-            "mmdlib_machine")
-        .contains(required(items, "id")))
+    if (required(items, "id").equals("energy")
+        || MachineStorageKeys.RESERVED.contains(required(items, "id")))
       throw error(items, "Reserved storage ID " + required(items, "id"));
     String powerId = required(power, "id");
     // BasePoweredMachine owns this stable save key.
@@ -286,7 +308,7 @@ public final class MachineDefinitions {
               generatorNode.line(),
               loaders.get(generatorNode.source()));
     }
-    var recipeId = ResourceLocation.parse(required(recipe, "id"));
+    var recipeId = resource(recipe, "id");
     var recipeType =
         new RecipeType(
             recipeId,
@@ -296,7 +318,7 @@ public final class MachineDefinitions {
     if (!recipeType.declare() && generator != null)
       throw error(recipe, "Only a declaring recipe type may supply a generator");
     var processor = one(root, "processor");
-    if (!recipeId.equals(ResourceLocation.parse(required(processor, "recipe-type"))))
+    if (!recipeId.equals(resource(processor, "recipe-type")))
       throw error(processor, "Unknown recipe type");
     // All item input groups are linked automatically; an explicit list must agree.
     var inputs =
@@ -314,14 +336,13 @@ public final class MachineDefinitions {
     attrs.put("title", "block." + id.getNamespace() + "." + id.getPath().replace('/', '.'));
     attrs.put("title-fallback", required(root, "name"));
     attrs.put("block-entity", "zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity");
-    float hardness = Float.parseFloat(required(block, "hardness"));
-    if (!Float.isFinite(hardness) || hardness < 0) throw error(block, "Invalid hardness");
+    float hardness = hardness(block);
     return new MachineDefinition(
         id,
         checksum(root),
         required(root, "name"),
         hardness,
-        ResourceLocation.parse(required(block, "mineable")),
+        resource(block, "mineable"),
         bool(block, "requires-tool", false),
         textures,
         new Power(
@@ -344,6 +365,36 @@ public final class MachineDefinitions {
     var value = node.attributes().get(key);
     if (value == null || value.isBlank()) throw error(node, "Missing " + key);
     return value;
+  }
+
+  public static ResourceLocation resource(Node node, String key) {
+    var value = required(node, key);
+    var id = ResourceLocation.tryParse(value);
+    if (id == null)
+      throw error(
+          node,
+          "Invalid "
+              + key
+              + "='"
+              + value
+              + "': expected a resource location such as minecraft:stone");
+    return id;
+  }
+
+  private static float hardness(Node node) {
+    var value = required(node, "hardness");
+    try {
+      float parsed = Float.parseFloat(value);
+      if (Float.isFinite(parsed) && parsed >= 0) return parsed;
+    } catch (NumberFormatException ignored) {
+      // Report a definition error with the original file, line, attribute and value.
+    }
+    throw error(
+        node,
+        "Invalid hardness='"
+            + value
+            + "': expected a finite nonnegative number; use '.' as the decimal separator (for"
+            + " example 3.5)");
   }
 
   /** CRC of the resolved XML tree: includes inherited settings, excludes paths/formatting. */

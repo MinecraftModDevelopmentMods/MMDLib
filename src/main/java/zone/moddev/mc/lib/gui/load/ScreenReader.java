@@ -31,6 +31,7 @@ import zone.moddev.mc.lib.gui.WidgetTypes;
 import zone.moddev.mc.lib.gui.model.Common;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Element.*;
+import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
 import zone.moddev.mc.lib.gui.model.Screen;
 import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.model.ValueRef;
@@ -433,14 +434,14 @@ public final class ScreenReader {
       var attributes = new LinkedHashMap<>(node.attributes());
       attributes.put(
           "icons",
-          "mmdlib:icon_processor_pause mmdlib:icon_processor_stop mmdlib:icon_processor_play"
-              + " mmdlib:icon_processor_stop mmdlib:icon_processor_stop"
-              + " mmdlib:icon_processor_stop");
+          java.util.Arrays.stream(ProcessorButtonState.values())
+              .map(state -> state.icon().toString())
+              .collect(java.util.stream.Collectors.joining(" ")));
       attributes.put(
           "value-labels",
-          "screen.mmdlib.processor.paused screen.mmdlib.processor.processing"
-              + " screen.mmdlib.processor.idle screen.mmdlib.machine.stalled"
-              + " screen.mmdlib.machine.blocked screen.mmdlib.machine.held");
+          java.util.Arrays.stream(ProcessorButtonState.values())
+              .map(ProcessorButtonState::label)
+              .collect(java.util.stream.Collectors.joining(" ")));
       if (!attributes.containsKey("tooltip"))
         attributes.put("tooltip", "screen.mmdlib.processor.toggle");
       return new Node(node.name(), attributes, node.children(), node.source(), node.line());

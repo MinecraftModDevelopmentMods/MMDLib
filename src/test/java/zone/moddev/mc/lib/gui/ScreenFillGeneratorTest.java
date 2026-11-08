@@ -95,6 +95,12 @@ class ScreenFillGeneratorTest {
             (key, node) -> MachineScreenGenerators.generate(machines.get(key), node));
     var screen = screens.get(id).screen();
     assertDoesNotThrow(() -> MachineScreenGenerators.validate(machines.get(id), screen));
+    var highlights = MachineScreenGenerators.compileHighlights(machines.get(id), screen);
+    assertEquals(List.of("slot_0"), highlights.get("input"));
+    assertEquals(List.of("slot_1", "slot_2"), highlights.get("output"));
+    assertEquals(List.of("energy"), highlights.get("energy"));
+    assertThrows(UnsupportedOperationException.class, () -> highlights.put("other", List.of()));
+    assertThrows(UnsupportedOperationException.class, () -> highlights.get("input").add("other"));
     assertEquals(
         List.of(0, 1, 2),
         screen.elements().stream()
@@ -141,6 +147,56 @@ class ScreenFillGeneratorTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> MachineScreenGenerators.validate(machines.get(id), invalid.get(id).screen()));
+  }
+
+  @Test
+  void literalTemplateAttributesRejectTyposBeforeExpansion() throws Exception {
+    var sources = List.of(new SourceRoot("test", directory, getClass().getClassLoader()));
+    for (var attribute : List.of("colums=\"2\"", "generatr=\"test:fill\"")) {
+      write(
+          "base",
+          "abstract=\"true\" block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\"",
+          "<placeholder name=\"body\" " + attribute + "/>");
+      write("child", "extends=\"test:base\" title=\"test.child\"", "<fill name=\"body\"/>");
+      assertTrue(
+          assertThrows(ScreenException.class, () -> ScreenLoader.load(sources))
+              .getMessage()
+              .contains("Unknown attribute"));
+      write(
+          "base",
+          "abstract=\"true\" block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\"",
+          "<placeholder name=\"body\"/>");
+      write(
+          "child",
+          "extends=\"test:base\" title=\"test.child\"",
+          "<fill name=\"body\" " + attribute + "/>");
+      assertTrue(
+          assertThrows(ScreenException.class, () -> ScreenLoader.load(sources))
+              .getMessage()
+              .contains("Unknown attribute"));
+    }
+    var invalid =
+        new Node(
+            "screen",
+            Map.of("title", "test", "block-entity", "test.Host"),
+            List.of(
+                new Node(
+                    "placeholder",
+                    Map.of("name", "body", "colums", "2"),
+                    List.of(),
+                    "machine.xml",
+                    7)),
+            "machine.xml",
+            1);
+    var error =
+        assertThrows(
+            ScreenException.class,
+            () ->
+                ScreenLoader.read(
+                    Map.of(ResourceLocation.parse("test:embedded"), invalid),
+                    new WidgetTypes(),
+                    ScreenFillGenerator.UNAVAILABLE));
+    assertTrue(error.getMessage().contains("machine.xml:7: Unknown attribute colums"));
   }
 
   @Test

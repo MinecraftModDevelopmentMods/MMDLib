@@ -765,14 +765,7 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
           if (e instanceof Element.Button button && button.processorControl()) {
             var action =
                 ProcessorButtonState.fromWire(menu.value(button, false))
-                    .map(
-                        state ->
-                            switch (state) {
-                              case PAUSED -> "screen.mmdlib.processor.action.unpause";
-                              case PROCESSING, STALLED, BLOCKED, HELD ->
-                                  "screen.mmdlib.processor.action.stop";
-                              case IDLE -> "screen.mmdlib.processor.action.pause";
-                            })
+                    .map(ProcessorButtonState::action)
                     .map(key -> Component.translatable(key).getString())
                     .orElse("");
             translated = translated.replace("{action}", action);

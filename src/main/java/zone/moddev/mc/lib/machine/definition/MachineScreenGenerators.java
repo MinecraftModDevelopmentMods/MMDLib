@@ -39,7 +39,7 @@ public final class MachineScreenGenerators {
   public static List<Node> generate(MachineDefinition machine, Node node) {
     if (machine == null)
       throw MachineDefinitions.error(node, "Machine fill generator requires a machine definition");
-    var id = ResourceLocation.parse(node.attributes().get("generator"));
+    var id = MachineDefinitions.resource(node, "generator");
     var generator = GENERATORS.get(id);
     if (generator == null) throw MachineDefinitions.error(node, "Unknown fill generator " + id);
     return List.copyOf(generator.generate(machine, node));
@@ -63,6 +63,28 @@ public final class MachineScreenGenerators {
             button.common().line(),
             "Unknown processor-key: " + button.processorKey().orElseThrow());
     }
+  }
+
+  /** Validates and computes immutable highlight bindings once at definition load. */
+  public static Map<String, List<String>> compileHighlights(
+      MachineDefinition machine, Screen screen) {
+    validate(machine, screen);
+    var highlights = new LinkedHashMap<String, List<String>>();
+    var slots = new HashMap<Integer, String>();
+    for (var group : machine.groups()) {
+      highlights.put(group.id(), new ArrayList<>());
+      group.members().forEach(index -> slots.put(index, group.id()));
+    }
+    highlights.put(machine.power().id(), new ArrayList<>());
+    for (var element : screen.elements()) {
+      var group =
+          element instanceof Element.Slot slot
+              ? slots.get(slot.index())
+              : element instanceof Element.EnergyGauge ? machine.power().id() : null;
+      if (group != null) element.common().id().ifPresent(id -> highlights.get(group).add(id));
+    }
+    highlights.replaceAll((key, ids) -> List.copyOf(ids));
+    return Map.copyOf(highlights);
   }
 
   private static void options(Node node, Set<String> allowed) {
