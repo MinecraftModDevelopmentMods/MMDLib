@@ -107,11 +107,12 @@ loop, then machines defined entirely in JSON; also the plan for NeoForge 26.1 an
 builds. Stage 1 is built (internals without GUI, and ingredients, groups, transactions and
 matching).
 
-### KubeJS and CraftTweaker recipe integrations
+### KubeJS recipe integration
 
-Optional polish over the generic support above, each loaded only when that mod is present: a
-KubeJS recipe schema (`event.recipes.mmdlib.crushing(output, input)`) and a typed CraftTweaker
-recipe manager (`addRecipe(name, output, input)`).
+Possible optional polish over generic JSON support: a KubeJS recipe schema
+(`event.recipes.mmdlib.crushing(output, input)`). The typed CraftTweaker manager
+for shared `mmdlib:crushing` recipes is implemented; see
+[crushing recipe scripting](crafttweaker-crusher.md).
 
 ### Global data pack loader
 

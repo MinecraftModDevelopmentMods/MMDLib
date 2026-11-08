@@ -18,12 +18,14 @@ import zone.moddev.mc.lib.common.runtime.RedstoneBlock;
 public final class RedstoneSmoke {
   private RedstoneSmoke() {}
 
-  private static final java.util.concurrent.atomic.AtomicInteger calls =
-      new java.util.concurrent.atomic.AtomicInteger();
+  // Handler runs per gate position. Other tests place test gates of their own at the same time
+  // (ContentSmoke places every block), and each runs its handler once when placed.
+  private static final java.util.Map<BlockPos, Integer> calls =
+      new java.util.concurrent.ConcurrentHashMap<>();
 
   /** The gate's {@code redstone-changed} handler: off only while both sides are powered. */
   public static void nand(RedstoneChange change) {
-    calls.incrementAndGet();
+    calls.merge(change.position(), 1, Integer::sum);
     var block = (RedstoneBlock) change.state().getBlock();
     boolean left = change.signal(block.toWorld(change.state(), Direction.WEST)) > 0;
     boolean right = change.signal(block.toWorld(change.state(), Direction.EAST)) > 0;
@@ -45,12 +47,12 @@ public final class RedstoneSmoke {
     helper
         .startSequence()
         .thenExecuteAfter(3, () -> expect(helper, pos, 15, "unpowered gate is on"))
-        .thenExecute(() -> mark[0] = calls.get())
+        .thenExecute(() -> mark[0] = calls.getOrDefault(pos, 0))
         .thenExecute(() -> level.setBlock(back, Blocks.REDSTONE_BLOCK.defaultBlockState(), 3))
         .thenExecuteAfter(3, () -> expect(helper, pos, 15, "the back side is not read"))
         .thenExecute(
             () -> {
-              if (calls.get() != mark[0])
+              if (calls.getOrDefault(pos, 0) != mark[0])
                 throw new AssertionError("an unread side's change ran the handler");
             })
         .thenExecute(() -> level.setBlock(left, Blocks.REDSTONE_BLOCK.defaultBlockState(), 3))

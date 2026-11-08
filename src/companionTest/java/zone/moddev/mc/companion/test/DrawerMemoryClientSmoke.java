@@ -13,6 +13,8 @@ final class DrawerMemoryClientSmoke {
   private static final BlockPos FIRST = new BlockPos(4, 100, 0), SECOND = FIRST.east(2);
   private static int step, waitTicks, reported = -1;
   private static boolean requested;
+  private static volatile BlockPos reopenAfterClose;
+  private static volatile String serverMenu = "not sampled";
 
   static boolean run() {
     if (!BackpackFixture.installed() || step > 13) return true;
@@ -21,7 +23,25 @@ final class DrawerMemoryClientSmoke {
       reported = step;
       zone.moddev.mc.lib.MMDLib.LOGGER.info("DRAWER_MEMORY_STEP {}", step);
     }
-    if (++waitTicks > 160) throw new AssertionError("Drawer memory timed out at step " + step);
+    if (++waitTicks > 160)
+      throw new AssertionError("Drawer memory timed out at step " + step
+          + "; reopening=" + reopenAfterClose + "; client=" + describeClient(mc)
+          + "; server=" + serverMenu);
+    if (waitTicks == 1 || waitTicks % 20 == 0)
+      server(player -> serverMenu = player.containerMenu.getClass().getSimpleName()
+          + "#" + player.containerMenu.containerId);
+    if (reopenAfterClose != null) {
+      var target = reopenAfterClose;
+      server(player -> {
+        // The client close packet and server.execute use different queues. Never open a
+        // replacement menu until the server has actually handled the vanilla close.
+        if (reopenAfterClose == target && player.containerMenu == player.inventoryMenu) {
+          reopenAfterClose = null;
+          ScreenRuntime.open(player, player.serverLevel().getBlockEntity(target));
+        }
+      });
+      return false;
+    }
     if (step == 0) {
       server(
           player -> {
@@ -161,7 +181,7 @@ final class DrawerMemoryClientSmoke {
         require(
             mc.screen != screen, "Escape closes screen immediately during dropped item request");
         MachineScreen.PendingActions.logout(null);
-        open(SECOND);
+        reopenAfterClose = SECOND;
         advance();
       }
       case 11 -> {
@@ -177,7 +197,7 @@ final class DrawerMemoryClientSmoke {
           screen.keyPressed(256, 0, 0);
           require(mc.screen != screen, "Escape immediately closes a pending redstone request");
         } else mc.player.closeContainer();
-        open(FIRST);
+        reopenAfterClose = FIRST;
         advance();
       }
       case 12 -> {
@@ -191,7 +211,7 @@ final class DrawerMemoryClientSmoke {
         screen.keyPressed(256, 0, 0);
         require(
             mc.screen != screen, "Escape closes immediately during a pending automation request");
-        open(SECOND);
+        reopenAfterClose = SECOND;
         advance();
       }
       case 13 -> {
@@ -215,6 +235,16 @@ final class DrawerMemoryClientSmoke {
       }
     }
     return false;
+  }
+
+  private static String describeClient(Minecraft mc) {
+    if (!(mc.screen instanceof MachineScreen screen)) return String.valueOf(mc.screen);
+    var menu = screen.getMenu();
+    return "MachineMenu#" + menu.containerId + " at " + menu.blockEntity.getBlockPos()
+        + ", backpackPending=" + menu.containerDrawer.pending()
+        + ", curiosPending=" + menu.curiosDrawer.pending()
+        + ", automation=" + (menu.automation == null ? "absent"
+            : "open:" + menu.automation.open() + ",pending:" + menu.automation.pending());
   }
 
   private static void advance() {

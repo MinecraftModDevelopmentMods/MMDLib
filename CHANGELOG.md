@@ -35,3 +35,6 @@ Changes on `crafttweaker-integration` since `master-2.0-1.21.1-neo`.
   overrides retain priority; shape-aware default loot remains supported.
 - Add reproducible isolated client-smoke runs with CraftTweaker present and absent,
   generated-content rendering captures, and a verification report for the parity work.
+- Add a typed CraftTweaker manager for shared `mmdlib:crushing` recipes under a
+  separate crusher integration package. Reuse standard recipe actions, removals,
+  queries and reload handling; test script-added recipes through the crackhammer.

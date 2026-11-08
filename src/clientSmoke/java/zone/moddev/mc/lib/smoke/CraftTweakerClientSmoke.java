@@ -75,7 +75,17 @@ public final class CraftTweakerClientSmoke {
             }
             player.teleportTo(.5, 103, 7.5);
             player.setYRot(180); player.setXRot(22);
-            ready = true;
+            if (present()) {
+              checkRecipes(mc);
+              var server = mc.getSingleplayerServer();
+              server.reloadResources(server.getPackRepository().getSelectedIds()).thenRunAsync(() -> {
+                try {
+                  checkRecipes(mc);
+                  MMDLib.LOGGER.info("MMDLIB_CT_RECIPES_RELOAD_PASS");
+                  ready = true;
+                } catch (Throwable error) { fail(error); }
+              }, server).exceptionally(error -> { fail(error); return null; });
+            } else ready = true;
           } catch (Throwable error) { fail(error); }
         });
       }
@@ -101,6 +111,18 @@ public final class CraftTweakerClientSmoke {
       mc.setScreen(null);
       stage = 1; frames = 0;
     } catch (Throwable error) { fail(error); }
+  }
+
+  private static void checkRecipes(Minecraft mc) {
+    var server = mc.getSingleplayerServer();
+    var manager = server.getRecipeManager();
+    var recipe = manager.byKey(ResourceLocation.parse("crafttweaker:ct_crusher_added")).orElseThrow().value();
+    var output = recipe.getResultItem(server.registryAccess());
+    require(output.is(net.minecraft.world.item.Items.DIAMOND) && output.getCount() == 2, "recipe survives reload");
+    require(manager.byKey(ResourceLocation.parse("crafttweaker:ct_crusher_removed")).isEmpty(), "removal survives reload");
+    long count = manager.getAllRecipesFor(zone.moddev.mc.lib.common.recipes.CrushingRecipe.TYPE.get())
+        .stream().filter(holder -> holder.id().toString().equals("crafttweaker:ct_crusher_added")).count();
+    require(count == 1, "recipe reload does not duplicate IDs");
   }
 
   @SubscribeEvent

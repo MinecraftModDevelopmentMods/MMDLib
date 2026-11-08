@@ -9,7 +9,9 @@ The present-mod run copies only this directory's scripts to an isolated build
 folder. It checks startup registrations, English labels, baked model/texture
 availability, and front-face model rotation for four horizontal facings. It opens
 an integrated world and captures actual world rendering and an item/name gallery.
-The absent-mod run copies no scripts and checks the script-only item is absent,
+The installed-mod run also copies the ordinary crushing-recipe fixture, reloads
+server resources, and verifies recipe additions/removals survive without duplicate
+IDs (MMDLIB_CT_RECIPES_RELOAD_PASS). The absent-mod run copies no scripts and checks the script-only item is absent,
 then creates an integrated world and exits successfully. Both runs use a bounded
 timeout and explicit pass/fail log markers.
 

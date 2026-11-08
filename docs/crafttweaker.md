@@ -1,5 +1,8 @@
 # CraftTweaker definitions
 
+For normal shared crushing-recipe edits, see [CraftTweaker crushing recipes](crafttweaker-crusher.md).
+Those use the ordinary recipe loader, separately from these startup definitions.
+
 When CraftTweaker is installed, scripts can define MMDLib materials, blocks, items,
 and reusable block and item modules. Scripts use the `mmdlib` loader and run once at startup, after every mod has
 constructed and before registry events. What they build is planned, checked, and

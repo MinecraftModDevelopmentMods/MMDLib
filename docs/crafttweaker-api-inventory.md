@@ -562,3 +562,13 @@ world and item-gallery captures were visually inspected. Release JAR inspection
 confirmed no smoke content remained after restoring normal main outputs.
 See [the verification report](crafttweaker-verification.md). The existing core
 per-tool durability-scaling limitation remains deferred.
+
+## Shared crushing recipe integration
+
+The startup content inventory above is separate from the ordinary recipe API in
+`compat/CraftTweaker/crusher`. `mods.mmdlib.crusher.CrushingRecipeManager` implements
+CraftTweaker's IRecipeManager for `mmdlib:crushing` and adds the typed
+`addRecipe(string name, IItemStack output, IIngredient input)` method.
+`ExpandCrushingRecipe` registers `mods.mmdlib.crusher.CrushingRecipe` as the native
+query-result type. Standard removals, queries and JSON additions are inherited.
+See [shared crushing recipe scripting](crafttweaker-crusher.md).
