@@ -1,0 +1,5 @@
+package zone.moddev.mc.lib;
+
+import java.util.List; // for levels
+
+public final class Example {}

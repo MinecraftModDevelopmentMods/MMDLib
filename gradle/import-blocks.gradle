@@ -1,0 +1,226 @@
+/*
+ * Import-block formatting step for Spotless, enforcing the import layout in
+ * docs/code-format.md. The Eclipse JDT formatter runs first without reorganizing imports;
+ * this step then rewrites the import section into blank-line-separated blocks:
+ *
+ *   1. all static imports, as one block;
+ *   2. one block per second-level `java.*` package (`java.io`, `java.util`, ...), then the same
+ *      for `javax.*`;
+ *   3. one block per third-party second-level package, in ASCII order of that prefix
+ *      (`com.google`, `com.mojang`, `net.minecraft`, `net.neoforged`, `org.slf4j`, ...);
+ *   4. this project's own imports (`zone.moddev.*`: MMDLib and its companion) last, as one block.
+ *
+ * Imports inside a block are ASCII-sorted and exact duplicates are dropped. Spotless's built-in
+ * `importOrder` can't express rule 3 without a hand-maintained list of every prefix, which is why
+ * this is a custom step.
+ *
+ * Input the step can't rewrite safely is rejected with an error naming the line, never guessed at:
+ * comments between imports (they would lose their position), more than one import or a trailing
+ * comment on an import line, and wildcard imports (forbidden by Google style, which
+ * docs/code-format.md follows).
+ *
+ * Applied from build.gradle, this script exposes:
+ *   - `importBlocksStep`: a closure for `spotless { java { custom 'importBlocks', ... } } }`;
+ *   - `testImportBlocks`: a task running the fixtures in gradle/import-blocks/ through the step,
+ *     wired into `check`.
+ */
+
+/**
+ * The formatter. Stateless; all methods are static and thread-safe.
+ */
+class ImportBlocks {
+
+    /**
+     * Package of this project's own code (MMDLib's `zone.moddev.mc.lib` and the companion's
+     * `zone.moddev.mc.companion`), always the last block, as one block.
+     */
+    static final String OWN_PREFIX = 'zone.moddev'
+
+    /** One import statement, as the step accepts it: a dotted name, optionally static. */
+    private static final java.util.regex.Pattern IMPORT_LINE = ~/^import\s+(static\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(\.\*)?)\s*;\s*$/
+
+    /**
+     * Rewrites the import section of one Java source file.
+     *
+     * The section runs from the first line starting with `import ` to the last import line
+     * before the first line that is neither blank, an import, nor a comment. Comments after the
+     * last import (such as the class Javadoc) are outside the section and kept as they are.
+     *
+     * @param source the whole file, with `\n` line endings (Spotless normalizes them before any
+     *     step runs)
+     * @return the file with its import section regrouped; unchanged if it has no imports
+     * @throws IllegalArgumentException if the import section holds anything the step can't
+     *     rewrite safely; the message names the 1-based line number
+     */
+    static String format(String source) {
+        List<String> lines = source.split('\n', -1) as List<String>
+        int first = lines.findIndexOf { it.startsWith('import ') }
+        if (first < 0) {
+            return source
+        }
+
+        // Find where the section ends: the last import before the first line of real code.
+        int last = first
+        for (int i = first; i < lines.size(); i++) {
+            String line = lines[i].trim()
+            if (line.startsWith('import ')) {
+                last = i
+            } else if (!line.isEmpty() && !isComment(line)) {
+                break
+            }
+        }
+
+        Set<String> statics = new TreeSet<>()
+        Map<String, Set<String>> blocks = new TreeMap<>(BLOCK_ORDER)
+        for (int i = first; i <= last; i++) {
+            String line = lines[i]
+            if (line.trim().isEmpty()) {
+                continue
+            }
+            int lineNumber = i + 1
+            if (isComment(line.trim())) {
+                throw new IllegalArgumentException("line ${lineNumber}: comments between imports "
+                        + 'are not supported, since regrouping would move them away from the '
+                        + 'import they describe; move the comment out of the import section')
+            }
+            def match = IMPORT_LINE.matcher(line)
+            if (!match.matches()) {
+                throw new IllegalArgumentException("line ${lineNumber}: expected exactly one "
+                        + "import statement with nothing else on the line, found: ${line.trim()}")
+            }
+            String name = match.group(2)
+            if (match.group(3) != null) {
+                throw new IllegalArgumentException("line ${lineNumber}: wildcard imports are not "
+                        + "allowed (Google style, docs/code-format.md): ${line.trim()}")
+            }
+            if (match.group(1) != null) {
+                statics.add("import static ${name};".toString())
+            } else {
+                blocks.computeIfAbsent(blockKey(name)) { new TreeSet<String>() }
+                        .add("import ${name};".toString())
+            }
+        }
+
+        List<String> section = []
+        List<Set<String>> groups = (statics.isEmpty() ? [] : [statics]) + blocks.values()
+        groups.eachWithIndex { Set<String> group, int index ->
+            if (index > 0) {
+                section.add('')
+            }
+            section.addAll(group)
+        }
+
+        List<String> result = []
+        result.addAll(lines.subList(0, first))
+        result.addAll(section)
+        result.addAll(lines.subList(last + 1, lines.size()))
+        return result.join('\n')
+    }
+
+    /**
+     * The block an import belongs to: {@link #OWN_PREFIX} for this project's own code, otherwise
+     * its first two name segments (`net.minecraft` for `net.minecraft.core.BlockPos`). A name with
+     * only two segments has a one-segment package (`lombok.Data`), so its block is that package
+     * alone.
+     */
+    private static String blockKey(String name) {
+        if (name.startsWith(OWN_PREFIX + '.')) {
+            return OWN_PREFIX
+        }
+        String[] segments = name.split('\\.')
+        return segments.length >= 3 ? "${segments[0]}.${segments[1]}".toString() : segments[0]
+    }
+
+    /** Rank of a block's category: `java`, then `javax`, then third-party, then this project. */
+    private static int category(String key) {
+        String top = key.contains('.') ? key.substring(0, key.indexOf('.')) : key
+        if (top == 'java') {
+            return 0
+        }
+        if (top == 'javax') {
+            return 1
+        }
+        if (key == OWN_PREFIX) {
+            return 3
+        }
+        return 2
+    }
+
+    /** Orders blocks by category, then by ASCII order of their key. */
+    private static final Comparator<String> BLOCK_ORDER = { String a, String b ->
+        int byCategory = Integer.compare(category(a), category(b))
+        return byCategory != 0 ? byCategory : a <=> b
+    } as Comparator<String>
+
+    /** Whether a trimmed line is part of a comment (`//`, `/*`, `*`, or a closing `*\/`). */
+    private static boolean isComment(String trimmed) {
+        return trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')
+    }
+}
+
+ext.importBlocksStep = { String source -> ImportBlocks.format(source) }
+
+/*
+ * Fixture tests for the step. Each case in gradle/import-blocks/ is `<name>.input.txt` plus either
+ * `<name>.expected.txt` (the exact output, which must also come back unchanged when formatted
+ * again) or `<name>.error.txt` (text the step's error message must contain).
+ */
+def importBlocksFixtures = file('gradle/import-blocks')
+def importBlocksStamp = layout.buildDirectory.file('import-blocks/tests-passed')
+
+tasks.register('testImportBlocks') {
+    group = 'verification'
+    description = 'Runs the import-block formatter fixtures in gradle/import-blocks/.'
+    inputs.dir(importBlocksFixtures)
+    inputs.file('gradle/import-blocks.gradle')
+    outputs.file(importBlocksStamp)
+
+    doLast {
+        List<File> cases = importBlocksFixtures.listFiles()
+                .findAll { it.name.endsWith('.input.txt') }
+                .sort { it.name }
+        if (cases.isEmpty()) {
+            throw new GradleException("No fixtures found in ${importBlocksFixtures}")
+        }
+        List<String> failures = []
+        cases.each { File input ->
+            String name = input.name - '.input.txt'
+            File expected = new File(importBlocksFixtures, "${name}.expected.txt")
+            File error = new File(importBlocksFixtures, "${name}.error.txt")
+            if (expected.exists() == error.exists()) {
+                failures.add("${name}: needs exactly one of .expected.txt or .error.txt")
+                return
+            }
+            String source = input.getText('UTF-8')
+            if (expected.exists()) {
+                String want = expected.getText('UTF-8')
+                String got = ImportBlocks.format(source)
+                if (got != want) {
+                    failures.add("${name}: output differs\n--- expected\n${want}\n--- got\n${got}")
+                } else if (ImportBlocks.format(want) != want) {
+                    failures.add("${name}: formatting the expected output again changed it")
+                }
+            } else {
+                String wantMessage = error.getText('UTF-8').trim()
+                try {
+                    ImportBlocks.format(source)
+                    failures.add("${name}: expected an error containing '${wantMessage}', got none")
+                } catch (IllegalArgumentException e) {
+                    if (!e.message.contains(wantMessage)) {
+                        failures.add("${name}: error '${e.message}' doesn't contain '${wantMessage}'")
+                    }
+                }
+            }
+        }
+        if (!failures.isEmpty()) {
+            throw new GradleException("Import-block fixtures failed:\n\n" + failures.join('\n\n'))
+        }
+        File stamp = importBlocksStamp.get().asFile
+        stamp.parentFile.mkdirs()
+        stamp.text = "${cases.size()} fixtures passed\n"
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'testImportBlocks'
+}

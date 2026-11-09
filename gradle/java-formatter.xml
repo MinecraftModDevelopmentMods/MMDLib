@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profiles version="23">
+    <profile kind="CodeFormatterProfile" name="MMDLib" version="23">
+        <setting id="org.eclipse.jdt.core.compiler.source" value="21"/>
+        <setting id="org.eclipse.jdt.core.compiler.compliance" value="21"/>
+        <setting id="org.eclipse.jdt.core.compiler.codegen.targetPlatform" value="21"/>
+        <setting id="org.eclipse.jdt.core.formatter.tabulation.char" value="space"/>
+        <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="4"/>
+        <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="4"/>
+        <!-- Continuation values count indentation levels, not spaces: 1 * 4 = 4. -->
+        <setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="1"/>
+        <setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="1"/>
+        <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="100"/>
+        <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="100"/>
+        <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="false"/>
+        <setting id="org.eclipse.jdt.core.formatter.indent_switchstatements_compare_to_switch" value="true"/>
+        <setting id="org.eclipse.jdt.core.formatter.indent_switchstatements_compare_to_cases" value="true"/>
+        <setting id="org.eclipse.jdt.core.formatter.number_of_empty_lines_to_preserve" value="1"/>
+        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_at_end_of_file_if_missing" value="insert"/>
+    </profile>
+</profiles>
