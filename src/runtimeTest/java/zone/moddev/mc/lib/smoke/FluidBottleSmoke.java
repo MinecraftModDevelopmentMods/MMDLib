@@ -21,7 +21,8 @@ import zone.moddev.mc.lib.common.fluid.FluidBottleItem;
 import zone.moddev.mc.lib.common.fluid.FluidBottles;
 
 /**
- * Glass bottles and {@code #mmdlib:bottleable}, which test resources fill with molten copper only.
+ * Glass bottles and {@code #mmdlib:bottleable}, which test resources fill with molten copper only,
+ * and {@code #c:experience}, which they fill with molten gold.
  */
 final class FluidBottleSmoke {
   private FluidBottleSmoke() {}
@@ -97,6 +98,42 @@ final class FluidBottleSmoke {
     var poured = FluidUtil.tryEmptyContainer(filled.getResult(), empty, 1000, null, true);
     require(poured.isSuccess() && poured.getResult().is(Items.GLASS_BOTTLE), "emptying leaves a glass bottle");
     require(empty.getFluidAmount() == FluidBottles.CAPACITY && empty.getFluid().is(copper), "333 mB poured");
+    helper.succeed();
+  }
+
+  /** A bottle used on an experience source becomes a Bottle o' Enchanting; the source stays. */
+  static void experienceWorld(GameTestHelper helper, BlockPos center) {
+    var level = helper.getLevel();
+    var pos = helper.absolutePos(center);
+    level.setBlock(pos, fluid("mmdlib:gold_molten").defaultFluidState().createLegacyBlock(), 3);
+    var player = above(helper, pos);
+    player.gameMode.useItem(player, level, player.getMainHandItem(), InteractionHand.MAIN_HAND);
+    require(player.getMainHandItem().is(Items.GLASS_BOTTLE) && player.getMainHandItem().getCount() == 1,
+        "one bottle used");
+    require(player.getInventory().items.stream().anyMatch(s -> s.is(Items.EXPERIENCE_BOTTLE)),
+        "a Bottle o' Enchanting was given");
+    require(player.getInventory().items.stream().noneMatch(s -> s.is(FluidBottles.BOTTLE.get())), "no fluid bottle");
+    require(level.getFluidState(pos).isSource(), "the source is left in place");
+    helper.succeed();
+  }
+
+  /** Tanks of experience fill glass bottles 250 mB at a time; the result can't be poured back. */
+  static void experienceTanks(GameTestHelper helper) {
+    var gold = fluid("mmdlib:gold_molten");
+    var tank = new FluidTank(1000);
+    tank.fill(new FluidStack(gold, 1000), FluidTank.FluidAction.EXECUTE);
+    var filled = FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), tank, 1000, null, true);
+    require(filled.isSuccess() && filled.getResult().is(Items.EXPERIENCE_BOTTLE), "a tank makes a Bottle o' Enchanting");
+    require(tank.getFluidAmount() == 1000 - FluidBottles.EXPERIENCE_CAPACITY, "the tank gave 250 mB");
+
+    var low = new FluidTank(1000);
+    low.fill(new FluidStack(gold, FluidBottles.EXPERIENCE_CAPACITY - 1), FluidTank.FluidAction.EXECUTE);
+    require(!FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), low, 1000, null, true).isSuccess(),
+        "less than a bottle's worth is refused");
+
+    var empty = new FluidTank(1000);
+    require(!FluidUtil.tryEmptyContainer(filled.getResult(), empty, 1000, null, true).isSuccess(),
+        "a Bottle o' Enchanting does not pour back");
     helper.succeed();
   }
 
