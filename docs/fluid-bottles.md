@@ -17,6 +17,15 @@ MMDLib ships the tag empty, so packs and mods decide what can be bottled.
 Vanilla's own fluids (water, lava) are always left to vanilla, even if tagged:
 a water bottle is still vanilla's water potion.
 
+## Experience fluids
+
+Fluids in NeoForge's `#c:experience` tag, from whatever mod adds them, are a
+special case: a glass bottle takes **250 mB** (the tag's convention) and becomes
+vanilla's **Bottle o' Enchanting**, not an MMDLib bottle. They don't need the
+`#mmdlib:bottleable` tag. Right-clicking a source and filling from tanks both
+work, as above. It is one way only: a Bottle o' Enchanting can't be poured back
+into a tank, its XP comes back by throwing it.
+
 ## What works
 
 * **Right-click a source block** with a glass bottle to fill it. The source block
@@ -43,8 +52,11 @@ the usual priority are seen first.
 `zone.moddev.mc.lib.common.fluid.FluidBottles` holds the tag (`BOTTLEABLE`), the
 capacity, the item (`BOTTLE`) and its fluid component (`CONTENT`).
 `FluidBottleItem.filled(fluid)` makes a full bottle, and
-`FluidBottleItem.contents(stack)` reads one. `FluidBottles.bottleable(fluid)` is
-the single rule for what can be bottled.
+`FluidBottleItem.contents(stack)` reads one. `FluidBottles.capacity(fluid)` is
+the single rule for what can be bottled and how much a bottle takes (0 for
+neither), built on `bottleable(fluid)` and `experience(fluid)`;
+`FluidBottles.filled(fluid)` gives what a full glass bottle becomes.
 
 `FluidBottleSmoke` (game tests) checks filling from the world, water left to
-vanilla, untagged fluids refused, and filling and emptying through tanks.
+vanilla, untagged fluids refused, filling and emptying through tanks, and
+experience fluids becoming Bottles o' Enchanting (molten gold stands in for one).

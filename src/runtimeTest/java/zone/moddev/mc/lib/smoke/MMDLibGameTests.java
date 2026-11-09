@@ -189,6 +189,16 @@ public final class MMDLibGameTests {
   }
 
   @GameTest(template = EMPTY)
+  public static void experienceBottlesFromWorld(GameTestHelper helper) {
+    FluidBottleSmoke.experienceWorld(helper, CENTER);
+  }
+
+  @GameTest(template = EMPTY)
+  public static void experienceBottlesFromTanks(GameTestHelper helper) {
+    FluidBottleSmoke.experienceTanks(helper);
+  }
+
+  @GameTest(template = EMPTY)
   public static void capabilities(GameTestHelper helper) {
     CapabilitySmoke.check(helper.getLevel());
     helper.succeed();
