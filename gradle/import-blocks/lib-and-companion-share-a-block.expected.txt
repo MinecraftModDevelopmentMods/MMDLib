@@ -1,0 +1,11 @@
+package zone.moddev.mc.companion;
+
+import mezz.jei.api.IModPlugin;
+
+import org.slf4j.Logger;
+
+import zone.moddev.mc.companion.CompanionMod;
+import zone.moddev.mc.lib.MMDLib;
+import zone.moddev.mc.lib.api.BlockContext;
+
+public final class Example {}

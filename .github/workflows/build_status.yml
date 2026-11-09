@@ -23,6 +23,9 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v7
+        with:
+          # Spotless ratchets from origin/master-2.0-1.21.1-neo, so that branch must be present.
+          fetch-depth: 0
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6

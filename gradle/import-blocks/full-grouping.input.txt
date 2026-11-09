@@ -1,0 +1,21 @@
+package zone.moddev.mc.lib.dimension;
+
+import org.slf4j.Logger;
+import zone.moddev.mc.lib.mana.Mana;
+import java.util.Map;
+import net.neoforged.fml.common.Mod;
+import static java.util.Objects.requireNonNull;
+import javax.annotation.Nullable;
+import com.mojang.serialization.Codec;
+import java.io.IOException;
+import net.minecraft.core.BlockPos;
+import java.util.List;
+import com.google.common.collect.ImmutableList;
+import com.mojang.logging.LogUtils;
+import static zone.moddev.mc.lib.mana.Mana.RAW_PER_SET;
+import net.minecraft.world.level.Level;
+import net.neoforged.bus.api.IEventBus;
+import zone.moddev.mc.lib.mana.ManaType;
+
+/** Class Javadoc stays where it is. */
+public final class Example {}

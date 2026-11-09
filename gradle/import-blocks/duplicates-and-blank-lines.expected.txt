@@ -1,0 +1,6 @@
+package zone.moddev.mc.lib;
+
+import java.util.List;
+import java.util.Map;
+
+public final class Example {}

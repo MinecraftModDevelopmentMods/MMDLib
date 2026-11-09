@@ -1,0 +1,5 @@
+package zone.moddev.mc.lib;
+
+import java.util.*;
+
+public final class Example {}
