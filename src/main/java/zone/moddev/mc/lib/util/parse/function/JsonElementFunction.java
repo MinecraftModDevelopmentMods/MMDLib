@@ -6,4 +6,5 @@ import com.google.gson.JsonElement;
 
 /** Maps a raw Gson element. */
 @FunctionalInterface
-public interface JsonElementFunction<T> extends Function<JsonElement, T> {}
+public interface JsonElementFunction<T> extends Function<JsonElement, T> {
+}

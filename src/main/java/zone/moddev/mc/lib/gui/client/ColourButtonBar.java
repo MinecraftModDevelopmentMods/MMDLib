@@ -10,7 +10,10 @@ import net.minecraft.client.gui.GuiGraphics;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
 
-/** Reusable selector for ordered opaque IDs and RGB colours, with bounded overflow. */
+/**
+ * Reusable selector for ordered opaque IDs and RGB colours, with bounded
+ * overflow.
+ */
 public final class ColourButtonBar<K> {
     public record Entry<K>(K id, int colour) {
         public Entry {
@@ -62,7 +65,9 @@ public final class ColourButtonBar<K> {
     }
 
     private int capacity() {
-        return Math.max(1, (bounds.width() - (overflow() ? 2 * ARROW : 0) + PITCH - SIZE) / PITCH);
+        return Math.max(1,
+            (bounds.width() - (overflow() ? 2 * ARROW : 0) + PITCH - SIZE)
+                / PITCH);
     }
 
     private void clamp() {
@@ -70,15 +75,13 @@ public final class ColourButtonBar<K> {
     }
 
     private Rect button(int visible) {
-        return new Rect(
-            bounds.x() + (overflow() ? ARROW : 0) + visible * PITCH,
-            bounds.y() + (bounds.height() - SIZE) / 2,
-            SIZE,
-            SIZE);
+        return new Rect(bounds.x() + (overflow() ? ARROW : 0) + visible * PITCH,
+            bounds.y() + (bounds.height() - SIZE) / 2, SIZE, SIZE);
     }
 
     /** Draws the bar and returns the hovered ID, if any. */
-    public Optional<K> render(GuiGraphics graphics, int mouseX, int mouseY, boolean open) {
+    public Optional<K> render(GuiGraphics graphics, int mouseX, int mouseY,
+        boolean open) {
         if (bounds == null || entries.isEmpty())
             return Optional.empty();
         K hovered = null;
@@ -87,29 +90,29 @@ public final class ColourButtonBar<K> {
             var rect = button(i);
             boolean active = open && Objects.equals(group, selected);
             int border = active ? 2 : 1;
-            graphics.fill(
-                rect.x(), rect.y(), rect.right(), rect.bottom(), active ? 0xffeeeeee : 0xff555555);
-            graphics.fill(
-                rect.x() + border,
-                rect.y() + border,
-                rect.right() - border,
-                rect.bottom() - border,
+            graphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(),
+                active ? 0xffeeeeee : 0xff555555);
+            graphics.fill(rect.x() + border, rect.y() + border,
+                rect.right() - border, rect.bottom() - border,
                 0xff000000 | entries.get(offset + i).colour());
             if (rect.contains(mouseX, mouseY))
                 hovered = group;
         }
         if (overflow()) {
             arrow(graphics, bounds.x() + 2, offset > 0, false);
-            arrow(graphics, bounds.right() - 7, offset + capacity() < order.size(), true);
+            arrow(graphics, bounds.right() - 7,
+                offset + capacity() < order.size(), true);
         }
         return Optional.ofNullable(hovered);
     }
 
-    private void arrow(GuiGraphics graphics, int x, boolean enabled, boolean right) {
+    private void arrow(GuiGraphics graphics, int x, boolean enabled,
+        boolean right) {
         int y = bounds.y() + (bounds.height() - 5) / 2;
         for (int i = 0; i < 3; i++) {
             int dx = right ? i : 2 - i;
-            graphics.fill(x + dx, y + i, x + dx + 1, y + 5 - i, enabled ? 0xffeeeeee : 0xff777777);
+            graphics.fill(x + dx, y + i, x + dx + 1, y + 5 - i,
+                enabled ? 0xffeeeeee : 0xff777777);
         }
     }
 

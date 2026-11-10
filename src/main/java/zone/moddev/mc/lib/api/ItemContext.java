@@ -15,42 +15,49 @@ import zone.moddev.mc.lib.common.types.MMDMaterial;
 import zone.moddev.mc.lib.common.types.MaterialPart;
 
 /**
- * Everything the runtime registrar knows when it creates one material item. Passed to {@link
- * ItemImplementation#create(ItemContext)}; MMDLib's own items are built from exactly this.
+ * Everything the runtime registrar knows when it creates one material item.
+ * Passed to {@link ItemImplementation#create(ItemContext)}; MMDLib's own items
+ * are built from exactly this.
  */
 public interface ItemContext {
-  /** The material the item belongs to. */
-  MMDMaterial material();
+    /** The material the item belongs to. */
+    MMDMaterial material();
 
-  /** The planned item definition: registry name, template properties and event bindings. */
-  MMDItem definition();
+    /**
+     * The planned item definition: registry name, template properties and event
+     * bindings.
+     */
+    MMDItem definition();
 
-  /** The part being built, with its module ID and metadata. */
-  MaterialPart part();
+    /** The part being built, with its module ID and metadata. */
+    MaterialPart part();
 
-  /** The module's {@code factory_data}. */
-  default FactoryData factoryData() {
-    return part().factoryData();
-  }
+    /** The module's {@code factory_data}. */
+    default FactoryData factoryData() {
+        return part().factoryData();
+    }
 
-  /** Fresh properties from the definition (stack size, durability, fire resistance, container). */
-  Item.Properties properties();
+    /**
+     * Fresh properties from the definition (stack size, durability, fire
+     * resistance, container).
+     */
+    Item.Properties properties();
 
-  /**
-   * The material's tool tier: durability, speed, damage, enchantability, repair item,
-   * incorrect-block tag.
-   */
-  MaterialToolTier tier();
+    /**
+     * The material's tool tier: durability, speed, damage, enchantability,
+     * repair item, incorrect-block tag.
+     */
+    MaterialToolTier tier();
 
-  /**
-   * The material's armor material; available only when the implementation reports {@link
-   * ItemImplementation#usesArmorMaterial()}.
-   */
-  Holder<ArmorMaterial> armor();
+    /**
+     * The material's armor material; available only when the implementation
+     * reports {@link ItemImplementation#usesArmorMaterial()}.
+     */
+    Holder<ArmorMaterial> armor();
 
-  /**
-   * The projectile type registered for this part's {@code entity_factory}; available only for parts
-   * that declare one.
-   */
-  Supplier<EntityType<MaterialProjectile>> projectile();
+    /**
+     * The projectile type registered for this part's {@code entity_factory};
+     * available only for parts that declare one.
+     */
+    Supplier<EntityType<MaterialProjectile>> projectile();
 }

@@ -16,33 +16,39 @@ import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
 import zone.moddev.mc.companion.CompanionMod;
 
-/** Test-only stand-in for a modded container that transfers partial amounts, unlike buckets. */
+/**
+ * Test-only stand-in for a modded container that transfers partial amounts,
+ * unlike buckets.
+ */
 @EventBusSubscriber(modid = CompanionMod.ID, bus = EventBusSubscriber.Bus.MOD)
-public final class TestFluidContainer extends FluidTank implements IFluidHandlerItem {
-  private final ItemStack container;
+public final class TestFluidContainer extends FluidTank
+    implements IFluidHandlerItem {
+    private final ItemStack container;
 
-  private TestFluidContainer(ItemStack container) {
-    super(2_000, fluid -> fluid.getFluid() == Fluids.WATER);
-    this.container = container;
-    int amount = container.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-        .copyTag().getInt("test_water");
-    setFluid(new FluidStack(Fluids.WATER, amount));
-  }
+    private TestFluidContainer(ItemStack container) {
+        super(2_000, fluid -> fluid.getFluid() == Fluids.WATER);
+        this.container = container;
+        int amount = container
+            .getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
+            .copyTag().getInt("test_water");
+        setFluid(new FluidStack(Fluids.WATER, amount));
+    }
 
-  @SubscribeEvent
-  public static void capabilities(RegisterCapabilitiesEvent event) {
-    event.registerItem(Capabilities.FluidHandler.ITEM,
-        (stack, context) -> new TestFluidContainer(stack), Items.GLASS_BOTTLE);
-  }
+    @SubscribeEvent
+    public static void capabilities(RegisterCapabilitiesEvent event) {
+        event.registerItem(Capabilities.FluidHandler.ITEM,
+            (stack, context) -> new TestFluidContainer(stack),
+            Items.GLASS_BOTTLE);
+    }
 
-  @Override
-  public ItemStack getContainer() {
-    return container;
-  }
+    @Override
+    public ItemStack getContainer() {
+        return container;
+    }
 
-  @Override
-  protected void onContentsChanged() {
-    CustomData.update(DataComponents.CUSTOM_DATA, container,
-        tag -> tag.putInt("test_water", getFluidAmount()));
-  }
+    @Override
+    protected void onContentsChanged() {
+        CustomData.update(DataComponents.CUSTOM_DATA, container,
+            tag -> tag.putInt("test_water", getFluidAmount()));
+    }
 }

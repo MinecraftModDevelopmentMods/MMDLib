@@ -23,7 +23,8 @@ import zone.moddev.mc.lib.gui.sync.SynchronizedElement;
  * {@code side-config}: six-face IO configuration, one resource group at a time.
  *
  * <p>
- * {@code groups}: the IDs of the elements showing each group, in the order offered
+ * {@code groups}: the IDs of the elements showing each group, in the order
+ * offered
  */
 public class SideConfigElement implements SynchronizedElement {
     private final Common common;
@@ -36,8 +37,7 @@ public class SideConfigElement implements SynchronizedElement {
                 buffer.writeVarInt(modes.size());
                 for (var mode : modes)
                     buffer.writeByte(mode);
-            },
-            buffer -> {
+            }, buffer -> {
                 int count = buffer.readVarInt();
                 if (count < 0 || count > 4092)
                     throw new IllegalArgumentException("Too many side modes");
@@ -47,24 +47,25 @@ public class SideConfigElement implements SynchronizedElement {
                 return List.copyOf(modes);
             }),
         4096,
-        element -> Collections.nCopies(((SideConfigElement) element).groups().size() * 6, 0))
-        .validate(
-            (element, modes) -> modes.size() == ((SideConfigElement) element).groups().size() * 6
+        element -> Collections
+            .nCopies(((SideConfigElement) element).groups().size() * 6, 0))
+        .validate((element,
+            modes) -> modes
+                .size() == ((SideConfigElement) element).groups().size() * 6
                 && modes.stream().allMatch(mode -> mode >= 0 && mode <= 3))
-        .sample(
-            (source, previous) -> {
-                var config = (SideConfigElement) source.element();
-                var modes = new ArrayList<Integer>();
-                var sides = source.machine() instanceof ScreenHost host
-                    ? host.screenSides()
-                    : java.util.Map.<String, zone.moddev.mc.lib.api.capabilities.SideConfig>of();
-                for (var group : config.groups())
-                    for (var face : RelativeFace.values())
-                        modes.add(
-                            sides.get(group) == null ? 0 : sides.get(group).get(face).ordinal());
-                return List.copyOf(modes);
-            })
-        .build();
+        .sample((source, previous) -> {
+            var config = (SideConfigElement) source.element();
+            var modes = new ArrayList<Integer>();
+            var sides = source.machine() instanceof ScreenHost host
+                ? host.screenSides()
+                : java.util.Map.<String, zone.moddev.mc.lib.api.capabilities.SideConfig>of();
+            for (var group : config.groups())
+                for (var face : RelativeFace.values())
+                    modes.add(sides.get(group) == null
+                        ? 0
+                        : sides.get(group).get(face).ordinal());
+            return List.copyOf(modes);
+        }).build();
 
     public List<ElementSync<?>> synchronizedValues() {
         return List.of(MODES);
@@ -85,9 +86,8 @@ public class SideConfigElement implements SynchronizedElement {
     /** Shared face geometry for drawing, tooltip hit tests and clicks. */
     public Rect face(Rect bounds, int face) {
         int[][] positions = {{1, 1}, {2, 2}, {0, 1}, {2, 1}, {1, 0}, {1, 2}};
-        return new Rect(
-            bounds.x() + positions[face][0] * 22, bounds.y() + 20 + positions[face][1] * 22, 20,
-            20);
+        return new Rect(bounds.x() + positions[face][0] * 22,
+            bounds.y() + 20 + positions[face][1] * 22, 20, 20);
     }
 
     public void validate() {
@@ -101,24 +101,23 @@ public class SideConfigElement implements SynchronizedElement {
     public void validateScreen(Screen screen) {
         for (var group : groups)
             if (screen.find(group).isEmpty())
-                throw new IllegalArgumentException("side-config group names no element: " + group);
+                throw new IllegalArgumentException(
+                    "side-config group names no element: " + group);
     }
 
     public static final ElementAction<ElementActions.Click> CYCLE_FACE = new ElementAction<>(
-        ResourceLocation.parse("mmdlib:side_face"),
-        ElementActions.Click.CODEC,
-        8,
-        (context, click) -> {
+        ResourceLocation.parse("mmdlib:side_face"), ElementActions.Click.CODEC,
+        8, (context, click) -> {
             var element = (SideConfigElement) context.element();
             int group = click.option() / 6, face = click.option() % 6;
-            if (group >= element.groups().size()
-                || !(context
-                    .menu().blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host))
+            if (group >= element.groups().size() || !(context
+                .menu().blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host))
                 return false;
             var sides = host.screenSides().get(element.groups().get(group));
             if (sides == null)
                 return false;
-            sides.cycle(zone.moddev.mc.lib.api.capabilities.RelativeFace.values()[face]);
+            sides.cycle(zone.moddev.mc.lib.api.capabilities.RelativeFace
+                .values()[face]);
             return true;
         });
 
@@ -126,8 +125,11 @@ public class SideConfigElement implements SynchronizedElement {
         return List.of(ElementActions.CLICK, CYCLE_FACE);
     }
 
-    public Optional<ElementAction<ElementActions.Click>> legacyAction(int kind) {
-        return kind == 3 ? Optional.of(CYCLE_FACE) : SynchronizedElement.super.legacyAction(kind);
+    public Optional<ElementAction<ElementActions.Click>> legacyAction(
+        int kind) {
+        return kind == 3
+            ? Optional.of(CYCLE_FACE)
+            : SynchronizedElement.super.legacyAction(kind);
     }
 
     public Common common() {
@@ -159,6 +161,7 @@ public class SideConfigElement implements SynchronizedElement {
 
     @Override
     public String toString() {
-        return "SideConfigElement[common=" + common + ", groups=" + groups + "]";
+        return "SideConfigElement[common=" + common + ", groups=" + groups
+            + "]";
     }
 }

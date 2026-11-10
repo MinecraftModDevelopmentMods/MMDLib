@@ -6,8 +6,12 @@ import zone.moddev.mc.lib.gui.ElementActions;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.containers.RadioGroupElement;
 
-/** Owns radio membership, synchronized selection and activation of the group's server action. */
-public class RadioGroupBehavior extends DefaultElementBehavior implements OptionSelection {
+/**
+ * Owns radio membership, synchronized selection and activation of the group's
+ * server action.
+ */
+public class RadioGroupBehavior extends DefaultElementBehavior
+    implements OptionSelection {
     private final RadioGroupElement group;
 
     public RadioGroupBehavior(RadioGroupElement group, ElementAccess access) {
@@ -31,7 +35,8 @@ public class RadioGroupBehavior extends DefaultElementBehavior implements Option
         int index = index(option);
         if (index < 0 || button < 0 || button > 1)
             return Click.PASS;
-        access.submit(ElementActions.CLICK, new ElementActions.Click(button, modifiers, index));
+        access.submit(ElementActions.CLICK,
+            new ElementActions.Click(button, modifiers, index));
         return Click.CONSUME;
     }
 }

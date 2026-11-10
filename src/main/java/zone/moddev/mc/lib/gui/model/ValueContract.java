@@ -10,13 +10,16 @@ public final class ValueContract {
     private ValueContract() {
     }
 
-    public static final Set<ValueType<?>> NUMBERS = Set.of(ValueTypes.WHOLE, ValueTypes.DECIMAL,
-        ValueTypes.NUMBER);
+    public static final Set<ValueType<?>> NUMBERS = Set.of(ValueTypes.WHOLE,
+        ValueTypes.DECIMAL, ValueTypes.NUMBER);
 
-    public static void require(Element element, String description, boolean maximum) {
+    public static void require(Element element, String description,
+        boolean maximum) {
         if (element.common().value().isEmpty())
-            throw new IllegalArgumentException(description + " needs a value getter");
+            throw new IllegalArgumentException(
+                description + " needs a value getter");
         if (maximum && element.common().max().isEmpty())
-            throw new IllegalArgumentException(description + " needs a max getter");
+            throw new IllegalArgumentException(
+                description + " needs a max getter");
     }
 }

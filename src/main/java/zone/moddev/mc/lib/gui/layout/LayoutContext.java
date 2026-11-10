@@ -10,13 +10,17 @@ import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.sync.ElementStateView;
 
-/** Per-layout inputs shared with elements, without exposing the screen layout engine. */
+/**
+ * Per-layout inputs shared with elements, without exposing the screen layout
+ * engine.
+ */
 public final class LayoutContext implements TextMeasure {
     private final TextMeasure text;
     private final Map<Element, Integer> minimumWidths = new IdentityHashMap<>();
     private final Map<String, String> selections;
     private final ElementStateView state;
-    private final Set<Element> headers = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<Element> headers = Collections
+        .newSetFromMap(new IdentityHashMap<>());
 
     public LayoutContext(TextMeasure text, Map<String, String> selections) {
         this.text = text;

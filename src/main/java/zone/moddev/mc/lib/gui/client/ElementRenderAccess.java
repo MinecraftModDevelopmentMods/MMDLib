@@ -13,7 +13,10 @@ import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.sync.ElementStateView;
 
-/** Read-only client presentation services. No machine, menu, packets or storage are exposed. */
+/**
+ * Read-only client presentation services. No machine, menu, packets or storage
+ * are exposed.
+ */
 public interface ElementRenderAccess {
     Font font();
 
@@ -35,7 +38,10 @@ public interface ElementRenderAccess {
         return null;
     }
 
-    /** Synchronized server-authored tooltip rows; no live host sampling on the client. */
+    /**
+     * Synchronized server-authored tooltip rows; no live host sampling on the
+     * client.
+     */
     default java.util.List<Component> serverTooltip(Element element) {
         return java.util.List.of();
     }
@@ -56,15 +62,22 @@ public interface ElementRenderAccess {
         return Optional.empty();
     }
 
-    /** A registered group caption, or the ordinary tooltip for elements without that capability. */
+    /**
+     * A registered group caption, or the ordinary tooltip for elements without
+     * that capability.
+     */
     default Optional<Text> groupLabel(Element element) {
         return capability(element, GroupLabelProvider.class)
             .map(GroupLabelProvider::groupLabel)
             .orElseGet(() -> element.common().tooltip());
     }
 
-    /** Draw an element-owned highlight, falling back to an outline; hidden targets are ignored. */
-    default void highlight(GuiGraphics graphics, Element element, ElementHighlight request) {
+    /**
+     * Draw an element-owned highlight, falling back to an outline; hidden
+     * targets are ignored.
+     */
+    default void highlight(GuiGraphics graphics, Element element,
+        ElementHighlight request) {
         if (!visible(element))
             return;
         var clip = viewport();

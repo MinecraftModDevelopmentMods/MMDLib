@@ -6,10 +6,12 @@ import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * The attributes every element can take; see the table in {@code docs/gui-screens.md}.
+ * The attributes every element can take; see the table in
+ * {@code docs/gui-screens.md}.
  *
  * @param id
- *            names the element so others can refer to it; unique within a screen
+ *            names the element so others can refer to it; unique within a
+ *            screen
  * @param value
  *            the getter the element shows
  * @param max
@@ -21,7 +23,8 @@ import net.minecraft.resources.ResourceLocation;
  * @param clicks
  *            click handler IDs
  * @param onHover
- *            a client-only handler run when the mouse enters and leaves the element
+ *            a client-only handler run when the mouse enters and leaves the
+ *            element
  * @param hoverShows
  *            the ID of an element shown while hovering
  * @param jeiRecipes
@@ -35,65 +38,31 @@ import net.minecraft.resources.ResourceLocation;
  * @param interaction
  *            reusable server behavior and its screen-authored target
  */
-public record Common(
-    Optional<String> id,
-    Optional<ValueRef> value,
-    Optional<ValueRef> max,
-    Optional<Text> tooltip,
-    Optional<Text> tooltipShift,
-    Clicks clicks,
-    Optional<ResourceLocation> onHover,
-    Optional<String> hoverShows,
-    List<ResourceLocation> jeiRecipes,
-    int offsetX,
-    int offsetY,
-    int line,
-    Optional<Interaction> interaction) {
+public record Common(Optional<String> id, Optional<ValueRef> value,
+    Optional<ValueRef> max, Optional<Text> tooltip, Optional<Text> tooltipShift,
+    Clicks clicks, Optional<ResourceLocation> onHover,
+    Optional<String> hoverShows, List<ResourceLocation> jeiRecipes, int offsetX,
+    int offsetY, int line, Optional<Interaction> interaction) {
     public static Common empty() {
-        return new Common(
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            new Clicks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()),
-            Optional.empty(),
-            Optional.empty(),
-            List.of(),
-            0,
-            0,
-            0,
+        return new Common(Optional.empty(), Optional.empty(), Optional.empty(),
+            Optional.empty(), Optional.empty(),
+            new Clicks(Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty()),
+            Optional.empty(), Optional.empty(), List.of(), 0, 0, 0,
             Optional.empty());
     }
 
-    /** Source-compatible constructor for elements without a built-in interaction. */
-    public Common(
-        Optional<String> id,
-        Optional<ValueRef> value,
-        Optional<ValueRef> max,
-        Optional<Text> tooltip,
-        Optional<Text> tooltipShift,
-        Clicks clicks,
-        Optional<ResourceLocation> onHover,
-        Optional<String> hoverShows,
-        List<ResourceLocation> jeiRecipes,
-        int offsetX,
-        int offsetY,
-        int line) {
-        this(
-            id,
-            value,
-            max,
-            tooltip,
-            tooltipShift,
-            clicks,
-            onHover,
-            hoverShows,
-            jeiRecipes,
-            offsetX,
-            offsetY,
-            line,
-            Optional.empty());
+    /**
+     * Source-compatible constructor for elements without a built-in
+     * interaction.
+     */
+    public Common(Optional<String> id, Optional<ValueRef> value,
+        Optional<ValueRef> max, Optional<Text> tooltip,
+        Optional<Text> tooltipShift, Clicks clicks,
+        Optional<ResourceLocation> onHover, Optional<String> hoverShows,
+        List<ResourceLocation> jeiRecipes, int offsetX, int offsetY, int line) {
+        this(id, value, max, tooltip, tooltipShift, clicks, onHover, hoverShows,
+            jeiRecipes, offsetX, offsetY, line, Optional.empty());
     }
 
     /** Copies the recipe list. */
@@ -111,23 +80,21 @@ public record Common(
      * @param shiftClick
      *            left click with Shift held; used instead of {@code click}
      * @param shiftRightClick
-     *            right click with Shift held; used instead of {@code rightClick}
+     *            right click with Shift held; used instead of
+     *            {@code rightClick}
      */
-    public record Clicks(
-        Optional<ResourceLocation> click,
+    public record Clicks(Optional<ResourceLocation> click,
         Optional<ResourceLocation> rightClick,
         Optional<ResourceLocation> shiftClick,
         Optional<ResourceLocation> shiftRightClick) {
         /** No handlers. */
-        public static final Clicks NONE = new Clicks(Optional.empty(), Optional.empty(),
-            Optional.empty(), Optional.empty());
+        public static final Clicks NONE = new Clicks(Optional.empty(),
+            Optional.empty(), Optional.empty(), Optional.empty());
 
         /** Whether any handler is set. */
         public boolean any() {
-            return click.isPresent()
-                || rightClick.isPresent()
-                || shiftClick.isPresent()
-                || shiftRightClick.isPresent();
+            return click.isPresent() || rightClick.isPresent()
+                || shiftClick.isPresent() || shiftRightClick.isPresent();
         }
     }
 }

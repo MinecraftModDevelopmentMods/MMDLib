@@ -15,67 +15,71 @@ import net.minecraft.world.level.block.state.BlockState;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
 
 /**
- * {@code mmdlib:scythe}: harvests a 3x3 area of {@code mmdlib:scythe_harvestable} blocks around the
- * one broken, server side, through the normal break path so protection and drops still apply.
+ * {@code mmdlib:scythe}: harvests a 3x3 area of
+ * {@code mmdlib:scythe_harvestable} blocks around the one broken, server side,
+ * through the normal break path so protection and drops still apply.
  */
 public final class ScytheItem extends DiggerItem implements MaterialBacked {
-  /**
-   * The nested calls use the ordinary server break path so every affected block still fires
-   * NeoForge's protection event and receives vanilla drops. The guard lets those nested calls
-   * complete without recursively starting another 3x3 harvest.
-   */
-  private static final ThreadLocal<Boolean> HARVESTING = ThreadLocal.withInitial(() -> false);
+    /**
+     * The nested calls use the ordinary server break path so every affected
+     * block still fires NeoForge's protection event and receives vanilla drops.
+     * The guard lets those nested calls complete without recursively starting
+     * another 3x3 harvest.
+     */
+    private static final ThreadLocal<Boolean> HARVESTING = ThreadLocal
+        .withInitial(() -> false);
 
-  private final MMDMaterial material;
+    private final MMDMaterial material;
 
-  /** A scythe on {@code tier}. */
-  public ScytheItem(MMDMaterial material, MaterialToolTier tier, Properties properties) {
-    super(
-        tier,
-        RuntimeTags.SCYTHE_HARVESTABLE,
-        properties.attributes(DiggerItem.createAttributes(tier, 0.0F, 0.0F)));
-    this.material = material;
-  }
-
-  @Override
-  public MMDMaterial material() {
-    return material;
-  }
-
-  @Override
-  public boolean mineBlock(
-      ItemStack stack, Level level, BlockState state, BlockPos position, LivingEntity miner) {
-    boolean result = super.mineBlock(stack, level, state, position, miner);
-    if (level.isClientSide
-        || !(miner instanceof ServerPlayer player)
-        || HARVESTING.get()
-        || !state.is(RuntimeTags.SCYTHE_HARVESTABLE)
-        || stack.isEmpty()) {
-      return result;
+    /** A scythe on {@code tier}. */
+    public ScytheItem(MMDMaterial material, MaterialToolTier tier,
+        Properties properties) {
+        super(tier, RuntimeTags.SCYTHE_HARVESTABLE, properties
+            .attributes(DiggerItem.createAttributes(tier, 0.0F, 0.0F)));
+        this.material = material;
     }
 
-    HARVESTING.set(true);
-    try {
-      for (int dx = -1; dx <= 1; dx++) {
-        for (int dz = -1; dz <= 1; dz++) {
-          // The ordinary break already handled the center block.
-          if (dx == 0 && dz == 0) continue;
-          if (stack.isEmpty()) return result;
-          BlockPos target = position.offset(dx, 0, dz);
-          if (level.getBlockState(target).is(RuntimeTags.SCYTHE_HARVESTABLE)) {
-            player.gameMode.destroyBlock(target);
-          }
+    @Override
+    public MMDMaterial material() {
+        return material;
+    }
+
+    @Override
+    public boolean mineBlock(ItemStack stack, Level level, BlockState state,
+        BlockPos position, LivingEntity miner) {
+        boolean result = super.mineBlock(stack, level, state, position, miner);
+        if (level.isClientSide || !(miner instanceof ServerPlayer player)
+            || HARVESTING.get() || !state.is(RuntimeTags.SCYTHE_HARVESTABLE)
+            || stack.isEmpty()) {
+            return result;
         }
-      }
-    } finally {
-      HARVESTING.remove();
-    }
-    return result;
-  }
 
-  @Override
-  public void appendHoverText(
-      ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-    // Material-specific lore/effects belong to the callback/type implementation.
-  }
+        HARVESTING.set(true);
+        try {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    // The ordinary break already handled the center block.
+                    if (dx == 0 && dz == 0)
+                        continue;
+                    if (stack.isEmpty())
+                        return result;
+                    BlockPos target = position.offset(dx, 0, dz);
+                    if (level.getBlockState(target)
+                        .is(RuntimeTags.SCYTHE_HARVESTABLE)) {
+                        player.gameMode.destroyBlock(target);
+                    }
+                }
+            }
+        } finally {
+            HARVESTING.remove();
+        }
+        return result;
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context,
+        List<Component> tooltip, TooltipFlag flag) {
+        // Material-specific lore/effects belong to the callback/type
+        // implementation.
+    }
 }

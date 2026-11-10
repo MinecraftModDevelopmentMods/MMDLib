@@ -34,19 +34,18 @@ import zone.moddev.mc.lib.gui.model.elements.GaugeElement;
 import zone.moddev.mc.lib.gui.model.elements.ProgressElement;
 
 /**
- * Subclasses inherit production renderers, snapshots and tank actions without new registrations.
+ * Subclasses inherit production renderers, snapshots and tank actions without
+ * new registrations.
  */
 final class ElementInheritanceClientSmoke {
-    static int energyRenders, progressRenders, tankFills, gaugeFills, stage, attempts;
+    static int energyRenders, progressRenders, tankFills, gaugeFills, stage,
+        attempts;
     static volatile boolean prepared;
 
     static class Tank extends FluidTankElement {
         Tank() {
-            super(
-                ElementInheritanceClientSmoke.common("inherited_tank", false),
-                0,
-                Orientation.VERTICAL,
-                36);
+            super(ElementInheritanceClientSmoke.common("inherited_tank", false),
+                0, Orientation.VERTICAL, 36);
         }
 
         public GaugeFill fill(Object value) {
@@ -55,10 +54,12 @@ final class ElementInheritanceClientSmoke {
         }
 
         public Component displayText(Object value, boolean detailed) {
-            return Component.literal("tank " + super.displayText(value, detailed).getString());
+            return Component.literal(
+                "tank " + super.displayText(value, detailed).getString());
         }
 
-        public void appendTooltip(TooltipContext context, List<Component> rows) {
+        public void appendTooltip(TooltipContext context,
+            List<Component> rows) {
             super.appendTooltip(context, rows);
             rows.add(displayText(context.value(), context.shiftDown()));
         }
@@ -68,9 +69,7 @@ final class ElementInheritanceClientSmoke {
         Energy() {
             super(
                 ElementInheritanceClientSmoke.common("inherited_energy", false),
-                Orientation.VERTICAL,
-                36,
-                0xff44aa77);
+                Orientation.VERTICAL, 36, 0xff44aa77);
         }
 
         public double fillRatio(Object value, Object maximum) {
@@ -79,16 +78,15 @@ final class ElementInheritanceClientSmoke {
         }
 
         public Component displayText(Object value, boolean detailed) {
-            return Component.literal("custom " + super.displayText(value, detailed).getString());
+            return Component.literal(
+                "custom " + super.displayText(value, detailed).getString());
         }
     }
 
     static class Progress extends ProgressElement {
         Progress() {
-            super(
-                ElementInheritanceClientSmoke.common("inherited_progress", true),
-                Optional.empty(),
-                ProgressDirection.RIGHT);
+            super(ElementInheritanceClientSmoke.common("inherited_progress",
+                true), Optional.empty(), ProgressDirection.RIGHT);
         }
 
         public double fillRatio(Object value, Object maximum) {
@@ -99,19 +97,19 @@ final class ElementInheritanceClientSmoke {
 
     static class Gauge extends GaugeElement {
         Gauge() {
-            super(
-                ElementInheritanceClientSmoke.common("inherited_gauge", true),
-                Orientation.HORIZONTAL,
-                36,
-                Optional.empty());
+            super(ElementInheritanceClientSmoke.common("inherited_gauge", true),
+                Orientation.HORIZONTAL, 36, Optional.empty());
         }
 
         public GaugeFill fill(Object value) {
             if (value != null && !(value instanceof Number))
                 throw new AssertionError("Expected numeric gauge snapshot");
             gaugeFills++;
-            return GaugeFill.fluid(
-                new FluidStack(net.minecraft.world.level.material.Fluids.WATER, 1000), 0xff55aaff);
+            return GaugeFill
+                .fluid(
+                    new FluidStack(
+                        net.minecraft.world.level.material.Fluids.WATER, 1000),
+                    0xff55aaff);
         }
 
         public double fillRatio(Object value, Object maximum) {
@@ -121,31 +119,22 @@ final class ElementInheritanceClientSmoke {
 
     static class Row extends BoxElement {
         Row() {
-            super(
-                Common.empty(),
-                false,
-                0,
-                8,
-                Align.START,
+            super(Common.empty(), false, 0, 8, Align.START,
                 List.of(new Tank(), new Energy(), new Progress(), new Gauge()));
         }
     }
 
     private static Common common(String id, boolean progress) {
         var c = Common.empty();
-        return new Common(
-            Optional.of(id),
-            progress ? Optional.of(ValueRef.parse("#getProgress")) : Optional.empty(),
-            progress ? Optional.of(ValueRef.parse("#getTime")) : Optional.empty(),
-            c.tooltip(),
-            c.tooltipShift(),
-            c.clicks(),
-            c.onHover(),
-            c.hoverShows(),
-            c.jeiRecipes(),
-            0,
-            0,
-            0);
+        return new Common(Optional.of(id),
+            progress
+                ? Optional.of(ValueRef.parse("#getProgress"))
+                : Optional.empty(),
+            progress
+                ? Optional.of(ValueRef.parse("#getTime"))
+                : Optional.empty(),
+            c.tooltip(), c.tooltipShift(), c.clicks(), c.onHover(),
+            c.hoverShows(), c.jeiRecipes(), 0, 0, 0);
     }
 
     static void install() {
@@ -153,17 +142,11 @@ final class ElementInheritanceClientSmoke {
         var old = Screens.get(id).orElseThrow().screen();
         var body = new ArrayList<>(old.body());
         body.add(new Row());
-        var model = new Screen(
-            old.id(),
-            old.source(),
-            old.title(),
-            old.blockEntity(),
-            old.playerInventory(),
-            body,
-            old.tabs());
+        var model = new Screen(old.id(), old.source(), old.title(),
+            old.blockEntity(), old.playerInventory(), body, old.tabs());
         var screens = new HashMap<>(Screens.all());
-        screens.put(id,
-            ScreenBinder.bind(model, ElementInheritanceClientSmoke.class.getClassLoader()));
+        screens.put(id, ScreenBinder.bind(model,
+            ElementInheritanceClientSmoke.class.getClassLoader()));
         Screens.install(screens);
     }
 
@@ -173,19 +156,18 @@ final class ElementInheritanceClientSmoke {
         if (!(menu.value(tank, false) instanceof FluidStack fluid))
             return false;
         if (++attempts > 40)
-            throw new AssertionError(
-                "Inherited tank interaction stuck at "
-                    + stage
-                    + ": "
-                    + fluid
-                    + ", cursor="
-                    + menu.getCarried());
+            throw new AssertionError("Inherited tank interaction stuck at "
+                + stage + ": " + fluid + ", cursor=" + menu.getCarried());
         if (stage == 0) {
             if (tankFills == 0 || gaugeFills == 0)
-                throw new AssertionError("Inherited renderer bypassed gauge fill selection");
-            if (!GaugeFill.fluid(FluidStack.EMPTY).equals(GaugeFill.solid(0x777777)))
-                throw new AssertionError("Empty fluid must select the default solid fill");
-            var original = new FluidStack(net.minecraft.world.level.material.Fluids.WATER, 750);
+                throw new AssertionError(
+                    "Inherited renderer bypassed gauge fill selection");
+            if (!GaugeFill.fluid(FluidStack.EMPTY)
+                .equals(GaugeFill.solid(0x777777)))
+                throw new AssertionError(
+                    "Empty fluid must select the default solid fill");
+            var original = new FluidStack(
+                net.minecraft.world.level.material.Fluids.WATER, 750);
             var selected = GaugeFill.fluid(original);
             original.setAmount(1);
             var returned = selected.fluid().orElseThrow();
@@ -194,48 +176,51 @@ final class ElementInheritanceClientSmoke {
             returned.setAmount(2);
             if (selected.fluid().orElseThrow().getAmount() != 750)
                 throw new AssertionError("Fill exposed mutable contents");
-            var defaultGauge = new GaugeElement(Common.empty(), Orientation.VERTICAL, 36,
-                Optional.empty());
+            var defaultGauge = new GaugeElement(Common.empty(),
+                Orientation.VERTICAL, 36, Optional.empty());
             if (defaultGauge.fill(original).fluid().isEmpty())
                 throw new AssertionError("Default fluid fill lost");
-            if (new GaugeElement(Common.empty(), Orientation.VERTICAL, 36, Optional.of(0x123456))
-                .fill(original)
-                .fluid()
-                .isPresent())
-                throw new AssertionError("Configured solid must override fluid");
+            if (new GaugeElement(Common.empty(), Orientation.VERTICAL, 36,
+                Optional.of(0x123456)).fill(original).fluid().isPresent())
+                throw new AssertionError(
+                    "Configured solid must override fluid");
             if (energyRenders == 0 || progressRenders == 0)
-                throw new AssertionError("Inherited renderer bypassed element fillRatio");
-            if (screen.tooltipLines(tank, 0, 0).stream()
-                .noneMatch(row -> row.getString().equals("tank " + fluid.getAmount())))
-                throw new AssertionError("Tank subclass display hook not composed");
-            var energy = menu.bound.screen().find("inherited_energy").orElseThrow();
+                throw new AssertionError(
+                    "Inherited renderer bypassed element fillRatio");
+            if (screen.tooltipLines(tank, 0, 0).stream().noneMatch(
+                row -> row.getString().equals("tank " + fluid.getAmount())))
+                throw new AssertionError(
+                    "Tank subclass display hook not composed");
+            var energy = menu.bound.screen().find("inherited_energy")
+                .orElseThrow();
             if (screen.tooltipLines(energy, 0, 0).stream()
                 .noneMatch(row -> row.getString().startsWith("custom ")))
-                throw new AssertionError("Inherited energy tooltip bypassed displayText");
+                throw new AssertionError(
+                    "Inherited energy tooltip bypassed displayText");
             var mc = Minecraft.getInstance();
-            Screenshot.grab(
-                mc.gameDirectory, "inherited-elements.png", mc.getMainRenderTarget(), ignored -> {
+            Screenshot.grab(mc.gameDirectory, "inherited-elements.png",
+                mc.getMainRenderTarget(), ignored -> {
                 });
-            mc.getSingleplayerServer()
-                .execute(
-                    () -> {
-                        try {
-                            var player = mc.getSingleplayerServer().getPlayerList().getPlayers()
-                                .getFirst();
-                            var machine = (ProcessorEntity) ((zone.moddev.mc.lib.gui.runtime.MachineMenu) player.containerMenu).blockEntity;
-                            machine.lanes.forEach(lane -> lane.reset());
-                            for (int i = 0; i < machine.items.getSlots(); i++)
-                                machine.items.setStackInSlot(i, ItemStack.EMPTY);
-                            machine.energy.setStored(0);
-                            machine.fluids.drain(Integer.MAX_VALUE, FluidAction.EXECUTE);
-                            player.getAbilities().instabuild = false;
-                            player.containerMenu.setCarried(new ItemStack(Items.WATER_BUCKET));
-                            player.containerMenu.broadcastChanges();
-                            prepared = true;
-                        } catch (Throwable failure) {
-                            CompanionClientSmoke.fail(failure);
-                        }
-                    });
+            mc.getSingleplayerServer().execute(() -> {
+                try {
+                    var player = mc.getSingleplayerServer().getPlayerList()
+                        .getPlayers().getFirst();
+                    var machine = (ProcessorEntity) ((zone.moddev.mc.lib.gui.runtime.MachineMenu) player.containerMenu).blockEntity;
+                    machine.lanes.forEach(lane -> lane.reset());
+                    for (int i = 0; i < machine.items.getSlots(); i++)
+                        machine.items.setStackInSlot(i, ItemStack.EMPTY);
+                    machine.energy.setStored(0);
+                    machine.fluids.drain(Integer.MAX_VALUE,
+                        FluidAction.EXECUTE);
+                    player.getAbilities().instabuild = false;
+                    player.containerMenu
+                        .setCarried(new ItemStack(Items.WATER_BUCKET));
+                    player.containerMenu.broadcastChanges();
+                    prepared = true;
+                } catch (Throwable failure) {
+                    CompanionClientSmoke.fail(failure);
+                }
+            });
             stage = 1;
             return false;
         }
@@ -251,7 +236,8 @@ final class ElementInheritanceClientSmoke {
             return false;
         }
         if (stage == 2) {
-            if (fluid.getAmount() != 1000 || !menu.getCarried().is(Items.BUCKET))
+            if (fluid.getAmount() != 1000
+                || !menu.getCarried().is(Items.BUCKET))
                 return false;
             screen.mouseClicked(r.x() + 8, r.y() + 8, 1);
             screen.mouseReleased(r.x() + 8, r.y() + 8, 1);

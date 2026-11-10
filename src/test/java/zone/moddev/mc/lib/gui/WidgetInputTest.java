@@ -26,20 +26,11 @@ import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
 class WidgetInputTest {
     private static CustomElement element(String id) {
-        var c = new Common(
-            Optional.of(id),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Common.Clicks.NONE,
-            Optional.empty(),
-            Optional.empty(),
-            List.of(),
-            0,
-            0,
-            1);
-        return new CustomElement(c, ResourceLocation.parse("test:editor"), 40, 20, Map.of());
+        var c = new Common(Optional.of(id), Optional.empty(), Optional.empty(),
+            Optional.empty(), Optional.empty(), Common.Clicks.NONE,
+            Optional.empty(), Optional.empty(), List.of(), 0, 0, 1);
+        return new CustomElement(c, ResourceLocation.parse("test:editor"), 40,
+            20, Map.of());
     }
 
     private static final class Editor implements WidgetInstance {
@@ -67,7 +58,8 @@ class WidgetInputTest {
         }
 
         @Override
-        public boolean mouseDragged(double x, double y, int b, double dx, double dy) {
+        public boolean mouseDragged(double x, double y, int b, double dx,
+            double dy) {
             drags++;
             return true;
         }
@@ -103,11 +95,10 @@ class WidgetInputTest {
     private static final class Fixture {
         final CustomElement a = element("a"), b = element("b");
         final Editor first = new Editor(), second = new Editor();
-        final Set<CustomElement> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
-        final WidgetInput input = new WidgetInput(
-            List.of(a, b),
-            e -> e == a ? first : second,
-            e -> !hidden.contains(e),
+        final Set<CustomElement> hidden = Collections
+            .newSetFromMap(new IdentityHashMap<>());
+        final WidgetInput input = new WidgetInput(List.of(a, b),
+            e -> e == a ? first : second, e -> !hidden.contains(e),
             e -> new Rect(e == a ? 0 : 50, 0, 40, 20));
 
         Fixture() {
@@ -172,7 +163,8 @@ class WidgetInputTest {
         var f = new Fixture();
         assertTrue(f.input.keyPressed(258, 0, 0));
         assertTrue(f.first.focused);
-        assertTrue(f.input.keyPressed(69, 0, 0)); // Unhandled E must not close inventory.
+        assertTrue(f.input.keyPressed(69, 0, 0)); // Unhandled E must not close
+                                                  // inventory.
         assertTrue(f.input.charTyped('e', 0));
         assertEquals(1, f.first.chars);
         assertTrue(f.input.keyPressed(258, 0, 0));
@@ -201,24 +193,19 @@ class WidgetInputTest {
         assertFalse(f.first.focused);
         assertFalse(f.input.click(f.a, 5, 5, 0));
         assertFalse(f.input.keyPressed(258, 0, 0));
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> new WidgetInput(
-                List.of(f.a, f.b), e -> f.first, e -> true, e -> new Rect(0, 0, 40, 20)));
+        assertThrows(IllegalArgumentException.class,
+            () -> new WidgetInput(List.of(f.a, f.b), e -> f.first, e -> true,
+                e -> new Rect(0, 0, 40, 20)));
     }
 
     @Test
     void routingReusesOneVisibilitySnapshotPerEvent() {
         var element = element("counted");
         var reads = new java.util.concurrent.atomic.AtomicInteger();
-        var input = new WidgetInput(
-            List.of(element),
-            e -> new Editor(),
-            e -> {
-                reads.incrementAndGet();
-                return true;
-            },
-            e -> new Rect(0, 0, 40, 20));
+        var input = new WidgetInput(List.of(element), e -> new Editor(), e -> {
+            reads.incrementAndGet();
+            return true;
+        }, e -> new Rect(0, 0, 40, 20));
         input.update();
         input.capturing();
         input.beginClick();

@@ -28,11 +28,12 @@ import zone.moddev.mc.lib.gui.sync.ElementStateValue;
 
 class ComponentStatesTest {
     private static final StreamCodec<RegistryFriendlyByteBuf, Integer> INT = StreamCodec
-        .of((buffer, value) -> buffer.writeVarInt(value), buffer -> buffer.readVarInt());
+        .of((buffer, value) -> buffer.writeVarInt(value),
+            buffer -> buffer.readVarInt());
 
     private static ComponentSync<Integer> number(String id) {
-        return new ComponentSync<>(ResourceLocation.parse(id), 1, INT, 5, () -> 0,
-            value -> value >= 0);
+        return new ComponentSync<>(ResourceLocation.parse(id), 1, INT, 5,
+            () -> 0, value -> value >= 0);
     }
 
     private static final class Probe implements MenuSnapshot {
@@ -57,9 +58,10 @@ class ComponentStatesTest {
         return new MenuComponentKey<>(ResourceLocation.parse(id), Probe.class);
     }
 
-    private static ComponentStates states(
-        MenuComponentRegistry registry, Map<MenuComponentKey<?>, MenuComponent> active) {
-        return new ComponentStates(registry.schema(), active, RegistryAccess.EMPTY);
+    private static ComponentStates states(MenuComponentRegistry registry,
+        Map<MenuComponentKey<?>, MenuComponent> active) {
+        return new ComponentStates(registry.schema(), active,
+            RegistryAccess.EMPTY);
     }
 
     @Test
@@ -87,13 +89,10 @@ class ComponentStatesTest {
         assertEquals(3, both.get(pa, field));
         assertEquals(8, both.get(pb, field));
         assertEquals(before, isolated.snapshot().keySet());
-        isolated
-            .snapshot()
-            .forEach((address, value) -> assertEquals(value, both.snapshot().get(address)));
-        assertEquals(
-            0,
-            states(first, Map.of(a, new Probe(field))).snapshot().values().iterator().next()
-                .data()[0]);
+        isolated.snapshot().forEach((address, value) -> assertEquals(value,
+            both.snapshot().get(address)));
+        assertEquals(0, states(first, Map.of(a, new Probe(field))).snapshot()
+            .values().iterator().next().data()[0]);
     }
 
     @Test
@@ -102,15 +101,17 @@ class ComponentStatesTest {
         var forged = number("test:value");
         var key = key("test:a");
         var registry = new MenuComponentRegistry();
-        assertThrows(
-            IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
             () -> registry.register(key, 0, c -> null, field, forged));
         registry.register(key, 0, c -> null, field);
         var probe = new Probe(forged);
         var state = states(registry, Map.of(key, probe));
-        assertThrows(IllegalArgumentException.class, () -> state.sample(List.of(probe)));
-        assertThrows(IllegalArgumentException.class, () -> state.get(probe, forged));
-        assertThrows(IllegalArgumentException.class, () -> state.get(new Probe(field), field));
+        assertThrows(IllegalArgumentException.class,
+            () -> state.sample(List.of(probe)));
+        assertThrows(IllegalArgumentException.class,
+            () -> state.get(probe, forged));
+        assertThrows(IllegalArgumentException.class,
+            () -> state.get(new Probe(field), field));
     }
 
     @Test
@@ -134,50 +135,53 @@ class ComponentStatesTest {
         assertEquals(0, pa.applied + pb.applied);
         assertThrows(IllegalArgumentException.class,
             () -> state.apply(Map.of(addresses.get(0), 7)));
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> state.apply(Map.of(addresses.get(1) + 1, field.encode(RegistryAccess.EMPTY, 1))));
+        assertThrows(IllegalArgumentException.class, () -> state.apply(Map
+            .of(addresses.get(1) + 1, field.encode(RegistryAccess.EMPTY, 1))));
         pa.value = 7;
-        state.apply(Map.of(addresses.get(0), field.encode(RegistryAccess.EMPTY, 7)));
+        state.apply(
+            Map.of(addresses.get(0), field.encode(RegistryAccess.EMPTY, 7)));
         assertEquals(7, state.get(pa, field));
         assertEquals(1, pa.applied);
-        state.apply(Map.of(addresses.get(0), field.encode(RegistryAccess.EMPTY, 7)));
-        assertEquals(1, pa.applied, "Unchanged values do not trigger callbacks");
+        state.apply(
+            Map.of(addresses.get(0), field.encode(RegistryAccess.EMPTY, 7)));
+        assertEquals(1, pa.applied,
+            "Unchanged values do not trigger callbacks");
     }
 
     @Test
     void codecsEnforceBoundsValidationAndSchemaVersions() {
         var field = number("test:value");
-        assertThrows(IllegalArgumentException.class, () -> field.encode(RegistryAccess.EMPTY, -1));
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> field.decode(RegistryAccess.EMPTY, new ElementStateValue(new byte[6])));
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> field.decode(RegistryAccess.EMPTY, new ElementStateValue(new byte[]{0, 0})));
+        assertThrows(IllegalArgumentException.class,
+            () -> field.encode(RegistryAccess.EMPTY, -1));
+        assertThrows(IllegalArgumentException.class, () -> field
+            .decode(RegistryAccess.EMPTY, new ElementStateValue(new byte[6])));
+        assertThrows(IllegalArgumentException.class,
+            () -> field.decode(RegistryAccess.EMPTY,
+                new ElementStateValue(new byte[]{0, 0})));
         var tiny = new ComponentSync<>(field.id(), 1, INT, 1, () -> 0);
-        assertThrows(IndexOutOfBoundsException.class, () -> tiny.encode(RegistryAccess.EMPTY, 128));
+        assertThrows(IndexOutOfBoundsException.class,
+            () -> tiny.encode(RegistryAccess.EMPTY, 128));
         var key = key("test:a");
         var registry = new MenuComponentRegistry();
         registry.register(key, 0, c -> null, field);
         var fingerprint = registry.fingerprint();
-        registry.replace(key, 0, c -> null, new ComponentSync<>(field.id(), 2, INT, 5, () -> 0));
+        registry.replace(key, 0, c -> null,
+            new ComponentSync<>(field.id(), 2, INT, 5, () -> 0));
         assertNotEquals(fingerprint, registry.fingerprint());
         fingerprint = registry.fingerprint();
-        registry.replace(key, 0, c -> null, new ComponentSync<>(field.id(), 2, INT, 4, () -> 0));
+        registry.replace(key, 0, c -> null,
+            new ComponentSync<>(field.id(), 2, INT, 4, () -> 0));
         assertNotEquals(fingerprint, registry.fingerprint());
     }
 
     @Test
     void mutableDecodedValuesCannotModifyStoredState() {
         var field = new ComponentSync<List<Integer>>(
-            ResourceLocation.parse("test:list"),
-            1,
+            ResourceLocation.parse("test:list"), 1,
             StreamCodec.of(
                 (buffer, value) -> buffer.writeVarInt(value.getFirst()),
                 buffer -> new ArrayList<>(List.of(buffer.readVarInt()))),
-            5,
-            () -> new ArrayList<>(List.of(5)));
+            5, () -> new ArrayList<>(List.of(5)));
         var key = key("test:a");
         var registry = new MenuComponentRegistry();
         registry.register(key, 0, c -> null, field);

@@ -9,6 +9,6 @@ import org.openzen.zencode.java.ZenCodeType;
 @ZenCodeType.Name("mods.mmdlib.BreakHandler")
 @FunctionalInterface
 public interface ScriptBreakHandler {
-  @ZenCodeType.Method
-  void handle(ScriptBreakContext context);
+    @ZenCodeType.Method
+    void handle(ScriptBreakContext context);
 }

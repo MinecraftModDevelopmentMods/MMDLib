@@ -8,8 +8,11 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 
-/** Per-viewer face selection and authoritative built-in redstone configuration. */
-public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.component.DrawerSession {
+/**
+ * Per-viewer face selection and authoritative built-in redstone configuration.
+ */
+public final class RedstoneMenu
+    implements zone.moddev.mc.lib.gui.runtime.component.DrawerSession {
     public net.minecraft.resources.ResourceLocation drawerType() {
         return zone.moddev.mc.lib.gui.drawer.BuiltinDrawers.REDSTONE;
     }
@@ -18,16 +21,11 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
         tick();
     }
 
-    public static final int TOGGLE = 0,
-        SELECT = 1,
-        MODE = 2,
-        OUTSIDE = 3,
-        RANGE = 4,
-        SOURCE = 5,
-        SYNC = 6,
-        INVERT = 7;
+    public static final int TOGGLE = 0, SELECT = 1, MODE = 2, OUTSIDE = 3,
+        RANGE = 4, SOURCE = 5, SYNC = 6, INVERT = 7;
     public final RedstoneControl control;
-    private static final RedstoneControl.Mode[] MODES = RedstoneControl.Mode.values();
+    private static final RedstoneControl.Mode[] MODES = RedstoneControl.Mode
+        .values();
     private final int[] snapshotFaces = new int[48];
     private final MachineMenu menu;
     private final Player owner;
@@ -38,7 +36,8 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
     private boolean open;
     private RedstoneNetwork.State state, sent;
 
-    public RedstoneMenu(MachineMenu menu, Player owner, RedstoneControl control, boolean client) {
+    public RedstoneMenu(MachineMenu menu, Player owner, RedstoneControl control,
+        boolean client) {
         this.menu = menu;
         this.owner = owner;
         this.control = control;
@@ -49,7 +48,9 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
         return open;
     }
 
-    /** Whether any face is configured to gate processing from an input signal. */
+    /**
+     * Whether any face is configured to gate processing from an input signal.
+     */
     public boolean watching() {
         for (int face = 0; face < 6; face++)
             if (mode(face) == RedstoneControl.Mode.READ)
@@ -57,7 +58,10 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
         return false;
     }
 
-    /** Authoritative resolved gate, also synchronized while the drawer is closed. */
+    /**
+     * Authoritative resolved gate, also synchronized while the drawer is
+     * closed.
+     */
     public boolean paused() {
         return client ? state != null && state.paused() : control.paused();
     }
@@ -75,39 +79,57 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
     }
 
     public long revision() {
-        return client ? state == null ? 0 : state.revision() : control.revision();
+        return client
+            ? state == null ? 0 : state.revision()
+            : control.revision();
     }
 
     public RedstoneControl.Mode mode(int face) {
-        return client ? MODES[state == null ? 0 : state.faces()[face * 8]] : control.mode(face);
+        return client
+            ? MODES[state == null ? 0 : state.faces()[face * 8]]
+            : control.mode(face);
     }
 
     public boolean outside(int face) {
-        return client ? state != null && state.faces()[face * 8 + 1] == 1 : control.outside(face);
+        return client
+            ? state != null && state.faces()[face * 8 + 1] == 1
+            : control.outside(face);
     }
 
     public int incoming(int face) {
-        return client ? state == null ? 0 : state.faces()[face * 8 + 2] : control.incoming(face);
+        return client
+            ? state == null ? 0 : state.faces()[face * 8 + 2]
+            : control.incoming(face);
     }
 
     public int outgoing(int face) {
-        return client ? state == null ? 0 : state.faces()[face * 8 + 3] : control.outgoing(face);
+        return client
+            ? state == null ? 0 : state.faces()[face * 8 + 3]
+            : control.outgoing(face);
     }
 
     public boolean inverted(int face) {
-        return client ? state != null && state.faces()[face * 8 + 7] == 1 : control.inverted(face);
+        return client
+            ? state != null && state.faces()[face * 8 + 7] == 1
+            : control.inverted(face);
     }
 
     public int lower(int face) {
-        return client ? state == null ? 1 : state.faces()[face * 8 + 4] : control.lower(face);
+        return client
+            ? state == null ? 1 : state.faces()[face * 8 + 4]
+            : control.lower(face);
     }
 
     public int upper(int face) {
-        return client ? state == null ? 15 : state.faces()[face * 8 + 5] : control.upper(face);
+        return client
+            ? state == null ? 15 : state.faces()[face * 8 + 5]
+            : control.upper(face);
     }
 
     public int source(int face) {
-        return client ? state == null ? -1 : state.faces()[face * 8 + 6] - 1 : control.source(face);
+        return client
+            ? state == null ? -1 : state.faces()[face * 8 + 6] - 1
+            : control.source(face);
     }
 
     public void closeServer() {
@@ -119,9 +141,8 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
         if (request == 0)
             return false;
         PacketDistributor.sendToServer(
-            new RedstoneNetwork.Action(
-                menu.containerId, menu.sessionId(), request, revision(), kind, face, column,
-                value));
+            new RedstoneNetwork.Action(menu.containerId, menu.sessionId(),
+                request, revision(), kind, face, column, value));
         return true;
     }
 
@@ -131,11 +152,8 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
     }
 
     public void action(Player player, RedstoneNetwork.Action p) {
-        if (client
-            || player != owner
-            || player.containerMenu != menu
-            || !menu.stillValid(player)
-            || p.menu() != menu.containerId
+        if (client || player != owner || player.containerMenu != menu
+            || !menu.stillValid(player) || p.menu() != menu.containerId
             || p.session() != menu.sessionId()
             || !received.receive(p.request()))
             return;
@@ -154,19 +172,23 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
                                 control.mode(selected, MODES[p.value()]);
                         }
                         case OUTSIDE -> {
-                            if (p.value() < 2 && mode(selected) == RedstoneControl.Mode.READ)
+                            if (p.value() < 2
+                                && mode(selected) == RedstoneControl.Mode.READ)
                                 control.outside(selected, p.value() == 1);
                         }
                         case RANGE -> {
-                            if (p.value() <= 255 && mode(selected) == RedstoneControl.Mode.READ)
-                                control.range(selected, p.value() / 16, p.value() % 16);
+                            if (p.value() <= 255
+                                && mode(selected) == RedstoneControl.Mode.READ)
+                                control.range(selected, p.value() / 16,
+                                    p.value() % 16);
                         }
                         case SOURCE -> {
                             if (mode(selected) == RedstoneControl.Mode.EMIT)
                                 control.source(selected, p.value());
                         }
                         case INVERT -> {
-                            if (mode(selected) == RedstoneControl.Mode.EMIT && p.value() < 2)
+                            if (mode(selected) == RedstoneControl.Mode.EMIT
+                                && p.value() < 2)
                                 control.inverted(selected, p.value() == 1);
                         }
                         default -> {
@@ -178,8 +200,7 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
     }
 
     public void receive(RedstoneNetwork.State p) {
-        if (p.menu() != menu.containerId
-            || p.session() != menu.sessionId()
+        if (p.menu() != menu.containerId || p.session() != menu.sessionId()
             || state != null && p.revision() < state.revision())
             return;
         state = p;
@@ -204,23 +225,15 @@ public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.compon
             faces[i * 8 + 6] = source(i) + 1;
             faces[i * 8 + 7] = inverted(i) ? 1 : 0;
         }
-        if (sent == null
-            || sent.acknowledged() != received.acknowledged()
-            || sent.revision() != revision()
-            || sent.open() != open
-            || sent.selected() != selected
-            || sent.paused() != control.paused()
+        if (sent == null || sent.acknowledged() != received.acknowledged()
+            || sent.revision() != revision() || sent.open() != open
+            || sent.selected() != selected || sent.paused() != control.paused()
             || !Arrays.equals(sent.faces(), faces)) {
-            // State owns a clone, so the scratch buffer cannot mutate an in-flight packet.
-            var next = new RedstoneNetwork.State(
-                menu.containerId,
-                menu.sessionId(),
-                received.acknowledged(),
-                revision(),
-                open,
-                selected,
-                control.paused(),
-                faces);
+            // State owns a clone, so the scratch buffer cannot mutate an
+            // in-flight packet.
+            var next = new RedstoneNetwork.State(menu.containerId,
+                menu.sessionId(), received.acknowledged(), revision(), open,
+                selected, control.paused(), faces);
             PacketDistributor.sendToPlayer(player, next);
             sent = next;
         }

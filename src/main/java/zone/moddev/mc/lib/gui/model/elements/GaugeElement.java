@@ -19,12 +19,12 @@ import zone.moddev.mc.lib.gui.value.ValueType;
 import zone.moddev.mc.lib.gui.value.ValueTypes;
 
 /**
- * {@code gauge}: the glass graduated gauge, 18 px thick. Filled with {@code color} when given,
- * otherwise with the fluid its value returns.
+ * {@code gauge}: the glass graduated gauge, 18 px thick. Filled with
+ * {@code color} when given, otherwise with the fluid its value returns.
  *
  * <p>
- * {@code orientation}: which way it runs {@code length}: its length in GUI pixels, or
- * {@link Element#FILL} {@code color}: an optional ARGB solid fill
+ * {@code orientation}: which way it runs {@code length}: its length in GUI
+ * pixels, or {@link Element#FILL} {@code color}: an optional ARGB solid fill
  */
 public class GaugeElement implements Element {
     private final Common common;
@@ -46,8 +46,8 @@ public class GaugeElement implements Element {
     }
 
     /**
-     * Selects visual contents independently of display values and fill ratio; subclasses may
-     * override.
+     * Selects visual contents independently of display values and fill ratio;
+     * subclasses may override.
      */
     public GaugeFill fill(Object value) {
         if (color().isPresent())
@@ -77,7 +77,8 @@ public class GaugeElement implements Element {
     public Set<ValueType<?>> valueKinds(WidgetTypes widgets) {
         return color.isPresent()
             ? NUMBERS
-            : Set.of(ValueTypes.WHOLE, ValueTypes.DECIMAL, ValueTypes.NUMBER, ValueTypes.FLUID);
+            : Set.of(ValueTypes.WHOLE, ValueTypes.DECIMAL, ValueTypes.NUMBER,
+                ValueTypes.FLUID);
     }
 
     public void validate() {
@@ -130,14 +131,7 @@ public class GaugeElement implements Element {
 
     @Override
     public String toString() {
-        return "GaugeElement[common="
-            + common
-            + ", orientation="
-            + orientation
-            + ", length="
-            + length
-            + ", color="
-            + color
-            + "]";
+        return "GaugeElement[common=" + common + ", orientation=" + orientation
+            + ", length=" + length + ", color=" + color + "]";
     }
 }

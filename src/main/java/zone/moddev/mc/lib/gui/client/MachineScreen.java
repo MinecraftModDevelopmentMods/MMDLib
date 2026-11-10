@@ -28,7 +28,10 @@ import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 import zone.moddev.mc.lib.gui.sync.ElementStateView;
 
-/** Client presentation of a data-defined machine; getters are never invoked here. */
+/**
+ * Client presentation of a data-defined machine; getters are never invoked
+ * here.
+ */
 public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     private long animationStart = -1;
     private double elapsedTicks;
@@ -65,8 +68,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         }
 
         public List<Component> serverTooltip(Element element) {
-            return menu.components()
-                .requireCapability(zone.moddev.mc.lib.gui.runtime.component.ServerTooltips.class)
+            return menu.components().requireCapability(
+                zone.moddev.mc.lib.gui.runtime.component.ServerTooltips.class)
                 .lines(element);
         }
 
@@ -83,7 +86,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         }
 
         public <T> Optional<T> capability(Element element, Class<T> type) {
-            return BehaviorCapabilities.find(elementInput.instance(element), type);
+            return BehaviorCapabilities.find(elementInput.instance(element),
+                type);
         }
 
         public ItemStack contents(SlotElement element) {
@@ -94,15 +98,20 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
             return menu.slotHint(element).copy();
         }
 
-        public <T> Optional<T> drawerPresentation(Element element, Class<T> type) {
+        public <T> Optional<T> drawerPresentation(Element element,
+            Class<T> type) {
             return drawers.presentation(element, type);
         }
     };
 
     /** Optional integration entry point, installed only by JEI. */
-    public static java.util.function.BiPredicate<MachineScreen, Element> recipes = (s, e) -> false;
+    public static java.util.function.BiPredicate<MachineScreen, Element> recipes = (
+        s, e) -> false;
 
-    /** Optional overlays can reserve space for a bottom toolbar without moving the main panel. */
+    /**
+     * Optional overlays can reserve space for a bottom toolbar without moving
+     * the main panel.
+     */
     public static java.util.function.IntSupplier drawerBottomInset = () -> 4;
 
     public int drawerBottom() {
@@ -110,14 +119,15 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     }
 
     /**
-     * Installed only by JEI: whether JEI draws the tooltip of an element's recipe area, in which
-     * case the screen leaves it to JEI (which asks for {@link #tooltipLines}) instead of drawing
-     * its own.
+     * Installed only by JEI: whether JEI draws the tooltip of an element's
+     * recipe area, in which case the screen leaves it to JEI (which asks for
+     * {@link #tooltipLines}) instead of drawing its own.
      */
-    public static java.util.function.BiPredicate<MachineScreen, Element> recipeTooltip = (s,
-        e) -> false;
+    public static java.util.function.BiPredicate<MachineScreen, Element> recipeTooltip = (
+        s, e) -> false;
 
-    public MachineScreen(MachineMenu menu, Inventory inventory, Component title) {
+    public MachineScreen(MachineMenu menu, Inventory inventory,
+        Component title) {
         super(menu, inventory, title);
         ElementRenderers.GLOBAL.validate(menu.bound.screen());
         for (var parent : menu.elements)
@@ -130,86 +140,89 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         drawers = Drawers.create(this);
     }
 
-    /** Client drawer extension point; drawers own their rendering and interactions. */
+    /**
+     * Client drawer extension point; drawers own their rendering and
+     * interactions.
+     */
     public Drawers drawers() {
         return drawers;
     }
 
-    /** Read-only presentation services shared by renderers, drawers and optional integrations. */
+    /**
+     * Read-only presentation services shared by renderers, drawers and optional
+     * integrations.
+     */
     public ElementRenderAccess presentation() {
         return renderAccess;
     }
 
     private ElementInput<Element, ElementBehavior> createBehaviors() {
-        return new ElementInput<>(
-            menu.elements,
-            element -> ElementBehaviors.GLOBAL.create(
-                new ElementAccess() {
-                    public Element element() {
-                        return element;
-                    }
+        return new ElementInput<>(menu.elements,
+            element -> ElementBehaviors.GLOBAL.create(new ElementAccess() {
+                public Element element() {
+                    return element;
+                }
 
-                    public Rect bounds() {
-                        return MachineScreen.this.bounds(element);
-                    }
+                public Rect bounds() {
+                    return MachineScreen.this.bounds(element);
+                }
 
-                    public Object value() {
-                        return menu.value(element, false);
-                    }
+                public Object value() {
+                    return menu.value(element, false);
+                }
 
-                    public Object maximum() {
-                        return menu.value(element, true);
-                    }
+                public Object maximum() {
+                    return menu.value(element, true);
+                }
 
-                    public ElementRenderAccess presentation() {
-                        return renderAccess;
-                    }
+                public ElementRenderAccess presentation() {
+                    return renderAccess;
+                }
 
-                    public List<Element> elements() {
-                        return List.copyOf(menu.elements);
-                    }
+                public List<Element> elements() {
+                    return List.copyOf(menu.elements);
+                }
 
-                    public ResourceLocation screenId() {
-                        return menu.bound.screen().id();
-                    }
+                public ResourceLocation screenId() {
+                    return menu.bound.screen().id();
+                }
 
-                    public boolean pending(Element target) {
-                        return menu.elementPending(target);
-                    }
+                public boolean pending(Element target) {
+                    return menu.elementPending(target);
+                }
 
-                    public <T> boolean submit(Element target, ElementAction<T> action, T value) {
-                        return submitElementAction(target, action, value);
-                    }
+                public <T> boolean submit(Element target,
+                    ElementAction<T> action, T value) {
+                    return submitElementAction(target, action, value);
+                }
 
-                    public void navigate(String context, String view) {
-                        menu.navigate(context, view);
-                    }
+                public void navigate(String context, String view) {
+                    menu.navigate(context, view);
+                }
 
-                    public ItemStack carried() {
-                        return menu.getCarried().copy();
-                    }
+                public ItemStack carried() {
+                    return menu.getCarried().copy();
+                }
 
-                    public zone.moddev.mc.lib.machine.inventory.SlotPlan reservation(
-                        SlotElement slot) {
-                        return menu.reservationPlan(menu.slotIndex(slot));
-                    }
+                public zone.moddev.mc.lib.machine.inventory.SlotPlan reservation(
+                    SlotElement slot) {
+                    return menu.reservationPlan(menu.slotIndex(slot));
+                }
 
-                    public boolean showRecipes() {
-                        return recipes.test(MachineScreen.this, element);
-                    }
-                }),
-            this::visible,
-            this::bounds,
-            (x, y) -> renderAccess.viewport().contains(x, y),
-            (element, entered) -> ElementHover.dispatch(menu, element, entered));
+                public boolean showRecipes() {
+                    return recipes.test(MachineScreen.this, element);
+                }
+            }), this::visible, this::bounds,
+            (x, y) -> renderAccess.viewport().contains(x, y), (element,
+                entered) -> ElementHover.dispatch(menu, element, entered));
     }
 
     @EventBusSubscriber(modid = "mmdlib", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static final class Registration {
         @SubscribeEvent
         public static void register(RegisterMenuScreensEvent event) {
-            ScreenRuntime.textMeasure = text -> net.minecraft.client.Minecraft.getInstance().font
-                .width(ScreenText.component(text));
+            ScreenRuntime.textMeasure = text -> net.minecraft.client.Minecraft
+                .getInstance().font.width(ScreenText.component(text));
             event.register(ScreenRuntime.MENUS.get(), MachineScreen::new);
         }
     }
@@ -223,9 +236,11 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         }
 
         @SubscribeEvent
-        public static void tick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+        public static void tick(
+            net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
             var player = net.minecraft.client.Minecraft.getInstance().player;
-            if (player != null && player.containerMenu instanceof MachineMenu menu) {
+            if (player != null
+                && player.containerMenu instanceof MachineMenu menu) {
                 menu.tickClientActions();
             }
         }
@@ -235,7 +250,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     protected void init() {
         super.init();
         drawers.resized();
-        // Recipe browsers can return to the same screen object after removed() was called.
+        // Recipe browsers can return to the same screen object after removed()
+        // was called.
         if (behaviorsRemoved) {
             elementInput = createBehaviors();
             behaviorsRemoved = false;
@@ -295,35 +311,30 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         if (animationStart < 0)
             animationStart = tick;
         elapsedTicks = Math.max(0, tick - animationStart + partial);
-        ElementDrawing.sprite(g, "panel", layout.panel().offset(leftPos, topPos));
-        g.drawString(
-            font, text(menu.bound.screen().title()), leftPos + 7, topPos + 6, 0xff404040, false);
+        ElementDrawing.sprite(g, "panel",
+            layout.panel().offset(leftPos, topPos));
+        g.drawString(font, text(menu.bound.screen().title()), leftPos + 7,
+            topPos + 6, 0xff404040, false);
         renderElements(ElementRenderers.Pass.BACKGROUND, g, partial, mx, my);
         renderElements(ElementRenderers.Pass.OVERLAY, g, partial, mx, my);
         drawers.render(g, mx, my);
     }
 
-    private ElementRenderers.Context renderContext(
-        GuiGraphics g, Element e, Rect bounds, int mx, int my, float partial) {
-        return new ElementRenderers.Context(
-            g,
-            e,
-            bounds,
-            renderAccess.value(e, false),
-            renderAccess.value(e, true),
-            mx,
-            my,
-            partial,
-            elapsedTicks,
-            renderAccess);
+    private ElementRenderers.Context renderContext(GuiGraphics g, Element e,
+        Rect bounds, int mx, int my, float partial) {
+        return new ElementRenderers.Context(g, e, bounds,
+            renderAccess.value(e, false), renderAccess.value(e, true), mx, my,
+            partial, elapsedTicks, renderAccess);
     }
 
-    private void draw(GuiGraphics g, Element e, Rect bounds, int mx, int my, float partial) {
-        ElementRenderers.GLOBAL.render(renderContext(g, e, bounds, mx, my, partial));
+    private void draw(GuiGraphics g, Element e, Rect bounds, int mx, int my,
+        float partial) {
+        ElementRenderers.GLOBAL
+            .render(renderContext(g, e, bounds, mx, my, partial));
     }
 
-    private void renderElements(
-        ElementRenderers.Pass pass, GuiGraphics g, float partial, int mx, int my) {
+    private void renderElements(ElementRenderers.Pass pass, GuiGraphics g,
+        float partial, int mx, int my) {
         for (var e : menu.elements)
             if (visible(e))
                 ElementRenderers.GLOBAL.render(pass,
@@ -342,8 +353,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         updateBehaviors();
         elementInput.hover(mx, my);
         super.render(g, mx, my, partial);
-        ElementHover.preview(
-            elementInput.hovered(), renderAccess, e -> draw(g, e, bounds(e), mx, my, partial));
+        ElementHover.preview(elementInput.hovered(), renderAccess,
+            e -> draw(g, e, bounds(e), mx, my, partial));
         renderElements(ElementRenderers.Pass.FOREGROUND, g, partial, mx, my);
         drawers.renderTabs(g);
         renderElements(ElementRenderers.Pass.TOP, g, partial, mx, my);
@@ -368,26 +379,19 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         var vanilla = super.getTooltipFromContainerItem(stack);
         return drawers
             .nativeTooltip(hoveredSlot, vanilla, tooltipMouseX, tooltipMouseY)
-            .orElseGet(
-                () -> nativeSlots.itemTooltip(
-                    menu.nativeSlots(),
-                    hoveredSlot,
-                    elementInput.hovered(),
-                    vanilla,
-                    element -> tooltipLines(element, tooltipMouseX, tooltipMouseY)));
+            .orElseGet(() -> nativeSlots.itemTooltip(menu.nativeSlots(),
+                hoveredSlot, elementInput.hovered(), vanilla,
+                element -> tooltipLines(element, tooltipMouseX,
+                    tooltipMouseY)));
     }
 
-    /** The tooltip lines of {@code e} with the mouse at {@code mx, my}; empty for none. */
+    /**
+     * The tooltip lines of {@code e} with the mouse at {@code mx, my}; empty
+     * for none.
+     */
     public List<Component> tooltipLines(Element e, int mx, int my) {
-        return ElementTooltips.collect(
-            e,
-            renderAccess,
-            elementInput::instance,
-            mx,
-            my,
-            hasShiftDown(),
-            hasControlDown(),
-            hasAltDown());
+        return ElementTooltips.collect(e, renderAccess, elementInput::instance,
+            mx, my, hasShiftDown(), hasControlDown(), hasAltDown());
     }
 
     @Override
@@ -398,17 +402,18 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
             return true;
         }
         updateBehaviors();
-        return elementInput.click(mx, my, button) || super.mouseClicked(mx, my, button);
+        return elementInput.click(mx, my, button)
+            || super.mouseClicked(mx, my, button);
     }
 
     @Override
     public boolean keyPressed(int key, int scan, int modifiers) {
         drawers.userInput();
-        // A lost drawer acknowledgment must never trap the player in the screen.
-        if (drawers.pending()
-            && (key == 256
-                || net.minecraft.client.Minecraft.getInstance().options.keyInventory
-                    .matches(key, scan))) {
+        // A lost drawer acknowledgment must never trap the player in the
+        // screen.
+        if (drawers.pending() && (key == 256
+            || net.minecraft.client.Minecraft.getInstance().options.keyInventory
+                .matches(key, scan))) {
             onClose();
             return true;
         }
@@ -433,11 +438,16 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         if (drawers.scroll(mx, my, dy))
             return true;
         updateBehaviors();
-        return elementInput.scroll(mx, my, dx, dy) || super.mouseScrolled(mx, my, dx, dy);
+        return elementInput.scroll(mx, my, dx, dy)
+            || super.mouseScrolled(mx, my, dx, dy);
     }
 
-    /** Shared typed submission for element behaviors and external UI integrations such as JEI. */
-    public <T> boolean submitElementAction(Element target, ElementAction<T> action, T value) {
+    /**
+     * Shared typed submission for element behaviors and external UI
+     * integrations such as JEI.
+     */
+    public <T> boolean submitElementAction(Element target,
+        ElementAction<T> action, T value) {
         var packet = menu.prepareElementAction(target, action, value);
         packet.ifPresent(PacketDistributor::sendToServer);
         return packet.isPresent();
@@ -470,11 +480,13 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     }
 
     @Override
-    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    public boolean mouseDragged(double x, double y, int button, double dx,
+        double dy) {
         if (drawers.drag(x, y, button, dx, dy))
             return true;
         updateBehaviors();
-        return elementInput.drag(x, y, button, dx, dy) || super.mouseDragged(x, y, button, dx, dy);
+        return elementInput.drag(x, y, button, dx, dy)
+            || super.mouseDragged(x, y, button, dx, dy);
     }
 
     @Override
@@ -482,7 +494,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         if (drawers.release(x, y, button))
             return true;
         updateBehaviors();
-        return elementInput.release(x, y, button) || super.mouseReleased(x, y, button);
+        return elementInput.release(x, y, button)
+            || super.mouseReleased(x, y, button);
     }
 
     @Override
@@ -504,48 +517,37 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     }
 
     @Override
-    protected boolean hasClickedOutside(double x, double y, int left, int top, int button) {
-        return !drawers.contains(x, y) && super.hasClickedOutside(x, y, left, top, button);
+    protected boolean hasClickedOutside(double x, double y, int left, int top,
+        int button) {
+        return !drawers.contains(x, y)
+            && super.hasClickedOutside(x, y, left, top, button);
     }
 
     @Override
-    protected void renderSlotHighlight(
-        GuiGraphics graphics,
-        net.minecraft.world.inventory.Slot slot,
-        int mouseX,
-        int mouseY,
+    protected void renderSlotHighlight(GuiGraphics graphics,
+        net.minecraft.world.inventory.Slot slot, int mouseX, int mouseY,
         float partialTick) {
-        nativeSlots.highlight(
-            graphics,
-            slot,
-            menu.nativeSlots().entry(slot.index),
-            getSlotColor(slot.index),
-            () -> super.renderSlotHighlight(graphics, slot, mouseX, mouseY, partialTick));
+        nativeSlots.highlight(graphics, slot,
+            menu.nativeSlots().entry(slot.index), getSlotColor(slot.index),
+            () -> super.renderSlotHighlight(graphics, slot, mouseX, mouseY,
+                partialTick));
     }
 
     @Override
-    protected void renderSlot(GuiGraphics graphics, net.minecraft.world.inventory.Slot slot) {
-        nativeSlots.render(
-            graphics,
-            slot,
-            menu.nativeSlots().entry(slot.index),
+    protected void renderSlot(GuiGraphics graphics,
+        net.minecraft.world.inventory.Slot slot) {
+        nativeSlots.render(graphics, slot, menu.nativeSlots().entry(slot.index),
             () -> super.renderSlot(graphics, slot));
     }
 
     @Override
-    protected void renderSlotContents(
-        GuiGraphics graphics,
-        ItemStack displayed,
+    protected void renderSlotContents(GuiGraphics graphics, ItemStack displayed,
         net.minecraft.world.inventory.Slot slot,
         @org.jetbrains.annotations.Nullable String countString) {
-        nativeSlots.contents(
-            graphics,
-            font,
-            slot,
-            menu.nativeSlots().entry(slot.index),
-            displayed,
-            countString,
-            count -> super.renderSlotContents(graphics, displayed, slot, count));
+        nativeSlots.contents(graphics, font, slot,
+            menu.nativeSlots().entry(slot.index), displayed, countString,
+            count -> super.renderSlotContents(graphics, displayed, slot,
+                count));
     }
 
     /** Native slot hit testing for overlay hosts, in screen coordinates. */
@@ -553,15 +555,21 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         return nativeSlotAt(x, y, true);
     }
 
-    /** Include inactive geometry only when blocking pending inventory gestures. */
-    public net.minecraft.world.inventory.Slot nativeSlotAt(double x, double y, boolean activeOnly) {
+    /**
+     * Include inactive geometry only when blocking pending inventory gestures.
+     */
+    public net.minecraft.world.inventory.Slot nativeSlotAt(double x, double y,
+        boolean activeOnly) {
         updateLayout();
-        return nativeSlots.hit(menu.nativeSlots(), x - leftPos, y - topPos, activeOnly);
+        return nativeSlots.hit(menu.nativeSlots(), x - leftPos, y - topPos,
+            activeOnly);
     }
 
     @Override
-    protected boolean isHovering(int x, int y, int w, int h, double mx, double my) {
+    protected boolean isHovering(int x, int y, int w, int h, double mx,
+        double my) {
         var bounds = nativeSlots.hitBounds(menu.nativeSlots(), x, y, w, h);
-        return super.isHovering(bounds.x(), bounds.y(), bounds.width(), bounds.height(), mx, my);
+        return super.isHovering(bounds.x(), bounds.y(), bounds.width(),
+            bounds.height(), mx, my);
     }
 }

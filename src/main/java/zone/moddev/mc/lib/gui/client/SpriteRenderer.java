@@ -7,10 +7,12 @@ public final class SpriteRenderer {
     private SpriteRenderer() {
     }
 
-    public static void draw(SpriteElement element, ElementRenderers.Context context) {
+    public static void draw(SpriteElement element,
+        ElementRenderers.Context context) {
         var bounds = context.bounds();
         var g = context.graphics();
-        for (var layer : element.layers(bounds, context.elapsedTicks(), context.ratio())) {
+        for (var layer : element.layers(bounds, context.elapsedTicks(),
+            context.ratio())) {
             var clip = layer.clip().offset(bounds.x(), bounds.y());
             if (clip.width() <= 0 || clip.height() <= 0)
                 continue;
@@ -18,16 +20,17 @@ public final class SpriteRenderer {
             g.pose().pushPose();
             try {
                 int tint = layer.tint();
-                g.setColor(
-                    ((tint >> 16) & 255) / 255f,
-                    ((tint >> 8) & 255) / 255f,
-                    (tint & 255) / 255f,
+                g.setColor(((tint >> 16) & 255) / 255f,
+                    ((tint >> 8) & 255) / 255f, (tint & 255) / 255f,
                     ((tint >>> 24) & 255) / 255f);
                 g.pose().translate(bounds.x() + bounds.width() / 2f,
                     bounds.y() + bounds.height() / 2f, 0);
-                g.pose().mulPose(new org.joml.Quaternionf().rotationZ(layer.rotation()));
-                g.pose().translate(-layer.width() / 2f, -layer.height() / 2f, 0);
-                g.blitSprite(layer.sprite(), 0, 0, layer.width(), layer.height());
+                g.pose().mulPose(
+                    new org.joml.Quaternionf().rotationZ(layer.rotation()));
+                g.pose().translate(-layer.width() / 2f, -layer.height() / 2f,
+                    0);
+                g.blitSprite(layer.sprite(), 0, 0, layer.width(),
+                    layer.height());
             } finally {
                 g.setColor(1, 1, 1, 1);
                 g.pose().popPose();

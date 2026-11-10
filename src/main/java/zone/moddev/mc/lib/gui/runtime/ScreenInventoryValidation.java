@@ -4,15 +4,20 @@ import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenValidationContext;
 import zone.moddev.mc.lib.gui.model.Screen;
 
-/** Validates screen references against the actual host, before either side constructs slots. */
+/**
+ * Validates screen references against the actual host, before either side
+ * constructs slots.
+ */
 public final class ScreenInventoryValidation {
     private ScreenInventoryValidation() {
     }
 
     /**
-     * Hosts can call this after constructing their storages; menus repeat validation on opening.
+     * Hosts can call this after constructing their storages; menus repeat
+     * validation on opening.
      */
-    public static void validate(net.minecraft.world.level.block.entity.BlockEntity owner) {
+    public static void validate(
+        net.minecraft.world.level.block.entity.BlockEntity owner) {
         if (!(owner instanceof ScreenHost host))
             return;
         var id = net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE
@@ -33,10 +38,12 @@ public final class ScreenInventoryValidation {
                 throw failure;
             } catch (IllegalArgumentException failure) {
                 throw new zone.moddev.mc.lib.gui.load.ScreenException(
-                    screen.source(element.common()), element.common().line(), failure.getMessage());
+                    screen.source(element.common()), element.common().line(),
+                    failure.getMessage());
             }
         }
-        // Highlights are optional decoration: a shared group may name elements absent from this
+        // Highlights are optional decoration: a shared group may name elements
+        // absent from this
         // screen.
     }
 }

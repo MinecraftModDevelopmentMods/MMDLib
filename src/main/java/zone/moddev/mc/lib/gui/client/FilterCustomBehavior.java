@@ -6,16 +6,18 @@ import net.minecraft.network.chat.Component;
 
 import zone.moddev.mc.lib.api.automation.FilterControl;
 
-/** Adapts the existing filter-widget API to the shared element lifecycle and capture path. */
-final class FilterCustomBehavior implements ElementBehavior, FilterControlPresentation {
+/**
+ * Adapts the existing filter-widget API to the shared element lifecycle and
+ * capture path.
+ */
+final class FilterCustomBehavior
+    implements ElementBehavior, FilterControlPresentation {
     private final FilterWidgets.Instance instance;
     private final ElementAccess access;
 
     FilterCustomBehavior(FilterControl.Custom element, ElementAccess access) {
         this.access = access;
-        instance = FilterWidgets.create(
-            element,
-            access::bounds,
+        instance = FilterWidgets.create(element, access::bounds,
             () -> FilterDrawing.configuration(access.value()).copy(),
             () -> access.pending(element),
             value -> FilterEdits.submit(access, element, 0, value));
@@ -31,7 +33,9 @@ final class FilterCustomBehavior implements ElementBehavior, FilterControlPresen
     }
 
     public Click mouseClicked(double x, double y, int button) {
-        return instance != null && instance.click(x, y, button) ? Click.CAPTURE : Click.PASS;
+        return instance != null && instance.click(x, y, button)
+            ? Click.CAPTURE
+            : Click.PASS;
     }
 
     public boolean keyPressed(int key, int scan, int modifiers) {
@@ -42,7 +46,8 @@ final class FilterCustomBehavior implements ElementBehavior, FilterControlPresen
         return instance != null && instance.character(c, modifiers);
     }
 
-    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    public boolean mouseDragged(double x, double y, int button, double dx,
+        double dy) {
         return instance != null && instance.drag(x, y, button, dx, dy);
     }
 
@@ -71,15 +76,11 @@ final class FilterCustomBehavior implements ElementBehavior, FilterControlPresen
 
     public void render(ElementRenderers.Context c) {
         if (instance == null)
-            c.graphics()
-                .drawString(c.access().font(), "?", c.bounds().x() + 2, c.bounds().y() + 2,
-                    0xffffff);
+            c.graphics().drawString(c.access().font(), "?", c.bounds().x() + 2,
+                c.bounds().y() + 2, 0xffffff);
         else
-            instance.render(
-                c.graphics(),
-                c.bounds(),
-                FilterDrawing.configuration(access.value()).copy(),
-                c.mouseX(),
+            instance.render(c.graphics(), c.bounds(),
+                FilterDrawing.configuration(access.value()).copy(), c.mouseX(),
                 c.mouseY());
     }
 }

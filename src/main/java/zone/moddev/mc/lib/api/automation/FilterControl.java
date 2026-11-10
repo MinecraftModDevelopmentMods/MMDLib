@@ -29,24 +29,17 @@ import zone.moddev.mc.lib.gui.model.SlotSize;
 import zone.moddev.mc.lib.gui.model.elements.GhostSlotElement;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 
-/** An open element contract for item-provided editors. Each control validates its own edits. */
+/**
+ * An open element contract for item-provided editors. Each control validates
+ * its own edits.
+ */
 public interface FilterControl extends Element {
     String id();
 
     default Common common() {
-        return new Common(
-            Optional.of(id()),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Common.Clicks.NONE,
-            Optional.empty(),
-            Optional.empty(),
-            List.of(),
-            0,
-            0,
-            0);
+        return new Common(Optional.of(id()), Optional.empty(), Optional.empty(),
+            Optional.empty(), Optional.empty(), Common.Clicks.NONE,
+            Optional.empty(), Optional.empty(), List.of(), 0, 0, 0);
     }
 
     default int[] measure(TextMeasure text) {
@@ -57,18 +50,19 @@ public interface FilterControl extends Element {
         return true;
     }
 
-    /** Server-only candidate data, after the host has authorized the attachment and revision. */
-    record Edit(
-        InventoryFilter provider,
-        ItemStack filter,
-        CompoundTag configuration,
-        int index,
-        String value,
-        ItemStack cursor,
+    /**
+     * Server-only candidate data, after the host has authorized the attachment
+     * and revision.
+     */
+    record Edit(InventoryFilter provider, ItemStack filter,
+        CompoundTag configuration, int index, String value, ItemStack cursor,
         HolderLookup.Provider registries) {
     }
 
-    /** Refuse edits unless this control explicitly validates and applies the proposed value. */
+    /**
+     * Refuse edits unless this control explicitly validates and applies the
+     * proposed value.
+     */
     default boolean edit(Edit edit) {
         return false;
     }
@@ -80,11 +74,8 @@ public interface FilterControl extends Element {
         private final Component tooltip;
         private final Component selectedTooltip;
 
-        public Toggle(
-            String id,
-            ResourceLocation icon,
-            ResourceLocation selectedIcon,
-            Component tooltip,
+        public Toggle(String id, ResourceLocation icon,
+            ResourceLocation selectedIcon, Component tooltip,
             Component selectedTooltip) {
             this.id = id;
             this.icon = icon;
@@ -106,7 +97,8 @@ public interface FilterControl extends Element {
         }
 
         public boolean edit(Edit edit) {
-            edit.configuration().putBoolean(id, !edit.configuration().getBoolean(id));
+            edit.configuration().putBoolean(id,
+                !edit.configuration().getBoolean(id));
             return true;
         }
 
@@ -141,7 +133,8 @@ public interface FilterControl extends Element {
                 && java.util.Objects.equals(icon, other.icon)
                 && java.util.Objects.equals(selectedIcon, other.selectedIcon)
                 && java.util.Objects.equals(tooltip, other.tooltip)
-                && java.util.Objects.equals(selectedTooltip, other.selectedTooltip);
+                && java.util.Objects.equals(selectedTooltip,
+                    other.selectedTooltip);
         }
 
         @Override
@@ -157,22 +150,15 @@ public interface FilterControl extends Element {
 
         @Override
         public String toString() {
-            return "Toggle[id="
-                + id
-                + ", icon="
-                + icon
-                + ", selectedIcon="
-                + selectedIcon
-                + ", tooltip="
-                + tooltip
-                + ", selectedTooltip="
-                + selectedTooltip
-                + "]";
+            return "Toggle[id=" + id + ", icon=" + icon + ", selectedIcon="
+                + selectedIcon + ", tooltip=" + tooltip + ", selectedTooltip="
+                + selectedTooltip + "]";
         }
     }
 
     /**
-     * Compatibility element for a registered filter widget; it uses shared behavior/render routing.
+     * Compatibility element for a registered filter widget; it uses shared
+     * behavior/render routing.
      */
     class Custom implements FilterControl {
         private final String id;
@@ -232,7 +218,8 @@ public interface FilterControl extends Element {
 
         @Override
         public String toString() {
-            return "Custom[id=" + id + ", type=" + type + ", height=" + height + "]";
+            return "Custom[id=" + id + ", type=" + type + ", height=" + height
+                + "]";
         }
     }
 
@@ -293,7 +280,8 @@ public interface FilterControl extends Element {
 
         @Override
         public String toString() {
-            return "Text[id=" + id + ", maxLength=" + maxLength + ", tooltip=" + tooltip + "]";
+            return "Text[id=" + id + ", maxLength=" + maxLength + ", tooltip="
+                + tooltip + "]";
         }
     }
 
@@ -304,7 +292,8 @@ public interface FilterControl extends Element {
         private final int step;
         private final Component tooltip;
 
-        public Number(String id, int min, int max, int step, Component tooltip) {
+        public Number(String id, int min, int max, int step,
+            Component tooltip) {
             if (min > max || step < 1)
                 throw new IllegalArgumentException("Number bounds");
 
@@ -375,25 +364,15 @@ public interface FilterControl extends Element {
 
         @Override
         public String toString() {
-            return "Number[id="
-                + id
-                + ", min="
-                + min
-                + ", max="
-                + max
-                + ", step="
-                + step
-                + ", tooltip="
-                + tooltip
-                + "]";
+            return "Number[id=" + id + ", min=" + min + ", max=" + max
+                + ", step=" + step + ", tooltip=" + tooltip + "]";
         }
     }
 
     class Samples implements FilterControl {
         private static final SlotElement DEFAULT_SLOT = new GhostSlotElement(
-            Common.empty(),
-            0,
-            SlotElement.Appearance.standard(SlotSize.NORMAL, Optional.empty(), Optional.empty()));
+            Common.empty(), 0, SlotElement.Appearance.standard(SlotSize.NORMAL,
+                Optional.empty(), Optional.empty()));
         private final String id;
         private final int count;
         private final ResourceType<?> resource;
@@ -420,32 +399,39 @@ public interface FilterControl extends Element {
         }
 
         /**
-         * Grid pitch in pixels; override together with slot appearance for larger or spaced cells.
+         * Grid pitch in pixels; override together with slot appearance for
+         * larger or spaced cells.
          */
         public int cellSize() {
             return 18;
         }
 
         /**
-         * Slot presentation only: these cells do not create native inventory slots or separate
-         * actions.
+         * Slot presentation only: these cells do not create native inventory
+         * slots or separate actions.
          */
         public SlotElement sampleSlot(int index) {
             return DEFAULT_SLOT;
         }
 
-        /** Absolute cell bounds, shared by measurement, drawing, tooltips and click targeting. */
+        /**
+         * Absolute cell bounds, shared by measurement, drawing, tooltips and
+         * click targeting.
+         */
         public Rect sampleBounds(Rect bounds, int index) {
             int size = cellSize();
             if (size < 1)
-                throw new IllegalArgumentException("Sample cell size must be positive");
+                throw new IllegalArgumentException(
+                    "Sample cell size must be positive");
             int columns = Math.max(1, bounds.width() / size);
-            return new Rect(
-                bounds.x() + index % columns * size, bounds.y() + index / columns * size, size,
-                size);
+            return new Rect(bounds.x() + index % columns * size,
+                bounds.y() + index / columns * size, size, size);
         }
 
-        /** Last matching cell wins; unoccupied space and points outside the control do not hit. */
+        /**
+         * Last matching cell wins; unoccupied space and points outside the
+         * control do not hit.
+         */
         public int sampleIndex(Rect bounds, double x, double y) {
             if (!bounds.contains(x, y))
                 return -1;
@@ -456,42 +442,48 @@ public interface FilterControl extends Element {
         }
 
         /**
-         * Selects the displayed stack from read-only synchronized configuration; mods may override.
+         * Selects the displayed stack from read-only synchronized
+         * configuration; mods may override.
          */
         public ItemStack sampleDisplay(CompoundTag configuration, int index) {
-            var key = ResourceLocation
-                .tryParse(configuration.getList(id(), Tag.TAG_STRING).getString(index));
+            var key = ResourceLocation.tryParse(
+                configuration.getList(id(), Tag.TAG_STRING).getString(index));
             if (key == null)
                 return ItemStack.EMPTY;
             if (resource() == ResourceType.ITEMS)
                 return new ItemStack(BuiltInRegistries.ITEM.get(key));
             if (resource() == ResourceType.FLUIDS)
-                return new ItemStack(BuiltInRegistries.FLUID.get(key).getBucket());
+                return new ItemStack(
+                    BuiltInRegistries.FLUID.get(key).getBucket());
             return ItemStack.EMPTY;
         }
 
-        /** Tooltip rows for one cell; the default follows the element's displayed stack. */
-        public List<Component> sampleTooltip(CompoundTag configuration, int index) {
+        /**
+         * Tooltip rows for one cell; the default follows the element's
+         * displayed stack.
+         */
+        public List<Component> sampleTooltip(CompoundTag configuration,
+            int index) {
             var item = sampleDisplay(configuration, index);
-            return List.of(
-                item.isEmpty()
-                    ? Component.translatable("screen.mmdlib.automation.sample")
-                    : item.getHoverName());
+            return List.of(item.isEmpty()
+                ? Component.translatable("screen.mmdlib.automation.sample")
+                : item.getHoverName());
         }
 
         public boolean edit(Edit edit) {
             if (!edit.value().equals("sample") && !edit.value().equals("clear"))
                 return false;
-            if (edit.index() < 0
-                || edit.index() >= count
+            if (edit.index() < 0 || edit.index() >= count
                 || resource != edit.provider().resource(edit.filter()))
                 return false;
-            var entries = edit.configuration().getList(id, Tag.TAG_STRING).copy();
+            var entries = edit.configuration().getList(id, Tag.TAG_STRING)
+                .copy();
             while (entries.size() < count)
                 entries.add(StringTag.valueOf(""));
             String sample = edit.value().equals("clear")
                 ? ""
-                : edit.provider().sample(edit.filter(), edit.cursor(), edit.registries());
+                : edit.provider().sample(edit.filter(), edit.cursor(),
+                    edit.registries());
             if (!edit.value().equals("clear") && sample.isEmpty())
                 return false;
             entries.set(edit.index(), StringTag.valueOf(sample));
@@ -534,11 +526,15 @@ public interface FilterControl extends Element {
 
         @Override
         public String toString() {
-            return "Samples[id=" + id + ", count=" + count + ", resource=" + resource + "]";
+            return "Samples[id=" + id + ", count=" + count + ", resource="
+                + resource + "]";
         }
     }
 
-    /** A wrapping row or stack; ordinary elements may be composed alongside filter controls. */
+    /**
+     * A wrapping row or stack; ordinary elements may be composed alongside
+     * filter controls.
+     */
     class Box implements FilterControl {
         private final String id;
         private final boolean horizontal;
@@ -552,7 +548,8 @@ public interface FilterControl extends Element {
             this.children = children;
         }
 
-        public Box(String id, boolean horizontal, Collection<? extends Element> children) {
+        public Box(String id, boolean horizontal,
+            Collection<? extends Element> children) {
             this(id, horizontal, List.copyOf(children));
         }
 
@@ -561,11 +558,13 @@ public interface FilterControl extends Element {
         }
 
         public int[] measure(TextMeasure text, int width) {
-            return new int[]{width, FlowLayout.of(children, horizontal, width, 2, text).height()};
+            return new int[]{width,
+                FlowLayout.of(children, horizontal, width, 2, text).height()};
         }
 
         public Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
-            return FlowLayout.of(children, horizontal, bounds.width(), 2, text).children();
+            return FlowLayout.of(children, horizontal, bounds.width(), 2, text)
+                .children();
         }
 
         public String id() {
@@ -603,24 +602,25 @@ public interface FilterControl extends Element {
 
         @Override
         public String toString() {
-            return "Box[id=" + id + ", horizontal=" + horizontal + ", children=" + children + "]";
+            return "Box[id=" + id + ", horizontal=" + horizontal + ", children="
+                + children + "]";
         }
     }
 
     static List<FilterControl> flatten(FilterControl root) {
         var result = new ArrayList<FilterControl>();
-        collect(root, result, new HashSet<>(), Collections.newSetFromMap(new IdentityHashMap<>()),
-            0);
+        collect(root, result, new HashSet<>(),
+            Collections.newSetFromMap(new IdentityHashMap<>()), 0);
         return List.copyOf(result);
     }
 
-    private static void collect(
-        Element element, List<FilterControl> result, Set<String> ids, Set<Element> seen,
-        int depth) {
+    private static void collect(Element element, List<FilterControl> result,
+        Set<String> ids, Set<Element> seen, int depth) {
         if (depth > 8 || seen.size() >= 128 || !seen.add(element))
             throw new IllegalArgumentException("Editor too large or cyclic");
         if (element instanceof FilterControl control) {
-            if (!control.id().matches("[a-z0-9_.-]{1,64}") || !ids.add(control.id()))
+            if (!control.id().matches("[a-z0-9_.-]{1,64}")
+                || !ids.add(control.id()))
                 throw new IllegalArgumentException(
                     "Invalid/duplicate editor control: " + control.id());
             result.add(control);

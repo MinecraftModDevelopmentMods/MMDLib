@@ -5,7 +5,10 @@ import java.util.Optional;
 
 import net.minecraft.network.chat.Component;
 
-/** Client tooltip inputs without client-only classes or access to machine storage. */
+/**
+ * Client tooltip inputs without client-only classes or access to machine
+ * storage.
+ */
 public interface TooltipContext {
     /** The originally hovered element, unchanged as parents contribute. */
     Element target();
@@ -13,7 +16,9 @@ public interface TooltipContext {
     /** The element currently contributing rows. */
     Element element();
 
-    /** Immediate child on the path to the target; empty for the target itself. */
+    /**
+     * Immediate child on the path to the target; empty for the target itself.
+     */
     Optional<Element> child();
 
     int mouseX();
@@ -41,6 +46,9 @@ public interface TooltipContext {
     /** Detached server-authored rows for the contributing element. */
     List<Component> serverLines();
 
-    /** Standard authored/translated/value rows; does not invoke behavior or ancestor hooks. */
+    /**
+     * Standard authored/translated/value rows; does not invoke behavior or
+     * ancestor hooks.
+     */
     void appendDefaults(List<Component> rows);
 }

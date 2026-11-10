@@ -19,7 +19,10 @@ import org.jetbrains.annotations.Nullable;
 import zone.moddev.mc.lib.api.automation.ResourceGroup;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 
-/** Persistent per-face signal intervals and outputs discovered from machine parts. */
+/**
+ * Persistent per-face signal intervals and outputs discovered from machine
+ * parts.
+ */
 public final class RedstoneControl {
     public enum Mode {
         IGNORE, READ, EMIT
@@ -29,33 +32,30 @@ public final class RedstoneControl {
     private static final RelativeFace[] FACES = RelativeFace.values();
     private final BlockEntity owner;
     private final List<RedstoneOutput> outputs;
-    private final int[] modes = new int[6],
-        incoming = new int[6],
-        outgoing = new int[6],
-        lower = new int[6],
-        upper = new int[6];
+    private final int[] modes = new int[6], incoming = new int[6],
+        outgoing = new int[6], lower = new int[6], upper = new int[6];
     private final boolean[] outside = new boolean[6], inverted = new boolean[6];
     private final String[] sourceIds = new String[6];
-    // The catalog is immutable. Resolve saved IDs only when loading or changing a selection.
+    // The catalog is immutable. Resolve saved IDs only when loading or changing
+    // a selection.
     private final int[] sourceIndexes = new int[6];
     private final int[] sampledLevels = new int[6];
     private long revision;
-    // The first tick repairs only adjacent dust, without notifying unrelated neighbours.
+    // The first tick repairs only adjacent dust, without notifying unrelated
+    // neighbours.
     private int connections = -1;
     private boolean paused, legacyAny;
 
-    public RedstoneControl(
-        BlockEntity owner,
-        List<ResourceGroup<?>> groups,
+    public RedstoneControl(BlockEntity owner, List<ResourceGroup<?>> groups,
         ToDoubleFunction<ResourceGroup<?>> fullness) {
-        this(
-            owner,
-            groups.stream()
-                .map(group -> RedstoneOutput.resource(group, () -> fullness.applyAsDouble(group)))
-                .toList());
+        this(owner, groups.stream().map(group -> RedstoneOutput.resource(group,
+            () -> fullness.applyAsDouble(group))).toList());
     }
 
-    /** Discover output-capable runtime parts; nonparticipating parts contribute nothing. */
+    /**
+     * Discover output-capable runtime parts; nonparticipating parts contribute
+     * nothing.
+     */
     public RedstoneControl(BlockEntity owner, Collection<?> parts) {
         this.owner = Objects.requireNonNull(owner);
         var found = new LinkedHashMap<String, RedstoneOutput>();
@@ -170,11 +170,15 @@ public final class RedstoneControl {
     }
 
     /** Both endpoints belong to Between; Outside is its exact complement. */
-    public static boolean matches(int signal, int low, int high, boolean outside) {
+    public static boolean matches(int signal, int low, int high,
+        boolean outside) {
         return (signal >= low && signal <= high) != outside;
     }
 
-    /** Convenience for hosts without stateful features; otherwise split around feature ticks. */
+    /**
+     * Convenience for hosts without stateful features; otherwise split around
+     * feature ticks.
+     */
     public void tick() {
         readInputs();
         updateOutputs();
@@ -195,14 +199,16 @@ public final class RedstoneControl {
                 : 0;
             powered |= incoming[face] > 0;
             if (mode(face) == Mode.READ)
-                paused |= matches(incoming[face], lower[face], upper[face], outside[face]);
+                paused |= matches(incoming[face], lower[face], upper[face],
+                    outside[face]);
         }
         if (legacyAny)
             paused = !powered;
     }
 
     /**
-     * Evaluate selected suppliers once each after feature/transfer ticks, then notify neighbours.
+     * Evaluate selected suppliers once each after feature/transfer ticks, then
+     * notify neighbours.
      */
     public void updateOutputs() {
         var level = owner.getLevel();
@@ -216,10 +222,11 @@ public final class RedstoneControl {
             if (connects(face))
                 newConnections |= 1 << world(face).ordinal();
             if (mode(face) == Mode.EMIT && index >= 0) {
-                // At most six faces: reuse an earlier face's raw sample without a per-tick map.
+                // At most six faces: reuse an earlier face's raw sample without
+                // a per-tick map.
                 int earlier = 0;
-                while (earlier < face
-                    && (mode(earlier) != Mode.EMIT || sourceIndexes[earlier] != index))
+                while (earlier < face && (mode(earlier) != Mode.EMIT
+                    || sourceIndexes[earlier] != index))
                     earlier++;
                 output = sampledLevels[face] = earlier < face
                     ? sampledLevels[earlier]
@@ -235,54 +242,67 @@ public final class RedstoneControl {
             connections = newConnections;
             var state = owner.getBlockState();
             if (firstTick) {
-                // Old saves may still have all-face wire geometry. Updating the machine's
-                // entire neighbourhood here would pulse observers on every chunk load.
+                // Old saves may still have all-face wire geometry. Updating the
+                // machine's
+                // entire neighbourhood here would pulse observers on every
+                // chunk load.
                 for (var direction : Direction.Plane.HORIZONTAL) {
                     var neighbour = owner.getBlockPos().relative(direction);
                     if (!level.hasChunkAt(neighbour))
                         continue;
                     var wire = level.getBlockState(neighbour);
                     if (wire.is(Blocks.REDSTONE_WIRE)) {
-                        var updated = wire.updateShape(direction.getOpposite(), state, level,
-                            neighbour, owner.getBlockPos());
-                        Block.updateOrDestroy(wire, updated, level, neighbour, Block.UPDATE_ALL);
+                        var updated = wire.updateShape(direction.getOpposite(),
+                            state, level, neighbour, owner.getBlockPos());
+                        Block.updateOrDestroy(wire, updated, level, neighbour,
+                            Block.UPDATE_ALL);
                     }
                 }
             } else {
-                level.sendBlockUpdated(owner.getBlockPos(), state, state, Block.UPDATE_CLIENTS);
-                state.updateNeighbourShapes(level, owner.getBlockPos(), Block.UPDATE_ALL);
+                level.sendBlockUpdated(owner.getBlockPos(), state, state,
+                    Block.UPDATE_CLIENTS);
+                state.updateNeighbourShapes(level, owner.getBlockPos(),
+                    Block.UPDATE_ALL);
                 outputsChanged = true;
             }
         }
         if (outputsChanged)
-            level.updateNeighborsAt(owner.getBlockPos(), owner.getBlockState().getBlock());
+            level.updateNeighborsAt(owner.getBlockPos(),
+                owner.getBlockState().getBlock());
     }
 
     public static int level(double fullness) {
-        return Double.isFinite(fullness) ? (int) Math.floor(Math.clamp(fullness, 0, 1) * 15) : 0;
+        return Double.isFinite(fullness)
+            ? (int) Math.floor(Math.clamp(fullness, 0, 1) * 15)
+            : 0;
     }
 
-    /** Block getSignal receives the direction from the receiver toward this block. */
+    /**
+     * Block getSignal receives the direction from the receiver toward this
+     * block.
+     */
     public int signal(Direction queryDirection) {
         return outgoing[RelativeFace
-            .of(RelativeFace.facing(owner.getBlockState()), queryDirection.getOpposite())
+            .of(RelativeFace.facing(owner.getBlockState()),
+                queryDirection.getOpposite())
             .ordinal()];
     }
 
     /**
-     * Read faces and configured Emit faces accept dust. Uses the receiver-to-block query direction
-     * from {@link #signal(Direction)}.
+     * Read faces and configured Emit faces accept dust. Uses the
+     * receiver-to-block query direction from {@link #signal(Direction)}.
      */
     public boolean connects(@Nullable Direction queryDirection) {
         if (queryDirection == null)
             return false;
-        int face = RelativeFace.of(
-            RelativeFace.facing(owner.getBlockState()), queryDirection.getOpposite()).ordinal();
+        int face = RelativeFace.of(RelativeFace.facing(owner.getBlockState()),
+            queryDirection.getOpposite()).ordinal();
         return connects(face);
     }
 
     private boolean connects(int face) {
-        return mode(face) == Mode.READ || mode(face) == Mode.EMIT && source(face) >= 0;
+        return mode(face) == Mode.READ
+            || mode(face) == Mode.EMIT && source(face) >= 0;
     }
 
     public CompoundTag save(HolderLookup.Provider registries) {
@@ -308,15 +328,20 @@ public final class RedstoneControl {
         var saved = tag.getIntArray("modes");
         var lows = tag.getIntArray("lower");
         var highs = tag.getIntArray("upper");
-        int mask = tag.contains("outside") ? tag.getInt("outside") : tag.getInt("without");
+        int mask = tag.contains("outside")
+            ? tag.getInt("outside")
+            : tag.getInt("without");
         for (int i = 0; i < 6; i++) {
-            modes[i] = saved.length == 6 && saved[i] >= 0 && saved[i] < MODES.length ? saved[i] : 0;
+            modes[i] = saved.length == 6 && saved[i] >= 0
+                && saved[i] < MODES.length ? saved[i] : 0;
             lower[i] = lows.length == 6 ? Math.clamp(lows[i], 0, 15) : 1;
-            upper[i] = highs.length == 6 ? Math.clamp(highs[i], lower[i], 15) : 15;
+            upper[i] = highs.length == 6
+                ? Math.clamp(highs[i], lower[i], 15)
+                : 15;
             outside[i] = (mask & 1 << i) != 0;
             inverted[i] = (tag.getInt("inverted") & 1 << i) != 0;
-            sourceIds[i] = tag
-                .getString(tag.contains("source_" + i) ? "source_" + i : "group_" + i);
+            sourceIds[i] = tag.getString(
+                tag.contains("source_" + i) ? "source_" + i : "group_" + i);
             sourceIndexes[i] = findSource(sourceIds[i]);
         }
         legacyAny = tag.getBoolean("legacy_any");
@@ -325,7 +350,9 @@ public final class RedstoneControl {
 
     public void migrate(int oldMode) {
         Arrays.fill(modes,
-            oldMode == 1 || oldMode == 2 ? Mode.READ.ordinal() : Mode.IGNORE.ordinal());
+            oldMode == 1 || oldMode == 2
+                ? Mode.READ.ordinal()
+                : Mode.IGNORE.ordinal());
         Arrays.fill(lower, 1);
         Arrays.fill(upper, 15);
         Arrays.fill(outside, oldMode == 1);

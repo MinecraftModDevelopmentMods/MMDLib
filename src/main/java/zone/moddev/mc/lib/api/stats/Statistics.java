@@ -8,47 +8,46 @@ import java.util.Objects;
 import net.minecraft.network.chat.Component;
 
 /**
- * Immutable descriptions of a part's statistics. Values own sampling and formatting; the UI
- * transports their display pages.
+ * Immutable descriptions of a part's statistics. Values own sampling and
+ * formatting; the UI transports their display pages.
  */
-public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximumUses) {
-    public static final Statistics EMPTY = new Statistics(Component.empty(), List.of(), List.of());
+public record Statistics(Component title, List<Row> rows,
+    List<EnergyUse> maximumUses) {
+    public static final Statistics EMPTY = new Statistics(Component.empty(),
+        List.of(), List.of());
 
     public Statistics {
         title = Objects.requireNonNull(title).copy();
         rows = List.copyOf(rows);
         maximumUses = List.copyOf(maximumUses);
-        if (rows.size() > 64 || rows.stream().map(Row::id).distinct().count() != rows.size())
-            throw new IllegalArgumentException("Statistics need at most 64 rows with unique IDs");
+        if (rows.size() > 64
+            || rows.stream().map(Row::id).distinct().count() != rows.size())
+            throw new IllegalArgumentException(
+                "Statistics need at most 64 rows with unique IDs");
     }
 
     public Statistics(Component title, List<Row> rows) {
         this(title, rows, List.of());
     }
 
-    /** Stable IDs keep each row's counter history independent of order and optional rows. */
-    public record Row(
-        String id,
-        Component label,
-        Value value,
-        Component unit,
-        int decimals,
-        boolean perTimescale,
-        Object demandResource) {
-        public Row(
-            String id,
-            Component label,
-            Value value,
-            Component unit,
-            int decimals,
-            boolean perTimescale) {
+    /**
+     * Stable IDs keep each row's counter history independent of order and
+     * optional rows.
+     */
+    public record Row(String id, Component label, Value value, Component unit,
+        int decimals, boolean perTimescale, Object demandResource) {
+        public Row(String id, Component label, Value value, Component unit,
+            int decimals, boolean perTimescale) {
             this(id, label, value, unit, decimals, perTimescale, null);
         }
 
-        /** Show this row only while a provider declares positive demand for this resource. */
+        /**
+         * Show this row only while a provider declares positive demand for this
+         * resource.
+         */
         public Row whenUsed(Object resource) {
-            return new Row(
-                id, label, value, unit, decimals, perTimescale, Objects.requireNonNull(resource));
+            return new Row(id, label, value, unit, decimals, perTimescale,
+                Objects.requireNonNull(resource));
         }
 
         public Row {
@@ -61,23 +60,33 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
         }
     }
 
-    /** An open statistic type; no registration or client implementation is required. */
+    /**
+     * An open statistic type; no registration or client implementation is
+     * required.
+     */
     public interface Value {
-        /** Immutable equality key for sampling configuration, excluding the current reading. */
+        /**
+         * Immutable equality key for sampling configuration, excluding the
+         * current reading.
+         */
         default Object samplingKey() {
             return getClass();
         }
 
         /**
-         * Called once per sampling update, independently of the number of timescales. Previous is
-         * null for a new row, a changed value class/configuration, or after a row/provider was
-         * removed. Return fresh sampled data or update the supplied history; never store it in the
-         * definition.
+         * Called once per sampling update, independently of the number of
+         * timescales. Previous is null for a new row, a changed value
+         * class/configuration, or after a row/provider was removed. Return
+         * fresh sampled data or update the supplied history; never store it in
+         * the definition.
          */
         Sample sample(StatsSamplingContext context, Sample previous);
     }
 
-    /** Per-row sampled data/history. Formatting must not change history or read live storage. */
+    /**
+     * Per-row sampled data/history. Formatting must not change history or read
+     * live storage.
+     */
     @FunctionalInterface
     public interface Sample {
         Component format(StatsFormatContext context);
@@ -85,11 +94,15 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
 
     private record CounterSample(CounterRate rate) implements Sample {
         public Component format(StatsFormatContext context) {
-            return context.number(rate.format(context.ticks(), context.decimals()));
+            return context
+                .number(rate.format(context.ticks(), context.decimals()));
         }
     }
 
-    /** A lifetime counter, measured over the most recent window (20..1200 game ticks). */
+    /**
+     * A lifetime counter, measured over the most recent window (20..1200 game
+     * ticks).
+     */
     public record Counter(BigInteger total, int windowTicks) implements Value {
         public Object samplingKey() {
             return windowTicks;
@@ -105,15 +118,19 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
 
         public Counter {
             if (total.signum() < 0 || windowTicks < 20 || windowTicks > 1200)
-                throw new IllegalArgumentException("Invalid statistics counter");
+                throw new IllegalArgumentException(
+                    "Invalid statistics counter");
         }
     }
 
-    /** Exact amount per number of game ticks; a non-timescale row uses this as a fixed quantity. */
+    /**
+     * Exact amount per number of game ticks; a non-timescale row uses this as a
+     * fixed quantity.
+     */
     public record Rate(BigInteger amount, long ticks) implements Value {
         public Sample sample(StatsSamplingContext context, Sample previous) {
-            return format -> format
-                .number(StatsNumbers.rate(amount, ticks, format.ticks(), format.decimals()));
+            return format -> format.number(StatsNumbers.rate(amount, ticks,
+                format.ticks(), format.decimals()));
         }
 
         public Rate {
@@ -133,12 +150,15 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
         }
     }
 
-    /** Resolves the combined demands of all registered providers against this exact resource. */
+    /**
+     * Resolves the combined demands of all registered providers against this
+     * exact resource.
+     */
     public record MaximumUse(Object resource) implements Value {
         public Sample sample(StatsSamplingContext context, Sample previous) {
             var amount = context.demand(resource);
-            return format -> format
-                .number(StatsNumbers.rate(amount, 1, format.ticks(), format.decimals()));
+            return format -> format.number(StatsNumbers.rate(amount, 1,
+                format.ticks(), format.decimals()));
         }
 
         public MaximumUse {
@@ -146,7 +166,10 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
         }
     }
 
-    /** Maximum recipe demand per working tick. Resources are matched by identity, not equality. */
+    /**
+     * Maximum recipe demand per working tick. Resources are matched by
+     * identity, not equality.
+     */
     public record EnergyUse(Object resource, BigInteger perTick) {
         public EnergyUse {
             Objects.requireNonNull(resource);

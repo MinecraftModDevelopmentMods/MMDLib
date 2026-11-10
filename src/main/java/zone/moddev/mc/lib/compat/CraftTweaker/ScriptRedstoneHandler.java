@@ -9,6 +9,6 @@ import org.openzen.zencode.java.ZenCodeType;
 @ZenCodeType.Name("mods.mmdlib.RedstoneHandler")
 @FunctionalInterface
 public interface ScriptRedstoneHandler {
-  @ZenCodeType.Method
-  void handle(ScriptRedstoneContext context);
+    @ZenCodeType.Method
+    void handle(ScriptRedstoneContext context);
 }

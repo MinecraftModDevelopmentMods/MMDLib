@@ -6,4 +6,5 @@ import zone.moddev.mc.lib.util.parse.value.ArrayValue;
 
 /** Maps a whole JSON array. */
 @FunctionalInterface
-public interface ArrayValueFunction<T> extends Function<ArrayValue, T> {}
+public interface ArrayValueFunction<T> extends Function<ArrayValue, T> {
+}

@@ -5,7 +5,10 @@ import java.util.Optional;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 
-/** Element-selected gauge contents; client drawing resolves fluid textures and default tint. */
+/**
+ * Element-selected gauge contents; client drawing resolves fluid textures and
+ * default tint.
+ */
 public record GaugeFill(Optional<FluidStack> fluid, Optional<Integer> colour) {
     public GaugeFill {
         fluid = Objects.requireNonNull(fluid).filter(stack -> !stack.isEmpty())
@@ -26,7 +29,9 @@ public record GaugeFill(Optional<FluidStack> fluid, Optional<Integer> colour) {
         return new GaugeFill(Optional.empty(), Optional.of(rgb));
     }
 
-    /** A textured fluid fill using its client tint, or grey for an empty stack. */
+    /**
+     * A textured fluid fill using its client tint, or grey for an empty stack.
+     */
     public static GaugeFill fluid(FluidStack fluid) {
         return new GaugeFill(Optional.of(fluid), Optional.empty());
     }

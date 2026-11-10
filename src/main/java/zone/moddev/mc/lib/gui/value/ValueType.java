@@ -16,7 +16,10 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
-/** A registered GUI value's Java bindings, canonical representation and bounded wire contract. */
+/**
+ * A registered GUI value's Java bindings, canonical representation and bounded
+ * wire contract.
+ */
 public final class ValueType<T> {
     public static final int MAX_BYTES = 1 << 20;
     private final ResourceLocation id;
@@ -48,13 +51,12 @@ public final class ValueType<T> {
     }
 
     /**
-     * Codecs are lazy so declaring types does not initialize Minecraft registries during loading.
+     * Codecs are lazy so declaring types does not initialize Minecraft
+     * registries during loading.
      */
-    public static <T> Builder<T> builder(
-        ResourceLocation id,
+    public static <T> Builder<T> builder(ResourceLocation id,
         Class<?> representation,
-        Supplier<StreamCodec<RegistryFriendlyByteBuf, T>> codec,
-        int maxBytes) {
+        Supplier<StreamCodec<RegistryFriendlyByteBuf, T>> codec, int maxBytes) {
         return new Builder<>(id, representation, codec, maxBytes);
     }
 
@@ -82,19 +84,25 @@ public final class ValueType<T> {
         return bindable;
     }
 
-    /** Whether registered Java bindings also accept subclasses/implementations. */
+    /**
+     * Whether registered Java bindings also accept subclasses/implementations.
+     */
     public boolean subtypes() {
         return subtypes;
     }
 
     public T normalize(Object value) {
-        var result = Objects.requireNonNull(normalize.apply(value), "Null GUI value: " + id);
+        var result = Objects.requireNonNull(normalize.apply(value),
+            "Null GUI value: " + id);
         if (!representation.isInstance(result) || !valid.test(result))
             throw new IllegalArgumentException("Invalid GUI value: " + id);
         return result;
     }
 
-    /** Detach mutable data from its owner. The default is a bounded codec round trip. */
+    /**
+     * Detach mutable data from its owner. The default is a bounded codec round
+     * trip.
+     */
     public T snapshot(Object value, RegistryAccess registries) {
         var canonical = normalize(value);
         return copy == null
@@ -107,8 +115,8 @@ public final class ValueType<T> {
     }
 
     public byte[] encode(RegistryAccess registries, Object value) {
-        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(Math.min(64, maxBytes), maxBytes),
-            registries);
+        var buffer = new RegistryFriendlyByteBuf(
+            Unpooled.buffer(Math.min(64, maxBytes), maxBytes), registries);
         try {
             codec.get().encode(buffer, normalize(value));
             byte[] data = new byte[buffer.readableBytes()];
@@ -122,11 +130,13 @@ public final class ValueType<T> {
     public T decode(RegistryAccess registries, byte[] data) {
         if (data.length > maxBytes)
             throw new IllegalArgumentException("GUI value too large: " + id);
-        var buffer = new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(data), registries);
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(data),
+            registries);
         try {
             var value = normalize(codec.get().decode(buffer));
             if (buffer.isReadable())
-                throw new IllegalArgumentException("Trailing GUI value data: " + id);
+                throw new IllegalArgumentException(
+                    "Trailing GUI value data: " + id);
             return value;
         } finally {
             buffer.release();
@@ -134,18 +144,8 @@ public final class ValueType<T> {
     }
 
     String schema() {
-        return id
-            + "/"
-            + version
-            + "/"
-            + maxBytes
-            + "/"
-            + bindable
-            + "/"
-            + subtypes
-            + "/"
-            + representation.getName()
-            + "/"
+        return id + "/" + version + "/" + maxBytes + "/" + bindable + "/"
+            + subtypes + "/" + representation.getName() + "/"
             + javaTypes.stream().map(Class::getName).sorted().toList();
     }
 
@@ -170,15 +170,14 @@ public final class ValueType<T> {
         private Predicate<T> valid = value -> true;
 
         @SuppressWarnings("unchecked")
-        private Builder(
-            ResourceLocation id,
-            Class<?> representation,
+        private Builder(ResourceLocation id, Class<?> representation,
             Supplier<StreamCodec<RegistryFriendlyByteBuf, T>> codec,
             int maxBytes) {
             this.id = Objects.requireNonNull(id);
             this.representation = Objects.requireNonNull(representation);
             this.codec = Objects.requireNonNull(codec);
-            if (representation.isPrimitive() || maxBytes < 1 || maxBytes > MAX_BYTES)
+            if (representation.isPrimitive() || maxBytes < 1
+                || maxBytes > MAX_BYTES)
                 throw new IllegalArgumentException(
                     "Invalid GUI value representation or byte limit");
             this.maxBytes = maxBytes;
@@ -187,7 +186,10 @@ public final class ValueType<T> {
             normalize = value -> (T) representation.cast(value);
         }
 
-        /** Additional declared getter/input types normalized into the canonical representation. */
+        /**
+         * Additional declared getter/input types normalized into the canonical
+         * representation.
+         */
         public Builder<T> javaTypes(Class<?>... types) {
             for (var type : types)
                 javaTypes.add(Objects.requireNonNull(type));
@@ -196,7 +198,8 @@ public final class ValueType<T> {
 
         public Builder<T> version(int value) {
             if (value < 1)
-                throw new IllegalArgumentException("GUI value schema version must be positive");
+                throw new IllegalArgumentException(
+                    "GUI value schema version must be positive");
             version = value;
             return this;
         }
@@ -211,7 +214,10 @@ public final class ValueType<T> {
             return this;
         }
 
-        /** Disable inheritance when only explicitly listed Java types can be normalized. */
+        /**
+         * Disable inheritance when only explicitly listed Java types can be
+         * normalized.
+         */
         public Builder<T> subtypes(boolean value) {
             subtypes = value;
             return this;

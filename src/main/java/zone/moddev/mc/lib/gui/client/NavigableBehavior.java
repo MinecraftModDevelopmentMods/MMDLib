@@ -2,12 +2,16 @@ package zone.moddev.mc.lib.gui.client;
 
 import zone.moddev.mc.lib.gui.model.containers.NavigableElement;
 
-/** Remembered selection lifecycle shared by built-in and mod navigation destinations. */
+/**
+ * Remembered selection lifecycle shared by built-in and mod navigation
+ * destinations.
+ */
 public class NavigableBehavior extends DefaultElementBehavior {
     private final NavigableElement destination;
     private boolean initialized;
 
-    public NavigableBehavior(NavigableElement destination, ElementAccess access) {
+    public NavigableBehavior(NavigableElement destination,
+        ElementAccess access) {
         super(access);
         this.destination = destination;
     }

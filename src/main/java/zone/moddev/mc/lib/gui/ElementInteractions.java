@@ -8,15 +8,19 @@ import net.minecraft.resources.ResourceLocation;
 import zone.moddev.mc.lib.gui.model.elements.FluidTankElement;
 import zone.moddev.mc.lib.gui.runtime.ScreenClick;
 
-/** Reusable element behaviors. Register during mod construction, before screens load. */
+/**
+ * Reusable element behaviors. Register during mod construction, before screens
+ * load.
+ */
 public final class ElementInteractions {
     public interface Type {
         /** Reject invalid screen-authored targets during loading. */
         void validate(String target);
 
         /**
-         * Runs only after the menu validates the player, distance and element visibility. Return
-         * true to consume the click; false allows its ordinary callback to run.
+         * Runs only after the menu validates the player, distance and element
+         * visibility. Return true to consume the click; false allows its
+         * ordinary callback to run.
          */
         boolean click(ScreenClick click, String target);
 
@@ -30,7 +34,8 @@ public final class ElementInteractions {
     private static final Map<ResourceLocation, Type> TYPES = new HashMap<>();
 
     static {
-        register(FluidTankElement.INTERACTION_ID, FluidTankElement.containerInteractionType());
+        register(FluidTankElement.INTERACTION_ID,
+            FluidTankElement.containerInteractionType());
     }
 
     private ElementInteractions() {
@@ -40,13 +45,15 @@ public final class ElementInteractions {
         java.util.Objects.requireNonNull(id);
         java.util.Objects.requireNonNull(type);
         if (TYPES.putIfAbsent(id, type) != null)
-            throw new IllegalArgumentException("Duplicate element interaction: " + id);
+            throw new IllegalArgumentException(
+                "Duplicate element interaction: " + id);
     }
 
     public static synchronized Type require(ResourceLocation id) {
         var type = TYPES.get(id);
         if (type == null)
-            throw new IllegalArgumentException("Unknown element interaction: " + id);
+            throw new IllegalArgumentException(
+                "Unknown element interaction: " + id);
         return type;
     }
 }

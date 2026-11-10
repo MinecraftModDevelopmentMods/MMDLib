@@ -14,8 +14,9 @@ import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 
 /**
- * An energy UI component owning its storage binding, synchronized values and default tooltip.
- * Storage is sampled only on the server; client rendering uses the resulting snapshots.
+ * An energy UI component owning its storage binding, synchronized values and
+ * default tooltip. Storage is sampled only on the server; client rendering uses
+ * the resulting snapshots.
  */
 public class EnergyGaugeElement implements Element {
     private final Common common;
@@ -26,11 +27,13 @@ public class EnergyGaugeElement implements Element {
     private static final Text TOOLTIP = new Text("screen.mmdlib.energy",
         Optional.of("{value} / {max} FE"));
 
-    public EnergyGaugeElement(Common common, Orientation orientation, int length, int color) {
+    public EnergyGaugeElement(Common common, Orientation orientation,
+        int length, int color) {
         Objects.requireNonNull(common);
         Objects.requireNonNull(orientation);
         if (length != FILL && length < 8)
-            throw new IllegalArgumentException("Energy gauge length must be at least 8");
+            throw new IllegalArgumentException(
+                "Energy gauge length must be at least 8");
 
         this.common = common;
         this.orientation = orientation;
@@ -59,8 +62,10 @@ public class EnergyGaugeElement implements Element {
     public Optional<ElementSnapshot> snapshot(ScreenHost host) {
         var storage = host.screenEnergy();
         if (storage == null)
-            throw new IllegalArgumentException("Energy gauge requires energy storage");
-        return Optional.of(new ElementSnapshot(storage.stored(), storage.capacity()));
+            throw new IllegalArgumentException(
+                "Energy gauge requires energy storage");
+        return Optional
+            .of(new ElementSnapshot(storage.stored(), storage.capacity()));
     }
 
     @Override
@@ -125,14 +130,7 @@ public class EnergyGaugeElement implements Element {
 
     @Override
     public String toString() {
-        return "EnergyGaugeElement[common="
-            + common
-            + ", orientation="
-            + orientation
-            + ", length="
-            + length
-            + ", color="
-            + color
-            + "]";
+        return "EnergyGaugeElement[common=" + common + ", orientation="
+            + orientation + ", length=" + length + ", color=" + color + "]";
     }
 }

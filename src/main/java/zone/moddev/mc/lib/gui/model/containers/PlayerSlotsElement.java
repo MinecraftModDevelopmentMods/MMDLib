@@ -16,7 +16,10 @@ import zone.moddev.mc.lib.gui.model.Screen;
 import zone.moddev.mc.lib.gui.model.elements.PlayerSlotElement;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 
-/** Immutable player-inventory section; its ordinary slot children own native interactions. */
+/**
+ * Immutable player-inventory section; its ordinary slot children own native
+ * interactions.
+ */
 public abstract class PlayerSlotsElement implements Element {
     private final Common common;
     private final List<Element> slots;
@@ -25,31 +28,32 @@ public abstract class PlayerSlotsElement implements Element {
         this(common, indices, PlayerSlotElement::player);
     }
 
-    /** Factory is evaluated once; no overridable method runs during base construction. */
-    protected PlayerSlotsElement(
-        Common common,
-        List<Integer> indices,
+    /**
+     * Factory is evaluated once; no overridable method runs during base
+     * construction.
+     */
+    protected PlayerSlotsElement(Common common, List<Integer> indices,
         java.util.function.IntFunction<? extends SlotElement> factory) {
-        this(
-            common,
-            indices.stream()
-                .map(
-                    index -> {
-                        var slot = Objects.requireNonNull(factory.apply(index));
-                        if (!slot.playerInventory() || slot.index() != index)
-                            throw new IllegalArgumentException(
-                                "Player slot factory must preserve backing and requested index "
-                                    + index);
-                        return slot;
-                    })
-                .toList());
+        this(common, indices.stream().map(index -> {
+            var slot = Objects.requireNonNull(factory.apply(index));
+            if (!slot.playerInventory() || slot.index() != index)
+                throw new IllegalArgumentException(
+                    "Player slot factory must preserve backing and requested index "
+                        + index);
+            return slot;
+        }).toList());
     }
 
-    /** Supply stable ordinary slot children, whose configuration participates in model identity. */
-    protected PlayerSlotsElement(Common common, Collection<? extends SlotElement> slots) {
+    /**
+     * Supply stable ordinary slot children, whose configuration participates in
+     * model identity.
+     */
+    protected PlayerSlotsElement(Common common,
+        Collection<? extends SlotElement> slots) {
         this.common = Objects.requireNonNull(common);
         if (slots.stream().anyMatch(slot -> !slot.playerInventory()))
-            throw new IllegalArgumentException("Player sections require player-backed slots");
+            throw new IllegalArgumentException(
+                "Player sections require player-backed slots");
         this.slots = List.copyOf(slots);
     }
 
@@ -65,16 +69,19 @@ public abstract class PlayerSlotsElement implements Element {
 
     protected abstract Rect position(int index);
 
-    /** Placement relative to the standard inventory footer when omitted from XML. */
+    /**
+     * Placement relative to the standard inventory footer when omitted from
+     * XML.
+     */
     public abstract Rect defaultBounds(Rect inventory);
 
     public Optional<Element> visibilityAnchor(Screen screen) {
-        if (screen.implicitElements().stream().noneMatch(element -> element == this))
+        if (screen.implicitElements().stream()
+            .noneMatch(element -> element == this))
             return Optional.empty();
         return screen.elements().stream()
             .filter(PlayerInventoryElement.class::isInstance)
-            .filter(element -> element != this)
-            .findFirst();
+            .filter(element -> element != this).findFirst();
     }
 
     public Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
@@ -87,9 +94,9 @@ public abstract class PlayerSlotsElement implements Element {
     public void validateScreen(ScreenValidationContext context) {
         Element.super.validateScreen(context);
         context.unique(
-            net.minecraft.resources.ResourceLocation.parse("mmdlib:player_inventory"),
-            part(),
-            "Player " + part() + " may appear only once");
+            net.minecraft.resources.ResourceLocation
+                .parse("mmdlib:player_inventory"),
+            part(), "Player " + part() + " may appear only once");
         if (!context.screen().playerInventory())
             throw new IllegalArgumentException(
                 "Player inventory sections cannot be placed with inventory=\"none\"");
@@ -97,11 +104,9 @@ public abstract class PlayerSlotsElement implements Element {
 
     @Override
     public boolean equals(Object other) {
-        return this == other
-            || other != null
-                && getClass() == other.getClass()
-                && common.equals(((PlayerSlotsElement) other).common)
-                && slots.equals(((PlayerSlotsElement) other).slots);
+        return this == other || other != null && getClass() == other.getClass()
+            && common.equals(((PlayerSlotsElement) other).common)
+            && slots.equals(((PlayerSlotsElement) other).slots);
     }
 
     @Override
@@ -111,6 +116,7 @@ public abstract class PlayerSlotsElement implements Element {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[common=" + common + ", children=" + slots + "]";
+        return getClass().getSimpleName() + "[common=" + common + ", children="
+            + slots + "]";
     }
 }

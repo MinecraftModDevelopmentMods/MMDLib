@@ -34,7 +34,10 @@ import zone.moddev.mc.lib.gui.runtime.ClientMenuItems;
 import zone.moddev.mc.lib.gui.runtime.InventoryBinding;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 
-/** A named inventory view containing independently typed slots, with shared grid geometry. */
+/**
+ * A named inventory view containing independently typed slots, with shared grid
+ * geometry.
+ */
 public class InventoryElement implements InventoryScope {
     private final Common common;
     private final String inventory;
@@ -42,16 +45,18 @@ public class InventoryElement implements InventoryScope {
     private final int spacing;
     private final List<Element> children;
 
-    public InventoryElement(
-        Common common, String inventory, int columns, int spacing, List<Element> children) {
+    public InventoryElement(Common common, String inventory, int columns,
+        int spacing, List<Element> children) {
         Objects.requireNonNull(common);
         if (inventory == null || !inventory.matches("[a-z0-9_.-]{1,64}"))
             throw new IllegalArgumentException("Invalid inventory name");
         if (columns < 1 || spacing < 0)
             throw new IllegalArgumentException("Invalid inventory layout");
         children = List.copyOf(children);
-        if (children.stream().anyMatch(child -> !(child instanceof SlotElement)))
-            throw new IllegalArgumentException("An inventory contains only item or ghost slots");
+        if (children.stream()
+            .anyMatch(child -> !(child instanceof SlotElement)))
+            throw new IllegalArgumentException(
+                "An inventory contains only item or ghost slots");
 
         this.common = common;
         this.inventory = inventory;
@@ -66,7 +71,8 @@ public class InventoryElement implements InventoryScope {
 
     public Rect slotBounds(int index) {
         var slot = slots().get(index);
-        return positions().get(slot).offset(slot.common().offsetX(), slot.common().offsetY());
+        return positions().get(slot).offset(slot.common().offsetX(),
+            slot.common().offsetY());
     }
 
     public Map<SlotElement, Rect> positions() {
@@ -74,8 +80,10 @@ public class InventoryElement implements InventoryScope {
         int[] widths = new int[Math.min(columns, slots.size())];
         int[] heights = new int[(slots.size() + columns - 1) / columns];
         for (int i = 0; i < slots.size(); i++) {
-            widths[i % columns] = Math.max(widths[i % columns], slots.get(i).extent());
-            heights[i / columns] = Math.max(heights[i / columns], slots.get(i).extent());
+            widths[i % columns] = Math.max(widths[i % columns],
+                slots.get(i).extent());
+            heights[i / columns] = Math.max(heights[i / columns],
+                slots.get(i).extent());
         }
         var result = new IdentityHashMap<SlotElement, Rect>();
         for (int i = 0; i < slots.size(); i++) {
@@ -92,10 +100,8 @@ public class InventoryElement implements InventoryScope {
 
     public int[] dimensions() {
         var bounds = positions().values();
-        return new int[]{
-            bounds.stream().mapToInt(Rect::right).max().orElse(0),
-            bounds.stream().mapToInt(Rect::bottom).max().orElse(0)
-        };
+        return new int[]{bounds.stream().mapToInt(Rect::right).max().orElse(0),
+            bounds.stream().mapToInt(Rect::bottom).max().orElse(0)};
     }
 
     /** Menu-local assembly of independently backed inventory views. */
@@ -111,14 +117,9 @@ public class InventoryElement implements InventoryScope {
         private final Map<ItemInventories.Address, Integer> addresses = new HashMap<>();
         private final Map<Integer, Slot> playerSlots = new LinkedHashMap<>();
 
-        public Session(
-            Screen screen,
-            ScreenHost host,
-            ScreenLayout layout,
-            boolean client,
-            Predicate<Element> visible,
-            BooleanSupplier interacting,
-            Runnable changed) {
+        public Session(Screen screen, ScreenHost host, ScreenLayout layout,
+            boolean client, Predicate<Element> visible,
+            BooleanSupplier interacting, Runnable changed) {
             this.host = host;
             this.visible = visible;
             playerElements = screen.elements().stream()
@@ -134,28 +135,34 @@ public class InventoryElement implements InventoryScope {
             int next = host == null ? 0 : host.screenLegacySlotCount();
             if (next < 0 || next > 32767)
                 throw new IllegalArgumentException("Invalid legacy slot count");
-            // Resolve first so automatically numbered slots cannot occupy a later legacy binding.
+            // Resolve first so automatically numbered slots cannot occupy a
+            // later legacy binding.
             for (var e : screen.elements()) {
                 if (!(e instanceof SlotElement slot) || slot.playerInventory())
                     continue;
-                boolean standalone = InventoryScope.owner(screen, slot).isEmpty();
+                boolean standalone = InventoryScope.owner(screen, slot)
+                    .isEmpty();
                 if (slot.ghost()) {
                     if (standalone)
                         next = Math.max(next, slot.index() + 1);
                 } else {
                     if (host == null)
-                        throw new IllegalArgumentException("Item slots require a ScreenHost");
-                    var binding = Objects.requireNonNull(
-                        host.screenInventoryBinding(
-                            InventoryScope.name(screen, slot), slot.index(), standalone));
+                        throw new IllegalArgumentException(
+                            "Item slots require a ScreenHost");
+                    var binding = Objects
+                        .requireNonNull(host.screenInventoryBinding(
+                            InventoryScope.name(screen, slot), slot.index(),
+                            standalone));
                     bindings.put(slot, binding);
                     next = Math.max(next, binding.legacyIndex() + 1);
                 }
             }
             for (var element : screen.elements())
-                if (element instanceof SlotElement slot && !slot.playerInventory()) {
+                if (element instanceof SlotElement slot
+                    && !slot.playerInventory()) {
                     String name = InventoryScope.name(screen, slot);
-                    boolean standalone = InventoryScope.owner(screen, slot).isEmpty();
+                    boolean standalone = InventoryScope.owner(screen, slot)
+                        .isEmpty();
                     names.put(slot, name);
                     var binding = bindings.get(slot);
                     int preferred = binding == null
@@ -163,56 +170,51 @@ public class InventoryElement implements InventoryScope {
                         : binding.legacyIndex();
                     int number = preferred >= 0 ? preferred : next++;
                     if (number >= 32767)
-                        throw new IllegalArgumentException("Too many native menu slots");
+                        throw new IllegalArgumentException(
+                            "Too many native menu slots");
                     Slot nativeSlot;
                     List<ItemInventories.Address> aliases;
                     if (slot.ghost()) {
-                        nativeSlot = slot.createSlot(
-                            null,
-                            slot.index(),
-                            layout.bounds(slot),
-                            () -> visible.test(slot),
-                            interacting,
-                            changed);
+                        nativeSlot = slot.createSlot(null, slot.index(),
+                            layout.bounds(slot), () -> visible.test(slot),
+                            interacting, changed);
                         aliases = host == null
-                            ? List.of(new ItemInventories.Address(name, slot.index()))
-                            : host.screenSlotAddresses(name, slot.index(), standalone);
+                            ? List.of(
+                                new ItemInventories.Address(name, slot.index()))
+                            : host.screenSlotAddresses(name, slot.index(),
+                                standalone);
                     } else {
                         var physical = binding.storage();
                         int local = binding.slot();
-                        if (!boundSlots.computeIfAbsent(physical, key -> new HashSet<>())
+                        if (!boundSlots
+                            .computeIfAbsent(physical, key -> new HashSet<>())
                             .add(local))
                             throw new IllegalArgumentException(
                                 "A physical inventory slot is displayed more than once: "
-                                    + name
-                                    + "/"
-                                    + slot.index());
+                                    + name + "/" + slot.index());
                         IItemHandlerModifiable menuStorage = client
-                            ? handlers.computeIfAbsent(
-                                physical, key -> new ClientMenuItems(key.getSlots(), key))
+                            ? handlers.computeIfAbsent(physical,
+                                key -> new ClientMenuItems(key.getSlots(), key))
                             : physical;
-                        nativeSlot = slot.createSlot(
-                            menuStorage,
-                            local,
-                            layout.bounds(slot),
-                            () -> visible.test(slot),
-                            interacting,
-                            changed);
+                        nativeSlot = slot.createSlot(menuStorage, local,
+                            layout.bounds(slot), () -> visible.test(slot),
+                            interacting, changed);
                         if (binding.legacyIndex() >= 0)
                             legacyIndexes.put(binding.legacyIndex(), number);
                         aliases = binding.addresses();
                     }
                     if (pending.putIfAbsent(number, nativeSlot) != null)
                         throw new IllegalArgumentException(
-                            "A storage slot is displayed more than once: " + name + "/"
-                                + slot.index());
+                            "A storage slot is displayed more than once: "
+                                + name + "/" + slot.index());
                     indexes.put(slot, number);
                     elements.put(number, slot);
                     for (var address : aliases) {
                         var existing = addresses.putIfAbsent(address, number);
                         if (existing != null && existing != number)
                             throw new IllegalArgumentException(
-                                "An inventory address is displayed more than once: " + address);
+                                "An inventory address is displayed more than once: "
+                                    + address);
                     }
                 }
             int count = pending.isEmpty() ? 0 : pending.lastKey() + 1;
@@ -220,7 +222,8 @@ public class InventoryElement implements InventoryScope {
             for (int i = 0; i < count; i++) {
                 Slot slot = pending.get(i);
                 if (slot == null)
-                    slot = new Slot(new net.minecraft.world.SimpleContainer(1), 0, -10000, -10000) {
+                    slot = new Slot(new net.minecraft.world.SimpleContainer(1),
+                        0, -10000, -10000) {
                         public boolean isActive() {
                             return false;
                         }
@@ -248,7 +251,9 @@ public class InventoryElement implements InventoryScope {
 
         public Slot slot(SlotElement element) {
             int index = index(element);
-            return playerSlots.containsKey(index) ? playerSlots.get(index) : slots.get(index);
+            return playerSlots.containsKey(index)
+                ? playerSlots.get(index)
+                : slots.get(index);
         }
 
         public SlotElement element(int menuIndex) {
@@ -276,27 +281,25 @@ public class InventoryElement implements InventoryScope {
         }
 
         public void position(ScreenLayout layout) {
-            indexes.forEach(
-                (element, index) -> {
-                    var bounds = layout.bounds(element);
-                    var xy = element.itemPosition(bounds);
-                    var slot = slot(element);
-                    slot.x = xy[0];
-                    slot.y = xy[1];
-                });
+            indexes.forEach((element, index) -> {
+                var bounds = layout.bounds(element);
+                var xy = element.itemPosition(bounds);
+                var slot = slot(element);
+                slot.x = xy[0];
+                slot.y = xy[1];
+            });
         }
 
-        public List<Slot> playerSlots(
-            int start, net.minecraft.world.entity.player.Inventory inventory, ScreenLayout layout) {
+        public List<Slot> playerSlots(int start,
+            net.minecraft.world.entity.player.Inventory inventory,
+            ScreenLayout layout) {
             for (var element : playerElements) {
                 int index = start + playerSlots.size();
                 indexes.put(element, index);
                 names.put(element, "player");
                 elements.put(index, element);
-                playerSlots.put(
-                    index,
-                    element.createPlayerSlot(
-                        inventory, layout.bounds(element), () -> visible.test(element)));
+                playerSlots.put(index, element.createPlayerSlot(inventory,
+                    layout.bounds(element), () -> visible.test(element)));
             }
             return List.copyOf(playerSlots.values());
         }
@@ -307,25 +310,24 @@ public class InventoryElement implements InventoryScope {
 
         public void synchronizeGhosts() {
             if (host != null)
-                indexes.forEach(
-                    (element, index) -> {
-                        if (element.ghost())
-                            slots.get(index).set(element.read(host, names.get(element)));
-                    });
+                indexes.forEach((element, index) -> {
+                    if (element.ghost())
+                        slots.get(index)
+                            .set(element.read(host, names.get(element)));
+                });
         }
 
-        public boolean ghost(SlotElement element, Player player, ItemStack stack) {
+        public boolean ghost(SlotElement element, Player player,
+            ItemStack stack) {
             var index = indexes.get(element);
-            return host != null
-                && element.ghost()
-                && index != null
-                && index < slots.size()
-                && slots.get(index).isActive()
+            return host != null && element.ghost() && index != null
+                && index < slots.size() && slots.get(index).isActive()
                 && element.accept(host, names.get(element), player, stack);
         }
 
         public String inventory(SlotElement element) {
-            return Objects.requireNonNull(names.get(element), "Element has no inventory binding");
+            return Objects.requireNonNull(names.get(element),
+                "Element has no inventory binding");
         }
 
         public ItemStack hint(SlotElement element) {
@@ -337,7 +339,8 @@ public class InventoryElement implements InventoryScope {
         return dimensions();
     }
 
-    public java.util.Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
+    public java.util.Map<Element, Rect> childLayout(Rect bounds,
+        TextMeasure text) {
         var result = new java.util.IdentityHashMap<Element, Rect>();
         positions().forEach((slot, rect) -> result.put(slot, rect));
         return result;
@@ -390,16 +393,8 @@ public class InventoryElement implements InventoryScope {
 
     @Override
     public String toString() {
-        return "InventoryElement[common="
-            + common
-            + ", inventory="
-            + inventory
-            + ", columns="
-            + columns
-            + ", spacing="
-            + spacing
-            + ", children="
-            + children
-            + "]";
+        return "InventoryElement[common=" + common + ", inventory=" + inventory
+            + ", columns=" + columns + ", spacing=" + spacing + ", children="
+            + children + "]";
     }
 }

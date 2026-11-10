@@ -14,9 +14,9 @@ import zone.moddev.mc.lib.gui.model.Element;
  * {@code vbox} (vertical) or {@code hbox} (horizontal): stacks its children.
  *
  * <p>
- * {@code vertical}: true for {@code vbox} {@code padding}: space inside the box's edges, in GUI
- * pixels {@code spacing}: space between children {@code align}: cross-axis alignment of the
- * children
+ * {@code vertical}: true for {@code vbox} {@code padding}: space inside the
+ * box's edges, in GUI pixels {@code spacing}: space between children
+ * {@code align}: cross-axis alignment of the children
  */
 public class BoxElement implements Element {
     private final Common common;
@@ -27,13 +27,8 @@ public class BoxElement implements Element {
     private final List<Element> children;
 
     /** Copies the children. */
-    public BoxElement(
-        Common common,
-        boolean vertical,
-        int padding,
-        int spacing,
-        Align align,
-        List<Element> children) {
+    public BoxElement(Common common, boolean vertical, int padding, int spacing,
+        Align align, List<Element> children) {
         children = List.copyOf(children);
 
         this.common = common;
@@ -67,8 +62,7 @@ public class BoxElement implements Element {
         var result = new java.util.IdentityHashMap<Element, Rect>();
         int innerW = bounds.width() - 2 * padding,
             innerH = bounds.height() - 2 * padding,
-            used = spacing * Math.max(0, children.size() - 1),
-            spacers = 0;
+            used = spacing * Math.max(0, children.size() - 1), spacers = 0;
         var sizes = new java.util.ArrayList<int[]>();
         for (var child : children) {
             var size = ElementLayouts.size(child, text);
@@ -78,24 +72,23 @@ public class BoxElement implements Element {
                 spacers++;
         }
         int leftover = Math.max(0, (vertical ? innerH : innerW) - used),
-            position = padding,
-            spacerIndex = 0;
+            position = padding, spacerIndex = 0;
         for (int i = 0; i < children.size(); i++) {
             var child = children.get(i);
             var size = sizes.get(i);
             int main = vertical ? size[1] : size[0];
             if (child.spacer())
-                main = leftover / spacers + (spacerIndex++ < leftover % spacers ? 1 : 0);
+                main = leftover / spacers
+                    + (spacerIndex++ < leftover % spacers ? 1 : 0);
             if (vertical) {
                 int w = child.stretchX() ? innerW : size[0];
-                result.put(
-                    child,
-                    new Rect(padding + ElementLayouts.align(align, innerW, w), position, w, main));
+                result.put(child,
+                    new Rect(padding + ElementLayouts.align(align, innerW, w),
+                        position, w, main));
             } else {
                 int h = child.stretchY() ? innerH : size[1];
-                result.put(
-                    child,
-                    new Rect(position, padding + ElementLayouts.align(align, innerH, h), main, h));
+                result.put(child, new Rect(position,
+                    padding + ElementLayouts.align(align, innerH, h), main, h));
             }
             position += main + spacing;
         }
@@ -163,18 +156,8 @@ public class BoxElement implements Element {
 
     @Override
     public String toString() {
-        return "BoxElement[common="
-            + common
-            + ", vertical="
-            + vertical
-            + ", padding="
-            + padding
-            + ", spacing="
-            + spacing
-            + ", align="
-            + align
-            + ", children="
-            + children
-            + "]";
+        return "BoxElement[common=" + common + ", vertical=" + vertical
+            + ", padding=" + padding + ", spacing=" + spacing + ", align="
+            + align + ", children=" + children + "]";
     }
 }

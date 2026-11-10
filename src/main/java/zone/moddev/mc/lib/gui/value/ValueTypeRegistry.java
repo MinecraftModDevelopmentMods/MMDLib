@@ -17,7 +17,9 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
-/** Common-side registry used by binding, snapshots, deltas and wire decoding. */
+/**
+ * Common-side registry used by binding, snapshots, deltas and wire decoding.
+ */
 public final class ValueTypeRegistry {
     public static final ValueTypeRegistry GLOBAL = builtins();
     private final Map<ResourceLocation, ValueType<?>> types = new TreeMap<>();
@@ -37,7 +39,8 @@ public final class ValueTypeRegistry {
             throw new IllegalStateException(
                 "GUI value types are frozen; register during mod construction");
         if (types.containsKey(type.id()))
-            throw new IllegalArgumentException("Duplicate GUI value type: " + type.id());
+            throw new IllegalArgumentException(
+                "Duplicate GUI value type: " + type.id());
         for (var javaType : type.javaTypes())
             if (javaTypes.containsKey(javaType))
                 throw new IllegalArgumentException(
@@ -62,7 +65,8 @@ public final class ValueTypeRegistry {
     /** All registered getter types; wire-only envelopes are excluded. */
     public synchronized Set<ValueType<?>> bindingTypes() {
         var result = new LinkedHashSet<ValueType<?>>();
-        types.values().stream().filter(ValueType::bindable).forEach(result::add);
+        types.values().stream().filter(ValueType::bindable)
+            .forEach(result::add);
         return Collections.unmodifiableSet(result);
     }
 
@@ -71,7 +75,8 @@ public final class ValueTypeRegistry {
     }
 
     /**
-     * Exact Java bindings win, then the most specific superclass/interface; ambiguity is rejected.
+     * Exact Java bindings win, then the most specific superclass/interface;
+     * ambiguity is rejected.
      */
     public synchronized Optional<ValueType<?>> resolve(Class<?> javaType) {
         var cached = resolved.get(javaType);
@@ -80,19 +85,17 @@ public final class ValueTypeRegistry {
         var exact = javaTypes.get(javaType);
         if (exact != null)
             return Optional.of(exact);
-        var matches = javaTypes.keySet().stream()
-            .filter(c -> javaTypes.get(c).subtypes() && c.isAssignableFrom(javaType))
+        var matches = javaTypes.keySet().stream().filter(
+            c -> javaTypes.get(c).subtypes() && c.isAssignableFrom(javaType))
             .toList();
         var specific = matches.stream()
-            .filter(
-                c -> matches.stream().noneMatch(other -> c != other && c.isAssignableFrom(other)))
-            .map(javaTypes::get)
-            .distinct()
-            .sorted(Comparator.comparing(ValueType::id))
-            .toList();
+            .filter(c -> matches.stream()
+                .noneMatch(other -> c != other && c.isAssignableFrom(other)))
+            .map(javaTypes::get).distinct()
+            .sorted(Comparator.comparing(ValueType::id)).toList();
         if (specific.size() > 1)
-            throw new IllegalArgumentException(
-                "Ambiguous GUI value type for " + javaType.getName() + ": " + specific);
+            throw new IllegalArgumentException("Ambiguous GUI value type for "
+                + javaType.getName() + ": " + specific);
         var result = specific.stream().findFirst();
         resolved.put(javaType, result);
         return result;
@@ -100,9 +103,8 @@ public final class ValueTypeRegistry {
 
     private ValueType<?> typeOf(Object value) {
         return resolve(value.getClass())
-            .orElseThrow(
-                () -> new IllegalArgumentException(
-                    "Unsupported GUI value: " + value.getClass().getName()));
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Unsupported GUI value: " + value.getClass().getName()));
     }
 
     public Object snapshot(Object value, RegistryAccess registries) {
@@ -132,21 +134,23 @@ public final class ValueTypeRegistry {
             return null;
         var type = require(buffer.readResourceLocation());
         if (buffer.readVarInt() != type.version())
-            throw new IllegalArgumentException("GUI value schema mismatch: " + type.id());
-        return type.decode(buffer.registryAccess(), buffer.readByteArray(type.maxBytes()));
+            throw new IllegalArgumentException(
+                "GUI value schema mismatch: " + type.id());
+        return type.decode(buffer.registryAccess(),
+            buffer.readByteArray(type.maxBytes()));
     }
 
     /**
-     * Deterministic across registration order; codec changes require the declared version to
-     * change.
+     * Deterministic across registration order; codec changes require the
+     * declared version to change.
      */
     public synchronized String fingerprint() {
         try {
-            var schema = types.values().stream().map(ValueType::schema).toList().toString();
+            var schema = types.values().stream().map(ValueType::schema).toList()
+                .toString();
             return HexFormat.of()
-                .formatHex(
-                    java.security.MessageDigest.getInstance("SHA-256")
-                        .digest(schema.getBytes(StandardCharsets.UTF_8)));
+                .formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(schema.getBytes(StandardCharsets.UTF_8)));
         } catch (java.security.NoSuchAlgorithmException impossible) {
             throw new AssertionError(impossible);
         }

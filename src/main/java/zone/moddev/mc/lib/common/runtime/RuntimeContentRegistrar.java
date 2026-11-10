@@ -34,552 +34,510 @@ import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.types.*;
 
 /**
- * Registers loaded material plans as real Minecraft content in one namespace: blocks, items,
- * block-entity types, fluids, fluid types, projectile entities, armor materials and a creative tab.
- * Each object is created through the Java implementation its definition names, when the registry
- * supplier runs. MMDLib creates one for its own namespace; another mod can create its own to
- * register its materials.
+ * Registers loaded material plans as real Minecraft content in one namespace:
+ * blocks, items, block-entity types, fluids, fluid types, projectile entities,
+ * armor materials and a creative tab. Each object is created through the Java
+ * implementation its definition names, when the registry supplier runs. MMDLib
+ * creates one for its own namespace; another mod can create its own to register
+ * its materials.
  */
 public final class RuntimeContentRegistrar {
-  private static final List<RuntimeContentRegistrar> INSTANCES =
-      new java.util.concurrent.CopyOnWriteArrayList<>();
-  private final String namespace;
-  private final MaterialExtensions extensions;
-  private final DeferredRegister<Block> blocks;
-  private final DeferredRegister<Item> items;
-  private final DeferredRegister<Fluid> fluids;
-  private final DeferredRegister<FluidType> fluidTypes;
-  private final DeferredRegister<EntityType<?>> entities;
-  private final DeferredRegister<ArmorMaterial> armor;
-  private final DeferredRegister<CreativeModeTab> tabs;
-  private final Map<ResourceLocation, zone.moddev.mc.lib.api.BlockEntityHandle<?>>
-      blockEntityHandles = new TreeMap<>();
-  private final BlockEntityFactories blockEntityFactories;
-  private final Map<ResourceLocation, DeferredHolder<Block, ? extends Block>> blockEntries =
-      new TreeMap<>();
-  private final Map<ResourceLocation, DeferredHolder<Item, ? extends Item>> itemEntries =
-      new TreeMap<>();
-  private final Map<ResourceLocation, DeferredHolder<EntityType<?>, EntityType<MaterialProjectile>>>
-      projectiles = new TreeMap<>();
-  private final Map<ResourceLocation, MMDMaterial> itemMaterials = new TreeMap<>(),
-      blockMaterials = new TreeMap<>();
-  private final List<FluidFamily> fluidFamilies = new ArrayList<>();
+    private static final List<RuntimeContentRegistrar> INSTANCES = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final String namespace;
+    private final MaterialExtensions extensions;
+    private final DeferredRegister<Block> blocks;
+    private final DeferredRegister<Item> items;
+    private final DeferredRegister<Fluid> fluids;
+    private final DeferredRegister<FluidType> fluidTypes;
+    private final DeferredRegister<EntityType<?>> entities;
+    private final DeferredRegister<ArmorMaterial> armor;
+    private final DeferredRegister<CreativeModeTab> tabs;
+    private final Map<ResourceLocation, zone.moddev.mc.lib.api.BlockEntityHandle<?>> blockEntityHandles = new TreeMap<>();
+    private final BlockEntityFactories blockEntityFactories;
+    private final Map<ResourceLocation, DeferredHolder<Block, ? extends Block>> blockEntries = new TreeMap<>();
+    private final Map<ResourceLocation, DeferredHolder<Item, ? extends Item>> itemEntries = new TreeMap<>();
+    private final Map<ResourceLocation, DeferredHolder<EntityType<?>, EntityType<MaterialProjectile>>> projectiles = new TreeMap<>();
+    private final Map<ResourceLocation, MMDMaterial> itemMaterials = new TreeMap<>(),
+        blockMaterials = new TreeMap<>();
+    private final List<FluidFamily> fluidFamilies = new ArrayList<>();
 
-  /**
-   * A registrar for {@code namespace}, with its deferred registers attached to {@code bus} and a
-   * {@code materials} creative tab. Block entities come from the shared {@link
-   * zone.moddev.mc.lib.util.Registries#BLOCK_ENTITY_FACTORIES} catalog.
-   */
-  public RuntimeContentRegistrar(String namespace, MaterialExtensions extensions, IEventBus bus) {
-    this(namespace, extensions, zone.moddev.mc.lib.util.Registries.BLOCK_ENTITY_FACTORIES, bus);
-  }
+    /**
+     * A registrar for {@code namespace}, with its deferred registers attached
+     * to {@code bus} and a {@code materials} creative tab. Block entities come
+     * from the shared
+     * {@link zone.moddev.mc.lib.util.Registries#BLOCK_ENTITY_FACTORIES}
+     * catalog.
+     */
+    public RuntimeContentRegistrar(String namespace,
+        MaterialExtensions extensions, IEventBus bus) {
+        this(namespace, extensions,
+            zone.moddev.mc.lib.util.Registries.BLOCK_ENTITY_FACTORIES, bus);
+    }
 
-  /**
-   * As {@link #RuntimeContentRegistrar(String, MaterialExtensions, IEventBus)}, taking block-entity
-   * factories from {@code blockEntityFactories}.
-   */
-  public RuntimeContentRegistrar(
-      String namespace,
-      MaterialExtensions extensions,
-      BlockEntityFactories blockEntityFactories,
-      IEventBus bus) {
-    this.namespace = namespace;
-    this.extensions = extensions;
-    this.blockEntityFactories = Objects.requireNonNull(blockEntityFactories);
-    blocks = DeferredRegister.create(Registries.BLOCK, namespace);
-    items = DeferredRegister.create(Registries.ITEM, namespace);
-    fluids = DeferredRegister.create(Registries.FLUID, namespace);
-    fluidTypes = DeferredRegister.create(NeoForgeRegistries.Keys.FLUID_TYPES, namespace);
-    entities = DeferredRegister.create(Registries.ENTITY_TYPE, namespace);
-    armor = DeferredRegister.create(Registries.ARMOR_MATERIAL, namespace);
-    tabs = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, namespace);
-    bus.addListener(
-        (net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
-            event.enqueueWork(
-                () ->
-                    blockEntityHandles
-                        .values()
-                        .forEach(zone.moddev.mc.lib.api.BlockEntityHandle::verifyRegistered)));
-    blocks.register(bus);
-    items.register(bus);
-    fluids.register(bus);
-    fluidTypes.register(bus);
-    entities.register(bus);
-    armor.register(bus);
-    tabs.register(bus);
+    /**
+     * As
+     * {@link #RuntimeContentRegistrar(String, MaterialExtensions, IEventBus)},
+     * taking block-entity factories from {@code blockEntityFactories}.
+     */
+    public RuntimeContentRegistrar(String namespace,
+        MaterialExtensions extensions,
+        BlockEntityFactories blockEntityFactories, IEventBus bus) {
+        this.namespace = namespace;
+        this.extensions = extensions;
+        this.blockEntityFactories = Objects
+            .requireNonNull(blockEntityFactories);
+        blocks = DeferredRegister.create(Registries.BLOCK, namespace);
+        items = DeferredRegister.create(Registries.ITEM, namespace);
+        fluids = DeferredRegister.create(Registries.FLUID, namespace);
+        fluidTypes = DeferredRegister
+            .create(NeoForgeRegistries.Keys.FLUID_TYPES, namespace);
+        entities = DeferredRegister.create(Registries.ENTITY_TYPE, namespace);
+        armor = DeferredRegister.create(Registries.ARMOR_MATERIAL, namespace);
+        tabs = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, namespace);
+        bus.addListener((
+            net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) -> event
+                .enqueueWork(() -> blockEntityHandles.values().forEach(
+                    zone.moddev.mc.lib.api.BlockEntityHandle::verifyRegistered)));
+        blocks.register(bus);
+        items.register(bus);
+        fluids.register(bus);
+        fluidTypes.register(bus);
+        entities.register(bus);
+        armor.register(bus);
+        tabs.register(bus);
 
-    tabs.register(
-        "materials",
-        () ->
-            CreativeModeTab.builder()
-                .title(Component.translatable("itemGroup." + namespace + ".materials"))
-                .icon(
-                    () ->
-                        itemEntries.isEmpty()
-                            ? new ItemStack(Items.IRON_INGOT)
-                            : new ItemStack(itemEntries.values().iterator().next().get()))
-                .displayItems(
-                    (parameters, output) ->
-                        itemEntries.values().forEach(item -> output.accept(item.get())))
-                .build());
-    INSTANCES.add(this);
-  }
+        tabs.register("materials", () -> CreativeModeTab.builder()
+            .title(
+                Component.translatable("itemGroup." + namespace + ".materials"))
+            .icon(() -> itemEntries.isEmpty()
+                ? new ItemStack(Items.IRON_INGOT)
+                : new ItemStack(itemEntries.values().iterator().next().get()))
+            .displayItems((parameters, output) -> itemEntries.values()
+                .forEach(item -> output.accept(item.get())))
+            .build());
+        INSTANCES.add(this);
+    }
 
-  /** Every registrar created so far. */
-  public static List<RuntimeContentRegistrar> instances() {
-    return List.copyOf(INSTANCES);
-  }
+    /** Every registrar created so far. */
+    public static List<RuntimeContentRegistrar> instances() {
+        return List.copyOf(INSTANCES);
+    }
 
-  /** Every item queued, by ID. */
-  public Map<ResourceLocation, DeferredHolder<Item, ? extends Item>> items() {
-    return Collections.unmodifiableMap(itemEntries);
-  }
+    /** Every item queued, by ID. */
+    public Map<ResourceLocation, DeferredHolder<Item, ? extends Item>> items() {
+        return Collections.unmodifiableMap(itemEntries);
+    }
 
-  /** Every block queued, by ID. */
-  public Map<ResourceLocation, DeferredHolder<Block, ? extends Block>> blocks() {
-    return Collections.unmodifiableMap(blockEntries);
-  }
+    /** Every block queued, by ID. */
+    public Map<ResourceLocation, DeferredHolder<Block, ? extends Block>> blocks() {
+        return Collections.unmodifiableMap(blockEntries);
+    }
 
-  /** The material of each queued item, by item ID. */
-  public Map<ResourceLocation, MMDMaterial> itemMaterials() {
-    return Collections.unmodifiableMap(itemMaterials);
-  }
+    /** The material of each queued item, by item ID. */
+    public Map<ResourceLocation, MMDMaterial> itemMaterials() {
+        return Collections.unmodifiableMap(itemMaterials);
+    }
 
-  /** The material of each queued block, by block ID. */
-  public Map<ResourceLocation, MMDMaterial> blockMaterials() {
-    return Collections.unmodifiableMap(blockMaterials);
-  }
+    /** The material of each queued block, by block ID. */
+    public Map<ResourceLocation, MMDMaterial> blockMaterials() {
+        return Collections.unmodifiableMap(blockMaterials);
+    }
 
-  /** Every projectile entity type queued, by ID. */
-  public Map<ResourceLocation, DeferredHolder<EntityType<?>, EntityType<MaterialProjectile>>>
-      projectiles() {
-    return Collections.unmodifiableMap(projectiles);
-  }
+    /** Every projectile entity type queued, by ID. */
+    public Map<ResourceLocation, DeferredHolder<EntityType<?>, EntityType<MaterialProjectile>>> projectiles() {
+        return Collections.unmodifiableMap(projectiles);
+    }
 
-  /**
-   * Every block-entity type queued, by ID (the same as its block's). Read a holder's value only
-   * once registration has run.
-   */
-  public Map<ResourceLocation, DeferredHolder<BlockEntityType<?>, ? extends BlockEntityType<?>>>
-      blockEntityTypes() {
-    var entries =
-        new TreeMap<
-            ResourceLocation, DeferredHolder<BlockEntityType<?>, ? extends BlockEntityType<?>>>();
-    blockEntityHandles.forEach(
-        (id, handle) -> handle.holder().ifPresent(holder -> entries.put(id, holder)));
-    return Collections.unmodifiableMap(entries);
-  }
+    /**
+     * Every block-entity type queued, by ID (the same as its block's). Read a
+     * holder's value only once registration has run.
+     */
+    public Map<ResourceLocation, DeferredHolder<BlockEntityType<?>, ? extends BlockEntityType<?>>> blockEntityTypes() {
+        var entries = new TreeMap<ResourceLocation, DeferredHolder<BlockEntityType<?>, ? extends BlockEntityType<?>>>();
+        blockEntityHandles.forEach((id, handle) -> handle.holder()
+            .ifPresent(holder -> entries.put(id, holder)));
+        return Collections.unmodifiableMap(entries);
+    }
 
-  /** Prepared handles; after queue, the owning mod must register each with its own register. */
-  public Map<ResourceLocation, zone.moddev.mc.lib.api.BlockEntityHandle<?>> blockEntityHandles() {
-    return Collections.unmodifiableMap(blockEntityHandles);
-  }
+    /**
+     * Prepared handles; after queue, the owning mod must register each with its
+     * own register.
+     */
+    public Map<ResourceLocation, zone.moddev.mc.lib.api.BlockEntityHandle<?>> blockEntityHandles() {
+        return Collections.unmodifiableMap(blockEntityHandles);
+    }
 
-  /** Every fluid family queued. */
-  public List<FluidFamily> fluidFamilies() {
-    return List.copyOf(fluidFamilies);
-  }
+    /** Every fluid family queued. */
+    public List<FluidFamily> fluidFamilies() {
+        return List.copyOf(fluidFamilies);
+    }
 
-  /**
-   * Queues every item, block, block entity, entity and fluid in a planned material (or standalone
-   * definition). Each block entity's factory is looked up and its settings decoded now; its type is
-   * exposed as a handle for the mod to register with the same ID as its block. The implementation
-   * receives its binding through {@link BlockContext#blockEntity()}.
-   *
-   * @throws IllegalArgumentException if the material is in another namespace, an ID is already
-   *     queued, a block entity's factory is unknown or its settings are invalid, or a block with a
-   *     block entity is created by an implementation whose class is not an {@code EntityBlock}
-   */
-  public void queue(MaterialFactory.Result result) {
-    var material = result.material();
-    var plan = result.content();
-    var owner = material.name().orElseThrow();
-    if (!namespace.equals(owner.getNamespace()))
-      throw new IllegalArgumentException("Runtime registry namespace differs from " + owner);
-    Supplier<Ingredient> repair =
-        () ->
-            material
-                .runtime()
-                .repairItem()
-                .map(id -> Ingredient.of(RuntimeProperties.required(BuiltInRegistries.ITEM, id)))
-                .orElse(Ingredient.EMPTY);
-    var tier =
-        new MaterialToolTier(
-            material,
-            TagKey.create(Registries.BLOCK, material.runtime().incorrectBlocks()),
-            repair);
-    // Every factory is looked up now, so an unregistered one fails at load. The armor material is
-    // registered
-    // only when some part's implementation asks for it.
-    boolean needsArmor =
-        plan.items().keySet().stream()
+    /**
+     * Queues every item, block, block entity, entity and fluid in a planned
+     * material (or standalone definition). Each block entity's factory is
+     * looked up and its settings decoded now; its type is exposed as a handle
+     * for the mod to register with the same ID as its block. The implementation
+     * receives its binding through {@link BlockContext#blockEntity()}.
+     *
+     * @throws IllegalArgumentException
+     *             if the material is in another namespace, an ID is already
+     *             queued, a block entity's factory is unknown or its settings
+     *             are invalid, or a block with a block entity is created by an
+     *             implementation whose class is not an {@code EntityBlock}
+     */
+    public void queue(MaterialFactory.Result result) {
+        var material = result.material();
+        var plan = result.content();
+        var owner = material.name().orElseThrow();
+        if (!namespace.equals(owner.getNamespace()))
+            throw new IllegalArgumentException(
+                "Runtime registry namespace differs from " + owner);
+        Supplier<Ingredient> repair = () -> material.runtime().repairItem()
+            .map(id -> Ingredient
+                .of(RuntimeProperties.required(BuiltInRegistries.ITEM, id)))
+            .orElse(Ingredient.EMPTY);
+        var tier = new MaterialToolTier(material, TagKey.create(
+            Registries.BLOCK, material.runtime().incorrectBlocks()), repair);
+        // Every factory is looked up now, so an unregistered one fails at load.
+        // The armor material
+        // is
+        // registered
+        // only when some part's implementation asks for it.
+        boolean needsArmor = plan.items().keySet().stream()
             .filter(part -> part.kind() == MaterialPart.Kind.ITEM)
-            .anyMatch(part -> extensions.itemImplementation(part.factory()).usesArmorMaterial());
-    Holder<ArmorMaterial> armorHolder =
-        needsArmor
-            ? MaterialArmor.register(armor, material, repair, material.runtime().armorTexture())
+            .anyMatch(part -> extensions.itemImplementation(part.factory())
+                .usesArmorMaterial());
+        Holder<ArmorMaterial> armorHolder = needsArmor
+            ? MaterialArmor.register(armor, material, repair,
+                material.runtime().armorTexture())
             : null;
-    plan.entities()
-        .forEach(
-            (part, definition) -> {
-              if (!Set.of("mmdlib:arrow", "mmdlib:bolt").contains(definition.factory().toString()))
+        plan.entities().forEach((part, definition) -> {
+            if (!Set.of("mmdlib:arrow", "mmdlib:bolt")
+                .contains(definition.factory().toString()))
                 throw new IllegalArgumentException(
                     "Use the registered EntityFactory for custom world entities: "
                         + definition.factory());
-              var type =
-                  entities.register(
-                      definition.name().getPath(),
-                      () ->
-                          EntityType.Builder.<MaterialProjectile>of(
-                                  MaterialProjectile::new, definition.category())
-                              .sized(definition.width(), definition.height())
-                              .clientTrackingRange(definition.trackingRange())
-                              .updateInterval(definition.updateInterval())
-                              .build(definition.name().toString()));
-              projectiles.put(definition.name(), type);
-            });
-    var orderedBlocks =
-        plan.blocks().entrySet().stream()
-            .sorted(
-                java.util.Comparator.<Map.Entry<MaterialPart, MMDBlock>>comparingInt(
-                        entry ->
-                            entry.getValue().name().equals(material.runtime().baseBlock()) ? 0 : 1)
-                    .thenComparing(entry -> entry.getValue().name()))
+            var type = entities.register(definition.name().getPath(),
+                () -> EntityType.Builder
+                    .<MaterialProjectile>of(MaterialProjectile::new,
+                        definition.category())
+                    .sized(definition.width(), definition.height())
+                    .clientTrackingRange(definition.trackingRange())
+                    .updateInterval(definition.updateInterval())
+                    .build(definition.name().toString()));
+            projectiles.put(definition.name(), type);
+        });
+        var orderedBlocks = plan.blocks().entrySet().stream().sorted(
+            java.util.Comparator.<Map.Entry<MaterialPart, MMDBlock>>comparingInt(
+                entry -> entry.getValue().name()
+                    .equals(material.runtime().baseBlock()) ? 0 : 1)
+                .thenComparing(entry -> entry.getValue().name()))
             .toList();
-    orderedBlocks.forEach(
-        entry -> {
-          var part = entry.getKey();
-          var definition = entry.getValue();
-          var implementation = extensions.blockImplementation(part.factory());
-          implementation.validate(part);
-          var blockEntity = plan.blockEntities().get(part);
-          if (blockEntity != null
-              && !EntityBlock.class.isAssignableFrom(implementation.blockClass()))
-            throw new IllegalArgumentException(
-                definition.name()
-                    + " has a block entity, but "
-                    + part.factory()
-                    + " does not create an EntityBlock");
-          var pending =
-              blockEntity == null ? null : pending(blockEntityFactories.prepare(blockEntity));
-          var block =
-              blocks.register(
-                  definition.name().getPath(),
-                  () ->
-                      implementation.create(
-                          new BlockContextImpl(
-                              part,
-                              definition,
-                              material,
-                              extensions.events(),
-                              pending == null ? null : pending.binding)));
-          put(blockEntries, definition.name(), block);
-          if (pending != null) pending.queue(block);
-          blockMaterials.put(definition.name(), material);
-          if (definition.item() != null) {
-            var item =
-                items.register(
-                    definition.name().getPath(),
-                    () ->
-                        implementation.createItem(
-                            block.get(),
-                            new ItemContextImpl(
-                                part, definition.item(), material, tier, armorHolder)));
+        orderedBlocks.forEach(entry -> {
+            var part = entry.getKey();
+            var definition = entry.getValue();
+            var implementation = extensions.blockImplementation(part.factory());
+            implementation.validate(part);
+            var blockEntity = plan.blockEntities().get(part);
+            if (blockEntity != null && !EntityBlock.class
+                .isAssignableFrom(implementation.blockClass()))
+                throw new IllegalArgumentException(
+                    definition.name() + " has a block entity, but "
+                        + part.factory() + " does not create an EntityBlock");
+            var pending = blockEntity == null
+                ? null
+                : pending(blockEntityFactories.prepare(blockEntity));
+            var block = blocks.register(definition.name().getPath(),
+                () -> implementation.create(new BlockContextImpl(part,
+                    definition, material, extensions.events(),
+                    pending == null ? null : pending.binding)));
+            put(blockEntries, definition.name(), block);
+            if (pending != null)
+                pending.queue(block);
+            blockMaterials.put(definition.name(), material);
+            if (definition.item() != null) {
+                var item = items.register(definition.name().getPath(),
+                    () -> implementation.createItem(block.get(),
+                        new ItemContextImpl(part, definition.item(), material,
+                            tier, armorHolder)));
+                put(itemEntries, definition.name(), item);
+                itemMaterials.put(definition.name(), material);
+            }
+        });
+        plan.items().forEach((part, definition) -> {
+            if (part.kind() == MaterialPart.Kind.BLOCK)
+                return; // Already queued as the block's actual BlockItem.
+            extensions.events().validate(definition.events()); // Fail at load,
+                                                               // not during
+                                                               // registry
+                                                               // construction.
+            var implementation = extensions.itemImplementation(part.factory());
+            implementation.validate(part);
+            var item = items.register(definition.name().getPath(),
+                () -> implementation.create(new ItemContextImpl(part,
+                    definition, material, tier, armorHolder)));
             put(itemEntries, definition.name(), item);
             itemMaterials.put(definition.name(), material);
-          }
         });
-    plan.items()
-        .forEach(
-            (part, definition) -> {
-              if (part.kind() == MaterialPart.Kind.BLOCK)
-                return; // Already queued as the block's actual BlockItem.
-              extensions
-                  .events()
-                  .validate(definition.events()); // Fail at load, not during registry construction.
-              var implementation = extensions.itemImplementation(part.factory());
-              implementation.validate(part);
-              var item =
-                  items.register(
-                      definition.name().getPath(),
-                      () ->
-                          implementation.create(
-                              new ItemContextImpl(part, definition, material, tier, armorHolder)));
-              put(itemEntries, definition.name(), item);
-              itemMaterials.put(definition.name(), material);
-            });
-    if (plan.fluid() != null) fluidFamilies.add(new FluidFamily(plan.fluid(), material));
-  }
-
-  /**
-   * The registrar's {@link ItemContext}: fresh properties per call, shared tier and armor per
-   * material.
-   */
-  private final class ItemContextImpl implements ItemContext {
-    private final MaterialPart part;
-    private final MMDItem definition;
-    private final MMDMaterial material;
-    private final MaterialToolTier tier;
-    private final Holder<ArmorMaterial> armor;
-
-    ItemContextImpl(
-        MaterialPart part,
-        MMDItem definition,
-        MMDMaterial material,
-        MaterialToolTier tier,
-        Holder<ArmorMaterial> armor) {
-      this.part = part;
-      this.definition = definition;
-      this.material = material;
-      this.tier = tier;
-      this.armor = armor;
+        if (plan.fluid() != null)
+            fluidFamilies.add(new FluidFamily(plan.fluid(), material));
     }
 
-    @Override
-    public MMDMaterial material() {
-      return material;
+    /**
+     * The registrar's {@link ItemContext}: fresh properties per call, shared
+     * tier and armor per material.
+     */
+    private final class ItemContextImpl implements ItemContext {
+        private final MaterialPart part;
+        private final MMDItem definition;
+        private final MMDMaterial material;
+        private final MaterialToolTier tier;
+        private final Holder<ArmorMaterial> armor;
+
+        ItemContextImpl(MaterialPart part, MMDItem definition,
+            MMDMaterial material, MaterialToolTier tier,
+            Holder<ArmorMaterial> armor) {
+            this.part = part;
+            this.definition = definition;
+            this.material = material;
+            this.tier = tier;
+            this.armor = armor;
+        }
+
+        @Override
+        public MMDMaterial material() {
+            return material;
+        }
+
+        @Override
+        public MMDItem definition() {
+            return definition;
+        }
+
+        @Override
+        public MaterialPart part() {
+            return part;
+        }
+
+        @Override
+        public Item.Properties properties() {
+            return RuntimeProperties.item(definition);
+        }
+
+        @Override
+        public MaterialToolTier tier() {
+            return tier;
+        }
+
+        @Override
+        public Holder<ArmorMaterial> armor() {
+            if (armor == null)
+                throw new IllegalStateException(
+                    "Armor material not registered; the implementation must report usesArmorMaterial(): "
+                        + definition.name());
+            return armor;
+        }
+
+        @Override
+        public Supplier<EntityType<MaterialProjectile>> projectile() {
+            var type = projectiles.get(definition.name());
+            if (type == null)
+                throw new IllegalStateException(
+                    "No projectile registered for " + definition.name());
+            return type;
+        }
     }
 
-    @Override
-    public MMDItem definition() {
-      return definition;
+    private <E extends BlockEntity> PendingBlockEntity<E> pending(
+        BlockEntityFactories.Prepared<E> prepared) {
+        return new PendingBlockEntity<>(prepared);
     }
 
-    @Override
-    public MaterialPart part() {
-      return part;
+    /**
+     * A block entity whose binding is handed to its block before its type is
+     * queued; the type supplier is only read once registration has run.
+     */
+    private final class PendingBlockEntity<E extends BlockEntity> {
+        private final BlockEntityFactories.Prepared<E> prepared;
+        private final java.util.concurrent.atomic.AtomicReference<zone.moddev.mc.lib.api.BlockEntityHandle<E>> holder = new java.util.concurrent.atomic.AtomicReference<>();
+        private final BlockEntityBinding<E> binding;
+
+        PendingBlockEntity(BlockEntityFactories.Prepared<E> prepared) {
+            this.prepared = prepared;
+            this.binding = new BlockEntityBinding<>(prepared,
+                () -> Objects.requireNonNull(holder.get(),
+                    "Block entity type not queued yet").get());
+        }
+
+        void queue(Supplier<? extends Block> block) {
+            var handle = new zone.moddev.mc.lib.api.BlockEntityHandle<>(
+                blockEntityFactories, prepared, block);
+            holder.set(handle);
+            put(blockEntityHandles, prepared.definition().name(), handle);
+        }
     }
 
-    @Override
-    public Item.Properties properties() {
-      return RuntimeProperties.item(definition);
+    /** The registrar's {@link BlockContext}. */
+    private static final class BlockContextImpl implements BlockContext {
+        private final MaterialPart part;
+        private final MMDBlock definition;
+        private final MMDMaterial material;
+        private final MaterialEvents events;
+        private final BlockEntityBinding<?> blockEntity;
+
+        BlockContextImpl(MaterialPart part, MMDBlock definition,
+            MMDMaterial material, MaterialEvents events,
+            BlockEntityBinding<?> blockEntity) {
+            this.part = part;
+            this.definition = definition;
+            this.material = material;
+            this.events = events;
+            this.blockEntity = blockEntity;
+        }
+
+        @Override
+        public Optional<BlockEntityBinding<?>> blockEntity() {
+            return Optional.ofNullable(blockEntity);
+        }
+
+        @Override
+        public MaterialEvents events() {
+            return events;
+        }
+
+        @Override
+        public MMDMaterial material() {
+            return material;
+        }
+
+        @Override
+        public MMDBlock definition() {
+            return definition;
+        }
+
+        @Override
+        public MaterialPart part() {
+            return part;
+        }
+
+        @Override
+        public BlockBehaviour.Properties properties() {
+            return RuntimeProperties.block(definition, material.runtime(),
+                false);
+        }
+
+        @Override
+        public BlockSetType blockSetType() {
+            var json = part.factoryData().json();
+            return json.isJsonObject()
+                && json.getAsJsonObject().has("block_set_type")
+                    ? setType(ResourceLocation.parse(json.getAsJsonObject()
+                        .get("block_set_type").getAsString()))
+                    : materialBlockSetType();
+        }
+
+        @Override
+        public BlockSetType materialBlockSetType() {
+            return setType(material.runtime().blockSetType());
+        }
+
+        @Override
+        public Supplier<BlockState> baseBlock() {
+            return () -> RuntimeProperties.required(BuiltInRegistries.BLOCK,
+                material.runtime().baseBlock()).defaultBlockState();
+        }
+
+        private static BlockSetType setType(ResourceLocation id) {
+            return BlockSetType.values()
+                .filter(
+                    value -> ResourceLocation.parse(value.name()).equals(id))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                    "Unknown block set type: " + id));
+        }
     }
 
-    @Override
-    public MaterialToolTier tier() {
-      return tier;
+    private static <T> void put(Map<ResourceLocation, T> map,
+        ResourceLocation id, T value) {
+        if (map.putIfAbsent(id, value) != null)
+            throw new IllegalArgumentException(
+                "Duplicate runtime entry: " + id);
     }
 
-    @Override
-    public Holder<ArmorMaterial> armor() {
-      if (armor == null)
-        throw new IllegalStateException(
-            "Armor material not registered; the implementation must report usesArmorMaterial(): "
-                + definition.name());
-      return armor;
-    }
+    /**
+     * The registry holders of one material fluid: type, source, flowing fluid,
+     * liquid block and bucket.
+     */
+    public final class FluidFamily {
+        /** The fluid's definition. */
+        public final MMDFluid definition;
 
-    @Override
-    public Supplier<EntityType<MaterialProjectile>> projectile() {
-      var type = projectiles.get(definition.name());
-      if (type == null)
-        throw new IllegalStateException("No projectile registered for " + definition.name());
-      return type;
-    }
-  }
+        /** The fluid type. */
+        public final DeferredHolder<FluidType, FluidType> type;
 
-  private <E extends BlockEntity> PendingBlockEntity<E> pending(
-      BlockEntityFactories.Prepared<E> prepared) {
-    return new PendingBlockEntity<>(prepared);
-  }
+        /** The source fluid, registered as the fluid's own ID. */
+        public final DeferredHolder<Fluid, BaseFlowingFluid.Source> source;
 
-  /**
-   * A block entity whose binding is handed to its block before its type is queued; the type
-   * supplier is only read once registration has run.
-   */
-  private final class PendingBlockEntity<E extends BlockEntity> {
-    private final BlockEntityFactories.Prepared<E> prepared;
-    private final java.util.concurrent.atomic.AtomicReference<
-            zone.moddev.mc.lib.api.BlockEntityHandle<E>>
-        holder = new java.util.concurrent.atomic.AtomicReference<>();
-    private final BlockEntityBinding<E> binding;
+        /** The flowing fluid, registered as {@code flowing_<name>}. */
+        public final DeferredHolder<Fluid, BaseFlowingFluid.Flowing> flowing;
 
-    PendingBlockEntity(BlockEntityFactories.Prepared<E> prepared) {
-      this.prepared = prepared;
-      this.binding =
-          new BlockEntityBinding<>(
-              prepared,
-              () -> Objects.requireNonNull(holder.get(), "Block entity type not queued yet").get());
-    }
+        /** The liquid block, or null when the definition has none. */
+        public final DeferredHolder<Block, LiquidBlock> block;
 
-    void queue(Supplier<? extends Block> block) {
-      var handle =
-          new zone.moddev.mc.lib.api.BlockEntityHandle<>(blockEntityFactories, prepared, block);
-      holder.set(handle);
-      put(blockEntityHandles, prepared.definition().name(), handle);
-    }
-  }
+        /** The bucket, or null when the definition has none. */
+        public final DeferredHolder<Item, BucketItem> bucket;
 
-  /** The registrar's {@link BlockContext}. */
-  private static final class BlockContextImpl implements BlockContext {
-    private final MaterialPart part;
-    private final MMDBlock definition;
-    private final MMDMaterial material;
-    private final MaterialEvents events;
-    private final BlockEntityBinding<?> blockEntity;
-
-    BlockContextImpl(
-        MaterialPart part,
-        MMDBlock definition,
-        MMDMaterial material,
-        MaterialEvents events,
-        BlockEntityBinding<?> blockEntity) {
-      this.part = part;
-      this.definition = definition;
-      this.material = material;
-      this.events = events;
-      this.blockEntity = blockEntity;
-    }
-
-    @Override
-    public Optional<BlockEntityBinding<?>> blockEntity() {
-      return Optional.ofNullable(blockEntity);
-    }
-
-    @Override
-    public MaterialEvents events() {
-      return events;
-    }
-
-    @Override
-    public MMDMaterial material() {
-      return material;
-    }
-
-    @Override
-    public MMDBlock definition() {
-      return definition;
-    }
-
-    @Override
-    public MaterialPart part() {
-      return part;
-    }
-
-    @Override
-    public BlockBehaviour.Properties properties() {
-      return RuntimeProperties.block(definition, material.runtime(), false);
-    }
-
-    @Override
-    public BlockSetType blockSetType() {
-      var json = part.factoryData().json();
-      return json.isJsonObject() && json.getAsJsonObject().has("block_set_type")
-          ? setType(
-              ResourceLocation.parse(json.getAsJsonObject().get("block_set_type").getAsString()))
-          : materialBlockSetType();
-    }
-
-    @Override
-    public BlockSetType materialBlockSetType() {
-      return setType(material.runtime().blockSetType());
-    }
-
-    @Override
-    public Supplier<BlockState> baseBlock() {
-      return () ->
-          RuntimeProperties.required(BuiltInRegistries.BLOCK, material.runtime().baseBlock())
-              .defaultBlockState();
-    }
-
-    private static BlockSetType setType(ResourceLocation id) {
-      return BlockSetType.values()
-          .filter(value -> ResourceLocation.parse(value.name()).equals(id))
-          .findFirst()
-          .orElseThrow(() -> new IllegalArgumentException("Unknown block set type: " + id));
-    }
-  }
-
-  private static <T> void put(Map<ResourceLocation, T> map, ResourceLocation id, T value) {
-    if (map.putIfAbsent(id, value) != null)
-      throw new IllegalArgumentException("Duplicate runtime entry: " + id);
-  }
-
-  /**
-   * The registry holders of one material fluid: type, source, flowing fluid, liquid block and
-   * bucket.
-   */
-  public final class FluidFamily {
-    /** The fluid's definition. */
-    public final MMDFluid definition;
-
-    /** The fluid type. */
-    public final DeferredHolder<FluidType, FluidType> type;
-
-    /** The source fluid, registered as the fluid's own ID. */
-    public final DeferredHolder<Fluid, BaseFlowingFluid.Source> source;
-
-    /** The flowing fluid, registered as {@code flowing_<name>}. */
-    public final DeferredHolder<Fluid, BaseFlowingFluid.Flowing> flowing;
-
-    /** The liquid block, or null when the definition has none. */
-    public final DeferredHolder<Block, LiquidBlock> block;
-
-    /** The bucket, or null when the definition has none. */
-    public final DeferredHolder<Item, BucketItem> bucket;
-
-    FluidFamily(MMDFluid definition, MMDMaterial material) {
-      this.definition = definition;
-      if (!definition.factory().toString().equals("mmdlib:flowing_fluid"))
-        throw new IllegalArgumentException("Unknown fluid implementation: " + definition.factory());
-      type =
-          fluidTypes.register(
-              definition.typeId().getPath(),
-              () -> {
+        FluidFamily(MMDFluid definition, MMDMaterial material) {
+            this.definition = definition;
+            if (!definition.factory().toString().equals("mmdlib:flowing_fluid"))
+                throw new IllegalArgumentException(
+                    "Unknown fluid implementation: " + definition.factory());
+            type = fluidTypes.register(definition.typeId().getPath(), () -> {
                 var p = definition.typeProperties();
-                return new FluidType(
-                    FluidType.Properties.create()
-                        .density(p.density())
-                        .viscosity(p.viscosity())
-                        .temperature(p.temperature())
-                        .lightLevel(p.lightLevel())
-                        .motionScale(p.motionScale())
-                        .canSwim(p.canSwim())
-                        .canDrown(p.canDrown())
-                        .canExtinguish(p.canExtinguish())
-                        .supportsBoating(p.supportsBoating())
-                        .canHydrate(p.canHydrate())
-                        .canConvertToSource(definition.flowProperties().canConvertToSource())) {};
-              });
-      source =
-          fluids.register(
-              definition.sourceId().getPath(), () -> new BaseFlowingFluid.Source(properties()));
-      flowing =
-          fluids.register(
-              definition.flowingId().getPath(), () -> new BaseFlowingFluid.Flowing(properties()));
-      block =
-          definition.block() == null
-              ? null
-              : blocks.register(
-                  definition.blockId().getPath(),
-                  () ->
-                      new LiquidBlock(
-                          source.get(),
-                          RuntimeProperties.block(definition.block(), material.runtime(), true)));
-      bucket =
-          definition.bucket() == null
-              ? null
-              : items.register(
-                  definition.bucketId().getPath(),
-                  () -> new BucketItem(source.get(), RuntimeProperties.item(definition.bucket())));
-      if (block != null) put(blockEntries, definition.blockId(), block);
-      if (bucket != null) {
-        put(itemEntries, definition.bucketId(), bucket);
-        itemMaterials.put(definition.bucketId(), material);
-      }
-    }
+                return new FluidType(FluidType.Properties.create()
+                    .density(p.density()).viscosity(p.viscosity())
+                    .temperature(p.temperature()).lightLevel(p.lightLevel())
+                    .motionScale(p.motionScale()).canSwim(p.canSwim())
+                    .canDrown(p.canDrown()).canExtinguish(p.canExtinguish())
+                    .supportsBoating(p.supportsBoating())
+                    .canHydrate(p.canHydrate()).canConvertToSource(
+                        definition.flowProperties().canConvertToSource())) {
+                };
+            });
+            source = fluids.register(definition.sourceId().getPath(),
+                () -> new BaseFlowingFluid.Source(properties()));
+            flowing = fluids.register(definition.flowingId().getPath(),
+                () -> new BaseFlowingFluid.Flowing(properties()));
+            block = definition.block() == null
+                ? null
+                : blocks.register(definition.blockId().getPath(),
+                    () -> new LiquidBlock(source.get(), RuntimeProperties
+                        .block(definition.block(), material.runtime(), true)));
+            bucket = definition.bucket() == null
+                ? null
+                : items.register(definition.bucketId().getPath(),
+                    () -> new BucketItem(source.get(),
+                        RuntimeProperties.item(definition.bucket())));
+            if (block != null)
+                put(blockEntries, definition.blockId(), block);
+            if (bucket != null) {
+                put(itemEntries, definition.bucketId(), bucket);
+                itemMaterials.put(definition.bucketId(), material);
+            }
+        }
 
-    private BaseFlowingFluid.Properties properties() {
-      var flow = definition.flowProperties();
-      var properties =
-          new BaseFlowingFluid.Properties(type, () -> source.get(), () -> flowing.get())
-              .slopeFindDistance(flow.slopeFindDistance())
-              .levelDecreasePerBlock(flow.levelDecreasePerBlock())
-              .tickRate(flow.tickRate())
-              .explosionResistance(flow.explosionResistance());
-      if (block != null) properties.block(block);
-      if (bucket != null) properties.bucket(bucket);
-      return properties;
+        private BaseFlowingFluid.Properties properties() {
+            var flow = definition.flowProperties();
+            var properties = new BaseFlowingFluid.Properties(type,
+                () -> source.get(), () -> flowing.get())
+                .slopeFindDistance(flow.slopeFindDistance())
+                .levelDecreasePerBlock(flow.levelDecreasePerBlock())
+                .tickRate(flow.tickRate())
+                .explosionResistance(flow.explosionResistance());
+            if (block != null)
+                properties.block(block);
+            if (bucket != null)
+                properties.bucket(bucket);
+            return properties;
+        }
     }
-  }
 }

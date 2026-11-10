@@ -20,18 +20,21 @@ public class GhostSlotElement implements SlotElement {
     private final int index;
     private final Appearance appearance;
 
-    /** Shared by ordinary ghost clicks and ingredient drops; transport authorizes the context. */
+    /**
+     * Shared by ordinary ghost clicks and ingredient drops; transport
+     * authorizes the context.
+     */
     public static final ElementAction<ItemStack> SELECT_GHOST = new ElementAction<>(
-        net.minecraft.resources.ResourceLocation.parse("mmdlib:ghost_selection"),
+        net.minecraft.resources.ResourceLocation
+            .parse("mmdlib:ghost_selection"),
         net.minecraft.network.codec.StreamCodec.of(
-            (buffer, stack) -> ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, stack),
+            (buffer, stack) -> ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer,
+                stack),
             buffer -> ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer)),
         4096,
         (context, stack) -> context.element() instanceof SlotElement slot
             && slot.ghost()
-            && context
-                .menu()
-                .components()
+            && context.menu().components()
                 .requireCapability(InventoryAccess.class)
                 .ghost(slot, context.player(), stack));
 
@@ -50,11 +53,8 @@ public class GhostSlotElement implements SlotElement {
 
     @Override
     public Slot createSlot(
-        net.neoforged.neoforge.items.IItemHandlerModifiable storage,
-        int local,
-        Rect bounds,
-        BooleanSupplier visible,
-        BooleanSupplier interacting,
+        net.neoforged.neoforge.items.IItemHandlerModifiable storage, int local,
+        Rect bounds, BooleanSupplier visible, BooleanSupplier interacting,
         Runnable changed) {
         return createSlot(bounds, visible);
     }
@@ -111,12 +111,7 @@ public class GhostSlotElement implements SlotElement {
 
     @Override
     public String toString() {
-        return "GhostSlotElement[common="
-            + common
-            + ", index="
-            + index
-            + ", appearance="
-            + appearance
-            + "]";
+        return "GhostSlotElement[common=" + common + ", index=" + index
+            + ", appearance=" + appearance + "]";
     }
 }

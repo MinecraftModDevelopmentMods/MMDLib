@@ -10,9 +10,10 @@ public final class ColouredGroupRenderer {
     private ColouredGroupRenderer() {
     }
 
-    public static void draw(
-        ColouredGroupElement group, GuiGraphics graphics, Rect bounds, boolean highlighted) {
+    public static void draw(ColouredGroupElement group, GuiGraphics graphics,
+        Rect bounds, boolean highlighted) {
         Rect r = group.outline(bounds, highlighted);
-        graphics.renderOutline(r.x(), r.y(), r.width(), r.height(), group.colour());
+        graphics.renderOutline(r.x(), r.y(), r.width(), r.height(),
+            group.colour());
     }
 }

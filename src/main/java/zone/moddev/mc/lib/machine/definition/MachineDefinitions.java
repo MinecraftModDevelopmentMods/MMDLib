@@ -36,13 +36,15 @@ import zone.moddev.mc.lib.machine.definition.MachineDefinition.Tank;
 import zone.moddev.mc.lib.machine.inventory.MachineStorageKeys;
 
 /**
- * Discovers machine XML, composes inheritance, then validates concrete plans before registration.
+ * Discovers machine XML, composes inheritance, then validates concrete plans
+ * before registration.
  */
 public final class MachineDefinitions {
     private MachineDefinitions() {
     }
 
-    public static Map<ResourceLocation, MachineDefinition> load(List<SourceRoot> sources) {
+    public static Map<ResourceLocation, MachineDefinition> load(
+        List<SourceRoot> sources) {
         var nodes = new TreeMap<ResourceLocation, Node>();
         var loaders = new HashMap<String, ClassLoader>();
         for (var source : sources) {
@@ -50,16 +52,17 @@ public final class MachineDefinitions {
             if (!Files.isDirectory(folder))
                 continue;
             try (var paths = Files.walk(folder)) {
-                for (var path : paths
-                    .filter(Files::isRegularFile)
-                    .filter(p -> p.toString().endsWith(".xml"))
-                    .sorted()
+                for (var path : paths.filter(Files::isRegularFile)
+                    .filter(p -> p.toString().endsWith(".xml")).sorted()
                     .toList()) {
-                    String relative = folder.relativize(path).toString().replace('\\', '/');
+                    String relative = folder.relativize(path).toString()
+                        .replace('\\', '/');
                     var id = ResourceLocation.fromNamespaceAndPath(
-                        source.namespace(), relative.substring(0, relative.length() - 4));
+                        source.namespace(),
+                        relative.substring(0, relative.length() - 4));
                     try (var stream = Files.newInputStream(path)) {
-                        var node = ScreenReader.parseMachine(path.toString(), stream);
+                        var node = ScreenReader.parseMachine(path.toString(),
+                            stream);
                         validateTree(node);
                         if (!node.name().equals("machine"))
                             throw error(node, "Expected <machine>");
@@ -82,10 +85,8 @@ public final class MachineDefinitions {
         return Collections.unmodifiableMap(plans);
     }
 
-    private static Node resolve(
-        ResourceLocation id,
-        Map<ResourceLocation, Node> nodes,
-        Map<ResourceLocation, Node> resolved,
+    private static Node resolve(ResourceLocation id,
+        Map<ResourceLocation, Node> nodes, Map<ResourceLocation, Node> resolved,
         Set<ResourceLocation> visiting) {
         if (resolved.containsKey(id))
             return resolved.get(id);
@@ -108,11 +109,14 @@ public final class MachineDefinitions {
     }
 
     private static String key(Node parent, Node node) {
-        // These sections contain singletons; their ID is configuration, not merge identity.
+        // These sections contain singletons; their ID is configuration, not
+        // merge identity.
         if (Set.of("machine", "storage", "recipe-type").contains(parent.name()))
             return node.name();
-        var id = node.attributes().getOrDefault("id", node.attributes().get("name"));
-        // Ordinary unnamed screen siblings are ordered content, never implicit overrides.
+        var id = node.attributes().getOrDefault("id",
+            node.attributes().get("name"));
+        // Ordinary unnamed screen siblings are ordered content, never implicit
+        // overrides.
         return id == null ? null : node.name() + ":" + id;
     }
 
@@ -142,61 +146,45 @@ public final class MachineDefinitions {
                 children.add(node);
             }
         }
-        return new Node(
-            child.name(),
-            Map.copyOf(attrs),
-            List.copyOf(children),
-            child.source(),
-            child.line(),
-            child.namespace());
+        return new Node(child.name(), Map.copyOf(attrs), List.copyOf(children),
+            child.source(), child.line(), child.namespace());
     }
 
     private static final Map<String, Set<String>> ATTRIBUTES = Map.ofEntries(
         Map.entry("machine", Set.of("version", "abstract", "extends", "name")),
-        Map.entry("block", Set.of("hardness", "facing", "drop", "mineable", "requires-tool")),
-        Map.entry("appearance", Set.of("preset", "front", "side", "top", "bottom")),
-        Map.entry("storage", Set.of()),
-        Map.entry("items", Set.of("id")),
+        Map.entry("block",
+            Set.of("hardness", "facing", "drop", "mineable", "requires-tool")),
+        Map.entry("appearance",
+            Set.of("preset", "front", "side", "top", "bottom")),
+        Map.entry("storage", Set.of()), Map.entry("items", Set.of("id")),
         Map.entry("fluids", Set.of("id")),
         Map.entry("tank", Set.of("id", "capacity", "role", "fluid")),
         Map.entry("tanks", Set.of("id", "count", "capacity", "role", "fluid")),
-        Map.entry("energy", Set.of("id", "capacity", "input-rate", "output-rate")),
+        Map.entry("energy",
+            Set.of("id", "capacity", "input-rate", "output-rate")),
         Map.entry("slots", Set.of("id", "count", "role", "limit")),
         Map.entry("slot", Set.of("id", "role", "limit")),
         Map.entry("groups", Set.of()),
         Map.entry("group", Set.of("id", "storage", "members", "mode", "color")),
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
-        Map.entry("processor", Set.of("id", "name", "recipe-type", "filter-inputs")),
+        Map.entry("processor",
+            Set.of("id", "name", "recipe-type", "filter-inputs")),
         Map.entry("redstone", Set.of("enabled", "pause")),
         Map.entry("recovery", Set.of("policy")));
-    private static final Map<String, Set<String>> CHILDREN = Map.of(
-        "machine",
-        Set.of(
-            "block",
-            "appearance",
-            "storage",
-            "groups",
-            "recipe-type",
-            "processor",
-            "redstone",
-            "recovery",
-            "screen"),
-        "storage",
-        Set.of("energy", "items", "fluids"),
-        "fluids",
-        Set.of("tank", "tanks"),
-        "items",
-        Set.of("slot", "slots"),
-        "groups",
-        Set.of("group"),
-        "recipe-type",
-        Set.of("generator"));
+    private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
+        Set.of("block", "appearance", "storage", "groups", "recipe-type",
+            "processor", "redstone", "recovery", "screen"),
+        "storage", Set.of("energy", "items", "fluids"), "fluids",
+        Set.of("tank", "tanks"), "items", Set.of("slot", "slots"), "groups",
+        Set.of("group"), "recipe-type", Set.of("generator"));
 
     private static void validateTree(Node node) {
-        if (node.name().equals("screen") && node.namespace().equals(ScreenReader.NAMESPACE))
+        if (node.name().equals("screen")
+            && node.namespace().equals(ScreenReader.NAMESPACE))
             return;
         if (!node.namespace().equals(ScreenReader.NAMESPACE))
-            throw error(node, "Unknown machine XML namespace: " + node.namespace());
+            throw error(node,
+                "Unknown machine XML namespace: " + node.namespace());
         if (!node.name().equals("generator")) {
             var allowed = ATTRIBUTES.get(node.name());
             if (allowed == null)
@@ -205,7 +193,8 @@ public final class MachineDefinitions {
                 if (!allowed.contains(attr))
                     throw error(node, "Unknown attribute " + attr);
         }
-        // Validate values where they were authored, before inherited attributes acquire a child
+        // Validate values where they were authored, before inherited attributes
+        // acquire a child
         // source.
         var resources = switch (node.name()) {
             case "machine" -> List.of("extends");
@@ -219,11 +208,13 @@ public final class MachineDefinitions {
         for (var attribute : resources)
             if (node.attributes().containsKey(attribute))
                 resource(node, attribute);
-        if (node.name().equals("block") && node.attributes().containsKey("hardness"))
+        if (node.name().equals("block")
+            && node.attributes().containsKey("hardness"))
             hardness(node);
         var seen = new HashSet<String>();
         for (var child : node.children()) {
-            if (!CHILDREN.getOrDefault(node.name(), Set.of()).contains(child.name()))
+            if (!CHILDREN.getOrDefault(node.name(), Set.of())
+                .contains(child.name()))
                 throw error(child, "Unexpected child of " + node.name());
             var key = key(node, child);
             if (key != null && !seen.add(key))
@@ -232,8 +223,8 @@ public final class MachineDefinitions {
         }
     }
 
-    private static MachineDefinition plan(
-        ResourceLocation id, Node root, Map<String, ClassLoader> loaders) {
+    private static MachineDefinition plan(ResourceLocation id, Node root,
+        Map<String, ClassLoader> loaders) {
         if (!"1".equals(root.attributes().get("version")))
             throw error(root, "Expected machine version=1");
         var block = one(root, "block");
@@ -244,8 +235,7 @@ public final class MachineDefinitions {
         var textures = new HashMap<String, String>();
         for (var face : List.of("front", "side", "top"))
             textures.put(face, resource(appearance, face).toString());
-        textures.put(
-            "bottom",
+        textures.put("bottom",
             appearance.attributes().containsKey("bottom")
                 ? resource(appearance, "bottom").toString()
                 : textures.get("side"));
@@ -269,18 +259,24 @@ public final class MachineDefinitions {
             if (fluidId.equals("energy")
                 || fluidId.equals(required(items, "id"))
                 || MachineStorageKeys.RESERVED.contains(fluidId))
-                throw error(fluidNode, "Duplicate or reserved storage ID " + fluidId);
+                throw error(fluidNode,
+                    "Duplicate or reserved storage ID " + fluidId);
             for (var node : fluidNode.children()) {
                 String tankId = required(node, "id");
                 Role role = role(node);
-                int count = node.name().equals("tanks") ? (int) number(node, "count", 1, 16) : 1;
-                int capacity = (int) number(node, "capacity", 1, Integer.MAX_VALUE);
+                int count = node.name().equals("tanks")
+                    ? (int) number(node, "count", 1, 16)
+                    : 1;
+                int capacity = (int) number(node, "capacity", 1,
+                    Integer.MAX_VALUE);
                 var filter = node.attributes().containsKey("fluid")
                     ? resource(node, "fluid")
                     : null;
                 var members = new ArrayList<Integer>();
                 for (int i = 0; i < count; i++) {
-                    String member = node.name().equals("tanks") ? tankId + "/" + i : tankId;
+                    String member = node.name().equals("tanks")
+                        ? tankId + "/" + i
+                        : tankId;
                     if (tankIds.putIfAbsent(member, tanks.size()) != null)
                         throw error(node, "Duplicate tank " + member);
                     members.add(tanks.size());
@@ -300,17 +296,22 @@ public final class MachineDefinitions {
             String slotId = required(node, "id");
             Role role;
             try {
-                role = Role.valueOf(required(node, "role").toUpperCase(Locale.ROOT));
+                role = Role
+                    .valueOf(required(node, "role").toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException ex) {
                 throw error(node, "Invalid slot role");
             }
-            int count = node.name().equals("slots") ? (int) number(node, "count", 1, 54) : 1;
+            int count = node.name().equals("slots")
+                ? (int) number(node, "count", 1, 54)
+                : 1;
             int limit = node.attributes().containsKey("limit")
                 ? (int) number(node, "limit", 1, 64)
                 : 64;
             var members = new ArrayList<Integer>();
             for (int i = 0; i < count; i++) {
-                String memberId = node.name().equals("slots") ? slotId + "/" + i : slotId;
+                String memberId = node.name().equals("slots")
+                    ? slotId + "/" + i
+                    : slotId;
                 if (ids.putIfAbsent(memberId, slots.size()) != null)
                     throw error(node, "Duplicate slot " + memberId);
                 members.add(slots.size());
@@ -323,9 +324,8 @@ public final class MachineDefinitions {
                     case STORAGE -> IoMode.BOTH;
                     case MANUAL -> IoMode.DISABLED;
                 };
-                if (groups.putIfAbsent(
-                    slotId, new Group(slotId, members, mode,
-                        role == Role.INPUT ? 0x568bd8 : 0xe48f45)) != null)
+                if (groups.putIfAbsent(slotId, new Group(slotId, members, mode,
+                    role == Role.INPUT ? 0x568bd8 : 0xe48f45)) != null)
                     throw error(node, "Duplicate group " + slotId);
             }
         }
@@ -336,37 +336,42 @@ public final class MachineDefinitions {
             for (var node : groupsNode.children()) {
                 String groupId = required(node, "id");
                 if (required(node, "storage").equals(powerId)) {
-                    if (!groupId.equals(powerId) || !"input".equals(required(node, "mode")))
+                    if (!groupId.equals(powerId)
+                        || !"input".equals(required(node, "mode")))
                         throw error(node, "Energy group must be energy/input");
                     if (node.attributes().containsKey("members"))
-                        throw error(node, "Energy group has a single implicit member");
+                        throw error(node,
+                            "Energy group has a single implicit member");
                     energyColor = color(node, energyColor);
                     continue;
                 }
-                if (fluidNode != null
-                    && required(node, "storage").equals(required(fluidNode, "id"))) {
+                if (fluidNode != null && required(node, "storage")
+                    .equals(required(fluidNode, "id"))) {
                     var prior = fluidGroups.get(groupId);
                     if (prior == null)
-                        throw error(node, "Unknown automatic fluid group " + groupId);
+                        throw error(node,
+                            "Unknown automatic fluid group " + groupId);
                     if (node.attributes().containsKey("members")) {
                         var members = new ArrayList<Integer>();
-                        for (var member : required(node, "members").split("\\s+")) {
+                        for (var member : required(node, "members")
+                            .split("\\s+")) {
                             if (!tankIds.containsKey(member))
                                 throw error(node, "Unknown tank " + member);
                             members.add(tankIds.get(member));
                         }
                         if (!prior.members().equals(members))
-                            throw error(node, "Conflicting automatic fluid group " + groupId);
+                            throw error(node,
+                                "Conflicting automatic fluid group " + groupId);
                     }
                     IoMode mode;
                     try {
-                        mode = IoMode.valueOf(required(node, "mode").toUpperCase(Locale.ROOT));
+                        mode = IoMode.valueOf(
+                            required(node, "mode").toUpperCase(Locale.ROOT));
                     } catch (IllegalArgumentException ex) {
                         throw error(node, "Invalid group mode");
                     }
-                    fluidGroups.put(
-                        groupId,
-                        new Group(groupId, prior.members(), mode, color(node, prior.color())));
+                    fluidGroups.put(groupId, new Group(groupId, prior.members(),
+                        mode, color(node, prior.color())));
                     continue;
                 }
                 if (!required(node, "storage").equals(required(items, "id")))
@@ -374,7 +379,8 @@ public final class MachineDefinitions {
                 var prior = groups.get(groupId);
                 var members = new ArrayList<Integer>();
                 if (node.attributes().containsKey("members"))
-                    for (String member : required(node, "members").split("\\s+")) {
+                    for (String member : required(node, "members")
+                        .split("\\s+")) {
                         if (!ids.containsKey(member))
                             throw error(node, "Unknown slot " + member);
                         members.add(ids.get(member));
@@ -387,15 +393,13 @@ public final class MachineDefinitions {
                     throw error(node, "Conflicting automatic group " + groupId);
                 IoMode mode;
                 try {
-                    mode = IoMode.valueOf(required(node, "mode").toUpperCase(Locale.ROOT));
+                    mode = IoMode.valueOf(
+                        required(node, "mode").toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException ex) {
                     throw error(node, "Invalid group mode");
                 }
-                groups.put(
-                    groupId,
-                    new Group(
-                        groupId, members, mode,
-                        color(node, prior == null ? 0x568bd8 : prior.color())));
+                groups.put(groupId, new Group(groupId, members, mode,
+                    color(node, prior == null ? 0x568bd8 : prior.color())));
             }
         var covered = new HashSet<Integer>();
         for (var group : groups.values())
@@ -405,7 +409,8 @@ public final class MachineDefinitions {
                 var role = slots.get(index).role();
                 if ((group.mode().canInsert() && !role.canInsert())
                     || (group.mode().canExtract() && !role.canExtract()))
-                    throw error(items, "Group mode conflicts with slot role: " + group.id());
+                    throw error(items,
+                        "Group mode conflicts with slot role: " + group.id());
             }
         if (covered.size() != slots.size())
             throw error(items, "Every slot must belong to a group");
@@ -413,12 +418,14 @@ public final class MachineDefinitions {
             throw error(items, "Item group conflicts with energy");
         for (var group : fluidGroups.values()) {
             if (groups.containsKey(group.id()) || group.id().equals(powerId))
-                throw error(fluidNode, "Duplicate resource group " + group.id());
+                throw error(fluidNode,
+                    "Duplicate resource group " + group.id());
             for (int index : group.members()) {
                 var role = tanks.get(index).role();
                 if ((group.mode().canInsert() && !role.canInsert())
                     || (group.mode().canExtract() && !role.canExtract()))
-                    throw error(fluidNode, "Group mode conflicts with tank role: " + group.id());
+                    throw error(fluidNode,
+                        "Group mode conflicts with tank role: " + group.id());
             }
         }
         var recipe = one(root, "recipe-type");
@@ -427,32 +434,29 @@ public final class MachineDefinitions {
         if (generatorNode != null) {
             var props = new HashMap<>(generatorNode.attributes());
             props.remove("class");
-            generator = new Generator(
-                required(generatorNode, "class"),
-                props,
-                generatorNode.source(),
-                generatorNode.line(),
+            generator = new Generator(required(generatorNode, "class"), props,
+                generatorNode.source(), generatorNode.line(),
                 loaders.get(generatorNode.source()));
         }
         var recipeId = resource(recipe, "id");
-        var recipeType = new RecipeType(
-            recipeId,
+        var recipeType = new RecipeType(recipeId,
             bool(recipe, "declare", false),
             recipe.attributes().getOrDefault("name", recipeId.getPath()),
             generator);
         if (!recipeType.declare() && generator != null)
-            throw error(recipe, "Only a declaring recipe type may supply a generator");
+            throw error(recipe,
+                "Only a declaring recipe type may supply a generator");
         var processor = one(root, "processor");
         if (!recipeId.equals(resource(processor, "recipe-type")))
             throw error(processor, "Unknown recipe type");
-        // All input groups are linked automatically; an explicit list must agree.
+        // All input groups are linked automatically; an explicit list must
+        // agree.
         var inputs = java.util.stream.Stream
             .concat(groups.values().stream(), fluidGroups.values().stream())
-            .filter(g -> g.mode() == IoMode.INPUT)
-            .map(Group::id)
-            .toList();
+            .filter(g -> g.mode() == IoMode.INPUT).map(Group::id).toList();
         if (processor.attributes().containsKey("filter-inputs")
-            && !new HashSet<>(Arrays.asList(required(processor, "filter-inputs").split("\\s+")))
+            && !new HashSet<>(Arrays
+                .asList(required(processor, "filter-inputs").split("\\s+")))
                 .equals(new HashSet<>(inputs)))
             throw error(processor, "filter-inputs must name the input groups");
         var redstone = optional(root, "redstone");
@@ -462,37 +466,32 @@ public final class MachineDefinitions {
         requireChoice(recovery, "policy", "capsule");
         var screen = one(root, "screen");
         var attrs = new HashMap<>(screen.attributes());
-        attrs.put("title", "block." + id.getNamespace() + "." + id.getPath().replace('/', '.'));
+        attrs.put("title", "block." + id.getNamespace() + "."
+            + id.getPath().replace('/', '.'));
         attrs.put("title-fallback", required(root, "name"));
-        attrs.put("block-entity", "zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity");
+        attrs.put("block-entity",
+            "zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity");
         float hardness = hardness(block);
-        return new MachineDefinition(
-            id,
-            checksum(root),
-            required(root, "name"),
-            hardness,
-            resource(block, "mineable"),
-            bool(block, "requires-tool", false),
-            textures,
+        return new MachineDefinition(id, checksum(root), required(root, "name"),
+            hardness, resource(block, "mineable"),
+            bool(block, "requires-tool", false), textures,
             power == null
                 ? null
-                : new Power(
-                    powerId,
+                : new Power(powerId,
                     number(power, "capacity", 1, Long.MAX_VALUE),
                     number(power, "input-rate", 0, Long.MAX_VALUE),
                     number(power, "output-rate", 0, Long.MAX_VALUE),
                     energyColor),
             fluidNode == null
                 ? null
-                : new Fluids(required(fluidNode, "id"), tanks, List.copyOf(fluidGroups.values())),
-            required(items, "id"),
-            slots,
-            List.copyOf(groups.values()),
-            recipeType,
-            required(processor, "id"),
+                : new Fluids(required(fluidNode, "id"), tanks,
+                    List.copyOf(fluidGroups.values())),
+            required(items, "id"), slots, List.copyOf(groups.values()),
+            recipeType, required(processor, "id"),
             processor.attributes().getOrDefault("name", required(root, "name")),
             redstone != null && bool(redstone, "enabled", false),
-            new Node("screen", attrs, screen.children(), screen.source(), screen.line()));
+            new Node("screen", attrs, screen.children(), screen.source(),
+                screen.line()));
     }
 
     public static String required(Node node, String key) {
@@ -504,7 +503,8 @@ public final class MachineDefinitions {
 
     private static Role role(Node node) {
         try {
-            return Role.valueOf(required(node, "role").toUpperCase(Locale.ROOT));
+            return Role
+                .valueOf(required(node, "role").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw error(node, "Invalid role");
         }
@@ -523,13 +523,8 @@ public final class MachineDefinitions {
         var value = required(node, key);
         var id = ResourceLocation.tryParse(value);
         if (id == null)
-            throw error(
-                node,
-                "Invalid "
-                    + key
-                    + "='"
-                    + value
-                    + "': expected a resource location such as minecraft:stone");
+            throw error(node, "Invalid " + key + "='" + value
+                + "': expected a resource location such as minecraft:stone");
         return id;
     }
 
@@ -540,22 +535,24 @@ public final class MachineDefinitions {
             if (Float.isFinite(parsed) && parsed >= 0)
                 return parsed;
         } catch (NumberFormatException ignored) {
-            // Report a definition error with the original file, line, attribute and value.
+            // Report a definition error with the original file, line, attribute
+            // and value.
         }
-        throw error(
-            node,
-            "Invalid hardness='"
-                + value
-                + "': expected a finite nonnegative number; use '.' as the decimal separator (for"
-                + " example 3.5)");
+        throw error(node, "Invalid hardness='" + value
+            + "': expected a finite nonnegative number; use '.' as the decimal separator (for"
+            + " example 3.5)");
     }
 
-    /** CRC of the resolved XML tree: includes inherited settings, excludes paths/formatting. */
+    /**
+     * CRC of the resolved XML tree: includes inherited settings, excludes
+     * paths/formatting.
+     */
     private static String checksum(Node root) {
         var text = new StringBuilder();
         canonical(root, text);
         var crc = new java.util.zip.CRC32();
-        crc.update(text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        crc.update(
+            text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         return String.format(java.util.Locale.ROOT, "%08x", crc.getValue());
     }
 
@@ -563,12 +560,10 @@ public final class MachineDefinitions {
         token(text, node.namespace());
         token(text, node.name());
         text.append(node.attributes().size()).append(':');
-        new TreeMap<>(node.attributes())
-            .forEach(
-                (key, value) -> {
-                    token(text, key);
-                    token(text, value);
-                });
+        new TreeMap<>(node.attributes()).forEach((key, value) -> {
+            token(text, key);
+            token(text, value);
+        });
         text.append(node.children().size()).append(':');
         node.children().forEach(child -> canonical(child, text));
     }
@@ -578,7 +573,8 @@ public final class MachineDefinitions {
     }
 
     private static Node optional(Node node, String name) {
-        var children = node.children().stream().filter(n -> n.name().equals(name)).toList();
+        var children = node.children().stream()
+            .filter(n -> n.name().equals(name)).toList();
         if (children.size() > 1)
             throw error(node, "Only one " + name + " is supported");
         return children.isEmpty() ? null : children.getFirst();

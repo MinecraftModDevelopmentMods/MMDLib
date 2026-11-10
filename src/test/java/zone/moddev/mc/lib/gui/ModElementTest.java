@@ -49,7 +49,8 @@ class ModElementTest {
         }
     }
 
-    private record ModContainer(Common common, List<Element> children) implements Element {
+    private record ModContainer(Common common, List<Element> children)
+        implements Element {
         public int[] measure(TextMeasure text) {
             return new int[]{40, 30};
         }
@@ -59,57 +60,54 @@ class ModElementTest {
         }
     }
 
-    private record ModSlot(Common common, int index, Appearance appearance) implements SlotElement {
+    private record ModSlot(Common common, int index, Appearance appearance)
+        implements SlotElement {
         public SlotKind kind() {
             return SlotKind.NORMAL;
         }
     }
 
     private Screen screen(Element element) throws Exception {
-        return new Screen(
-            ResourceLocation.parse("test:extension"),
-            "extension.java",
-            new Text("test", Optional.empty()),
-            ElementInteractionTest.Host.class.getName(),
-            false,
-            List.of(element),
-            List.of());
+        return new Screen(ResourceLocation.parse("test:extension"),
+            "extension.java", new Text("test", Optional.empty()),
+            ElementInteractionTest.Host.class.getName(), false,
+            List.of(element), List.of());
     }
 
     @Test
-    void externalElementUsesLayoutInteractionSnapshotsAndTypedRendering() throws Exception {
+    void externalElementUsesLayoutInteractionSnapshotsAndTypedRendering()
+        throws Exception {
         var element = new ModElement(Common.empty());
         var container = new ModContainer(Common.empty(), List.of(element));
         var layout = ScreenLayout.of(screen(container), TextMeasure.NONE);
         assertEquals(40, layout.bounds(container).width());
-        assertEquals(layout.bounds(container).x() + 4, layout.bounds(element).x());
-        assertEquals(layout.bounds(container).y() + 5, layout.bounds(element).y());
+        assertEquals(layout.bounds(container).x() + 4,
+            layout.bounds(element).x());
+        assertEquals(layout.bounds(container).y() + 5,
+            layout.bounds(element).y());
         assertTrue(element.interactive());
         assertTrue(element.interact(null));
         assertEquals(7, element.snapshot(null).orElseThrow().value());
         var renderers = new ElementRenderers();
         var rendered = new java.util.ArrayList<Element>();
-        renderers.register(ModElement.class, (value, context) -> rendered.add(value));
-        renderers
-            .require(ModElement.class)
-            .accept(
-                new ElementRenderers.Context(null, element, layout.bounds(element), 7, 10, 0, 0,
-                    0));
+        renderers.register(ModElement.class,
+            (value, context) -> rendered.add(value));
+        renderers.require(ModElement.class).accept(new ElementRenderers.Context(
+            null, element, layout.bounds(element), 7, 10, 0, 0, 0));
         assertEquals(List.of(element), rendered);
-        assertThrows(
-            IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
             () -> renderers.register(ModElement.class, (value, context) -> {
             }));
-        assertThrows(IllegalArgumentException.class, () -> renderers.require(ModContainer.class));
+        assertThrows(IllegalArgumentException.class,
+            () -> renderers.require(ModContainer.class));
     }
 
     @Test
     void externalSlotUsesInventoryGeometry() throws Exception {
-        var slot = new ModSlot(
-            Common.empty(),
-            0,
-            SlotElement.Appearance.standard(SlotSize.NORMAL, Optional.empty(), Optional.empty()));
-        var inventory = new InventoryElement(Common.empty(), "custom", 1, 0, List.of(slot));
+        var slot = new ModSlot(Common.empty(), 0, SlotElement.Appearance
+            .standard(SlotSize.NORMAL, Optional.empty(), Optional.empty()));
+        var inventory = new InventoryElement(Common.empty(), "custom", 1, 0,
+            List.of(slot));
         var layout = ScreenLayout.of(screen(inventory), TextMeasure.NONE);
         assertEquals(18, layout.bounds(slot).width());
         assertEquals(18, layout.bounds(inventory).height());

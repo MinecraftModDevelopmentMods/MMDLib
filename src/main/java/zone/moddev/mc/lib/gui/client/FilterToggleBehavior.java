@@ -40,14 +40,18 @@ final class FilterToggleBehavior implements ElementBehavior {
                 : element.tooltip());
     }
 
-    static void render(FilterControl.Toggle element, ElementRenderers.Context c) {
+    static void render(FilterControl.Toggle element,
+        ElementRenderers.Context c) {
         var r = c.bounds();
         var g = c.graphics();
-        boolean selected = FilterDrawing.configuration(c.value()).getBoolean(element.id());
-        ElementDrawing.sprite(g, c.hovered() ? "button_flat_highlighted" : "button_flat", r);
-        g.blitSprite(selected ? element.selectedIcon() : element.icon(), r.x() + 2, r.y() + 2, 10,
-            10);
+        boolean selected = FilterDrawing.configuration(c.value())
+            .getBoolean(element.id());
+        ElementDrawing.sprite(g,
+            c.hovered() ? "button_flat_highlighted" : "button_flat", r);
+        g.blitSprite(selected ? element.selectedIcon() : element.icon(),
+            r.x() + 2, r.y() + 2, 10, 10);
         if (selected && element.icon().equals(element.selectedIcon()))
-            g.fill(r.x() + 3, r.bottom() - 3, r.right() - 3, r.bottom() - 2, 0xffeeeeee);
+            g.fill(r.x() + 3, r.bottom() - 3, r.right() - 3, r.bottom() - 2,
+                0xffeeeeee);
     }
 }

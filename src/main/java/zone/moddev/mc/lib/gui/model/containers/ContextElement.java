@@ -23,25 +23,25 @@ import zone.moddev.mc.lib.gui.sync.ElementSync;
 import zone.moddev.mc.lib.gui.sync.SynchronizedElement;
 
 /**
- * {@code context}: an area whose content buttons swap in place. The first view is the default.
+ * {@code context}: an area whose content buttons swap in place. The first view
+ * is the default.
  *
  * <p>
  * {@code views}: the alternative contents
  */
-public class ContextElement implements SynchronizedElement, SelectiveContainer, NavigableElement {
+public class ContextElement
+    implements SynchronizedElement, SelectiveContainer, NavigableElement {
     private final Common common;
     private final List<ViewElement> views;
 
-    public static final ElementSync<Integer> SELECTED = ElementSync.field(
-        ResourceLocation.parse("mmdlib:context_view"),
-        StreamCodec.of(
-            (buffer, value) -> buffer.writeVarInt(value), buffer -> buffer.readVarInt()),
-        5,
-        element -> 0)
-        .validate(
-            (element, value) -> value >= 0 && value < ((ContextElement) element).views().size())
-        .affectsLayout()
-        .build();
+    public static final ElementSync<Integer> SELECTED = ElementSync
+        .field(ResourceLocation.parse("mmdlib:context_view"),
+            StreamCodec.of((buffer, value) -> buffer.writeVarInt(value),
+                buffer -> buffer.readVarInt()),
+            5, element -> 0)
+        .validate((element, value) -> value >= 0
+            && value < ((ContextElement) element).views().size())
+        .affectsLayout().build();
 
     public List<ElementSync<?>> synchronizedValues() {
         return List.of(SELECTED);
@@ -56,7 +56,8 @@ public class ContextElement implements SynchronizedElement, SelectiveContainer, 
     }
 
     public boolean hasSelection(String selection) {
-        return views.stream().anyMatch(view -> view.common().id().orElse("").equals(selection));
+        return views.stream()
+            .anyMatch(view -> view.common().id().orElse("").equals(selection));
     }
 
     public boolean select(ElementStates state, String selection) {
@@ -102,8 +103,7 @@ public class ContextElement implements SynchronizedElement, SelectiveContainer, 
         final String selection = selected;
         return views.stream()
             .filter(view -> view.common().id().orElse("").equals(selection))
-            .findFirst()
-            .orElse(defaultView());
+            .findFirst().orElse(defaultView());
     }
 
     public int[] measure(TextMeasure text) {
@@ -119,13 +119,8 @@ public class ContextElement implements SynchronizedElement, SelectiveContainer, 
         var selected = selected(text);
         for (var view : views) {
             var size = ElementLayouts.size(view, text);
-            result.put(
-                view,
-                new Rect(
-                    0,
-                    0,
-                    Math.max(bounds.width(), size[0]),
-                    view == selected ? bounds.height() : size[1]));
+            result.put(view, new Rect(0, 0, Math.max(bounds.width(), size[0]),
+                view == selected ? bounds.height() : size[1]));
         }
         return result;
     }
@@ -133,7 +128,8 @@ public class ContextElement implements SynchronizedElement, SelectiveContainer, 
     public void validate() {
         SynchronizedElement.super.validate();
         if (common.id().isEmpty())
-            throw new IllegalArgumentException("<context> needs an id for buttons to name");
+            throw new IllegalArgumentException(
+                "<context> needs an id for buttons to name");
         if (views.isEmpty())
             throw new IllegalArgumentException("<context> needs a view");
     }
@@ -141,25 +137,19 @@ public class ContextElement implements SynchronizedElement, SelectiveContainer, 
     public void validateScreen(Screen screen) {
         for (var view : views)
             if (view.common().id().isEmpty())
-                throw new ScreenException(
-                    screen.source(view.common()),
+                throw new ScreenException(screen.source(view.common()),
                     view.common().line(),
                     "<view> needs an id for buttons to name");
     }
 
     public static final ElementAction<ElementActions.Click> BACK = new ElementAction<>(
         ResourceLocation.parse("mmdlib:context_back"),
-        ElementActions.Click.CODEC,
-        8,
-        (context, click) -> {
+        ElementActions.Click.CODEC, 8, (context, click) -> {
             if (click.option() != 0)
                 return false;
             var element = (ContextElement) context.element();
-            context
-                .menu()
-                .navigate(
-                    element.common().id().orElseThrow(),
-                    element.defaultView().common().id().orElseThrow());
+            context.menu().navigate(element.common().id().orElseThrow(),
+                element.defaultView().common().id().orElseThrow());
             return true;
         });
 
@@ -167,8 +157,11 @@ public class ContextElement implements SynchronizedElement, SelectiveContainer, 
         return List.of(ElementActions.CLICK, BACK);
     }
 
-    public Optional<ElementAction<ElementActions.Click>> legacyAction(int kind) {
-        return kind == 2 ? Optional.of(BACK) : SynchronizedElement.super.legacyAction(kind);
+    public Optional<ElementAction<ElementActions.Click>> legacyAction(
+        int kind) {
+        return kind == 2
+            ? Optional.of(BACK)
+            : SynchronizedElement.super.legacyAction(kind);
     }
 
     public Common common() {

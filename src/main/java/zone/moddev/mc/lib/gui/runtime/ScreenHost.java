@@ -9,18 +9,26 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import zone.moddev.mc.lib.api.capabilities.SideConfig;
 
-/** Implement on a block entity to expose its inventory and side groups to a data-defined menu. */
+/**
+ * Implement on a block entity to expose its inventory and side groups to a
+ * data-defined menu.
+ */
 public interface ScreenHost {
     /**
-     * The inventory behind the screen's {@code <slot index>} elements, numbered as in the XML;
-     * returning an {@code ItemStorage} keeps its output restrictions and filters for players. It
-     * must work on the client too, where the menu asks it what each slot accepts to predict clicks.
-     * A custom handler or wrapper with reservations must also implement {@code ReservedSlots},
-     * including its plan snapshots, so both menu sides enforce the same reservations.
+     * The inventory behind the screen's {@code <slot index>} elements, numbered
+     * as in the XML; returning an {@code ItemStorage} keeps its output
+     * restrictions and filters for players. It must work on the client too,
+     * where the menu asks it what each slot accepts to predict clicks. A custom
+     * handler or wrapper with reservations must also implement
+     * {@code ReservedSlots}, including its plan snapshots, so both menu sides
+     * enforce the same reservations.
      */
     IItemHandlerModifiable screenItems();
 
-    /** Independent inventories. The legacy combined view remains available through screenItems. */
+    /**
+     * Independent inventories. The legacy combined view remains available
+     * through screenItems.
+     */
     default Map<String, ? extends IItemHandlerModifiable> screenInventories() {
         return screenItems() instanceof zone.moddev.mc.lib.api.capabilities.ItemInventories inventories
             ? inventories.inventories()
@@ -32,7 +40,8 @@ public interface ScreenHost {
         if (inventory == null && name.equals("items"))
             return screenItems();
         if (inventory == null)
-            throw new IllegalArgumentException("Unknown screen inventory: " + name);
+            throw new IllegalArgumentException(
+                "Unknown screen inventory: " + name);
         return inventory;
     }
 
@@ -42,7 +51,8 @@ public interface ScreenHost {
     }
 
     /**
-     * Logical aliases for a declared slot, also used by ghost slots that have no physical binding.
+     * Logical aliases for a declared slot, also used by ghost slots that have
+     * no physical binding.
      */
     default java.util.List<zone.moddev.mc.lib.api.capabilities.ItemInventories.Address> screenSlotAddresses(
         String inventory, int slot, boolean standalone) {
@@ -50,27 +60,24 @@ public interface ScreenHost {
             && screenItems() instanceof zone.moddev.mc.lib.api.capabilities.ItemInventories
                 ? java.util.List.of()
                 : java.util.List.of(
-                    new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address(inventory,
-                        slot));
+                    new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address(
+                        inventory, slot));
     }
 
     /**
-     * Resolve a real slot once for menu assembly. Override for custom wrappers or logical mappings.
-     * Storage identity and local index identify duplicates and shared client mirrors. Return stable
-     * handlers for the menu lifetime; use -1 when no legacy index exists. Both menu sides must
-     * resolve the same addresses/order. Standalone slots address the legacy view by default.
+     * Resolve a real slot once for menu assembly. Override for custom wrappers
+     * or logical mappings. Storage identity and local index identify duplicates
+     * and shared client mirrors. Return stable handlers for the menu lifetime;
+     * use -1 when no legacy index exists. Both menu sides must resolve the same
+     * addresses/order. Standalone slots address the legacy view by default.
      */
     default InventoryBinding screenInventoryBinding(String inventory, int slot,
         boolean standalone) {
         var storage = standalone ? screenItems() : screenInventory(inventory);
         if (slot < 0 || slot >= storage.getSlots())
             throw new IllegalArgumentException(
-                "slot index "
-                    + slot
-                    + " in inventory "
-                    + inventory
-                    + " outside storage of size "
-                    + storage.getSlots());
+                "slot index " + slot + " in inventory " + inventory
+                    + " outside storage of size " + storage.getSlots());
         int legacy = standalone
             ? slot
             : screenItems() instanceof zone.moddev.mc.lib.api.capabilities.ItemInventories combined
@@ -85,7 +92,8 @@ public interface ScreenHost {
             local = store.localSlot(slot);
             storage = store.storage(slot);
         }
-        return new InventoryBinding(storage, local, legacy, java.util.List.copyOf(addresses));
+        return new InventoryBinding(storage, local, legacy,
+            java.util.List.copyOf(addresses));
     }
 
     /** Optional remembered item shown as a ghost when a real slot is empty. */
@@ -93,15 +101,20 @@ public interface ScreenHost {
         return ItemStack.EMPTY;
     }
 
-    default boolean setScreenGhost(Player player, String inventory, int slot, ItemStack filter) {
-        return inventory.equals("items") && setScreenGhost(player, slot, filter);
+    default boolean setScreenGhost(Player player, String inventory, int slot,
+        ItemStack filter) {
+        return inventory.equals("items")
+            && setScreenGhost(player, slot, filter);
     }
 
     default ItemStack screenGhost(String inventory, int slot) {
         return inventory.equals("items") ? screenGhost(slot) : ItemStack.EMPTY;
     }
 
-    /** The storage behind resource-bound elements; no interaction or tooltip policy lives here. */
+    /**
+     * The storage behind resource-bound elements; no interaction or tooltip
+     * policy lives here.
+     */
     default zone.moddev.mc.lib.api.capabilities.FluidStorage screenFluids() {
         return null;
     }
@@ -111,19 +124,19 @@ public interface ScreenHost {
         return null;
     }
 
-    /** Resource sizes for validating element bindings before constructing the menu. */
+    /**
+     * Resource sizes for validating element bindings before constructing the
+     * menu.
+     */
     default Map<String, Integer> screenResourceCounts() {
-        return Map.of(
-            "items",
-            screenItems().getSlots(),
-            "fluids",
-            screenFluids() == null ? 0 : screenFluids().getTanks(),
-            "energy",
+        return Map.of("items", screenItems().getSlots(), "fluids",
+            screenFluids() == null ? 0 : screenFluids().getTanks(), "energy",
             screenEnergy() == null ? 0 : 1);
     }
 
     /**
-     * Extra startup-definition identity checked alongside the screen before constructing a menu.
+     * Extra startup-definition identity checked alongside the screen before
+     * constructing a menu.
      */
     default String screenDefinitionFingerprint() {
         return "";
@@ -135,13 +148,17 @@ public interface ScreenHost {
     }
 
     /**
-     * Parts contributing statistics, in display order. Providers are only sampled on the server.
+     * Parts contributing statistics, in display order. Providers are only
+     * sampled on the server.
      */
     default java.util.List<? extends zone.moddev.mc.lib.api.stats.StatsProvider> screenStats() {
         return java.util.List.of();
     }
 
-    /** Ordered statistics timescales; hosts may return their own IDs, durations and labels. */
+    /**
+     * Ordered statistics timescales; hosts may return their own IDs, durations
+     * and labels.
+     */
     default java.util.List<zone.moddev.mc.lib.api.stats.StatsTimescale> screenStatsTimescales() {
         return zone.moddev.mc.lib.api.stats.StatsTimescale.DEFAULTS;
     }
@@ -151,84 +168,105 @@ public interface ScreenHost {
         return null;
     }
 
-    /** Opt in to coloured resource groups and the interactive inventory drawer. */
+    /**
+     * Opt in to coloured resource groups and the interactive inventory drawer.
+     */
     default zone.moddev.mc.lib.api.automation.AutomationInventory screenAutomation() {
         return null;
     }
 
-    /** Per-menu automation presentation. Return matching stable definitions on both sides. */
+    /**
+     * Per-menu automation presentation. Return matching stable definitions on
+     * both sides.
+     */
     default zone.moddev.mc.lib.gui.model.containers.AutomationInventoryElement screenAutomationInventory(
         zone.moddev.mc.lib.api.automation.ResourceGroup<?> group) {
-        return new zone.moddev.mc.lib.gui.model.containers.AutomationInventoryElement(group.id());
+        return new zone.moddev.mc.lib.gui.model.containers.AutomationInventoryElement(
+            group.id());
     }
 
-    /** False exposes only resource selection and side modes, with no addon/filter slots. */
+    /**
+     * False exposes only resource selection and side modes, with no
+     * addon/filter slots.
+     */
     default boolean screenAutomationAddons() {
         return true;
     }
 
-    /** Ordered destinations for a player inventory stack; storage still decides what it accepts. */
+    /**
+     * Ordered destinations for a player inventory stack; storage still decides
+     * what it accepts.
+     */
     default int[] screenDestinations(ItemStack stack) {
-        return java.util.stream.IntStream.range(0, screenItems().getSlots()).toArray();
+        return java.util.stream.IntStream.range(0, screenItems().getSlots())
+            .toArray();
     }
 
     /** Recipe input slots in recipe order; outputs must not be included. */
-    default int[] screenRecipeSlots(net.minecraft.resources.ResourceLocation category) {
+    default int[] screenRecipeSlots(
+        net.minecraft.resources.ResourceLocation category) {
         return new int[0];
     }
 
     /**
-     * Ordered named destinations. Override this for a custom route between independent inventories.
+     * Ordered named destinations. Override this for a custom route between
+     * independent inventories.
      */
     default java.util.List<zone.moddev.mc.lib.api.capabilities.ItemInventories.Address> screenItemDestinations(
         ItemStack stack) {
         if (screenItems().getSlots() > 0)
             return java.util.Arrays.stream(screenDestinations(stack))
-                .mapToObj(this::screenItemAddress)
-                .toList();
+                .mapToObj(this::screenItemAddress).toList();
         var result = new java.util.ArrayList<zone.moddev.mc.lib.api.capabilities.ItemInventories.Address>();
-        screenInventories()
-            .forEach(
-                (name, storage) -> {
-                    for (int i = 0; i < storage.getSlots(); i++)
-                        result.add(
-                            new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address(name,
-                                i));
-                });
+        screenInventories().forEach((name, storage) -> {
+            for (int i = 0; i < storage.getSlots(); i++)
+                result.add(
+                    new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address(
+                        name, i));
+        });
         return java.util.List.copyOf(result);
     }
 
     default zone.moddev.mc.lib.api.capabilities.ItemInventories.Address screenItemAddress(
         int legacy) {
         return screenItems() instanceof zone.moddev.mc.lib.api.capabilities.ItemInventories combined
-            && legacy >= 0
-            && legacy < combined.getSlots()
+            && legacy >= 0 && legacy < combined.getSlots()
                 ? combined.address(legacy)
-                : new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address("items", legacy);
+                : new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address(
+                    "items", legacy);
     }
 
-    /** Named recipe input slots, independent of menu order and other inventories' sizes. */
+    /**
+     * Named recipe input slots, independent of menu order and other
+     * inventories' sizes.
+     */
     default java.util.List<zone.moddev.mc.lib.api.capabilities.ItemInventories.Address> screenRecipeItems(
         net.minecraft.resources.ResourceLocation category) {
         return java.util.Arrays.stream(screenRecipeSlots(category))
-            .mapToObj(this::screenItemAddress)
-            .toList();
+            .mapToObj(this::screenItemAddress).toList();
     }
 
     /**
      * The side configuration of each group, keyed by the element ids in
-     * {@code <side-config groups>}; a group missing from the map shows no modes and ignores clicks.
+     * {@code <side-config groups>}; a group missing from the map shows no modes
+     * and ignores clicks.
      */
     default Map<String, SideConfig> screenSides() {
         return Map.of();
     }
 
-    /** Ghost filters are separate from real inventory; return false to reject a change. */
+    /**
+     * Ghost filters are separate from real inventory; return false to reject a
+     * change.
+     */
     default boolean setScreenGhost(Player player, int slot, ItemStack filter) {
         return false;
     }
 
-    /** The authoritative filter shown in ghost slot {@code slot}; empty for none. */
+    /**
+     * The authoritative filter shown in ghost slot {@code slot}; empty for
+     * none.
+     */
     default ItemStack screenGhost(int slot) {
         return ItemStack.EMPTY;
     }

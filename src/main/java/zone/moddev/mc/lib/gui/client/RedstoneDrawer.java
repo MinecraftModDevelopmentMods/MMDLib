@@ -24,7 +24,10 @@ import zone.moddev.mc.lib.gui.layout.SideDrawerLayout;
 import zone.moddev.mc.lib.gui.runtime.RedstoneMenu;
 import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
-/** Per-face redstone setup using the same neighbour grid and frame as the inventory drawer. */
+/**
+ * Per-face redstone setup using the same neighbour grid and frame as the
+ * inventory drawer.
+ */
 public final class RedstoneDrawer extends Drawer {
     private final RedstoneMenu model;
     private final FaceConfigRenderer faces = new FaceConfigRenderer();
@@ -41,7 +44,8 @@ public final class RedstoneDrawer extends Drawer {
     private Font textFont;
     private long infoRevision = -1;
     private int infoFace = -1, infoLow, infoHigh, infoSignal, nameSource = -2;
-    private List<FormattedCharSequence> cachedInfo = List.of(), cachedName = List.of();
+    private List<FormattedCharSequence> cachedInfo = List.of(),
+        cachedName = List.of();
     private Component outputName = Component.empty();
     private Rect tab, body;
     private List<Component> tooltip = List.of();
@@ -51,10 +55,12 @@ public final class RedstoneDrawer extends Drawer {
     private int sliderHandle = -1, sliderFace, previewLow, previewHigh;
     private long sliderRevision;
 
-    public RedstoneDrawer(
-        MachineScreen screen, zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition) {
-        super(screen, definition, IconSprite.item(() -> new ItemStack(Items.REDSTONE)), 0xc78181);
-        model = screen.getMenu().components().get(BuiltinMenuComponents.REDSTONE);
+    public RedstoneDrawer(MachineScreen screen,
+        zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition) {
+        super(screen, definition,
+            IconSprite.item(() -> new ItemStack(Items.REDSTONE)), 0xc78181);
+        model = screen.getMenu().components()
+            .get(BuiltinMenuComponents.REDSTONE);
     }
 
     void layout() {
@@ -63,15 +69,12 @@ public final class RedstoneDrawer extends Drawer {
         if (!model.open())
             return;
         int height = contentHeight();
-        body = SideDrawerLayout.body(
-            panel,
-            screen.drawerBottom(),
+        body = SideDrawerLayout.body(panel, screen.drawerBottom(),
             SideDrawerLayout.bodyX(edge(), tab, RedstoneLayout.WIDTH),
-            panel.y() + AutomationLayout.TOP,
-            RedstoneLayout.WIDTH,
-            height,
+            panel.y() + AutomationLayout.TOP, RedstoneLayout.WIDTH, height,
             SideDrawerLayout.HeightLimit.SCREEN);
-        editorScroll = Math.clamp(editorScroll, 0, Math.max(0, height - body.height()));
+        editorScroll = Math.clamp(editorScroll, 0,
+            Math.max(0, height - body.height()));
     }
 
     private Rect at(Rect rect) {
@@ -106,12 +109,8 @@ public final class RedstoneDrawer extends Drawer {
         for (int face = 0; face < 6; face++) {
             var r = at(RedstoneLayout.face(face));
             var mode = model.mode(face);
-            var neighbour = faces.render(
-                g,
-                r,
-                screen.getMenu().blockEntity,
-                model.control.world(face),
-                mode == RedstoneControl.Mode.READ,
+            var neighbour = faces.render(g, r, screen.getMenu().blockEntity,
+                model.control.world(face), mode == RedstoneControl.Mode.READ,
                 mode == RedstoneControl.Mode.EMIT);
             if (mode == RedstoneControl.Mode.IGNORE) {
                 g.pose().pushPose();
@@ -122,39 +121,40 @@ public final class RedstoneDrawer extends Drawer {
             if (mode != RedstoneControl.Mode.IGNORE) {
                 var font = Minecraft.getInstance().font;
                 boolean input = mode == RedstoneControl.Mode.READ;
-                String strength = Integer
-                    .toString(input ? model.incoming(face) : model.outgoing(face));
+                String strength = Integer.toString(
+                    input ? model.incoming(face) : model.outgoing(face));
                 float x = r.right() - font.width(strength) * SIGNAL_SCALE - 2;
                 int y = input ? r.bottom() - 6 : r.y() + 2;
                 g.pose().pushPose();
                 g.pose().translate(x, y, 210);
                 g.pose().scale(SIGNAL_SCALE, SIGNAL_SCALE, 1);
-                // A thin glyph outline keeps the small digits legible without a background panel.
+                // A thin glyph outline keeps the small digits legible without a
+                // background panel.
                 g.drawString(font, strength, -1, 0, 0xff182018, false);
                 g.drawString(font, strength, 1, 0, 0xff182018, false);
                 g.drawString(font, strength, 0, -1, 0xff182018, false);
                 g.drawString(font, strength, 0, 1, 0xff182018, false);
-                g.drawString(font, strength, 0, 0, input ? 0xffa6ff54 : 0xffffc36b, false);
+                g.drawString(font, strength, 0, 0,
+                    input ? 0xffa6ff54 : 0xffffc36b, false);
                 g.pose().popPose();
             }
             if (r.contains(mx, my))
                 tooltip = List.of(
-                    Component.translatable("screen.mmdlib.face." + FACES[face].getSerializedName()),
+                    Component.translatable("screen.mmdlib.face."
+                        + FACES[face].getSerializedName()),
                     neighbour,
                     text("mode." + mode.name().toLowerCase(Locale.ROOT)),
-                    text("strength", model.incoming(face), model.outgoing(face)),
+                    text("strength", model.incoming(face),
+                        model.outgoing(face)),
                     text("face.tip"));
         }
-        // Draw last and above the neighbour models, so the front face stays clearly selected.
+        // Draw last and above the neighbour models, so the front face stays
+        // clearly selected.
         var selectedFace = at(RedstoneLayout.face(model.selected()));
         g.pose().pushPose();
         g.pose().translate(0, 0, 210);
-        g.renderOutline(
-            selectedFace.x() - 1,
-            selectedFace.y() - 1,
-            selectedFace.width() + 2,
-            selectedFace.height() + 2,
-            0xffeeeeee);
+        g.renderOutline(selectedFace.x() - 1, selectedFace.y() - 1,
+            selectedFace.width() + 2, selectedFace.height() + 2, 0xffeeeeee);
         g.pose().popPose();
         renderControls(g, mx, my);
         renderInfo(g);
@@ -172,23 +172,21 @@ public final class RedstoneDrawer extends Drawer {
     private Component explanation() {
         int face = model.selected();
         return switch (model.mode(face)) {
-            case READ ->
-                rangeExplanation().copy().append("\n")
-                    .append(text("info.input", model.incoming(face)));
+            case READ -> rangeExplanation().copy().append("\n")
+                .append(text("info.input", model.incoming(face)));
             case EMIT -> {
                 int group = model.source(face);
-                var message = group >= 0 && group < model.control.outputs().size()
-                    ? model.control
-                        .outputs()
-                        .get(group)
-                        .description()
-                        .copy()
-                        .append(
-                            model.inverted(face)
-                                ? text("source.reverted").copy().withStyle(ChatFormatting.DARK_RED)
+                var message = group >= 0
+                    && group < model.control.outputs().size()
+                        ? model.control.outputs().get(group).description()
+                            .copy()
+                            .append(model.inverted(face)
+                                ? text("source.reverted").copy()
+                                    .withStyle(ChatFormatting.DARK_RED)
                                 : Component.empty())
-                    : text("info.unconfigured").copy();
-                yield message.append("\n").append(text("info.output", model.outgoing(face)));
+                        : text("info.unconfigured").copy();
+                yield message.append("\n")
+                    .append(text("info.output", model.outgoing(face)));
             }
             default -> text("info.ignore");
         };
@@ -227,11 +225,8 @@ public final class RedstoneDrawer extends Drawer {
             case EMIT -> model.outgoing(face);
             default -> 0;
         };
-        if (infoRevision == model.revision()
-            && infoFace == face
-            && infoLow == lower
-            && infoHigh == upper
-            && infoSignal == signal)
+        if (infoRevision == model.revision() && infoFace == face
+            && infoLow == lower && infoHigh == upper && infoSignal == signal)
             return cachedInfo;
         infoRevision = model.revision();
         infoFace = face;
@@ -240,13 +235,14 @@ public final class RedstoneDrawer extends Drawer {
         infoSignal = signal;
         var font = textFont;
         var lines = new ArrayList<FormattedCharSequence>();
-        lines.addAll(
-            font.split(
-                Component.translatable(
-                    "screen.mmdlib.face." + FACES[model.selected()].getSerializedName())
-                    .withStyle(ChatFormatting.BOLD),
-                (int) ((RedstoneLayout.WIDTH - 18) / INFO_SCALE)));
-        lines.addAll(font.split(explanation(), (int) ((RedstoneLayout.WIDTH - 18) / INFO_SCALE)));
+        lines.addAll(font.split(
+            Component
+                .translatable("screen.mmdlib.face."
+                    + FACES[model.selected()].getSerializedName())
+                .withStyle(ChatFormatting.BOLD),
+            (int) ((RedstoneLayout.WIDTH - 18) / INFO_SCALE)));
+        lines.addAll(font.split(explanation(),
+            (int) ((RedstoneLayout.WIDTH - 18) / INFO_SCALE)));
         return cachedInfo = List.copyOf(lines);
     }
 
@@ -260,21 +256,16 @@ public final class RedstoneDrawer extends Drawer {
         var lines = infoLines();
         int x = body.x() + 5, y = body.y() + settingsHeight() - editorScroll;
         int width = RedstoneLayout.WIDTH - 10, height = lines.size() * 8 + 8;
-        g.enableScissor(body.x(), body.y() + RedstoneLayout.CONTROLS_TOP, body.right(),
-            body.bottom());
+        g.enableScissor(body.x(), body.y() + RedstoneLayout.CONTROLS_TOP,
+            body.right(), body.bottom());
         g.fill(x, y, x + width, y + height, 0xffd4bd62);
         g.renderOutline(x, y, width, height, 0xff89752f);
         g.pose().pushPose();
         g.pose().translate(x + 4, y + 4, 0);
         g.pose().scale(INFO_SCALE, INFO_SCALE, 1);
         for (int i = 0; i < lines.size(); i++)
-            g.drawString(
-                Minecraft.getInstance().font,
-                lines.get(i),
-                0,
-                Math.round(i * 8 / INFO_SCALE),
-                0xff3b3219,
-                false);
+            g.drawString(Minecraft.getInstance().font, lines.get(i), 0,
+                Math.round(i * 8 / INFO_SCALE), 0xff3b3219, false);
         g.pose().popPose();
         g.disableScissor();
     }
@@ -282,50 +273,44 @@ public final class RedstoneDrawer extends Drawer {
     private void renderControls(GuiGraphics g, int mx, int my) {
         if (body.height() <= RedstoneLayout.CONTROLS_TOP)
             return;
-        g.enableScissor(body.x(), body.y() + RedstoneLayout.CONTROLS_TOP, body.right(),
-            body.bottom());
+        g.enableScissor(body.x(), body.y() + RedstoneLayout.CONTROLS_TOP,
+            body.right(), body.bottom());
         int face = model.selected();
         if (model.mode(face) == RedstoneControl.Mode.READ) {
             var toggle = controlAt(RedstoneLayout.intervalMode());
             flat(g, toggle, mx, my);
-            g.renderOutline(toggle.x(), toggle.y(), toggle.width(), toggle.height(), 0xff715353);
-            g.blitSprite(
-                model.outside(face) ? OUTSIDE : BETWEEN,
-                toggle.x() + (toggle.width() - 32) / 2,
-                toggle.y() + 2,
-                32,
-                12);
+            g.renderOutline(toggle.x(), toggle.y(), toggle.width(),
+                toggle.height(), 0xff715353);
+            g.blitSprite(model.outside(face) ? OUTSIDE : BETWEEN,
+                toggle.x() + (toggle.width() - 32) / 2, toggle.y() + 2, 32, 12);
             if (toggle.contains(mx, my))
-                tooltip = List.of(text(model.outside(face) ? "outside" : "between"),
+                tooltip = List.of(
+                    text(model.outside(face) ? "outside" : "between"),
                     text("interval.tip"));
             var bar = controlAt(RedstoneLayout.bar());
             for (int value = 0; value < 16; value++) {
                 boolean selected = RedstoneControl.matches(value, low(), high(),
                     model.outside(face));
-                g.fill(
-                    bar.x() + Math.round(value * bar.width() / 16f),
-                    bar.y(),
+                g.fill(bar.x() + Math.round(value * bar.width() / 16f), bar.y(),
                     bar.x() + Math.round((value + 1) * bar.width() / 16f),
-                    bar.bottom(),
-                    selected ? 0xff30b84c : 0xff654c4c);
+                    bar.bottom(), selected ? 0xff30b84c : 0xff654c4c);
             }
             handle(g, bar, low(), true);
             handle(g, bar, high(), false);
             if (controlAt(RedstoneLayout.range()).contains(mx, my))
-                tooltip = List.of(text("range.tip"), text("range.values", low(), high()));
+                tooltip = List.of(text("range.tip"),
+                    text("range.values", low(), high()));
         } else if (model.mode(face) == RedstoneControl.Mode.EMIT) {
             var revert = controlAt(RedstoneLayout.revert());
             flat(g, revert, mx, my);
-            g.renderOutline(
-                revert.x(),
-                revert.y(),
-                revert.width(),
+            g.renderOutline(revert.x(), revert.y(), revert.width(),
                 revert.height(),
                 model.inverted(face) ? 0xffffdf75 : 0xff715353);
-            g.blitSprite(
-                model.inverted(face) ? REVERT_ON : REVERT, revert.x() + 2, revert.y() + 2, 14, 14);
+            g.blitSprite(model.inverted(face) ? REVERT_ON : REVERT,
+                revert.x() + 2, revert.y() + 2, 14, 14);
             if (revert.contains(mx, my))
-                tooltip = List.of(text(model.inverted(face) ? "revert.on" : "revert.off"));
+                tooltip = List.of(
+                    text(model.inverted(face) ? "revert.on" : "revert.off"));
             var r = controlAt(RedstoneLayout.group());
             flat(g, r, mx, my);
             int index = model.source(face);
@@ -333,27 +318,29 @@ public final class RedstoneDrawer extends Drawer {
                 ? model.control.outputs().get(index)
                 : null;
             if (group != null && group.sprite().isPresent())
-                g.blitSprite(group.sprite().get(), r.x() + 2, r.y() + 2, 14, 14);
+                g.blitSprite(group.sprite().get(), r.x() + 2, r.y() + 2, 14,
+                    14);
             else
-                g.fill(
-                    r.x() + 3,
-                    r.y() + 3,
-                    r.x() + 13,
-                    r.bottom() - 3,
+                g.fill(r.x() + 3, r.y() + 3, r.x() + 13, r.bottom() - 3,
                     group == null ? 0xff777777 : 0xff000000 | group.colour());
             checkTextResources();
             if (nameSource != index) {
                 nameSource = index;
-                outputName = group == null ? text("choose_group") : group.name();
-                cachedName = textFont.split(outputName, (int) ((r.width() - 20) / .625f));
+                outputName = group == null
+                    ? text("choose_group")
+                    : group.name();
+                cachedName = textFont.split(outputName,
+                    (int) ((r.width() - 20) / .625f));
             }
             var font = textFont;
             var nameLines = cachedName;
             g.pose().pushPose();
-            g.pose().translate(r.x() + 17, r.y() + (nameLines.size() > 1 ? 3 : 6), 0);
+            g.pose().translate(r.x() + 17,
+                r.y() + (nameLines.size() > 1 ? 3 : 6), 0);
             g.pose().scale(.625f, .625f, 1);
             for (int line = 0; line < Math.min(2, nameLines.size()); line++)
-                g.drawString(font, nameLines.get(line), 0, line * 10, 0xff302820, false);
+                g.drawString(font, nameLines.get(line), 0, line * 10,
+                    0xff302820, false);
             g.pose().popPose();
             if (r.contains(mx, my))
                 tooltip = List.of(outputName, text("control.tip"));
@@ -368,22 +355,19 @@ public final class RedstoneDrawer extends Drawer {
         g.fill(x - 2, y, x + 3, y + 4, colour);
         g.fill(x, lower ? y + 4 : y - 1, x + 1, lower ? y + 5 : y, colour);
         String valueText = Integer.toString(value);
-        float width = Minecraft.getInstance().font.width(valueText) * INFO_SCALE;
-        smallText(
-            g,
-            Component.literal(valueText),
-            x - width / 2,
-            lower ? bar.y() - 14 : bar.bottom() + 7,
-            INFO_SCALE,
-            0xff302820);
+        float width = Minecraft.getInstance().font.width(valueText)
+            * INFO_SCALE;
+        smallText(g, Component.literal(valueText), x - width / 2,
+            lower ? bar.y() - 14 : bar.bottom() + 7, INFO_SCALE, 0xff302820);
     }
 
     private void flat(GuiGraphics g, Rect r, int mx, int my) {
-        g.fill(r.x(), r.y(), r.right(), r.bottom(), r.contains(mx, my) ? 0xffd4aaaa : 0xffbf9191);
+        g.fill(r.x(), r.y(), r.right(), r.bottom(),
+            r.contains(mx, my) ? 0xffd4aaaa : 0xffbf9191);
     }
 
-    private void smallText(GuiGraphics g, Component text, float x, float y, float scale,
-        int colour) {
+    private void smallText(GuiGraphics g, Component text, float x, float y,
+        float scale, int colour) {
         g.pose().pushPose();
         g.pose().translate(x, y, 0);
         g.pose().scale(scale, scale, 1);
@@ -393,7 +377,8 @@ public final class RedstoneDrawer extends Drawer {
 
     public void tooltip(GuiGraphics g, int x, int y) {
         if (!tooltip.isEmpty())
-            g.renderComponentTooltip(Minecraft.getInstance().font, tooltip, x, y);
+            g.renderComponentTooltip(Minecraft.getInstance().font, tooltip, x,
+                y);
     }
 
     public Rect tabBounds() {
@@ -442,28 +427,30 @@ public final class RedstoneDrawer extends Drawer {
         if (model.watching()) {
             g.pose().pushPose();
             g.pose().translate(0, 0, 200);
-            g.blitSprite(model.paused() ? PAUSED : RUNNING, tab.right() - 9, tab.bottom() - 9, 7,
-                7);
+            g.blitSprite(model.paused() ? PAUSED : RUNNING, tab.right() - 9,
+                tab.bottom() - 9, 7, 7);
             g.pose().popPose();
         }
     }
 
     public List<Rect> exclusions() {
         layout();
-        return model.open() ? List.of(SideDrawerLayout.rail(tab, body), body) : List.of(tab);
+        return model.open()
+            ? List.of(SideDrawerLayout.rail(tab, body), body)
+            : List.of(tab);
     }
 
     public boolean contains(double x, double y) {
         layout();
-        return tab.contains(x, y)
-            || model.open()
-                && (body.contains(x, y) || SideDrawerLayout.rail(tab, body).contains(x, y));
+        return tab.contains(x, y) || model.open() && (body.contains(x, y)
+            || SideDrawerLayout.rail(tab, body).contains(x, y));
     }
 
     private void send(int kind, int face, int column, int value) {
         if (model.send(kind, face, column, value)) {
             if (kind == RedstoneMenu.TOGGLE || kind == RedstoneMenu.SELECT)
-                remember(kind != RedstoneMenu.TOGGLE || !model.open(), new Selection("", face));
+                remember(kind != RedstoneMenu.TOGGLE || !model.open(),
+                    new Selection("", face));
             if (kind == RedstoneMenu.TOGGLE && !model.open())
                 activated();
         }
@@ -491,11 +478,10 @@ public final class RedstoneDrawer extends Drawer {
                 if (i != face)
                     send(RedstoneMenu.SELECT, i, 0, 0);
                 else
-                    send(
-                        RedstoneMenu.MODE,
-                        face,
-                        0,
-                        Math.floorMod(model.mode(face).ordinal() + (button == 0 ? 1 : -1), 3));
+                    send(RedstoneMenu.MODE, face, 0,
+                        Math.floorMod(
+                            model.mode(face).ordinal() + (button == 0 ? 1 : -1),
+                            3));
                 handled = true;
                 return true;
             }
@@ -505,8 +491,10 @@ public final class RedstoneDrawer extends Drawer {
         }
         if (model.mode(face) == RedstoneControl.Mode.READ) {
             if (controlAt(RedstoneLayout.intervalMode()).contains(x, y))
-                send(RedstoneMenu.OUTSIDE, face, 0, model.outside(face) ? 0 : 1);
-            else if (button == 0 && controlAt(RedstoneLayout.range()).contains(x, y)) {
+                send(RedstoneMenu.OUTSIDE, face, 0,
+                    model.outside(face) ? 0 : 1);
+            else if (button == 0
+                && controlAt(RedstoneLayout.range()).contains(x, y)) {
                 var bar = controlAt(RedstoneLayout.bar());
                 previewLow = model.lower(face);
                 previewHigh = model.upper(face);
@@ -514,10 +502,12 @@ public final class RedstoneDrawer extends Drawer {
                     ? 0
                     : y >= bar.bottom()
                         ? 1
-                        : Math.abs(x - RedstoneLayout.signalX(bar, previewLow)) <= Math
-                            .abs(x - RedstoneLayout.signalX(bar, previewHigh))
-                                ? 0
-                                : 1;
+                        : Math.abs(
+                            x - RedstoneLayout.signalX(bar, previewLow)) <= Math
+                                .abs(x
+                                    - RedstoneLayout.signalX(bar, previewHigh))
+                                        ? 0
+                                        : 1;
                 sliderFace = face;
                 sliderRevision = model.revision();
                 updateSlider(x);
@@ -529,11 +519,8 @@ public final class RedstoneDrawer extends Drawer {
             && controlAt(RedstoneLayout.group()).contains(x, y)) {
             int count = model.control.outputs().size();
             if (count > 0)
-                send(
-                    RedstoneMenu.SOURCE,
-                    face,
-                    0,
-                    Math.floorMod(model.source(face) + (button == 0 ? 1 : -1), count));
+                send(RedstoneMenu.SOURCE, face, 0, Math.floorMod(
+                    model.source(face) + (button == 0 ? 1 : -1), count));
         }
         handled = true;
         return true;
@@ -544,9 +531,7 @@ public final class RedstoneDrawer extends Drawer {
             return true;
         if (!contains(x, y) || !model.open())
             return false;
-        editorScroll = Math.clamp(
-            editorScroll + (amount < 0 ? 12 : -12),
-            0,
+        editorScroll = Math.clamp(editorScroll + (amount < 0 ? 12 : -12), 0,
             Math.max(0, contentHeight() - body.height()));
         return true;
     }
@@ -588,11 +573,11 @@ public final class RedstoneDrawer extends Drawer {
                 return true;
             updateSlider(x);
             sliderHandle = -1;
-            if (model.open()
-                && model.selected() == sliderFace
+            if (model.open() && model.selected() == sliderFace
                 && model.revision() == sliderRevision
                 && model.mode(sliderFace) == RedstoneControl.Mode.READ)
-                send(RedstoneMenu.RANGE, sliderFace, 0, previewLow * 16 + previewHigh);
+                send(RedstoneMenu.RANGE, sliderFace, 0,
+                    previewLow * 16 + previewHigh);
         }
         boolean result = handled;
         handled = false;

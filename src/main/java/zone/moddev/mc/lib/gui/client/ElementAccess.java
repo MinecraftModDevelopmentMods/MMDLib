@@ -12,7 +12,10 @@ import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
-/** Live services for one client behavior; no host getters or raw packet/menu access. */
+/**
+ * Live services for one client behavior; no host getters or raw packet/menu
+ * access.
+ */
 public interface ElementAccess {
     Element element();
 
@@ -24,7 +27,9 @@ public interface ElementAccess {
 
     ElementRenderAccess presentation();
 
-    /** Optional host-specific behavior services; render access stays read-only. */
+    /**
+     * Optional host-specific behavior services; render access stays read-only.
+     */
     default <T> java.util.Optional<T> service(Class<T> type) {
         return java.util.Optional.empty();
     }
@@ -41,8 +46,10 @@ public interface ElementAccess {
         return submit(element(), action, value);
     }
 
-    default boolean click(ElementAction<ElementActions.Click> action, int button, int option) {
-        return submit(action, new ElementActions.Click(button, modifiers(), option));
+    default boolean click(ElementAction<ElementActions.Click> action,
+        int button, int option) {
+        return submit(action,
+            new ElementActions.Click(button, modifiers(), option));
     }
 
     default int modifiers() {
