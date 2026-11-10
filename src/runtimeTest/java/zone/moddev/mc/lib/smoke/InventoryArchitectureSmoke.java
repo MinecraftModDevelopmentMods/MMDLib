@@ -146,6 +146,29 @@ final class InventoryArchitectureSmoke {
 
     private static void namedInventories(ServerLevel level) {
         var registries = level.registryAccess();
+        var numeric = ItemInventories.partition(List.of("items", "items"))
+            .slotId(0, "1").slotId(1, "2");
+        numeric.restoreStack(0, new ItemStack(Items.DIAMOND, 3));
+        numeric.restoreStack(1, new ItemStack(Items.EMERALD, 5));
+        var numericSave = numeric.serializeNBT(registries);
+        for (var value : numericSave.getCompound("Inventories").getCompound("items")
+            .getList("Items", net.minecraft.nbt.Tag.TAG_COMPOUND))
+            require(!((CompoundTag) value).contains("LegacySlot"),
+                "Named inventories do not write unused LegacySlot metadata");
+        var numericRestored = ItemInventories.partition(List.of("items", "items"))
+            .slotId(0, "2").slotId(1, "1");
+        numericRestored.deserializeNBT(registries, numericSave);
+        require(numericRestored.getStackInSlot(0).is(Items.EMERALD)
+            && numericRestored.getStackInSlot(1).getCount() == 3,
+            "Explicit numeric IDs are assigned before defaults and survive reordering");
+        var mixed = ItemInventories.partition(List.of("items", "items")).slotId(0, "1");
+        mixed.restoreStack(1, new ItemStack(Items.GOLD_INGOT, 7));
+        var mixedSave = mixed.serializeNBT(registries);
+        var mixedRestored = ItemInventories.partition(List.of("items", "items")).slotId(0, "1");
+        mixedRestored.deserializeNBT(registries, mixedSave);
+        require(mixedRestored.getStackInSlot(1).getCount() == 7
+            && mixedRestored.getStackInSlot(0).isEmpty(),
+            "Anonymous fallback IDs cannot collide with explicit numeric IDs");
         var old = new ItemStorage(2).slotId(0, "ore").slotId(1, "result");
         old.restoreStack(0, new ItemStack(Items.IRON_ORE, 7));
         old.restoreStack(1, new ItemStack(Items.GOLD_INGOT, 3));

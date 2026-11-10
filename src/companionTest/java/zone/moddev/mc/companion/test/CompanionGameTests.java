@@ -876,6 +876,14 @@ public final class CompanionGameTests {
         server.apply(java.util.Map.of(key, original));
         client.apply(java.util.Map.of(key, original));
         try {
+            var foreign = new zone.moddev.mc.lib.gui.model.Element() {
+                public zone.moddev.mc.lib.gui.model.Common common() {
+                    return element.common();
+                }
+            };
+            require(client.prepareElementAction(foreign, rename, "Foreign").isEmpty()
+                && !client.elementPending(foreign) && client.takeElementResult(foreign) == null,
+                "Foreign elements are refused without throwing or creating pending state");
             var first = client.prepareElementAction(element, rename, "First").orElseThrow();
             var late = server.elementAction(player, first);
             require(late.accepted(), "Server accepted the delayed action");

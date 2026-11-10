@@ -306,6 +306,11 @@ public class MachineMenu extends AbstractContainerMenu {
         return index;
     }
 
+    /** Optional identity lookup for externally supplied or stale element references. */
+    int findIndex(Element element) {
+        return elementIndexes.getOrDefault(element, -1);
+    }
+
     public Object value(Element element, boolean maximum) {
         return values.get(index(element) * 2 + (maximum ? 1 : 0));
     }

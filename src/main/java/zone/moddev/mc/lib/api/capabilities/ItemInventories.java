@@ -56,9 +56,6 @@ public final class ItemInventories implements ItemStore {
                 if (copy.containsValue(storage))
                     throw new IllegalArgumentException("Inventory already registered");
                 copy.put(name, Objects.requireNonNull(storage));
-                for (int slot = 0; slot < storage.getSlots(); slot++)
-                    if (storage.slotId(slot) == null)
-                        storage.slotId(slot, Integer.toString(slot));
             });
         this.inventories = Collections.unmodifiableMap(copy);
         this.addresses = List.copyOf(addresses);
@@ -251,18 +248,10 @@ public final class ItemInventories implements ItemStore {
     }
 
     public CompoundTag serializeNBT(HolderLookup.Provider registries) {
+        assignDefaultSlotIds();
         var result = new CompoundTag();
         var named = new CompoundTag();
-        inventories.forEach(
-            (name, storage) -> {
-                var saved = storage.serializeNBT(registries);
-                // Preserve legacy position only for migration of old or unidentified slots.
-                for (var value : saved.getList("Items", Tag.TAG_COMPOUND)) {
-                    var entry = (CompoundTag) value;
-                    entry.putInt("LegacySlot", index(name, entry.getInt("Slot")));
-                }
-                named.put(name, saved);
-            });
+        inventories.forEach((name, storage) -> named.put(name, storage.serializeNBT(registries)));
         result.put("Inventories", named);
         result.put("Recovery", recovery.copy());
         return result;
@@ -274,6 +263,7 @@ public final class ItemInventories implements ItemStore {
 
     public void deserializeNBT(
         HolderLookup.Provider registries, CompoundTag tag, IntUnaryOperator legacySlots) {
+        assignDefaultSlotIds();
         // Resolve the complete old/new save before restoring any processor reservations.
         var entries = tag.getList("Items", Tag.TAG_COMPOUND).copy();
         entries.addAll(tag.getList("Recovery", Tag.TAG_COMPOUND).copy());
@@ -334,6 +324,24 @@ public final class ItemInventories implements ItemStore {
 
     public ListTag recoveryContents() {
         return recovery.copy();
+    }
+
+    /** Apply fallbacks only after callers have supplied their explicit definition IDs. */
+    private void assignDefaultSlotIds() {
+        for (var storage : inventories.values()) {
+            var used = new java.util.HashSet<String>();
+            for (int slot = 0; slot < storage.getSlots(); slot++)
+                if (storage.slotId(slot) != null)
+                    used.add(storage.slotId(slot));
+            for (int slot = 0; slot < storage.getSlots(); slot++) {
+                if (storage.slotId(slot) != null)
+                    continue;
+                String id = Integer.toString(slot);
+                while (!used.add(id))
+                    id = "_" + id;
+                storage.slotId(slot, id);
+            }
+        }
     }
 
     public void dropAll(Level level, BlockPos pos, Consumer<CompoundTag> receiver) {

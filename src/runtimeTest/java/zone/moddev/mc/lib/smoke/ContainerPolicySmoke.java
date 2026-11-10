@@ -113,6 +113,14 @@ final class ContainerPolicySmoke {
         send(drawer, menu, player, ContainerDrawerMenu.TOGGLE, 0, 6, List.of());
         require(drawer.state().open() && drawer.state().pageSize() == 6,
             "Source owns initial page");
+        send(drawer, menu, player, ContainerDrawerMenu.PAGE, 0, 54, List.of());
+        require(drawer.state().pageSize() == 6,
+            "Server rejects a page larger than the provider's visible capacity");
+        storage.setStackInSlot(10, new ItemStack(Items.DIAMOND));
+        send(drawer, menu, player, ContainerDrawerMenu.PICKUP, 10, 54, List.of());
+        require(menu.getCarried().isEmpty() && storage.getStackInSlot(10).is(Items.DIAMOND),
+            "Rejected oversized pages cannot expose hidden slots to pickup");
+        storage.setStackInSlot(10, ItemStack.EMPTY);
         send(drawer, menu, player, ContainerDrawerMenu.PAGE, 1, 6, List.of());
         require(drawer.state().offset() == 0, "Server rejects misaligned offset");
         send(drawer, menu, player, ContainerDrawerMenu.PAGE, 3, 5, List.of());

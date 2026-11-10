@@ -1,6 +1,5 @@
 package zone.moddev.mc.lib.gui.runtime.component;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -11,6 +10,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import com.google.common.collect.MapMaker;
 
 import net.minecraft.world.entity.player.Inventory;
 
@@ -69,7 +70,8 @@ public final class MenuComponentRegistry {
     }
 
     private final Map<net.minecraft.resources.ResourceLocation, Registration<?>> registrations = new HashMap<>();
-    private final List<java.lang.ref.WeakReference<MenuComponent>> issued = new ArrayList<>();
+    // Guava weak keys use identity equality, even for components overriding equals/hashCode.
+    private final Map<MenuComponent, Boolean> issued = new MapMaker().weakKeys().makeMap();
 
     public static MenuComponentRegistry builtins() {
         var registry = new MenuComponentRegistry();
@@ -153,12 +155,10 @@ public final class MenuComponentRegistry {
             var component = registration.create(context);
             if (component == null)
                 continue;
-            issued.removeIf(reference -> reference.get() == null);
-            if (issued.stream().anyMatch(reference -> reference.get() == component))
+            if (issued.putIfAbsent(component, Boolean.TRUE) != null)
                 throw new IllegalArgumentException(
                     "Menu component factories must return fresh instances: "
                         + registration.key().id());
-            issued.add(new java.lang.ref.WeakReference<>(component));
             result.put(registration.key(), component);
         }
         return new MenuComponents(

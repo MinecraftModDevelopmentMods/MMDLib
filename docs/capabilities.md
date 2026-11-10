@@ -93,6 +93,9 @@ an existing combined slot order, including interleaved groups.
 Assign durable identities with `items.slotId(index, "input")` and `fluids.tankId(index, "coolant")`.
 IDs must be nonblank and unique within that storage. They are save identities, separate from
 numeric recipe/menu indexes and from resource-group or XML element IDs.
+Assign explicit IDs before the first save/load. `ItemInventories` supplies IDs for remaining
+unnamed slots at that point, choosing unused local numeric IDs (prefixed with underscores when
+needed), so explicit numeric IDs such as `"1"` and `"2"` cannot collide with constructor defaults.
 
 Saves include `SlotId` / `TankId` where configured. Loading matches identified entries by ID;
 an unknown ID never falls back to its former numeric position. Saves without identities load by

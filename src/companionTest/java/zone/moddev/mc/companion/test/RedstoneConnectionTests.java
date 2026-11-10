@@ -27,6 +27,35 @@ import zone.moddev.mc.lib.machine.neoforge.BaseMachine;
 @PrefixGameTestTemplate(false)
 public final class RedstoneConnectionTests {
     @GameTest(template = "empty")
+    public static void loadingConnectionsDoesNotPulseObservers(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var pos = helper.absolutePos(new BlockPos(2, 2, 2));
+        var observerPos = pos.west();
+        level.setBlock(pos, CompanionMod.CRUSHER.block.get().defaultBlockState(), 3);
+        level.setBlock(observerPos, Blocks.OBSERVER.defaultBlockState()
+            .setValue(BlockStateProperties.FACING, Direction.EAST), 2);
+        var machine = (BaseMachine) level.getBlockEntity(pos);
+        var control = machine.screenRedstone();
+        int face = RelativeFace.of(Direction.NORTH, Direction.EAST).ordinal();
+        control.mode(face, RedstoneControl.Mode.READ);
+        control.updateOutputs();
+        require(!level.getBlockTicks().hasScheduledTick(observerPos, Blocks.OBSERVER),
+            "First connection tick does not pulse an observer facing the machine");
+        var saved = machine.saveWithFullMetadata(level.registryAccess());
+        var restored = (BaseMachine) BlockEntity.loadStatic(pos, machine.getBlockState(), saved,
+            level.registryAccess());
+        level.setBlockEntity(restored);
+        restored.screenRedstone().updateOutputs();
+        require(!level.getBlockTicks().hasScheduledTick(observerPos, Blocks.OBSERVER),
+            "Restoring configured connections does not pulse an observer");
+        restored.screenRedstone().mode(face, RedstoneControl.Mode.IGNORE);
+        restored.screenRedstone().updateOutputs();
+        require(level.getBlockTicks().hasScheduledTick(observerPos, Blocks.OBSERVER),
+            "An actual configuration change still updates neighbouring shapes");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void dustConnectsOnlyToConfiguredInputsAndOutputs(GameTestHelper helper) {
         var level = helper.getLevel();
         var pos = helper.absolutePos(new BlockPos(2, 2, 2));

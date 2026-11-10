@@ -2530,6 +2530,8 @@ Dust connects to Read faces and to Emit faces with a selected, available output,
 currently at zero. Ignore and unselected Emit faces do not connect. `updateOutputs()` refreshes
 neighboring dust shapes when connections change. Include the controller tag in block-entity
 client updates so client-side connection queries agree; `BaseMachine` handles this automatically.
+The first server tick repairs adjacent dust geometry only; loading a machine does not issue
+a blanket shape update that would pulse neighboring observers.
 Stateless hosts can call
 `redstone.tick()` to read inputs and update outputs together. The companion emits weak power,
 keeps transfers running while processing is held, and migrates old inventory selections and

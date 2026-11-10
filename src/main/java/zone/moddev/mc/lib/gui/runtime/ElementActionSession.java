@@ -55,7 +55,7 @@ final class ElementActionSession {
 
     public <T> Optional<ScreenNetwork.Widget> prepare(
         Element element, ElementAction<T> action, T value) {
-        int index = menu.index(element);
+        int index = menu.findIndex(element);
         if (closed
             || index < 0
             || !menu.visible(element)
@@ -83,7 +83,7 @@ final class ElementActionSession {
     }
 
     public boolean pending(Element element) {
-        return pending.containsKey(menu.index(element));
+        return pending.containsKey(menu.findIndex(element));
     }
 
     public void receive(ScreenNetwork.WidgetResult result) {
@@ -101,7 +101,7 @@ final class ElementActionSession {
     }
 
     public ScreenNetwork.WidgetResult takeResult(Element element) {
-        return results.remove(menu.index(element));
+        return results.remove(menu.findIndex(element));
     }
 
     /** Client-side timeout prevents an unconfirmed edit from permanently disabling a control. */

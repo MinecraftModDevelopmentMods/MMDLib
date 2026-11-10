@@ -137,6 +137,37 @@ final class MenuComponentSmoke {
         require(
             new MachineMenu(95, player.getInventory(), entity).components().get(KEY) == null,
             "Factories can omit unavailable components");
+        record EqualComponent(int value)
+            implements
+                zone.moddev.mc.lib.gui.runtime.component.MenuComponent {
+        }
+        var identityRegistry = new MenuComponentRegistry();
+        var identityKey = new MenuComponentKey<>(ResourceLocation.parse("test:identity"),
+            EqualComponent.class);
+        var context = new MenuComponentRegistry.Context(menu, player.getInventory(), null, false);
+        var singleton = new EqualComponent(1);
+        identityRegistry.register(identityKey, 0, c -> singleton);
+        require(identityRegistry.create(context).require(identityKey) == singleton,
+            "First factory instance is accepted");
+        try {
+            identityRegistry.create(context);
+            throw new AssertionError("Cross-menu component reuse accepted");
+        } catch (IllegalArgumentException expected) {
+        }
+        identityRegistry.replace(identityKey, 0, c -> new EqualComponent(1));
+        var equalFirst = identityRegistry.create(context).require(identityKey);
+        var equalSecond = identityRegistry.create(context).require(identityKey);
+        require(equalFirst != equalSecond && equalFirst.equals(equalSecond),
+            "Equal but distinct component instances are accepted by identity");
+        var duplicateRegistry = new MenuComponentRegistry();
+        duplicateRegistry.register(identityKey, 0, c -> singleton);
+        duplicateRegistry.register(new MenuComponentKey<>(ResourceLocation.parse("test:other"),
+            EqualComponent.class), 1, c -> singleton);
+        try {
+            duplicateRegistry.create(context);
+            throw new AssertionError("Same-menu component reuse accepted");
+        } catch (IllegalArgumentException expected) {
+        }
         menu.removed(player);
         require(probe.removals == 1, "Removal lifecycle");
     }

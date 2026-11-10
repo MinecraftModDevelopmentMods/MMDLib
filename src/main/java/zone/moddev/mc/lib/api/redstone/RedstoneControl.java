@@ -11,6 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +40,7 @@ public final class RedstoneControl {
     private final int[] sourceIndexes = new int[6];
     private final int[] sampledLevels = new int[6];
     private long revision;
-    // Refresh saved dust geometry on the first tick too, including old all-face connections.
+    // The first tick repairs only adjacent dust, without notifying unrelated neighbours.
     private int connections = -1;
     private boolean paused, legacyAny;
 
@@ -230,11 +231,28 @@ public final class RedstoneControl {
             outgoing[face] = output;
         }
         if (connections != newConnections) {
+            boolean firstTick = connections < 0;
             connections = newConnections;
             var state = owner.getBlockState();
-            level.sendBlockUpdated(owner.getBlockPos(), state, state, Block.UPDATE_CLIENTS);
-            state.updateNeighbourShapes(level, owner.getBlockPos(), Block.UPDATE_ALL);
-            outputsChanged = true;
+            if (firstTick) {
+                // Old saves may still have all-face wire geometry. Updating the machine's
+                // entire neighbourhood here would pulse observers on every chunk load.
+                for (var direction : Direction.Plane.HORIZONTAL) {
+                    var neighbour = owner.getBlockPos().relative(direction);
+                    if (!level.hasChunkAt(neighbour))
+                        continue;
+                    var wire = level.getBlockState(neighbour);
+                    if (wire.is(Blocks.REDSTONE_WIRE)) {
+                        var updated = wire.updateShape(direction.getOpposite(), state, level,
+                            neighbour, owner.getBlockPos());
+                        Block.updateOrDestroy(wire, updated, level, neighbour, Block.UPDATE_ALL);
+                    }
+                }
+            } else {
+                level.sendBlockUpdated(owner.getBlockPos(), state, state, Block.UPDATE_CLIENTS);
+                state.updateNeighbourShapes(level, owner.getBlockPos(), Block.UPDATE_ALL);
+                outputsChanged = true;
+            }
         }
         if (outputsChanged)
             level.updateNeighborsAt(owner.getBlockPos(), owner.getBlockState().getBlock());

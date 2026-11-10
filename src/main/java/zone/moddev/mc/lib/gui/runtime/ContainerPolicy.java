@@ -77,6 +77,7 @@ public class ContainerPolicy {
                 || pageAlignment > ContainerDrawerMenu.MAX_PAGE
                 || initialPageSize < 1
                 || initialPageSize > ContainerDrawerMenu.MAX_PAGE
+                || initialPageSize > layout.columns() * layout.maxRows()
                 || initialPageSize % pageAlignment != 0
                 || layout.columns() % pageAlignment != 0)
                 throw new IllegalArgumentException("Invalid container page policy");
@@ -98,6 +99,7 @@ public class ContainerPolicy {
                 && offset % pageAlignment == 0
                 && size >= 1
                 && size <= ContainerDrawerMenu.MAX_PAGE
+                && size <= layout.columns() * layout.maxRows()
                 && size % pageAlignment == 0;
         }
     }

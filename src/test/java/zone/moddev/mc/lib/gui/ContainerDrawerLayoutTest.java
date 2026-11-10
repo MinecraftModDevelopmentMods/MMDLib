@@ -75,6 +75,16 @@ class ContainerDrawerLayoutTest {
             IllegalArgumentException.class,
             () -> new zone.moddev.mc.lib.gui.runtime.ContainerPolicy.Layout(
                 100, 3, 19, 8, 26, 24, 24, 20, 24));
+        var small = new zone.moddev.mc.lib.gui.runtime.ContainerPolicy.Layout(
+            100, 4, 2, 8, 26, 20, 20, 18, 22);
+        var policy = new zone.moddev.mc.lib.gui.runtime.ContainerPolicy.Settings(
+            small, 8, 1, java.util.Set.of(), true);
+        assertTrue(policy.acceptsPage(0, 8));
+        assertTrue(policy.acceptsPage(8, 4));
+        assertTrue(!policy.acceptsPage(0, 9) && !policy.acceptsPage(0, 54));
+        assertThrows(IllegalArgumentException.class,
+            () -> new zone.moddev.mc.lib.gui.runtime.ContainerPolicy.Settings(
+                small, 9, 1, java.util.Set.of(), true));
     }
 
     @Test
