@@ -1,0 +1,7 @@
+package zone.moddev.mc.lib;
+
+import java.util.List;
+// Needed for the codec.
+import java.util.Map;
+
+public final class Example {}

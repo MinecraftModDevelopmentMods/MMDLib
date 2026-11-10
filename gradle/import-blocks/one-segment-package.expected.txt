@@ -1,0 +1,8 @@
+package zone.moddev.mc.lib;
+
+import lombok.Data;
+import lombok.Value;
+
+import org.slf4j.Logger;
+
+public final class Example {}

@@ -15,6 +15,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUtils;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluid;
@@ -26,6 +27,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.fluids.SimpleFluidContent;
 import net.neoforged.neoforge.fluids.capability.templates.FluidHandlerItemStack;
@@ -46,6 +48,11 @@ import zone.moddev.mc.lib.MMDLib;
  * </ul>
  *
  * Vanilla's own fluids (water, lava) are always left to vanilla, tagged or not.
+ *
+ * <p>Experience fluids ({@code #c:experience}, whatever mod adds them) are a special case: a glass
+ * bottle takes {@link #EXPERIENCE_CAPACITY} of one and becomes vanilla's Bottle o' Enchanting, no
+ * {@link #BOTTLEABLE} tag needed. That is one way only: the XP comes back out of a thrown bottle,
+ * not out of the item.
  */
 public final class FluidBottles {
   private static final Logger LOGGER = LogUtils.getLogger();
@@ -56,6 +63,12 @@ public final class FluidBottles {
 
   /** Millibuckets in a bottle: a third of a bucket, the common convention. */
   public static final int CAPACITY = 333;
+
+  /**
+   * Millibuckets of experience fluid in a Bottle o' Enchanting: the {@link Tags.Fluids#EXPERIENCE}
+   * convention.
+   */
+  public static final int EXPERIENCE_CAPACITY = 250;
 
   private static final DeferredRegister.DataComponents COMPONENTS =
       DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, MMDLib.MODID);
@@ -90,6 +103,25 @@ public final class FluidBottles {
         && fluid.defaultFluidState().is(BOTTLEABLE);
   }
 
+  /** Whether {@code fluid} is an experience fluid, which bottles into a Bottle o' Enchanting. */
+  public static boolean experience(Fluid fluid) {
+    return fluid.defaultFluidState().is(Tags.Fluids.EXPERIENCE);
+  }
+
+  /** Millibuckets a glass bottle takes of {@code fluid}, or 0 if it can't hold it. */
+  public static int capacity(Fluid fluid) {
+    if (experience(fluid)) return EXPERIENCE_CAPACITY;
+    return bottleable(fluid) ? CAPACITY : 0;
+  }
+
+  /**
+   * What a glass bottle full of {@code fluid} becomes: a Bottle o' Enchanting for experience, a
+   * {@link FluidBottleItem} otherwise. Only meaningful when {@link #capacity} is non-zero.
+   */
+  public static ItemStack filled(Fluid fluid) {
+    return experience(fluid) ? new ItemStack(Items.EXPERIENCE_BOTTLE) : FluidBottleItem.filled(fluid);
+  }
+
   private static void capabilities(RegisterCapabilitiesEvent event) {
     event.registerItem(
         Capabilities.FluidHandler.ITEM,
@@ -98,7 +130,7 @@ public final class FluidBottles {
                 CONTENT, stack, new net.minecraft.world.item.ItemStack(Items.GLASS_BOTTLE), CAPACITY) {
               @Override
               public boolean canFillFluidType(net.neoforged.neoforge.fluids.FluidStack fluid) {
-                return bottleable(fluid.getFluid());
+                return bottleable(fluid.getFluid()) && !experience(fluid.getFluid());
               }
             },
         BOTTLE.get());
@@ -115,7 +147,7 @@ public final class FluidBottles {
   }
 
   /**
-   * A glass bottle used on a bottleable source fills, both sides, before vanilla's bottle handling
+   * A glass bottle used on a bottleable or experience source fills, both sides, before vanilla's bottle handling
    * (which only knows water). Anything else goes on to vanilla.
    */
   private static void fillFromWorld(PlayerInteractEvent.RightClickItem event) {
@@ -127,7 +159,7 @@ public final class FluidBottles {
     if (hit.getType() != HitResult.Type.BLOCK || !(hit instanceof BlockHitResult block)) return;
     var pos = block.getBlockPos();
     var fluid = level.getFluidState(pos);
-    if (!fluid.isSource() || !bottleable(fluid.getType()) || !level.mayInteract(player, pos)) return;
+    if (!fluid.isSource() || capacity(fluid.getType()) == 0 || !level.mayInteract(player, pos)) return;
     level.playSound(
         player,
         player.getX(),
@@ -140,7 +172,7 @@ public final class FluidBottles {
     player.awardStat(Stats.ITEM_USED.get(Items.GLASS_BOTTLE));
     player.setItemInHand(
         event.getHand(),
-        ItemUtils.createFilledResult(held, player, FluidBottleItem.filled(fluid.getType())));
+        ItemUtils.createFilledResult(held, player, filled(fluid.getType())));
     event.setCanceled(true);
     event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide()));
   }

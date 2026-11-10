@@ -4,7 +4,11 @@ plugins {
     id 'idea'
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.148'
+    id 'com.diffplug.spotless' version '8.9.0'
 }
+
+// Import-block step for Spotless and its fixture tests (docs/code-format.md).
+apply from: 'gradle/import-blocks.gradle'
 
 def env = System.getenv()
 def tag = providers.environmentVariable('TAG')
@@ -211,33 +215,24 @@ tasks.named('javadoc', Javadoc) {
     options.links('https://docs.oracle.com/en/java/javase/21/docs/api/')
 }
 
-// Formatting: `./gradlew format` applies Google Java Style with google-java-format, then splits
-// imports into blank-line-separated groups (scripts/group_imports.py). The formatter jar is not
-// committed: put google-java-format's all-deps jar at tools/gjf.jar (or pass -PgjfJar=<path>).
+// Formatting (docs/code-format.md): Eclipse JDT with the shared profile in
+// gradle/java-formatter.xml (VS Code uses the same one), then the import-block step.
+// Ratcheted: only files changed since the base branch are checked and formatted, so code is
+// brought over to this style as it is next edited. Never reformat unrelated files in a change.
+// spotlessCheck is part of check/build; `./gradlew spotlessApply` (or `format`) fixes files.
+spotless {
+    ratchetFrom 'origin/master-2.0-1.21.1-neo'
+    java {
+        target 'src/**/*.java'
+        eclipse('4.35').configFile('gradle/java-formatter.xml')
+        custom 'importBlocks', importBlocksStep
+    }
+}
+
 tasks.register('format') {
     group = 'formatting'
-    description = 'Formats all Java sources (Google style, grouped imports).'
-    def jar = file(providers.gradleProperty('gjfJar').getOrElse('tools/gjf.jar'))
-    def python = providers.gradleProperty('mmdlibPython').getOrElse('python3')
-    def sources = fileTree('src') { include '**/*.java' }
-    def java = "${System.getProperty('java.home')}/bin/java"
-    doLast {
-        if (!jar.isFile())
-            throw new GradleException("google-java-format not found at ${jar}; see build.gradle")
-        // Imports are left in place here and grouped by the script below instead.
-        // Keep each invocation below Windows' command-line length limit as the library grows.
-        sources.files.toList().collate(40).each { batch ->
-            providers.exec {
-                commandLine([java, '-jar', jar.absolutePath, '--skip-sorting-imports', '--replace'] +
-                        batch.collect { it.absolutePath })
-            }.result.get()
-        }
-        def grouping = providers.exec {
-            commandLine python, file('scripts/group_imports.py').absolutePath, file('src').absolutePath
-        }
-        grouping.result.get()
-        logger.lifecycle("Formatted ${sources.files.size()} files. " + grouping.standardOutput.asText.get().trim())
-    }
+    description = 'Formats changed Java sources; an alias for spotlessApply.'
+    dependsOn 'spotlessApply'
 }
 
 idea {

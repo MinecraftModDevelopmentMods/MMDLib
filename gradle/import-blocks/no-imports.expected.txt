@@ -1,0 +1,4 @@
+package zone.moddev.mc.lib;
+
+/** No imports at all. */
+public final class Example {}
