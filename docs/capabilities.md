@@ -37,6 +37,11 @@ directly, and automation gets per-face views of it.
   machine facing up or down, `TOP` is the north side. `RelativeFace.facing(state)` reads the
   `facing` or `horizontal_facing` property, and defaults to north when the state has neither.
 
+`ScreenHost.screenFluids()` exposes storage to resource-bound screen elements. `FluidTankElement`
+owns the player view for its selected tank: manual extraction is allowed from input/manual tanks,
+while insertion filters, output-role restrictions and reservations remain enforced by storage.
+Side modes apply to automation. The storage has no tooltip or cursor-container interaction code.
+
 ## Reservations
 
 `ItemStorage` and the client menu handler share `PlannedItemHandler` for insertion, extraction and
@@ -70,9 +75,27 @@ loads, so load the storages first.
 
 ## Stable storage identities and recovery
 
+`ItemInventories` groups named, **independent `ItemStorage` handlers**. Each handler owns its
+contents, limits, filters, revisions and reservation plans. `inventory("input")` returns that
+physical handler; `address(global)` / `index(name, local)` translate the optional combined view
+used by block capabilities and legacy callers. Both `ItemStorage` and `ItemInventories` implement
+`ItemStore`, so recipe groups and `MachineInventoryLifecycle` support either. Transactions track
+the physical handler and local index even when several recipe aliases address the same slot.
+
+Named saves store each handler under `Inventories/<name>`, with slot identities scoped to that
+name. Inventory order can change without moving contents between groups. Loading also accepts
+old flat `ItemStorage` saves: globally unique old slot IDs and legacy numeric mappings migrate
+into the configured handlers. Removed inventories and reduced limits retain displaced entries
+in `Recovery`; restoring the inventory makes those entries available again. Keep inventory names
+stable as well as slot IDs. `ItemInventories.partition(names)` allocates handlers while retaining
+an existing combined slot order, including interleaved groups.
+
 Assign durable identities with `items.slotId(index, "input")` and `fluids.tankId(index, "coolant")`.
 IDs must be nonblank and unique within that storage. They are save identities, separate from
 numeric recipe/menu indexes and from resource-group or XML element IDs.
+Assign explicit IDs before the first save/load. `ItemInventories` supplies IDs for remaining
+unnamed slots at that point, choosing unused local numeric IDs (prefixed with underscores when
+needed), so explicit numeric IDs such as `"1"` and `"2"` cannot collide with constructor defaults.
 
 Saves include `SlotId` / `TankId` where configured. Loading matches identified entries by ID;
 an unknown ID never falls back to its former numeric position. Saves without identities load by
@@ -175,8 +198,9 @@ is checked every tick, keep a NeoForge `BlockCapabilityCache` instead.
 
 - `ItemStorage` keeps its configured slot count and `FluidStorage` its configured tanks. Entries
   that cannot be restored remain in recovery; see stable identities above.
-- `EnergyBuffer` stores up to `Long.MAX_VALUE`. Screens show the full `long` through a getter
-  such as `#getEnergy` (`stored()`), while other mods see at most `Integer.MAX_VALUE`.
+- `EnergyBuffer` stores up to `Long.MAX_VALUE`. `EnergyGaugeElement` reads the full `long`
+  from `ScreenHost.screenEnergy()` and owns its UI snapshots and tooltip. Other mods see at
+  most `Integer.MAX_VALUE` through the automation capability.
 - The runtime smoke test covers roles, filters, limits, faces, out-of-range indices, transfer,
   NBT round trips, int clamping, and the face mapping. Real cables and pipes still need testing
   in game.

@@ -42,7 +42,7 @@ jobs:
       - name: Build and test
         run: |
           chmod +x ./gradlew
-          ./gradlew clean check build
+          ./gradlew clean check build --stacktrace
 
       - name: Upload build artifacts
         continue-on-error: true

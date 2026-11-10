@@ -111,7 +111,7 @@ implementations, while `CompanionWidgets` owns their common-side validation and 
 The Crusher also has a **4,000 mB (four-bucket) tank** on the left. Right-click the block with a
 water or lava bucket to fill it, or an empty bucket to drain it; open the screen with an empty hand
 to see the fluid's animated texture. Inside the screen, pick up a fluid container onto the cursor
-and click the tank gauge to transfer: it tries pouring into the tank first, then filling the container.
+and left-click the tank gauge to pour into it, or right-click to fill the container from it.
 This works with buckets and modded items exposing NeoForge's fluid-container capability, including
 partial transfers. One container is handled per click; when carrying a stack, the resulting container
 goes into your inventory (or drops beside you if it is full).
@@ -120,6 +120,10 @@ transfers. Fluid pipes can fill and drain on any face. The tank holds one fluid 
 fully before switching between water and lava. Rejected bucket transfers leave the contents intact.
 The tank saves with the machine and is only a display example; crushing recipes do not consume it.
 Breaking the machine discards its fluid.
+
+The Logistics Workbench's four gauges and the generated Simple Lava Furnace gauge use the same
+library interaction. Only the clicked tank is affected. Players can drain input tanks; output
+tanks refuse insertion, and recipe reservations protect both fluid and output space.
 
 Hoppers and pipes obey each group's configured side modes and storage roles. Recipe-linked
 inputs accept only ingredients allowed by compatible recipes; decorative tanks retain their own

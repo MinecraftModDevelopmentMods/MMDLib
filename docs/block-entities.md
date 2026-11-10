@@ -182,7 +182,7 @@ tanks must be registered with the lifecycle to participate in persistence, clear
 
 | Base behavior | Subclass extension |
 |---|---|
-| `getEnergy()`, `getEnergyCapacity()` | Backed by the owned buffer |
+| `screenEnergy()` | Exposes the owned buffer to `EnergyGaugeElement`, which supplies its own snapshots and tooltip |
 | `getProgress()`, `getTime()`, `getPaused()` | First registered recipe processor; zero/false if none |
 | `screenFeatures()`, `screenStats()` | Owned host; statistics include energy and all feature statistics providers |
 | `screenAutomation()` | Lifecycle's automation inventory, when configured |

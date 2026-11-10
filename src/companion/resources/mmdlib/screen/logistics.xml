@@ -2,12 +2,12 @@
         block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib:base_powered_machine">
   <fill name="body">
     <vbox padding="7"><hbox spacing="4" align="center">
-      <gauge id="tank" length="3s" value="#getTankFluid" max="#getTankCapacity"/>
-      <gauge id="tank_1" length="3s" value="#getTank1" max="#getTankCapacity"/>
-      <slot id="input" index="0"/>
-      <slot id="output" index="1"/>
-      <gauge id="tank_2" length="3s" value="#getTank2" max="#getTankCapacity"/>
-      <gauge id="tank_3" length="3s" value="#getTank3" max="#getTankCapacity"/>
+      <fluid-tank tank="0" id="tank" length="3s"/>
+      <fluid-tank tank="1" id="tank_1" length="3s"/>
+      <inventory storage="input"><item-slot id="input" index="0"/></inventory>
+      <inventory storage="output"><item-slot id="output" index="0"/></inventory>
+      <fluid-tank tank="2" id="tank_2" length="3s"/>
+      <fluid-tank tank="3" id="tank_3" length="3s"/>
       <spacer/>
       <energy-gauge id="energy" length="3s"/>
     </hbox></vbox>

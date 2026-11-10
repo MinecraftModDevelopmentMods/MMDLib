@@ -3,7 +3,7 @@ package zone.moddev.mc.lib.gui.client;
 import net.minecraft.client.gui.GuiGraphics;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
 /**
  * Client-only drawing for a registered custom widget. Rendering is clipped to the widget bounds.
@@ -13,29 +13,29 @@ import zone.moddev.mc.lib.gui.model.Element;
  */
 @FunctionalInterface
 public interface WidgetRenderer {
-  void render(Context context);
+    void render(Context context);
 
-  /**
-   * One frame's inputs. Bounds and mouse coordinates are absolute GUI pixels. Values are synced
-   * snapshots (whole numbers are BigInteger, decimals Double), or null before sync or on failure.
-   * No getter is called on the client. partialTick supports client-only animation.
-   */
-  record Context(
-      GuiGraphics graphics,
-      Element.Custom widget,
-      Rect bounds,
-      Object value,
-      Object maximum,
-      int mouseX,
-      int mouseY,
-      float partialTick) {
-    /** A clamped 0..1 numeric ratio, including large integers; unavailable values give zero. */
-    public double ratio() {
-      return ScreenText.ratio(value, maximum);
-    }
+    /**
+     * One frame's inputs. Bounds and mouse coordinates are absolute GUI pixels. Values are synced
+     * snapshots (whole numbers are BigInteger, decimals Double), or null before sync or on failure.
+     * No getter is called on the client. partialTick supports client-only animation.
+     */
+    record Context(
+        GuiGraphics graphics,
+        CustomElement widget,
+        Rect bounds,
+        Object value,
+        Object maximum,
+        int mouseX,
+        int mouseY,
+        float partialTick) {
+        /** A clamped 0..1 numeric ratio, including large integers; unavailable values give zero. */
+        public double ratio() {
+            return widget.fillRatio(value, maximum);
+        }
 
-    public boolean hovered() {
-      return bounds.contains(mouseX, mouseY);
+        public boolean hovered() {
+            return bounds.contains(mouseX, mouseY);
+        }
     }
-  }
 }

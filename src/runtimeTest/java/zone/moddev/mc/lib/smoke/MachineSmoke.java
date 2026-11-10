@@ -28,7 +28,11 @@ import zone.moddev.mc.lib.common.factories.BlockEntityFactory;
 import zone.moddev.mc.lib.common.modules.DataModules;
 import zone.moddev.mc.lib.common.runtime.MaterialEntityBlock;
 import zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar;
-import zone.moddev.mc.lib.common.types.*;
+import zone.moddev.mc.lib.common.types.FactoryData;
+import zone.moddev.mc.lib.common.types.MMDBlockEntity;
+import zone.moddev.mc.lib.common.types.MaterialRuntimeSettings;
+import zone.moddev.mc.lib.common.types.StandaloneBlock;
+import zone.moddev.mc.lib.common.types.StandaloneItem;
 import zone.moddev.mc.lib.util.Registries;
 
 /**
@@ -37,233 +41,245 @@ import zone.moddev.mc.lib.util.Registries;
  */
 @EventBusSubscriber(modid = "mmdlib", bus = EventBusSubscriber.Bus.MOD)
 public final class MachineSmoke {
-  private static final String NAMESPACE = "mmdlib_smoke";
-  private static final ResourceLocation MACHINE = id("counter");
-  private static final ResourceLocation ITEM = id("plain_nugget");
-  private static final AtomicInteger TICKS = new AtomicInteger();
-  private static volatile RuntimeContentRegistrar registrar;
+    private static final String NAMESPACE = "mmdlib_smoke";
+    private static final ResourceLocation MACHINE = id("counter");
+    private static final ResourceLocation ITEM = id("plain_nugget");
+    private static final AtomicInteger TICKS = new AtomicInteger();
+    private static volatile RuntimeContentRegistrar registrar;
 
-  private MachineSmoke() {}
+    private MachineSmoke() {
+    }
 
-  /** The smoke registrar, which the general placement checks skip. */
-  static RuntimeContentRegistrar registrar() {
-    return registrar;
-  }
+    /** The smoke registrar, which the general placement checks skip. */
+    static RuntimeContentRegistrar registrar() {
+        return registrar;
+    }
 
-  @SubscribeEvent
-  static void construct(FMLConstructModEvent event) {
-    Registries.BLOCK_ENTITY_FACTORIES.register(id("counter_entity"), new CounterFactory());
-    Registries.BLOCK_ENTITY_FACTORIES.register(
-        CrusherSmoke.ENTITY_FACTORY, new CrusherSmoke.Factory());
-    var bus = ModList.get().getModContainerById("mmdlib").orElseThrow().getEventBus();
-    registrar = new RuntimeContentRegistrar(NAMESPACE, MaterialExtensions.GLOBAL, bus);
-    var types =
-        net.neoforged.neoforge.registries.DeferredRegister.<BlockEntityType<?>>create(
+    @SubscribeEvent
+    static void construct(FMLConstructModEvent event) {
+        Registries.BLOCK_ENTITY_FACTORIES.register(id("counter_entity"), new CounterFactory());
+        Registries.BLOCK_ENTITY_FACTORIES.register(
+            CrusherSmoke.ENTITY_FACTORY, new CrusherSmoke.Factory());
+        var bus = ModList.get().getModContainerById("mmdlib").orElseThrow().getEventBus();
+        registrar = new RuntimeContentRegistrar(NAMESPACE, MaterialExtensions.GLOBAL, bus);
+        var types = net.neoforged.neoforge.registries.DeferredRegister.<BlockEntityType<?>>create(
             net.minecraft.core.registries.Registries.BLOCK_ENTITY_TYPE, NAMESPACE);
-    types.register(bus);
-    event.enqueueWork(
-        () -> {
-          var module =
-              DataModules.Block.CODEC
-                  .parse(
-                      JsonOps.INSTANCE,
-                      JsonParser.parseString(
-                          """
-                          {"factory":"mmdlib:machine","template":{},
-                           "part":{"block_entity":{"factory":"mmdlib_smoke:counter_entity",
-                             "factory_data":{"step":1}}}}
-                          """))
-                  .getOrThrow();
-          var machine =
-              new StandaloneBlock(
-                  id("counter_module"),
-                  FactoryData.EMPTY,
-                  java.util.Optional.empty(),
-                  MaterialRuntimeSettings.DEFAULT,
-                  new FactoryData(JsonParser.parseString("{\"step\":3}")));
-          registrar.queue(machine.resolve(MACHINE, module));
-          var crusherModule =
-              DataModules.Block.CODEC
-                  .parse(
-                      JsonOps.INSTANCE,
-                      JsonParser.parseString(
-                          """
-                          {"factory":"mmdlib:machine","template":{},
-                           "part":{"block_entity":{"factory":"mmdlib_smoke:crusher_entity",
-                             "factory_data":{}}}}
-                          """))
-                  .getOrThrow();
-          var crusher =
-              new StandaloneBlock(
-                  id("crusher_module"),
-                  FactoryData.EMPTY,
-                  java.util.Optional.empty(),
-                  MaterialRuntimeSettings.DEFAULT,
-                  FactoryData.EMPTY);
-          registrar.queue(crusher.resolve(CrusherSmoke.ID, crusherModule));
-          CrusherSmoke.install();
-          registrar.blockEntityHandles().values().forEach(handle -> handle.register(types));
-          if (Boolean.getBoolean("mmdlib.guiSmoke")) GuiRuntimeChecks.install();
-          var item =
-              new StandaloneItem(
-                  ResourceLocation.parse("mmdlib:nugget"),
-                  FactoryData.EMPTY,
-                  java.util.Optional.empty(),
-                  MaterialRuntimeSettings.DEFAULT);
-          registrar.queue(
-              item.resolve(
-                  ITEM,
-                  MaterialExtensions.GLOBAL.itemModule(ResourceLocation.parse("mmdlib:nugget"))));
-        });
-  }
+        types.register(bus);
+        event.enqueueWork(
+            () -> {
+                var module = DataModules.Block.CODEC
+                    .parse(
+                        JsonOps.INSTANCE,
+                        JsonParser.parseString(
+                            """
+                                {"factory":"mmdlib:machine","template":{},
+                                 "part":{"block_entity":{"factory":"mmdlib_smoke:counter_entity",
+                                   "factory_data":{"step":1}}}}
+                                """))
+                    .getOrThrow();
+                var machine = new StandaloneBlock(
+                    id("counter_module"),
+                    FactoryData.EMPTY,
+                    java.util.Optional.empty(),
+                    MaterialRuntimeSettings.DEFAULT,
+                    new FactoryData(JsonParser.parseString("{\"step\":3}")));
+                registrar.queue(machine.resolve(MACHINE, module));
+                var crusherModule = DataModules.Block.CODEC
+                    .parse(
+                        JsonOps.INSTANCE,
+                        JsonParser.parseString(
+                            """
+                                {"factory":"mmdlib:machine","template":{},
+                                 "part":{"block_entity":{"factory":"mmdlib_smoke:crusher_entity",
+                                   "factory_data":{}}}}
+                                """))
+                    .getOrThrow();
+                var crusher = new StandaloneBlock(
+                    id("crusher_module"),
+                    FactoryData.EMPTY,
+                    java.util.Optional.empty(),
+                    MaterialRuntimeSettings.DEFAULT,
+                    FactoryData.EMPTY);
+                registrar.queue(crusher.resolve(CrusherSmoke.ID, crusherModule));
+                CrusherSmoke.install();
+                registrar.blockEntityHandles().values().forEach(handle -> handle.register(types));
+                if (Boolean.getBoolean("mmdlib.guiSmoke"))
+                    GuiRuntimeChecks.install();
+                var item = new StandaloneItem(
+                    ResourceLocation.parse("mmdlib:nugget"),
+                    FactoryData.EMPTY,
+                    java.util.Optional.empty(),
+                    MaterialRuntimeSettings.DEFAULT);
+                registrar.queue(
+                    item.resolve(
+                        ITEM,
+                        MaterialExtensions.GLOBAL
+                            .itemModule(ResourceLocation.parse("mmdlib:nugget"))));
+            });
+    }
 
-  /** Places the machine, ticks it through the block's own ticker, and checks the item. */
-  static void check(ServerLevel level, BlockPos pos) {
-    var block = BuiltInRegistries.BLOCK.get(MACHINE);
-    if (!(block instanceof MaterialEntityBlock<?>))
-      throw new AssertionError("Standalone machine block missing: " + block);
-    var holder = registrar.blockEntityTypes().get(MACHINE);
-    if (holder == null || BuiltInRegistries.BLOCK_ENTITY_TYPE.get(MACHINE) != holder.get())
-      throw new AssertionError("Standalone machine block-entity type missing");
-    level.setBlock(pos, block.defaultBlockState(), 3);
-    if (!(level.getBlockEntity(pos) instanceof Counter counter))
-      throw new AssertionError("Machine has no counter: " + level.getBlockEntity(pos));
-    var state = level.getBlockState(pos);
-    var ticker = state.getTicker(level, holder.get());
-    if (ticker == null) throw new AssertionError("Server machine has no ticker");
-    if (state.getTicker(level, BlockEntityType.FURNACE) != null)
-      throw new AssertionError("Ticker installed for another block-entity type");
-    @SuppressWarnings("unchecked")
-    var typed = (BlockEntityTicker<BlockEntity>) ticker;
-    int before = TICKS.get();
-    typed.tick(level, pos, state, counter);
-    // block_entity_data overrode the module's step of 1.
-    if (TICKS.get() - before != 3) throw new AssertionError("Wrong machine settings");
-    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-    var item = BuiltInRegistries.ITEM.get(ITEM);
-    if (registrar.items().get(ITEM) == null || registrar.items().get(ITEM).get() != item)
-      throw new AssertionError("Standalone item missing: " + item);
-    if (BuiltInRegistries.ITEM.get(MACHINE) == net.minecraft.world.item.Items.AIR)
-      throw new AssertionError("Standalone machine has no block item");
-  }
+    /** Places the machine, ticks it through the block's own ticker, and checks the item. */
+    static void check(ServerLevel level, BlockPos pos) {
+        var block = BuiltInRegistries.BLOCK.get(MACHINE);
+        if (!(block instanceof MaterialEntityBlock<?>))
+            throw new AssertionError("Standalone machine block missing: " + block);
+        var holder = registrar.blockEntityTypes().get(MACHINE);
+        if (holder == null || BuiltInRegistries.BLOCK_ENTITY_TYPE.get(MACHINE) != holder.get())
+            throw new AssertionError("Standalone machine block-entity type missing");
+        level.setBlock(pos, block.defaultBlockState(), 3);
+        if (!(level.getBlockEntity(pos) instanceof Counter counter))
+            throw new AssertionError("Machine has no counter: " + level.getBlockEntity(pos));
+        var state = level.getBlockState(pos);
+        var ticker = state.getTicker(level, holder.get());
+        if (ticker == null)
+            throw new AssertionError("Server machine has no ticker");
+        if (state.getTicker(level, BlockEntityType.FURNACE) != null)
+            throw new AssertionError("Ticker installed for another block-entity type");
+        @SuppressWarnings("unchecked")
+        var typed = (BlockEntityTicker<BlockEntity>) ticker;
+        int before = TICKS.get();
+        typed.tick(level, pos, state, counter);
+        // block_entity_data overrode the module's step of 1.
+        if (TICKS.get() - before != 3)
+            throw new AssertionError("Wrong machine settings");
+        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+        var item = BuiltInRegistries.ITEM.get(ITEM);
+        if (registrar.items().get(ITEM) == null || registrar.items().get(ITEM).get() != item)
+            throw new AssertionError("Standalone item missing: " + item);
+        if (BuiltInRegistries.ITEM.get(MACHINE) == net.minecraft.world.item.Items.AIR)
+            throw new AssertionError("Standalone machine has no block item");
+    }
 
-  private static ResourceLocation id(String path) {
-    return ResourceLocation.fromNamespaceAndPath(NAMESPACE, path);
-  }
+    private static ResourceLocation id(String path) {
+        return ResourceLocation.fromNamespaceAndPath(NAMESPACE, path);
+    }
 
-  /** A block entity that counts its own ticks by its configured step. */
-  public static final class Counter extends BlockEntity
-      implements zone.moddev.mc.lib.gui.runtime.ScreenHost {
-    public int clicks, guiReads;
-    public final zone.moddev.mc.lib.api.capabilities.ItemStorage items =
-        new zone.moddev.mc.lib.api.capabilities.ItemStorage(4)
+    /** A block entity that counts its own ticks by its configured step. */
+    public static final class Counter extends BlockEntity
+        implements
+            zone.moddev.mc.lib.gui.runtime.ScreenHost {
+        public int clicks, guiReads;
+        public final zone.moddev.mc.lib.api.capabilities.ItemStorage items = new zone.moddev.mc.lib.api.capabilities.ItemStorage(
+            4)
             .role(zone.moddev.mc.lib.api.capabilities.Role.OUTPUT, 1)
             .filter(stack -> !stack.is(net.minecraft.world.item.Items.DIRT), 0)
             .limit(16, 0);
-    public final java.util.Map<String, zone.moddev.mc.lib.api.capabilities.SideConfig> sides =
-        java.util.Map.of(
-            "input",
+        public final java.util.Map<String, zone.moddev.mc.lib.api.capabilities.SideConfig> sides = java.util.Map
+            .of(
+                "input",
                 new zone.moddev.mc.lib.api.capabilities.SideConfig(
                     zone.moddev.mc.lib.api.capabilities.IoMode.INPUT),
-            "water",
+                "water",
                 new zone.moddev.mc.lib.api.capabilities.SideConfig(
                     zone.moddev.mc.lib.api.capabilities.IoMode.BOTH),
-            "energy",
+                "energy",
                 new zone.moddev.mc.lib.api.capabilities.SideConfig(
                     zone.moddev.mc.lib.api.capabilities.IoMode.INPUT));
-    public net.minecraft.world.item.ItemStack ghost = net.minecraft.world.item.ItemStack.EMPTY;
+        public net.minecraft.world.item.ItemStack ghost = net.minecraft.world.item.ItemStack.EMPTY;
 
-    public java.math.BigInteger getGuiEnergy() {
-      guiReads++;
-      return java.math.BigInteger.TEN.pow(100).multiply(java.math.BigInteger.valueOf(3));
+        public java.math.BigInteger getGuiEnergy() {
+            guiReads++;
+            return java.math.BigInteger.TEN.pow(100).multiply(java.math.BigInteger.valueOf(3));
+        }
+
+        public java.math.BigInteger getGuiCapacity() {
+            return java.math.BigInteger.TEN.pow(101);
+        }
+
+        public int getGuiWaterCapacity() {
+            return 1000;
+        }
+
+        public net.neoforged.neoforge.fluids.FluidStack getGuiWater() {
+            return new net.neoforged.neoforge.fluids.FluidStack(
+                net.minecraft.world.level.material.Fluids.WATER, 500);
+        }
+
+        public boolean isGuiEnabled() {
+            return true;
+        }
+
+        public int getGuiMode() {
+            return 1;
+        }
+
+        public java.util.List<net.minecraft.network.chat.Component> getGuiWarnings() {
+            return java.util.List.of(
+                net.minecraft.network.chat.Component.translatableWithFallback(
+                    "test.warning", "A live warning"));
+        }
+
+        public net.minecraft.network.chat.Component getGuiError() {
+            return net.minecraft.network.chat.Component.translatableWithFallback(
+                "test.error", "A live error");
+        }
+
+        public net.neoforged.neoforge.items.IItemHandlerModifiable screenItems() {
+            return items;
+        }
+
+        public java.util.Map<String, zone.moddev.mc.lib.api.capabilities.SideConfig> screenSides() {
+            return sides;
+        }
+
+        public boolean setScreenGhost(
+            net.minecraft.world.entity.player.Player player,
+            int slot,
+            net.minecraft.world.item.ItemStack stack) {
+            if (slot != 2)
+                return false;
+            ghost = stack;
+            return true;
+        }
+
+        public net.minecraft.world.item.ItemStack screenGhost(int slot) {
+            return ghost;
+        }
+
+        public int[] screenRecipeSlots(ResourceLocation category) {
+            if (Boolean.getBoolean("mmdlib.transferSmokeOnly"))
+                return new int[0];
+            return new int[]{0};
+        }
+
+        public java.util.List<zone.moddev.mc.lib.api.capabilities.ItemInventories.Address> screenRecipeItems(
+            ResourceLocation category) {
+            return java.util.List.of(
+                new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address("items", 0));
+        }
+
+        Counter(BlockEntityType<Counter> type, BlockPos pos, BlockState state) {
+            super(type, pos, state);
+        }
     }
 
-    public java.math.BigInteger getGuiCapacity() {
-      return java.math.BigInteger.TEN.pow(101);
-    }
+    private static final class CounterFactory implements BlockEntityFactory<Counter, Integer> {
+        @Override
+        public Class<Counter> blockEntityClass() {
+            return Counter.class;
+        }
 
-    public int getGuiWaterCapacity() {
-      return 1000;
-    }
+        @Override
+        public Codec<Integer> settingsCodec() {
+            return Codec.intRange(1, 16).fieldOf("step").codec();
+        }
 
-    public net.neoforged.neoforge.fluids.FluidStack getGuiWater() {
-      return new net.neoforged.neoforge.fluids.FluidStack(
-          net.minecraft.world.level.material.Fluids.WATER, 500);
-    }
+        @Override
+        public Counter create(
+            BlockEntityType<Counter> type,
+            BlockPos position,
+            BlockState state,
+            MMDBlockEntity definition,
+            Integer step) {
+            return new Counter(type, position, state);
+        }
 
-    public boolean isGuiEnabled() {
-      return true;
+        @Override
+        public BlockEntityTicker<Counter> ticker(Level level, MMDBlockEntity definition,
+            Integer step) {
+            return level.isClientSide()
+                ? null
+                : (world, pos, state, entity) -> TICKS.addAndGet(step);
+        }
     }
-
-    public int getGuiMode() {
-      return 1;
-    }
-
-    public java.util.List<net.minecraft.network.chat.Component> getGuiWarnings() {
-      return java.util.List.of(
-          net.minecraft.network.chat.Component.translatableWithFallback(
-              "test.warning", "A live warning"));
-    }
-
-    public net.minecraft.network.chat.Component getGuiError() {
-      return net.minecraft.network.chat.Component.translatableWithFallback(
-          "test.error", "A live error");
-    }
-
-    public net.neoforged.neoforge.items.IItemHandlerModifiable screenItems() {
-      return items;
-    }
-
-    public java.util.Map<String, zone.moddev.mc.lib.api.capabilities.SideConfig> screenSides() {
-      return sides;
-    }
-
-    public boolean setScreenGhost(
-        net.minecraft.world.entity.player.Player player,
-        int slot,
-        net.minecraft.world.item.ItemStack stack) {
-      if (slot != 2) return false;
-      ghost = stack;
-      return true;
-    }
-
-    public net.minecraft.world.item.ItemStack screenGhost(int slot) {
-      return ghost;
-    }
-
-    public int[] screenRecipeSlots(ResourceLocation category) {
-      return new int[] {0};
-    }
-
-    Counter(BlockEntityType<Counter> type, BlockPos pos, BlockState state) {
-      super(type, pos, state);
-    }
-  }
-
-  private static final class CounterFactory implements BlockEntityFactory<Counter, Integer> {
-    @Override
-    public Class<Counter> blockEntityClass() {
-      return Counter.class;
-    }
-
-    @Override
-    public Codec<Integer> settingsCodec() {
-      return Codec.intRange(1, 16).fieldOf("step").codec();
-    }
-
-    @Override
-    public Counter create(
-        BlockEntityType<Counter> type,
-        BlockPos position,
-        BlockState state,
-        MMDBlockEntity definition,
-        Integer step) {
-      return new Counter(type, position, state);
-    }
-
-    @Override
-    public BlockEntityTicker<Counter> ticker(Level level, MMDBlockEntity definition, Integer step) {
-      return level.isClientSide() ? null : (world, pos, state, entity) -> TICKS.addAndGet(step);
-    }
-  }
 }

@@ -38,248 +38,279 @@ import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
  * remain the consumer's choices.
  */
 public abstract class BaseMachine extends BlockEntity
-    implements ScreenHost, DropsContents, Clearable {
-  public static final ResourceLocation SCREEN_TEMPLATE =
-      ResourceLocation.parse("mmdlib:base_machine");
-  private static final String CLIENT_DATA = "mmdlib_machine";
+    implements
+        ScreenHost,
+        DropsContents,
+        Clearable {
+    public static final ResourceLocation SCREEN_TEMPLATE = ResourceLocation
+        .parse("mmdlib:base_machine");
+    private static final String CLIENT_DATA = "mmdlib_machine";
 
-  public final FeatureHost features =
-      new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
+    public final FeatureHost features = new FeatureHost(this::setChanged,
+        () -> FeatureSync.send(this));
 
-  protected BaseMachine(BlockEntityType<?> type, BlockPos pos, BlockState state) {
-    super(type, pos, state);
-  }
-
-  /** Optional power storage; fluid-fuel and unpowered machines return null. */
-  protected EnergyBuffer powerStorage() {
-    return null;
-  }
-
-  public Direction facing() {
-    return RelativeFace.facing(getBlockState());
-  }
-
-  public long getEnergy() {
-    return powerStorage() == null ? 0 : powerStorage().stored();
-  }
-
-  public long getEnergyCapacity() {
-    return powerStorage() == null ? 0 : powerStorage().capacity();
-  }
-
-  /** Common warnings for the inherited info panel; subclasses may append their own messages. */
-  public List<Component> getWarnings() {
-    var warnings = new ArrayList<Component>();
-    var redstone = screenRedstone();
-    if (redstone != null && !pausePolicy().processingEnabled(redstone.paused()))
-      warnings.add(Component.translatable("screen.mmdlib.machine.redstone_waiting"));
-    for (var processor : features.processors()) {
-      var key =
-          switch (processor.status()) {
-            case STALLED -> "screen.mmdlib.machine.stalled";
-            case BLOCKED -> "screen.mmdlib.machine.blocked";
-            case HELD -> "screen.mmdlib.machine.held";
-            default -> null;
-          };
-      if (key != null)
-        warnings.add(
-            Component.translatable(
-                "screen.mmdlib.machine.processor_warning",
-                processor.displayName(),
-                Component.translatable(key)));
+    protected BaseMachine(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
     }
-    return List.copyOf(warnings);
-  }
 
-  public int getProgress() {
-    return features.processor(java.util.Optional.empty()).map(RecipeProcessor::progress).orElse(0);
-  }
-
-  public int getTime() {
-    return features.processor(java.util.Optional.empty()).map(RecipeProcessor::time).orElse(0);
-  }
-
-  public boolean getPaused() {
-    return features
-        .processor(java.util.Optional.empty())
-        .map(RecipeProcessor::paused)
-        .orElse(false);
-  }
-
-  @Override
-  public final FeatureHost screenFeatures() {
-    return features;
-  }
-
-  @Override
-  public List<? extends StatsProvider> screenStats() {
-    var parts = new ArrayList<StatsProvider>();
-    if (powerStorage() != null) parts.add(powerStorage());
-    parts.addAll(features.statisticsProviders());
-    return List.copyOf(parts);
-  }
-
-  /** Opens the concrete screen registered under this entity type's ID. */
-  public final boolean openScreen(Player player) {
-    return ScreenRuntime.open(player, this);
-  }
-
-  /**
-   * Return the lifecycle configured by the subclass after its inventories are constructed. The base
-   * registers an optional energy buffer under {@code energy} automatically and rejects conflicting
-   * bindings. Without a lifecycle, the base persists energy and features only.
-   */
-  protected MachineInventoryLifecycle machineInventory() {
-    return null;
-  }
-
-  private MachineInventoryLifecycle configuredInventory() {
-    var inventory = machineInventory();
-    if (inventory != null) inventory.bindPower(this, features, powerStorage());
-    return inventory;
-  }
-
-  /** Starts a lifecycle with this machine's optional power storage and feature host wired. */
-  protected final MachineInventoryLifecycle genericInventory(AutomationInventory automation) {
-    var inventory = new MachineInventoryLifecycle(this, features, automation, powerStorage());
-    return powerStorage() == null ? inventory : inventory.energy("energy", powerStorage());
-  }
-
-  @Override
-  public AutomationInventory screenAutomation() {
-    var inventory = configuredInventory();
-    return inventory == null ? null : inventory.automation();
-  }
-
-  protected boolean processingAllowed() {
-    return true;
-  }
-
-  protected MachineInventoryLifecycle.PausePolicy pausePolicy() {
-    return MachineInventoryLifecycle.PausePolicy.PROCESSING_ONLY;
-  }
-
-  protected void beforeMachineTick() {}
-
-  protected void afterMachineTick() {}
-
-  public final void serverTick() {
-    if (level == null || level.isClientSide) return;
-    var redstone = screenRedstone();
-    if (redstone != null) redstone.readInputs();
-    beforeMachineTick();
-    boolean paused = redstone != null && redstone.paused();
-    var inventory = configuredInventory();
-    if (inventory != null) inventory.tick(processingAllowed(), paused, pausePolicy());
-    else features.tick(level, processingAllowed() && pausePolicy().processingEnabled(paused));
-    afterMachineTick();
-    if (redstone != null) redstone.updateOutputs();
-  }
-
-  /** Additional machine metadata; common inventories/features/redstone are already saved. */
-  protected void saveMachineData(CompoundTag tag, HolderLookup.Provider registries) {}
-
-  /** Additional machine metadata; never called for a feature-only client update. */
-  protected void loadMachineData(CompoundTag tag, HolderLookup.Provider registries) {}
-
-  /**
-   * Maps old numeric item/tank indices before storage and processor restoration. Stable IDs bypass
-   * it.
-   */
-  protected java.util.function.IntUnaryOperator legacySlots(String key, CompoundTag tag) {
-    return java.util.function.IntUnaryOperator.identity();
-  }
-
-  /**
-   * Writes extra client state into a dedicated compound, separate from storage and feature data.
-   */
-  protected void saveClientData(CompoundTag tag, HolderLookup.Provider registries) {}
-
-  /** Reads extra client state after feature synchronization, never while loading a world save. */
-  protected void loadClientData(CompoundTag tag, HolderLookup.Provider registries) {}
-
-  /**
-   * Sends current feature and custom client state; call setChanged separately for persistent edits.
-   */
-  protected final void syncToClient() {
-    FeatureSync.send(this);
-  }
-
-  @Override
-  protected final void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-    super.saveAdditional(tag, registries);
-    var inventory = configuredInventory();
-    if (inventory != null) inventory.save(tag, registries);
-    else {
-      if (powerStorage() != null) tag.put("energy", powerStorage().serializeNBT(registries));
-      tag.put("features", features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
+    /** Optional power storage; fluid-fuel and unpowered machines return null. */
+    protected EnergyBuffer powerStorage() {
+        return null;
     }
-    var redstone = screenRedstone();
-    if (redstone != null) tag.put("redstone_control", redstone.save(registries));
-    saveMachineData(tag, registries);
-  }
 
-  @Override
-  protected final void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-    if (FeatureSync.read(features, tag, registries)) {
-      if (tag.contains(CLIENT_DATA, Tag.TAG_COMPOUND))
-        loadClientData(tag.getCompound(CLIENT_DATA), registries);
-      return;
+    public Direction facing() {
+        return RelativeFace.facing(getBlockState());
     }
-    super.loadAdditional(tag, registries);
-    var inventory = configuredInventory();
-    if (inventory != null) inventory.load(tag, registries, this::legacySlots);
-    else {
-      features.reset();
-      if (powerStorage() != null && tag.contains("energy"))
-        powerStorage().deserializeNBT(registries, tag.get("energy"));
-      if (tag.contains("features"))
-        features.load(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("features"));
+
+    @Override
+    public EnergyBuffer screenEnergy() {
+        return powerStorage();
     }
-    var redstone = screenRedstone();
-    if (redstone != null) {
-      if (tag.contains("redstone_control"))
-        redstone.load(tag.getCompound("redstone_control"), registries);
-      else {
-        int mode = tag.getInt("redstone_mode");
-        redstone.migrate(mode >= 0 && mode <= 2 ? mode : 0);
-      }
+
+    /** Common warnings for the inherited info panel; subclasses may append their own messages. */
+    public List<Component> getWarnings() {
+        var warnings = new ArrayList<Component>();
+        var redstone = screenRedstone();
+        if (redstone != null && !pausePolicy().processingEnabled(redstone.paused()))
+            warnings.add(Component.translatable("screen.mmdlib.machine.redstone_waiting"));
+        for (var processor : features.processors()) {
+            var key = switch (processor.status()) {
+                case STALLED -> "screen.mmdlib.machine.stalled";
+                case BLOCKED -> "screen.mmdlib.machine.blocked";
+                case HELD -> "screen.mmdlib.machine.held";
+                default -> null;
+            };
+            if (key != null)
+                warnings.add(
+                    Component.translatable(
+                        "screen.mmdlib.machine.processor_warning",
+                        processor.displayName(),
+                        Component.translatable(key)));
+        }
+        return List.copyOf(warnings);
     }
-    loadMachineData(tag, registries);
-  }
 
-  @Override
-  public final CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-    var tag = FeatureSync.updateTag(features, registries);
-    var clientData = new CompoundTag();
-    saveClientData(clientData, registries);
-    tag.put(CLIENT_DATA, clientData);
-    return tag;
-  }
-
-  @Override
-  public final Packet<ClientGamePacketListener> getUpdatePacket() {
-    return ClientboundBlockEntityDataPacket.create(this);
-  }
-
-  @Override
-  public void clearContent() {
-    var inventory = configuredInventory();
-    if (inventory != null) inventory.clear();
-    else {
-      features.reset();
-      if (powerStorage() != null) powerStorage().setStored(0);
-      setChanged();
+    public int getProgress() {
+        return features.processor(java.util.Optional.empty()).map(RecipeProcessor::progress)
+            .orElse(0);
     }
-    FeatureSync.send(this);
-  }
 
-  @Override
-  public void dropContents(Level level, BlockPos pos) {
-    var inventory = configuredInventory();
-    if (inventory != null) inventory.dropContents(payload -> recoverResources(level, pos, payload));
-  }
+    public int getTime() {
+        return features.processor(java.util.Optional.empty()).map(RecipeProcessor::time).orElse(0);
+    }
 
-  /** Preserve displaced resources in a consumer-owned recovery item or equivalent durable sink. */
-  protected abstract void recoverResources(Level level, BlockPos pos, CompoundTag payload);
+    public boolean getPaused() {
+        return features
+            .processor(java.util.Optional.empty())
+            .map(RecipeProcessor::paused)
+            .orElse(false);
+    }
+
+    @Override
+    public final FeatureHost screenFeatures() {
+        return features;
+    }
+
+    @Override
+    public List<? extends StatsProvider> screenStats() {
+        var parts = new ArrayList<StatsProvider>();
+        if (powerStorage() != null)
+            parts.add(powerStorage());
+        parts.addAll(features.statisticsProviders());
+        return List.copyOf(parts);
+    }
+
+    /** Opens the concrete screen registered under this entity type's ID. */
+    public final boolean openScreen(Player player) {
+        return ScreenRuntime.open(player, this);
+    }
+
+    /**
+     * Return the lifecycle configured by the subclass after its inventories are constructed. The
+     * base registers an optional energy buffer under {@code energy} automatically and rejects
+     * conflicting bindings. Without a lifecycle, the base persists energy and features only.
+     */
+    protected MachineInventoryLifecycle machineInventory() {
+        return null;
+    }
+
+    private MachineInventoryLifecycle configuredInventory() {
+        var inventory = machineInventory();
+        if (inventory != null)
+            inventory.bindPower(this, features, powerStorage());
+        return inventory;
+    }
+
+    /** Starts a lifecycle with this machine's optional power storage and feature host wired. */
+    protected final MachineInventoryLifecycle genericInventory(AutomationInventory automation) {
+        var inventory = new MachineInventoryLifecycle(this, features, automation, powerStorage());
+        return powerStorage() == null ? inventory : inventory.energy("energy", powerStorage());
+    }
+
+    @Override
+    public AutomationInventory screenAutomation() {
+        var inventory = configuredInventory();
+        return inventory == null ? null : inventory.automation();
+    }
+
+    protected boolean processingAllowed() {
+        return true;
+    }
+
+    protected MachineInventoryLifecycle.PausePolicy pausePolicy() {
+        return MachineInventoryLifecycle.PausePolicy.PROCESSING_ONLY;
+    }
+
+    protected void beforeMachineTick() {
+    }
+
+    protected void afterMachineTick() {
+    }
+
+    public final void serverTick() {
+        if (level == null || level.isClientSide)
+            return;
+        var redstone = screenRedstone();
+        if (redstone != null)
+            redstone.readInputs();
+        beforeMachineTick();
+        boolean paused = redstone != null && redstone.paused();
+        var inventory = configuredInventory();
+        if (inventory != null)
+            inventory.tick(processingAllowed(), paused, pausePolicy());
+        else
+            features.tick(level, processingAllowed() && pausePolicy().processingEnabled(paused));
+        afterMachineTick();
+        if (redstone != null)
+            redstone.updateOutputs();
+    }
+
+    /** Additional machine metadata; common inventories/features/redstone are already saved. */
+    protected void saveMachineData(CompoundTag tag, HolderLookup.Provider registries) {
+    }
+
+    /** Additional machine metadata; never called for a feature-only client update. */
+    protected void loadMachineData(CompoundTag tag, HolderLookup.Provider registries) {
+    }
+
+    /**
+     * Maps old numeric item/tank indices before storage and processor restoration. Stable IDs
+     * bypass it.
+     */
+    protected java.util.function.IntUnaryOperator legacySlots(String key, CompoundTag tag) {
+        return java.util.function.IntUnaryOperator.identity();
+    }
+
+    /**
+     * Writes extra client state into a dedicated compound, separate from storage and feature data.
+     */
+    protected void saveClientData(CompoundTag tag, HolderLookup.Provider registries) {
+    }
+
+    /** Reads extra client state after feature synchronization, never while loading a world save. */
+    protected void loadClientData(CompoundTag tag, HolderLookup.Provider registries) {
+    }
+
+    /**
+     * Sends current feature and custom client state; call setChanged separately for persistent
+     * edits.
+     */
+    protected final void syncToClient() {
+        FeatureSync.send(this);
+    }
+
+    @Override
+    protected final void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        var inventory = configuredInventory();
+        if (inventory != null)
+            inventory.save(tag, registries);
+        else {
+            if (powerStorage() != null)
+                tag.put("energy", powerStorage().serializeNBT(registries));
+            tag.put("features",
+                features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
+        }
+        var redstone = screenRedstone();
+        if (redstone != null)
+            tag.put("redstone_control", redstone.save(registries));
+        saveMachineData(tag, registries);
+    }
+
+    @Override
+    protected final void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        if (FeatureSync.read(features, tag, registries)) {
+            var redstone = screenRedstone();
+            if (redstone != null && tag.contains("redstone_control", Tag.TAG_COMPOUND))
+                redstone.load(tag.getCompound("redstone_control"), registries);
+            if (tag.contains(CLIENT_DATA, Tag.TAG_COMPOUND))
+                loadClientData(tag.getCompound(CLIENT_DATA), registries);
+            return;
+        }
+        super.loadAdditional(tag, registries);
+        var inventory = configuredInventory();
+        if (inventory != null)
+            inventory.load(tag, registries, this::legacySlots);
+        else {
+            features.reset();
+            if (powerStorage() != null && tag.contains("energy"))
+                powerStorage().deserializeNBT(registries, tag.get("energy"));
+            if (tag.contains("features"))
+                features.load(registries.createSerializationContext(NbtOps.INSTANCE),
+                    tag.get("features"));
+        }
+        var redstone = screenRedstone();
+        if (redstone != null) {
+            if (tag.contains("redstone_control"))
+                redstone.load(tag.getCompound("redstone_control"), registries);
+            else {
+                int mode = tag.getInt("redstone_mode");
+                redstone.migrate(mode >= 0 && mode <= 2 ? mode : 0);
+            }
+        }
+        loadMachineData(tag, registries);
+    }
+
+    @Override
+    public final CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        var tag = FeatureSync.updateTag(features, registries);
+        var redstone = screenRedstone();
+        if (redstone != null)
+            tag.put("redstone_control", redstone.save(registries));
+        var clientData = new CompoundTag();
+        saveClientData(clientData, registries);
+        tag.put(CLIENT_DATA, clientData);
+        return tag;
+    }
+
+    @Override
+    public final Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public void clearContent() {
+        var inventory = configuredInventory();
+        if (inventory != null)
+            inventory.clear();
+        else {
+            features.reset();
+            if (powerStorage() != null)
+                powerStorage().setStored(0);
+            setChanged();
+        }
+        FeatureSync.send(this);
+    }
+
+    @Override
+    public void dropContents(Level level, BlockPos pos) {
+        var inventory = configuredInventory();
+        if (inventory != null)
+            inventory.dropContents(payload -> recoverResources(level, pos, payload));
+    }
+
+    /**
+     * Preserve displaced resources in a consumer-owned recovery item or equivalent durable sink.
+     */
+    protected abstract void recoverResources(Level level, BlockPos pos, CompoundTag payload);
 }

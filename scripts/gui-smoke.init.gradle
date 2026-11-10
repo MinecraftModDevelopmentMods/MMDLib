@@ -1,5 +1,7 @@
 // Run: xvfb-run -a ./gradlew runClient --offline -I scripts/gui-smoke.init.gradle
 // Add -PwithoutJei to exercise the same menu with JEI absent. Uses build/gui-smoke only.
+// Add -PghostSmokeOnly for focused JEI/ghost-click coverage in build/gui-ghost-smoke.
+// Add -PtransferSmokeOnly for named-inventory JEI transfer coverage in build/gui-transfer-smoke.
 // Run a normal build afterward to restore main output without the injected smoke classes.
 allprojects {
     afterEvaluate {
@@ -8,15 +10,32 @@ allprojects {
             configurations.named('craftTweakerDevRuntime') { dependencies.clear() }
             sourceSets.main.java.srcDir(file('src/runtimeTest/java'))
             sourceSets.main.resources.srcDir(file('src/runtimeTest/resources'))
-            def smokeDir = file(providers.gradleProperty('withoutJei').isPresent() ? 'build/gui-smoke-without-jei' : 'build/gui-smoke')
+            def ghostOnly = providers.gradleProperty('ghostSmokeOnly').isPresent()
+            def transferOnly = providers.gradleProperty('transferSmokeOnly').isPresent()
+            if (ghostOnly && transferOnly) throw new GradleException('Choose one focused GUI runner')
+            if ((ghostOnly || transferOnly) && providers.gradleProperty('withoutJei').isPresent())
+                throw new GradleException('The focused ghost smoke requires JEI')
+            def smokeDir = file(transferOnly ? 'build/gui-transfer-smoke' : ghostOnly ? 'build/gui-ghost-smoke' : providers.gradleProperty('withoutJei').isPresent() ? 'build/gui-smoke-without-jei' : 'build/gui-smoke')
             smokeDir.mkdirs()
             new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\n'
             neoForge.runs.client.programArguments.set(['--width', '1280', '--height', '960'])
             neoForge.runs.client.gameDirectory = smokeDir
             neoForge.runs.client.systemProperty 'mmdlib.guiSmoke', 'true'
+            if (ghostOnly) neoForge.runs.client.systemProperty 'mmdlib.ghostSmokeOnly', 'true'
+            if (transferOnly) neoForge.runs.client.systemProperty 'mmdlib.transferSmokeOnly', 'true'
             tasks.configureEach { task ->
                 if (task.name == 'runClient') task.doLast {
                     def report = new File(smokeDir, 'logs/latest.log')
+                    if (transferOnly) {
+                        if (!report.exists() || !report.text.contains('MMDLIB_GUI_TRANSFER_PASS') || !report.text.contains('MMDLIB_GUI_RUNTIME_PASS') || report.text.contains('MMDLIB_GUI_CLIENT_FAIL'))
+                            throw new GradleException('Transfer GUI smoke failed; inspect ' + report)
+                        return
+                    }
+                    if (ghostOnly) {
+                        if (!report.exists() || !report.text.contains('MMDLIB_GUI_GHOST_PASS') || !report.text.contains('MMDLIB_GUI_RUNTIME_PASS') || report.text.contains('MMDLIB_GUI_CLIENT_FAIL'))
+                            throw new GradleException('Ghost GUI smoke failed; inspect ' + report)
+                        return
+                    }
                     if (!report.exists() || !report.text.contains('MMDLIB_GUI_RUNTIME_PASS') || !report.text.contains('MMDLIB_GUI_CLIENT_PASS') || !report.text.contains('MMDLIB_GUI_SIDES_PASS') || !report.text.contains('MMDLIB_GUI_GAUGES_PASS') || !report.text.contains('MMDLIB_GUI_FEATURE_SYNC_PASS') || !report.text.contains('MMDLIB_GUI_PLANS_PASS') || report.text.contains('MMDLIB_GUI_CLIENT_FAIL'))
                         throw new GradleException('GUI smoke failed; inspect ' + report)
                 }

@@ -61,8 +61,32 @@ neoForge {
             sourceSet = sourceSets.companionTest
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
             systemProperty 'mmdlib.companionSmoke', 'true'
+            if (project.hasProperty('redstoneConnectionSmokeOnly'))
+                systemProperty 'mmdlib.redstoneConnectionSmokeOnly', 'true'
             if (project.hasProperty('processorButtonSmokeOnly'))
                 systemProperty 'mmdlib.processorButtonSmokeOnly', 'true'
+            if (project.hasProperty('rendererSmokeOnly'))
+                systemProperty 'mmdlib.rendererSmokeOnly', 'true'
+            if (project.hasProperty('inheritanceSmokeOnly'))
+                systemProperty 'mmdlib.inheritanceSmokeOnly', 'true'
+            if (project.hasProperty('behaviorSmokeOnly'))
+                systemProperty 'mmdlib.behaviorSmokeOnly', 'true'
+            if (project.hasProperty('groupPresentationSmokeOnly'))
+                systemProperty 'mmdlib.groupPresentationSmokeOnly', 'true'
+            if (project.hasProperty('valueTypeSmokeOnly'))
+                systemProperty 'mmdlib.valueTypeSmokeOnly', 'true'
+            if (project.hasProperty('tooltipSmokeOnly'))
+                systemProperty 'mmdlib.tooltipSmokeOnly', 'true'
+            if (project.hasProperty('statsSmokeOnly'))
+                systemProperty 'mmdlib.statsSmokeOnly', 'true'
+            if (project.hasProperty('popoutSmokeOnly'))
+                systemProperty 'mmdlib.popoutSmokeOnly', 'true'
+            if (project.hasProperty('drawerSmokeOnly'))
+                systemProperty 'mmdlib.drawerSmokeOnly', 'true'
+            if (project.hasProperty('reservationSmokeOnly'))
+                systemProperty 'mmdlib.reservationSmokeOnly', 'true'
+            if (project.hasProperty('filterSmokeOnly'))
+                systemProperty 'mmdlib.filterSmokeOnly', 'true'
             programArguments.addAll '--width', '1280', '--height', '960'
         }
         companionGameTestServer {

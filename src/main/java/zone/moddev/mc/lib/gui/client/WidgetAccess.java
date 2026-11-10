@@ -2,20 +2,20 @@ package zone.moddev.mc.lib.gui.client;
 
 import zone.moddev.mc.lib.gui.WidgetAction;
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
 /** Live, client-only access for one widget instance. Values are server snapshots, never getters. */
 public interface WidgetAccess {
-  Element.Custom element();
+    CustomElement element();
 
-  Rect bounds();
+    Rect bounds();
 
-  Object value();
+    Object value();
 
-  Object maximum();
+    Object maximum();
 
-  boolean pending();
+    boolean pending();
 
-  /** Sends one registered action; false means hidden, pending, or unavailable. */
-  <T> boolean submit(WidgetAction<T> action, T value);
+    /** Sends one registered action; false means hidden, pending, or unavailable. */
+    <T> boolean submit(WidgetAction<T> action, T value);
 }

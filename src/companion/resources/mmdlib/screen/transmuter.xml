@@ -5,7 +5,7 @@
   </fill>
   <fill name="machine">
     <spacer/>
-    <slot id="input" index="0"/>
+    <inventory storage="input"><item-slot id="input" index="0"/></inventory>
     <progress id="progress" value="#getProgress" max="#getTime" jei-recipes="mmdlib_companion:transmuting"/>
   </fill>
 </screen>
