@@ -150,7 +150,7 @@ including reserved inputs. Normal `/setblock` and `/fill` replacement clears con
 
 Install both `build/libs/mmdlib-<version>.jar` and
 `build/companion/libs/mmdlib-companion-<version>.jar` in a NeoForge instance. JEI is optional.
-Both jars use the build's version (`2.0.0.121012-development` by default, or the release tag).
+Both jars use the build's version (`2.0.1.121012-development` by default, or the release tag).
 `companionJar` contains only the companion; `build` continues to build the library.
 The companion output is separate from the library's CI/release upload directory and Maven
 publication. Release uploads select only the exact library, sources and Javadoc filenames for
