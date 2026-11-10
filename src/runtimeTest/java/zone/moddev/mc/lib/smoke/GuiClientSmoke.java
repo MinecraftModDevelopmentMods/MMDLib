@@ -24,6 +24,7 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
+import zone.moddev.mc.lib.gui.model.elements.SideConfigElement;
 import zone.moddev.mc.lib.gui.runtime.ClientMenuItems;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
@@ -253,9 +254,10 @@ public final class GuiClientSmoke {
                     continue;
                 var expected = PlayerInventoryElement.slot(inventoryBounds,
                     slot.getContainerSlot());
+                var element = screen.getMenu().nativeSlots().entry(slot.index).element();
                 if (slot.x != expected.x() + 1
                     || slot.y != expected.y() + 1
-                    || slot.getNoItemIcon() == null) {
+                    || element == null || element.icon().isEmpty()) {
                     fail(new AssertionError("Client equipment position or empty icon missing"));
                     return;
                 }
@@ -300,8 +302,8 @@ public final class GuiClientSmoke {
         }
         if (stage == 2 && mc.screen instanceof MachineScreen screen && ticks >= 85) {
             var config = screen.getMenu().bound.screen().find("config").orElseThrow();
-            int key = -1 - screen.getMenu().elements.indexOf(config) * 65536;
-            if (!java.math.BigInteger.valueOf(3).equals(screen.getMenu().wireValue(key))) {
+            if (screen.getMenu().elementStates().get(config, SideConfigElement.MODES)
+                .getFirst() != 3) {
                 fail(new AssertionError("Side face click did not sync from server"));
                 return;
             }

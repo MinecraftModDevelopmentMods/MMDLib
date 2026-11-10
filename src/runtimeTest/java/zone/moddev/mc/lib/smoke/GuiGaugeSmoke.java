@@ -11,9 +11,9 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 
 import zone.moddev.mc.lib.MMDLib;
+import zone.moddev.mc.lib.gui.client.ElementRenderers;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.elements.GaugeElement;
 
 /** Checks actual GL state around buffered solid and fluid gauge draws. */
 public final class GuiGaugeSmoke {
@@ -25,17 +25,9 @@ public final class GuiGaugeSmoke {
         int[] factors = factors();
         float[] color = RenderSystem.getShaderColor().clone();
         try {
-            var draw = Class.forName("zone.moddev.mc.lib.gui.client.GaugeRenderer")
-                .getDeclaredMethod(
-                    "draw",
-                    GuiGraphics.class,
-                    Rect.class,
-                    GaugeElement.class,
-                    Object.class,
-                    Object.class);
-            draw.setAccessible(true);
             for (String id : new String[]{"energy", "water"}) {
-                var gauge = (GaugeElement) screen.getMenu().bound.screen().find(id).orElseThrow();
+                var gauge = screen.getMenu().bound.screen().find(id).orElseThrow();
+                var draw = ElementRenderers.GLOBAL.require(gauge.getClass());
                 for (boolean enabled : new boolean[]{false, true}) {
                     graphics.drawManaged(
                         () -> {
@@ -56,17 +48,13 @@ public final class GuiGaugeSmoke {
                             // Deliberately leave a GUI fill queued before the immediate gauge
                             // texture draws.
                             graphics.fill(-100, -100, -90, -90, 0x80ffffff);
-                            try {
-                                draw.invoke(
-                                    null,
-                                    graphics,
-                                    new Rect(-100, -100, 18, 72),
-                                    gauge,
-                                    screen.getMenu().value(gauge, false),
-                                    screen.getMenu().value(gauge, true));
-                            } catch (ReflectiveOperationException ex) {
-                                throw new AssertionError("Gauge draw failed", ex);
-                            }
+                            draw.accept(new ElementRenderers.Context(
+                                graphics,
+                                gauge,
+                                new Rect(-100, -100, 18, 72),
+                                screen.getMenu().value(gauge, false),
+                                screen.getMenu().value(gauge, true),
+                                0, 0, 0));
                             if (GL11.glIsEnabled(GL11.GL_BLEND) != enabled
                                 || GL11.glIsEnabled(GL11.GL_DEPTH_TEST) == enabled
                                 || !Arrays.equals(
@@ -81,8 +69,6 @@ public final class GuiGaugeSmoke {
             MMDLib.LOGGER.info(
                 "MMDLIB_GUI_GAUGES_PASS: solid and fluid gauges with buffered fills; blend"
                     + " enable/factors, depth and shader color restored");
-        } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
         } finally {
             graphics.flush();
             RenderSystem.blendFuncSeparate(factors[0], factors[1], factors[2], factors[3]);
