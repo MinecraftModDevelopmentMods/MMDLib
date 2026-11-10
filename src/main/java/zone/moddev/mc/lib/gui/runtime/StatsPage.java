@@ -6,8 +6,12 @@ import java.util.Objects;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-/** A synchronized display page; no statistic implementations or sampling state cross the wire. */
-public record StatsPage(ResourceLocation id, Component label, List<Component> lines) {
+/**
+ * A synchronized display page; no statistic implementations or sampling state
+ * cross the wire.
+ */
+public record StatsPage(ResourceLocation id, Component label,
+    List<Component> lines) {
     public static final int MAX_ROWS = 4096;
 
     public StatsPage {

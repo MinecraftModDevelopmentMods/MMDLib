@@ -20,13 +20,15 @@ public final class DrawerTabs {
         int result = 0;
         for (var entry : entries)
             result += entry.placement().height() + entry.placement().gap();
-        return result - (entries.isEmpty() ? 0 : entries.getLast().placement().gap());
+        return result
+            - (entries.isEmpty() ? 0 : entries.getLast().placement().gap());
     }
 
-    private static List<DrawerDefinition> select(
-        List<DrawerDefinition> entries, Edge edge, DrawerPlacement.Anchor anchor) {
+    private static List<DrawerDefinition> select(List<DrawerDefinition> entries,
+        Edge edge, DrawerPlacement.Anchor anchor) {
         return entries.stream()
-            .filter(d -> d.placement().edge() == edge && d.placement().anchor() == anchor)
+            .filter(d -> d.placement().edge() == edge
+                && d.placement().anchor() == anchor)
             .sorted(Comparator.comparingInt(d -> d.placement().order()))
             .toList();
     }
@@ -36,12 +38,11 @@ public final class DrawerTabs {
         for (var edge : Edge.values()) {
             var top = select(entries, edge, DrawerPlacement.Anchor.TOP);
             var bottom = select(entries, edge, DrawerPlacement.Anchor.BOTTOM);
-            height = Math.max(
-                height,
-                height(top)
-                    + height(bottom)
-                    + 2 * SideDrawerLayout.MARGIN
-                    + (top.isEmpty() || bottom.isEmpty() ? 0 : top.getLast().placement().gap()));
+            height = Math.max(height,
+                height(top) + height(bottom) + 2 * SideDrawerLayout.MARGIN
+                    + (top.isEmpty() || bottom.isEmpty()
+                        ? 0
+                        : top.getLast().placement().gap()));
         }
         return height;
     }
@@ -60,7 +61,8 @@ public final class DrawerTabs {
                 y += p.height() + p.gap();
             }
             var lower = select(active, edge, DrawerPlacement.Anchor.BOTTOM);
-            int end = Math.max(SideDrawerLayout.bottom(panel, bottom), y + height(lower));
+            int end = Math.max(SideDrawerLayout.bottom(panel, bottom),
+                y + height(lower));
             for (var definition : lower) {
                 var p = definition.placement();
                 end -= p.height();
@@ -72,12 +74,8 @@ public final class DrawerTabs {
     }
 
     private static Rect rect(Rect panel, DrawerPlacement p, int y) {
-        return new Rect(
-            p.edge() == Edge.LEFT
-                ? panel.x() - p.width() + p.overlap()
-                : panel.right() - p.overlap(),
-            y,
-            p.width(),
-            p.height());
+        return new Rect(p.edge() == Edge.LEFT
+            ? panel.x() - p.width() + p.overlap()
+            : panel.right() - p.overlap(), y, p.width(), p.height());
     }
 }

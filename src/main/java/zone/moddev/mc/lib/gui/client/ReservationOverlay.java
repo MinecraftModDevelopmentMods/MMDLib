@@ -12,14 +12,9 @@ final class ReservationOverlay {
     private static final float COUNT_SCALE = .875f;
     private final GhostItems ghosts = new GhostItems();
 
-    void render(
-        GuiGraphics g,
-        Font font,
-        Slot slot,
+    void render(GuiGraphics g, Font font, Slot slot,
         zone.moddev.mc.lib.gui.model.elements.SlotElement element,
-        ItemStack displayed,
-        SlotPlan plan,
-        String countString) {
+        ItemStack displayed, SlotPlan plan, String countString) {
         element.renderOverlay(
             new zone.moddev.mc.lib.gui.model.elements.SlotElement.OverlayPainter() {
                 public void ghost(ItemStack stack, float alpha) {
@@ -29,13 +24,11 @@ final class ReservationOverlay {
                 public void quantity(String text, boolean bottom) {
                     label(g, font, text, slot.x, slot.y + (bottom ? 9 : 0));
                 }
-            },
-            displayed,
-            plan,
-            countString);
+            }, displayed, plan, countString);
     }
 
-    private static void label(GuiGraphics g, Font font, String text, int x, int y) {
+    private static void label(GuiGraphics g, Font font, String text, int x,
+        int y) {
         g.pose().pushPose();
         g.pose().translate(x + 17 - font.width(text) * COUNT_SCALE, y, 200);
         g.pose().scale(COUNT_SCALE, COUNT_SCALE, 1);

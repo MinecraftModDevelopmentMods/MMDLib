@@ -8,7 +8,9 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import zone.moddev.mc.lib.gui.value.ValueTypeRegistry;
 
-/** Registry-backed value snapshots, deltas and transport shared by all elements. */
+/**
+ * Registry-backed value snapshots, deltas and transport shared by all elements.
+ */
 public final class ScreenValues {
     private ScreenValues() {
     }
@@ -25,14 +27,14 @@ public final class ScreenValues {
         return ValueTypeRegistry.GLOBAL.equal(a, b);
     }
 
-    public static Map<Integer, Object> changed(
-        Map<Integer, Object> previous, Map<Integer, Object> current, boolean initial) {
+    public static Map<Integer, Object> changed(Map<Integer, Object> previous,
+        Map<Integer, Object> current, boolean initial) {
         var delta = new HashMap<Integer, Object>();
-        current.forEach(
-            (key, value) -> {
-                if (initial || !previous.containsKey(key) || !equal(previous.get(key), value))
-                    delta.put(key, value);
-            });
+        current.forEach((key, value) -> {
+            if (initial || !previous.containsKey(key)
+                || !equal(previous.get(key), value))
+                delta.put(key, value);
+        });
         return delta;
     }
 

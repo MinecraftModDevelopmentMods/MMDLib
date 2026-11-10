@@ -25,8 +25,9 @@ import net.neoforged.neoforge.items.IItemHandler;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /**
- * Named, independent inventories with a stable combined view for capabilities and legacy callers.
- * Contents, filters and reservations belong to the individual ItemStorage instances.
+ * Named, independent inventories with a stable combined view for capabilities
+ * and legacy callers. Contents, filters and reservations belong to the
+ * individual ItemStorage instances.
  */
 public final class ItemInventories implements ItemStore {
     public record Address(String inventory, int slot) {
@@ -38,25 +39,25 @@ public final class ItemInventories implements ItemStore {
     private ListTag recovery = new ListTag();
 
     public ItemInventories(Map<String, ItemStorage> inventories) {
-        this(
-            inventories,
-            inventories.entrySet().stream()
-                .flatMap(
-                    entry -> java.util.stream.IntStream.range(0, entry.getValue().getSlots())
-                        .mapToObj(slot -> new Address(entry.getKey(), slot)))
-                .toList());
+        this(inventories, inventories.entrySet().stream()
+            .flatMap(entry -> java.util.stream.IntStream
+                .range(0, entry.getValue().getSlots())
+                .mapToObj(slot -> new Address(entry.getKey(), slot)))
+            .toList());
     }
 
-    private ItemInventories(Map<String, ItemStorage> inventories, List<Address> addresses) {
+    private ItemInventories(Map<String, ItemStorage> inventories,
+        List<Address> addresses) {
         var copy = new LinkedHashMap<String, ItemStorage>();
-        inventories.forEach(
-            (name, storage) -> {
-                if (name == null || !name.matches("[a-z0-9_.-]{1,64}"))
-                    throw new IllegalArgumentException("Invalid inventory name: " + name);
-                if (copy.containsValue(storage))
-                    throw new IllegalArgumentException("Inventory already registered");
-                copy.put(name, Objects.requireNonNull(storage));
-            });
+        inventories.forEach((name, storage) -> {
+            if (name == null || !name.matches("[a-z0-9_.-]{1,64}"))
+                throw new IllegalArgumentException(
+                    "Invalid inventory name: " + name);
+            if (copy.containsValue(storage))
+                throw new IllegalArgumentException(
+                    "Inventory already registered");
+            copy.put(name, Objects.requireNonNull(storage));
+        });
         this.inventories = Collections.unmodifiableMap(copy);
         this.addresses = List.copyOf(addresses);
         var indexes = new HashMap<Address, Integer>();
@@ -65,7 +66,10 @@ public final class ItemInventories implements ItemStore {
         this.indexes = Map.copyOf(indexes);
     }
 
-    /** Allocate one real inventory per name, retaining the supplied legacy combined ordering. */
+    /**
+     * Allocate one real inventory per name, retaining the supplied legacy
+     * combined ordering.
+     */
     public static ItemInventories partition(List<String> names) {
         var sizes = new LinkedHashMap<String, Integer>();
         var addresses = new ArrayList<Address>();
@@ -175,7 +179,8 @@ public final class ItemInventories implements ItemStore {
     }
 
     public long revision() {
-        return inventories.values().stream().mapToLong(ItemStorage::revision).sum();
+        return inventories.values().stream().mapToLong(ItemStorage::revision)
+            .sum();
     }
 
     public void markChanged() {
@@ -191,7 +196,8 @@ public final class ItemInventories implements ItemStore {
     }
 
     public boolean hasPlan(int slot) {
-        return slot >= 0 && slot < getSlots() && storage(slot).hasPlan(localSlot(slot));
+        return slot >= 0 && slot < getSlots()
+            && storage(slot).hasPlan(localSlot(slot));
     }
 
     public int freeToTake(int slot) {
@@ -222,27 +228,34 @@ public final class ItemInventories implements ItemStore {
             }
 
             public ItemStack getStackInSlot(int slot) {
-                return valid(slot) ? ItemInventories.this.getStackInSlot(slot) : ItemStack.EMPTY;
+                return valid(slot)
+                    ? ItemInventories.this.getStackInSlot(slot)
+                    : ItemStack.EMPTY;
             }
 
-            public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            public ItemStack insertItem(int slot, ItemStack stack,
+                boolean simulate) {
                 return valid(slot)
                     ? port(slot).insertItem(localSlot(slot), stack, simulate)
                     : stack;
             }
 
-            public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            public ItemStack extractItem(int slot, int amount,
+                boolean simulate) {
                 return valid(slot)
                     ? port(slot).extractItem(localSlot(slot), amount, simulate)
                     : ItemStack.EMPTY;
             }
 
             public int getSlotLimit(int slot) {
-                return valid(slot) ? ItemInventories.this.getSlotLimit(slot) : 0;
+                return valid(slot)
+                    ? ItemInventories.this.getSlotLimit(slot)
+                    : 0;
             }
 
             public boolean isItemValid(int slot, ItemStack stack) {
-                return valid(slot) && port(slot).isItemValid(localSlot(slot), stack);
+                return valid(slot)
+                    && port(slot).isItemValid(localSlot(slot), stack);
             }
         };
     }
@@ -251,23 +264,27 @@ public final class ItemInventories implements ItemStore {
         assignDefaultSlotIds();
         var result = new CompoundTag();
         var named = new CompoundTag();
-        inventories.forEach((name, storage) -> named.put(name, storage.serializeNBT(registries)));
+        inventories.forEach((name, storage) -> named.put(name,
+            storage.serializeNBT(registries)));
         result.put("Inventories", named);
         result.put("Recovery", recovery.copy());
         return result;
     }
 
-    public void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag) {
+    public void deserializeNBT(HolderLookup.Provider registries,
+        CompoundTag tag) {
         deserializeNBT(registries, tag, IntUnaryOperator.identity());
     }
 
-    public void deserializeNBT(
-        HolderLookup.Provider registries, CompoundTag tag, IntUnaryOperator legacySlots) {
+    public void deserializeNBT(HolderLookup.Provider registries,
+        CompoundTag tag, IntUnaryOperator legacySlots) {
         assignDefaultSlotIds();
-        // Resolve the complete old/new save before restoring any processor reservations.
+        // Resolve the complete old/new save before restoring any processor
+        // reservations.
         var entries = tag.getList("Items", Tag.TAG_COMPOUND).copy();
         entries.addAll(tag.getList("Recovery", Tag.TAG_COMPOUND).copy());
-        // Old saves used globally unique IDs; new saves namespace each inventory's local IDs.
+        // Old saves used globally unique IDs; new saves namespace each
+        // inventory's local IDs.
         for (var value : entries) {
             var entry = (CompoundTag) value;
             String id = entry.getString("SlotId");
@@ -282,7 +299,8 @@ public final class ItemInventories implements ItemStore {
                         found = i;
                     }
                 if (found >= 0)
-                    entry.putString("SlotId", address(found).inventory() + "::" + id);
+                    entry.putString("SlotId",
+                        address(found).inventory() + "::" + id);
             }
         }
         var named = tag.getCompound("Inventories");
@@ -295,10 +313,8 @@ public final class ItemInventories implements ItemStore {
                 int local = entry.getInt("Slot");
                 int current = index(name, local);
                 entry.putInt("Slot", current);
-                entry.putString(
-                    "SlotId",
-                    name
-                        + "::"
+                entry.putString("SlotId",
+                    name + "::"
                         + (entry.contains("SlotId")
                             ? entry.getString("SlotId")
                             : Integer.toString(local)));
@@ -314,8 +330,8 @@ public final class ItemInventories implements ItemStore {
         }
         var flat = new CompoundTag();
         flat.put("Items", entries);
-        migration.deserializeNBT(
-            registries, flat, named.isEmpty() ? legacySlots : IntUnaryOperator.identity());
+        migration.deserializeNBT(registries, flat,
+            named.isEmpty() ? legacySlots : IntUnaryOperator.identity());
         clear();
         for (int i = 0; i < getSlots(); i++)
             restoreStack(i, migration.getStackInSlot(i));
@@ -326,7 +342,10 @@ public final class ItemInventories implements ItemStore {
         return recovery.copy();
     }
 
-    /** Apply fallbacks only after callers have supplied their explicit definition IDs. */
+    /**
+     * Apply fallbacks only after callers have supplied their explicit
+     * definition IDs.
+     */
     private void assignDefaultSlotIds() {
         for (var storage : inventories.values()) {
             var used = new java.util.HashSet<String>();
@@ -344,8 +363,10 @@ public final class ItemInventories implements ItemStore {
         }
     }
 
-    public void dropAll(Level level, BlockPos pos, Consumer<CompoundTag> receiver) {
+    public void dropAll(Level level, BlockPos pos,
+        Consumer<CompoundTag> receiver) {
         StorageRecovery.handoff(recovery, "mmdlib:items", "item", receiver);
-        inventories.values().forEach(storage -> storage.dropAll(level, pos, receiver));
+        inventories.values()
+            .forEach(storage -> storage.dropAll(level, pos, receiver));
     }
 }

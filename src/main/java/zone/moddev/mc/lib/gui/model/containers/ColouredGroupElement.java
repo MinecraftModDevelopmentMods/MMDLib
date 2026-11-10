@@ -13,7 +13,10 @@ import zone.moddev.mc.lib.gui.model.ElementGroup;
 import zone.moddev.mc.lib.gui.model.InventoryScope;
 import zone.moddev.mc.lib.gui.model.Screen;
 
-/** A single-child decorator. Its outline does not add padding or change the child's size. */
+/**
+ * A single-child decorator. Its outline does not add padding or change the
+ * child's size.
+ */
 public class ColouredGroupElement implements Element {
     private final Common common;
     private final int colour;
@@ -53,33 +56,30 @@ public class ColouredGroupElement implements Element {
     }
 
     @Override
-    public List<String> associatedGroups(Screen screen, List<ElementGroup> groups) {
+    public List<String> associatedGroups(Screen screen,
+        List<ElementGroup> groups) {
         var explicit = Element.super.associatedGroups(screen, groups);
-        return groups.stream()
-            .filter(
-                group -> explicit.contains(group.id())
-                    || (group.anchors().isEmpty()
-                        && child instanceof InventoryScope scope
-                        && group
-                            .members()
-                            .filter(
-                                members -> members.type().equals(ResourceType.ITEMS.id())
-                                    && members.inventory().equals(scope.inventory()))
-                            .isPresent()))
-            .map(ElementGroup::id)
-            .toList();
+        return groups.stream().filter(
+            group -> explicit.contains(group.id()) || (group.anchors().isEmpty()
+                && child instanceof InventoryScope scope
+                && group.members().filter(
+                    members -> members.type().equals(ResourceType.ITEMS.id())
+                        && members.inventory().equals(scope.inventory()))
+                    .isPresent()))
+            .map(ElementGroup::id).toList();
     }
 
     @Override
-    public boolean replacesChildHighlight(
-        Screen screen, Element descendant, String group, List<ElementGroup> groups) {
+    public boolean replacesChildHighlight(Screen screen, Element descendant,
+        String group, List<ElementGroup> groups) {
         return child instanceof InventoryScope scope
             && InventoryScope.owner(screen, descendant).orElse(null) == scope;
     }
 
     public Rect outline(Rect bounds, boolean highlighted) {
         return highlighted
-            ? new Rect(bounds.x() - 1, bounds.y() - 1, bounds.width() + 2, bounds.height() + 2)
+            ? new Rect(bounds.x() - 1, bounds.y() - 1, bounds.width() + 2,
+                bounds.height() + 2)
             : bounds;
     }
 
@@ -122,12 +122,7 @@ public class ColouredGroupElement implements Element {
 
     @Override
     public String toString() {
-        return "ColouredGroupElement[common="
-            + common
-            + ", colour="
-            + colour
-            + ", child="
-            + child
-            + "]";
+        return "ColouredGroupElement[common=" + common + ", colour=" + colour
+            + ", child=" + child + "]";
     }
 }

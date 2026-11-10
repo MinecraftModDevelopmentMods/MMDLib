@@ -15,9 +15,11 @@
  * this is a custom step.
  *
  * Input the step can't rewrite safely is rejected with an error naming the line, never guessed at:
- * comments between imports (they would lose their position), more than one import or a trailing
- * comment on an import line, and wildcard imports (forbidden by Google style, which
- * docs/code-format.md follows).
+ * comments between imports (they would lose their position), and more than one import or a
+ * trailing comment on an import line.
+ *
+ * Wildcard imports, static or not, are allowed (unlike Google style): they go in their package's
+ * block like any other import, and sort ahead of that package's single-type imports.
  *
  * Applied from build.gradle, this script exposes:
  *   - `importBlocksStep`: a closure for `spotless { java { custom 'importBlocks', ... } } }`;
@@ -89,10 +91,6 @@ class ImportBlocks {
                         + "import statement with nothing else on the line, found: ${line.trim()}")
             }
             String name = match.group(2)
-            if (match.group(3) != null) {
-                throw new IllegalArgumentException("line ${lineNumber}: wildcard imports are not "
-                        + "allowed (Google style, docs/code-format.md): ${line.trim()}")
-            }
             if (match.group(1) != null) {
                 statics.add("import static ${name};".toString())
             } else {

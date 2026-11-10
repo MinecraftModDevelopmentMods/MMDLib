@@ -10,8 +10,7 @@ import zone.moddev.mc.lib.api.stats.CounterRate;
 
 class EnergyRateTest {
     private static final class EnergyRate {
-        final CounterRate in = new CounterRate(20),
-            out = new CounterRate(20),
+        final CounterRate in = new CounterRate(20), out = new CounterRate(20),
             used = new CounterRate(20);
 
         void sample(EnergyBuffer buffer, long tick) {
@@ -41,10 +40,10 @@ class EnergyRateTest {
     void rollbackRestoresTransferCounters() {
         var energy = new EnergyBuffer(1000, 1000);
         energy.setStored(100);
-        var group = zone.moddev.mc.lib.machine.neoforge.StorageGroups.energy(energy);
-        var inventory = zone.moddev.mc.lib.machine.inventory.MachineInventory.builder()
-            .group("energy", group)
-            .build();
+        var group = zone.moddev.mc.lib.machine.neoforge.StorageGroups
+            .energy(energy);
+        var inventory = zone.moddev.mc.lib.machine.inventory.MachineInventory
+            .builder().group("energy", group).build();
         try (var tx = inventory.begin()) {
             group.insert(500, tx);
             group.extract(300, tx);

@@ -39,43 +39,39 @@ class ColourButtonBarTest {
               <inventory-controls><button flat="true" id="pause" icon="mmdlib:icon_pause" tooltip="test.pause" on-click="test:pause"/></inventory-controls>
             </screen>
             """;
-        return ScreenReader.read(
-            ResourceLocation.parse("test:bar"),
-            "bar.xml",
+        return ScreenReader.read(ResourceLocation.parse("test:bar"), "bar.xml",
             new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
     }
 
     private ElementGroup group(String name, int member, String... anchors) {
-        return new ElementGroup(
-            name,
-            List.of(anchors),
-            Optional
-                .of(new ElementGroup.Members(ResourceType.ITEMS.id(), "items", List.of(member))));
+        return new ElementGroup(name, List.of(anchors),
+            Optional.of(new ElementGroup.Members(ResourceType.ITEMS.id(),
+                "items", List.of(member))));
     }
 
-    private ColourButtonBar<String> bar(
-        List<String> order, java.util.function.Consumer<String> select) {
-        return new ColourButtonBar<>(
-            order.stream().map(id -> new ColourButtonBar.Entry<>(id, 0x123456)).toList(), select);
+    private ColourButtonBar<String> bar(List<String> order,
+        java.util.function.Consumer<String> select) {
+        return new ColourButtonBar<>(order.stream()
+            .map(id -> new ColourButtonBar.Entry<>(id, 0x123456)).toList(),
+            select);
     }
 
     @Test
-    void followsScreenOrderWithoutChangingPersistentGroupIndices() throws Exception {
-        var groups = List.of(
-            group("third", 2, "third"),
-            group("first", 0, "first", "second"),
-            group("second", 1),
+    void followsScreenOrderWithoutChangingPersistentGroupIndices()
+        throws Exception {
+        var groups = List.of(group("third", 2, "third"),
+            group("first", 0, "first", "second"), group("second", 1),
             group("hidden", 7, "absent"));
         var screen = screen();
-        var order = GroupOrder.of(
-            screen,
+        var order = GroupOrder.of(screen,
             groups.stream().map(ElementGroup::id).toList(),
             element -> element.associatedGroups(screen, groups));
         assertEquals(List.of("first", "second", "third", "hidden"), order);
         var clicked = new AtomicReference<String>();
         var bar = bar(order, clicked::set);
         bar.layout(new Rect(10, 20, 100, 14), "third");
-        assertTrue(bar.click(10, 21)); // No blank arrow gutter when every colour fits.
+        assertTrue(bar.click(10, 21)); // No blank arrow gutter when every
+                                       // colour fits.
         assertEquals("first", clicked.get());
         assertTrue(bar.click(29, 21));
         assertEquals("second", clicked.get());
@@ -88,8 +84,10 @@ class ColourButtonBarTest {
     @Test
     void overflowScrollsAndResizeKeepsSelectionReachable() throws Exception {
         var clicked = new AtomicReference<String>();
-        var bar = bar(List.of("first", "second", "third", "hidden"), clicked::set);
-        bar.layout(new Rect(0, 0, 34, 14), "first"); // One colour, two navigation arrows.
+        var bar = bar(List.of("first", "second", "third", "hidden"),
+            clicked::set);
+        bar.layout(new Rect(0, 0, 34, 14), "first"); // One colour, two
+                                                     // navigation arrows.
         bar.click(33, 5);
         bar.click(15, 5);
         assertEquals("second", clicked.get());
@@ -110,11 +108,12 @@ class ColourButtonBarTest {
         empty.layout(new Rect(0, 0, 100, 14), null);
         assertFalse(empty.click(1, 1));
         assertFalse(empty.scroll(1, 1, -1));
-        var hidden = bar(List.of("one"), id -> fail("Hidden bar selected an ID"));
+        var hidden = bar(List.of("one"),
+            id -> fail("Hidden bar selected an ID"));
         hidden.layout(null, "one");
         assertFalse(hidden.click(1, 1));
-        assertThrows(
-            IllegalArgumentException.class, () -> bar(List.of("same", new String("same")), id -> {
+        assertThrows(IllegalArgumentException.class,
+            () -> bar(List.of("same", new String("same")), id -> {
             }));
     }
 
@@ -125,10 +124,12 @@ class ColourButtonBarTest {
         var without = ScreenLayout.of(screen, TextMeasure.NONE, false);
         assertEquals(without.panel(), with.panel());
         var row = with.region(PlayerInventoryElement.TOOLBAR).orElseThrow();
-        var inventory = with.region(PlayerInventoryElement.INVENTORY).orElseThrow();
+        var inventory = with.region(PlayerInventoryElement.INVENTORY)
+            .orElseThrow();
         var pause = with.bounds(screen.find("pause").orElseThrow());
         assertEquals(inventory.x(), row.x());
-        assertEquals(PlayerInventoryElement.slot(inventory, 17).right(), pause.right());
+        assertEquals(PlayerInventoryElement.slot(inventory, 17).right(),
+            pause.right());
         assertEquals(row.y(), pause.y());
         assertEquals(pause.x(), row.right() + ScreenLayout.GAP);
         assertEquals(row.bottom() + ScreenLayout.GAP,

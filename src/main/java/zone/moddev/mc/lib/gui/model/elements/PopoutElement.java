@@ -21,11 +21,14 @@ import zone.moddev.mc.lib.gui.value.ValueType;
 import zone.moddev.mc.lib.gui.value.ValueTypes;
 
 /**
- * {@code popout}: an information pop-out on an edge tab. An {@code info} pop-out shows {@code
- * text}; {@code warning} and {@code error} pop-outs show what their value getter reports.
+ * {@code popout}: an information pop-out on an edge tab. An {@code info}
+ * pop-out shows {@code
+ * text}; {@code warning} and {@code error} pop-outs show what their value
+ * getter reports.
  *
  * <p>
- * {@code kind}: what it reports {@code icon}: the tab icon; the kind's default when empty {@code
+ * {@code kind}: what it reports {@code icon}: the tab icon; the kind's default
+ * when empty {@code
  * edge}: the panel edge {@code text}: the fixed text of an info pop-out
  */
 public class PopoutElement implements Element {
@@ -35,12 +38,8 @@ public class PopoutElement implements Element {
     private final Edge edge;
     private final Optional<Text> text;
 
-    public PopoutElement(
-        Common common,
-        PopoutKind kind,
-        Optional<ResourceLocation> icon,
-        Edge edge,
-        Optional<Text> text) {
+    public PopoutElement(Common common, PopoutKind kind,
+        Optional<ResourceLocation> icon, Edge edge, Optional<Text> text) {
         this.common = common;
         this.kind = kind;
         this.icon = icon;
@@ -48,7 +47,10 @@ public class PopoutElement implements Element {
         this.text = text;
     }
 
-    /** Stable preference identity shared by the drawer provider and client instance. */
+    /**
+     * Stable preference identity shared by the drawer provider and client
+     * instance.
+     */
     public String drawerId(zone.moddev.mc.lib.gui.model.Screen screen) {
         if (common.id().isPresent())
             return "popout:id:" + common.id().get();
@@ -56,10 +58,8 @@ public class PopoutElement implements Element {
         for (var tab : screen.tabs()) {
             if (tab == this)
                 break;
-            if (tab instanceof PopoutElement other
-                && other.edge() == edge
-                && other.kind() == kind
-                && other.common().id().isEmpty())
+            if (tab instanceof PopoutElement other && other.edge() == edge
+                && other.kind() == kind && other.common().id().isEmpty())
                 ordinal++;
         }
         return "popout:kind:" + kind.name() + ":" + ordinal;
@@ -67,9 +67,8 @@ public class PopoutElement implements Element {
 
     /** The tab icon: the given one, or {@code mmdlib:icon_<kind>}. */
     public ResourceLocation iconOrDefault() {
-        return icon.orElse(
-            ResourceLocation.fromNamespaceAndPath(
-                "mmdlib", "icon_" + kind.name().toLowerCase(java.util.Locale.ROOT)));
+        return icon.orElse(ResourceLocation.fromNamespaceAndPath("mmdlib",
+            "icon_" + kind.name().toLowerCase(java.util.Locale.ROOT)));
     }
 
     /** RGB tab and body colour. Subclasses may supply their own appearance. */
@@ -82,17 +81,18 @@ public class PopoutElement implements Element {
     }
 
     /**
-     * Unwrapped content, in display order. Empty components are blank rows. The resolver supplies
-     * translated text; fixed text supports screen emphasis, while live components retain their
-     * styles. Subclasses can interpret other synchronized values without changing the drawer or
-     * renderer.
+     * Unwrapped content, in display order. Empty components are blank rows. The
+     * resolver supplies translated text; fixed text supports screen emphasis,
+     * while live components retain their styles. Subclasses can interpret other
+     * synchronized values without changing the drawer or renderer.
      */
-    public List<Component> content(Object value, Function<Text, Component> resolveText) {
+    public List<Component> content(Object value,
+        Function<Text, Component> resolveText) {
         var result = new ArrayList<Component>();
-        text()
-            .ifPresent(text -> result.add(TextMarkup.markup(resolveText.apply(text).getString())));
-        if (!result.isEmpty()
-            && (value instanceof Component || value instanceof List<?> list && !list.isEmpty()))
+        text().ifPresent(text -> result
+            .add(TextMarkup.markup(resolveText.apply(text).getString())));
+        if (!result.isEmpty() && (value instanceof Component
+            || value instanceof List<?> list && !list.isEmpty()))
             result.add(Component.empty());
         if (value instanceof Component component)
             result.add(component.copy());
@@ -119,8 +119,7 @@ public class PopoutElement implements Element {
             throw new IllegalArgumentException("An info <popout> needs text");
         if (kind != PopoutKind.INFO && common.value().isEmpty())
             throw new IllegalArgumentException(
-                "A "
-                    + kind.name().toLowerCase(java.util.Locale.ROOT)
+                "A " + kind.name().toLowerCase(java.util.Locale.ROOT)
                     + " <popout> needs a value getter reporting it");
     }
 
@@ -171,16 +170,7 @@ public class PopoutElement implements Element {
 
     @Override
     public String toString() {
-        return "PopoutElement[common="
-            + common
-            + ", kind="
-            + kind
-            + ", icon="
-            + icon
-            + ", edge="
-            + edge
-            + ", text="
-            + text
-            + "]";
+        return "PopoutElement[common=" + common + ", kind=" + kind + ", icon="
+            + icon + ", edge=" + edge + ", text=" + text + "]";
     }
 }

@@ -19,15 +19,16 @@ import zone.moddev.mc.lib.gui.value.ValueType;
  * {@code progress}: a fill-in progress icon.
  *
  * <p>
- * {@code icon}: the icon sprite; the default arrow when empty {@code direction}: which way it fills
+ * {@code icon}: the icon sprite; the default arrow when empty
+ * {@code direction}: which way it fills
  */
 public class ProgressElement implements Element {
     private final Common common;
     private final Optional<ResourceLocation> icon;
     private final ProgressDirection direction;
 
-    public ProgressElement(
-        Common common, Optional<ResourceLocation> icon, ProgressDirection direction) {
+    public ProgressElement(Common common, Optional<ResourceLocation> icon,
+        ProgressDirection direction) {
         this.common = common;
         this.icon = icon;
         this.direction = direction;
@@ -35,17 +36,13 @@ public class ProgressElement implements Element {
 
     /** The processor arrow is a preset of the reusable progress sprite. */
     public ProgressSpriteElement spriteElement() {
-        boolean vertical = direction == ProgressDirection.UP || direction == ProgressDirection.DOWN;
-        return new ProgressSpriteElement(
-            common,
+        boolean vertical = direction == ProgressDirection.UP
+            || direction == ProgressDirection.DOWN;
+        return new ProgressSpriteElement(common,
             icon.orElse(ResourceLocation.parse("mmdlib:progress_arrow")),
             icon.orElse(ResourceLocation.parse("mmdlib:progress_arrow_filled")),
-            vertical ? 16 : 24,
-            vertical ? 24 : 16,
-            direction,
-            0xffffffff,
-            icon.isPresent() ? 0xff404040 : 0xffffffff,
-            icon.isEmpty());
+            vertical ? 16 : 24, vertical ? 24 : 16, direction, 0xffffffff,
+            icon.isPresent() ? 0xff404040 : 0xffffffff, icon.isEmpty());
     }
 
     public int[] measure(TextMeasure text) {
@@ -96,7 +93,7 @@ public class ProgressElement implements Element {
 
     @Override
     public String toString() {
-        return "ProgressElement[common=" + common + ", icon=" + icon + ", direction=" + direction
-            + "]";
+        return "ProgressElement[common=" + common + ", icon=" + icon
+            + ", direction=" + direction + "]";
     }
 }

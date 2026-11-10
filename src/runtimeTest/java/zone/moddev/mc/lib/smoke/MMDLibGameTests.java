@@ -8,9 +8,10 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
- * MMDLib's server game tests, run by {@code ./gradlew runGameTestServer}. Each one runs a check in
- * an empty 5×5×5 structure ({@code mmdlib:empty}) and passes when the check returns; a thrown error
- * fails it with that error's message. The server exits with the number of failed tests.
+ * MMDLib's server game tests, run by {@code ./gradlew runGameTestServer}. Each
+ * one runs a check in an empty 5×5×5 structure ({@code mmdlib:empty}) and
+ * passes when the check returns; a thrown error fails it with that error's
+ * message. The server exits with the number of failed tests.
  */
 @GameTestHolder("mmdlib")
 @PrefixGameTestTemplate(false)
@@ -23,15 +24,15 @@ public final class MMDLibGameTests {
 
     @GameTest(template = "empty")
     public static void registeredMenuComponents(GameTestHelper helper) {
-        MenuComponentSmoke.check(
-            helper.getLevel(),
+        MenuComponentSmoke.check(helper.getLevel(),
             helper.absolutePos(new BlockPos(2, 1, 2)),
             helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
         helper.succeed();
     }
 
     @GameTest(template = "empty")
-    public static void inventoryScreenReferences(GameTestHelper helper) throws Exception {
+    public static void inventoryScreenReferences(GameTestHelper helper)
+        throws Exception {
         InventoryArchitectureSmoke.screenValidation(helper.getLevel());
         helper.succeed();
     }
@@ -96,8 +97,7 @@ public final class MMDLibGameTests {
 
     @GameTest(template = EMPTY)
     public static void equippedContainer(GameTestHelper helper) {
-        ContainerDrawerSmoke.check(
-            helper.getLevel(),
+        ContainerDrawerSmoke.check(helper.getLevel(),
             helper.absolutePos(CENTER),
             helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
         helper.succeed();
@@ -105,8 +105,7 @@ public final class MMDLibGameTests {
 
     @GameTest(template = EMPTY)
     public static void playerEquipment(GameTestHelper helper) {
-        PlayerEquipmentSmoke.check(
-            helper.getLevel(),
+        PlayerEquipmentSmoke.check(helper.getLevel(),
             helper.absolutePos(CENTER),
             helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL),
             helper.makeMockPlayer(net.minecraft.world.level.GameType.CREATIVE));
@@ -133,13 +132,15 @@ public final class MMDLibGameTests {
 
     @GameTest(template = EMPTY)
     public static void bucketsPlaceAndRecover(GameTestHelper helper) {
-        ContentSmoke.bucketsPlaceAndRecover(helper.getLevel(), helper.absolutePos(CENTER));
+        ContentSmoke.bucketsPlaceAndRecover(helper.getLevel(),
+            helper.absolutePos(CENTER));
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void crackhammerCrushesDrops(GameTestHelper helper) {
-        ContentSmoke.crackhammerCrushesDrops(helper.getLevel(), helper.absolutePos(CENTER));
+        ContentSmoke.crackhammerCrushesDrops(helper.getLevel(),
+            helper.absolutePos(CENTER));
         helper.succeed();
     }
 
@@ -258,7 +259,8 @@ public final class MMDLibGameTests {
 
     @GameTest(template = EMPTY)
     public static void reservedStorage(GameTestHelper helper) {
-        ReservedStorageSmoke.check(helper.getLevel(), helper.absolutePos(CENTER));
+        ReservedStorageSmoke.check(helper.getLevel(),
+            helper.absolutePos(CENTER));
         helper.succeed();
     }
 
@@ -359,13 +361,16 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void processorLanesAcrossInterruptReloadAndRecipeChange(GameTestHelper helper) {
-        ProcessorSmoke.lanesAcrossInterruptReloadAndRecipeChange(helper.getLevel());
+    public static void processorLanesAcrossInterruptReloadAndRecipeChange(
+        GameTestHelper helper) {
+        ProcessorSmoke
+            .lanesAcrossInterruptReloadAndRecipeChange(helper.getLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
-    public static void processorLanesRestoreInEitherOrder(GameTestHelper helper) {
+    public static void processorLanesRestoreInEitherOrder(
+        GameTestHelper helper) {
         ProcessorSmoke.lanesRestoreInEitherOrder(helper.getLevel());
         helper.succeed();
     }
@@ -377,7 +382,8 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void processorInterruptWorksWhileStalled(GameTestHelper helper) {
+    public static void processorInterruptWorksWhileStalled(
+        GameTestHelper helper) {
         ProcessorSmoke.interruptWorksWhileStalled(helper.getLevel());
         helper.succeed();
     }
@@ -455,13 +461,15 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void processorConsecutiveCyclesStayRunning(GameTestHelper helper) {
+    public static void processorConsecutiveCyclesStayRunning(
+        GameTestHelper helper) {
         ProcessorSmoke.consecutiveCyclesStayRunning(helper.getLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
-    public static void processorConsecutiveCyclesOfDifferentTimes(GameTestHelper helper) {
+    public static void processorConsecutiveCyclesOfDifferentTimes(
+        GameTestHelper helper) {
         ProcessorSmoke.consecutiveCyclesOfDifferentTimes(helper.getLevel());
         helper.succeed();
     }
@@ -473,13 +481,15 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void processorPendingMarkOnAFinishTick(GameTestHelper helper) {
+    public static void processorPendingMarkOnAFinishTick(
+        GameTestHelper helper) {
         ProcessorSmoke.pendingMarkOnAFinishTick(helper.getLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
-    public static void processorSiblingMarkOnAFinishTick(GameTestHelper helper) {
+    public static void processorSiblingMarkOnAFinishTick(
+        GameTestHelper helper) {
         ProcessorSmoke.siblingMarkOnAFinishTick(helper.getLevel());
         helper.succeed();
     }
@@ -534,48 +544,50 @@ public final class MMDLibGameTests {
 
     @GameTest(template = EMPTY)
     public static void crusherMenuRows(GameTestHelper helper) {
-        CrusherSmoke.menuRows(
-            helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+        CrusherSmoke.menuRows(helper.getLevel(), helper.absolutePos(CENTER),
+            helper.makeMockServerPlayerInLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void crusherWrappedReservations(GameTestHelper helper) {
-        CrusherSmoke.wrappedReservations(
-            helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+        CrusherSmoke.wrappedReservations(helper.getLevel(),
+            helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void crusherShiftClickShortfalls(GameTestHelper helper) {
-        CrusherSmoke.shiftClickShortfalls(
-            helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+        CrusherSmoke.shiftClickShortfalls(helper.getLevel(),
+            helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void crusherClearableDropsNothing(GameTestHelper helper) {
-        CrusherSmoke.clearableDropsNothing(helper.getLevel(), helper.absolutePos(CENTER));
+        CrusherSmoke.clearableDropsNothing(helper.getLevel(),
+            helper.absolutePos(CENTER));
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void crusherClientRows(GameTestHelper helper) {
-        CrusherSmoke.clientRows(
-            helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+        CrusherSmoke.clientRows(helper.getLevel(), helper.absolutePos(CENTER),
+            helper.makeMockServerPlayerInLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void crusherEndToEnd(GameTestHelper helper) {
-        CrusherSmoke.endToEnd(
-            helper.getLevel(), helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+        CrusherSmoke.endToEnd(helper.getLevel(), helper.absolutePos(CENTER),
+            helper.makeMockServerPlayerInLevel());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void crusherSyncRoundTrip(GameTestHelper helper) {
-        CrusherSmoke.syncRoundTrip(helper.getLevel(), helper.absolutePos(CENTER));
+        CrusherSmoke.syncRoundTrip(helper.getLevel(),
+            helper.absolutePos(CENTER));
         helper.succeed();
     }
 }

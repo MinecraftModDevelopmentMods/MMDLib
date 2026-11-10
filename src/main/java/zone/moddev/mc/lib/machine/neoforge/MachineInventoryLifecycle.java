@@ -21,13 +21,13 @@ import zone.moddev.mc.lib.machine.feature.FeatureHost;
 import zone.moddev.mc.lib.machine.inventory.MachineStorageKeys;
 
 /**
- * Composes storage persistence, processor restoration, transfer policy and displaced-content
- * recovery.
+ * Composes storage persistence, processor restoration, transfer policy and
+ * displaced-content recovery.
  */
 public final class MachineInventoryLifecycle {
     public enum PausePolicy {
-        PROCESSING_ONLY(true, false), TRANSFERS_ONLY(false, true), BOTH(true, true), NEITHER(false,
-            false);
+        PROCESSING_ONLY(true, false), TRANSFERS_ONLY(false, true), BOTH(true,
+            true), NEITHER(false, false);
         private final boolean processing, transfers;
 
         PausePolicy(boolean processing, boolean transfers) {
@@ -50,9 +50,8 @@ public final class MachineInventoryLifecycle {
     private final EnergyBuffer power;
     private final Map<String, Object> storages = new LinkedHashMap<>();
 
-    public MachineInventoryLifecycle(
-        BlockEntity owner, FeatureHost features, AutomationInventory automation,
-        EnergyBuffer power) {
+    public MachineInventoryLifecycle(BlockEntity owner, FeatureHost features,
+        AutomationInventory automation, EnergyBuffer power) {
         this.owner = Objects.requireNonNull(owner);
         this.features = Objects.requireNonNull(features);
         this.automation = Objects.requireNonNull(automation);
@@ -63,11 +62,13 @@ public final class MachineInventoryLifecycle {
         return add(saveKey, storage);
     }
 
-    public MachineInventoryLifecycle fluids(String saveKey, FluidStorage storage) {
+    public MachineInventoryLifecycle fluids(String saveKey,
+        FluidStorage storage) {
         return add(saveKey, storage);
     }
 
-    public MachineInventoryLifecycle energy(String saveKey, EnergyBuffer storage) {
+    public MachineInventoryLifecycle energy(String saveKey,
+        EnergyBuffer storage) {
         return add(saveKey, storage);
     }
 
@@ -76,10 +77,13 @@ public final class MachineInventoryLifecycle {
     }
 
     /**
-     * Ensures a powered base cannot omit its owned buffer or attach another machine's lifecycle.
+     * Ensures a powered base cannot omit its owned buffer or attach another
+     * machine's lifecycle.
      */
-    void bindPower(BlockEntity owner, FeatureHost features, EnergyBuffer power) {
-        if (this.owner != owner || this.features != features || this.power != power)
+    void bindPower(BlockEntity owner, FeatureHost features,
+        EnergyBuffer power) {
+        if (this.owner != owner || this.features != features
+            || this.power != power)
             throw new IllegalArgumentException(
                 "Lifecycle must use its machine's owner, features and optional energy");
         if (power != null && storages.get("energy") != power)
@@ -88,28 +92,27 @@ public final class MachineInventoryLifecycle {
 
     private MachineInventoryLifecycle add(String key, Object storage) {
         Objects.requireNonNull(storage);
-        if (key == null
-            || key.isBlank()
+        if (key == null || key.isBlank()
             || MachineStorageKeys.RESERVED.contains(key)
-            || storages.containsKey(key)
-            || storages.containsValue(storage))
-            throw new IllegalArgumentException("Duplicate or reserved storage key: " + key);
+            || storages.containsKey(key) || storages.containsValue(storage))
+            throw new IllegalArgumentException(
+                "Duplicate or reserved storage key: " + key);
         storages.put(key, storage);
         return this;
     }
 
     public void save(CompoundTag tag, HolderLookup.Provider registries) {
-        storages.forEach(
-            (key, storage) -> {
-                if (storage instanceof ItemStore items)
-                    tag.put(key, items.serializeNBT(registries));
-                else if (storage instanceof FluidStorage fluids)
-                    tag.put(key, fluids.serializeNBT(registries));
-                else
-                    tag.put(key, ((EnergyBuffer) storage).serializeNBT(registries));
-            });
+        storages.forEach((key, storage) -> {
+            if (storage instanceof ItemStore items)
+                tag.put(key, items.serializeNBT(registries));
+            else if (storage instanceof FluidStorage fluids)
+                tag.put(key, fluids.serializeNBT(registries));
+            else
+                tag.put(key, ((EnergyBuffer) storage).serializeNBT(registries));
+        });
         tag.put("automation", automation.save(registries));
-        tag.put("features", features.save(registries.createSerializationContext(NbtOps.INSTANCE)));
+        tag.put("features", features
+            .save(registries.createSerializationContext(NbtOps.INSTANCE)));
     }
 
     public void load(CompoundTag tag, HolderLookup.Provider registries) {
@@ -117,42 +120,47 @@ public final class MachineInventoryLifecycle {
     }
 
     /**
-     * Resolves pre-ID item/tank index mappings from each storage key and the complete world save.
+     * Resolves pre-ID item/tank index mappings from each storage key and the
+     * complete world save.
      */
-    public void load(
-        CompoundTag tag,
-        HolderLookup.Provider registries,
+    public void load(CompoundTag tag, HolderLookup.Provider registries,
         BiFunction<String, CompoundTag, IntUnaryOperator> legacySlots) {
         features.reset();
-        storages.forEach(
-            (key, storage) -> {
-                if (storage instanceof ItemStore items)
-                    items.deserializeNBT(registries, tag.getCompound(key),
-                        legacySlots.apply(key, tag));
-                else if (storage instanceof FluidStorage fluids)
-                    fluids.deserializeNBT(registries, tag.getCompound(key),
-                        legacySlots.apply(key, tag));
-                else if (tag.contains(key))
-                    ((EnergyBuffer) storage).deserializeNBT(registries, tag.get(key));
-            });
+        storages.forEach((key, storage) -> {
+            if (storage instanceof ItemStore items)
+                items.deserializeNBT(registries, tag.getCompound(key),
+                    legacySlots.apply(key, tag));
+            else if (storage instanceof FluidStorage fluids)
+                fluids.deserializeNBT(registries, tag.getCompound(key),
+                    legacySlots.apply(key, tag));
+            else if (tag.contains(key))
+                ((EnergyBuffer) storage).deserializeNBT(registries,
+                    tag.get(key));
+        });
         automation.load(tag.getCompound("automation"), registries);
         if (tag.contains("features"))
-            features.load(registries.createSerializationContext(NbtOps.INSTANCE),
+            features.load(
+                registries.createSerializationContext(NbtOps.INSTANCE),
                 tag.get("features"));
     }
 
-    public void tick(boolean processingAllowed, boolean paused, PausePolicy policy) {
+    public void tick(boolean processingAllowed, boolean paused,
+        PausePolicy policy) {
         var level = owner.getLevel();
         if (level == null || level.isClientSide)
             return;
-        features.tick(level, processingAllowed && policy.processingEnabled(paused));
+        features.tick(level,
+            processingAllowed && policy.processingEnabled(paused));
         // Refunds are already owed; a pause must not prevent their return.
         automation.settleRefund(power);
         if (policy.transfersEnabled(paused))
             AutomationTransfers.tick(automation, power);
     }
 
-    /** Explicit destructive reset, including displaced contents and pending transfers. */
+    /**
+     * Explicit destructive reset, including displaced contents and pending
+     * transfers.
+     */
     public void clear() {
         features.reset();
         automation.clear();
@@ -168,8 +176,8 @@ public final class MachineInventoryLifecycle {
     }
 
     /**
-     * Ordinary fluid/energy destruction remains a host policy; displaced resources are always
-     * recovered.
+     * Ordinary fluid/energy destruction remains a host policy; displaced
+     * resources are always recovered.
      */
     public void dropContents(Consumer<CompoundTag> recoverResources) {
         var level = owner.getLevel();

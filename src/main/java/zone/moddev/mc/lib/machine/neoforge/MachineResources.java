@@ -32,7 +32,10 @@ import zone.moddev.mc.lib.machine.inventory.MachineInventory;
 import zone.moddev.mc.lib.machine.inventory.SlotGroup;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
-/** One definition of resource membership, adapted to automation and recipe access. */
+/**
+ * One definition of resource membership, adapted to automation and recipe
+ * access.
+ */
 public final class MachineResources {
     private record Binding(ResourceGroup<?> group, Object storage) {
     }
@@ -50,27 +53,30 @@ public final class MachineResources {
         this.facing = Objects.requireNonNull(facing);
     }
 
-    public MachineResources items(ResourceGroup<IItemHandler> group, ItemStore storage) {
+    public MachineResources items(ResourceGroup<IItemHandler> group,
+        ItemStore storage) {
         check(group, storage.getSlots(), storage::role);
         add(group, storage);
-        group.bind(
-            facing,
-            side -> storage
-                .view(index -> group.contains(index) ? group.mode(side) : IoMode.DISABLED));
+        group.bind(facing,
+            side -> storage.view(index -> group.contains(index)
+                ? group.mode(side)
+                : IoMode.DISABLED));
         return this;
     }
 
-    public MachineResources fluids(ResourceGroup<IFluidHandler> group, FluidStorage storage) {
+    public MachineResources fluids(ResourceGroup<IFluidHandler> group,
+        FluidStorage storage) {
         check(group, storage.getTanks(), storage::role);
         add(group, storage);
-        group.bind(
-            facing,
-            side -> storage
-                .view(index -> group.contains(index) ? group.mode(side) : IoMode.DISABLED));
+        group.bind(facing,
+            side -> storage.view(index -> group.contains(index)
+                ? group.mode(side)
+                : IoMode.DISABLED));
         return this;
     }
 
-    public MachineResources energy(ResourceGroup<IEnergyStorage> group, EnergyBuffer storage) {
+    public MachineResources energy(ResourceGroup<IEnergyStorage> group,
+        EnergyBuffer storage) {
         check(group, 1, index -> Role.STORAGE);
         add(group, storage);
         group.bind(facing, side -> storage.view(() -> group.mode(side)));
@@ -84,32 +90,33 @@ public final class MachineResources {
             throw invalid(group.id(), "no members");
         for (int index : group.members()) {
             if (index >= size)
-                throw invalid(group.id(), "member " + index + " outside storage of size " + size);
+                throw invalid(group.id(),
+                    "member " + index + " outside storage of size " + size);
             var allowed = role.apply(index);
             if ((group.supported().canInsert() && !allowed.canInsert())
                 || (group.supported().canExtract() && !allowed.canExtract()))
-                throw invalid(
-                    group.id(),
-                    "member " + index + " role " + allowed + " conflicts with "
-                        + group.supported());
+                throw invalid(group.id(), "member " + index + " role " + allowed
+                    + " conflicts with " + group.supported());
         }
     }
 
     private void add(ResourceGroup<?> group, Object storage) {
         if (recipeBindings.containsKey(group.id()))
             throw invalid(group.id(), "duplicate ID");
-        String inventory = group.inventory().isEmpty() ? group.id() : group.inventory();
+        String inventory = group.inventory().isEmpty()
+            ? group.id()
+            : group.inventory();
         for (var binding : bindings.values()) {
             if (binding.group.type() != group.type())
                 continue;
             if (storage instanceof ItemStore items
                 && binding.storage instanceof ItemStore other
                 && group.members().stream()
-                    .anyMatch(
-                        member -> binding.group.members().stream()
-                            .anyMatch(
-                                previous -> items.storage(member) == other.storage(previous)
-                                    && items.localSlot(member) == other.localSlot(previous))))
+                    .anyMatch(member -> binding.group.members().stream()
+                        .anyMatch(previous -> items.storage(member) == other
+                            .storage(previous)
+                            && items.localSlot(member) == other
+                                .localSlot(previous))))
                 throw invalid(group.id(), "overlapping members");
             if (binding.storage != storage)
                 continue;
@@ -124,7 +131,10 @@ public final class MachineResources {
         recipeBindings.put(group.id(), List.of(binding));
     }
 
-    /** Derives an alternate recipe group, optionally combining several automation groups. */
+    /**
+     * Derives an alternate recipe group, optionally combining several
+     * automation groups.
+     */
     public MachineResources recipeGroup(String key, String... groupIds) {
         ensureOpen();
         if (key == null || key.isBlank() || groupIds.length == 0)
@@ -150,72 +160,79 @@ public final class MachineResources {
     }
 
     /**
-     * Links only input groups; several recipe types form a union, intersected with storage rules.
+     * Links only input groups; several recipe types form a union, intersected
+     * with storage rules.
      */
-    public MachineResources recipeInputs(MachineRecipeType type, String... keys) {
+    public MachineResources recipeInputs(MachineRecipeType type,
+        String... keys) {
         ensureOpen();
         for (String key : keys) {
             if (!recipeBindings.containsKey(key))
                 throw invalid(key, "unknown recipe input group");
-            inputTypes.computeIfAbsent(key, ignored -> new LinkedHashSet<>()).add(type);
+            inputTypes.computeIfAbsent(key, ignored -> new LinkedHashSet<>())
+                .add(type);
         }
         return this;
     }
 
-    /** Freezes the definitions and installs reload-aware recipe input filters. */
+    /**
+     * Freezes the definitions and installs reload-aware recipe input filters.
+     */
     public MachineResources build() {
         ensureOpen();
         var builder = MachineInventory.builder();
-        recipeBindings.forEach(
-            (key, values) -> {
-                var storage = values.getFirst().storage;
-                int[] members = values.stream()
-                    .flatMap(b -> b.group.members().stream())
-                    .mapToInt(Integer::intValue)
-                    .toArray();
-                SlotGroup group = storage instanceof ItemStore
-                    ? itemGroup(values)
-                    : storage instanceof FluidStorage fluids
-                        ? StorageGroups.fluids(fluids, members)
-                        : StorageGroups.energy((EnergyBuffer) storage);
-                builder.group(key, group);
-            });
+        recipeBindings.forEach((key, values) -> {
+            var storage = values.getFirst().storage;
+            int[] members = values.stream()
+                .flatMap(b -> b.group.members().stream())
+                .mapToInt(Integer::intValue).toArray();
+            SlotGroup group = storage instanceof ItemStore
+                ? itemGroup(values)
+                : storage instanceof FluidStorage fluids
+                    ? StorageGroups.fluids(fluids, members)
+                    : StorageGroups.energy((EnergyBuffer) storage);
+            builder.group(key, group);
+        });
         recipes = builder.build();
         automation = new AutomationInventory(owner,
             bindings.values().stream().map(Binding::group).toList());
         var filters = new RecipeInputFilters(() -> owner.getLevel(), recipes);
-        // Collect by physical slot before installing: overlapping recipe aliases accept the union.
+        // Collect by physical slot before installing: overlapping recipe
+        // aliases accept the union.
         var itemRules = new IdentityHashMap<ItemStore, Map<Integer, List<RecipeInputFilters.Link>>>();
         var fluidRules = new IdentityHashMap<FluidStorage, Map<Integer, List<RecipeInputFilters.Link>>>();
-        inputTypes.forEach(
-            (key, types) -> {
-                for (var binding : recipeBindings.get(key)) {
-                    for (int member : binding.group.members()) {
-                        var links = types.stream()
-                            .map(type -> new RecipeInputFilters.Link(type, key)).toList();
-                        if (binding.storage instanceof ItemStore items)
-                            itemRules
-                                .computeIfAbsent(items, ignored -> new LinkedHashMap<>())
-                                .computeIfAbsent(member, ignored -> new ArrayList<>())
-                                .addAll(links);
-                        else if (binding.storage instanceof FluidStorage fluids)
-                            fluidRules
-                                .computeIfAbsent(fluids, ignored -> new LinkedHashMap<>())
-                                .computeIfAbsent(member, ignored -> new ArrayList<>())
-                                .addAll(links);
-                        else
-                            throw invalid(key, "recipe input filtering requires items or fluids");
-                    }
+        inputTypes.forEach((key, types) -> {
+            for (var binding : recipeBindings.get(key)) {
+                for (int member : binding.group.members()) {
+                    var links = types.stream()
+                        .map(type -> new RecipeInputFilters.Link(type, key))
+                        .toList();
+                    if (binding.storage instanceof ItemStore items)
+                        itemRules
+                            .computeIfAbsent(items,
+                                ignored -> new LinkedHashMap<>())
+                            .computeIfAbsent(member,
+                                ignored -> new ArrayList<>())
+                            .addAll(links);
+                    else if (binding.storage instanceof FluidStorage fluids)
+                        fluidRules
+                            .computeIfAbsent(fluids,
+                                ignored -> new LinkedHashMap<>())
+                            .computeIfAbsent(member,
+                                ignored -> new ArrayList<>())
+                            .addAll(links);
+                    else
+                        throw invalid(key,
+                            "recipe input filtering requires items or fluids");
                 }
-            });
-        itemRules.forEach(
-            (storage, rules) -> rules.forEach(
-                (slot, links) -> storage.restrict(stack -> filters.acceptsItem(links, stack),
-                    slot)));
-        fluidRules.forEach(
-            (storage, rules) -> rules.forEach(
-                (tank, links) -> storage.restrict(stack -> filters.acceptsFluid(links, stack),
-                    tank)));
+            }
+        });
+        itemRules
+            .forEach((storage, rules) -> rules.forEach((slot, links) -> storage
+                .restrict(stack -> filters.acceptsItem(links, stack), slot)));
+        fluidRules
+            .forEach((storage, rules) -> rules.forEach((tank, links) -> storage
+                .restrict(stack -> filters.acceptsFluid(links, stack), tank)));
         return this;
     }
 
@@ -243,8 +260,8 @@ public final class MachineResources {
         for (var binding : bindings) {
             var store = (ItemStore) binding.storage;
             for (int member : binding.group.members())
-                members
-                    .add(combined.index(names.get(store.storage(member)), store.localSlot(member)));
+                members.add(combined.index(names.get(store.storage(member)),
+                    store.localSlot(member)));
         }
         return StorageGroups.items(combined,
             members.stream().mapToInt(Integer::intValue).toArray());
@@ -257,7 +274,8 @@ public final class MachineResources {
 
     private void ensureOpen() {
         if (recipes != null)
-            throw new IllegalStateException("Resource definitions already built");
+            throw new IllegalStateException(
+                "Resource definitions already built");
     }
 
     private void requireBuilt() {
@@ -266,7 +284,7 @@ public final class MachineResources {
     }
 
     private IllegalArgumentException invalid(String group, String detail) {
-        return new IllegalArgumentException(
-            owner.getClass().getSimpleName() + " resource group '" + group + "': " + detail);
+        return new IllegalArgumentException(owner.getClass().getSimpleName()
+            + " resource group '" + group + "': " + detail);
     }
 }

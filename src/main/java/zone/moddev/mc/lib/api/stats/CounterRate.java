@@ -18,8 +18,8 @@ public final class CounterRate {
     private final ArrayDeque<Sample> samples = new ArrayDeque<>();
 
     public void sample(BigInteger count, long tick) {
-        if (!samples.isEmpty()
-            && (tick <= samples.getLast().tick() || count.compareTo(samples.getLast().count()) < 0))
+        if (!samples.isEmpty() && (tick <= samples.getLast().tick()
+            || count.compareTo(samples.getLast().count()) < 0))
             samples.clear();
         samples.addLast(new Sample(tick, count));
         while (samples.size() > 1 && samples.getFirst().tick() < tick - window)
@@ -31,8 +31,7 @@ public final class CounterRate {
             return "—";
         var first = samples.getFirst();
         var last = samples.getLast();
-        return StatsNumbers.rate(
-            last.count().subtract(first.count()), last.tick() - first.tick(), ticksPerUnit,
-            decimals);
+        return StatsNumbers.rate(last.count().subtract(first.count()),
+            last.tick() - first.tick(), ticksPerUnit, decimals);
     }
 }

@@ -2,7 +2,10 @@ package zone.moddev.mc.lib.gui.client;
 
 import java.util.Optional;
 
-/** Optional behavior contracts, including presentation and ingredient drops through adapters. */
+/**
+ * Optional behavior contracts, including presentation and ingredient drops
+ * through adapters.
+ */
 public interface BehaviorCapabilities {
     <T> Optional<T> capability(Class<T> type);
 

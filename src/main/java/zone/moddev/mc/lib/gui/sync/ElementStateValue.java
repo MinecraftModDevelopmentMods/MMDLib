@@ -2,7 +2,10 @@ package zone.moddev.mc.lib.gui.sync;
 
 import java.util.Arrays;
 
-/** Immutable encoded snapshot; equality compares payload contents for ordinary delta transport. */
+/**
+ * Immutable encoded snapshot; equality compares payload contents for ordinary
+ * delta transport.
+ */
 public final class ElementStateValue {
     private final byte[] data;
 
@@ -21,7 +24,8 @@ public final class ElementStateValue {
     }
 
     public boolean equals(Object other) {
-        return other instanceof ElementStateValue value && Arrays.equals(data, value.data);
+        return other instanceof ElementStateValue value
+            && Arrays.equals(data, value.data);
     }
 
     public int hashCode() {

@@ -8,7 +8,9 @@ import java.util.Set;
 import javax.xml.namespace.QName;
 import javax.xml.validation.Schema;
 
-/** Common-side XML tag registry. Register on both sides during mod construction. */
+/**
+ * Common-side XML tag registry. Register on both sides during mod construction.
+ */
 public final class ScreenTags {
     public static final ScreenTags GLOBAL = builtins();
     private final Map<QName, ScreenTag<?>> tags = new LinkedHashMap<>();
@@ -49,14 +51,16 @@ public final class ScreenTags {
     private static void checkName(QName name) {
         ScreenSchemas.name(name.getLocalPart());
         if (name.getNamespaceURI().isEmpty())
-            throw new IllegalArgumentException("Screen tags require an XML namespace");
-        if (Set.of(
-            javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI,
-            javax.xml.XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI,
-            javax.xml.XMLConstants.XML_NS_URI,
-            javax.xml.XMLConstants.XMLNS_ATTRIBUTE_NS_URI)
+            throw new IllegalArgumentException(
+                "Screen tags require an XML namespace");
+        if (Set
+            .of(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI,
+                javax.xml.XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI,
+                javax.xml.XMLConstants.XML_NS_URI,
+                javax.xml.XMLConstants.XMLNS_ATTRIBUTE_NS_URI)
             .contains(name.getNamespaceURI()))
-            throw new IllegalArgumentException("Reserved XML namespace: " + name.getNamespaceURI());
+            throw new IllegalArgumentException(
+                "Reserved XML namespace: " + name.getNamespaceURI());
     }
 
     private void writable() {
@@ -76,7 +80,8 @@ public final class ScreenTags {
         try {
             return require(node.tag());
         } catch (IllegalArgumentException failure) {
-            throw new ScreenException(node.source(), node.line(), failure.getMessage(), failure);
+            throw new ScreenException(node.source(), node.line(),
+                failure.getMessage(), failure);
         }
     }
 

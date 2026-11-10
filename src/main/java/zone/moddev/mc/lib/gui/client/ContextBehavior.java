@@ -2,7 +2,10 @@ package zone.moddev.mc.lib.gui.client;
 
 import zone.moddev.mc.lib.gui.model.containers.ContextElement;
 
-/** Context back controls and per-screen remembered views. Definitions remain immutable. */
+/**
+ * Context back controls and per-screen remembered views. Definitions remain
+ * immutable.
+ */
 public class ContextBehavior extends NavigableBehavior {
     private final ContextElement context;
 
@@ -20,7 +23,8 @@ public class ContextBehavior extends NavigableBehavior {
     }
 
     private boolean back() {
-        if (context.selected(access.presentation().state()).equals(defaultView()))
+        if (context.selected(access.presentation().state())
+            .equals(defaultView()))
             return false;
         if (access.click(ContextElement.BACK, 0, 0)) {
             NavigationMemory.navigate(access, id(), defaultView());
@@ -30,7 +34,9 @@ public class ContextBehavior extends NavigableBehavior {
 
     protected Click click(double x, double y, int button) {
         var bounds = access.bounds();
-        return x < bounds.x() + 12 && y < bounds.y() + 12 && back() ? Click.CONSUME : Click.PASS;
+        return x < bounds.x() + 12 && y < bounds.y() + 12 && back()
+            ? Click.CONSUME
+            : Click.PASS;
     }
 
     public boolean shortcut(int key, int scan, int modifiers) {

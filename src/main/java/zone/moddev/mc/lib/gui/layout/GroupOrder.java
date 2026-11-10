@@ -8,16 +8,20 @@ import java.util.function.Function;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Screen;
 
-/** Orders opaque group IDs by their first associated element, then by declaration order. */
+/**
+ * Orders opaque group IDs by their first associated element, then by
+ * declaration order.
+ */
 public final class GroupOrder {
     private GroupOrder() {
     }
 
-    public static <K> List<K> of(
-        Screen screen, List<K> groups, Function<Element, ? extends Collection<K>> associations) {
+    public static <K> List<K> of(Screen screen, List<K> groups,
+        Function<Element, ? extends Collection<K>> associations) {
         var declared = new LinkedHashSet<>(groups);
         if (declared.size() != groups.size() || declared.contains(null))
-            throw new IllegalArgumentException("Group IDs must be unique and non-null");
+            throw new IllegalArgumentException(
+                "Group IDs must be unique and non-null");
         var order = new LinkedHashSet<K>();
         for (var element : screen.elements())
             for (var id : associations.apply(element))

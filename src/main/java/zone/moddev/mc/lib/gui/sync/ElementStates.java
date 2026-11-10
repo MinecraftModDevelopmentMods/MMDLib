@@ -14,10 +14,12 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import zone.moddev.mc.lib.gui.model.Element;
 
 /**
- * Per-menu typed state. Transport owns addresses; definitions own codecs, sampling and validation.
+ * Per-menu typed state. Transport owns addresses; definitions own codecs,
+ * sampling and validation.
  */
 public final class ElementStates implements ElementStateView {
-    public static final int FIELDS_PER_ELEMENT = 16, MAX_FIELDS = 4096 * FIELDS_PER_ELEMENT;
+    public static final int FIELDS_PER_ELEMENT = 16,
+        MAX_FIELDS = 4096 * FIELDS_PER_ELEMENT;
     public static final int MAX_TOTAL_BYTES = 1 << 18;
     private final Map<Element, Map<ElementSync<?>, Field<?>>> elements = new IdentityHashMap<>();
     private final Map<Integer, Field<?>> fields = new LinkedHashMap<>();
@@ -35,7 +37,8 @@ public final class ElementStates implements ElementStateView {
             this.element = element;
             this.definition = definition;
             this.address = address;
-            initial = definition.encode(registries, element, definition.initial(element));
+            initial = definition.encode(registries, element,
+                definition.initial(element));
             value = initial;
         }
 
@@ -44,10 +47,8 @@ public final class ElementStates implements ElementStateView {
         }
 
         ElementStateValue sample(BlockEntity machine, Player viewer) {
-            return definition.encode(
-                registries,
-                element,
-                definition.sample(new ElementSync.Source(element, machine, viewer), read()));
+            return definition.encode(registries, element, definition.sample(
+                new ElementSync.Source(element, machine, viewer), read()));
         }
 
         void validate(ElementStateValue encoded) {
@@ -55,7 +56,8 @@ public final class ElementStates implements ElementStateView {
         }
     }
 
-    public ElementStates(List<Element> order, RegistryAccess registries, Runnable layoutChanged) {
+    public ElementStates(List<Element> order, RegistryAccess registries,
+        Runnable layoutChanged) {
         if (order.size() > 4096)
             throw new IllegalArgumentException("Too many screen elements");
         this.registries = Objects.requireNonNull(registries);
@@ -64,9 +66,11 @@ public final class ElementStates implements ElementStateView {
             var element = order.get(index);
             if (!(element instanceof SynchronizedElement synchronizedElement))
                 continue;
-            var declarations = List.copyOf(synchronizedElement.synchronizedValues());
+            var declarations = List
+                .copyOf(synchronizedElement.synchronizedValues());
             if (declarations.size() > FIELDS_PER_ELEMENT)
-                throw new IllegalArgumentException("Too many state fields for " + element);
+                throw new IllegalArgumentException(
+                    "Too many state fields for " + element);
             var byIdentity = new IdentityHashMap<ElementSync<?>, Field<?>>();
             var names = new HashSet<net.minecraft.resources.ResourceLocation>();
             for (int slot = 0; slot < declarations.size(); slot++) {
@@ -74,8 +78,8 @@ public final class ElementStates implements ElementStateView {
                 if (!names.add(declaration.id()))
                     throw new IllegalArgumentException(
                         "Duplicate element state: " + declaration.id());
-                var field = new Field<>(
-                    element, declaration, Integer.MIN_VALUE + index * FIELDS_PER_ELEMENT + slot);
+                var field = new Field<>(element, declaration,
+                    Integer.MIN_VALUE + index * FIELDS_PER_ELEMENT + slot);
                 byIdentity.put(declaration, field);
                 fields.put(field.address, field);
             }
@@ -88,7 +92,8 @@ public final class ElementStates implements ElementStateView {
     private <T> Field<T> field(Element element, ElementSync<T> definition) {
         var field = elements.getOrDefault(element, Map.of()).get(definition);
         if (field == null)
-            throw new IllegalArgumentException("Undeclared element state: " + definition.id());
+            throw new IllegalArgumentException(
+                "Undeclared element state: " + definition.id());
         return (Field<T>) field;
     }
 
@@ -96,8 +101,11 @@ public final class ElementStates implements ElementStateView {
         return field(element, definition).read();
     }
 
-    /** Trusted local mutation only. Client changes never grant server authority. */
-    public <T> boolean set(Element element, ElementSync<T> definition, T value) {
+    /**
+     * Trusted local mutation only. Client changes never grant server authority.
+     */
+    public <T> boolean set(Element element, ElementSync<T> definition,
+        T value) {
         var field = field(element, definition);
         var encoded = definition.encode(registries, element, value);
         if (encoded.equals(field.value))
@@ -118,30 +126,36 @@ public final class ElementStates implements ElementStateView {
     }
 
     /**
-     * Sampling is per viewer. Ordinary value/max getters retain their shared machine tick cache.
+     * Sampling is per viewer. Ordinary value/max getters retain their shared
+     * machine tick cache.
      */
-    public Map<Integer, ElementStateValue> sample(BlockEntity machine, Player viewer) {
+    public Map<Integer, ElementStateValue> sample(BlockEntity machine,
+        Player viewer) {
         if (machine.getLevel() == null || machine.getLevel().isClientSide)
-            throw new IllegalStateException("Element state may only be sampled on the server");
+            throw new IllegalStateException(
+                "Element state may only be sampled on the server");
         var sampled = new LinkedHashMap<Integer, ElementStateValue>();
-        fields.forEach((address, field) -> sampled.put(address, field.sample(machine, viewer)));
+        fields.forEach((address, field) -> sampled.put(address,
+            field.sample(machine, viewer)));
         apply(sampled);
         return Map.copyOf(sampled);
     }
 
-    /** Validate the complete batch before changing values or notifying layout. */
+    /**
+     * Validate the complete batch before changing values or notifying layout.
+     */
     public void apply(Map<Integer, ?> delta) {
         var accepted = new LinkedHashMap<Integer, ElementStateValue>();
-        delta.forEach(
-            (address, value) -> {
-                var field = fields.get(address);
-                if (field == null)
-                    return;
-                if (!(value instanceof ElementStateValue encoded))
-                    throw new IllegalArgumentException("Invalid element state envelope");
-                field.validate(encoded);
-                accepted.put(address, encoded);
-            });
+        delta.forEach((address, value) -> {
+            var field = fields.get(address);
+            if (field == null)
+                return;
+            if (!(value instanceof ElementStateValue encoded))
+                throw new IllegalArgumentException(
+                    "Invalid element state envelope");
+            field.validate(encoded);
+            accepted.put(address, encoded);
+        });
         var combined = new LinkedHashMap<>(snapshot());
         combined.putAll(accepted);
         checkBudget(combined);
@@ -157,13 +171,16 @@ public final class ElementStates implements ElementStateView {
             layoutChanged.run();
     }
 
-    /** Last confirmed values for timeout recovery; missing fields use their initial snapshots. */
+    /**
+     * Last confirmed values for timeout recovery; missing fields use their
+     * initial snapshots.
+     */
     public Map<Integer, ElementStateValue> sent(Map<Integer, Object> values) {
         var result = new LinkedHashMap<Integer, ElementStateValue>();
-        fields.forEach(
-            (address, field) -> result.put(
-                address,
-                values.get(address) instanceof ElementStateValue value ? value : field.initial));
+        fields.forEach((address, field) -> result.put(address,
+            values.get(address) instanceof ElementStateValue value
+                ? value
+                : field.initial));
         return Map.copyOf(result);
     }
 
@@ -174,6 +191,7 @@ public final class ElementStates implements ElementStateView {
         for (var value : values.values())
             size += value.size() + 8L;
         if (size > MAX_TOTAL_BYTES)
-            throw new IllegalArgumentException("Element states exceed the screen byte budget");
+            throw new IllegalArgumentException(
+                "Element states exceed the screen byte budget");
     }
 }

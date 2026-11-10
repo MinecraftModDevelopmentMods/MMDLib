@@ -16,9 +16,10 @@ import zone.moddev.mc.lib.gui.model.elements.GaugeElement;
 class GaugeFillTest {
     @Test
     void defaultAndConfiguredSolidFillsRemainIndependentOfValue() {
-        var plain = new GaugeElement(Common.empty(), Orientation.VERTICAL, 36, Optional.empty());
-        var coloured = new GaugeElement(Common.empty(), Orientation.HORIZONTAL, 36,
-            Optional.of(0x123456));
+        var plain = new GaugeElement(Common.empty(), Orientation.VERTICAL, 36,
+            Optional.empty());
+        var coloured = new GaugeElement(Common.empty(), Orientation.HORIZONTAL,
+            36, Optional.of(0x123456));
         assertEquals(GaugeFill.solid(0x777777), plain.fill(42));
         assertEquals(GaugeFill.solid(0x123456), coloured.fill(null));
         assertTrue(coloured.fill(12).fluid().isEmpty());
@@ -26,7 +27,8 @@ class GaugeFillTest {
 
     @Test
     void tankSubclassCanChooseSolidFillWithoutChangingRatioOrDisplay() {
-        var tank = new FluidTankElement(Common.empty(), 0, Orientation.VERTICAL, 36) {
+        var tank = new FluidTankElement(Common.empty(), 0, Orientation.VERTICAL,
+            36) {
             public GaugeFill fill(Object value) {
                 return GaugeFill.solid(0xaabbcc);
             }

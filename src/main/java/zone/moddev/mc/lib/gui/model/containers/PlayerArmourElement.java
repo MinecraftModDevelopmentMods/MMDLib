@@ -9,12 +9,14 @@ import zone.moddev.mc.lib.gui.model.Common;
 /** Independently placeable player armour slots. */
 public class PlayerArmourElement extends PlayerSlotsElement {
     public PlayerArmourElement(Common common) {
-        this(common, zone.moddev.mc.lib.gui.model.elements.PlayerSlotElement::player);
+        this(common,
+            zone.moddev.mc.lib.gui.model.elements.PlayerSlotElement::player);
     }
 
-    /** Use custom slot children while retaining this section's standard layout. */
-    public PlayerArmourElement(
-        Common common,
+    /**
+     * Use custom slot children while retaining this section's standard layout.
+     */
+    public PlayerArmourElement(Common common,
         java.util.function.IntFunction<? extends zone.moddev.mc.lib.gui.model.elements.SlotElement> factory) {
         super(common, List.of(39, 38, 37, 36), factory);
     }

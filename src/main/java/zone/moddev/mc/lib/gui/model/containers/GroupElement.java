@@ -14,7 +14,8 @@ import zone.moddev.mc.lib.gui.model.Text;
  * {@code group}: a recessed panel around its children.
  *
  * <p>
- * {@code label}: an optional caption {@code tint}: an optional ARGB tint for the panel {@code
+ * {@code label}: an optional caption {@code tint}: an optional ARGB tint for
+ * the panel {@code
  * padding}: space inside the panel's edges
  */
 public class GroupElement implements Element {
@@ -25,12 +26,8 @@ public class GroupElement implements Element {
     private final List<Element> children;
 
     /** Copies the children. */
-    public GroupElement(
-        Common common,
-        Optional<Text> label,
-        Optional<Integer> tint,
-        int padding,
-        List<Element> children) {
+    public GroupElement(Common common, Optional<Text> label,
+        Optional<Integer> tint, int padding, List<Element> children) {
         children = List.copyOf(children);
 
         this.common = common;
@@ -45,21 +42,16 @@ public class GroupElement implements Element {
         int header = label.isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0;
         return new int[]{
             Math.max(inner[0], label.map(text::width).orElse(0)) + 2 * padding,
-            inner[1] + header + 2 * padding
-        };
+            inner[1] + header + 2 * padding};
     }
 
-    public java.util.Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
+    public java.util.Map<Element, Rect> childLayout(Rect bounds,
+        TextMeasure text) {
         int header = label.isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0;
-        return ElementLayouts.stackPositions(
-            children,
-            new Rect(
-                padding,
-                padding + header,
-                bounds.width() - 2 * padding,
+        return ElementLayouts.stackPositions(children,
+            new Rect(padding, padding + header, bounds.width() - 2 * padding,
                 bounds.height() - 2 * padding - header),
-            2,
-            text);
+            2, text);
     }
 
     public Common common() {
@@ -109,16 +101,7 @@ public class GroupElement implements Element {
 
     @Override
     public String toString() {
-        return "GroupElement[common="
-            + common
-            + ", label="
-            + label
-            + ", tint="
-            + tint
-            + ", padding="
-            + padding
-            + ", children="
-            + children
-            + "]";
+        return "GroupElement[common=" + common + ", label=" + label + ", tint="
+            + tint + ", padding=" + padding + ", children=" + children + "]";
     }
 }

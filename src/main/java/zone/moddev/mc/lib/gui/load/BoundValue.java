@@ -18,7 +18,8 @@ import zone.moddev.mc.lib.gui.value.ValueTypes;
  * @param ref
  *            the reference as written
  * @param kind
- *            the registered type responsible for normalizing and copying the result
+ *            the registered type responsible for normalizing and copying the
+ *            result
  * @param handle
  *            {@code (Object blockEntity) -> Object}
  */
@@ -34,8 +35,12 @@ public record BoundValue(ValueRef ref, ValueType<?> kind, MethodHandle handle) {
         return handle.invoke(blockEntity);
     }
 
-    /** Copies through the declared getter contract, preserving null as unavailable. */
-    public Object snapshot(Object blockEntity, RegistryAccess registries) throws Throwable {
+    /**
+     * Copies through the declared getter contract, preserving null as
+     * unavailable.
+     */
+    public Object snapshot(Object blockEntity, RegistryAccess registries)
+        throws Throwable {
         var value = read(blockEntity);
         return value == null ? null : kind.snapshot(value, registries);
     }

@@ -29,7 +29,8 @@ public final class MenuComponentRegistry {
         private final boolean client;
         private final Map<Class<?>, Object> services = new HashMap<>();
 
-        public Context(MachineMenu menu, Inventory inventory, ScreenHost host, boolean client) {
+        public Context(MachineMenu menu, Inventory inventory, ScreenHost host,
+            boolean client) {
             this.menu = Objects.requireNonNull(menu);
             this.inventory = Objects.requireNonNull(inventory);
             this.host = host;
@@ -53,15 +54,13 @@ public final class MenuComponentRegistry {
         }
 
         public <T> T shared(Class<T> type, Supplier<T> factory) {
-            return type.cast(
-                services.computeIfAbsent(type, key -> Objects.requireNonNull(factory.get())));
+            return type.cast(services.computeIfAbsent(type,
+                key -> Objects.requireNonNull(factory.get())));
         }
     }
 
     private record Registration<T extends MenuComponent>(
-        MenuComponentKey<T> key,
-        int order,
-        Function<Context, T> factory,
+        MenuComponentKey<T> key, int order, Function<Context, T> factory,
         List<ComponentSync<?>> fields) {
         MenuComponent create(Context context) {
             var value = factory.apply(context);
@@ -70,8 +69,10 @@ public final class MenuComponentRegistry {
     }
 
     private final Map<net.minecraft.resources.ResourceLocation, Registration<?>> registrations = new HashMap<>();
-    // Guava weak keys use identity equality, even for components overriding equals/hashCode.
-    private final Map<MenuComponent, Boolean> issued = new MapMaker().weakKeys().makeMap();
+    // Guava weak keys use identity equality, even for components overriding
+    // equals/hashCode.
+    private final Map<MenuComponent, Boolean> issued = new MapMaker().weakKeys()
+        .makeMap();
 
     public static MenuComponentRegistry builtins() {
         var registry = new MenuComponentRegistry();
@@ -80,50 +81,55 @@ public final class MenuComponentRegistry {
     }
 
     /**
-     * Registers a factory and its complete synchronized field declarations on both logical sides.
+     * Registers a factory and its complete synchronized field declarations on
+     * both logical sides.
      */
     public synchronized <T extends MenuComponent> void register(
-        MenuComponentKey<T> key,
-        int order,
-        Function<Context, T> factory,
+        MenuComponentKey<T> key, int order, Function<Context, T> factory,
         ComponentSync<?>... fields) {
         Objects.requireNonNull(factory);
-        if (registrations.putIfAbsent(
-            key.id(), new Registration<>(key, order, factory, declarations(fields))) != null)
-            throw new IllegalArgumentException("Duplicate menu component: " + key.id());
+        if (registrations.putIfAbsent(key.id(), new Registration<>(key, order,
+            factory, declarations(fields))) != null)
+            throw new IllegalArgumentException(
+                "Duplicate menu component: " + key.id());
     }
 
-    /** Replaces both the factory and its complete field list for an existing typed key. */
+    /**
+     * Replaces both the factory and its complete field list for an existing
+     * typed key.
+     */
     public synchronized <T extends MenuComponent> void replace(
-        MenuComponentKey<T> key,
-        int order,
-        Function<Context, T> factory,
+        MenuComponentKey<T> key, int order, Function<Context, T> factory,
         ComponentSync<?>... fields) {
         var previous = registrations.get(key.id());
         if (previous == null || !previous.key().equals(key))
-            throw new IllegalArgumentException("Unknown menu component key: " + key.id());
-        registrations.put(
-            key.id(),
-            new Registration<>(key, order, Objects.requireNonNull(factory), declarations(fields)));
+            throw new IllegalArgumentException(
+                "Unknown menu component key: " + key.id());
+        registrations.put(key.id(), new Registration<>(key, order,
+            Objects.requireNonNull(factory), declarations(fields)));
     }
 
-    private static List<ComponentSync<?>> declarations(ComponentSync<?>[] fields) {
+    private static List<ComponentSync<?>> declarations(
+        ComponentSync<?>[] fields) {
         var names = new HashSet<net.minecraft.resources.ResourceLocation>();
         for (var field : fields)
             if (!names.add(field.id()))
-                throw new IllegalArgumentException("Duplicate component field: " + field.id());
+                throw new IllegalArgumentException(
+                    "Duplicate component field: " + field.id());
         return Arrays.stream(fields)
             .sorted(Comparator.comparing(field -> field.id().toString()))
             .toList();
     }
 
-    /** Stable address order, including fields whose component is absent from a particular menu. */
+    /**
+     * Stable address order, including fields whose component is absent from a
+     * particular menu.
+     */
     public synchronized List<ComponentStates.Declaration> schema() {
         return registrations.values().stream()
             .sorted(Comparator.comparing(r -> r.key().id().toString()))
-            .flatMap(
-                r -> r.fields().stream()
-                    .map(field -> new ComponentStates.Declaration(r.key(), field)))
+            .flatMap(r -> r.fields().stream()
+                .map(field -> new ComponentStates.Declaration(r.key(), field)))
             .toList();
     }
 
@@ -138,15 +144,10 @@ public final class MenuComponentRegistry {
     public synchronized String fingerprint() {
         return ordered().stream()
             .map(
-                r -> r.key().id()
-                    + "/"
-                    + r.key().type().getName()
-                    + "/"
-                    + r.order()
-                    + "/"
-                    + r.fields().stream().map(ComponentSync::fingerprint).toList())
-            .toList()
-            .toString();
+                r -> r.key().id() + "/" + r.key().type().getName() + "/"
+                    + r.order() + "/" + r.fields().stream()
+                        .map(ComponentSync::fingerprint).toList())
+            .toList().toString();
     }
 
     public synchronized MenuComponents create(Context context) {
@@ -161,9 +162,7 @@ public final class MenuComponentRegistry {
                         + registration.key().id());
             result.put(registration.key(), component);
         }
-        return new MenuComponents(
-            context.menu(),
-            result,
-            new ComponentStates(schema(), result, context.inventory().player.registryAccess()));
+        return new MenuComponents(context.menu(), result, new ComponentStates(
+            schema(), result, context.inventory().player.registryAccess()));
     }
 }

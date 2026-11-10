@@ -13,43 +13,45 @@ import net.minecraft.world.level.block.state.BlockState;
 import zone.moddev.mc.lib.common.factories.BlockEntityFactories;
 
 /**
- * Optional base for data-configured machines. Custom blocks can delegate these same hooks
- * themselves: {@code newBlockEntity}, {@code getTicker} and {@code onRemove}, without which {@link
- * DropsContents} does nothing.
+ * Optional base for data-configured machines. Custom blocks can delegate these
+ * same hooks themselves: {@code newBlockEntity}, {@code getTicker} and
+ * {@code onRemove}, without which {@link DropsContents} does nothing.
  */
-public class MaterialEntityBlock<E extends BlockEntity> extends Block implements EntityBlock {
-  private final BlockEntityFactories.Prepared<E> factory;
-  private final Supplier<BlockEntityType<E>> type;
+public class MaterialEntityBlock<E extends BlockEntity> extends Block
+    implements EntityBlock {
+    private final BlockEntityFactories.Prepared<E> factory;
+    private final Supplier<BlockEntityType<E>> type;
 
-  /**
-   * A block whose block entity comes from {@code factory}.
-   *
-   * @param type supplies the registered type; read only when a block entity is created
-   */
-  public MaterialEntityBlock(
-      Properties properties,
-      BlockEntityFactories.Prepared<E> factory,
-      Supplier<BlockEntityType<E>> type) {
-    super(properties);
-    this.factory = Objects.requireNonNull(factory);
-    this.type = Objects.requireNonNull(type);
-  }
+    /**
+     * A block whose block entity comes from {@code factory}.
+     *
+     * @param type
+     *            supplies the registered type; read only when a block entity is
+     *            created
+     */
+    public MaterialEntityBlock(Properties properties,
+        BlockEntityFactories.Prepared<E> factory,
+        Supplier<BlockEntityType<E>> type) {
+        super(properties);
+        this.factory = Objects.requireNonNull(factory);
+        this.type = Objects.requireNonNull(type);
+    }
 
-  @Override
-  public E newBlockEntity(BlockPos position, BlockState state) {
-    return factory.create(type.get(), position, state);
-  }
+    @Override
+    public E newBlockEntity(BlockPos position, BlockState state) {
+        return factory.create(type.get(), position, state);
+    }
 
-  @Override
-  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-      Level level, BlockState state, BlockEntityType<T> requested) {
-    return factory.ticker(level, requested, type.get());
-  }
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level,
+        BlockState state, BlockEntityType<T> requested) {
+        return factory.ticker(level, requested, type.get());
+    }
 
-  @Override
-  protected void onRemove(
-      BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
-    DropsContents.onRemove(state, level, pos, replacement);
-    super.onRemove(state, level, pos, replacement, moved);
-  }
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos,
+        BlockState replacement, boolean moved) {
+        DropsContents.onRemove(state, level, pos, replacement);
+        super.onRemove(state, level, pos, replacement, moved);
+    }
 }

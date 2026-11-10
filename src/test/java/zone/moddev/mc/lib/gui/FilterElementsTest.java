@@ -72,12 +72,13 @@ class FilterElementsTest {
             saved = value.copy();
         }
 
-        public String sample(ItemStack filter, ItemStack cursor, HolderLookup.Provider registries) {
+        public String sample(ItemStack filter, ItemStack cursor,
+            HolderLookup.Provider registries) {
             return "minecraft:stone";
         }
 
-        public boolean validate(
-            ItemStack filter, CompoundTag candidate, HolderLookup.Provider registries) {
+        public boolean validate(ItemStack filter, CompoundTag candidate,
+            HolderLookup.Provider registries) {
             return valid;
         }
 
@@ -91,7 +92,8 @@ class FilterElementsTest {
         var first = new ModControl("first");
         var second = new ModControl("second");
         var layout = ElementFragmentLayout.of(
-            new FilterControl.Box("row", true, List.of(first, second)), 40, TextMeasure.NONE);
+            new FilterControl.Box("row", true, List.of(first, second)), 40,
+            TextMeasure.NONE);
         assertEquals(22, layout.bounds().get(first).width());
         assertEquals(15, layout.bounds().get(second).y());
         assertEquals(28, layout.height());
@@ -113,7 +115,8 @@ class FilterElementsTest {
         assertTrue(filter.saved.isEmpty());
         filter.valid = false;
         assertFalse(filter.edit("mod", 0, "accept"));
-        assertTrue(filter.saved.isEmpty(), "Whole-filter validation runs before commit");
+        assertTrue(filter.saved.isEmpty(),
+            "Whole-filter validation runs before commit");
         filter.valid = true;
         assertTrue(filter.edit("mod", 0, "accept"));
         assertTrue(filter.saved.getBoolean("mod"));
@@ -121,7 +124,8 @@ class FilterElementsTest {
 
     @Test
     void sampleGeometryOwnsMeasurementAndHitTesting() {
-        var samples = new FilterControl.Samples("samples", 5, ResourceType.ITEMS) {
+        var samples = new FilterControl.Samples("samples", 5,
+            ResourceType.ITEMS) {
             public int cellSize() {
                 return 30;
             }
@@ -131,7 +135,8 @@ class FilterElementsTest {
                 return new Rect(cell.x() + 2, cell.y() + 2, 26, 26);
             }
         };
-        assertArrayEquals(new int[]{100, 58}, samples.measure(TextMeasure.NONE, 100));
+        assertArrayEquals(new int[]{100, 58},
+            samples.measure(TextMeasure.NONE, 100));
         var bounds = new Rect(11, 23, 100, 58);
         assertEquals(new Rect(43, 55, 26, 26), samples.sampleBounds(bounds, 4));
         assertEquals(4, samples.sampleIndex(bounds, 44, 56));
@@ -149,8 +154,10 @@ class FilterElementsTest {
 
     @Test
     void defaultSampleGridKeepsEighteenPixelCells() {
-        var samples = new FilterControl.Samples("samples", 5, ResourceType.ITEMS);
-        assertArrayEquals(new int[]{40, 54}, samples.measure(TextMeasure.NONE, 40));
+        var samples = new FilterControl.Samples("samples", 5,
+            ResourceType.ITEMS);
+        assertArrayEquals(new int[]{40, 54},
+            samples.measure(TextMeasure.NONE, 40));
         var bounds = new Rect(0, 0, 40, 54);
         assertEquals(4, samples.sampleIndex(bounds, 1, 37));
         assertEquals(-1, samples.sampleIndex(bounds, 19, 37));
@@ -160,11 +167,8 @@ class FilterElementsTest {
 
     @Test
     void builtinControlsRejectInvalidValuesAndSamplesUseServerDerivation() {
-        var root = new FilterControl.Box(
-            "root",
-            false,
-            List.of(
-                new FilterControl.Text("text", 3, Component.empty()),
+        var root = new FilterControl.Box("root", false,
+            List.of(new FilterControl.Text("text", 3, Component.empty()),
                 new FilterControl.Number("number", 1, 4, 1, Component.empty()),
                 new FilterControl.Samples("items", 2, ResourceType.ITEMS),
                 new FilterControl.Samples("fluid", 2, ResourceType.FLUIDS)));
@@ -180,7 +184,8 @@ class FilterElementsTest {
         assertTrue(filter.edit("text", 0, "abc"));
         assertTrue(filter.edit("number", 0, "3"));
         assertTrue(filter.edit("items", 1, "sample"));
-        assertEquals("minecraft:stone", filter.saved.getList("items", 8).getString(1));
+        assertEquals("minecraft:stone",
+            filter.saved.getList("items", 8).getString(1));
         assertTrue(filter.edit("items", 1, "clear"));
         assertEquals("", filter.saved.getList("items", 8).getString(1));
     }

@@ -21,16 +21,12 @@ final class FilterNumberBehavior implements ElementBehavior {
     }
 
     private void step(boolean forward) {
-        long current = FilterDrawing.configuration(access.value()).getInt(element.id());
-        FilterEdits.submit(
-            access,
-            element,
-            0,
-            Long.toString(
-                Math.clamp(
-                    current + (forward ? (long) element.step() : -(long) element.step()),
-                    element.min(),
-                    element.max())));
+        long current = FilterDrawing.configuration(access.value())
+            .getInt(element.id());
+        FilterEdits.submit(access, element, 0,
+            Long.toString(Math.clamp(current
+                + (forward ? (long) element.step() : -(long) element.step()),
+                element.min(), element.max())));
     }
 
     public Click mouseClicked(double x, double y, int button) {
@@ -51,16 +47,15 @@ final class FilterNumberBehavior implements ElementBehavior {
         return List.of(element.tooltip());
     }
 
-    static void render(FilterControl.Number element, ElementRenderers.Context c) {
+    static void render(FilterControl.Number element,
+        ElementRenderers.Context c) {
         var r = c.bounds();
         var g = c.graphics();
         FilterDrawing.button(g, r);
-        g.drawCenteredString(
-            c.access().font(),
-            Integer.toString(FilterDrawing.configuration(c.value()).getInt(element.id())),
-            r.x() + r.width() / 2,
-            r.y() + 5,
-            0xffffff);
+        g.drawCenteredString(c.access().font(),
+            Integer.toString(
+                FilterDrawing.configuration(c.value()).getInt(element.id())),
+            r.x() + r.width() / 2, r.y() + 5, 0xffffff);
         FilterDrawing.arrow(g, new Rect(r.x() + 2, r.y() + 4, 6, 8), false);
         FilterDrawing.arrow(g, new Rect(r.right() - 8, r.y() + 4, 6, 8), true);
     }

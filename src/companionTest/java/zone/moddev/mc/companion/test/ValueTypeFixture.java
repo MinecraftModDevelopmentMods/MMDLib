@@ -20,7 +20,10 @@ import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.value.ValueType;
 import zone.moddev.mc.lib.gui.value.ValueTypeRegistry;
 
-/** Common-only fixture registers before screen loading, exactly as an external mod would. */
+/**
+ * Common-only fixture registers before screen loading, exactly as an external
+ * mod would.
+ */
 @EventBusSubscriber(modid = CompanionMod.ID, bus = EventBusSubscriber.Bus.MOD)
 public final class ValueTypeFixture {
     public static final class Reading {
@@ -32,13 +35,14 @@ public final class ValueTypeFixture {
     }
 
     static Reading live = new Reading(3);
-    static final ValueType<Reading> TYPE = ValueType.<Reading>builder(
-        ResourceLocation.parse("mmdlib_companion:test_reading"),
-        Reading.class,
-        () -> StreamCodec.of((b, v) -> b.writeInt(v.amount), b -> new Reading(b.readInt())),
-        4)
-        .validate(v -> v.amount >= 0)
-        .equality((a, b) -> a.amount == b.amount)
+    static final ValueType<Reading> TYPE = ValueType
+        .<Reading>builder(
+            ResourceLocation.parse("mmdlib_companion:test_reading"),
+            Reading.class,
+            () -> StreamCodec.of((b, v) -> b.writeInt(v.amount),
+                b -> new Reading(b.readInt())),
+            4)
+        .validate(v -> v.amount >= 0).equality((a, b) -> a.amount == b.amount)
         .build();
 
     @SubscribeEvent
@@ -52,8 +56,7 @@ public final class ValueTypeFixture {
 
     static final ElementAction<Integer> EDIT = new ElementAction<>(
         ResourceLocation.parse("mmdlib_companion:test_reading_edit"),
-        StreamCodec.of((b, v) -> b.writeInt(v), b -> b.readInt()),
-        4,
+        StreamCodec.of((b, v) -> b.writeInt(v), b -> b.readInt()), 4,
         (context, value) -> {
             if (value < 0)
                 return false;

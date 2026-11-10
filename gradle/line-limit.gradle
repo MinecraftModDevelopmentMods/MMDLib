@@ -1,0 +1,34 @@
+/*
+ * Soft line-length limit (docs/code-format.md). The Eclipse profile wraps at 80 columns, but it
+ * never splits what can't be split, such as a long string constant, and leaves such a line long.
+ * Up to 120 columns is fine for those. Past that, `lineLimit` warns, naming the file and line; it
+ * never fails the build, since some lines can't be shortened without hurting readability.
+ *
+ * Applied from build.gradle; `check` runs it.
+ */
+
+def lineLimitSources = fileTree('src') { include '**/*.java' }
+
+tasks.register('lineLimit') {
+    group = 'verification'
+    description = 'Warns about Java lines longer than 120 columns (never fails).'
+    // No outputs: always runs, so the warnings are shown on every check, not only the first.
+    doLast {
+        int count = 0
+        lineLimitSources.files.sort().each { File file ->
+            file.readLines('UTF-8').eachWithIndex { String line, int index ->
+                if (line.length() > 120) {
+                    def path = project.relativePath(file)
+                    logger.warn("${path}:${index + 1}: warning: line is ${line.length()} columns"
+                            + ' (limit 120)')
+                    count++
+                }
+            }
+        }
+        if (count > 0) logger.warn("${count} line(s) over 120 columns")
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'lineLimit'
+}

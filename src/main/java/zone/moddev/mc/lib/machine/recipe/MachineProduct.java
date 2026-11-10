@@ -11,140 +11,140 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import io.netty.handler.codec.DecoderException;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 
-import io.netty.handler.codec.DecoderException;
-
 import zone.moddev.mc.lib.machine.ingredient.FluidAmount;
 
 /**
- * Something a recipe produces, possibly only some of the time. JSON is {@code {"item": {"id": ...,
- * "count": 2}, "chance": 0.25}} or {@code {"fluid": {"id": ..., "amount": 250}}}; {@code chance}
- * defaults to 1 and must be above 0 and at most 1.
+ * Something a recipe produces, possibly only some of the time. JSON is
+ * {@code {"item": {"id": ..., "count": 2}, "chance": 0.25}} or {@code {"fluid":
+ * {"id": ..., "amount": 250}}}; {@code chance} defaults to 1 and must be above
+ * 0 and at most 1.
  */
 public sealed interface MachineProduct
     permits MachineProduct.ItemProduct, MachineProduct.FluidProduct {
-  /** The chance this product is made on a run, in (0, 1]. */
-  float chance();
+    /** The chance this product is made on a run, in (0, 1]. */
+    float chance();
 
-  /** The JSON form: exactly one of {@code item} or {@code fluid}. */
-  Codec<MachineProduct> CODEC = new Dispatch().codec();
+    /** The JSON form: exactly one of {@code item} or {@code fluid}. */
+    Codec<MachineProduct> CODEC = new Dispatch().codec();
 
-  /** The network form: a kind byte, then the record. */
-  StreamCodec<RegistryFriendlyByteBuf, MachineProduct> STREAM_CODEC =
-      StreamCodec.of(
-          (buffer, product) -> {
+    /** The network form: a kind byte, then the record. */
+    StreamCodec<RegistryFriendlyByteBuf, MachineProduct> STREAM_CODEC = StreamCodec
+        .of((buffer, product) -> {
             switch (product) {
-              case ItemProduct item -> {
-                buffer.writeByte(0);
-                ItemProduct.STREAM_CODEC.encode(buffer, item);
-              }
-              case FluidProduct fluid -> {
-                buffer.writeByte(1);
-                FluidProduct.STREAM_CODEC.encode(buffer, fluid);
-              }
+                case ItemProduct item -> {
+                    buffer.writeByte(0);
+                    ItemProduct.STREAM_CODEC.encode(buffer, item);
+                }
+                case FluidProduct fluid -> {
+                    buffer.writeByte(1);
+                    FluidProduct.STREAM_CODEC.encode(buffer, fluid);
+                }
             }
-          },
-          buffer -> {
+        }, buffer -> {
             int kind = buffer.readByte();
             return switch (kind) {
-              case 0 -> ItemProduct.STREAM_CODEC.decode(buffer);
-              case 1 -> FluidProduct.STREAM_CODEC.decode(buffer);
-              default -> throw new DecoderException("Unknown machine product kind " + kind);
+                case 0 -> ItemProduct.STREAM_CODEC.decode(buffer);
+                case 1 -> FluidProduct.STREAM_CODEC.decode(buffer);
+                default -> throw new DecoderException(
+                    "Unknown machine product kind " + kind);
             };
-          });
+        });
 
-  /** An item stack. */
-  record ItemProduct(ItemStack stack, float chance) implements MachineProduct {
-    static final MapCodec<ItemProduct> CODEC =
-        RecordCodecBuilder.mapCodec(
-            instance ->
-                instance
-                    .group(
-                        ItemStack.CODEC.fieldOf("item").forGetter(ItemProduct::stack),
-                        chanceField().forGetter(ItemProduct::chance))
-                    .apply(instance, ItemProduct::new));
-    static final StreamCodec<RegistryFriendlyByteBuf, ItemProduct> STREAM_CODEC =
-        StreamCodec.composite(
-            ItemStack.STREAM_CODEC,
-            ItemProduct::stack,
-            ByteBufCodecs.FLOAT,
-            ItemProduct::chance,
-            ItemProduct::new);
+    /** An item stack. */
+    record ItemProduct(ItemStack stack, float chance)
+        implements MachineProduct {
+        static final MapCodec<ItemProduct> CODEC = RecordCodecBuilder
+            .mapCodec(instance -> instance
+                .group(
+                    ItemStack.CODEC.fieldOf("item")
+                        .forGetter(ItemProduct::stack),
+                    chanceField().forGetter(ItemProduct::chance))
+                .apply(instance, ItemProduct::new));
+        static final StreamCodec<RegistryFriendlyByteBuf, ItemProduct> STREAM_CODEC = StreamCodec
+            .composite(ItemStack.STREAM_CODEC, ItemProduct::stack,
+                ByteBufCodecs.FLOAT, ItemProduct::chance, ItemProduct::new);
 
-    /** Copies the stack. */
-    public ItemProduct {
-      stack = stack.copy();
+        /** Copies the stack. */
+        public ItemProduct {
+            stack = stack.copy();
+        }
+
+        /** A copy of the stack. */
+        @Override
+        public ItemStack stack() {
+            return stack.copy();
+        }
     }
 
-    /** A copy of the stack. */
-    @Override
-    public ItemStack stack() {
-      return stack.copy();
-    }
-  }
-
-  /** A fluid amount. */
-  record FluidProduct(FluidAmount fluid, float chance) implements MachineProduct {
-    static final MapCodec<FluidProduct> CODEC =
-        RecordCodecBuilder.mapCodec(
-            instance ->
-                instance
-                    .group(
-                        FluidAmount.CODEC.fieldOf("fluid").forGetter(FluidProduct::fluid),
-                        chanceField().forGetter(FluidProduct::chance))
-                    .apply(instance, FluidProduct::new));
-    static final StreamCodec<RegistryFriendlyByteBuf, FluidProduct> STREAM_CODEC =
-        StreamCodec.composite(
-            FluidAmount.STREAM_CODEC,
-            FluidProduct::fluid,
-            ByteBufCodecs.FLOAT,
-            FluidProduct::chance,
-            FluidProduct::new);
-  }
-
-  private static MapCodec<Float> chanceField() {
-    return Codec.FLOAT
-        .validate(
-            chance ->
-                chance > 0 && chance <= 1
-                    ? DataResult.success(chance)
-                    : DataResult.error(() -> "Product chance must be in (0, 1]: " + chance))
-        .optionalFieldOf("chance", 1F);
-  }
-
-  /** Picks the record by its key; none, or both, is an error naming the two keys. */
-  final class Dispatch extends MapCodec<MachineProduct> {
-    private static final List<String> KEYS = List.of("item", "fluid");
-
-    private Dispatch() {}
-
-    @Override
-    public <T> Stream<T> keys(DynamicOps<T> ops) {
-      return KEYS.stream().map(ops::createString);
+    /** A fluid amount. */
+    record FluidProduct(FluidAmount fluid, float chance)
+        implements MachineProduct {
+        static final MapCodec<FluidProduct> CODEC = RecordCodecBuilder
+            .mapCodec(instance -> instance
+                .group(
+                    FluidAmount.CODEC.fieldOf("fluid")
+                        .forGetter(FluidProduct::fluid),
+                    chanceField().forGetter(FluidProduct::chance))
+                .apply(instance, FluidProduct::new));
+        static final StreamCodec<RegistryFriendlyByteBuf, FluidProduct> STREAM_CODEC = StreamCodec
+            .composite(FluidAmount.STREAM_CODEC, FluidProduct::fluid,
+                ByteBufCodecs.FLOAT, FluidProduct::chance, FluidProduct::new);
     }
 
-    @Override
-    public <T> DataResult<MachineProduct> decode(DynamicOps<T> ops, MapLike<T> input) {
-      var present = KEYS.stream().filter(key -> input.get(key) != null).toList();
-      if (present.size() != 1)
-        return DataResult.error(
-            () -> "A machine product needs exactly one of 'item' or 'fluid'; found " + present);
-      return present.getFirst().equals("item")
-          ? ItemProduct.CODEC.decode(ops, input).map(product -> product)
-          : FluidProduct.CODEC.decode(ops, input).map(product -> product);
+    private static MapCodec<Float> chanceField() {
+        return Codec.FLOAT
+            .validate(chance -> chance > 0 && chance <= 1
+                ? DataResult.success(chance)
+                : DataResult
+                    .error(() -> "Product chance must be in (0, 1]: " + chance))
+            .optionalFieldOf("chance", 1F);
     }
 
-    @Override
-    public <T> RecordBuilder<T> encode(
-        MachineProduct input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
-      return switch (input) {
-        case ItemProduct product -> ItemProduct.CODEC.encode(product, ops, prefix);
-        case FluidProduct product -> FluidProduct.CODEC.encode(product, ops, prefix);
-      };
+    /**
+     * Picks the record by its key; none, or both, is an error naming the two
+     * keys.
+     */
+    final class Dispatch extends MapCodec<MachineProduct> {
+        private static final List<String> KEYS = List.of("item", "fluid");
+
+        private Dispatch() {
+        }
+
+        @Override
+        public <T> Stream<T> keys(DynamicOps<T> ops) {
+            return KEYS.stream().map(ops::createString);
+        }
+
+        @Override
+        public <T> DataResult<MachineProduct> decode(DynamicOps<T> ops,
+            MapLike<T> input) {
+            var present = KEYS.stream().filter(key -> input.get(key) != null)
+                .toList();
+            if (present.size() != 1)
+                return DataResult.error(
+                    () -> "A machine product needs exactly one of 'item' or 'fluid'; found "
+                        + present);
+            return present.getFirst().equals("item")
+                ? ItemProduct.CODEC.decode(ops, input).map(product -> product)
+                : FluidProduct.CODEC.decode(ops, input).map(product -> product);
+        }
+
+        @Override
+        public <T> RecordBuilder<T> encode(MachineProduct input,
+            DynamicOps<T> ops, RecordBuilder<T> prefix) {
+            return switch (input) {
+                case ItemProduct product ->
+                    ItemProduct.CODEC.encode(product, ops, prefix);
+                case FluidProduct product ->
+                    FluidProduct.CODEC.encode(product, ops, prefix);
+            };
+        }
     }
-  }
 }

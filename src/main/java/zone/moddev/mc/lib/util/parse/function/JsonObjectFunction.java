@@ -6,4 +6,5 @@ import com.google.gson.JsonObject;
 
 /** Maps a raw Gson object. */
 @FunctionalInterface
-public interface JsonObjectFunction<T> extends Function<JsonObject, T> {}
+public interface JsonObjectFunction<T> extends Function<JsonObject, T> {
+}

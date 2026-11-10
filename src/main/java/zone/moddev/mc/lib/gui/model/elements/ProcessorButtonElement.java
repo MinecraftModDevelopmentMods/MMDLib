@@ -18,15 +18,18 @@ import zone.moddev.mc.lib.gui.runtime.ScreenClick;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 
-/** Owns processor selection, state, pause action and redstone-conflict presentation. */
+/**
+ * Owns processor selection, state, pause action and redstone-conflict
+ * presentation.
+ */
 public class ProcessorButtonElement implements ButtonControl {
     private final Common common;
     private final Optional<String> processorKey;
     private final Optional<Text> text;
     private final boolean flat;
 
-    public ProcessorButtonElement(
-        Common common, Optional<String> processorKey, Optional<Text> text, boolean flat) {
+    public ProcessorButtonElement(Common common, Optional<String> processorKey,
+        Optional<Text> text, boolean flat) {
         Objects.requireNonNull(common);
         Objects.requireNonNull(processorKey);
         Objects.requireNonNull(text);
@@ -44,13 +47,13 @@ public class ProcessorButtonElement implements ButtonControl {
     public void validate() {
         ButtonControl.super.validate();
         if (processorKey.filter(String::isBlank).isPresent())
-            throw new IllegalArgumentException("processor-key must not be blank");
+            throw new IllegalArgumentException(
+                "processor-key must not be blank");
         if (flat && text.isPresent())
-            throw new IllegalArgumentException("A flat button uses an icon, not a text caption");
-        if (common.value().isPresent()
-            || common.max().isPresent()
-            || common.clicks().any()
-            || common.interaction().isPresent()
+            throw new IllegalArgumentException(
+                "A flat button uses an icon, not a text caption");
+        if (common.value().isPresent() || common.max().isPresent()
+            || common.clicks().any() || common.interaction().isPresent()
             || !common.jeiRecipes().isEmpty())
             throw new IllegalArgumentException(
                 "<processor-button> owns its state and click action; value, max, click handlers,"
@@ -59,7 +62,8 @@ public class ProcessorButtonElement implements ButtonControl {
 
     public void validateHostType(Class<?> type) {
         if (!ScreenHost.class.isAssignableFrom(type))
-            throw new IllegalArgumentException("<processor-button> requires a ScreenHost");
+            throw new IllegalArgumentException(
+                "<processor-button> requires a ScreenHost");
     }
 
     public void validateHost(ScreenHost host) {
@@ -67,22 +71,20 @@ public class ProcessorButtonElement implements ButtonControl {
     }
 
     public void validateBindings(Map<String, Set<String>> bindings) {
-        if (processorKey.isPresent()
-            && !bindings.getOrDefault("processors", Set.of()).contains(processorKey.get()))
-            throw new IllegalArgumentException("Unknown processor-key: " + processorKey.get());
+        if (processorKey.isPresent() && !bindings
+            .getOrDefault("processors", Set.of()).contains(processorKey.get()))
+            throw new IllegalArgumentException(
+                "Unknown processor-key: " + processorKey.get());
     }
 
     private RecipeProcessor processor(ScreenHost host) {
         if (host.screenFeatures() == null)
             throw new IllegalArgumentException(
                 "<processor-button> requires at least one recipe processor");
-        return host.screenFeatures()
-            .processor(processorKey)
-            .orElseThrow(
-                () -> new IllegalArgumentException(
-                    processorKey
-                        .map(key -> "Unknown processor-key: " + key)
-                        .orElse("<processor-button> requires at least one recipe processor")));
+        return host.screenFeatures().processor(processorKey)
+            .orElseThrow(() -> new IllegalArgumentException(
+                processorKey.map(key -> "Unknown processor-key: " + key).orElse(
+                    "<processor-button> requires at least one recipe processor")));
     }
 
     public boolean interactive() {
@@ -90,11 +92,11 @@ public class ProcessorButtonElement implements ButtonControl {
     }
 
     public boolean interact(ScreenClick click) {
-        if (click.button() == 0
-            && click.option() == 0
+        if (click.button() == 0 && click.option() == 0
             && click.menu().blockEntity instanceof ScreenHost host) {
             var processor = processor(host);
-            host.screenFeatures().setProcessorPaused(processor.key(), !processor.paused());
+            host.screenFeatures().setProcessorPaused(processor.key(),
+                !processor.paused());
         }
         return true;
     }
@@ -110,31 +112,30 @@ public class ProcessorButtonElement implements ButtonControl {
                     conflict = redstone.paused() ? 1 : 2;
                     break;
                 }
-        return Optional.of(
-            new ElementSnapshot(ProcessorButtonState.of(processor).wireValue(), conflict));
+        return Optional.of(new ElementSnapshot(
+            ProcessorButtonState.of(processor).wireValue(), conflict));
     }
 
     public Optional<ResourceLocation> iconFor(Object value) {
-        return Optional.of(
-            ProcessorButtonState.fromWire(value).orElse(ProcessorButtonState.PAUSED).icon());
+        return Optional.of(ProcessorButtonState.fromWire(value)
+            .orElse(ProcessorButtonState.PAUSED).icon());
     }
 
     public Optional<Text> labelFor(Object value) {
-        return Optional.of(
-            new Text(
-                ProcessorButtonState.fromWire(value).orElse(ProcessorButtonState.PAUSED).label(),
-                Optional.empty()));
+        return Optional.of(new Text(
+            ProcessorButtonState.fromWire(value)
+                .orElse(ProcessorButtonState.PAUSED).label(),
+            Optional.empty()));
     }
 
     public Optional<Text> tooltipText() {
-        return common
-            .tooltip()
-            .or(() -> Optional.of(new Text("screen.mmdlib.processor.toggle", Optional.empty())));
+        return common.tooltip().or(() -> Optional
+            .of(new Text("screen.mmdlib.processor.toggle", Optional.empty())));
     }
 
     public Map<String, Text> tooltipArguments(Object value, Object maximum) {
-        return ProcessorButtonState.fromWire(value)
-            .map(state -> Map.of("action", new Text(state.action(), Optional.empty())))
+        return ProcessorButtonState.fromWire(value).map(state -> Map
+            .of("action", new Text(state.action(), Optional.empty())))
             .orElse(Map.of());
     }
 
@@ -144,17 +145,16 @@ public class ProcessorButtonElement implements ButtonControl {
 
     public Optional<ResourceLocation> badge(Object value, Object maximum) {
         return conflict(maximum)
-            ? Optional.of(ResourceLocation.parse("mmdlib:icon_processor_conflict"))
+            ? Optional
+                .of(ResourceLocation.parse("mmdlib:icon_processor_conflict"))
             : Optional.empty();
     }
 
     public List<Component> valueTooltip(Object value, Object maximum) {
         return conflict(maximum)
-            ? List.of(
-                Component.translatable(
-                    ((Number) maximum).intValue() == 1
-                        ? "screen.mmdlib.processor.conflict.redstone"
-                        : "screen.mmdlib.processor.conflict.manual"))
+            ? List.of(Component.translatable(((Number) maximum).intValue() == 1
+                ? "screen.mmdlib.processor.conflict.redstone"
+                : "screen.mmdlib.processor.conflict.manual"))
             : List.of();
     }
 
@@ -199,14 +199,7 @@ public class ProcessorButtonElement implements ButtonControl {
 
     @Override
     public String toString() {
-        return "ProcessorButtonElement[common="
-            + common
-            + ", processorKey="
-            + processorKey
-            + ", text="
-            + text
-            + ", flat="
-            + flat
-            + "]";
+        return "ProcessorButtonElement[common=" + common + ", processorKey="
+            + processorKey + ", text=" + text + ", flat=" + flat + "]";
     }
 }

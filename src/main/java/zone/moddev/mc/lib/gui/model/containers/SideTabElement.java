@@ -11,7 +11,8 @@ import zone.moddev.mc.lib.gui.model.Edge;
 import zone.moddev.mc.lib.gui.model.Element;
 
 /**
- * {@code side-tab}: a tab growing out of the panel's edge, such as the upgrade column.
+ * {@code side-tab}: a tab growing out of the panel's edge, such as the upgrade
+ * column.
  *
  * <p>
  * {@code edge}: the panel edge
@@ -32,22 +33,19 @@ public class SideTabElement implements Element {
 
     public int[] measure(TextMeasure text) {
         var inner = ElementLayouts.stack(children, 2, text);
-        return new int[]{
-            inner[0] + 2 * SideDrawerLayout.MARGIN + 7, inner[1] + 2 * SideDrawerLayout.MARGIN
-        };
+        return new int[]{inner[0] + 2 * SideDrawerLayout.MARGIN + 7,
+            inner[1] + 2 * SideDrawerLayout.MARGIN};
     }
 
-    public java.util.Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
-        int x = SideDrawerLayout.MARGIN + (edge == zone.moddev.mc.lib.gui.model.Edge.RIGHT ? 4 : 3);
-        return ElementLayouts.stackPositions(
-            children,
-            new Rect(
-                x,
-                SideDrawerLayout.MARGIN,
+    public java.util.Map<Element, Rect> childLayout(Rect bounds,
+        TextMeasure text) {
+        int x = SideDrawerLayout.MARGIN
+            + (edge == zone.moddev.mc.lib.gui.model.Edge.RIGHT ? 4 : 3);
+        return ElementLayouts.stackPositions(children,
+            new Rect(x, SideDrawerLayout.MARGIN,
                 bounds.width() - 2 * SideDrawerLayout.MARGIN - 7,
                 bounds.height() - 2 * SideDrawerLayout.MARGIN),
-            2,
-            text);
+            2, text);
     }
 
     public Common common() {
@@ -85,7 +83,7 @@ public class SideTabElement implements Element {
 
     @Override
     public String toString() {
-        return "SideTabElement[common=" + common + ", edge=" + edge + ", children=" + children
-            + "]";
+        return "SideTabElement[common=" + common + ", edge=" + edge
+            + ", children=" + children + "]";
     }
 }

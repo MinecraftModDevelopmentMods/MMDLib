@@ -48,7 +48,8 @@ public final class AutomationRecoveryTests {
     }
 
     private static ProcessorEntity place(GameTestHelper h, BlockPos pos) {
-        h.getLevel().setBlock(pos, CompanionMod.LOGISTICS.block.get().defaultBlockState(), 3);
+        h.getLevel().setBlock(pos,
+            CompanionMod.LOGISTICS.block.get().defaultBlockState(), 3);
         return (ProcessorEntity) h.getLevel().getBlockEntity(pos);
     }
 
@@ -56,7 +57,8 @@ public final class AutomationRecoveryTests {
         return place(h, h.absolutePos(new BlockPos(2, 2, 2)));
     }
 
-    private static CompoundTag pending(AutomationInventory a, int group, boolean input) {
+    private static CompoundTag pending(AutomationInventory a, int group,
+        boolean input) {
         var state = a.transferState(a.group(group).id(), 0);
         state.putBoolean("input", input);
         state.putInt("face", RelativeFace.FRONT.ordinal());
@@ -65,28 +67,29 @@ public final class AutomationRecoveryTests {
         return state;
     }
 
-    /** Stage real extractions into handlers that accept simulation but refuse execution. */
-    private static void stage(GameTestHelper h, AutomationInventory a, boolean input) {
+    /**
+     * Stage real extractions into handlers that accept simulation but refuse
+     * execution.
+     */
+    private static void stage(GameTestHelper h, AutomationInventory a,
+        boolean input) {
         var items = new ItemStackHandler(1);
         items.setStackInSlot(0, new ItemStack(Items.DIAMOND, 8));
         var refusedItems = new ItemStackHandler(1) {
             @Override
-            public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            public ItemStack insertItem(int slot, ItemStack stack,
+                boolean simulate) {
                 return simulate ? ItemStack.EMPTY : stack;
             }
         };
         require(
-            AutomationTransfers.transport(ResourceType.ITEMS)
-                .orElseThrow()
-                .move(
-                    items,
-                    refusedItems,
-                    8,
-                    value -> true,
+            AutomationTransfers.transport(ResourceType.ITEMS).orElseThrow()
+                .move(items, refusedItems, 8, value -> true,
                     pending(a, input ? 0 : 1, input),
                     h.getLevel().registryAccess()) == 0,
             "Item delivery refused after extraction");
-        require(items.getStackInSlot(0).isEmpty(), "Pending items are owned only by escrow");
+        require(items.getStackInSlot(0).isEmpty(),
+            "Pending items are owned only by escrow");
         var fluids = new FluidTank(1000);
         fluids.setFluid(new FluidStack(Fluids.WATER, 750));
         var refusedFluids = new FluidTank(1000) {
@@ -96,13 +99,8 @@ public final class AutomationRecoveryTests {
             }
         };
         require(
-            AutomationTransfers.transport(ResourceType.FLUIDS)
-                .orElseThrow()
-                .move(
-                    fluids,
-                    refusedFluids,
-                    750,
-                    value -> true,
+            AutomationTransfers.transport(ResourceType.FLUIDS).orElseThrow()
+                .move(fluids, refusedFluids, 750, value -> true,
                     pending(a, input ? 2 : 4, input),
                     h.getLevel().registryAccess()) == 0,
             "Fluid delivery refused after extraction");
@@ -116,45 +114,39 @@ public final class AutomationRecoveryTests {
             }
         };
         require(
-            AutomationTransfers.transport(ResourceType.ENERGY)
-                .orElseThrow()
-                .move(
-                    energy,
-                    refusedEnergy,
-                    750,
-                    value -> true,
-                    pending(a, 6, input),
-                    h.getLevel().registryAccess()) == 0,
+            AutomationTransfers.transport(ResourceType.ENERGY).orElseThrow()
+                .move(energy, refusedEnergy, 750, value -> true,
+                    pending(a, 6, input), h.getLevel().registryAccess()) == 0,
             "Energy delivery refused after extraction");
         require(energy.stored() == 0, "Pending energy is owned only by escrow");
     }
 
     @GameTest(template = "empty")
-    public static void cachesInvalidateAndUnchangedInventoriesSkipRevalidation(GameTestHelper h) {
+    public static void cachesInvalidateAndUnchangedInventoriesSkipRevalidation(
+        GameTestHelper h) {
         var machine = place(h);
         var a = machine.automation;
         var pos = machine.getBlockPos().north();
         h.getLevel().setBlock(pos, Blocks.CHEST.defaultBlockState(), 3);
         TestAutomationCapabilities.LOOKUPS.remove(pos);
         for (int i = 0; i < 100; i++)
-            require(
-                a.neighbour(TestAutomationCapabilities.ITEMS, Direction.NORTH) != null,
-                "Cached neighbour exists");
-        require(
-            TestAutomationCapabilities.LOOKUPS.get(pos) == 1,
+            require(a.neighbour(TestAutomationCapabilities.ITEMS,
+                Direction.NORTH) != null, "Cached neighbour exists");
+        require(TestAutomationCapabilities.LOOKUPS.get(pos) == 1,
             "Repeated queries resolve provider only once");
         h.getLevel().invalidateCapabilities(pos);
         a.neighbour(TestAutomationCapabilities.ITEMS, Direction.NORTH);
-        require(
-            TestAutomationCapabilities.LOOKUPS.get(pos) == 2,
+        require(TestAutomationCapabilities.LOOKUPS.get(pos) == 2,
             "Explicit invalidation refreshes provider");
         h.getLevel().destroyBlock(pos, false);
         require(
-            a.neighbour(TestAutomationCapabilities.ITEMS, Direction.NORTH) == null,
+            a.neighbour(TestAutomationCapabilities.ITEMS,
+                Direction.NORTH) == null,
             "Removal invalidates cached neighbour");
         h.getLevel().setBlock(pos, Blocks.CHEST.defaultBlockState(), 3);
         require(
-            a.neighbour(TestAutomationCapabilities.ITEMS, Direction.NORTH) != null
+            a.neighbour(TestAutomationCapabilities.ITEMS,
+                Direction.NORTH) != null
                 && TestAutomationCapabilities.LOOKUPS.get(pos) == 3,
             "Replacement supplies a fresh capability");
         a.slots().setStackInSlot(0, new ItemStack(Items.BLAZE_ROD));
@@ -175,158 +167,160 @@ public final class AutomationRecoveryTests {
         a.group(0).sides().set(RelativeFace.FRONT, IoMode.DISABLED);
         require(
             a.viewRevision() > revision
-                && a.mode(ResourceType.ITEMS, "input", 0, Direction.NORTH) == IoMode.DISABLED
-                && a.mode(ResourceType.ITEMS, "output", 0, Direction.NORTH) == IoMode.OUTPUT,
+                && a.mode(ResourceType.ITEMS, "input", 0,
+                    Direction.NORTH) == IoMode.DISABLED
+                && a.mode(ResourceType.ITEMS, "output", 0,
+                    Direction.NORTH) == IoMode.OUTPUT,
             "Indexed membership preserves independent modes and notifies menu revision");
         h.succeed();
     }
 
     @GameTest(template = "empty")
-    public static void unknownRecoveryPayloadAndFailedHandoffAreLossless(GameTestHelper h) {
+    public static void unknownRecoveryPayloadAndFailedHandoffAreLossless(
+        GameTestHelper h) {
         var machine = place(h);
         var a = machine.automation;
         var state = a.transferState("removed_group", 0);
         state.putString("resource", "absent_mod:gas");
         state.putInt("amount", 1234);
-        state.put("item", new ItemStack(Items.DIAMOND).save(h.getLevel().registryAccess()));
+        state.put("item",
+            new ItemStack(Items.DIAMOND).save(h.getLevel().registryAccess()));
         var before = a.save(h.getLevel().registryAccess());
         try {
-            a.dropAll(
-                payload -> {
-                    throw new IllegalStateException("Recovery sink refused");
-                });
+            a.dropAll(payload -> {
+                throw new IllegalStateException("Recovery sink refused");
+            });
             throw new AssertionError("Expected refused handoff");
         } catch (IllegalStateException expected) {
-            require(
-                a.save(h.getLevel().registryAccess()).equals(before),
+            require(a.save(h.getLevel().registryAccess()).equals(before),
                 "Failed handoff leaves pending data intact");
         }
         var captured = new java.util.concurrent.atomic.AtomicReference<CompoundTag>();
         a.dropAll(captured::set);
-        var entry = captured.get().getList("resources", Tag.TAG_COMPOUND).getCompound(0);
+        var entry = captured.get().getList("resources", Tag.TAG_COMPOUND)
+            .getCompound(0);
         require(
             entry.getString("type").equals("absent_mod:gas")
                 && entry.getCompound("data").equals(state),
             "Unknown transport schema is preserved verbatim");
         require(
             h.getLevel()
-                .getEntitiesOfClass(ItemEntity.class, new AABB(machine.getBlockPos()).inflate(2))
+                .getEntitiesOfClass(ItemEntity.class,
+                    new AABB(machine.getBlockPos()).inflate(2))
                 .isEmpty(),
             "A custom payload's item field must not also be interpreted as a vanilla item drop");
         var capsule = RecoveryCapsuleItem.create(captured.get());
         require(
-            !RecoveryCapsuleItem.restore(capsule, machine) && !capsule.isEmpty(),
+            !RecoveryCapsuleItem.restore(capsule, machine)
+                && !capsule.isEmpty(),
             "Unsupported resources stay in the recovery capsule");
-        a.dropAll(
-            payload -> {
-                throw new AssertionError("Recovery payload handed off twice");
-            });
+        a.dropAll(payload -> {
+            throw new AssertionError("Recovery payload handed off twice");
+        });
         h.succeed();
     }
 
     @GameTest(template = "empty")
-    public static void inboundEscrowCompletesAfterSourceRemovalAndReload(GameTestHelper h) {
+    public static void inboundEscrowCompletesAfterSourceRemovalAndReload(
+        GameTestHelper h) {
         var machine = place(h);
         var source = machine.getBlockPos().north();
         h.getLevel().setBlock(source, Blocks.CHEST.defaultBlockState(), 3);
         stage(h, machine.automation, true);
         h.getLevel().destroyBlock(source, false);
         var a = machine.automation;
-        a.load(a.save(h.getLevel().registryAccess()), h.getLevel().registryAccess());
+        a.load(a.save(h.getLevel().registryAccess()),
+            h.getLevel().registryAccess());
         for (var group : a.groups())
             for (var face : RelativeFace.values())
                 group.sides().set(face, IoMode.DISABLED);
         AutomationTransfers.tick(a, machine.energy);
         AutomationTransfers.tick(a, machine.energy);
-        require(
-            machine.items.getStackInSlot(0).getCount() == 8,
+        require(machine.items.getStackInSlot(0).getCount() == 8,
             "Owned inbound items need no source or enabled external side");
-        require(
-            machine.fluids.getFluidInTank(0).getAmount() == 750,
+        require(machine.fluids.getFluidInTank(0).getAmount() == 750,
             "Inbound fluid completes without original neighbour");
-        require(
-            machine.energy.stored() == 750,
+        require(machine.energy.stored() == 750,
             "Inbound energy completes once without original neighbour");
         h.succeed();
     }
 
     @GameTest(template = "empty")
-    public static void outboundEscrowReroutesToAnotherEnabledNeighbour(GameTestHelper h) {
+    public static void outboundEscrowReroutesToAnotherEnabledNeighbour(
+        GameTestHelper h) {
         var machine = place(h);
         var a = machine.automation;
         var original = machine.getBlockPos().north();
         place(h, original);
         stage(h, a, false);
         // Populate caches before breaking the destination.
-        require(
-            a.neighbour(Capabilities.ItemHandler.BLOCK, Direction.NORTH) != null,
-            "Original neighbour cached");
+        require(a.neighbour(Capabilities.ItemHandler.BLOCK,
+            Direction.NORTH) != null, "Original neighbour cached");
         h.getLevel().destroyBlock(original, false);
         AutomationTransfers.tick(a, machine.energy);
         require(a.transferState("tank_2", 0).contains("fluid"),
             "No destination retains pending fluid");
-        a.load(a.save(h.getLevel().registryAccess()), h.getLevel().registryAccess());
+        a.load(a.save(h.getLevel().registryAccess()),
+            h.getLevel().registryAccess());
         var destination = place(h, machine.getBlockPos().east());
         for (int g : new int[]{1, 4, 6}) {
             for (var face : RelativeFace.values())
                 a.group(g).sides().set(face, IoMode.DISABLED);
-            a.group(g).sides().set(RelativeFace.of(Direction.NORTH, Direction.EAST), IoMode.OUTPUT);
+            a.group(g).sides().set(
+                RelativeFace.of(Direction.NORTH, Direction.EAST),
+                IoMode.OUTPUT);
         }
         AutomationTransfers.tick(a, machine.energy);
         AutomationTransfers.tick(a, machine.energy);
-        require(
-            destination.items.getStackInSlot(0).getCount() == 8,
+        require(destination.items.getStackInSlot(0).getCount() == 8,
             "Pending items reroute exactly once");
-        require(
-            destination.fluids.getFluidInTank(0).getAmount() == 750,
+        require(destination.fluids.getFluidInTank(0).getAmount() == 750,
             "Pending fluid reroutes exactly once");
-        require(destination.energy.stored() == 750, "Pending energy reroutes exactly once");
-        require(machine.items.getStackInSlot(1).isEmpty(), "Rerouting never extracts a new batch");
+        require(destination.energy.stored() == 750,
+            "Pending energy reroutes exactly once");
+        require(machine.items.getStackInSlot(1).isEmpty(),
+            "Rerouting never extracts a new batch");
         h.succeed();
     }
 
     @GameTest(template = "empty")
-    public static void clippedRefundSurvivesSaveAndReturnsExactlyOnce(GameTestHelper h) {
+    public static void clippedRefundSurvivesSaveAndReturnsExactlyOnce(
+        GameTestHelper h) {
         var machine = place(h);
         var power = new EnergyBuffer(1000, 1000);
         power.setStored(1000);
         var destination = new ItemStackHandler(1) {
             @Override
-            public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            public ItemStack insertItem(int slot, ItemStack stack,
+                boolean simulate) {
                 if (!simulate)
-                    power.setStored(1000); // Reentrant handler fills the reserved refund space.
+                    power.setStored(1000); // Reentrant handler fills the
+                                           // reserved refund space.
                 return stack;
             }
         };
-        var group = new ResourceGroup<>(
-            "input",
-            Component.literal("Input"),
-            0,
-            ResourceType.ITEMS,
-            IoMode.INPUT,
-            List.of(0),
-            List.of(),
+        var group = new ResourceGroup<>("input", Component.literal("Input"), 0,
+            ResourceType.ITEMS, IoMode.INPUT, List.of(0), List.of(),
             new SideConfig(IoMode.INPUT));
         group.bind(() -> Direction.NORTH, side -> destination);
         var a = new AutomationInventory(machine, List.of(group));
         var state = pending(a, 0, true);
-        state.put("item", new ItemStack(Items.DIAMOND, 8).save(h.getLevel().registryAccess()));
+        state.put("item", new ItemStack(Items.DIAMOND, 8)
+            .save(h.getLevel().registryAccess()));
         state.putInt("batch", 8);
         state.putLong("cost", 4);
         AutomationTransfers.tick(a, power);
-        require(
-            power.stored() == 1000 && a.pendingRefund() == 32,
+        require(power.stored() == 1000 && a.pendingRefund() == 32,
             "Rejected refund is retained, not clipped");
-        a.load(a.save(h.getLevel().registryAccess()), h.getLevel().registryAccess());
+        a.load(a.save(h.getLevel().registryAccess()),
+            h.getLevel().registryAccess());
         require(a.pendingRefund() == 32, "Refund persists through save/reload");
         power.extract(100, false);
         a.settleRefund(power);
         a.settleRefund(power);
-        require(
-            power.stored() == 932 && a.pendingRefund() == 0,
+        require(power.stored() == 932 && a.pendingRefund() == 0,
             "Refund returns once when room becomes available");
-        require(
-            power.inserted().signum() == 0 && power.used().signum() == 0,
+        require(power.inserted().signum() == 0 && power.used().signum() == 0,
             "Reserved and refunded transfer charges never count as input or processor use");
         h.succeed();
     }
@@ -339,24 +333,24 @@ public final class AutomationRecoveryTests {
         machine.energy.setStored(machine.energy.capacity());
         machine.automation.refund(machine.energy, 50);
         machine.automation.load(
-            machine.automation.save(h.getLevel().registryAccess()), h.getLevel().registryAccess());
+            machine.automation.save(h.getLevel().registryAccess()),
+            h.getLevel().registryAccess());
         h.getLevel().destroyBlock(machine.getBlockPos(), true);
         machine.dropContents(h.getLevel(), machine.getBlockPos());
-        var drops = h.getLevel()
-            .getEntitiesOfClass(ItemEntity.class, new AABB(machine.getBlockPos()).inflate(2));
+        var drops = h.getLevel().getEntitiesOfClass(ItemEntity.class,
+            new AABB(machine.getBlockPos()).inflate(2));
         var capsules = drops.stream()
-            .filter(e -> e.getItem().is(CompanionAddons.RECOVERY_CAPSULE.get())).toList();
+            .filter(e -> e.getItem().is(CompanionAddons.RECOVERY_CAPSULE.get()))
+            .toList();
         require(
-            capsules.size() == 1 && capsules.getFirst().getItem().getCount() == 1,
+            capsules.size() == 1
+                && capsules.getFirst().getItem().getCount() == 1,
             "Exactly one recovery capsule");
         require(
-            drops.stream()
-                .filter(e -> e.getItem().is(Items.DIAMOND))
-                .mapToInt(e -> e.getItem().getCount())
-                .sum() == 8,
+            drops.stream().filter(e -> e.getItem().is(Items.DIAMOND))
+                .mapToInt(e -> e.getItem().getCount()).sum() == 8,
             "Pending items still drop normally exactly once");
-        var capsule = ItemStack.parseOptional(
-            h.getLevel().registryAccess(),
+        var capsule = ItemStack.parseOptional(h.getLevel().registryAccess(),
             (CompoundTag) capsules.getFirst().getItem()
                 .saveOptional(h.getLevel().registryAccess()));
         var target = place(h);
@@ -379,13 +373,11 @@ public final class AutomationRecoveryTests {
         int fluid = 0, energy = 0;
         for (var entry : remaining.getList("resources", Tag.TAG_COMPOUND)) {
             var data = ((CompoundTag) entry).getCompound("data");
-            fluid += FluidStack
-                .parseOptional(h.getLevel().registryAccess(), data.getCompound("fluid"))
-                .getAmount();
+            fluid += FluidStack.parseOptional(h.getLevel().registryAccess(),
+                data.getCompound("fluid")).getAmount();
             energy += data.getInt("energy");
         }
-        require(
-            fluid == 500 && energy == 625,
+        require(fluid == 500 && energy == 625,
             "Partial capsule contains exact fluid and energy remainders");
         target.fluids.tank(0).setFluid(FluidStack.EMPTY);
         target.fluids.tank(1).setFluid(FluidStack.EMPTY);
@@ -394,48 +386,51 @@ public final class AutomationRecoveryTests {
             RecoveryCapsuleItem.restore(capsule, target) && capsule.isEmpty(),
             "Fully restored capsule is consumed");
         require(
-            target.fluids.getFluidInTank(0).getAmount() == 500 && target.energy.stored() == 675,
+            target.fluids.getFluidInTank(0).getAmount() == 500
+                && target.energy.stored() == 675,
             "All remaining fluid, transferred energy and refund are recoverable");
-        require(
-            !RecoveryCapsuleItem.restore(capsule, target),
+        require(!RecoveryCapsuleItem.restore(capsule, target),
             "Consumed capsule cannot duplicate resources");
         h.succeed();
     }
 
     @GameTest(template = "empty")
-    public static void unsidedEnergyIgnoresFaceModesAndSnapshotsExcludeAddonSlots(GameTestHelper h)
-        throws ReflectiveOperationException {
+    public static void unsidedEnergyIgnoresFaceModesAndSnapshotsExcludeAddonSlots(
+        GameTestHelper h) throws ReflectiveOperationException {
         var pos = h.absolutePos(new BlockPos(2, 2, 2));
-        h.getLevel().setBlock(pos, CompanionMod.CRUSHER.block.get().defaultBlockState(), 3);
+        h.getLevel().setBlock(pos,
+            CompanionMod.CRUSHER.block.get().defaultBlockState(), 3);
         var machine = (ProcessorEntity) h.getLevel().getBlockEntity(pos);
         machine.energy.setRates(1000, 1000);
         machine.energy.setStored(1000);
-        var unsided = h.getLevel().getCapability(Capabilities.EnergyStorage.BLOCK, pos, null);
-        var sided = h.getLevel().getCapability(Capabilities.EnergyStorage.BLOCK, pos,
-            Direction.NORTH);
+        var unsided = h.getLevel()
+            .getCapability(Capabilities.EnergyStorage.BLOCK, pos, null);
+        var sided = h.getLevel().getCapability(Capabilities.EnergyStorage.BLOCK,
+            pos, Direction.NORTH);
         require(
-            unsided.extractEnergy(100, false) == 100 && sided.extractEnergy(100, false) == 0,
+            unsided.extractEnergy(100, false) == 100
+                && sided.extractEnergy(100, false) == 0,
             "Unsided energy preserves buffer operations while sided access honours input role");
-        // Exercise a host with more underlying storage than its three displayed slots.
+        // Exercise a host with more underlying storage than its three displayed
+        // slots.
         var field = ProcessorEntity.class.getDeclaredField("items");
         field.setAccessible(true);
         var original = machine.items;
         try {
-            field.set(
-                machine,
-                zone.moddev.mc.lib.api.capabilities.ItemInventories.partition(
-                    java.util.List.of("input", "output", "output", "hidden", "hidden")));
+            field.set(machine,
+                zone.moddev.mc.lib.api.capabilities.ItemInventories
+                    .partition(java.util.List.of("input", "output", "output",
+                        "hidden", "hidden")));
             var player = h.makeMockServerPlayerInLevel();
             var menu = new MachineMenu(91, player.getInventory(), machine);
             menu.components().snapshot();
-            require(
-                menu.components().get(BuiltinMenuComponents.AUTOMATION).slotStart() == 3
-                    && menu.components()
-                        .state(
-                            menu.components().require(BuiltinMenuComponents.RESERVATIONS),
-                            zone.moddev.mc.lib.gui.runtime.slot.ReservationMenuComponent.PLANS)
-                        .keySet()
-                        .equals(java.util.Set.of(0, 1, 2)),
+            require(menu.components().get(BuiltinMenuComponents.AUTOMATION)
+                .slotStart() == 3
+                && menu.components().state(
+                    menu.components()
+                        .require(BuiltinMenuComponents.RESERVATIONS),
+                    zone.moddev.mc.lib.gui.runtime.slot.ReservationMenuComponent.PLANS)
+                    .keySet().equals(java.util.Set.of(0, 1, 2)),
                 "Reservation snapshot includes only displayed base slots, not hidden underlying slots or"
                     + " addon indices");
         } finally {

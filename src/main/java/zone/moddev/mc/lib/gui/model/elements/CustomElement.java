@@ -16,8 +16,9 @@ import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.value.ValueType;
 
 /**
- * A mod-defined leaf. Properties are immutable and sorted so screen fingerprints are stable across
- * JVMs and XML property order. Property nodes are configuration, not child elements.
+ * A mod-defined leaf. Properties are immutable and sorted so screen
+ * fingerprints are stable across JVMs and XML property order. Property nodes
+ * are configuration, not child elements.
  */
 public class CustomElement implements Element {
     private final Common common;
@@ -26,9 +27,8 @@ public class CustomElement implements Element {
     private final int height;
     private final Map<String, String> properties;
 
-    public CustomElement(
-        Common common, ResourceLocation type, int width, int height,
-        Map<String, String> properties) {
+    public CustomElement(Common common, ResourceLocation type, int width,
+        int height, Map<String, String> properties) {
         Objects.requireNonNull(common, "common");
         Objects.requireNonNull(type, "type");
         if (width < 1 || width > 1024 || height < 1 || height > 1024)
@@ -45,23 +45,15 @@ public class CustomElement implements Element {
     }
 
     /**
-     * Escape property values so punctuation cannot make different configurations fingerprint alike.
+     * Escape property values so punctuation cannot make different
+     * configurations fingerprint alike.
      */
     @Override
     public String toString() {
         var json = new com.google.gson.JsonObject();
         properties.forEach(json::addProperty);
-        return "CustomElement[common="
-            + common
-            + ", type="
-            + type
-            + ", width="
-            + width
-            + ", height="
-            + height
-            + ", properties="
-            + json
-            + "]";
+        return "CustomElement[common=" + common + ", type=" + type + ", width="
+            + width + ", height=" + height + ", properties=" + json + "]";
     }
 
     public int[] measure(TextMeasure text) {
@@ -80,7 +72,8 @@ public class CustomElement implements Element {
         validate();
         var contract = widgets.require(type);
         if (common.value().isPresent() && contract.valueKinds().isEmpty())
-            throw new IllegalArgumentException("This widget does not accept a value binding");
+            throw new IllegalArgumentException(
+                "This widget does not accept a value binding");
         contract.validator().accept(this);
     }
 

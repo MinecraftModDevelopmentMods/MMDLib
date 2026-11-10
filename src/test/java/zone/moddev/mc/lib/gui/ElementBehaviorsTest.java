@@ -41,7 +41,9 @@ import zone.moddev.mc.lib.gui.value.ValueType;
 import zone.moddev.mc.lib.gui.value.ValueTypes;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
-/** Mod types outside the implementation package exercise the public contracts. */
+/**
+ * Mod types outside the implementation package exercise the public contracts.
+ */
 class ElementBehaviorsTest {
     interface Family extends Element {
     }
@@ -69,7 +71,8 @@ class ElementBehaviorsTest {
             return Click.CAPTURE;
         }
 
-        public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+        public boolean mouseDragged(double x, double y, int button, double dx,
+            double dy) {
             drags++;
             return true;
         }
@@ -142,16 +145,18 @@ class ElementBehaviorsTest {
         var registry = new ElementBehaviors();
         var access = new Access(new ModElement(Common.empty()));
         registry.register(Family.class, (e, a) -> new State());
-        registry.register(Specific.class, (e, a) -> new DefaultElementBehavior(a));
+        registry.register(Specific.class,
+            (e, a) -> new DefaultElementBehavior(a));
         assertInstanceOf(DefaultElementBehavior.class, registry.create(access));
         registry.register(Other.class, (e, a) -> new State());
-        assertThrows(IllegalArgumentException.class, () -> registry.create(access));
+        assertThrows(IllegalArgumentException.class,
+            () -> registry.create(access));
         registry.register(ModElement.class, (e, a) -> new State());
         assertInstanceOf(State.class, registry.create(access));
-        assertThrows(
-            IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
             () -> registry.register(ModElement.class, (e, a) -> new State()));
-        registry.replace(ModElement.class, (e, a) -> new DefaultElementBehavior(a));
+        registry.replace(ModElement.class,
+            (e, a) -> new DefaultElementBehavior(a));
         assertInstanceOf(DefaultElementBehavior.class, registry.create(access));
     }
 
@@ -163,8 +168,8 @@ class ElementBehaviorsTest {
         var state = (State) registry.create(new Access(element));
         assertNotSame(state, registry.create(new Access(element)));
         boolean[] visible = {true};
-        var input = new ElementInput<>(
-            List.of(element), e -> state, e -> visible[0], e -> new Rect(0, 0, 20, 10));
+        var input = new ElementInput<>(List.of(element), e -> state,
+            e -> visible[0], e -> new Rect(0, 0, 20, 10));
         input.initialized();
         input.update();
         assertEquals(1, state.initializations);
@@ -184,35 +189,30 @@ class ElementBehaviorsTest {
         var first = new ModElement(Common.empty());
         var second = new ModElement(Common.empty());
         var shared = new Object();
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> new ElementInput<>(
-                List.of(first, second),
-                e -> new State() {
-                    public Object stateIdentity() {
-                        return shared;
-                    }
-                },
-                e -> true,
-                e -> new Rect(0, 0, 20, 10)));
+        assertThrows(IllegalArgumentException.class,
+            () -> new ElementInput<>(List.of(first, second), e -> new State() {
+                public Object stateIdentity() {
+                    return shared;
+                }
+            }, e -> true, e -> new Rect(0, 0, 20, 10)));
     }
 
     @Test
     void actionsUseBoundedCodecsWithoutRequiringCustomElements() {
         var action = new ElementAction<Integer>(
             ResourceLocation.parse("test:choose"),
-            StreamCodec.of(
-                RegistryFriendlyByteBuf::writeVarInt, RegistryFriendlyByteBuf::readVarInt),
-            5,
-            (context, value) -> value == 7);
+            StreamCodec.of(RegistryFriendlyByteBuf::writeVarInt,
+                RegistryFriendlyByteBuf::readVarInt),
+            5, (context, value) -> value == 7);
         var encoded = action.encode(RegistryAccess.EMPTY, 7);
         assertEquals(7, action.decode(RegistryAccess.EMPTY, encoded));
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> action.decode(RegistryAccess.EMPTY, Arrays.copyOf(encoded, encoded.length + 1)));
-        assertThrows(
-            IllegalArgumentException.class, () -> action.decode(RegistryAccess.EMPTY, new byte[6]));
-        assertThrows(IllegalArgumentException.class, () -> new ElementActions.Click(0, 0, -1));
+        assertThrows(IllegalArgumentException.class,
+            () -> action.decode(RegistryAccess.EMPTY,
+                Arrays.copyOf(encoded, encoded.length + 1)));
+        assertThrows(IllegalArgumentException.class,
+            () -> action.decode(RegistryAccess.EMPTY, new byte[6]));
+        assertThrows(IllegalArgumentException.class,
+            () -> new ElementActions.Click(0, 0, -1));
     }
 
     record TypedElement(Common common) implements Element {
@@ -231,29 +231,16 @@ class ElementBehaviorsTest {
     }
 
     private Common binding(String getter) {
-        return new Common(
-            Optional.of("mod"),
-            Optional.ofNullable(getter).map(ValueRef::parse),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Common.Clicks.NONE,
-            Optional.empty(),
-            Optional.empty(),
-            List.of(),
-            0,
-            0,
-            23);
+        return new Common(Optional.of("mod"),
+            Optional.ofNullable(getter).map(ValueRef::parse), Optional.empty(),
+            Optional.empty(), Optional.empty(), Common.Clicks.NONE,
+            Optional.empty(), Optional.empty(), List.of(), 0, 0, 23);
     }
 
     private Screen screen(Element element) {
-        return new Screen(
-            ResourceLocation.parse("test:contracts"),
-            "mod.java",
+        return new Screen(ResourceLocation.parse("test:contracts"), "mod.java",
             new Text("test", Optional.empty()),
-            ScreenLoaderTest.Press.class.getName(),
-            false,
-            List.of(element),
+            ScreenLoaderTest.Press.class.getName(), false, List.of(element),
             List.of());
     }
 
@@ -261,16 +248,15 @@ class ElementBehaviorsTest {
     void modValueContractsApplyToJavaScreensWithSourceDiagnostics() {
         var loader = getClass().getClassLoader();
         var valid = new TypedElement(binding("#getProgress"));
-        assertEquals(
-            ValueTypes.WHOLE, ScreenBinder.bind(screen(valid), loader).values().get(valid).kind());
-        var wrong = assertThrows(
-            ScreenException.class,
-            () -> ScreenBinder.bind(screen(new TypedElement(binding("#isAutoEject"))), loader));
+        assertEquals(ValueTypes.WHOLE, ScreenBinder.bind(screen(valid), loader)
+            .values().get(valid).kind());
+        var wrong = assertThrows(ScreenException.class, () -> ScreenBinder
+            .bind(screen(new TypedElement(binding("#isAutoEject"))), loader));
         assertTrue(wrong.getMessage().contains("mod.java:23:"));
         assertTrue(wrong.getMessage().contains("whole number"));
-        var missing = assertThrows(
-            ScreenException.class,
-            () -> ScreenBinder.bind(screen(new TypedElement(binding(null))), loader));
-        assertTrue(missing.getMessage().contains("Mod counter needs a value getter"));
+        var missing = assertThrows(ScreenException.class, () -> ScreenBinder
+            .bind(screen(new TypedElement(binding(null))), loader));
+        assertTrue(
+            missing.getMessage().contains("Mod counter needs a value getter"));
     }
 }

@@ -7,25 +7,29 @@ import java.util.Map;
 
 import zone.moddev.mc.lib.gui.model.Element;
 
-/** Width-constrained rows/stacks. Children declare their size and whether they share row width. */
+/**
+ * Width-constrained rows/stacks. Children declare their size and whether they
+ * share row width.
+ */
 public record FlowLayout(Map<Element, Rect> children, int height) {
-    public static FlowLayout of(
-        List<? extends Element> children, boolean horizontal, int width, int gap,
-        TextMeasure text) {
+    public static FlowLayout of(List<? extends Element> children,
+        boolean horizontal, int width, int gap, TextMeasure text) {
         var result = new IdentityHashMap<Element, Rect>();
         int fixed = 0, flexible = 0, minimum = 0;
         for (var child : children) {
             if (child.stretchX()) {
                 flexible++;
-                minimum = Math.max(minimum, ElementLayouts.size(child, text)[0]);
+                minimum = Math.max(minimum,
+                    ElementLayouts.size(child, text)[0]);
             } else
                 fixed += ElementLayouts.size(child, text)[0] + gap;
         }
-        int share = flexible == 0 ? width : Math.max(minimum, (width - fixed) / flexible - gap);
+        int share = flexible == 0
+            ? width
+            : Math.max(minimum, (width - fixed) / flexible - gap);
         int x = 0, y = 0, rowHeight = 0;
         for (var child : children) {
-            int w = Math.min(
-                width,
+            int w = Math.min(width,
                 child.stretchX()
                     ? (horizontal ? share : width)
                     : ElementLayouts.size(child, text)[0]);
@@ -44,7 +48,7 @@ public record FlowLayout(Map<Element, Rect> children, int height) {
             } else
                 y += h + gap;
         }
-        return new FlowLayout(
-            Collections.unmodifiableMap(result), horizontal ? y + rowHeight : Math.max(0, y - gap));
+        return new FlowLayout(Collections.unmodifiableMap(result),
+            horizontal ? y + rowHeight : Math.max(0, y - gap));
     }
 }

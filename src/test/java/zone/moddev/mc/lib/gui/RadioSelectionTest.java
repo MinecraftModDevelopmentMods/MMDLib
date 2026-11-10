@@ -37,7 +37,8 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 class RadioSelectionTest {
     static RadioElement option() {
-        return new RadioElement(Common.empty(), new Text("test", Optional.empty()));
+        return new RadioElement(Common.empty(),
+            new Text("test", Optional.empty()));
     }
 
     static class Access implements ElementAccess {
@@ -118,18 +119,22 @@ class RadioSelectionTest {
         var second = option();
         var outsider = option();
         assertEquals(first, second);
-        var group = new RadioGroupElement(Common.empty(), Optional.empty(), List.of(first, second));
+        var group = new RadioGroupElement(Common.empty(), Optional.empty(),
+            List.of(first, second));
         var access = new Access(group);
         var behavior = ElementBehaviors.builtins().create(access);
         var selection = assertInstanceOf(OptionSelection.class, behavior);
         assertFalse(selection.selected(first));
         assertTrue(selection.selected(second));
         assertFalse(selection.selected(outsider));
-        assertEquals(ElementBehavior.Click.PASS, selection.activate(outsider, 0, 0));
-        assertEquals(ElementBehavior.Click.PASS, selection.activate(first, 2, 0));
+        assertEquals(ElementBehavior.Click.PASS,
+            selection.activate(outsider, 0, 0));
+        assertEquals(ElementBehavior.Click.PASS,
+            selection.activate(first, 2, 0));
         assertNull(access.sent);
         access.accept = false;
-        assertEquals(ElementBehavior.Click.CONSUME, selection.activate(first, 1, 5));
+        assertEquals(ElementBehavior.Click.CONSUME,
+            selection.activate(first, 1, 5));
         assertSame(group, access.sent);
         assertSame(ElementActions.CLICK, access.action);
         assertEquals(new ElementActions.Click(1, 5, 0), access.payload);
@@ -151,7 +156,8 @@ class RadioSelectionTest {
                 return true;
             }
 
-            public ElementBehavior.Click activate(Element option, int button, int modifiers) {
+            public ElementBehavior.Click activate(Element option, int button,
+                int modifiers) {
                 assertSame(radio, option);
                 activation.add(button);
                 activation.add(modifiers);
@@ -179,8 +185,8 @@ class RadioSelectionTest {
             }
         };
         assertTrue(TextControlRenderer.selected(radio, access.presentation));
-        assertEquals(
-            ElementBehavior.Click.CONSUME, new RadioBehavior(radio, access).mouseClicked(1, 1, 0));
+        assertEquals(ElementBehavior.Click.CONSUME,
+            new RadioBehavior(radio, access).mouseClicked(1, 1, 0));
         assertEquals(List.of(0, 5), activation);
         assertNull(access.sent);
     }
@@ -190,23 +196,12 @@ class RadioSelectionTest {
         var c = Common.empty();
         var clicks = new Common.Clicks(
             Optional.of(ResourceLocation.parse("test:choose")),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty());
-        var common = new Common(
-            c.id(),
-            c.value(),
-            c.max(),
-            c.tooltip(),
-            c.tooltipShift(),
-            clicks,
-            c.onHover(),
-            c.hoverShows(),
-            c.jeiRecipes(),
-            0,
-            0,
-            0);
-        var radio = new RadioElement(common, new Text("test", Optional.empty()));
+            Optional.empty(), Optional.empty(), Optional.empty());
+        var common = new Common(c.id(), c.value(), c.max(), c.tooltip(),
+            c.tooltipShift(), clicks, c.onHover(), c.hoverShows(),
+            c.jeiRecipes(), 0, 0, 0);
+        var radio = new RadioElement(common,
+            new Text("test", Optional.empty()));
         var access = new Access(radio);
         access.presentation = new ElementRenderAccess() {
             public Font font() {
@@ -218,16 +213,16 @@ class RadioSelectionTest {
             }
         };
         assertFalse(TextControlRenderer.selected(radio, access.presentation));
-        assertEquals(
-            ElementBehavior.Click.CONSUME, new RadioBehavior(radio, access).mouseClicked(1, 1, 0));
+        assertEquals(ElementBehavior.Click.CONSUME,
+            new RadioBehavior(radio, access).mouseClicked(1, 1, 0));
         assertSame(radio, access.sent);
         assertEquals(new ElementActions.Click(0, 5, 0), access.payload);
         var standalone = option();
         var standaloneAccess = new Access(standalone);
         standaloneAccess.presentation = access.presentation;
-        assertEquals(
-            ElementBehavior.Click.PASS,
-            new RadioBehavior(standalone, standaloneAccess).mouseClicked(1, 1, 0));
+        assertEquals(ElementBehavior.Click.PASS,
+            new RadioBehavior(standalone, standaloneAccess).mouseClicked(1, 1,
+                0));
         assertNull(standaloneAccess.sent);
     }
 }

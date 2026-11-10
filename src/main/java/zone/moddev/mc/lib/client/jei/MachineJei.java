@@ -49,7 +49,8 @@ final class MachineJei {
 
     static void runtime(IJeiRuntime value) {
         runtime = value;
-        // JEI's fixed bottom search/configuration bar does not avoid container exclusion areas.
+        // JEI's fixed bottom search/configuration bar does not avoid container
+        // exclusion areas.
         MachineScreen.drawerBottomInset = () -> runtime != null
             && runtime.getIngredientListOverlay().isListDisplayed() ? 28 : 4;
         MachineScreen.recipes = (screen, e) -> {
@@ -59,7 +60,8 @@ final class MachineJei {
             runtime.getRecipesGui().showTypes(types);
             return true;
         };
-        MachineScreen.recipeTooltip = (screen, e) -> !types(screen, e).isEmpty();
+        MachineScreen.recipeTooltip = (screen,
+            e) -> !types(screen, e).isEmpty();
     }
 
     static void unavailable() {
@@ -77,17 +79,19 @@ final class MachineJei {
             var type = runtime.getRecipeManager().getRecipeType(id);
             if (type.isPresent())
                 result.add(type.get());
-            else if (UNKNOWN.add(screen.getMenu().bound.screen().source() + ":" + id))
-                MMDLib.LOGGER.warn(
-                    "Unknown JEI category {} in {}", id, screen.getMenu().bound.screen().source());
+            else if (UNKNOWN
+                .add(screen.getMenu().bound.screen().source() + ":" + id))
+                MMDLib.LOGGER.warn("Unknown JEI category {} in {}", id,
+                    screen.getMenu().bound.screen().source());
         }
         return result;
     }
 
-    // JEI draws its own "Show Recipes" tooltip for the area; merging the element's lines into it
+    // JEI draws its own "Show Recipes" tooltip for the area; merging the
+    // element's lines into it
     // keeps the two from being drawn over each other.
-    private static IGuiClickableArea clickable(
-        IGuiClickableArea basic, MachineScreen screen, Element e, int mx, int my) {
+    private static IGuiClickableArea clickable(IGuiClickableArea basic,
+        MachineScreen screen, Element e, int mx, int my) {
         return new IGuiClickableArea() {
             @Override
             public Rect2i getArea() {
@@ -108,12 +112,12 @@ final class MachineJei {
     }
 
     static void gui(IGuiHandlerRegistration registration) {
-        registration.addGuiContainerHandler(
-            MachineScreen.class,
+        registration.addGuiContainerHandler(MachineScreen.class,
             new IGuiContainerHandler<MachineScreen>() {
                 @Override
                 public List<Rect2i> getGuiExtraAreas(MachineScreen screen) {
-                    return screen.exclusions().stream().map(MachineJei::rect).toList();
+                    return screen.exclusions().stream().map(MachineJei::rect)
+                        .toList();
                 }
 
                 @Override
@@ -121,47 +125,46 @@ final class MachineJei {
                     MachineScreen screen, double mx, double my) {
                     var result = new ArrayList<IGuiClickableArea>();
                     for (var e : screen.getMenu().elements)
-                        if (screen.visible(e) && !e.common().jeiRecipes().isEmpty()) {
+                        if (screen.visible(e)
+                            && !e.common().jeiRecipes().isEmpty()) {
                             var types = types(screen, e);
                             var r = screen.layout.bounds(e);
                             if (!types.isEmpty()) {
-                                var basic = IGuiClickableArea.createBasic(
-                                    r.x(), r.y(), r.width(), r.height(),
+                                var basic = IGuiClickableArea.createBasic(r.x(),
+                                    r.y(), r.width(), r.height(),
                                     types.toArray(RecipeType<?>[]::new));
-                                result.add(clickable(basic, screen, e, (int) mx, (int) my));
+                                result.add(clickable(basic, screen, e, (int) mx,
+                                    (int) my));
                             }
                         }
                     return result;
                 }
             });
-        registration.addGhostIngredientHandler(
-            MachineScreen.class,
+        registration.addGhostIngredientHandler(MachineScreen.class,
             new IGhostIngredientHandler<MachineScreen>() {
                 @Override
-                public <I> List<Target<I>> getTargetsTyped(
-                    MachineScreen screen, ITypedIngredient<I> ingredient, boolean start) {
-                    var type = JeiIngredientTypes.GLOBAL.find(ingredient.getType()).orElse(null);
+                public <I> List<Target<I>> getTargetsTyped(MachineScreen screen,
+                    ITypedIngredient<I> ingredient, boolean start) {
+                    var type = JeiIngredientTypes.GLOBAL
+                        .find(ingredient.getType()).orElse(null);
                     if (type == null)
                         return List.of();
                     var result = new ArrayList<Target<I>>();
                     for (var target : IngredientDrops.targets(
-                        screen.presentation(),
-                        screen.getMenu().elements,
-                        type,
+                        screen.presentation(), screen.getMenu().elements, type,
                         ingredient.getIngredient())) {
-                        result.add(
-                            new Target<>() {
-                                public Rect2i getArea() {
-                                    return rect(target.bounds());
-                                }
+                        result.add(new Target<>() {
+                            public Rect2i getArea() {
+                                return rect(target.bounds());
+                            }
 
-                                public void accept(I value) {
-                                    if (runtime != null
-                                        && net.minecraft.client.Minecraft
-                                            .getInstance().screen == screen)
-                                        target.accept().test(value);
-                                }
-                            });
+                            public void accept(I value) {
+                                if (runtime != null
+                                    && net.minecraft.client.Minecraft
+                                        .getInstance().screen == screen)
+                                    target.accept().test(value);
+                            }
+                        });
                     }
                     return result;
                 }
@@ -184,30 +187,24 @@ final class MachineJei {
                     return Optional.of(ScreenRuntime.MENUS.get());
                 }
 
-                public IRecipeTransferError transferRecipe(
-                    MachineMenu menu,
-                    Object recipe,
-                    IRecipeSlotsView slots,
-                    Player player,
-                    boolean max,
-                    boolean transfer) {
-                    if (runtime == null || !(menu.blockEntity instanceof ScreenHost host))
+                public IRecipeTransferError transferRecipe(MachineMenu menu,
+                    Object recipe, IRecipeSlotsView slots, Player player,
+                    boolean max, boolean transfer) {
+                    if (runtime == null
+                        || !(menu.blockEntity instanceof ScreenHost host))
                         return helper.createInternalError();
                     var categories = menu.elements.stream()
                         .flatMap(e -> e.common().jeiRecipes().stream())
-                        .distinct()
-                        .toList();
+                        .distinct().toList();
                     for (var id : categories) {
                         var type = runtime.getRecipeManager().getRecipeType(id);
                         if (type.isPresent()
                             && !host.screenRecipeItems(id).isEmpty()
-                            && runtime
-                                .getRecipeManager()
-                                .createRecipeLookup(type.get())
-                                .get()
+                            && runtime.getRecipeManager()
+                                .createRecipeLookup(type.get()).get()
                                 .anyMatch(recipe::equals))
-                            return delegate(type.get(), helper, menu, recipe, slots, player, max,
-                                transfer);
+                            return delegate(type.get(), helper, menu, recipe,
+                                slots, player, max, transfer);
                     }
                     return helper.createInternalError();
                 }
@@ -215,15 +212,9 @@ final class MachineJei {
     }
 
     @SuppressWarnings("removal")
-    private static <R> IRecipeTransferError delegate(
-        RecipeType<R> type,
-        IRecipeTransferHandlerHelper helper,
-        MachineMenu menu,
-        Object recipe,
-        IRecipeSlotsView slots,
-        Player player,
-        boolean max,
-        boolean transfer) {
+    private static <R> IRecipeTransferError delegate(RecipeType<R> type,
+        IRecipeTransferHandlerHelper helper, MachineMenu menu, Object recipe,
+        IRecipeSlotsView slots, Player player, boolean max, boolean transfer) {
         var info = new IRecipeTransferInfo<MachineMenu, R>() {
             public Class<MachineMenu> getContainerClass() {
                 return MachineMenu.class;
@@ -248,10 +239,8 @@ final class MachineJei {
                 for (var address : host.screenRecipeItems(type.getUid())) {
                     int menuIndex = menu.menuSlot(address);
                     var element = menu.slotElement(menuIndex);
-                    if (element == null
-                        || element.ghost()
-                        || !menu.visible(element)
-                        || menuIndex < 0
+                    if (element == null || element.ghost()
+                        || !menu.visible(element) || menuIndex < 0
                         || menuIndex >= menu.slots.size())
                         return List.of();
                     result.add(menu.slots.get(menuIndex));
@@ -261,15 +250,13 @@ final class MachineJei {
 
             public List<Slot> getInventorySlots(MachineMenu menu, R recipe) {
                 return menu.slots.stream()
-                    .filter(
-                        s -> s.container == player.getInventory()
-                            && s.getContainerSlot() < 36
-                            && s.isActive())
+                    .filter(s -> s.container == player.getInventory()
+                        && s.getContainerSlot() < 36 && s.isActive())
                     .toList();
             }
         };
-        return helper
-            .createUnregisteredRecipeTransferHandler(info)
-            .transferRecipe(menu, type.getRecipeClass().cast(recipe), slots, player, max, transfer);
+        return helper.createUnregisteredRecipeTransferHandler(info)
+            .transferRecipe(menu, type.getRecipeClass().cast(recipe), slots,
+                player, max, transfer);
     }
 }

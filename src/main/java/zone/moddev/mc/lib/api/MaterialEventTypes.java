@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.api;
 
 import java.lang.invoke.MethodType;
+
 import java.util.List;
 
 import net.minecraft.world.entity.LivingEntity;
@@ -13,226 +14,224 @@ import net.neoforged.neoforge.common.damagesource.DamageContainer;
 import zone.moddev.mc.lib.api.MaterialEventContexts.*;
 
 /**
- * The built-in event contracts. Each is installed in every {@link MaterialEvents} with the method
- * signature listed in {@code docs/method-events.md}. MMDLib's {@code ItemEventBridge} fires them
- * from NeoForge events; this class itself installs no listeners. Mods can register further
- * contracts with {@link MaterialEvents#registerEvent}.
+ * The built-in event contracts. Each is installed in every
+ * {@link MaterialEvents} with the method signature listed in
+ * {@code docs/method-events.md}. MMDLib's {@code ItemEventBridge} fires them
+ * from NeoForge events; this class itself installs no listeners. Mods can
+ * register further contracts with {@link MaterialEvents#registerEvent}.
  */
 public final class MaterialEventTypes {
-  private MaterialEventTypes() {}
+    private MaterialEventTypes() {
+    }
 
-  /**
-   * Each tick, for items worn or held by a player; handler {@code (Player)}. Runs once per bound
-   * callback per tick, on both sides.
-   */
-  public static final MaterialEvent<Player> PLAYER_TICK =
-      new MaterialEvent<>("player-tick", Player.class);
+    /**
+     * Each tick, for items worn or held by a player; handler {@code (Player)}.
+     * Runs once per bound callback per tick, on both sides.
+     */
+    public static final MaterialEvent<Player> PLAYER_TICK = new MaterialEvent<>(
+        "player-tick", Player.class);
 
-  /** A player hits a living entity with a bound item; handler {@code (Player, LivingEntity)}. */
-  public static final MaterialEvent<WeaponUse> WEAPON_HIT =
-      new MaterialEvent<>("weapon-hit", WeaponUse.class);
+    /**
+     * A player hits a living entity with a bound item; handler
+     * {@code (Player, LivingEntity)}.
+     */
+    public static final MaterialEvent<WeaponUse> WEAPON_HIT = new MaterialEvent<>(
+        "weapon-hit", WeaponUse.class);
 
-  /**
-   * A player left-clicks a block, an entity or the air with a bound item; handler {@code (Player,
-   * ToolTarget)}.
-   */
-  public static final MaterialEvent<ToolUse> TOOL_LEFT_CLICK =
-      new MaterialEvent<>("tool-left-click", ToolUse.class);
+    /**
+     * A player left-clicks a block, an entity or the air with a bound item;
+     * handler {@code (Player,
+     * ToolTarget)}.
+     */
+    public static final MaterialEvent<ToolUse> TOOL_LEFT_CLICK = new MaterialEvent<>(
+        "tool-left-click", ToolUse.class);
 
-  /**
-   * A player right-clicks a block, an entity or the air with a bound item; handler {@code (Player,
-   * ToolTarget)}.
-   */
-  public static final MaterialEvent<ToolUse> TOOL_RIGHT_CLICK =
-      new MaterialEvent<>("tool-right-click", ToolUse.class);
+    /**
+     * A player right-clicks a block, an entity or the air with a bound item;
+     * handler {@code (Player,
+     * ToolTarget)}.
+     */
+    public static final MaterialEvent<ToolUse> TOOL_RIGHT_CLICK = new MaterialEvent<>(
+        "tool-right-click", ToolUse.class);
 
-  /**
-   * A player breaks a block with a bound tool, server side; handler {@code (Player, Harvest)},
-   * whose drop list may be changed.
-   */
-  public static final MaterialEvent<ToolHarvest> TOOL_HARVEST =
-      new MaterialEvent<>("tool-harvest", ToolHarvest.class);
+    /**
+     * A player breaks a block with a bound tool, server side; handler
+     * {@code (Player, Harvest)}, whose drop list may be changed.
+     */
+    public static final MaterialEvent<ToolHarvest> TOOL_HARVEST = new MaterialEvent<>(
+        "tool-harvest", ToolHarvest.class);
 
-  /**
-   * A bound projectile is about to damage a living entity, server side, before armor; handler
-   * {@code (Projectile, LivingEntity, ItemStack, DamageContainer)}.
-   */
-  public static final MaterialEvent<ProjectileDamage> PROJECTILE_DAMAGE =
-      new MaterialEvent<>("projectile-damage", ProjectileDamage.class);
+    /**
+     * A bound projectile is about to damage a living entity, server side,
+     * before armor; handler
+     * {@code (Projectile, LivingEntity, ItemStack, DamageContainer)}.
+     */
+    public static final MaterialEvent<ProjectileDamage> PROJECTILE_DAMAGE = new MaterialEvent<>(
+        "projectile-damage", ProjectileDamage.class);
 
-  /**
-   * A player right-clicks a bound block, keyed by the clicked block's definition, before the held
-   * item's {@code tool-right-click}; handler {@code (Player, BlockUse)}.
-   */
-  public static final MaterialEvent<BlockClick> BLOCK_RIGHT_CLICK =
-      new MaterialEvent<>("block-right-click", BlockClick.class);
+    /**
+     * A player right-clicks a bound block, keyed by the clicked block's
+     * definition, before the held item's {@code tool-right-click}; handler
+     * {@code (Player, BlockUse)}.
+     */
+    public static final MaterialEvent<BlockClick> BLOCK_RIGHT_CLICK = new MaterialEvent<>(
+        "block-right-click", BlockClick.class);
 
-  /**
-   * A bound projectile has damaged a living entity, server side; handler {@code (Projectile,
-   * LivingEntity, ItemStack)}.
-   */
-  public static final MaterialEvent<ProjectileHit> PROJECTILE_HIT =
-      new MaterialEvent<>("projectile-hit", ProjectileHit.class);
+    /**
+     * A bound projectile has damaged a living entity, server side; handler
+     * {@code (Projectile,
+     * LivingEntity, ItemStack)}.
+     */
+    public static final MaterialEvent<ProjectileHit> PROJECTILE_HIT = new MaterialEvent<>(
+        "projectile-hit", ProjectileHit.class);
 
-  /**
-   * The redstone power a bound block receives has changed, server side; fired by the block itself;
-   * handler {@code (RedstoneChange)}.
-   */
-  public static final MaterialEvent<RedstoneChange> REDSTONE_CHANGED =
-      new MaterialEvent<>("redstone-changed", RedstoneChange.class);
+    /**
+     * The redstone power a bound block receives has changed, server side; fired
+     * by the block itself; handler {@code (RedstoneChange)}.
+     */
+    public static final MaterialEvent<RedstoneChange> REDSTONE_CHANGED = new MaterialEvent<>(
+        "redstone-changed", RedstoneChange.class);
 
-  /**
-   * A living entity starts using a bound item (eating, drawing a bow...), both sides; handler
-   * {@code (ItemUse)}, which can change the duration or cancel.
-   */
-  public static final MaterialEvent<ItemUse> ITEM_USE_START =
-      new MaterialEvent<>("item-use-start", ItemUse.class);
+    /**
+     * A living entity starts using a bound item (eating, drawing a bow...),
+     * both sides; handler {@code (ItemUse)}, which can change the duration or
+     * cancel.
+     */
+    public static final MaterialEvent<ItemUse> ITEM_USE_START = new MaterialEvent<>(
+        "item-use-start", ItemUse.class);
 
-  /** Each tick of using a bound item, both sides; handler {@code (ItemUse)}, which can cancel. */
-  public static final MaterialEvent<ItemUse> ITEM_USE_TICK =
-      new MaterialEvent<>("item-use-tick", ItemUse.class);
+    /**
+     * Each tick of using a bound item, both sides; handler {@code (ItemUse)},
+     * which can cancel.
+     */
+    public static final MaterialEvent<ItemUse> ITEM_USE_TICK = new MaterialEvent<>(
+        "item-use-tick", ItemUse.class);
 
-  /** Use of a bound item stopped early, like a released bow, both sides; handler {@code (ItemUse)}. */
-  public static final MaterialEvent<ItemUse> ITEM_USE_STOP =
-      new MaterialEvent<>("item-use-stop", ItemUse.class);
+    /**
+     * Use of a bound item stopped early, like a released bow, both sides;
+     * handler {@code (ItemUse)}.
+     */
+    public static final MaterialEvent<ItemUse> ITEM_USE_STOP = new MaterialEvent<>(
+        "item-use-stop", ItemUse.class);
 
-  /**
-   * Use of a bound item finished, both sides; handler {@code (ItemUse)}, which can replace the stack
-   * left in hand.
-   */
-  public static final MaterialEvent<ItemUse> ITEM_USE_FINISH =
-      new MaterialEvent<>("item-use-finish", ItemUse.class);
+    /**
+     * Use of a bound item finished, both sides; handler {@code (ItemUse)},
+     * which can replace the stack left in hand.
+     */
+    public static final MaterialEvent<ItemUse> ITEM_USE_FINISH = new MaterialEvent<>(
+        "item-use-finish", ItemUse.class);
 
-  /**
-   * A melee hit with a bound item dealt damage, server side, after reductions; handler {@code
-   * (ItemHit)}.
-   */
-  public static final MaterialEvent<ItemHit> ITEM_HIT = new MaterialEvent<>("item-hit", ItemHit.class);
+    /**
+     * A melee hit with a bound item dealt damage, server side, after
+     * reductions; handler {@code
+     * (ItemHit)}.
+     */
+    public static final MaterialEvent<ItemHit> ITEM_HIT = new MaterialEvent<>(
+        "item-hit", ItemHit.class);
 
-  /**
-   * A player holding a bound item is breaking a block, server side, before it is removed; handler
-   * {@code (BlockBreak)}, which can cancel or {@code mine} more blocks.
-   */
-  public static final MaterialEvent<BlockBreak> ITEM_BREAK_BLOCK =
-      new MaterialEvent<>("item-break-block", BlockBreak.class);
+    /**
+     * A player holding a bound item is breaking a block, server side, before it
+     * is removed; handler {@code (BlockBreak)}, which can cancel or
+     * {@code mine} more blocks.
+     */
+    public static final MaterialEvent<BlockBreak> ITEM_BREAK_BLOCK = new MaterialEvent<>(
+        "item-break-block", BlockBreak.class);
 
-  /**
-   * A player is breaking a bound block, server side, before it is removed; handler {@code
-   * (BlockBreak)}, which can cancel.
-   */
-  public static final MaterialEvent<BlockBreak> BLOCK_BROKEN =
-      new MaterialEvent<>("block-broken", BlockBreak.class);
+    /**
+     * A player is breaking a bound block, server side, before it is removed;
+     * handler {@code
+     * (BlockBreak)}, which can cancel.
+     */
+    public static final MaterialEvent<BlockBreak> BLOCK_BROKEN = new MaterialEvent<>(
+        "block-broken", BlockBreak.class);
 
-  /** An entity placed a bound block, server side; handler {@code (BlockAction)}. */
-  public static final MaterialEvent<BlockAction> BLOCK_PLACED =
-      new MaterialEvent<>("block-placed", BlockAction.class);
+    /**
+     * An entity placed a bound block, server side; handler
+     * {@code (BlockAction)}.
+     */
+    public static final MaterialEvent<BlockAction> BLOCK_PLACED = new MaterialEvent<>(
+        "block-placed", BlockAction.class);
 
-  /**
-   * An entity stepped on a bound block, both sides; fired by MMDLib's plain block ({@code
-   * mmdlib:block}) only; handler {@code (BlockAction)}.
-   */
-  public static final MaterialEvent<BlockAction> BLOCK_STEPPED_ON =
-      new MaterialEvent<>("block-stepped-on", BlockAction.class);
+    /**
+     * An entity stepped on a bound block, both sides; fired by MMDLib's plain
+     * block ({@code
+     * mmdlib:block}) only; handler {@code (BlockAction)}.
+     */
+    public static final MaterialEvent<BlockAction> BLOCK_STEPPED_ON = new MaterialEvent<>(
+        "block-stepped-on", BlockAction.class);
 
-  /**
-   * A bound block got a random tick, server side; fired by MMDLib's plain block with random ticks
-   * on; handler {@code (BlockAction)}.
-   */
-  public static final MaterialEvent<BlockAction> BLOCK_RANDOM_TICK =
-      new MaterialEvent<>("block-random-tick", BlockAction.class);
+    /**
+     * A bound block got a random tick, server side; fired by MMDLib's plain
+     * block with random ticks on; handler {@code (BlockAction)}.
+     */
+    public static final MaterialEvent<BlockAction> BLOCK_RANDOM_TICK = new MaterialEvent<>(
+        "block-random-tick", BlockAction.class);
 
-  /** Every gameplay contract whose handler takes its context alone. */
-  private static final List<MaterialEvent<?>> SINGLE_CONTEXT =
-      List.of(
-          ITEM_USE_START,
-          ITEM_USE_TICK,
-          ITEM_USE_STOP,
-          ITEM_USE_FINISH,
-          ITEM_HIT,
-          ITEM_BREAK_BLOCK,
-          BLOCK_BROKEN,
-          BLOCK_PLACED,
-          BLOCK_STEPPED_ON,
-          BLOCK_RANDOM_TICK);
+    /** Every gameplay contract whose handler takes its context alone. */
+    private static final List<MaterialEvent<?>> SINGLE_CONTEXT = List.of(
+        ITEM_USE_START, ITEM_USE_TICK, ITEM_USE_STOP, ITEM_USE_FINISH, ITEM_HIT,
+        ITEM_BREAK_BLOCK, BLOCK_BROKEN, BLOCK_PLACED, BLOCK_STEPPED_ON,
+        BLOCK_RANDOM_TICK);
 
-  public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenHover> GUI_HOVER =
-      new MaterialEvent<>("gui-hover", zone.moddev.mc.lib.gui.runtime.ScreenHover.class);
+    public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenHover> GUI_HOVER = new MaterialEvent<>(
+        "gui-hover", zone.moddev.mc.lib.gui.runtime.ScreenHover.class);
 
-  public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenClick> GUI_CLICK =
-      new MaterialEvent<>("gui-click", zone.moddev.mc.lib.gui.runtime.ScreenClick.class);
+    public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenClick> GUI_CLICK = new MaterialEvent<>(
+        "gui-click", zone.moddev.mc.lib.gui.runtime.ScreenClick.class);
 
-  static void install(MaterialEvents events) {
-    SINGLE_CONTEXT.forEach(event -> events.registerEvent(event.name(), event.contextType()));
-    events.registerEvent(GUI_CLICK.name(), GUI_CLICK.contextType());
-    events.registerEvent(GUI_HOVER.name(), GUI_HOVER.contextType());
-    events.registerEvent(
-        PLAYER_TICK.name(),
-        Player.class,
-        MethodType.methodType(void.class, Player.class),
-        (method, player) -> {
-          method.invokeExact(player);
-        });
-    events.registerEvent(
-        WEAPON_HIT.name(),
-        WeaponUse.class,
-        MethodType.methodType(void.class, Player.class, LivingEntity.class),
-        (method, context) -> {
-          method.invokeExact(context.player(), context.target());
-        });
-    events.registerEvent(
-        TOOL_LEFT_CLICK.name(),
-        ToolUse.class,
-        MethodType.methodType(void.class, Player.class, ToolTarget.class),
-        (method, context) -> {
-          method.invokeExact(context.player(), context.target());
-        });
-    events.registerEvent(
-        TOOL_RIGHT_CLICK.name(),
-        ToolUse.class,
-        MethodType.methodType(void.class, Player.class, ToolTarget.class),
-        (method, context) -> {
-          method.invokeExact(context.player(), context.target());
-        });
-    events.registerEvent(
-        TOOL_HARVEST.name(),
-        ToolHarvest.class,
-        MethodType.methodType(void.class, Player.class, Harvest.class),
-        (method, context) -> {
-          method.invokeExact(context.player(), context.harvest());
-        });
-    events.registerEvent(
-        BLOCK_RIGHT_CLICK.name(),
-        BlockClick.class,
-        MethodType.methodType(void.class, Player.class, BlockUse.class),
-        (method, context) -> {
-          method.invokeExact(context.player(), context.use());
-        });
-    events.registerEvent(
-        PROJECTILE_DAMAGE.name(),
-        ProjectileDamage.class,
-        MethodType.methodType(
-            void.class,
-            Projectile.class,
-            LivingEntity.class,
-            ItemStack.class,
-            DamageContainer.class),
-        (method, context) -> {
-          method.invokeExact(
-              context.projectile(), context.target(), context.ammo(), context.damage());
-        });
-    events.registerEvent(
-        PROJECTILE_HIT.name(),
-        ProjectileHit.class,
-        MethodType.methodType(void.class, Projectile.class, LivingEntity.class, ItemStack.class),
-        (method, context) -> {
-          method.invokeExact(context.projectile(), context.target(), context.ammo());
-        });
-    events.registerEvent(
-        REDSTONE_CHANGED.name(),
-        RedstoneChange.class,
-        MethodType.methodType(void.class, RedstoneChange.class),
-        (method, context) -> {
-          method.invokeExact(context);
-        });
-  }
+    static void install(MaterialEvents events) {
+        SINGLE_CONTEXT.forEach(
+            event -> events.registerEvent(event.name(), event.contextType()));
+        events.registerEvent(GUI_CLICK.name(), GUI_CLICK.contextType());
+        events.registerEvent(GUI_HOVER.name(), GUI_HOVER.contextType());
+        events.registerEvent(PLAYER_TICK.name(), Player.class,
+            MethodType.methodType(void.class, Player.class),
+            (method, player) -> {
+                method.invokeExact(player);
+            });
+        events.registerEvent(WEAPON_HIT.name(), WeaponUse.class,
+            MethodType.methodType(void.class, Player.class, LivingEntity.class),
+            (method, context) -> {
+                method.invokeExact(context.player(), context.target());
+            });
+        events.registerEvent(TOOL_LEFT_CLICK.name(), ToolUse.class,
+            MethodType.methodType(void.class, Player.class, ToolTarget.class),
+            (method, context) -> {
+                method.invokeExact(context.player(), context.target());
+            });
+        events.registerEvent(TOOL_RIGHT_CLICK.name(), ToolUse.class,
+            MethodType.methodType(void.class, Player.class, ToolTarget.class),
+            (method, context) -> {
+                method.invokeExact(context.player(), context.target());
+            });
+        events.registerEvent(TOOL_HARVEST.name(), ToolHarvest.class,
+            MethodType.methodType(void.class, Player.class, Harvest.class),
+            (method, context) -> {
+                method.invokeExact(context.player(), context.harvest());
+            });
+        events.registerEvent(BLOCK_RIGHT_CLICK.name(), BlockClick.class,
+            MethodType.methodType(void.class, Player.class, BlockUse.class),
+            (method, context) -> {
+                method.invokeExact(context.player(), context.use());
+            });
+        events.registerEvent(PROJECTILE_DAMAGE.name(), ProjectileDamage.class,
+            MethodType.methodType(void.class, Projectile.class,
+                LivingEntity.class, ItemStack.class, DamageContainer.class),
+            (method, context) -> {
+                method.invokeExact(context.projectile(), context.target(),
+                    context.ammo(), context.damage());
+            });
+        events.registerEvent(PROJECTILE_HIT.name(), ProjectileHit.class,
+            MethodType.methodType(void.class, Projectile.class,
+                LivingEntity.class, ItemStack.class),
+            (method, context) -> {
+                method.invokeExact(context.projectile(), context.target(),
+                    context.ammo());
+            });
+        events.registerEvent(REDSTONE_CHANGED.name(), RedstoneChange.class,
+            MethodType.methodType(void.class, RedstoneChange.class),
+            (method, context) -> {
+                method.invokeExact(context);
+            });
+    }
 }

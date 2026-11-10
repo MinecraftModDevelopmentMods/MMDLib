@@ -8,7 +8,10 @@ import net.minecraft.world.item.ItemStack;
 
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
-/** Optional behavior implemented by native slots, including mod-provided slot classes. */
+/**
+ * Optional behavior implemented by native slots, including mod-provided slot
+ * classes.
+ */
 public interface SlotAdapter {
     default void endInteraction() {
     }
@@ -21,10 +24,11 @@ public interface SlotAdapter {
     }
 
     /**
-     * Empty delegates to vanilla-style transfer; a present empty stack means handled without
-     * moving.
+     * Empty delegates to vanilla-style transfer; a present empty stack means
+     * handled without moving.
      */
-    default Optional<ItemStack> quickMove(Player player, Predicate<ItemStack> move) {
+    default Optional<ItemStack> quickMove(Player player,
+        Predicate<ItemStack> move) {
         return Optional.empty();
     }
 }

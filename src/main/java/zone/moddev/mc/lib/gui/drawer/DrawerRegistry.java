@@ -18,12 +18,15 @@ import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.model.Screen;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 
-/** Mod-extensible common-side providers. Register during mod construction on both sides. */
+/**
+ * Mod-extensible common-side providers. Register during mod construction on
+ * both sides.
+ */
 public final class DrawerRegistry {
     public static final DrawerRegistry GLOBAL = builtins();
 
-    public record Context(
-        Screen screen, TextMeasure text, ScreenHost host, Set<ResourceLocation> enabled) {
+    public record Context(Screen screen, TextMeasure text, ScreenHost host,
+        Set<ResourceLocation> enabled) {
         public Context {
             Objects.requireNonNull(screen);
             Objects.requireNonNull(text);
@@ -44,18 +47,20 @@ public final class DrawerRegistry {
         return registry;
     }
 
-    public synchronized void register(
-        ResourceLocation type, Function<Context, List<DrawerDefinition>> provider) {
+    public synchronized void register(ResourceLocation type,
+        Function<Context, List<DrawerDefinition>> provider) {
         Objects.requireNonNull(type);
         Objects.requireNonNull(provider);
         if (providers.putIfAbsent(type, provider) != null)
-            throw new IllegalArgumentException("Duplicate drawer provider: " + type);
+            throw new IllegalArgumentException(
+                "Duplicate drawer provider: " + type);
     }
 
-    public synchronized void replace(
-        ResourceLocation type, Function<Context, List<DrawerDefinition>> provider) {
+    public synchronized void replace(ResourceLocation type,
+        Function<Context, List<DrawerDefinition>> provider) {
         if (!providers.containsKey(type))
-            throw new IllegalArgumentException("Unknown drawer provider: " + type);
+            throw new IllegalArgumentException(
+                "Unknown drawer provider: " + type);
         providers.put(type, Objects.requireNonNull(provider));
     }
 
@@ -65,35 +70,42 @@ public final class DrawerRegistry {
         var elements = Collections.newSetFromMap(
             new IdentityHashMap<zone.moddev.mc.lib.gui.model.Element, Boolean>());
         for (var entry : providers.entrySet())
-            for (var definition : List.copyOf(entry.getValue().apply(context))) {
+            for (var definition : List
+                .copyOf(entry.getValue().apply(context))) {
                 if (!definition.type().equals(entry.getKey()))
                     throw new IllegalArgumentException(
-                        "Drawer provider returned another type: " + definition.type());
-                if (!ids.add(definition.placement().edge() + "/" + definition.id()))
-                    throw new IllegalArgumentException("Duplicate drawer: " + definition.id());
-                definition
-                    .element()
-                    .ifPresent(
-                        element -> {
-                            if (context.screen().tabs().stream().noneMatch(tab -> tab == element)
-                                || !elements.add(element))
-                                throw new IllegalArgumentException(
-                                    "Drawer element must be a unique screen tab");
-                        });
+                        "Drawer provider returned another type: "
+                            + definition.type());
+                if (!ids
+                    .add(definition.placement().edge() + "/" + definition.id()))
+                    throw new IllegalArgumentException(
+                        "Duplicate drawer: " + definition.id());
+                definition.element().ifPresent(element -> {
+                    if (context.screen().tabs().stream().noneMatch(
+                        tab -> tab == element) || !elements.add(element))
+                        throw new IllegalArgumentException(
+                            "Drawer element must be a unique screen tab");
+                });
                 result.add(definition);
                 if (result.size() > 4096)
-                    throw new IllegalArgumentException("Too many drawer declarations");
+                    throw new IllegalArgumentException(
+                        "Too many drawer declarations");
             }
         for (var tab : context.screen().tabs())
             if (!elements.contains(tab))
-                throw new IllegalArgumentException("No registered drawer layout for tab: " + tab);
-        result.sort(Comparator.comparingInt(definition -> definition.placement().order()));
+                throw new IllegalArgumentException(
+                    "No registered drawer layout for tab: " + tab);
+        result.sort(Comparator
+            .comparingInt(definition -> definition.placement().order()));
         return List.copyOf(result);
     }
 
-    /** Adapter for the older standalone layout overloads. Runtime menus use the host context. */
-    public static Context legacy(
-        Screen screen, TextMeasure text, boolean automation, boolean redstone) {
+    /**
+     * Adapter for the older standalone layout overloads. Runtime menus use the
+     * host context.
+     */
+    public static Context legacy(Screen screen, TextMeasure text,
+        boolean automation, boolean redstone) {
         var enabled = new HashSet<ResourceLocation>();
         if (automation)
             enabled.add(BuiltinDrawers.SIDES);

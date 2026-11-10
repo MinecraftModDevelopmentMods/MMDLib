@@ -4,7 +4,10 @@ import zone.moddev.mc.lib.gui.WidgetAction;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
-/** Live, client-only access for one widget instance. Values are server snapshots, never getters. */
+/**
+ * Live, client-only access for one widget instance. Values are server
+ * snapshots, never getters.
+ */
 public interface WidgetAccess {
     CustomElement element();
 
@@ -16,6 +19,8 @@ public interface WidgetAccess {
 
     boolean pending();
 
-    /** Sends one registered action; false means hidden, pending, or unavailable. */
+    /**
+     * Sends one registered action; false means hidden, pending, or unavailable.
+     */
     <T> boolean submit(WidgetAction<T> action, T value);
 }

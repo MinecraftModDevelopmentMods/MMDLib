@@ -31,21 +31,23 @@ import zone.moddev.mc.lib.gui.sync.ElementStates;
 import zone.moddev.mc.lib.gui.sync.ElementSync;
 import zone.moddev.mc.lib.gui.sync.SynchronizedElement;
 
-/** Non-button controls and a non-context destination use the ordinary typed action lifecycle. */
+/**
+ * Non-button controls and a non-context destination use the ordinary typed
+ * action lifecycle.
+ */
 final class NavigationClientSmoke {
     private static int phase;
     private static volatile boolean reset;
-    private static final ElementSync<Integer> SELECTED = ElementSync.field(
-        ResourceLocation.parse("mmdlib_companion:navigation_selection"),
-        StreamCodec.of(
-            (buffer, value) -> buffer.writeVarInt(value), buffer -> buffer.readVarInt()),
-        5,
-        element -> 0)
-        .validate((element, value) -> value == 0 || value == 1)
-        .affectsLayout()
+    private static final ElementSync<Integer> SELECTED = ElementSync
+        .field(ResourceLocation.parse("mmdlib_companion:navigation_selection"),
+            StreamCodec.of((buffer, value) -> buffer.writeVarInt(value),
+                buffer -> buffer.readVarInt()),
+            5, element -> 0)
+        .validate((element, value) -> value == 0 || value == 1).affectsLayout()
         .build();
 
-    private record ModControl(Common common, ViewRef target) implements Element {
+    private record ModControl(Common common, ViewRef target)
+        implements Element {
         public Optional<Navigation> navigation() {
             return Optional.of(new Navigation(target));
         }
@@ -55,7 +57,8 @@ final class NavigationClientSmoke {
         }
     }
 
-    private record ModDestination(Common common) implements NavigableElement, SynchronizedElement {
+    private record ModDestination(Common common)
+        implements NavigableElement, SynchronizedElement {
         public List<ElementSync<?>> synchronizedValues() {
             return List.of(SELECTED);
         }
@@ -84,69 +87,39 @@ final class NavigationClientSmoke {
 
     private static Common common(String id) {
         var e = Common.empty();
-        return new Common(
-            Optional.of(id),
-            e.value(),
-            e.max(),
-            e.tooltip(),
-            e.tooltipShift(),
-            e.clicks(),
-            e.onHover(),
-            e.hoverShows(),
-            e.jeiRecipes(),
-            0,
-            0,
-            0);
+        return new Common(Optional.of(id), e.value(), e.max(), e.tooltip(),
+            e.tooltipShift(), e.clicks(), e.onHover(), e.hoverShows(),
+            e.jeiRecipes(), 0, 0, 0);
     }
 
     static void install() {
-        ElementRenderers.GLOBAL.register(
-            ModControl.class,
-            (e, c) -> {
-                var r = c.bounds();
-                c.graphics().fill(r.x(), r.y(), r.right(), r.bottom(), 0xff406080);
-                c.graphics()
-                    .drawString(c.access().font(), e.target().context(), r.x() + 2, r.y() + 4,
-                        0xffffff);
-            });
-        ElementRenderers.GLOBAL.register(
-            ModDestination.class,
-            (e, c) -> {
-                var r = c.bounds();
-                c.graphics()
-                    .drawString(
-                        c.access().font(),
-                        e.selected(c.access().state()),
-                        r.x() + 2,
-                        r.y() + 4,
-                        0xffffff);
-            });
+        ElementRenderers.GLOBAL.register(ModControl.class, (e, c) -> {
+            var r = c.bounds();
+            c.graphics().fill(r.x(), r.y(), r.right(), r.bottom(), 0xff406080);
+            c.graphics().drawString(c.access().font(), e.target().context(),
+                r.x() + 2, r.y() + 4, 0xffffff);
+        });
+        ElementRenderers.GLOBAL.register(ModDestination.class, (e, c) -> {
+            var r = c.bounds();
+            c.graphics().drawString(c.access().font(),
+                e.selected(c.access().state()), r.x() + 2, r.y() + 4, 0xffffff);
+        });
         var id = ResourceLocation.parse("mmdlib_companion:crusher");
         var original = Screens.get(id).orElseThrow().screen();
         var body = new ArrayList<>(original.body());
-        body.add(
-            new BoxElement(
-                Common.empty(),
-                false,
-                0,
-                4,
-                Align.START,
-                List.of(
-                    new ModControl(
-                        common("navigation_custom"),
-                        new ViewRef("navigation_destination", "details")),
-                    new ModControl(common("navigation_builtin"), new ViewRef("panel", "settings")),
-                    new ModDestination(common("navigation_destination")))));
-        var screen = new zone.moddev.mc.lib.gui.model.Screen(
-            original.id(),
-            original.source(),
-            original.title(),
-            original.blockEntity(),
-            original.playerInventory(),
-            body,
-            original.tabs());
+        body.add(new BoxElement(Common.empty(), false, 0, 4, Align.START,
+            List.of(
+                new ModControl(common("navigation_custom"),
+                    new ViewRef("navigation_destination", "details")),
+                new ModControl(common("navigation_builtin"),
+                    new ViewRef("panel", "settings")),
+                new ModDestination(common("navigation_destination")))));
+        var screen = new zone.moddev.mc.lib.gui.model.Screen(original.id(),
+            original.source(), original.title(), original.blockEntity(),
+            original.playerInventory(), body, original.tabs());
         var screens = new HashMap<>(Screens.all());
-        screens.put(id, ScreenBinder.bind(screen, NavigationClientSmoke.class.getClassLoader()));
+        screens.put(id, ScreenBinder.bind(screen,
+            NavigationClientSmoke.class.getClassLoader()));
         Screens.install(screens);
     }
 
@@ -154,22 +127,24 @@ final class NavigationClientSmoke {
         if (phase > 10)
             return true;
         var menu = screen.getMenu();
-        var custom = menu.bound.screen().find("navigation_custom").orElseThrow();
-        var builtin = menu.bound.screen().find("navigation_builtin").orElseThrow();
-        var destination = (NavigableElement) menu.bound.screen().find("navigation_destination")
+        var custom = menu.bound.screen().find("navigation_custom")
             .orElseThrow();
+        var builtin = menu.bound.screen().find("navigation_builtin")
+            .orElseThrow();
+        var destination = (NavigableElement) menu.bound.screen()
+            .find("navigation_destination").orElseThrow();
         if (menu.elementPending(custom) || menu.elementPending(builtin))
             return false;
         var selected = destination.selected(menu.elementStates());
         switch (phase) {
             case 0 -> {
                 click(screen, custom);
-                require(
-                    destination.selected(menu.elementStates()).equals("details"),
-                    "Custom control predicts selection");
+                require(destination.selected(menu.elementStates())
+                    .equals("details"), "Custom control predicts selection");
             }
             case 1 -> {
-                require(selected.equals("details"), "Server accepts custom navigation destination");
+                require(selected.equals("details"),
+                    "Server accepts custom navigation destination");
                 click(screen, custom);
             }
             case 2 -> {
@@ -181,22 +156,21 @@ final class NavigationClientSmoke {
                 require(selected.equals("details"),
                     "Custom selection confirmed before restoration");
                 var server = Minecraft.getInstance().getSingleplayerServer();
-                server.execute(
-                    () -> {
-                        var serverMenu = (MachineMenu) server.getPlayerList().getPlayers()
-                            .getFirst().containerMenu;
-                        serverMenu.navigate("navigation_destination", "home");
-                        serverMenu.broadcastChanges();
-                        reset = true;
-                    });
+                server.execute(() -> {
+                    var serverMenu = (MachineMenu) server.getPlayerList()
+                        .getPlayers().getFirst().containerMenu;
+                    serverMenu.navigate("navigation_destination", "home");
+                    serverMenu.broadcastChanges();
+                    reset = true;
+                });
             }
             case 4 -> {
                 if (!reset || !selected.equals("home"))
                     return false;
                 screen.removed();
-                screen.resize(Minecraft.getInstance(), screen.width, screen.height);
-                require(
-                    menu.elementPending(custom),
+                screen.resize(Minecraft.getInstance(), screen.width,
+                    screen.height);
+                require(menu.elementPending(custom),
                     "Remembered custom destination uses its custom control");
                 require(
                     destination.selected(menu.elementStates()).equals("home"),
@@ -208,20 +182,19 @@ final class NavigationClientSmoke {
                 click(screen, custom);
             }
             case 6 -> {
-                require(selected.equals("home"), "Custom destination reset before rejected action");
-                var packet = menu.prepareElementAction(
-                    custom, Navigation.NAVIGATE, new ElementActions.Click(0, 0, 1))
+                require(selected.equals("home"),
+                    "Custom destination reset before rejected action");
+                var packet = menu.prepareElementAction(custom,
+                    Navigation.NAVIGATE, new ElementActions.Click(0, 0, 1))
                     .orElseThrow();
                 menu.navigate("navigation_destination", "details");
                 PacketDistributor.sendToServer(packet);
             }
             case 7 -> {
-                require(
-                    selected.equals("home"),
+                require(selected.equals("home"),
                     "Rejected custom navigation restores authoritative selection");
                 menu.prepareElementAction(custom, Navigation.NAVIGATE,
-                    new ElementActions.Click(0, 0, 0))
-                    .orElseThrow();
+                    new ElementActions.Click(0, 0, 0)).orElseThrow();
                 menu.navigate("navigation_destination", "details");
                 for (int i = 0; i < 100; i++)
                     menu.tickClientActions();
@@ -232,14 +205,12 @@ final class NavigationClientSmoke {
                 click(screen, builtin);
             }
             case 9 -> {
-                require(
-                    menu.views().get("panel").equals("settings"),
+                require(menu.views().get("panel").equals("settings"),
                     "Custom control navigates a built-in context");
                 click(screen, builtin);
             }
             default -> {
-                require(
-                    menu.views().get("panel").equals("machine"),
+                require(menu.views().get("panel").equals("machine"),
                     "Custom control toggles built-in context back");
                 phase = 11;
                 return true;
@@ -251,8 +222,7 @@ final class NavigationClientSmoke {
 
     private static void click(MachineScreen screen, Element element) {
         var r = screen.bounds(element);
-        require(
-            screen.mouseClicked(r.x() + 3, r.y() + 3, 0),
+        require(screen.mouseClicked(r.x() + 3, r.y() + 3, 0),
             "Custom navigation control consumes click");
         screen.mouseReleased(r.x() + 3, r.y() + 3, 0);
     }

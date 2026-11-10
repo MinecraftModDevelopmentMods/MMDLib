@@ -4,39 +4,41 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.containers.ContainerInventoryElement;
 import zone.moddev.mc.lib.gui.model.elements.ContainerSlotElement;
 
-/** Registered drawing for virtual container cells; independent of drawer input and transport. */
+/**
+ * Registered drawing for virtual container cells; independent of drawer input
+ * and transport.
+ */
 final class ContainerCellRenderer {
     private static final SlotRenderer SLOTS = new SlotRenderer();
 
     private ContainerCellRenderer() {
     }
 
-    static void inventory(ContainerInventoryElement element, ElementRenderers.Context c) {
+    static void inventory(ContainerInventoryElement element,
+        ElementRenderers.Context c) {
         var headings = element.headings();
         for (int i = 0; i < headings.size(); i++)
             label(c, headings.get(i).getString(), element.headingBounds(i));
         for (var slot : element.slots())
-            label(c, element.cellLabel(slot).getString(), element.labelBounds(slot));
+            label(c, element.cellLabel(slot).getString(),
+                element.labelBounds(slot));
     }
 
-    private static void label(ElementRenderers.Context c, String text, Rect relative) {
+    private static void label(ElementRenderers.Context c, String text,
+        Rect relative) {
         var font = c.access().font();
-        c.graphics()
-            .drawString(
-                font,
-                font.plainSubstrByWidth(text, relative.width()),
-                c.bounds().x() + relative.x(),
-                c.bounds().y() + relative.y(),
-                0xff404040,
-                false);
+        c.graphics().drawString(font,
+            font.plainSubstrByWidth(text, relative.width()),
+            c.bounds().x() + relative.x(), c.bounds().y() + relative.y(),
+            0xff404040, false);
     }
 
     static void slot(ContainerSlotElement element, ElementRenderers.Context c) {
         var g = c.graphics();
         var b = c.bounds();
         if (!element.available()) {
-            g.drawString(
-                c.access().font(), element.placeholder(), b.x() + 6, b.y() + 5, 0xff666666, false);
+            g.drawString(c.access().font(), element.placeholder(), b.x() + 6,
+                b.y() + 5, 0xff666666, false);
             return;
         }
         var contents = c.access().contents(element);
@@ -56,7 +58,8 @@ final class ContainerCellRenderer {
             }
         }
         if (element.cellHitBounds(b).contains(c.mouseX(), c.mouseY())
-            || c.value() instanceof ContainerSlotElement.Display display && display.selected()) {
+            || c.value() instanceof ContainerSlotElement.Display display
+                && display.selected()) {
             var hit = element.highlightBounds(original);
             g.fill(hit.x(), hit.y(), hit.right(), hit.bottom(), 0x80ffffff);
         }

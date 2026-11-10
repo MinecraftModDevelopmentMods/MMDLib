@@ -8,8 +8,12 @@ import net.minecraft.world.item.ItemStack;
 import zone.moddev.mc.lib.gui.ElementAction;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 
-/** Ghost selection and reservation tooltips; real inventory gestures remain vanilla-owned. */
-public class SlotBehavior extends DefaultElementBehavior implements IngredientDropHandler {
+/**
+ * Ghost selection and reservation tooltips; real inventory gestures remain
+ * vanilla-owned.
+ */
+public class SlotBehavior extends DefaultElementBehavior
+    implements IngredientDropHandler {
     private final SlotElement slot;
 
     public SlotBehavior(SlotElement slot, ElementAccess access) {
@@ -45,24 +49,24 @@ public class SlotBehavior extends DefaultElementBehavior implements IngredientDr
 
     private boolean submitSelection(int button, ItemStack value) {
         var action = selectionAction();
-        return action != null
-            && !access.pending(slot)
-            && slot.acceptsSelection(button, value.copy())
-            && access.submit(action, slot.selection(button, value.copy()).copy());
+        return action != null && !access.pending(slot)
+            && slot.acceptsSelection(button, value.copy()) && access
+                .submit(action, slot.selection(button, value.copy()).copy());
     }
 
-    public <T> List<IngredientDropHandler.Target<T>> targets(IngredientType<T> type, T ingredient) {
+    public <T> List<IngredientDropHandler.Target<T>> targets(
+        IngredientType<T> type, T ingredient) {
         if (selectionAction() == null || access.pending(slot))
             return List.of();
-        var selection = slot.selectionIngredient(type.id(), type.snapshot(ingredient));
-        if (selection.isEmpty() || !slot.acceptsSelection(0, selection.get().copy()))
+        var selection = slot.selectionIngredient(type.id(),
+            type.snapshot(ingredient));
+        if (selection.isEmpty()
+            || !slot.acceptsSelection(0, selection.get().copy()))
             return List.of();
-        return List.of(
-            new IngredientDropHandler.Target<>(
-                "selection",
-                access.bounds(),
-                value -> slot.selectionIngredient(type.id(), type.snapshot(value))
-                    .map(stack -> submitSelection(0, stack))
-                    .orElse(false)));
+        return List
+            .of(new IngredientDropHandler.Target<>("selection", access.bounds(),
+                value -> slot
+                    .selectionIngredient(type.id(), type.snapshot(value))
+                    .map(stack -> submitSelection(0, stack)).orElse(false)));
     }
 }

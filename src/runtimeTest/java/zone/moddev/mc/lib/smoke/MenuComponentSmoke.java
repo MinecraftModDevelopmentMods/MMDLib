@@ -25,17 +25,19 @@ import zone.moddev.mc.lib.gui.runtime.component.MenuSlotContributor;
 import zone.moddev.mc.lib.gui.runtime.component.MenuSnapshot;
 import zone.moddev.mc.lib.gui.runtime.slot.MenuSlots;
 
-/** A mod contributes a native slot without adding a field or branch to MachineMenu. */
+/**
+ * A mod contributes a native slot without adding a field or branch to
+ * MachineMenu.
+ */
 final class MenuComponentSmoke {
     private static final MenuComponentKey<Probe> KEY = new MenuComponentKey<>(
         ResourceLocation.parse("test:menu_component"), Probe.class);
     private static final ComponentSync<Integer> VALUE = new ComponentSync<>(
-        ResourceLocation.parse("test:value"),
-        1,
+        ResourceLocation.parse("test:value"), 1,
         net.minecraft.network.codec.StreamCodec.of(
-            (buffer, value) -> buffer.writeVarInt(value), buffer -> buffer.readVarInt()),
-        5,
-        () -> 0);
+            (buffer, value) -> buffer.writeVarInt(value),
+            buffer -> buffer.readVarInt()),
+        5, () -> 0);
     private static boolean installed;
 
     private static final class TestMenu extends MachineMenu {
@@ -44,7 +46,8 @@ final class MenuComponentSmoke {
         }
     }
 
-    private static final class Probe implements MenuSlotContributor, MenuSnapshot {
+    private static final class Probe
+        implements MenuSlotContributor, MenuSnapshot {
         final Slot slot = new Slot(new SimpleContainer(1), 0, 5, 5);
         int ticks, before, after, broadcasts, removals, positions;
         boolean applied;
@@ -96,58 +99,61 @@ final class MenuComponentSmoke {
 
     static void check(ServerLevel level, BlockPos pos, Player player) {
         if (!installed) {
-            MenuComponentRegistry.GLOBAL.register(
-                KEY, -2000, c -> c.menu() instanceof TestMenu ? new Probe() : null, VALUE);
+            MenuComponentRegistry.GLOBAL.register(KEY, -2000,
+                c -> c.menu() instanceof TestMenu ? new Probe() : null, VALUE);
             installed = true;
         }
-        level.setBlock(pos, BuiltInRegistries.BLOCK.get(CrusherSmoke.ID).defaultBlockState(), 3);
+        level.setBlock(pos,
+            BuiltInRegistries.BLOCK.get(CrusherSmoke.ID).defaultBlockState(),
+            3);
         var entity = level.getBlockEntity(pos);
         var menu = new TestMenu(player, entity);
         var probe = menu.components().require(KEY);
-        require(probe.slot.index == 0, "Mod component contributes before built-in inventory");
-        require(menu.menuSlot(0) == 1, "Legacy storage lookup follows registered slot ordering");
+        require(probe.slot.index == 0,
+            "Mod component contributes before built-in inventory");
+        require(menu.menuSlot(0) == 1,
+            "Legacy storage lookup follows registered slot ordering");
         player.getInventory().clearContent();
         player.getInventory().setItem(9, new ItemStack(Items.STONE, 12));
         var source = menu.slots.stream()
-            .filter(s -> s.container == player.getInventory() && s.getContainerSlot() == 9)
-            .findFirst()
-            .orElseThrow();
+            .filter(s -> s.container == player.getInventory()
+                && s.getContainerSlot() == 9)
+            .findFirst().orElseThrow();
         menu.quickMoveStack(player, source.index);
         require(
             probe.slot.getItem().getCount() == 12 && source.getItem().isEmpty(),
             "Registered insertion destination receives shift-click");
         menu.quickMoveStack(player, probe.slot.index);
         require(
-            probe.slot.getItem().isEmpty() && player.getInventory().countItem(Items.STONE) == 12,
+            probe.slot.getItem().isEmpty()
+                && player.getInventory().countItem(Items.STONE) == 12,
             "Contributed slot extracts into player storage");
         menu.clicked(probe.slot.index, 0, ClickType.PICKUP, player);
-        require(
-            probe.before == 3 && probe.after == 3,
+        require(probe.before == 3 && probe.after == 3,
             "Every interaction dispatches one lifecycle pair");
         menu.tickClientActions();
         menu.broadcastChanges();
         menu.components().position(menu.layout());
         menu.apply(menu.components().snapshot());
-        require(
-            probe.ticks == 1 && probe.broadcasts == 1 && probe.positions == 1 && probe.applied,
+        require(probe.ticks == 1 && probe.broadcasts == 1
+            && probe.positions == 1 && probe.applied,
             "Component lifecycle and values are generic");
-        require(
-            new TestMenu(player, entity).components().require(KEY) != probe,
+        require(new TestMenu(player, entity).components().require(KEY) != probe,
             "Each menu receives fresh state");
-        require(
-            new MachineMenu(95, player.getInventory(), entity).components().get(KEY) == null,
-            "Factories can omit unavailable components");
+        require(new MachineMenu(95, player.getInventory(), entity).components()
+            .get(KEY) == null, "Factories can omit unavailable components");
         record EqualComponent(int value)
-            implements
-                zone.moddev.mc.lib.gui.runtime.component.MenuComponent {
+            implements zone.moddev.mc.lib.gui.runtime.component.MenuComponent {
         }
         var identityRegistry = new MenuComponentRegistry();
-        var identityKey = new MenuComponentKey<>(ResourceLocation.parse("test:identity"),
-            EqualComponent.class);
-        var context = new MenuComponentRegistry.Context(menu, player.getInventory(), null, false);
+        var identityKey = new MenuComponentKey<>(
+            ResourceLocation.parse("test:identity"), EqualComponent.class);
+        var context = new MenuComponentRegistry.Context(menu,
+            player.getInventory(), null, false);
         var singleton = new EqualComponent(1);
         identityRegistry.register(identityKey, 0, c -> singleton);
-        require(identityRegistry.create(context).require(identityKey) == singleton,
+        require(
+            identityRegistry.create(context).require(identityKey) == singleton,
             "First factory instance is accepted");
         try {
             identityRegistry.create(context);
@@ -161,8 +167,10 @@ final class MenuComponentSmoke {
             "Equal but distinct component instances are accepted by identity");
         var duplicateRegistry = new MenuComponentRegistry();
         duplicateRegistry.register(identityKey, 0, c -> singleton);
-        duplicateRegistry.register(new MenuComponentKey<>(ResourceLocation.parse("test:other"),
-            EqualComponent.class), 1, c -> singleton);
+        duplicateRegistry.register(
+            new MenuComponentKey<>(ResourceLocation.parse("test:other"),
+                EqualComponent.class),
+            1, c -> singleton);
         try {
             duplicateRegistry.create(context);
             throw new AssertionError("Same-menu component reuse accepted");

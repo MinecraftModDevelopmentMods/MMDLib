@@ -12,7 +12,8 @@ public final class PopoutRenderer {
     private PopoutRenderer() {
     }
 
-    public record Presentation(Rect body, List<FormattedCharSequence> lines, int scroll) {
+    public record Presentation(Rect body, List<FormattedCharSequence> lines,
+        int scroll) {
         public Presentation {
             lines = List.copyOf(lines);
         }
@@ -23,8 +24,7 @@ public final class PopoutRenderer {
     }
 
     public static void body(PopoutElement element, ElementRenderers.Context c) {
-        c.access()
-            .drawerPresentation(element, Presentation.class)
+        c.access().drawerPresentation(element, Presentation.class)
             .ifPresent(p -> PopoutDrawer.drawBody(element, c, p));
     }
 }

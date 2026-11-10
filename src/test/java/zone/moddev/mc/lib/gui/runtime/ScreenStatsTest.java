@@ -26,9 +26,8 @@ class ScreenStatsTest {
         var total = new AtomicReference<>(BigInteger.ZERO);
         StatsProvider provider = () -> {
             calls.incrementAndGet();
-            return new Statistics(
-                Component.literal("Part"),
-                List.of(Statistics.rf("in", new Statistics.Counter(total.get(), 20))));
+            return new Statistics(Component.literal("Part"), List.of(
+                Statistics.rf("in", new Statistics.Counter(total.get(), 20))));
         };
         ScreenHost host = new ScreenHost() {
             public net.neoforged.neoforge.items.IItemHandlerModifiable screenItems() {
@@ -60,7 +59,8 @@ class ScreenStatsTest {
         assertEquals(1000, energy.stored());
         assertFalse(energy.reserve(1001));
         assertTrue(energy.reserve(640));
-        assertEquals(600, energy.refund(600)); // 40 RF actually spent on transfers
+        assertEquals(600, energy.refund(600)); // 40 RF actually spent on
+                                               // transfers
         assertEquals(960, energy.stored());
         assertEquals(BigInteger.ZERO, energy.inserted());
         assertEquals(BigInteger.ZERO, energy.extracted());
@@ -89,16 +89,10 @@ class ScreenStatsTest {
         var calls = new AtomicInteger();
         StatsProvider part = () -> {
             calls.incrementAndGet();
-            return new Statistics(
-                Component.literal("Custom part"),
-                List.of(
-                    new Statistics.Row(
-                        "work",
-                        Component.literal("Work"),
-                        new Statistics.Counter(count.get(), 20),
-                        Component.literal("units"),
-                        2,
-                        true)));
+            return new Statistics(Component.literal("Custom part"),
+                List.of(new Statistics.Row("work", Component.literal("Work"),
+                    new Statistics.Counter(count.get(), 20),
+                    Component.literal("units"), 2, true)));
         };
         var stats = new ScreenStats();
         stats.readParts(List.of(part), 0);
@@ -136,46 +130,45 @@ class ScreenStatsTest {
         var other = new EnergyBuffer(10000, 1000, 0);
         var stats = new ScreenStats();
         assertEquals(3, lines(stats.readParts(List.of(energy), 0), 0).size());
-        assertEquals(3, lines(stats.readParts(List.of(energy, demand(other, 20)), 20), 0).size());
-        assertEquals(3, lines(stats.readParts(List.of(energy, demand(energy, 0)), 40), 0).size());
-        assertEquals(5, lines(stats.readParts(List.of(energy, demand(energy, 20)), 60), 0).size());
+        assertEquals(3,
+            lines(stats.readParts(List.of(energy, demand(other, 20)), 20), 0)
+                .size());
+        assertEquals(3,
+            lines(stats.readParts(List.of(energy, demand(energy, 0)), 40), 0)
+                .size());
+        assertEquals(5,
+            lines(stats.readParts(List.of(energy, demand(energy, 20)), 60), 0)
+                .size());
         energy.setStored(100);
         energy.consume(20);
         assertEquals(3, lines(stats.readParts(List.of(energy), 80), 0).size());
     }
 
     private static StatsProvider demand(Object resource, long perTick) {
-        return () -> new Statistics(
-            Component.empty(),
-            List.of(),
-            List.of(new Statistics.EnergyUse(resource, BigInteger.valueOf(perTick))));
+        return () -> new Statistics(Component.empty(), List.of(), List.of(
+            new Statistics.EnergyUse(resource, BigInteger.valueOf(perTick))));
     }
 
     @Test
     void aggregatesOnlyMatchingProcessorResourcesRegardlessOfOrder() {
         var first = new EnergyBuffer(10000, 1000, 0);
         var second = new EnergyBuffer(10000, 0, 1000);
-        StatsProvider a = () -> new Statistics(
-            Component.empty(),
-            List.of(),
+        StatsProvider a = () -> new Statistics(Component.empty(), List.of(),
             List.of(new Statistics.EnergyUse(first, BigInteger.valueOf(20))));
-        StatsProvider b = () -> new Statistics(
-            Component.empty(),
-            List.of(),
-            List.of(
-                new Statistics.EnergyUse(first, BigInteger.valueOf(7)),
+        StatsProvider b = () -> new Statistics(Component.empty(), List.of(),
+            List.of(new Statistics.EnergyUse(first, BigInteger.valueOf(7)),
                 new Statistics.EnergyUse(second, BigInteger.valueOf(3))));
         var stats = new ScreenStats();
-        var rows = lines(stats.readParts(List.of(first, a, second, b, a), 0), 2);
-        assertEquals(11, rows.size()); // two four-row sections, their headers and one separator
+        var rows = lines(stats.readParts(List.of(first, a, second, b, a), 0),
+            2);
+        assertEquals(11, rows.size()); // two four-row sections, their headers
+                                       // and one separator
         assertTrue(rows.get(4).contains(": 32,400 RF/"));
         assertTrue(rows.get(10).contains(": 3,600 RF/"));
-        assertEquals(
-            List.of("in", "in_max", "used", "used_max"),
-            first.statistics().rows().stream().map(Statistics.Row::id).toList());
-        assertEquals(
-            List.of("out", "out_max", "used", "used_max"),
-            second.statistics().rows().stream().map(Statistics.Row::id).toList());
+        assertEquals(List.of("in", "in_max", "used", "used_max"), first
+            .statistics().rows().stream().map(Statistics.Row::id).toList());
+        assertEquals(List.of("out", "out_max", "used", "used_max"), second
+            .statistics().rows().stream().map(Statistics.Row::id).toList());
     }
 
     @Test
@@ -183,19 +176,17 @@ class ScreenStatsTest {
         StatsProvider empty = () -> Statistics.EMPTY;
         StatsProvider processor = () -> new Statistics(
             Component.literal("Processor A"),
-            List.of(
-                Statistics.cycles(
-                    "cycles_max", new Statistics.Text(Component.literal("No recipe")))));
-        var rows = lines(new ScreenStats().readParts(List.of(empty, processor), 0), 2);
+            List.of(Statistics.cycles("cycles_max",
+                new Statistics.Text(Component.literal("No recipe")))));
+        var rows = lines(
+            new ScreenStats().readParts(List.of(empty, processor), 0), 2);
         assertEquals(2, rows.size());
         assertTrue(rows.get(1).endsWith(": No recipe"));
         assertFalse(rows.get(1).contains("cycles/"));
     }
 
     private static List<String> lines(List<StatsPage> values, int unit) {
-        return values.get(unit).lines().stream()
-            .map(Component.class::cast)
-            .map(Component::getString)
-            .toList();
+        return values.get(unit).lines().stream().map(Component.class::cast)
+            .map(Component::getString).toList();
     }
 }

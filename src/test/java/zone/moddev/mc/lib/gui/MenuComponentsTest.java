@@ -40,7 +40,8 @@ class MenuComponentsTest {
         }
 
         DrawerDefinition at(Edge edge) {
-            return new DrawerDefinition(id, id.toString(), DrawerPlacement.top(edge, 0));
+            return new DrawerDefinition(id, id.toString(),
+                DrawerPlacement.top(edge, 0));
         }
     }
 
@@ -50,25 +51,26 @@ class MenuComponentsTest {
         var backpack = new Session("mmdlib:backpack");
         var sides = new Session("mmdlib:side_config");
         var sessions = List.<DrawerSession>of(source, backpack, sides);
-        DrawerSessions.activate(
-            source,
-            sessions,
-            List.of(source.at(Edge.RIGHT), backpack.at(Edge.RIGHT), sides.at(Edge.LEFT)));
+        DrawerSessions.activate(source, sessions, List.of(source.at(Edge.RIGHT),
+            backpack.at(Edge.RIGHT), sides.at(Edge.LEFT)));
         assertEquals(0, source.closes);
         assertEquals(1, backpack.closes);
         assertEquals(0, sides.closes);
-        DrawerSessions.activate(source, sessions, List.of(backpack.at(Edge.RIGHT)));
-        assertEquals(1, backpack.closes, "An unregistered session cannot close registered drawers");
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> DrawerSessions.activate(
-                source, sessions, List.of(source.at(Edge.LEFT), source.at(Edge.RIGHT))));
+        DrawerSessions.activate(source, sessions,
+            List.of(backpack.at(Edge.RIGHT)));
+        assertEquals(1, backpack.closes,
+            "An unregistered session cannot close registered drawers");
+        assertThrows(IllegalArgumentException.class,
+            () -> DrawerSessions.activate(source, sessions,
+                List.of(source.at(Edge.LEFT), source.at(Edge.RIGHT))));
     }
 
     @Test
     void registryOrderAndFingerprintAreDeterministicAndReplacementIsExplicit() {
-        var a = new MenuComponentKey<>(ResourceLocation.parse("test:a"), Session.class);
-        var b = new MenuComponentKey<>(ResourceLocation.parse("test:b"), Session.class);
+        var a = new MenuComponentKey<>(ResourceLocation.parse("test:a"),
+            Session.class);
+        var b = new MenuComponentKey<>(ResourceLocation.parse("test:b"),
+            Session.class);
         var first = new MenuComponentRegistry();
         var second = new MenuComponentRegistry();
         first.register(b, 10, c -> new Session("test:b"));
@@ -76,9 +78,9 @@ class MenuComponentsTest {
         second.register(a, 0, c -> new Session("test:a"));
         second.register(b, 10, c -> new Session("test:b"));
         assertEquals(first.fingerprint(), second.fingerprint());
-        assertThrows(IllegalArgumentException.class, () -> first.register(a, 0, c -> null));
-        assertThrows(
-            IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
+            () -> first.register(a, 0, c -> null));
+        assertThrows(IllegalArgumentException.class,
             () -> new MenuComponentRegistry().replace(a, 0, c -> null));
         first.replace(a, 20, c -> null);
         assertNotEquals(first.fingerprint(), second.fingerprint());
@@ -88,12 +90,14 @@ class MenuComponentsTest {
     void inventoryBodyCanMoveToTheRightAndStillFitsTheViewport() {
         var panel = new Rect(180, 20, 200, 250);
         var tab = new Rect(panel.right(), 230, 22, 22);
-        var layout = ContainerDrawerLayout.of(panel, 300, 27, tab, false, Edge.RIGHT, 600);
+        var layout = ContainerDrawerLayout.of(panel, 300, 27, tab, false,
+            Edge.RIGHT, 600);
         assertEquals(tab.right(), layout.body().x());
         assertTrue(layout.pageSize() > 0);
         assertTrue(layout.body().right() <= 596);
-        assertEquals(
-            0, ContainerDrawerLayout.of(panel, 300, 27, tab, false, Edge.RIGHT, 450).pageSize());
-        assertEquals(120, SideDrawerLayout.bodyX(Edge.LEFT, new Rect(240, 20, 22, 22), 120));
+        assertEquals(0, ContainerDrawerLayout
+            .of(panel, 300, 27, tab, false, Edge.RIGHT, 450).pageSize());
+        assertEquals(120,
+            SideDrawerLayout.bodyX(Edge.LEFT, new Rect(240, 20, 22, 22), 120));
     }
 }

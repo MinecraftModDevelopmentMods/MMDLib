@@ -7,43 +7,42 @@ import zone.moddev.mc.lib.gui.WidgetAction;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
-/** Adapts existing mod widget factories to the common element input/lifecycle system. */
+/**
+ * Adapts existing mod widget factories to the common element input/lifecycle
+ * system.
+ */
 final class CustomWidgetBehavior extends DefaultElementBehavior
-    implements
-        WidgetRenderer,
-        BehaviorCapabilities {
+    implements WidgetRenderer, BehaviorCapabilities {
     private final WidgetInstance widget;
 
     CustomWidgetBehavior(CustomElement element, ElementAccess access) {
         super(access);
-        widget = WidgetRenderers.GLOBAL
-            .require(element.type())
-            .create(
-                new WidgetAccess() {
-                    public CustomElement element() {
-                        return element;
-                    }
+        widget = WidgetRenderers.GLOBAL.require(element.type())
+            .create(new WidgetAccess() {
+                public CustomElement element() {
+                    return element;
+                }
 
-                    public Rect bounds() {
-                        return access.bounds();
-                    }
+                public Rect bounds() {
+                    return access.bounds();
+                }
 
-                    public Object value() {
-                        return access.value();
-                    }
+                public Object value() {
+                    return access.value();
+                }
 
-                    public Object maximum() {
-                        return access.maximum();
-                    }
+                public Object maximum() {
+                    return access.maximum();
+                }
 
-                    public boolean pending() {
-                        return access.pending(element);
-                    }
+                public boolean pending() {
+                    return access.pending(element);
+                }
 
-                    public <T> boolean submit(WidgetAction<T> action, T value) {
-                        return access.submit(action, value);
-                    }
-                });
+                public <T> boolean submit(WidgetAction<T> action, T value) {
+                    return access.submit(action, value);
+                }
+            });
     }
 
     protected Click click(double x, double y, int button) {
@@ -70,7 +69,8 @@ final class CustomWidgetBehavior extends DefaultElementBehavior
         widget.setFocused(focused);
     }
 
-    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    public boolean mouseDragged(double x, double y, int button, double dx,
+        double dy) {
         return widget.mouseDragged(x, y, button, dx, dy);
     }
 

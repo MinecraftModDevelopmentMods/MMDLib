@@ -108,7 +108,9 @@ class MenuRequestsTest {
 
     @Test
     void rejectsInvalidBounds() {
-        assertThrows(IllegalArgumentException.class, () -> new MenuRequests.Client(0));
-        assertThrows(IllegalArgumentException.class, () -> new MenuRequests.Server(0));
+        assertThrows(IllegalArgumentException.class,
+            () -> new MenuRequests.Client(0));
+        assertThrows(IllegalArgumentException.class,
+            () -> new MenuRequests.Server(0));
     }
 }

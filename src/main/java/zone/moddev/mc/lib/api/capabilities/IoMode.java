@@ -4,45 +4,49 @@ import com.mojang.serialization.Codec;
 
 import net.minecraft.util.StringRepresentable;
 
-/** What one face of a machine lets automation do with one resource (items, fluids or energy). */
+/**
+ * What one face of a machine lets automation do with one resource (items,
+ * fluids or energy).
+ */
 public enum IoMode implements StringRepresentable {
-  /** Automation can neither insert nor extract. */
-  DISABLED(false, false),
-  /** Automation can insert only. */
-  INPUT(true, false),
-  /** Automation can extract only. */
-  OUTPUT(false, true),
-  /** Automation can insert and extract. */
-  BOTH(true, true);
+    /** Automation can neither insert nor extract. */
+    DISABLED(false, false),
+    /** Automation can insert only. */
+    INPUT(true, false),
+    /** Automation can extract only. */
+    OUTPUT(false, true),
+    /** Automation can insert and extract. */
+    BOTH(true, true);
 
-  /** Reads and writes the lower-case name, e.g. {@code "input"}. */
-  public static final Codec<IoMode> CODEC = StringRepresentable.fromEnum(IoMode::values);
+    /** Reads and writes the lower-case name, e.g. {@code "input"}. */
+    public static final Codec<IoMode> CODEC = StringRepresentable
+        .fromEnum(IoMode::values);
 
-  private final boolean insert;
-  private final boolean extract;
+    private final boolean insert;
+    private final boolean extract;
 
-  IoMode(boolean insert, boolean extract) {
-    this.insert = insert;
-    this.extract = extract;
-  }
+    IoMode(boolean insert, boolean extract) {
+        this.insert = insert;
+        this.extract = extract;
+    }
 
-  /** Whether automation may insert through a face with this mode. */
-  public boolean canInsert() {
-    return insert;
-  }
+    /** Whether automation may insert through a face with this mode. */
+    public boolean canInsert() {
+        return insert;
+    }
 
-  /** Whether automation may extract through a face with this mode. */
-  public boolean canExtract() {
-    return extract;
-  }
+    /** Whether automation may extract through a face with this mode. */
+    public boolean canExtract() {
+        return extract;
+    }
 
-  /** The next mode in the order used by side-configuration buttons. */
-  public IoMode next() {
-    return values()[(ordinal() + 1) % values().length];
-  }
+    /** The next mode in the order used by side-configuration buttons. */
+    public IoMode next() {
+        return values()[(ordinal() + 1) % values().length];
+    }
 
-  @Override
-  public String getSerializedName() {
-    return name().toLowerCase(java.util.Locale.ROOT);
-  }
+    @Override
+    public String getSerializedName() {
+        return name().toLowerCase(java.util.Locale.ROOT);
+    }
 }

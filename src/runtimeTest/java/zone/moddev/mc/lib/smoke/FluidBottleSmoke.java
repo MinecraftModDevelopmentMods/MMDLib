@@ -21,123 +21,181 @@ import zone.moddev.mc.lib.common.fluid.FluidBottleItem;
 import zone.moddev.mc.lib.common.fluid.FluidBottles;
 
 /**
- * Glass bottles and {@code #mmdlib:bottleable}, which test resources fill with molten copper only,
- * and {@code #c:experience}, which they fill with molten gold.
+ * Glass bottles and {@code #mmdlib:bottleable}, which test resources fill with
+ * molten copper only, and {@code #c:experience}, which they fill with molten
+ * gold.
  */
 final class FluidBottleSmoke {
-  private FluidBottleSmoke() {}
+    private FluidBottleSmoke() {
+    }
 
-  private static Fluid fluid(String id) {
-    return BuiltInRegistries.FLUID.get(ResourceLocation.parse(id));
-  }
+    private static Fluid fluid(String id) {
+        return BuiltInRegistries.FLUID.get(ResourceLocation.parse(id));
+    }
 
-  /** A player standing above {@code source}, looking straight down at it, holding two bottles. */
-  private static ServerPlayer above(GameTestHelper helper, BlockPos source) {
-    var player = helper.makeMockServerPlayerInLevel();
-    player.setGameMode(GameType.SURVIVAL);
-    player.moveTo(source.getX() + .5, source.getY() + 1, source.getZ() + .5, 0, 90);
-    player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.GLASS_BOTTLE, 2));
-    return player;
-  }
+    /**
+     * A player standing above {@code source}, looking straight down at it,
+     * holding two bottles.
+     */
+    private static ServerPlayer above(GameTestHelper helper, BlockPos source) {
+        var player = helper.makeMockServerPlayerInLevel();
+        player.setGameMode(GameType.SURVIVAL);
+        player.moveTo(source.getX() + .5, source.getY() + 1, source.getZ() + .5,
+            0, 90);
+        player.setItemInHand(InteractionHand.MAIN_HAND,
+            new ItemStack(Items.GLASS_BOTTLE, 2));
+        return player;
+    }
 
-  /** A bottle used on molten copper fills; the source stays; untagged fluids are refused. */
-  static void world(GameTestHelper helper, BlockPos center) {
-    var level = helper.getLevel();
-    var pos = helper.absolutePos(center);
-    var copper = fluid("mmdlib:copper_molten");
-    level.setBlock(pos, copper.defaultFluidState().createLegacyBlock(), 3);
-    var player = above(helper, pos);
-    player.gameMode.useItem(player, level, player.getMainHandItem(), InteractionHand.MAIN_HAND);
-    require(player.getMainHandItem().is(Items.GLASS_BOTTLE) && player.getMainHandItem().getCount() == 1,
-        "one bottle used");
-    var filled = player.getInventory().items.stream().filter(s -> s.is(FluidBottles.BOTTLE.get())).findFirst();
-    require(filled.isPresent(), "a fluid bottle was given");
-    var contents = FluidBottleItem.contents(filled.get());
-    require(contents.is(copper) && contents.getAmount() == FluidBottles.CAPACITY, "it holds 333 mB of copper");
-    require(level.getFluidState(pos).isSource(), "the source is left in place");
+    /**
+     * A bottle used on molten copper fills; the source stays; untagged fluids
+     * are refused.
+     */
+    static void world(GameTestHelper helper, BlockPos center) {
+        var level = helper.getLevel();
+        var pos = helper.absolutePos(center);
+        var copper = fluid("mmdlib:copper_molten");
+        level.setBlock(pos, copper.defaultFluidState().createLegacyBlock(), 3);
+        var player = above(helper, pos);
+        player.gameMode.useItem(player, level, player.getMainHandItem(),
+            InteractionHand.MAIN_HAND);
+        require(player.getMainHandItem().is(Items.GLASS_BOTTLE)
+            && player.getMainHandItem().getCount() == 1, "one bottle used");
+        var filled = player.getInventory().items.stream()
+            .filter(s -> s.is(FluidBottles.BOTTLE.get())).findFirst();
+        require(filled.isPresent(), "a fluid bottle was given");
+        var contents = FluidBottleItem.contents(filled.get());
+        require(
+            contents.is(copper)
+                && contents.getAmount() == FluidBottles.CAPACITY,
+            "it holds 333 mB of copper");
+        require(level.getFluidState(pos).isSource(),
+            "the source is left in place");
 
-    var iron = fluid("mmdlib:iron_molten");
-    level.setBlock(pos, iron.defaultFluidState().createLegacyBlock(), 3);
-    var other = above(helper, pos);
-    other.gameMode.useItem(other, level, other.getMainHandItem(), InteractionHand.MAIN_HAND);
-    require(other.getMainHandItem().getCount() == 2, "untagged molten iron is not bottled");
-    helper.succeed();
-  }
+        var iron = fluid("mmdlib:iron_molten");
+        level.setBlock(pos, iron.defaultFluidState().createLegacyBlock(), 3);
+        var other = above(helper, pos);
+        other.gameMode.useItem(other, level, other.getMainHandItem(),
+            InteractionHand.MAIN_HAND);
+        require(other.getMainHandItem().getCount() == 2,
+            "untagged molten iron is not bottled");
+        helper.succeed();
+    }
 
-  /** Water stays vanilla's: a water potion, not a fluid bottle. */
-  static void water(GameTestHelper helper, BlockPos center) {
-    var level = helper.getLevel();
-    var pos = helper.absolutePos(center);
-    level.setBlock(pos, Blocks.WATER.defaultBlockState(), 3);
-    var player = above(helper, pos);
-    player.gameMode.useItem(player, level, player.getMainHandItem(), InteractionHand.MAIN_HAND);
-    require(player.getInventory().items.stream().anyMatch(s -> s.is(Items.POTION)), "vanilla made a water potion");
-    require(player.getInventory().items.stream().noneMatch(s -> s.is(FluidBottles.BOTTLE.get())), "no fluid bottle");
-    helper.succeed();
-  }
+    /** Water stays vanilla's: a water potion, not a fluid bottle. */
+    static void water(GameTestHelper helper, BlockPos center) {
+        var level = helper.getLevel();
+        var pos = helper.absolutePos(center);
+        level.setBlock(pos, Blocks.WATER.defaultBlockState(), 3);
+        var player = above(helper, pos);
+        player.gameMode.useItem(player, level, player.getMainHandItem(),
+            InteractionHand.MAIN_HAND);
+        require(player.getInventory().items.stream()
+            .anyMatch(s -> s.is(Items.POTION)), "vanilla made a water potion");
+        require(player.getInventory().items.stream().noneMatch(
+            s -> s.is(FluidBottles.BOTTLE.get())), "no fluid bottle");
+        helper.succeed();
+    }
 
-  /** Tanks fill glass bottles with 333 mB of a bottleable fluid, and take it back. */
-  static void tanks(GameTestHelper helper) {
-    var copper = fluid("mmdlib:copper_molten");
-    var tank = new FluidTank(1000);
-    tank.fill(new FluidStack(copper, 1000), FluidTank.FluidAction.EXECUTE);
-    var filled = FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), tank, 1000, null, true);
-    require(filled.isSuccess() && filled.getResult().is(FluidBottles.BOTTLE.get()), "a tank fills a glass bottle");
-    require(tank.getFluidAmount() == 1000 - FluidBottles.CAPACITY, "the tank gave 333 mB");
+    /**
+     * Tanks fill glass bottles with 333 mB of a bottleable fluid, and take it
+     * back.
+     */
+    static void tanks(GameTestHelper helper) {
+        var copper = fluid("mmdlib:copper_molten");
+        var tank = new FluidTank(1000);
+        tank.fill(new FluidStack(copper, 1000), FluidTank.FluidAction.EXECUTE);
+        var filled = FluidUtil.tryFillContainer(
+            new ItemStack(Items.GLASS_BOTTLE), tank, 1000, null, true);
+        require(
+            filled.isSuccess()
+                && filled.getResult().is(FluidBottles.BOTTLE.get()),
+            "a tank fills a glass bottle");
+        require(tank.getFluidAmount() == 1000 - FluidBottles.CAPACITY,
+            "the tank gave 333 mB");
 
-    var iron = new FluidTank(1000);
-    iron.fill(new FluidStack(fluid("mmdlib:iron_molten"), 1000), FluidTank.FluidAction.EXECUTE);
-    require(!FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), iron, 1000, null, true).isSuccess(),
-        "untagged fluids are refused");
-    var water = new FluidTank(1000);
-    water.fill(new FluidStack(Fluids.WATER, 1000), FluidTank.FluidAction.EXECUTE);
-    require(!FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), water, 1000, null, true).isSuccess(),
-        "water stays vanilla's");
+        var iron = new FluidTank(1000);
+        iron.fill(new FluidStack(fluid("mmdlib:iron_molten"), 1000),
+            FluidTank.FluidAction.EXECUTE);
+        require(!FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE),
+            iron, 1000, null, true).isSuccess(), "untagged fluids are refused");
+        var water = new FluidTank(1000);
+        water.fill(new FluidStack(Fluids.WATER, 1000),
+            FluidTank.FluidAction.EXECUTE);
+        require(!FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE),
+            water, 1000, null, true).isSuccess(), "water stays vanilla's");
 
-    var empty = new FluidTank(1000);
-    var poured = FluidUtil.tryEmptyContainer(filled.getResult(), empty, 1000, null, true);
-    require(poured.isSuccess() && poured.getResult().is(Items.GLASS_BOTTLE), "emptying leaves a glass bottle");
-    require(empty.getFluidAmount() == FluidBottles.CAPACITY && empty.getFluid().is(copper), "333 mB poured");
-    helper.succeed();
-  }
+        var empty = new FluidTank(1000);
+        var poured = FluidUtil.tryEmptyContainer(filled.getResult(), empty,
+            1000, null, true);
+        require(poured.isSuccess() && poured.getResult().is(Items.GLASS_BOTTLE),
+            "emptying leaves a glass bottle");
+        require(empty.getFluidAmount() == FluidBottles.CAPACITY
+            && empty.getFluid().is(copper), "333 mB poured");
+        helper.succeed();
+    }
 
-  /** A bottle used on an experience source becomes a Bottle o' Enchanting; the source stays. */
-  static void experienceWorld(GameTestHelper helper, BlockPos center) {
-    var level = helper.getLevel();
-    var pos = helper.absolutePos(center);
-    level.setBlock(pos, fluid("mmdlib:gold_molten").defaultFluidState().createLegacyBlock(), 3);
-    var player = above(helper, pos);
-    player.gameMode.useItem(player, level, player.getMainHandItem(), InteractionHand.MAIN_HAND);
-    require(player.getMainHandItem().is(Items.GLASS_BOTTLE) && player.getMainHandItem().getCount() == 1,
-        "one bottle used");
-    require(player.getInventory().items.stream().anyMatch(s -> s.is(Items.EXPERIENCE_BOTTLE)),
-        "a Bottle o' Enchanting was given");
-    require(player.getInventory().items.stream().noneMatch(s -> s.is(FluidBottles.BOTTLE.get())), "no fluid bottle");
-    require(level.getFluidState(pos).isSource(), "the source is left in place");
-    helper.succeed();
-  }
+    /**
+     * A bottle used on an experience source becomes a Bottle o' Enchanting; the
+     * source stays.
+     */
+    static void experienceWorld(GameTestHelper helper, BlockPos center) {
+        var level = helper.getLevel();
+        var pos = helper.absolutePos(center);
+        level.setBlock(pos,
+            fluid("mmdlib:gold_molten").defaultFluidState().createLegacyBlock(),
+            3);
+        var player = above(helper, pos);
+        player.gameMode.useItem(player, level, player.getMainHandItem(),
+            InteractionHand.MAIN_HAND);
+        require(player.getMainHandItem().is(Items.GLASS_BOTTLE)
+            && player.getMainHandItem().getCount() == 1, "one bottle used");
+        require(
+            player.getInventory().items.stream()
+                .anyMatch(s -> s.is(Items.EXPERIENCE_BOTTLE)),
+            "a Bottle o' Enchanting was given");
+        require(player.getInventory().items.stream().noneMatch(
+            s -> s.is(FluidBottles.BOTTLE.get())), "no fluid bottle");
+        require(level.getFluidState(pos).isSource(),
+            "the source is left in place");
+        helper.succeed();
+    }
 
-  /** Tanks of experience fill glass bottles 250 mB at a time; the result can't be poured back. */
-  static void experienceTanks(GameTestHelper helper) {
-    var gold = fluid("mmdlib:gold_molten");
-    var tank = new FluidTank(1000);
-    tank.fill(new FluidStack(gold, 1000), FluidTank.FluidAction.EXECUTE);
-    var filled = FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), tank, 1000, null, true);
-    require(filled.isSuccess() && filled.getResult().is(Items.EXPERIENCE_BOTTLE), "a tank makes a Bottle o' Enchanting");
-    require(tank.getFluidAmount() == 1000 - FluidBottles.EXPERIENCE_CAPACITY, "the tank gave 250 mB");
+    /**
+     * Tanks of experience fill glass bottles 250 mB at a time; the result can't
+     * be poured back.
+     */
+    static void experienceTanks(GameTestHelper helper) {
+        var gold = fluid("mmdlib:gold_molten");
+        var tank = new FluidTank(1000);
+        tank.fill(new FluidStack(gold, 1000), FluidTank.FluidAction.EXECUTE);
+        var filled = FluidUtil.tryFillContainer(
+            new ItemStack(Items.GLASS_BOTTLE), tank, 1000, null, true);
+        require(
+            filled.isSuccess()
+                && filled.getResult().is(Items.EXPERIENCE_BOTTLE),
+            "a tank makes a Bottle o' Enchanting");
+        require(
+            tank.getFluidAmount() == 1000 - FluidBottles.EXPERIENCE_CAPACITY,
+            "the tank gave 250 mB");
 
-    var low = new FluidTank(1000);
-    low.fill(new FluidStack(gold, FluidBottles.EXPERIENCE_CAPACITY - 1), FluidTank.FluidAction.EXECUTE);
-    require(!FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), low, 1000, null, true).isSuccess(),
-        "less than a bottle's worth is refused");
+        var low = new FluidTank(1000);
+        low.fill(new FluidStack(gold, FluidBottles.EXPERIENCE_CAPACITY - 1),
+            FluidTank.FluidAction.EXECUTE);
+        require(
+            !FluidUtil.tryFillContainer(new ItemStack(Items.GLASS_BOTTLE), low,
+                1000, null, true).isSuccess(),
+            "less than a bottle's worth is refused");
 
-    var empty = new FluidTank(1000);
-    require(!FluidUtil.tryEmptyContainer(filled.getResult(), empty, 1000, null, true).isSuccess(),
-        "a Bottle o' Enchanting does not pour back");
-    helper.succeed();
-  }
+        var empty = new FluidTank(1000);
+        require(!FluidUtil
+            .tryEmptyContainer(filled.getResult(), empty, 1000, null, true)
+            .isSuccess(), "a Bottle o' Enchanting does not pour back");
+        helper.succeed();
+    }
 
-  private static void require(boolean condition, String what) {
-    if (!condition) throw new AssertionError(what);
-  }
+    private static void require(boolean condition, String what) {
+        if (!condition)
+            throw new AssertionError(what);
+    }
 }

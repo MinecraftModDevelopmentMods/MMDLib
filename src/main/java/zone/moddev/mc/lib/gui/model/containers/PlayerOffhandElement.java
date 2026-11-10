@@ -9,12 +9,14 @@ import zone.moddev.mc.lib.gui.model.Common;
 /** Independently placeable player offhand slots. */
 public class PlayerOffhandElement extends PlayerSlotsElement {
     public PlayerOffhandElement(Common common) {
-        this(common, zone.moddev.mc.lib.gui.model.elements.PlayerSlotElement::player);
+        this(common,
+            zone.moddev.mc.lib.gui.model.elements.PlayerSlotElement::player);
     }
 
-    /** Use custom slot children while retaining this section's standard layout. */
-    public PlayerOffhandElement(
-        Common common,
+    /**
+     * Use custom slot children while retaining this section's standard layout.
+     */
+    public PlayerOffhandElement(Common common,
         java.util.function.IntFunction<? extends zone.moddev.mc.lib.gui.model.elements.SlotElement> factory) {
         super(common, List.of(40), factory);
     }

@@ -9,7 +9,10 @@ import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.model.Common;
 import zone.moddev.mc.lib.gui.model.Element;
 
-/** Right-aligned buttons sharing the automatic inventory-colour row above player inventory. */
+/**
+ * Right-aligned buttons sharing the automatic inventory-colour row above player
+ * inventory.
+ */
 public class InventoryControlsElement implements Element {
     private final Common common;
     private final List<Element> children;
@@ -25,7 +28,8 @@ public class InventoryControlsElement implements Element {
         LayoutContribution.Context context) {
         if (context.screen().elements().stream()
             .noneMatch(PlayerInventoryElement.class::isInstance))
-            throw new IllegalArgumentException("inventory-controls requires a player inventory");
+            throw new IllegalArgumentException(
+                "inventory-controls requires a player inventory");
         return java.util.Optional.empty();
     }
 
@@ -33,12 +37,14 @@ public class InventoryControlsElement implements Element {
         return ElementLayouts.row(children, 2, text);
     }
 
-    public java.util.Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
+    public java.util.Map<Element, Rect> childLayout(Rect bounds,
+        TextMeasure text) {
         var result = new java.util.IdentityHashMap<Element, Rect>();
         int x = 0;
         for (var child : children) {
             var size = ElementLayouts.size(child, text);
-            result.put(child, new Rect(x, (bounds.height() - size[1]) / 2, size[0], size[1]));
+            result.put(child,
+                new Rect(x, (bounds.height() - size[1]) / 2, size[0], size[1]));
             x += size[0] + 2;
         }
         return result;
@@ -73,6 +79,7 @@ public class InventoryControlsElement implements Element {
 
     @Override
     public String toString() {
-        return "InventoryControlsElement[common=" + common + ", children=" + children + "]";
+        return "InventoryControlsElement[common=" + common + ", children="
+            + children + "]";
     }
 }

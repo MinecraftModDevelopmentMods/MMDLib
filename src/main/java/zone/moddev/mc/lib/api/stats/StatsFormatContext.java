@@ -4,9 +4,12 @@ import java.util.Objects;
 
 import net.minecraft.network.chat.Component;
 
-/** Row formatting options; custom statistics may use these helpers or return their own text. */
-public record StatsFormatContext(
-    StatsTimescale timescale, Component unit, int decimals, boolean perTimescale) {
+/**
+ * Row formatting options; custom statistics may use these helpers or return
+ * their own text.
+ */
+public record StatsFormatContext(StatsTimescale timescale, Component unit,
+    int decimals, boolean perTimescale) {
     public StatsFormatContext {
         Objects.requireNonNull(timescale);
         unit = Objects.requireNonNull(unit).copy();

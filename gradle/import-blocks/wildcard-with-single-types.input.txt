@@ -1,0 +1,10 @@
+package zone.moddev.mc.lib;
+
+import net.minecraft.world.item.ItemStack;
+import static net.minecraft.core.Direction.*;
+import zone.moddev.mc.lib.api.*;
+import java.util.List;
+import net.minecraft.world.item.*;
+import java.util.*;
+
+public final class Example {}

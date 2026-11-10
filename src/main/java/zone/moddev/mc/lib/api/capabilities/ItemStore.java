@@ -14,9 +14,15 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
-/** Item storage access, including a combined view over independently owned inventories. */
+/**
+ * Item storage access, including a combined view over independently owned
+ * inventories.
+ */
 public interface ItemStore extends IItemHandlerModifiable, ReservedSlots {
-    /** Physical owner and local index, used for reservation and transaction identity. */
+    /**
+     * Physical owner and local index, used for reservation and transaction
+     * identity.
+     */
     ItemStorage storage(int slot);
 
     int localSlot(int slot);
@@ -37,8 +43,8 @@ public interface ItemStore extends IItemHandlerModifiable, ReservedSlots {
 
     CompoundTag serializeNBT(HolderLookup.Provider registries);
 
-    void deserializeNBT(
-        HolderLookup.Provider registries, CompoundTag tag, IntUnaryOperator legacySlots);
+    void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag,
+        IntUnaryOperator legacySlots);
 
     void dropAll(Level level, BlockPos pos, Consumer<CompoundTag> recovery);
 

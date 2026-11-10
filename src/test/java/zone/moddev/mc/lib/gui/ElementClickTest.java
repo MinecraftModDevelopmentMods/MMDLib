@@ -25,13 +25,14 @@ class ElementClickTest {
     }
 
     private static class Fixture {
-        final Leaf bottom = new Leaf(Common.empty()), top = new Leaf(Common.empty());
+        final Leaf bottom = new Leaf(Common.empty()),
+            top = new Leaf(Common.empty());
         final List<String> events = new ArrayList<>();
-        final Set<Element> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
+        final Set<Element> hidden = Collections
+            .newSetFromMap(new IdentityHashMap<>());
         ElementBehavior.Click topResult = ElementBehavior.Click.PASS;
         final ElementInput<Leaf, ElementBehavior> input = new ElementInput<>(
-            List.of(bottom, top),
-            e -> new ElementBehavior() {
+            List.of(bottom, top), e -> new ElementBehavior() {
                 public boolean focusable() {
                     return true;
                 }
@@ -50,15 +51,13 @@ class ElementClickTest {
                     return true;
                 }
 
-                public boolean mouseScrolled(double x, double y, double dx, double dy) {
+                public boolean mouseScrolled(double x, double y, double dx,
+                    double dy) {
                     events.add("scroll");
                     return true;
                 }
-            },
-            e -> !hidden.contains(e),
-            e -> new Rect(0, 0, 40, 40),
-            (x, y) -> new Rect(0, 0, 20, 20).contains(x, y),
-            (e, entered) -> {
+            }, e -> !hidden.contains(e), e -> new Rect(0, 0, 40, 40),
+            (x, y) -> new Rect(0, 0, 20, 20).contains(x, y), (e, entered) -> {
             });
 
         Fixture() {

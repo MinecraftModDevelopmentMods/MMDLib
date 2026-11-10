@@ -15,7 +15,10 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Edge;
 import zone.moddev.mc.lib.gui.model.Element;
 
-/** Generic dispatch, edge arbitration and connection-scoped preferences for drawers. */
+/**
+ * Generic dispatch, edge arbitration and connection-scoped preferences for
+ * drawers.
+ */
 public final class Drawers {
     private final List<Drawer> entries = new ArrayList<>();
     private final DrawerMemory memory = new DrawerMemory();
@@ -34,7 +37,8 @@ public final class Drawers {
             if (definition.interactive()) {
                 var drawer = DrawerFactories.GLOBAL.create(screen, definition);
                 result.entries.add(drawer);
-                definition.element().ifPresent(element -> result.elements.put(element, drawer));
+                definition.element()
+                    .ifPresent(element -> result.elements.put(element, drawer));
             }
         return result;
     }
@@ -52,24 +56,22 @@ public final class Drawers {
         if (!entries.contains(drawer))
             throw new IllegalArgumentException("Drawer is not on this screen");
         var definition = drawer.definition();
-        var tabs = DrawerTabs.place(
-            screen.layout.drawers(),
-            screen.panelBounds(),
-            screen.drawerBottom(),
-            candidate -> candidate.placement().anchor() == DrawerPlacement.Anchor.TOP
+        var tabs = DrawerTabs.place(screen.layout.drawers(),
+            screen.panelBounds(), screen.drawerBottom(),
+            candidate -> candidate.placement()
+                .anchor() == DrawerPlacement.Anchor.TOP
                 || !candidate.interactive()
                 || entries.stream()
-                    .anyMatch(
-                        d -> d.id().equals(candidate.id())
-                            && d.edge() == candidate.placement().edge()
-                            && d.available()));
-        // An unavailable drawer can still compute content bounds while waiting for a snapshot.
+                    .anyMatch(d -> d.id().equals(candidate.id())
+                        && d.edge() == candidate.placement().edge()
+                        && d.available()));
+        // An unavailable drawer can still compute content bounds while waiting
+        // for a snapshot.
         var bounds = tabs.get(definition);
         return bounds != null
             ? bounds
-            : DrawerTabs.place(
-                List.of(definition), screen.panelBounds(), screen.drawerBottom(), d -> true)
-                .get(definition);
+            : DrawerTabs.place(List.of(definition), screen.panelBounds(),
+                screen.drawerBottom(), d -> true).get(definition);
     }
 
     public boolean pending() {
@@ -81,8 +83,7 @@ public final class Drawers {
     }
 
     void activated(Drawer drawer) {
-        entries.stream()
-            .filter(d -> d != drawer && d.edge() == drawer.edge())
+        entries.stream().filter(d -> d != drawer && d.edge() == drawer.edge())
             .forEach(Drawer::closeLocal);
     }
 
@@ -100,15 +101,18 @@ public final class Drawers {
     }
 
     boolean otherTab(Drawer drawer, double x, double y) {
-        return entries.stream()
-            .anyMatch(d -> d != drawer && d.edge() == drawer.edge() && d.tabContains(x, y));
+        return entries.stream().anyMatch(d -> d != drawer
+            && d.edge() == drawer.edge() && d.tabContains(x, y));
     }
 
     public void render(GuiGraphics graphics, int x, int y) {
         entries.forEach(d -> d.render(graphics, x, y));
     }
 
-    /** Navigation tabs stay visible above every drawer body, including XML foreground popouts. */
+    /**
+     * Navigation tabs stay visible above every drawer body, including XML
+     * foreground popouts.
+     */
     public void renderTabs(GuiGraphics graphics) {
         entries.forEach(d -> d.renderTab(graphics));
     }
@@ -119,9 +123,7 @@ public final class Drawers {
 
     public Optional<List<net.minecraft.network.chat.Component>> nativeTooltip(
         net.minecraft.world.inventory.Slot slot,
-        List<net.minecraft.network.chat.Component> vanilla,
-        int x,
-        int y) {
+        List<net.minecraft.network.chat.Component> vanilla, int x, int y) {
         for (var drawer : entries.reversed()) {
             var result = drawer.nativeTooltip(slot, vanilla, x, y);
             if (result.isPresent())
@@ -135,9 +137,7 @@ public final class Drawers {
         entries.forEach(drawer -> result.addAll(drawer.exclusions()));
         for (var definition : screen.layout.drawers())
             if (!definition.interactive())
-                definition
-                    .element()
-                    .filter(screen::visible)
+                definition.element().filter(screen::visible)
                     .ifPresent(element -> result.add(screen.bounds(element)));
         return List.copyOf(result);
     }

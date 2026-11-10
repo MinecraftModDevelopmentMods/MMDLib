@@ -24,8 +24,9 @@ import zone.moddev.mc.lib.gui.value.ValueType;
 import zone.moddev.mc.lib.gui.value.ValueTypeRegistry;
 
 /**
- * Common contract for built-in and mod-defined UI elements. Shared attributes come from
- * {@link #common()}; containers expose their children in document order.
+ * Common contract for built-in and mod-defined UI elements. Shared attributes
+ * come from {@link #common()}; containers expose their children in document
+ * order.
  */
 public interface Element {
     /** The attributes every element takes. */
@@ -33,38 +34,54 @@ public interface Element {
 
     /** Size in GUI pixels, shared by built-in and mod-defined elements. */
     default int[] measure(TextMeasure text) {
-        throw new IllegalStateException("Element must implement measure: " + getClass().getName());
+        throw new IllegalStateException(
+            "Element must implement measure: " + getClass().getName());
     }
 
-    /** Measure content that wraps within an available width, such as a reusable editor fragment. */
+    /**
+     * Measure content that wraps within an available width, such as a reusable
+     * editor fragment.
+     */
     default int[] measure(TextMeasure text, int availableWidth) {
         return measure(text);
     }
 
-    /** Child rectangles relative to this element, for built-in and mod-defined containers. */
+    /**
+     * Child rectangles relative to this element, for built-in and mod-defined
+     * containers.
+     */
     default Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
         if (!children().isEmpty())
             throw new IllegalStateException(
-                "Container must implement childLayout: " + getClass().getName());
+                "Container must implement childLayout: "
+                    + getClass().getName());
         return Map.of();
     }
 
-    /** Contribute contextual layout metadata before measuring the element tree. */
+    /**
+     * Contribute contextual layout metadata before measuring the element tree.
+     */
     default void prepareLayout(LayoutContext context) {
     }
 
-    /** Optional per-layout plan for footer placement and shared named regions. */
+    /**
+     * Optional per-layout plan for footer placement and shared named regions.
+     */
     default Optional<zone.moddev.mc.lib.gui.layout.LayoutContribution> layoutContribution(
         zone.moddev.mc.lib.gui.layout.LayoutContribution.Context context) {
         return Optional.empty();
     }
 
-    /** Fill the available horizontal space when the parent stacks vertically. */
+    /**
+     * Fill the available horizontal space when the parent stacks vertically.
+     */
     default boolean stretchX() {
         return false;
     }
 
-    /** Fill the available vertical space when the parent stacks horizontally. */
+    /**
+     * Fill the available vertical space when the parent stacks horizontally.
+     */
     default boolean stretchY() {
         return false;
     }
@@ -87,8 +104,12 @@ public interface Element {
     default void validateHost(ScreenHost host) {
     }
 
-    /** Host validation with screen context, including shared claims across all elements. */
-    default void validateHost(ScreenValidationContext context, ScreenHost host) {
+    /**
+     * Host validation with screen context, including shared claims across all
+     * elements.
+     */
+    default void validateHost(ScreenValidationContext context,
+        ScreenHost host) {
         validateHost(host);
     }
 
@@ -96,22 +117,32 @@ public interface Element {
     default void validateBindings(Map<String, Set<String>> bindings) {
     }
 
-    /** Additional translated placeholders evaluated from synchronized values. */
+    /**
+     * Additional translated placeholders evaluated from synchronized values.
+     */
     default Map<String, Text> tooltipArguments(Object value, Object maximum) {
         return Map.of();
     }
 
-    /** Additional client-local tooltip lines evaluated from synchronized values. */
+    /**
+     * Additional client-local tooltip lines evaluated from synchronized values.
+     */
     default List<Component> valueTooltip(Object value, Object maximum) {
         return List.of();
     }
 
-    /** Standard behavior available on any element, independently of how the screen was built. */
+    /**
+     * Standard behavior available on any element, independently of how the
+     * screen was built.
+     */
     default Optional<Interaction> interaction() {
         return common().interaction();
     }
 
-    /** Optional navigation binding, independent of this element's rendering or control type. */
+    /**
+     * Optional navigation binding, independent of this element's rendering or
+     * control type.
+     */
     default Optional<Navigation> navigation() {
         return Optional.empty();
     }
@@ -123,42 +154,43 @@ public interface Element {
 
     /** Validate the element's configuration before binding a screen. */
     default void validate() {
-        interaction()
-            .ifPresent(
-                binding -> {
-                    ElementInteractions.require(binding.type()).validate(binding.target());
-                });
+        interaction().ifPresent(binding -> {
+            ElementInteractions.require(binding.type())
+                .validate(binding.target());
+        });
     }
 
     /** Resource identity used by generic validation and highlighting. */
     default Optional<ResourceBinding> resourceBinding() {
-        return interaction()
-            .flatMap(
-                binding -> ElementInteractions.require(binding.type())
-                    .resourceBinding(binding.target()));
+        return interaction().flatMap(binding -> ElementInteractions
+            .require(binding.type()).resourceBinding(binding.target()));
     }
 
-    /** Definition-time validation. Defaults preserve existing binding and resource hooks. */
+    /**
+     * Definition-time validation. Defaults preserve existing binding and
+     * resource hooks.
+     */
     default void validateResources(ResourceValidationContext context) {
         validateBindings(context.bindings());
         validateResources(context.resources());
     }
 
-    /** Validates both the displayed resource and any independently attached interaction. */
+    /**
+     * Validates both the displayed resource and any independently attached
+     * interaction.
+     */
     default void validateResources(Map<String, Integer> counts) {
         resourceBinding().ifPresent(binding -> binding.validate(counts));
         interaction()
-            .flatMap(
-                binding -> ElementInteractions.require(binding.type())
-                    .resourceBinding(binding.target()))
+            .flatMap(binding -> ElementInteractions.require(binding.type())
+                .resourceBinding(binding.target()))
             .ifPresent(binding -> binding.validate(counts));
     }
 
     /** Runs after the menu validates the player and click packet. */
     default boolean interact(ScreenClick click) {
-        return interaction()
-            .map(binding -> ElementInteractions.require(binding.type()).click(click,
-                binding.target()))
+        return interaction().map(binding -> ElementInteractions
+            .require(binding.type()).click(click, binding.target()))
             .orElse(false);
     }
 
@@ -167,21 +199,26 @@ public interface Element {
         return Optional.empty();
     }
 
-    /** Converts a synchronized value for presentation without changing the stored snapshot. */
+    /**
+     * Converts a synchronized value for presentation without changing the
+     * stored snapshot.
+     */
     default Object displayValue(Object value) {
         return value;
     }
 
     /**
-     * Formats a synchronized current or maximum value; detailed means exact rather than
-     * abbreviated.
+     * Formats a synchronized current or maximum value; detailed means exact
+     * rather than abbreviated.
      */
     default Component displayText(Object value, boolean detailed) {
-        return Component.literal(DisplayValues.number(displayValue(value), detailed));
+        return Component
+            .literal(DisplayValues.number(displayValue(value), detailed));
     }
 
     /**
-     * Fill amount for shared rendering. Implementations return a finite value in the range 0..1.
+     * Fill amount for shared rendering. Implementations return a finite value
+     * in the range 0..1.
      */
     default double fillRatio(Object value, Object maximum) {
         return DisplayValues.ratio(displayValue(value), displayValue(maximum));
@@ -197,45 +234,55 @@ public interface Element {
         return List.of();
     }
 
-    /** Own tooltip content. Override to replace it, or call the default to extend it. */
+    /**
+     * Own tooltip content. Override to replace it, or call the default to
+     * extend it.
+     */
     default void appendTooltip(TooltipContext context, List<Component> rows) {
         context.appendDefaults(rows);
     }
 
-    /** Optional rows for a hovered descendant; the container's own tooltip is not repeated. */
-    default void appendChildTooltip(TooltipContext context, List<Component> rows) {
+    /**
+     * Optional rows for a hovered descendant; the container's own tooltip is
+     * not repeated.
+     */
+    default void appendChildTooltip(TooltipContext context,
+        List<Component> rows) {
     }
 
     /**
-     * Group IDs associated with this element, in preference order. The default matches explicit
-     * element anchors in group declaration order; subclasses may extend or replace those matches.
+     * Group IDs associated with this element, in preference order. The default
+     * matches explicit element anchors in group declaration order; subclasses
+     * may extend or replace those matches.
      */
-    default List<String> associatedGroups(Screen screen, List<ElementGroup> groups) {
-        return groups.stream()
-            .filter(
-                group -> common().id().filter(group.anchors()::contains).isPresent()
-                    || (group.anchors().isEmpty()
-                        && resourceBinding()
-                            .filter(
-                                binding -> group
-                                    .members()
-                                    .filter(
-                                        members -> members.type().equals(binding.groupType())
-                                            && members.indices().contains(binding.index()))
-                                    .isPresent())
-                            .isPresent()))
-            .map(ElementGroup::id)
-            .toList();
+    default List<String> associatedGroups(Screen screen,
+        List<ElementGroup> groups) {
+        return groups.stream().filter(group -> common().id()
+            .filter(group.anchors()::contains).isPresent()
+            || (group.anchors().isEmpty()
+                && resourceBinding().filter(binding -> group.members()
+                    .filter(
+                        members -> members.type().equals(binding.groupType())
+                            && members.indices().contains(binding.index()))
+                    .isPresent()).isPresent()))
+            .map(ElementGroup::id).toList();
     }
 
-    /** Groups whose decoration and selection highlight should include this element. */
-    default List<String> highlightedGroups(Screen screen, List<ElementGroup> groups) {
+    /**
+     * Groups whose decoration and selection highlight should include this
+     * element.
+     */
+    default List<String> highlightedGroups(Screen screen,
+        List<ElementGroup> groups) {
         return associatedGroups(screen, groups);
     }
 
-    /** Whether this selected container represents a descendant's highlight for the same group. */
-    default boolean replacesChildHighlight(
-        Screen screen, Element descendant, String group, List<ElementGroup> groups) {
+    /**
+     * Whether this selected container represents a descendant's highlight for
+     * the same group.
+     */
+    default boolean replacesChildHighlight(Screen screen, Element descendant,
+        String group, List<ElementGroup> groups) {
         return false;
     }
 
@@ -244,12 +291,15 @@ public interface Element {
         return Optional.empty();
     }
 
-    /** Pixels in one slot: the unit of {@code s}-suffixed sizes such as {@code length="3s"}. */
+    /**
+     * Pixels in one slot: the unit of {@code s}-suffixed sizes such as
+     * {@code length="3s"}.
+     */
     int SLOT = 18;
 
     /**
-     * A {@code length} of {@code fill}: as long as the box around the element is across. Layout
-     * replaces it with the real length.
+     * A {@code length} of {@code fill}: as long as the box around the element
+     * is across. Layout replaces it with the real length.
      */
     int FILL = -1;
 
@@ -271,11 +321,17 @@ public interface Element {
         validate();
     }
 
-    /** Definition-specific references/structure, checked for XML and Java-created screens. */
+    /**
+     * Definition-specific references/structure, checked for XML and
+     * Java-created screens.
+     */
     default void validateScreen(Screen screen) {
     }
 
-    /** Screen-wide validation with shared claims; existing screen-only hooks are also invoked. */
+    /**
+     * Screen-wide validation with shared claims; existing screen-only hooks are
+     * also invoked.
+     */
     default void validateScreen(ScreenValidationContext context) {
         validateScreen(context.screen());
         navigation().ifPresent(binding -> binding.validate(context.screen()));
@@ -301,15 +357,20 @@ public interface Element {
     }
 
     default Optional<? extends ElementAction<?>> action(ResourceLocation id) {
-        return actions().stream().filter(action -> action.id().equals(id)).findFirst();
+        return actions().stream().filter(action -> action.id().equals(id))
+            .findFirst();
     }
 
     default boolean validClickOption(int option) {
         return option == 0;
     }
 
-    /** Compatibility for old packed button packets; new clients use named typed actions. */
-    default Optional<ElementAction<ElementActions.Click>> legacyAction(int kind) {
+    /**
+     * Compatibility for old packed button packets; new clients use named typed
+     * actions.
+     */
+    default Optional<ElementAction<ElementActions.Click>> legacyAction(
+        int kind) {
         if (kind == 1 && navigation().isPresent())
             return Optional.of(Navigation.NAVIGATE);
         return kind == 0 ? Optional.of(ElementActions.CLICK) : Optional.empty();

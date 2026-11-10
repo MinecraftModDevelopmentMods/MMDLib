@@ -6,4 +6,5 @@ import com.google.gson.JsonElement;
 
 /** Accepts a raw Gson element. */
 @FunctionalInterface
-public interface JsonElementConsumer extends Consumer<JsonElement> {}
+public interface JsonElementConsumer extends Consumer<JsonElement> {
+}
