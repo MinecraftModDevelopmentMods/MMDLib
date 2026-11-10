@@ -224,7 +224,11 @@ spotless {
     ratchetFrom 'origin/master-2.0-1.21.1-neo'
     java {
         target 'src/**/*.java'
-        eclipse('4.35').configFile('gradle/java-formatter.xml')
+        eclipse('4.35')
+            // Use the same Eclipse distribution through its FAU mirror; the primary P2
+            // host times out on CI even when Maven dependencies resolve successfully.
+            .withP2Mirrors(['https://download.eclipse.org/': 'https://ftp.fau.de/eclipse/'])
+            .configFile('gradle/java-formatter.xml')
         custom 'importBlocks', importBlocksStep
     }
 }
