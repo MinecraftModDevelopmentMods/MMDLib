@@ -668,6 +668,9 @@ public final class CompanionClientSmoke {
                 var info = (zone.moddev.mc.lib.gui.model.elements.PopoutElement) menu.bound.screen()
                     .find("info").orElseThrow();
                 var tab = screen.bounds(info);
+                var drawer = screen.drawers().entries().stream()
+                    .filter(candidate -> candidate.definition().element().orElse(null) == info)
+                    .findFirst().orElseThrow();
                 if (!info.iconOrDefault().toString().equals("mmdlib:icon_info"))
                     throw new AssertionError("The information drawer must use the info icon");
                 if (drawerStage == 0) {
@@ -675,17 +678,11 @@ public final class CompanionClientSmoke {
                         message -> {
                         });
                     screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
-                    var exclusions = screen.exclusions();
-                    if (exclusions.size() != 4
-                        + (menu.components().get(BuiltinMenuComponents.REDSTONE) == null ? 0 : 1)
-                        + (menu.components()
-                            .get(BuiltinMenuComponents.CURIOS)
-                            .state()
-                            .icons()
-                            .isEmpty()
-                                ? 0
-                                : 1)
-                        || exclusions.get(1).right() != tab.x())
+                    var exclusions = drawer.exclusions();
+                    if (!drawer.open() || exclusions.size() != 2
+                        || !screen.exclusions().containsAll(exclusions)
+                        || exclusions.getFirst().right() != tab.x()
+                        || !exclusions.get(1).contains(tab.x() + 10, tab.y() + 10))
                         throw new AssertionError(
                             "The drawer must extend left while retaining its icon tab");
                     if (exclusions.get(0).bottom() != exclusions.get(1).bottom()
@@ -722,23 +719,14 @@ public final class CompanionClientSmoke {
                         screen.mouseClicked(point[0], point[1], button);
                         if (lastButton.getInt(screen) != button)
                             throw new AssertionError("Drawer swallowed mouse button " + button);
-                        if (screen.exclusions().size() != 4
-                            + (menu.components().get(BuiltinMenuComponents.REDSTONE) == null
-                                ? 0
-                                : 1)
-                            + (menu.components().get(BuiltinMenuComponents.CURIOS).state().icons()
-                                .isEmpty()
-                                    ? 0
-                                    : 1))
+                        if (!drawer.open() || drawer.exclusions().size() != 2
+                            || !screen.exclusions().containsAll(drawer.exclusions()))
                             throw new AssertionError("Extra mouse button changed the drawer state");
                     }
                 screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
                 screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
-                if (screen.exclusions().size() != 3
-                    + (menu.components().get(BuiltinMenuComponents.REDSTONE) == null ? 0 : 1)
-                    + (menu.components().get(BuiltinMenuComponents.CURIOS).state().icons().isEmpty()
-                        ? 0
-                        : 1))
+                if (drawer.open() || !drawer.exclusions().equals(java.util.List.of(tab))
+                    || !screen.exclusions().contains(tab))
                     throw new AssertionError("The icon tab did not close its drawer");
                 drawerStage = 0;
                 if (stage == 0) {
