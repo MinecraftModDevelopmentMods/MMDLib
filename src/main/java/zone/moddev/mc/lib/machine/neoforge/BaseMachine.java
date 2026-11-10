@@ -240,6 +240,9 @@ public abstract class BaseMachine extends BlockEntity
     @Override
     protected final void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         if (FeatureSync.read(features, tag, registries)) {
+            var redstone = screenRedstone();
+            if (redstone != null && tag.contains("redstone_control", Tag.TAG_COMPOUND))
+                redstone.load(tag.getCompound("redstone_control"), registries);
             if (tag.contains(CLIENT_DATA, Tag.TAG_COMPOUND))
                 loadClientData(tag.getCompound(CLIENT_DATA), registries);
             return;
@@ -271,6 +274,9 @@ public abstract class BaseMachine extends BlockEntity
     @Override
     public final CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = FeatureSync.updateTag(features, registries);
+        var redstone = screenRedstone();
+        if (redstone != null)
+            tag.put("redstone_control", redstone.save(registries));
         var clientData = new CompoundTag();
         saveClientData(clientData, registries);
         tag.put(CLIENT_DATA, clientData);

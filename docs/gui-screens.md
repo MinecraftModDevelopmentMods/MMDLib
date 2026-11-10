@@ -2524,7 +2524,13 @@ redstone.updateOutputs();
 Passing `false` to `FeatureHost.tick` invokes each feature's `suspended` callback instead of
 processing it, so a held processor cannot retain a stale running signal. Save/load the controller
 tag and return `signal(direction)` from the block's redstone output hook. The direction passed
-to `signal` is Minecraft's query direction, not the outward face. Stateless hosts can call
+to `signal` is Minecraft's query direction, not the outward face. Forward the block's
+`canConnectRedstone` hook to `redstone.connects(direction)` with that same query direction.
+Dust connects only to Emit faces with a selected, available output, including outputs currently
+at zero. Ignore, Read and unselected Emit faces do not connect. `updateOutputs()` refreshes
+neighboring dust shapes when connections change. Include the controller tag in block-entity
+client updates so client-side connection queries agree; `BaseMachine` handles this automatically.
+Stateless hosts can call
 `redstone.tick()` to read inputs and update outputs together. The companion emits weak power,
 keeps transfers running while processing is held, and migrates old inventory selections and
 the previous global redstone mode. Manual pause remains independent.
