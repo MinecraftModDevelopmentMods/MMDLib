@@ -13,12 +13,9 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
 
-import net.neoforged.neoforge.fluids.FluidStack;
-
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.api.capabilities.FluidStorage;
-import zone.moddev.mc.lib.api.capabilities.ItemStorage;
 import zone.moddev.mc.lib.api.capabilities.Role;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
@@ -36,7 +33,7 @@ public final class ProcessorEntity extends BasePoweredMachine {
     LOGISTICS
   }
 
-  public final ItemStorage items;
+  public final ItemInventories items;
   public final AutomationInventory automation;
   public final MachineResources resources;
   public final MachineInventoryLifecycle inventoryLifecycle;
@@ -84,10 +81,13 @@ public final class ProcessorEntity extends BasePoweredMachine {
     resources = new MachineResources(this, this::facing);
     if (kind == Kind.TRANSMUTER) {
       // One key, and one item: the recipe consumes the whole slot before inserting gold.
-      items = new ItemStorage(1).limit(1, 0).onChange(this::setChanged);
+      items = ItemInventories.partition(List.of("input")).limit(1, 0).onChange(this::setChanged);
     } else {
       items =
-          new ItemStorage(1 + outputSlots.length)
+          ItemInventories.partition(
+                  java.util.stream.IntStream.range(0, 1 + outputSlots.length)
+                      .mapToObj(i -> i == 0 ? "input" : "output")
+                      .toList())
               .role(Role.INPUT, 0)
               .role(kind == Kind.CRUSHER ? Role.STORAGE : Role.OUTPUT, outputSlots)
               .onChange(this::setChanged);
@@ -95,12 +95,15 @@ public final class ProcessorEntity extends BasePoweredMachine {
     var recipeType = kind == Kind.TRANSMUTER ? CompanionMod.TRANSMUTING : CompanionMod.CRUSHING;
     resources.items(
         itemGroup("input", 0x568bd8, kind == Kind.TRANSMUTER ? IoMode.BOTH : IoMode.INPUT, 0),
-        items);
+        items.inventory("input"));
     if (kind != Kind.TRANSMUTER)
       resources.items(
           itemGroup(
-              "output", 0xe48f45, kind == Kind.CRUSHER ? IoMode.BOTH : IoMode.OUTPUT, outputSlots),
-          items);
+              "output",
+              0xe48f45,
+              kind == Kind.CRUSHER ? IoMode.BOTH : IoMode.OUTPUT,
+              java.util.stream.IntStream.range(0, outputSlots.length).toArray()),
+          items.inventory("output"));
     items.slotId(0, "input");
     for (int i = 1; i < items.getSlots(); i++) items.slotId(i, "output_" + i);
     int[] colours = {0x64bfc1, 0xa678cb, 0xe0c55d, 0xce668e};
@@ -160,11 +163,13 @@ public final class ProcessorEntity extends BasePoweredMachine {
                   return energy.capacity() == 0 ? 0 : (double) energy.stored() / energy.capacity();
                 double amount = 0, capacity = 0;
                 for (int index : group.members()) {
-                  if (group.type() == ResourceType.ITEMS && index < items.getSlots()) {
-                    var stack = items.getStackInSlot(index);
+                  if (group.type() == ResourceType.ITEMS
+                      && index < items.inventory(group.id()).getSlots()) {
+                    var store = items.inventory(group.id());
+                    var stack = store.getStackInSlot(index);
                     int limit =
                         Math.min(
-                            items.getSlotLimit(index),
+                            store.getSlotLimit(index),
                             stack.isEmpty() ? 64 : stack.getMaxStackSize());
                     if (limit > 0) {
                       amount += (double) stack.getCount() / limit;
@@ -204,18 +209,6 @@ public final class ProcessorEntity extends BasePoweredMachine {
     return redstone;
   }
 
-  public FluidStack getTank1() {
-    return fluids.getFluidInTank(1);
-  }
-
-  public FluidStack getTank2() {
-    return fluids.getFluidInTank(2);
-  }
-
-  public FluidStack getTank3() {
-    return fluids.getFluidInTank(3);
-  }
-
   public void toggle(int index) {
     if (index < 0 || index >= lanes.size()) return;
     var processor = lanes.get(index);
@@ -226,12 +219,9 @@ public final class ProcessorEntity extends BasePoweredMachine {
     return fluids.getTanks() > 0;
   }
 
-  public FluidStack getTankFluid() {
-    return fluids.getFluidInTank(0);
-  }
-
-  public int getTankCapacity() {
-    return fluids.getTankCapacity(0);
+  @Override
+  public FluidStorage screenFluids() {
+    return fluids;
   }
 
   public int getSecondProgress() {
@@ -252,8 +242,15 @@ public final class ProcessorEntity extends BasePoweredMachine {
   }
 
   @Override
-  public ItemStorage screenItems() {
+  public ItemInventories screenItems() {
     return items;
+  }
+
+  @Override
+  public java.util.Map<String, SideConfig> screenSides() {
+    var sides = new java.util.LinkedHashMap<String, SideConfig>();
+    for (var group : automation.groups()) sides.put(group.id(), group.sides());
+    return java.util.Map.copyOf(sides);
   }
 
   @Override

@@ -1,9 +1,13 @@
 package zone.moddev.mc.lib.gui.runtime;
 
 import java.util.List;
+import java.util.Optional;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.items.IItemHandler;
 
@@ -12,7 +16,149 @@ public final class EquippedContainers {
   private EquippedContainers() {}
 
   /** The live equipped stack, its stable equipment address, and its current capability. */
-  public record Source(String key, ItemStack stack, IItemHandler items) {}
+  public record Source(
+      String key,
+      ItemStack stack,
+      IItemHandler items,
+      Presentation presentation,
+      String selectionKey,
+      ContainerPolicy policy) {
+    public Source {
+      java.util.Objects.requireNonNull(policy);
+    }
+
+    public Source(
+        String key,
+        ItemStack stack,
+        IItemHandler items,
+        Presentation presentation,
+        String selectionKey) {
+      this(key, stack, items, presentation, selectionKey, ContainerPolicy.STORAGE);
+    }
+
+    public Presentation presentation() {
+      var settings = policy.settings();
+      return (presentation == null ? Presentation.container(stack) : presentation)
+          .withPolicy(settings)
+          .withGestureRows(policy.instructions(settings));
+    }
+
+    public Source(String key, ItemStack stack, IItemHandler items) {
+      this(key, stack, items, null, key);
+    }
+  }
+
+  /** Provider-authored chrome. All components are detached on both input and output. */
+  public record Presentation(
+      Component title,
+      Optional<ResourceLocation> icon,
+      int colour,
+      List<Component> headings,
+      List<Component> tabRows,
+      List<Component> openRows,
+      List<Component> headerRows,
+      ContainerPolicy.Settings policy,
+      List<Component> gestureRows) {
+    public Presentation(
+        Component title,
+        Optional<ResourceLocation> icon,
+        int colour,
+        List<Component> headings,
+        List<Component> tabRows,
+        List<Component> openRows,
+        List<Component> headerRows,
+        ContainerPolicy.Settings policy) {
+      this(
+          title,
+          icon,
+          colour,
+          headings,
+          tabRows,
+          openRows,
+          headerRows,
+          policy,
+          ContainerPolicy.defaultInstructions(policy));
+    }
+
+    public Presentation withGestureRows(List<Component> rows) {
+      return new Presentation(
+          title, icon, colour, headings, tabRows, openRows, headerRows, policy, rows);
+    }
+
+    public List<Component> gestureRows() {
+      return copyRows(gestureRows);
+    }
+
+    public Presentation(
+        Component title,
+        Optional<ResourceLocation> icon,
+        int colour,
+        List<Component> headings,
+        List<Component> tabRows,
+        List<Component> openRows,
+        List<Component> headerRows) {
+      this(
+          title,
+          icon,
+          colour,
+          headings,
+          tabRows,
+          openRows,
+          headerRows,
+          ContainerPolicy.STORAGE.settings());
+    }
+
+    public Presentation withPolicy(ContainerPolicy.Settings policy) {
+      return new Presentation(title, icon, colour, headings, tabRows, openRows, headerRows, policy);
+    }
+
+    public Presentation {
+      title = title.copy();
+      icon = java.util.Objects.requireNonNull(icon);
+      headings = copyRows(headings);
+      tabRows = copyRows(tabRows);
+      openRows = copyRows(openRows);
+      headerRows = copyRows(headerRows);
+      gestureRows = copyRows(gestureRows);
+      java.util.Objects.requireNonNull(policy);
+    }
+
+    public Component title() {
+      return title.copy();
+    }
+
+    public List<Component> headings() {
+      return copyRows(headings);
+    }
+
+    public List<Component> tabRows() {
+      return copyRows(tabRows);
+    }
+
+    public List<Component> openRows() {
+      return copyRows(openRows);
+    }
+
+    public List<Component> headerRows() {
+      return copyRows(headerRows);
+    }
+
+    public static Presentation container(ItemStack stack) {
+      return new Presentation(
+          stack.getHoverName(),
+          Optional.empty(),
+          0xc5aa7b,
+          List.of(),
+          List.of(Component.translatable("screen.mmdlib.container.toggle")),
+          List.of(Component.translatable("screen.mmdlib.container.store")),
+          List.of());
+    }
+  }
+
+  private static List<Component> copyRows(List<Component> rows) {
+    if (rows.size() > 16) throw new IllegalArgumentException("Too many container tooltip rows");
+    return rows.stream().map(Component::copy).map(Component.class::cast).toList();
+  }
 
   /** Public slot presentation, independent of the optional Curios classes. */
   public record SlotInfo(
@@ -20,8 +166,39 @@ public final class EquippedContainers {
       int index,
       boolean cosmetic,
       boolean available,
-      net.minecraft.resources.ResourceLocation icon) {
+      ResourceLocation icon,
+      Component label,
+      List<Component> tooltip,
+      Component placeholder) {
+    public SlotInfo(
+        String identifier, int index, boolean cosmetic, boolean available, ResourceLocation icon) {
+      this(
+          identifier,
+          index,
+          cosmetic,
+          available,
+          icon,
+          Component.literal(identifier),
+          List.of(Component.literal(identifier)),
+          Component.literal("-"));
+    }
+
+    public Component label() {
+      return label.copy();
+    }
+
+    public List<Component> tooltip() {
+      return copyRows(tooltip);
+    }
+
+    public Component placeholder() {
+      return placeholder.copy();
+    }
+
     public SlotInfo {
+      label = label.copy();
+      tooltip = copyRows(tooltip);
+      placeholder = placeholder.copy();
       if (identifier.isBlank()
           || identifier.length() > 128
           || index < 0

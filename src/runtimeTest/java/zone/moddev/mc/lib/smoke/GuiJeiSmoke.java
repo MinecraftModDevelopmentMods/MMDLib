@@ -11,6 +11,56 @@ import zone.moddev.mc.lib.gui.client.MachineScreen;
 
 /** Invoked only when JEI is present, through its registered runtime hooks. */
 public final class GuiJeiSmoke {
+  static void transferOnly(MachineScreen screen) throws Exception {
+    var id = net.minecraft.resources.ResourceLocation.parse("mmdlib:crushing");
+    var host = (zone.moddev.mc.lib.gui.runtime.ScreenHost) screen.getMenu().blockEntity;
+    if (host.screenRecipeSlots(id).length != 0 || host.screenRecipeItems(id).isEmpty())
+      throw new AssertionError("Fixture must expose named recipe destinations only");
+    var field =
+        Class.forName("zone.moddev.mc.lib.client.jei.MachineJei").getDeclaredField("runtime");
+    field.setAccessible(true);
+    var runtime = (IJeiRuntime) field.get(null);
+    var type =
+        runtime
+            .getRecipeManager()
+            .getRecipeType(id, net.minecraft.world.item.crafting.RecipeHolder.class)
+            .orElseThrow();
+    checkTransfer(runtime, screen, type);
+  }
+
+  /** Uses JEI's registered target, including the actual integration's accept callback. */
+  @SuppressWarnings("removal")
+  static java.util.Optional<java.util.function.Consumer<ItemStack>> ghostTarget(
+      MachineScreen screen, ItemStack stack) throws Exception {
+    return ingredientTarget(screen, "ghost", VanillaTypes.ITEM_STACK, stack);
+  }
+
+  @SuppressWarnings("removal")
+  static <T> java.util.Optional<java.util.function.Consumer<T>> ingredientTarget(
+      MachineScreen screen,
+      String elementId,
+      mezz.jei.api.ingredients.IIngredientType<T> type,
+      T stack)
+      throws Exception {
+    var field =
+        Class.forName("zone.moddev.mc.lib.client.jei.MachineJei").getDeclaredField("runtime");
+    field.setAccessible(true);
+    var runtime = (IJeiRuntime) field.get(null);
+    if (runtime == null) throw new AssertionError("JEI runtime unavailable");
+    var ingredient =
+        runtime.getIngredientManager().createTypedIngredient(type, stack, false).orElseThrow();
+    var bounds = screen.bounds(screen.getMenu().bound.screen().find(elementId).orElseThrow());
+    for (var handler : runtime.getScreenHelper().getGhostIngredientHandlers(screen))
+      for (var target : handler.getTargetsTyped(screen, ingredient, true))
+        if (target.getArea().contains(bounds.x() + 2, bounds.y() + 2))
+          return java.util.Optional.of(
+              value -> {
+                target.accept(value);
+                handler.onComplete();
+              });
+    return java.util.Optional.empty();
+  }
+
   @SuppressWarnings("removal")
   public static void check(MachineScreen screen) throws Exception {
     var field =

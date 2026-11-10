@@ -112,7 +112,12 @@ public final class MachineDefinitions {
       }
     }
     return new Node(
-        child.name(), Map.copyOf(attrs), List.copyOf(children), child.source(), child.line());
+        child.name(),
+        Map.copyOf(attrs),
+        List.copyOf(children),
+        child.source(),
+        child.line(),
+        child.namespace());
   }
 
   private static final Map<String, Set<String>> ATTRIBUTES =
@@ -159,7 +164,9 @@ public final class MachineDefinitions {
           Set.of("generator"));
 
   private static void validateTree(Node node) {
-    if (node.name().equals("screen")) return; // Expanded screen is checked against screen.xsd.
+    if (node.name().equals("screen") && node.namespace().equals(ScreenReader.NAMESPACE)) return;
+    if (!node.namespace().equals(ScreenReader.NAMESPACE))
+      throw error(node, "Unknown machine XML namespace: " + node.namespace());
     if (!node.name().equals("generator")) {
       var allowed = ATTRIBUTES.get(node.name());
       if (allowed == null) throw error(node, "Unknown machine element " + node.name());
@@ -499,6 +506,7 @@ public final class MachineDefinitions {
   }
 
   private static void canonical(Node node, StringBuilder text) {
+    token(text, node.namespace());
     token(text, node.name());
     text.append(node.attributes().size()).append(':');
     new TreeMap<>(node.attributes())

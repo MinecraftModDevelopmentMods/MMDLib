@@ -445,7 +445,9 @@ MMDLib supplies the factory/ticker binding. Register capabilities against the re
 XML screens use MMDLib's generic menu, networking, widget renderer and optional JEI integration;
 implement `ScreenHost`, provide the XML file, and bind `block-right-click` to `mmdlib:open_menu`.
 See [block entities](block-entities.md) and [GUI screens](gui-screens.md). Custom machinery may
-still supply its own menus or renderers. Extra factory definitions are not produced for missing
+still supply its own menus or renderers. The [custom fluid element walkthrough](custom-fluid-element.md)
+shows mod-owned storage, persistence, rendering, clicks and namespaced XML registration.
+Extra factory definitions are not produced for missing
 optional mods when their requiredMod gate is set.
 
 ## 8. Verify in a running mod

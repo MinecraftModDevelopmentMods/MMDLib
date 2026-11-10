@@ -32,7 +32,7 @@ public final class MachineResources {
     this.facing = Objects.requireNonNull(facing);
   }
 
-  public MachineResources items(ResourceGroup<IItemHandler> group, ItemStorage storage) {
+  public MachineResources items(ResourceGroup<IItemHandler> group, ItemStore storage) {
     check(group, storage.getSlots(), storage::role);
     add(group, storage);
     group.bind(
@@ -74,14 +74,26 @@ public final class MachineResources {
 
   private void add(ResourceGroup<?> group, Object storage) {
     if (recipeBindings.containsKey(group.id())) throw invalid(group.id(), "duplicate ID");
-    // Membership is indexed by resource type, so a type must share one physical index space.
+    String inventory = group.inventory().isEmpty() ? group.id() : group.inventory();
     for (var binding : bindings.values()) {
       if (binding.group.type() != group.type()) continue;
-      if (binding.storage != storage)
-        throw invalid(group.id(), "use a shared storage for this resource type");
+      if (storage instanceof ItemStore items
+          && binding.storage instanceof ItemStore other
+          && group.members().stream()
+              .anyMatch(
+                  member ->
+                      binding.group.members().stream()
+                          .anyMatch(
+                              previous ->
+                                  items.storage(member) == other.storage(previous)
+                                      && items.localSlot(member) == other.localSlot(previous))))
+        throw invalid(group.id(), "overlapping members");
+      if (binding.storage != storage) continue;
+      inventory = binding.group.inventory();
       if (group.members().stream().anyMatch(binding.group::contains))
         throw invalid(group.id(), "overlapping members");
     }
+    if (group.type() == ResourceType.ITEMS) group.inventory(inventory);
     var binding = new Binding(group, storage);
     bindings.put(group.id(), binding);
     recipeBindings.put(group.id(), List.of(binding));
@@ -98,7 +110,10 @@ public final class MachineResources {
       var binding = bindings.get(id);
       if (binding == null) throw invalid(key, "unknown resource group " + id);
       if (selected.contains(binding)) throw invalid(key, "duplicate resource group " + id);
-      if (!selected.isEmpty() && selected.getFirst().storage != binding.storage)
+      if (!selected.isEmpty()
+          && selected.getFirst().storage != binding.storage
+          && !(selected.getFirst().storage instanceof ItemStore
+              && binding.storage instanceof ItemStore))
         throw invalid(key, "recipe group must use one storage");
       selected.add(binding);
     }
@@ -129,8 +144,8 @@ public final class MachineResources {
                   .mapToInt(Integer::intValue)
                   .toArray();
           SlotGroup group =
-              storage instanceof ItemStorage items
-                  ? StorageGroups.items(items, members)
+              storage instanceof ItemStore
+                  ? itemGroup(values)
                   : storage instanceof FluidStorage fluids
                       ? StorageGroups.fluids(fluids, members)
                       : StorageGroups.energy((EnergyBuffer) storage);
@@ -141,7 +156,7 @@ public final class MachineResources {
         new AutomationInventory(owner, bindings.values().stream().map(Binding::group).toList());
     var filters = new RecipeInputFilters(() -> owner.getLevel(), recipes);
     // Collect by physical slot before installing: overlapping recipe aliases accept the union.
-    var itemRules = new IdentityHashMap<ItemStorage, Map<Integer, List<RecipeInputFilters.Link>>>();
+    var itemRules = new IdentityHashMap<ItemStore, Map<Integer, List<RecipeInputFilters.Link>>>();
     var fluidRules =
         new IdentityHashMap<FluidStorage, Map<Integer, List<RecipeInputFilters.Link>>>();
     inputTypes.forEach(
@@ -150,7 +165,7 @@ public final class MachineResources {
             for (int member : binding.group.members()) {
               var links =
                   types.stream().map(type -> new RecipeInputFilters.Link(type, key)).toList();
-              if (binding.storage instanceof ItemStorage items)
+              if (binding.storage instanceof ItemStore items)
                 itemRules
                     .computeIfAbsent(items, ignored -> new LinkedHashMap<>())
                     .computeIfAbsent(member, ignored -> new ArrayList<>())
@@ -180,6 +195,30 @@ public final class MachineResources {
   public MachineInventory recipes() {
     requireBuilt();
     return recipes;
+  }
+
+  private static ItemGroup itemGroup(List<Binding> bindings) {
+    var names = new IdentityHashMap<ItemStorage, String>();
+    var physical = new LinkedHashMap<String, ItemStorage>();
+    for (var binding : bindings) {
+      var store = (ItemStore) binding.storage;
+      for (int member : binding.group.members()) {
+        var storage = store.storage(member);
+        if (!names.containsKey(storage)) {
+          String name = "inventory_" + names.size();
+          names.put(storage, name);
+          physical.put(name, storage);
+        }
+      }
+    }
+    var combined = new ItemInventories(physical);
+    var members = new ArrayList<Integer>();
+    for (var binding : bindings) {
+      var store = (ItemStore) binding.storage;
+      for (int member : binding.group.members())
+        members.add(combined.index(names.get(store.storage(member)), store.localSlot(member)));
+    }
+    return StorageGroups.items(combined, members.stream().mapToInt(Integer::intValue).toArray());
   }
 
   public AutomationInventory automation() {

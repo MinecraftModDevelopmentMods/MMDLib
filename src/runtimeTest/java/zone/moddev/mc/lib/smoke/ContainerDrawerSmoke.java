@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.smoke;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -10,15 +11,101 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
+
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerNetwork;
 import zone.moddev.mc.lib.gui.runtime.EquippedContainers;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Exercises authoritative transfers through a capability that deliberately has no setter API. */
 final class ContainerDrawerSmoke {
+  private static void providerPresentation(ServerLevel level, MachineMenu menu) {
+    var name = Component.literal("Provider title");
+    var label = Component.literal("Provider row");
+    var status = Component.literal("Provider status");
+    var icon = net.minecraft.resources.ResourceLocation.parse("test:equipment");
+    var presentation =
+        new EquippedContainers.Presentation(
+            name,
+            java.util.Optional.of(icon),
+            0x123456,
+            List.of(Component.literal("Slots"), Component.literal("A"), Component.literal("B")),
+            List.of(status),
+            List.of(status),
+            List.of(status));
+    var description =
+        new EquippedContainers.SlotInfo(
+            "custom", 0, true, false, icon, label, List.of(status), Component.literal("n/a"));
+    name.append(" mutated");
+    label.append(" mutated");
+    status.append(" mutated");
+    require(
+        presentation.title().getString().equals("Provider title")
+            && description.label().getString().equals("Provider row"),
+        "Provider input is detached");
+    ((net.minecraft.network.chat.MutableComponent) presentation.title()).append(" mutated");
+    ((net.minecraft.network.chat.MutableComponent) description.tooltip().getFirst())
+        .append(" mutated");
+    var state =
+        new ContainerDrawerNetwork.State(
+            menu.containerId,
+            true,
+            menu.sessionId(),
+            1,
+            0,
+            true,
+            0,
+            0,
+            1,
+            List.of(new ItemStack(Items.CHEST)),
+            List.of("provider"),
+            List.of(1),
+            List.of(ItemStack.EMPTY),
+            List.of(description),
+            List.of(presentation));
+    var buffer =
+        new net.minecraft.network.RegistryFriendlyByteBuf(
+            io.netty.buffer.Unpooled.buffer(), level.registryAccess());
+    try {
+      ContainerDrawerNetwork.State.CODEC.encode(buffer, state);
+      var decoded = ContainerDrawerNetwork.State.CODEC.decode(buffer);
+      require(
+          decoded.presentations().equals(state.presentations())
+              && decoded.descriptions().equals(state.descriptions()),
+          "Provider title, icon, colour, headings, status, labels and placeholders round trip");
+      require(
+          decoded
+              .descriptions()
+              .getFirst()
+              .tooltip()
+              .getFirst()
+              .getString()
+              .equals("Provider status"),
+          "Presentation accessor is detached");
+    } finally {
+      buffer.release();
+    }
+    boolean rejected = false;
+    try {
+      new EquippedContainers.SlotInfo(
+          "custom",
+          0,
+          false,
+          true,
+          icon,
+          Component.empty(),
+          java.util.Collections.nCopies(17, Component.empty()),
+          Component.empty());
+    } catch (IllegalArgumentException expected) {
+      rejected = true;
+    }
+    require(rejected, "Provider tooltip count is bounded");
+  }
+
   static void check(ServerLevel level, BlockPos pos, Player player) {
     require(!net.neoforged.fml.ModList.get().isLoaded("curios"), "Standalone run has no Curios");
     require(EquippedContainers.find(player).isEmpty(), "Absent optional API is safe");
@@ -26,9 +113,12 @@ final class ContainerDrawerSmoke {
     player.setPos(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5);
     var menu = new MachineMenu(93, player.getInventory(), level.getBlockEntity(pos));
     player.containerMenu = menu;
-    menu.curiosDrawer.refresh();
+    providerPresentation(level, menu);
+    ContainerPolicySmoke.check(menu, player);
+    menu.components().get(BuiltinMenuComponents.CURIOS).refresh();
     require(
-        menu.curiosDrawer.state().equipment() && menu.curiosDrawer.state().icons().isEmpty(),
+        menu.components().get(BuiltinMenuComponents.CURIOS).state().equipment()
+            && menu.components().get(BuiltinMenuComponents.CURIOS).state().icons().isEmpty(),
         "Equipment controller loads safely with Curios absent");
     player.getInventory().clearContent();
     var backing = new ItemStackHandler(70);
@@ -219,9 +309,10 @@ final class ContainerDrawerSmoke {
       receiver.receive(acknowledgement);
       receiver.request(ContainerDrawerMenu.PICKUP, 0, 27).orElseThrow();
       require(receiver.pendingInventory(), "Item transfers wait for authoritative cursor updates");
-      menu.curiosDrawer.receive(decoded);
+      menu.components().get(BuiltinMenuComponents.CURIOS).receive(decoded);
       require(
-          menu.curiosDrawer.state().equipment() && menu.curiosDrawer.state().icons().isEmpty(),
+          menu.components().get(BuiltinMenuComponents.CURIOS).state().equipment()
+              && menu.components().get(BuiltinMenuComponents.CURIOS).state().icons().isEmpty(),
           "Backpack snapshots cannot overwrite the equipment channel");
     } finally {
       buf.release();

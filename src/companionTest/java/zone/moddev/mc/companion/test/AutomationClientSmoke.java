@@ -10,7 +10,9 @@ import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.AutomationLayout;
-import zone.moddev.mc.lib.gui.layout.ScreenLayout;
+import zone.moddev.mc.lib.gui.layout.SideDrawerLayout;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Real client/server round trips, screenshots and item-owned editor transitions. */
 final class AutomationClientSmoke {
@@ -32,18 +34,25 @@ final class AutomationClientSmoke {
   }
 
   static boolean renderTooltipCapture(MachineScreen screen, GuiGraphics graphics, float partial) {
-    if (stage == 2 && !screen.getMenu().automation.filter(0, 0).isEmpty()) {
+    if (stage == 2
+        && !screen
+            .getMenu()
+            .components()
+            .get(BuiltinMenuComponents.AUTOMATION)
+            .filter(0, 0)
+            .isEmpty()) {
       var slot =
           screen
               .getMenu()
               .slots
               .get(
-                  screen.getMenu().automation.slotStart()
+                  screen.getMenu().components().get(BuiltinMenuComponents.AUTOMATION).slotStart()
                       + zone.moddev.mc.lib.api.automation.AutomationInventory.filterSlot(0, 0));
       screen.render(graphics, screen.guiLeft() + slot.x + 6, screen.guiTop() + slot.y + 6, partial);
       return true;
     }
-    if (stage != 8 || !screen.getMenu().automation.open()) return false;
+    if (stage != 8 || !screen.getMenu().components().get(BuiltinMenuComponents.AUTOMATION).open())
+      return false;
     var drawer = automationBounds(screen);
     screen.renderWithTooltip(graphics, drawer.x() + 81, drawer.y() + 52, partial);
     return true;
@@ -52,7 +61,7 @@ final class AutomationClientSmoke {
   static boolean run(MachineScreen screen) {
     var mc = Minecraft.getInstance();
     var menu = screen.getMenu();
-    var a = menu.automation;
+    var a = menu.components().get(BuiltinMenuComponents.AUTOMATION);
     if (screen.guiLeft() != (screen.width - screen.layout.panel().width()) / 2
         || screen.guiTop() != (screen.height - screen.layout.panel().height()) / 2)
       throw new AssertionError("Drawers must never move the centred main panel");
@@ -60,14 +69,18 @@ final class AutomationClientSmoke {
     if (stage == 0) {
       if (a.inventory.groups().size() != 7) throw new AssertionError("Seven colour selectors");
       var info =
-          (zone.moddev.mc.lib.gui.model.Element.Popout)
+          (zone.moddev.mc.lib.gui.model.elements.PopoutElement)
               menu.bound.screen().find("info").orElseThrow();
-      if (info.edge() != zone.moddev.mc.lib.gui.model.Element.Edge.LEFT)
+      if (info.edge() != zone.moddev.mc.lib.gui.model.Edge.LEFT)
         throw new AssertionError("Information stays on the left");
-      var colours = screen.layout.inventoryColors().orElseThrow();
+      var colours = screen.layout.region(PlayerInventoryElement.TOOLBAR).orElseThrow();
       if (!screen.mouseClicked(
           screen.guiLeft() + colours.x() + 3, screen.guiTop() + colours.y() + 3, 0))
         throw new AssertionError("Inventory colour bar opens the first displayed inventory");
+      for (int tick = 0; tick < 99; tick++) a.tick();
+      if (!a.pending()) throw new AssertionError("Automation remains pending before timeout");
+      a.tick();
+      if (a.pending()) throw new AssertionError("Automation timeout unlocks without resync");
       stage++;
       return false;
     }
@@ -117,11 +130,16 @@ final class AutomationClientSmoke {
     if (stage == 3) {
       if (a.editor() != 0) throw new AssertionError("Filter editor opens");
       var exclusions = screen.exclusions();
-      if (exclusions.stream().filter(rect -> rect.x() >= screen.panelBounds().right()).count()
-          != 2 + (screen.getMenu().redstone == null ? 0 : 1))
+      var ownExclusions =
+          screen.drawers().entries().stream()
+              .filter(zone.moddev.mc.lib.gui.client.SideConfigDrawer.class::isInstance)
+              .findFirst()
+              .orElseThrow()
+              .exclusions();
+      if (ownExclusions.size() != 2 || !exclusions.containsAll(ownExclusions))
         throw new AssertionError("Filter must remain inside the existing drawer exclusion");
       var drawer = automationBounds(screen);
-      if (drawer.y() != screen.guiTop() + ScreenLayout.TAB_PADDING
+      if (drawer.y() != screen.guiTop() + SideDrawerLayout.MARGIN
           || drawer.height() <= compactHeight
           || drawer.bottom() <= screen.panelBounds().bottom()
           || drawer.bottom() > screen.drawerBottom())

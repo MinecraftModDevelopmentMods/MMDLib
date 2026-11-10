@@ -10,7 +10,15 @@ import zone.moddev.mc.lib.api.redstone.*;
 import zone.moddev.mc.lib.gui.layout.*;
 
 /** Per-viewer face selection and authoritative built-in redstone configuration. */
-public final class RedstoneMenu {
+public final class RedstoneMenu implements zone.moddev.mc.lib.gui.runtime.component.DrawerSession {
+  public net.minecraft.resources.ResourceLocation drawerType() {
+    return zone.moddev.mc.lib.gui.drawer.BuiltinDrawers.REDSTONE;
+  }
+
+  public void tickClient() {
+    tick();
+  }
+
   public static final int TOGGLE = 0,
       SELECT = 1,
       MODE = 2,
@@ -25,9 +33,9 @@ public final class RedstoneMenu {
   private final MachineMenu menu;
   private final Player owner;
   private final boolean client;
-  private int selected, lastRequest, nextRequest, pending, pendingTicks;
-  private long actionTick = -1;
-  private int actions;
+  private int selected;
+  private final MenuRequests.Client requests = new MenuRequests.Client(100);
+  private final MenuRequests.Server received = new MenuRequests.Server(16);
   private boolean open;
   private RedstoneNetwork.State state, sent;
 
@@ -62,7 +70,7 @@ public final class RedstoneMenu {
   }
 
   public boolean pending() {
-    return pending != 0;
+    return requests.pending();
   }
 
   public long revision() {
@@ -106,27 +114,16 @@ public final class RedstoneMenu {
   }
 
   public boolean send(int kind, int face, int column, int value) {
-    if (pending() || nextRequest == Integer.MAX_VALUE) return false;
-    pending = ++nextRequest;
-    pendingTicks = 0;
+    int request = requests.begin();
+    if (request == 0) return false;
     PacketDistributor.sendToServer(
         new RedstoneNetwork.Action(
-            menu.containerId,
-            menu.widgetSession(),
-            pending,
-            revision(),
-            kind,
-            face,
-            column,
-            value));
+            menu.containerId, menu.sessionId(), request, revision(), kind, face, column, value));
     return true;
   }
 
   public void tick() {
-    if (pending() && ++pendingTicks >= 100) {
-      pending = 0;
-      send(SYNC, selected, 0, 0);
-    }
+    if (requests.tick()) send(SYNC, selected, 0, 0);
   }
 
   public void action(Player player, RedstoneNetwork.Action p) {
@@ -135,18 +132,12 @@ public final class RedstoneMenu {
         || player.containerMenu != menu
         || !menu.stillValid(player)
         || p.menu() != menu.containerId
-        || p.session() != menu.widgetSession()
-        || p.request() <= lastRequest) return;
-    lastRequest = p.request();
-    long tick = player.level().getGameTime();
-    if (tick != actionTick) {
-      actionTick = tick;
-      actions = 0;
-    }
-    if (++actions <= 16) {
+        || p.session() != menu.sessionId()
+        || !received.receive(p.request())) return;
+    if (received.allow(player.level().getGameTime())) {
       if (p.kind() == TOGGLE) {
         open = !open;
-        if (open && menu.automation != null) menu.automation.closeServer();
+        if (open) menu.components().activate(this);
       } else if (open) {
         if (p.kind() == SELECT) selected = p.face();
         else if (p.face() == selected && p.revision() == revision())
@@ -178,13 +169,12 @@ public final class RedstoneMenu {
 
   public void receive(RedstoneNetwork.State p) {
     if (p.menu() != menu.containerId
-        || p.session() != menu.widgetSession()
+        || p.session() != menu.sessionId()
         || state != null && p.revision() < state.revision()) return;
     state = p;
     open = p.open();
     selected = p.selected();
-    nextRequest = Math.max(nextRequest, p.acknowledged());
-    if (p.acknowledged() >= pending) pending = 0;
+    requests.acknowledgeThrough(p.acknowledged());
   }
 
   public void broadcast() {
@@ -203,7 +193,7 @@ public final class RedstoneMenu {
       faces[i * 8 + 7] = inverted(i) ? 1 : 0;
     }
     if (sent == null
-        || sent.acknowledged() != lastRequest
+        || sent.acknowledged() != received.acknowledged()
         || sent.revision() != revision()
         || sent.open() != open
         || sent.selected() != selected
@@ -213,8 +203,8 @@ public final class RedstoneMenu {
       var next =
           new RedstoneNetwork.State(
               menu.containerId,
-              menu.widgetSession(),
-              lastRequest,
+              menu.sessionId(),
+              received.acknowledged(),
               revision(),
               open,
               selected,

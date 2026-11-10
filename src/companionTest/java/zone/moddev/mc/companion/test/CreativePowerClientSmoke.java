@@ -7,6 +7,8 @@ import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.AutomationLayout;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Generator side settings round trip through the actual drawer and server. */
 final class CreativePowerClientSmoke {
@@ -14,7 +16,7 @@ final class CreativePowerClientSmoke {
 
   static boolean run(MachineScreen screen) {
     var menu = screen.getMenu();
-    var automation = menu.automation;
+    var automation = menu.components().get(BuiltinMenuComponents.AUTOMATION);
     if (automation == null) throw new AssertionError("Generator must expose its energy drawer");
     if (automation.pending()) return false;
     int top = RelativeFace.TOP.ordinal();
@@ -30,15 +32,24 @@ final class CreativePowerClientSmoke {
               "Generator drawer places the western crusher on its left when facing south");
         if (!menu.slots.isEmpty()
             || automation.addonsEnabled()
-            || screen.layout.inventory().isPresent()
-            || screen.layout.inventoryColors().isPresent()
-            || !menu.containerDrawer.state().icons().isEmpty()
-            || !menu.curiosDrawer.state().icons().isEmpty())
+            || screen.layout.region(PlayerInventoryElement.INVENTORY).isPresent()
+            || screen.layout.region(PlayerInventoryElement.TOOLBAR).isPresent()
+            || !menu.components().get(BuiltinMenuComponents.BACKPACK).state().icons().isEmpty()
+            || !menu.components().get(BuiltinMenuComponents.CURIOS).state().icons().isEmpty())
           throw new AssertionError("Generator has no inventory, addon slots or equipment drawers");
-        if (menu.stats(0).size() != 3
-            || menu.stats(0).stream().anyMatch(c -> c.getString().contains("RF used")))
+        if (menu.components().require(BuiltinMenuComponents.STATS).pages().get(0).lines().size()
+                != 3
+            || menu
+                .components()
+                .require(BuiltinMenuComponents.STATS)
+                .pages()
+                .get(0)
+                .lines()
+                .stream()
+                .anyMatch(c -> c.getString().contains("RF used")))
           throw new AssertionError("Generator statistics only show output and output limit");
-        if (menu.stats(2).stream().noneMatch(c -> c.getString().contains("1,200,000 RF/min")))
+        if (menu.components().require(BuiltinMenuComponents.STATS).pages().get(2).lines().stream()
+            .noneMatch(c -> c.getString().contains("1,200,000 RF/min")))
           throw new AssertionError("Generator maximum output follows the minute timescale");
         var panel = screen.panelBounds();
         click(screen, panel.right() + 5, panel.y() + AutomationLayout.TOP + 5);

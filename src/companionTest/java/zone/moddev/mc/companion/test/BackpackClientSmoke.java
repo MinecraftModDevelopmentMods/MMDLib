@@ -4,11 +4,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
 import net.neoforged.neoforge.capabilities.Capabilities;
+
 import zone.moddev.mc.lib.gui.client.MachineScreen;
-import zone.moddev.mc.lib.gui.layout.ContainerDrawerLayout;
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Real negotiated client/server coverage for the optional Curios and backpack runtime fixtures. */
 final class BackpackClientSmoke {
@@ -18,20 +20,24 @@ final class BackpackClientSmoke {
   static boolean run(MachineScreen screen) {
     if (!BackpackFixture.installed()) {
       require(
-          screen.getMenu().containerDrawer.state().icons().isEmpty(),
+          screen
+              .getMenu()
+              .components()
+              .get(BuiltinMenuComponents.BACKPACK)
+              .state()
+              .icons()
+              .isEmpty(),
           "No backpack button without optional mods");
       return true;
     }
     var mc = Minecraft.getInstance();
     var menu = screen.getMenu();
-    var drawer = menu.containerDrawer;
+    var drawer = menu.components().get(BuiltinMenuComponents.BACKPACK);
     if (drawer.pending()) return false;
     var state = drawer.state();
     if (step == 5) return verified && state.icons().isEmpty();
     if (state.icons().isEmpty()) return false;
-    var layout =
-        ContainerDrawerLayout.of(
-            screen.panelBounds(), screen.drawerBottom(), state.sizes().get(state.selected()));
+    var layout = DrawerExtensionClientSmoke.containerLayout(screen, false);
     require(layout.pageSize() > 0, "Smoke window has room for storage");
     require(layout.columns() == 6, "Backpack storage wraps at six columns");
     require(
@@ -56,6 +62,10 @@ final class BackpackClientSmoke {
         Screenshot.grab(
             mc.gameDirectory, "backpack-drawer.png", mc.getMainRenderTarget(), message -> {});
         click(screen, layout.cell(0), 1);
+        for (int tick = 0; tick < 19; tick++) drawer.tickClient();
+        require(drawer.pendingInventory(), "Container transfer stays locked before timeout");
+        drawer.tickClient();
+        require(drawer.pendingInventory(), "Recovery sync preserves the inventory lock");
         step++;
       }
       case 2 -> {
@@ -112,7 +122,10 @@ final class BackpackClientSmoke {
                             == 12,
                         "Other storage remains intact");
                     BackpackFixture.unequip(player);
-                    ((MachineMenu) player.containerMenu).containerDrawer.broadcast();
+                    ((MachineMenu) player.containerMenu)
+                        .components()
+                        .get(BuiltinMenuComponents.BACKPACK)
+                        .broadcast();
                     verified = true;
                   } catch (Throwable error) {
                     CompanionClientSmoke.fail(error);

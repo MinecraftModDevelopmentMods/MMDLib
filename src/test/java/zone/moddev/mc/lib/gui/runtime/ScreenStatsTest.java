@@ -198,8 +198,10 @@ class ScreenStatsTest {
     assertFalse(rows.get(1).contains("cycles/"));
   }
 
-  private static List<String> lines(java.util.Map<Integer, Object> values, int unit) {
-    return ((List<?>) values.get(ScreenStats.KEY + unit))
-        .stream().map(Component.class::cast).map(Component::getString).toList();
+  private static List<String> lines(List<StatsPage> values, int unit) {
+    return values.get(unit).lines().stream()
+        .map(Component.class::cast)
+        .map(Component::getString)
+        .toList();
   }
 }

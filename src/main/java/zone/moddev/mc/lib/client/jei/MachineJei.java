@@ -5,9 +5,6 @@ import java.util.*;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
-import net.minecraft.world.item.ItemStack;
-
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.handlers.*;
@@ -21,6 +18,7 @@ import mezz.jei.api.runtime.IJeiRuntime;
 import mezz.jei.api.runtime.IRecipesGui;
 
 import zone.moddev.mc.lib.MMDLib;
+import zone.moddev.mc.lib.gui.client.IngredientDrops;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Element;
@@ -113,11 +111,7 @@ final class MachineJei {
                 if (!types.isEmpty()) {
                   var basic =
                       IGuiClickableArea.createBasic(
-                          r.x(),
-                          r.y(),
-                          r.width(),
-                          r.height(),
-                          types.toArray(RecipeType<?>[]::new));
+                          r.x(), r.y(), r.width(), r.height(), types.toArray(RecipeType<?>[]::new));
                   result.add(clickable(basic, screen, e, (int) mx, (int) my));
                 }
               }
@@ -130,28 +124,27 @@ final class MachineJei {
           @Override
           public <I> List<Target<I>> getTargetsTyped(
               MachineScreen screen, ITypedIngredient<I> ingredient, boolean start) {
-            if (!(ingredient.getIngredient() instanceof ItemStack)) return List.of();
+            var type = JeiIngredientTypes.GLOBAL.find(ingredient.getType()).orElse(null);
+            if (type == null) return List.of();
             var result = new ArrayList<Target<I>>();
-            var menu = screen.getMenu();
-            for (int i = 0; i < menu.elements.size(); i++) {
-              var e = menu.elements.get(i);
-              final int index = i;
-              if (e instanceof Element.Slot slot
-                  && slot.kind() == Element.SlotKind.GHOST
-                  && screen.visible(e))
-                result.add(
-                    new Target<>() {
-                      public Rect2i getArea() {
-                        return rect(screen.bounds(e));
-                      }
+            for (var target :
+                IngredientDrops.targets(
+                    screen.presentation(),
+                    screen.getMenu().elements,
+                    type,
+                    ingredient.getIngredient())) {
+              result.add(
+                  new Target<>() {
+                    public Rect2i getArea() {
+                      return rect(target.bounds());
+                    }
 
-                      public void accept(I value) {
-                        if (value instanceof ItemStack stack)
-                          PacketDistributor.sendToServer(
-                              new ScreenNetwork.Ghost(
-                                  menu.containerId, index, stack.copyWithCount(1)));
-                      }
-                    });
+                    public void accept(I value) {
+                      if (runtime != null
+                          && net.minecraft.client.Minecraft.getInstance().screen == screen)
+                        target.accept().test(value);
+                    }
+                  });
             }
             return result;
           }
@@ -190,7 +183,7 @@ final class MachineJei {
             for (var id : categories) {
               var type = runtime.getRecipeManager().getRecipeType(id);
               if (type.isPresent()
-                  && host.screenRecipeSlots(id).length > 0
+                  && !host.screenRecipeItems(id).isEmpty()
                   && runtime
                       .getRecipeManager()
                       .createRecipeLookup(type.get())
@@ -234,20 +227,15 @@ final class MachineJei {
           public List<Slot> getRecipeSlots(MachineMenu menu, R recipe) {
             if (!(menu.blockEntity instanceof ScreenHost host)) return List.of();
             var result = new ArrayList<Slot>();
-            for (int index : host.screenRecipeSlots(type.getUid())) {
-              var element =
-                  menu.elements.stream()
-                      .filter(
-                          e ->
-                              e instanceof Element.Slot s
-                                  && s.index() == index
-                                  && s.kind() == Element.SlotKind.NORMAL)
-                      .findFirst();
-              if (element.isEmpty()
-                  || !menu.visible(element.get())
-                  || index < 0
-                  || index >= menu.slots.size()) return List.of();
-              result.add(menu.slots.get(index));
+            for (var address : host.screenRecipeItems(type.getUid())) {
+              int menuIndex = menu.menuSlot(address);
+              var element = menu.slotElement(menuIndex);
+              if (element == null
+                  || element.ghost()
+                  || !menu.visible(element)
+                  || menuIndex < 0
+                  || menuIndex >= menu.slots.size()) return List.of();
+              result.add(menu.slots.get(menuIndex));
             }
             return result;
           }

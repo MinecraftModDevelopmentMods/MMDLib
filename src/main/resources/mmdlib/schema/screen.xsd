@@ -7,9 +7,10 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="https://moddev.zone/mmdlib/screen screen.xsd" ...>
 
-  MMDLib validates every screen file against this schema at load, then checks what a schema
-  cannot: references between elements, unique IDs and slot indexes, and the Java getters named
-  by value and max.
+  This is the built-in schema library and editor reference. At runtime ScreenTags supplies
+  the global declarations and placement groups, including registered mod namespaces. The
+  loader compiles a strict schema from that registry and these shared type definitions.
+  Model validation also checks references, unique IDs/slots and Java value/max getters.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns="https://moddev.zone/mmdlib/screen"
@@ -123,6 +124,8 @@
     <xs:attribute name="on-shift-click" type="resourceId"/>
     <xs:attribute name="on-shift-right-click" type="resourceId"/>
     <xs:attribute name="on-hover" type="resourceId"/>
+    <xs:attribute name="interaction" type="resourceId"/>
+    <xs:attribute name="interaction-target" type="xs:string"/>
     <xs:attribute name="hover-shows" type="elementId"/>
     <xs:attribute name="jei-recipes" type="resourceIdList"/>
     <xs:attribute name="offset-x" type="offset"/>
@@ -138,11 +141,13 @@
       <xs:element ref="spacer"/>
       <xs:element ref="custom"/>
       <xs:element ref="group"/>
-      <xs:element ref="slot"/>
+      <xs:element ref="slot"/><xs:element ref="item-slot"/><xs:element ref="ghost-slot"/><xs:element ref="inventory"/>
       <xs:element ref="gauge"/>
+      <xs:element ref="fluid-tank"/>
       <xs:element ref="energy-gauge"/>
       <xs:element ref="meter"/>
       <xs:element ref="progress"/>
+      <xs:element ref="sprite"/><xs:element ref="animated-sprite"/><xs:element ref="progress-sprite"/><xs:element ref="coloured-group"/>
       <xs:element ref="label"/>
       <xs:element ref="button"/>
       <xs:element ref="processor-button"/>
@@ -151,9 +156,22 @@
       <xs:element ref="context"/>
       <xs:element ref="side-config"/>
       <xs:element ref="player-inventory"/>
+      <xs:element ref="player-armour"/>
+      <xs:element ref="player-offhand"/>
       <xs:element ref="placeholder"/>
     </xs:choice>
   </xs:group>
+
+  <xs:element name="property"><xs:complexType>
+    <xs:attribute name="name" type="elementId" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType></xs:element>
+  <xs:group name="slots"><xs:choice><xs:element ref="slot"/><xs:element ref="item-slot"/><xs:element ref="ghost-slot"/></xs:choice></xs:group>
+  <xs:group name="buttons"><xs:choice><xs:element ref="button"/><xs:element ref="processor-button"/></xs:choice></xs:group>
+  <xs:group name="views"><xs:choice><xs:element ref="view"/></xs:choice></xs:group>
+  <xs:group name="radios"><xs:choice><xs:element ref="radio"/></xs:choice></xs:group>
+  <xs:group name="dock"><xs:choice><xs:element ref="side-tab"/><xs:element ref="popout"/></xs:choice></xs:group>
+  <xs:group name="controls"><xs:choice><xs:element ref="inventory-controls"/></xs:choice></xs:group>
 
   <xs:complexType name="container">
     <xs:group ref="widget" minOccurs="0" maxOccurs="unbounded"/>
@@ -168,12 +186,7 @@
     <xs:annotation><xs:documentation>A registered mod widget. Its type validates the named properties at startup.</xs:documentation></xs:annotation>
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="property" minOccurs="0" maxOccurs="unbounded">
-          <xs:complexType>
-            <xs:attribute name="name" type="elementId" use="required"/>
-            <xs:attribute name="value" type="xs:string" use="required"/>
-          </xs:complexType>
-        </xs:element>
+        <xs:element ref="property" minOccurs="0" maxOccurs="unbounded"/>
       </xs:sequence>
       <xs:attributeGroup ref="common"/>
       <xs:attribute name="type" type="resourceId" use="required"/>
@@ -188,11 +201,8 @@
       <xs:choice>
         <xs:sequence>
           <xs:group ref="widget" minOccurs="0" maxOccurs="unbounded"/>
-          <xs:element ref="inventory-controls" minOccurs="0"/>
-          <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element ref="side-tab"/>
-            <xs:element ref="popout"/>
-          </xs:choice>
+          <xs:group ref="controls" minOccurs="0"/>
+          <xs:group ref="dock" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:element ref="fill" minOccurs="1" maxOccurs="unbounded"/>
       </xs:choice>
@@ -214,9 +224,7 @@
   <xs:complexType name="templateContent">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
       <xs:group ref="widget"/>
-      <xs:element ref="inventory-controls"/>
-      <xs:element ref="side-tab"/>
-      <xs:element ref="popout"/>
+      <xs:group ref="controls"/><xs:group ref="dock"/>
     </xs:choice>
     <xs:attribute name="name" type="elementId" use="required"/>
     <xs:attribute name="generator" type="xs:string"/>
@@ -238,10 +246,7 @@
 
   <xs:element name="inventory-controls">
     <xs:complexType>
-      <xs:choice minOccurs="1" maxOccurs="unbounded">
-        <xs:element ref="button"/>
-        <xs:element ref="processor-button"/>
-      </xs:choice>
+      <xs:group ref="buttons" minOccurs="1" maxOccurs="unbounded"/>
       <xs:attributeGroup ref="common"/>
     </xs:complexType>
   </xs:element>
@@ -285,8 +290,8 @@
     </xs:complexType>
   </xs:element>
 
-  <xs:element name="slot">
-    <xs:complexType>
+  <xs:complexType name="slotType">
+
       <xs:complexContent>
         <xs:extension base="leaf">
           <xs:attribute name="index" use="required">
@@ -307,17 +312,32 @@
             </xs:simpleType>
           </xs:attribute>
           <xs:attribute name="tint" type="color"/>
-          <xs:attribute name="icon" type="resourceId"/>
+          <xs:attribute name="icon" type="resourceId"/><xs:attribute name="icon-atlas" type="resourceId"/>
+          <xs:attribute name="background" type="resourceId"/><xs:attribute name="ghost-alpha" type="xs:decimal" default="0.42"/>
+          <xs:attribute name="item-size" type="pixels" default="16"/>
         </xs:extension>
       </xs:complexContent>
+
+  </xs:complexType>
+
+  <xs:element name="slot" type="slotType"/>
+  <xs:element name="item-slot" type="slotType"/>
+  <xs:element name="ghost-slot" type="slotType"/>
+  <xs:element name="inventory">
+    <xs:complexType>
+      <xs:group ref="slots" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:attributeGroup ref="common"/>
+      <xs:attribute name="storage" type="elementId" use="required"/>
+      <xs:attribute name="columns" type="xs:positiveInteger" default="1"/>
+      <xs:attribute name="spacing" type="pixels" default="0"/>
     </xs:complexType>
   </xs:element>
-
   <xs:element name="gauge">
     <xs:annotation><xs:documentation>Glass graduated gauge, 18 px (one slot) thick; at least 8 px long. With color it fills solid; without, value must return a fluid.</xs:documentation></xs:annotation>
     <xs:complexType>
       <xs:complexContent>
         <xs:extension base="leaf">
+          <xs:attribute name="tank" type="xs:nonNegativeInteger"/>
           <xs:attribute name="orientation" type="orientation" default="vertical"/>
           <xs:attribute name="length" type="length" use="required"/>
           <xs:attribute name="color" type="color"/>
@@ -326,8 +346,21 @@
     </xs:complexType>
   </xs:element>
 
+  <xs:element name="fluid-tank">
+    <xs:annotation><xs:documentation>Tank component: owns contents, capacity, tooltip and cursor-container transfers.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="tank" type="xs:nonNegativeInteger" use="required"/>
+          <xs:attribute name="orientation" type="orientation" default="vertical"/>
+          <xs:attribute name="length" type="length" use="required"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
   <xs:element name="energy-gauge">
-    <xs:annotation><xs:documentation>Slim gauge casing with red charge bars, 18 px thick and at least 8 px long. Defaults to #getEnergy / #getEnergyCapacity and an FE tooltip; common attributes override these bindings.</xs:documentation></xs:annotation>
+    <xs:annotation><xs:documentation>EnergyGaugeElement owns snapshots from ScreenHost.screenEnergy and its default FE tooltip. Slim red charge bars, 18 px thick and at least 8 px long. Style and tooltip may be overridden; value and max are not accepted.</xs:documentation></xs:annotation>
     <xs:complexType>
       <xs:complexContent>
         <xs:extension base="leaf">
@@ -359,6 +392,34 @@
       </xs:complexContent>
     </xs:complexType>
   </xs:element>
+
+  <xs:attributeGroup name="spriteSize">
+    <xs:attribute name="width" type="pixels" use="required"/>
+    <xs:attribute name="height" type="pixels" use="required"/>
+    <xs:attribute name="tint" type="color"/>
+  </xs:attributeGroup>
+  <xs:element name="sprite"><xs:complexType>
+    <xs:attributeGroup ref="common"/><xs:attributeGroup ref="spriteSize"/>
+    <xs:attribute name="sprite" type="resourceId" use="required"/>
+  </xs:complexType></xs:element>
+  <xs:element name="animated-sprite"><xs:complexType>
+    <xs:attributeGroup ref="common"/><xs:attributeGroup ref="spriteSize"/>
+    <xs:attribute name="frames" use="required"><xs:simpleType><xs:restriction><xs:simpleType><xs:list itemType="resourceId"/></xs:simpleType><xs:minLength value="1"/></xs:restriction></xs:simpleType></xs:attribute>
+    <xs:attribute name="ticks-per-frame" type="xs:positiveInteger" default="1"/>
+    <xs:attribute name="loop" type="xs:boolean" default="true"/>
+  </xs:complexType></xs:element>
+  <xs:element name="progress-sprite"><xs:complexType>
+    <xs:attributeGroup ref="common"/><xs:attributeGroup ref="spriteSize"/>
+    <xs:attribute name="background" type="resourceId" use="required"/>
+    <xs:attribute name="foreground" type="resourceId" use="required"/>
+    <xs:attribute name="background-tint" type="color"/>
+    <xs:attribute name="direction" type="direction" default="right"/>
+  </xs:complexType></xs:element>
+  <xs:element name="coloured-group"><xs:complexType>
+    <xs:group ref="widget"/>
+    <xs:attributeGroup ref="common"/>
+    <xs:attribute name="color" type="color" use="required"/>
+  </xs:complexType></xs:element>
 
   <xs:element name="progress">
     <xs:complexType>
@@ -426,7 +487,7 @@
   <xs:element name="radio-group">
     <xs:complexType>
       <xs:sequence>
-        <xs:element ref="radio" minOccurs="2" maxOccurs="unbounded"/>
+        <xs:group ref="radios" minOccurs="2" maxOccurs="unbounded"/>
       </xs:sequence>
       <xs:attributeGroup ref="common"/>
       <xs:attribute name="label" type="translationKey"/>
@@ -446,7 +507,7 @@
     <xs:annotation><xs:documentation>An area whose content buttons swap; the first view is the default.</xs:documentation></xs:annotation>
     <xs:complexType>
       <xs:sequence>
-        <xs:element ref="view" minOccurs="2" maxOccurs="unbounded"/>
+        <xs:group ref="views" minOccurs="2" maxOccurs="unbounded"/>
       </xs:sequence>
       <xs:attributeGroup ref="common"/>
     </xs:complexType>
@@ -474,6 +535,8 @@
   </xs:element>
 
   <xs:element name="player-inventory" type="leaf"/>
+  <xs:element name="player-armour" type="leaf"/>
+  <xs:element name="player-offhand" type="leaf"/>
 
   <xs:element name="side-tab">
     <xs:complexType>

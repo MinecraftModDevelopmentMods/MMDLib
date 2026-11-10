@@ -108,7 +108,7 @@ public final class BasePoweredMachineTests {
       var restored = new Probe(helper, mode);
       restored.loadWithComponents(saved, registries);
       require(
-          restored.getEnergy() == 1234 && restored.getEnergyCapacity() == 3210,
+          restored.energy.stored() == 1234 && restored.energy.capacity() == 3210,
           "Base owns power persistence with no lifecycle, a raw lifecycle, or its factory");
       require(
           restored.powerAtRestore == 1234 && restored.featureValue == 7,
@@ -117,7 +117,7 @@ public final class BasePoweredMachineTests {
         require(restored.items.getStackInSlot(0).getCount() == 3, "Custom storage also survives");
       restored.clearContent();
       require(
-          restored.getEnergy() == 0
+          restored.energy.stored() == 0
               && restored.featureValue == 0
               && restored.items.getStackInSlot(0).isEmpty(),
           "Clear includes power even when the subclass omitted it");
@@ -149,7 +149,7 @@ public final class BasePoweredMachineTests {
         client.featureValue == 9 && client.visual == 42 && client.clientReads == 1,
         "Normal update packets carry features and custom renderer state together");
     require(
-        client.getEnergy() == 2345
+        client.energy.stored() == 2345
             && client.items.getStackInSlot(0).getCount() == 4
             && client.metadata == 61
             && client.worldReads == 0,

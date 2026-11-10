@@ -1,15 +1,18 @@
 package zone.moddev.mc.companion.test;
 
 import java.util.List;
+
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
+
 import zone.moddev.mc.companion.*;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.redstone.*;
 import zone.moddev.mc.lib.gui.runtime.*;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 final class RedstoneSmoke {
   static void check(GameTestHelper helper) {
@@ -170,7 +173,7 @@ final class RedstoneSmoke {
       var menu = new MachineMenu(87, player.getInventory(), machine);
       player.containerMenu = menu;
       require(menu.bound.screen().find("redstone").isEmpty(), "Old main-panel control is absent");
-      var drawer = menu.redstone;
+      var drawer = menu.components().get(BuiltinMenuComponents.REDSTONE);
       drawer.action(player, request(menu, 1, RedstoneMenu.TOGGLE, 0, 0));
       require(drawer.open(), "Drawer opens through session-bound action");
       drawer.action(player, request(menu, 2, RedstoneMenu.MODE, 0, 1));
@@ -408,7 +411,7 @@ final class RedstoneSmoke {
         menu.containerId,
         menu.widgetSession(),
         seq,
-        menu.redstone.revision(),
+        menu.components().get(BuiltinMenuComponents.REDSTONE).revision(),
         kind,
         face,
         0,

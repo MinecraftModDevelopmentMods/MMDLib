@@ -4,8 +4,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import zone.moddev.mc.lib.gui.load.BoundValue.Kind;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
+import zone.moddev.mc.lib.gui.value.ValueType;
 
 /**
  * A mod-defined leaf widget's common-side contract. Register it during mod construction, before
@@ -15,10 +15,10 @@ import zone.moddev.mc.lib.gui.model.Element;
  * actions listed here may be invoked by this widget. Their handlers run on the server.
  */
 public record WidgetType(
-    Set<Kind> valueKinds,
-    Consumer<Element.Custom> validator,
+    Set<ValueType<?>> valueKinds,
+    Consumer<CustomElement> validator,
     java.util.List<WidgetAction<?>> actions) {
-  public WidgetType(Set<Kind> valueKinds, Consumer<Element.Custom> validator) {
+  public WidgetType(Set<ValueType<?>> valueKinds, Consumer<CustomElement> validator) {
     this(valueKinds, validator, java.util.List.of());
   }
 

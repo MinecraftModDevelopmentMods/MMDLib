@@ -11,9 +11,10 @@ import net.minecraft.world.item.Items;
 import zone.moddev.mc.companion.ProcessorEntity;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
-import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
+import zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Real clicks and server snapshots for both directions of manual/redstone disagreement. */
 final class ProcessorButtonClientSmoke {
@@ -30,9 +31,8 @@ final class ProcessorButtonClientSmoke {
       throw new AssertionError("Processor button smoke stalled at step " + step);
     if (step > 0 && !ready) return false;
     var menu = screen.getMenu();
-    var button = (Element.Button) menu.bound.screen().find("toggle_0").orElseThrow();
-    if (!button.processorControl())
-      throw new AssertionError("Companion must use the generic control");
+    var button = (ProcessorButtonElement) menu.bound.screen().find("toggle_0").orElseThrow();
+    if (!button.interactive()) throw new AssertionError("Companion must use the generic control");
     var wireState = menu.value(button, false);
     var state = ProcessorButtonState.fromWire(wireState).orElse(null);
     switch (step) {
@@ -54,8 +54,9 @@ final class ProcessorButtonClientSmoke {
                 machine.features.setProcessorPaused("lane_0", false);
               });
       case 1 -> {
-        if (state != ProcessorButtonState.PROCESSING || menu.redstone.watching()) return false;
-        require(!menu.processorConflict(button), "No monitoring means no red dot");
+        if (state != ProcessorButtonState.PROCESSING
+            || menu.components().get(BuiltinMenuComponents.REDSTONE).watching()) return false;
+        require(!button.conflict(menu.value(button, true)), "No monitoring means no red dot");
         tooltip(
             screen,
             button,
@@ -74,13 +75,15 @@ final class ProcessorButtonClientSmoke {
             });
       }
       case 2 -> {
-        if (!menu.redstone.watching()
-            || !menu.redstone.paused()
+        if (!menu.components().get(BuiltinMenuComponents.REDSTONE).watching()
+            || !menu.components().get(BuiltinMenuComponents.REDSTONE).paused()
             || state != ProcessorButtonState.HELD) return false;
         require(
             button.iconFor(wireState).orElseThrow().getPath().equals("icon_processor_stop"),
             "A redstone-held processor retains work and shows Stop");
-        require(menu.processorConflict(button), "Enabled processor conflicts with redstone hold");
+        require(
+            button.conflict(menu.value(button, true)),
+            "Enabled processor conflicts with redstone hold");
         tooltip(
             screen,
             button,
@@ -95,7 +98,9 @@ final class ProcessorButtonClientSmoke {
       case 3 -> {
         if (state != ProcessorButtonState.PAUSED) return false;
         require(
-            menu.redstone.paused() && !menu.processorConflict(button), "Both pause controls agree");
+            menu.components().get(BuiltinMenuComponents.REDSTONE).paused()
+                && !button.conflict(menu.value(button, true)),
+            "Both pause controls agree");
         tooltip(screen, button, "Paused", "Click to unpause");
         require(
             button.iconFor(wireState).orElseThrow().getPath().equals("icon_processor_pause"),
@@ -104,9 +109,9 @@ final class ProcessorButtonClientSmoke {
         server(machine -> machine.redstone.outside(0, true));
       }
       case 4 -> {
-        if (menu.redstone.paused()) return false;
+        if (menu.components().get(BuiltinMenuComponents.REDSTONE).paused()) return false;
         require(
-            state == ProcessorButtonState.PAUSED && menu.processorConflict(button),
+            state == ProcessorButtonState.PAUSED && button.conflict(menu.value(button, true)),
             "Clearing redstone preserves manual pause and shows the conflict");
         tooltip(
             screen,
@@ -121,7 +126,8 @@ final class ProcessorButtonClientSmoke {
       case 5 -> {
         if (state != ProcessorButtonState.PROCESSING) return false;
         require(
-            menu.redstone.watching() && !menu.processorConflict(button),
+            menu.components().get(BuiltinMenuComponents.REDSTONE).watching()
+                && !button.conflict(menu.value(button, true)),
             "Both allow controls agree");
         capture("processor-redstone-run.png");
         server(machine -> machine.energy.setStored(0));
@@ -129,7 +135,8 @@ final class ProcessorButtonClientSmoke {
       case 6 -> {
         if (state != ProcessorButtonState.STALLED) return false;
         require(
-            !menu.processorConflict(button), "Lack of power is not a manual/redstone disagreement");
+            !button.conflict(menu.value(button, true)),
+            "Lack of power is not a manual/redstone disagreement");
         tooltip(
             screen,
             button,
@@ -157,7 +164,8 @@ final class ProcessorButtonClientSmoke {
     return false;
   }
 
-  private static void tooltip(MachineScreen screen, Element.Button button, String... expected) {
+  private static void tooltip(
+      MachineScreen screen, ProcessorButtonElement button, String... expected) {
     var bounds = screen.bounds(button);
     var actual =
         screen.tooltipLines(button, bounds.x(), bounds.y()).stream()
@@ -166,7 +174,7 @@ final class ProcessorButtonClientSmoke {
     require(actual.equals(java.util.List.of(expected)), "Unexpected processor tooltip: " + actual);
   }
 
-  private static void click(MachineScreen screen, Element.Button button) {
+  private static void click(MachineScreen screen, ProcessorButtonElement button) {
     var bounds = screen.bounds(button);
     double x = bounds.x() + bounds.width() / 2., y = bounds.y() + bounds.height() / 2.;
     require(screen.mouseClicked(x, y, 0), "Generic button accepts the real click");

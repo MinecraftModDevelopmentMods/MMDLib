@@ -44,6 +44,8 @@ public final class ScreenLoader {
       Map<ResourceLocation, ScreenReader.Node> embedded,
       ScreenFillGenerator generator) {
     WidgetTypes.GLOBAL.freeze();
+    zone.moddev.mc.lib.gui.value.ValueTypeRegistry.GLOBAL.freeze();
+    ScreenTags.GLOBAL.freeze();
     var discovered = discover(sources);
     var screens = new TreeMap<ResourceLocation, ScreenBinder.Bound>();
     embedded.forEach(
@@ -59,13 +61,22 @@ public final class ScreenLoader {
 
   /** Reads and composes concrete screens without loading host classes, for layout tools. */
   public static Map<ResourceLocation, Screen> read(List<SourceRoot> sources, WidgetTypes widgets) {
-    return read(discover(sources).nodes(), widgets);
+    return read(sources, widgets, ScreenTags.GLOBAL);
+  }
+
+  public static Map<ResourceLocation, Screen> read(
+      List<SourceRoot> sources, WidgetTypes widgets, ScreenTags tags) {
+    return read(discover(sources, tags).nodes(), widgets, ScreenFillGenerator.UNAVAILABLE, tags);
   }
 
   private record Definitions(
       Map<ResourceLocation, ScreenReader.Node> nodes, Map<ResourceLocation, ClassLoader> loaders) {}
 
   private static Definitions discover(List<SourceRoot> sources) {
+    return discover(sources, ScreenTags.GLOBAL);
+  }
+
+  private static Definitions discover(List<SourceRoot> sources, ScreenTags tags) {
     var definitions = new TreeMap<ResourceLocation, ScreenReader.Node>();
     var loaders = new TreeMap<ResourceLocation, ClassLoader>();
     for (var source : sources) {
@@ -76,7 +87,7 @@ public final class ScreenLoader {
             files.filter(Files::isRegularFile).filter(ScreenLoader::isXml).sorted().toList()) {
           var id = id(source.namespace(), folder, file);
           try (var input = Files.newInputStream(file)) {
-            var definition = ScreenReader.parse(file.toString(), input);
+            var definition = ScreenReader.parse(file.toString(), input, tags);
             if (definitions.putIfAbsent(id, definition) != null)
               throw new IllegalArgumentException("Duplicate screen " + id + ": " + file);
             loaders.put(id, source.classLoader());
@@ -99,13 +110,25 @@ public final class ScreenLoader {
       Map<ResourceLocation, ScreenReader.Node> definitions,
       WidgetTypes widgets,
       ScreenFillGenerator generator) {
+    return read(definitions, widgets, generator, ScreenTags.GLOBAL);
+  }
+
+  /** Compiles using an explicit registry, including embedded and generated namespaced nodes. */
+  public static Map<ResourceLocation, Screen> read(
+      Map<ResourceLocation, ScreenReader.Node> definitions,
+      WidgetTypes widgets,
+      ScreenFillGenerator generator,
+      ScreenTags tags) {
+    var validated = new TreeMap<ResourceLocation, ScreenReader.Node>();
+    definitions.forEach((id, node) -> validated.put(id, ScreenReader.validateExpanded(node, tags)));
+    definitions = validated;
     var screens = new TreeMap<ResourceLocation, Screen>();
-    var templates = new ScreenTemplates(definitions, generator);
+    var templates = new ScreenTemplates(definitions, generator, tags);
     // Discover all definitions first: bases may be in later files or another mod.
     for (var id : definitions.keySet()) templates.resolve(id);
     for (var id : definitions.keySet()) {
       if (ScreenTemplates.flag(definitions.get(id), "abstract")) continue;
-      screens.put(id, ScreenReader.build(id, templates.expand(id), widgets));
+      screens.put(id, ScreenReader.build(id, templates.expand(id), widgets, tags));
     }
     return screens;
   }

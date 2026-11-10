@@ -22,6 +22,7 @@ import net.minecraft.resources.ResourceLocation;
  * @param tabs side tabs and pop-outs, in document order
  * @param origins original XML files by element attributes; diagnostic only, excluded from the
  *     fingerprint
+ * @param implicitElements stable automatically supplied player sections, included in traversal
  */
 public record Screen(
     ResourceLocation id,
@@ -31,12 +32,37 @@ public record Screen(
     boolean playerInventory,
     List<Element> body,
     List<Element> tabs,
-    Map<Common, String> origins) {
+    Map<Common, String> origins,
+    List<Element> implicitElements) {
   /** Copies the lists. */
   public Screen {
     body = List.copyOf(body);
     tabs = List.copyOf(tabs);
+    implicitElements = List.copyOf(implicitElements);
     origins = java.util.Collections.unmodifiableMap(new java.util.IdentityHashMap<>(origins));
+  }
+
+  public Screen(
+      ResourceLocation id,
+      String source,
+      Text title,
+      String blockEntity,
+      boolean playerInventory,
+      List<Element> body,
+      List<Element> tabs,
+      Map<Common, String> origins) {
+    this(
+        id,
+        source,
+        title,
+        blockEntity,
+        playerInventory,
+        body,
+        tabs,
+        origins,
+        playerInventory
+            ? zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement.defaults(body, tabs)
+            : List.of());
   }
 
   public Screen(
@@ -55,10 +81,13 @@ public record Screen(
     return origins.getOrDefault(common, source);
   }
 
-  /** Visits every element, depth first in document order: the body, then the tabs. */
+  /**
+   * Visits the body, tabs and implicit sections depth first, preserving stable element identities.
+   */
   public void forEach(Consumer<Element> visitor) {
     body.forEach(element -> visit(element, visitor));
     tabs.forEach(element -> visit(element, visitor));
+    implicitElements.forEach(element -> visit(element, visitor));
   }
 
   /** Every element, depth first in document order. */
@@ -79,7 +108,7 @@ public record Screen(
   public String fingerprint() {
     String model =
         // The implicit equipment slots also change menu numbering, even with identical XML.
-        "equipment-v1|"
+        "equipment-v2|"
             + id
             + "|"
             + title
@@ -90,7 +119,28 @@ public record Screen(
             + "|"
             + body
             + "|"
-            + tabs;
+            + tabs
+            + "|implicit:"
+            + implicitElements
+            + "|element-types:"
+            + elements().stream().map(element -> element.getClass().getName()).toList()
+            + "|state:"
+            + elements().stream()
+                .map(
+                    element ->
+                        element instanceof zone.moddev.mc.lib.gui.sync.SynchronizedElement synced
+                            ? synced.synchronizedValues().stream()
+                                .map(
+                                    field ->
+                                        field.id()
+                                            + "/"
+                                            + field.maxBytes()
+                                            + "/"
+                                            + field.affectsLayout())
+                                .toList()
+                                .toString()
+                            : "-")
+                .toList();
     try {
       return java.util.HexFormat.of()
           .formatHex(

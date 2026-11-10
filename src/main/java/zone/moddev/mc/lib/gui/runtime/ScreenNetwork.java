@@ -6,12 +6,14 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
 
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry;
+import zone.moddev.mc.lib.gui.sync.*;
 
 /** Versioned menu protocol. Every mutation is checked against the sender's current menu. */
 public final class ScreenNetwork {
+  public static final String VERSION = "20";
+
   private ScreenNetwork() {}
 
   private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> type(String name) {
@@ -19,6 +21,16 @@ public final class ScreenNetwork {
   }
 
   public record Values(int menu, Map<Integer, Object> delta) implements CustomPacketPayload {
+    public Values {
+      delta = Collections.unmodifiableMap(new HashMap<>(delta));
+      var states = new HashMap<Integer, ElementStateValue>();
+      delta.forEach(
+          (address, value) -> {
+            if (value instanceof ElementStateValue state) states.put(address, state);
+          });
+      ElementStates.checkBudget(states);
+    }
+
     public static final Type<Values> TYPE = ScreenNetwork.type("values");
     public static final StreamCodec<RegistryFriendlyByteBuf, Values> CODEC =
         StreamCodec.of(
@@ -36,7 +48,18 @@ public final class ScreenNetwork {
               if (count < 0 || count > 65536)
                 throw new IllegalArgumentException("Too many GUI values");
               var values = new HashMap<Integer, Object>();
-              for (int i = 0; i < count; i++) values.put(b.readInt(), ScreenValues.read(b));
+              long stateBytes = 0;
+              for (int i = 0; i < count; i++) {
+                int address = b.readInt();
+                var value = ScreenValues.read(b);
+                if (value instanceof ElementStateValue state) {
+                  stateBytes += state.size() + 8L;
+                  if (stateBytes > ElementStates.MAX_TOTAL_BYTES)
+                    throw new IllegalArgumentException(
+                        "Element states exceed the screen byte budget");
+                }
+                values.put(address, value);
+              }
               return new Values(menu, values);
             });
 
@@ -45,7 +68,7 @@ public final class ScreenNetwork {
     }
   }
 
-  /** kind: handler, navigation button, context back, or side face. */
+  /** Legacy packed button actions. Elements map supported kinds to their declared typed actions. */
   public record Action(int menu, int element, int kind, int button, int modifiers, int option) {
     public int pack() {
       if (element < 0
@@ -73,25 +96,9 @@ public final class ScreenNetwork {
     }
   }
 
-  public record Ghost(int menu, int element, ItemStack stack) implements CustomPacketPayload {
-    public static final Type<Ghost> TYPE = ScreenNetwork.type("ghost");
-    public static final StreamCodec<RegistryFriendlyByteBuf, Ghost> CODEC =
-        StreamCodec.of(
-            (b, p) -> {
-              b.writeVarInt(p.menu);
-              b.writeVarInt(p.element);
-              ItemStack.OPTIONAL_STREAM_CODEC.encode(b, p.stack);
-            },
-            b ->
-                new Ghost(
-                    b.readVarInt(), b.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(b)));
-
-    public Type<Ghost> type() {
-      return TYPE;
-    }
-  }
-
-  /** A menu-session-bound, typed widget action. Its body is bounded before a mod codec runs. */
+  /**
+   * Session-bound typed element action. The original widget wire ID is retained for compatibility.
+   */
   public record Widget(
       int menu, long session, int element, int request, ResourceLocation action, byte[] data)
       implements CustomPacketPayload {
@@ -99,7 +106,7 @@ public final class ScreenNetwork {
       if (element < 0
           || element > 4095
           || request < 1
-          || data.length > zone.moddev.mc.lib.gui.WidgetAction.MAX_BYTES)
+          || data.length > zone.moddev.mc.lib.gui.ElementAction.MAX_BYTES)
         throw new IllegalArgumentException("Widget action outside protocol limits");
       Objects.requireNonNull(action);
       data = data.clone();
@@ -128,7 +135,7 @@ public final class ScreenNetwork {
                     b.readVarInt(),
                     b.readVarInt(),
                     b.readResourceLocation(),
-                    b.readByteArray(zone.moddev.mc.lib.gui.WidgetAction.MAX_BYTES)));
+                    b.readByteArray(zone.moddev.mc.lib.gui.ElementAction.MAX_BYTES)));
 
     public Type<Widget> type() {
       return TYPE;
@@ -143,8 +150,25 @@ public final class ScreenNetwork {
       int request,
       boolean accepted,
       Object value,
-      Object maximum)
+      Object maximum,
+      Map<Integer, ElementStateValue> states)
       implements CustomPacketPayload {
+    public WidgetResult {
+      states = Map.copyOf(states);
+      ElementStates.checkBudget(states);
+    }
+
+    public WidgetResult(
+        int menu,
+        long session,
+        int element,
+        int request,
+        boolean accepted,
+        Object value,
+        Object maximum) {
+      this(menu, session, element, request, accepted, value, maximum, Map.of());
+    }
+
     public static final Type<WidgetResult> TYPE = ScreenNetwork.type("widget_result");
     public static final StreamCodec<RegistryFriendlyByteBuf, WidgetResult> CODEC =
         StreamCodec.of(
@@ -156,6 +180,7 @@ public final class ScreenNetwork {
               b.writeBoolean(p.accepted);
               ScreenValues.write(b, p.value);
               ScreenValues.write(b, p.maximum);
+              writeStates(b, p.states);
             },
             b ->
                 new WidgetResult(
@@ -165,25 +190,49 @@ public final class ScreenNetwork {
                     b.readVarInt(),
                     b.readBoolean(),
                     ScreenValues.read(b),
-                    ScreenValues.read(b)));
+                    ScreenValues.read(b),
+                    readStates(b)));
 
     public Type<WidgetResult> type() {
       return TYPE;
     }
   }
 
-  public static void register(RegisterPayloadHandlersEvent event) {
-    var r = event.registrar("10");
-    AutomationNetwork.register(r);
-    RedstoneNetwork.register(r);
-    ContainerDrawerNetwork.register(r);
+  private static void writeStates(
+      RegistryFriendlyByteBuf buffer, Map<Integer, ElementStateValue> states) {
+    ElementStates.checkBudget(states);
+    buffer.writeVarInt(states.size());
+    states.forEach(
+        (address, value) -> {
+          buffer.writeInt(address);
+          buffer.writeByteArray(value.data());
+        });
+  }
+
+  private static Map<Integer, ElementStateValue> readStates(RegistryFriendlyByteBuf buffer) {
+    int count = buffer.readVarInt();
+    if (count < 0 || count > ElementStates.MAX_FIELDS)
+      throw new IllegalArgumentException("Too many element states");
+    var result = new LinkedHashMap<Integer, ElementStateValue>();
+    long bytes = 0;
+    for (int i = 0; i < count; i++) {
+      int address = buffer.readInt();
+      var value = new ElementStateValue(buffer.readByteArray(ElementSync.MAX_BYTES));
+      bytes += value.size() + 8L;
+      if (bytes > ElementStates.MAX_TOTAL_BYTES || result.putIfAbsent(address, value) != null)
+        throw new IllegalArgumentException("Invalid element state envelope");
+    }
+    return Map.copyOf(result);
+  }
+
+  public static void register(NetworkRegistry.Registrar r) {
     r.playToServer(
         Widget.TYPE,
         Widget.CODEC,
         (p, c) -> {
           if (c.player() instanceof net.minecraft.server.level.ServerPlayer player
               && player.containerMenu instanceof MachineMenu menu) {
-            var result = menu.widgetAction(player, p);
+            var result = menu.elementAction(player, p);
             if (result != null)
               net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, result);
           }
@@ -192,7 +241,7 @@ public final class ScreenNetwork {
         WidgetResult.TYPE,
         WidgetResult.CODEC,
         (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu menu) menu.receiveWidgetResult(p);
+          if (c.player().containerMenu instanceof MachineMenu menu) menu.receiveElementResult(p);
         });
     r.playToClient(
         Values.TYPE,
@@ -200,13 +249,6 @@ public final class ScreenNetwork {
         (p, c) -> {
           if (c.player().containerMenu instanceof MachineMenu menu && menu.containerId == p.menu())
             menu.apply(p.delta());
-        });
-    r.playToServer(
-        Ghost.TYPE,
-        Ghost.CODEC,
-        (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu menu && menu.containerId == p.menu())
-            menu.ghost(c.player(), p.element(), p.stack());
         });
   }
 }

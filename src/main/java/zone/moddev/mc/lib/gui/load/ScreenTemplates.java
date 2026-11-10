@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -16,31 +17,38 @@ final class ScreenTemplates {
   private final Map<ResourceLocation, Node> resolved = new LinkedHashMap<>();
   private final LinkedHashSet<ResourceLocation> visiting = new LinkedHashSet<>();
   private final ScreenFillGenerator generator;
+  private final ScreenTags tags;
 
   ScreenTemplates(Map<ResourceLocation, Node> definitions) {
     this(definitions, ScreenFillGenerator.UNAVAILABLE);
   }
 
   ScreenTemplates(Map<ResourceLocation, Node> definitions, ScreenFillGenerator generator) {
-    this.definitions = Map.copyOf(definitions);
-    this.generator = generator;
-    definitions.values().forEach(ScreenTemplates::validateAttributes);
+    this(definitions, generator, ScreenTags.GLOBAL);
   }
 
-  private static void validateAttributes(Node node) {
-    if (node.name().equals("fill") || node.name().equals("placeholder")) {
+  ScreenTemplates(
+      Map<ResourceLocation, Node> definitions, ScreenFillGenerator generator, ScreenTags tags) {
+    this.definitions = Map.copyOf(definitions);
+    this.generator = generator;
+    this.tags = tags;
+    definitions.values().forEach(this::validateAttributes);
+  }
+
+  private void validateAttributes(Node node) {
+    if (tags.is(node, ScreenTag.Role.FILL) || tags.is(node, ScreenTag.Role.PLACEHOLDER)) {
       boolean generated = node.attributes().containsKey("generator");
       if (generated && ResourceLocation.tryParse(node.attributes().get("generator")) == null)
         throw error(node, "Invalid generator='" + node.attributes().get("generator") + "'");
       for (var key : node.attributes().keySet())
         if (!key.equals("name")
             && !key.equals("generator")
-            && !(node.name().equals("placeholder") && key.equals("required"))
+            && !(tags.is(node, ScreenTag.Role.PLACEHOLDER) && key.equals("required"))
             && !generated)
           throw error(
               node, "Unknown attribute " + key + " on <" + node.name() + "> without a generator");
     }
-    node.children().forEach(ScreenTemplates::validateAttributes);
+    node.children().forEach(this::validateAttributes);
   }
 
   static boolean flag(Node node, String attribute) {
@@ -53,7 +61,7 @@ final class ScreenTemplates {
     if (cached != null) return cached;
     var root = definitions.get(id);
     if (!visiting.add(id)) throw error(root, "Screen inheritance cycle: " + visiting + " -> " + id);
-    if (!root.name().equals("screen")) throw error(root, "Expected a <screen> root");
+    if (!tags.is(root, ScreenTag.Role.DOCUMENT)) throw error(root, "Expected a <screen> root");
     var parent = root.attributes().get("extends");
     Node result = root;
     if (parent != null) {
@@ -64,7 +72,7 @@ final class ScreenTemplates {
       var placeholders = placeholders(base);
       var fills = new LinkedHashMap<String, Node>();
       for (var child : root.children()) {
-        if (!child.name().equals("fill"))
+        if (!tags.is(child, ScreenTag.Role.FILL))
           throw error(child, "An extending screen supplies content through <fill> only");
         var name = child.attributes().get("name");
         if (fills.putIfAbsent(name, child) != null) throw error(child, "Duplicate fill: " + name);
@@ -80,10 +88,12 @@ final class ScreenTemplates {
       for (var attribute : List.of("inventory", "block-entity"))
         if (!attributes.containsKey(attribute) && base.attributes().containsKey(attribute))
           attributes.put(attribute, base.attributes().get(attribute));
-      result = new Node(root.name(), attributes, children, root.source(), root.line());
+      result =
+          new Node(root.name(), attributes, children, root.source(), root.line(), root.namespace());
     } else {
       for (var child : root.children())
-        if (child.name().equals("fill")) throw error(child, "<fill> requires extends on <screen>");
+        if (tags.is(child, ScreenTag.Role.FILL))
+          throw error(child, "<fill> requires extends on <screen>");
     }
     placeholders(result); // Reject ambiguous names, including newly introduced extension points.
     if (!flag(root, "abstract")) {
@@ -102,14 +112,14 @@ final class ScreenTemplates {
     return root.withChildren(expand(id, root.children()));
   }
 
-  private static Map<String, Node> placeholders(Node root) {
+  private Map<String, Node> placeholders(Node root) {
     var found = new LinkedHashMap<String, Node>();
     collect(root, found);
     return found;
   }
 
-  private static void collect(Node node, Map<String, Node> found) {
-    if (node.name().equals("placeholder")) {
+  private void collect(Node node, Map<String, Node> found) {
+    if (tags.is(node, ScreenTag.Role.PLACEHOLDER)) {
       var name = node.attributes().get("name");
       if (found.putIfAbsent(name, node) != null)
         throw error(node, "Duplicate placeholder: " + name);
@@ -122,19 +132,27 @@ final class ScreenTemplates {
     for (var child : node.children()) collect(child, found);
   }
 
-  private static List<Node> apply(
-      List<Node> nodes, Map<String, Node> fills, java.util.Set<String> used) {
+  private List<Node> apply(List<Node> nodes, Map<String, Node> fills, java.util.Set<String> used) {
     var result = new ArrayList<Node>();
     for (var node : nodes) {
       var fill =
-          node.name().equals("placeholder") ? fills.get(node.attributes().get("name")) : null;
+          tags.is(node, ScreenTag.Role.PLACEHOLDER)
+              ? fills.get(node.attributes().get("name"))
+              : null;
       if (fill != null) {
         used.add(node.attributes().get("name"));
         if (fill.attributes().containsKey("generator") && !fill.children().isEmpty())
           throw error(fill, "A generator cannot also supply literal children");
         var attributes = new LinkedHashMap<>(fill.attributes());
         // Keep the extension point so a further descendant can override it again.
-        result.add(new Node(node.name(), attributes, fill.children(), fill.source(), fill.line()));
+        result.add(
+            new Node(
+                node.name(),
+                attributes,
+                fill.children(),
+                fill.source(),
+                fill.line(),
+                node.namespace()));
       } else result.add(node.withChildren(apply(node.children(), fills, used)));
     }
     return result;
@@ -143,7 +161,7 @@ final class ScreenTemplates {
   private List<Node> expand(ResourceLocation id, List<Node> nodes) {
     var result = new ArrayList<Node>();
     for (var node : nodes) {
-      if (node.name().equals("placeholder")) {
+      if (tags.is(node, ScreenTag.Role.PLACEHOLDER)) {
         if (flag(node, "required"))
           throw error(node, "Missing required fill: " + node.attributes().get("name"));
         if (node.attributes().containsKey("generator")) {
@@ -156,10 +174,11 @@ final class ScreenTemplates {
     return result;
   }
 
-  private static void rejectTemplates(Node node) {
-    if (List.of("screen", "placeholder", "fill").contains(node.name()))
+  private void rejectTemplates(Node node) {
+    if (Set.of(ScreenTag.Role.DOCUMENT, ScreenTag.Role.PLACEHOLDER, ScreenTag.Role.FILL)
+        .contains(tags.require(node).role()))
       throw error(node, "Generators must return ordinary screen elements");
-    node.children().forEach(ScreenTemplates::rejectTemplates);
+    node.children().forEach(this::rejectTemplates);
   }
 
   private static ScreenException error(Node node, String message) {

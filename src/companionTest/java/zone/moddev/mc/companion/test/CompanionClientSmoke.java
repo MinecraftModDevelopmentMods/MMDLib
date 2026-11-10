@@ -29,16 +29,20 @@ import zone.moddev.mc.companion.CompanionMod;
 import zone.moddev.mc.companion.ProcessorEntity;
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Opens all four networked menus in an isolated world and captures the rendered screens. */
 @EventBusSubscriber(modid = CompanionMod.ID, value = Dist.CLIENT)
 public final class CompanionClientSmoke {
   private static final BlockPos POS = new BlockPos(0, 100, 0);
+
   /**
-   * Time the whole smoke may take once the title screen is up. Launch time is not counted: it varies
-   * with the machine, and a slow CI runner with software rendering needs most of this budget for the
-   * menus alone. A menu that never renders still fails within 400 ticks (see {@link #tick}).
+   * Time the whole smoke may take once the title screen is up. Launch time is not counted: it
+   * varies with the machine, and a slow CI runner with software rendering needs most of this budget
+   * for the menus alone. A menu that never renders still fails within 400 ticks (see {@link
+   * #tick}).
    */
   private static final long BUDGET_MILLIS = 360_000;
 
@@ -61,6 +65,30 @@ public final class CompanionClientSmoke {
   }
 
   @SubscribeEvent
+  public static void filterRender(ScreenEvent.Render.Post event) {
+    if (Boolean.getBoolean("mmdlib.filterSmokeOnly")
+        && event.getScreen() instanceof MachineScreen) {
+      FilterElementClientSmoke.render(event.getGuiGraphics());
+      FragmentNavigationClientSmoke.render(event.getGuiGraphics());
+    }
+  }
+
+  @SubscribeEvent
+  public static void slotPolicyRender(ScreenEvent.Render.Post event) {
+    if (Boolean.getBoolean("mmdlib.drawerSmokeOnly")
+        && event.getScreen() instanceof MachineScreen screen)
+      ContainerCellClientSmoke.rendered(screen, event.getGuiGraphics());
+    if (Boolean.getBoolean("mmdlib.tooltipSmokeOnly")
+        && event.getScreen() instanceof MachineScreen screen) {
+      ContributedHintClientSmoke.rendered(screen, event.getGuiGraphics());
+      TooltipClientSmoke.render(screen, event.getGuiGraphics());
+    }
+    if (Boolean.getBoolean("mmdlib.reservationSmokeOnly")
+        && event.getScreen() instanceof MachineScreen)
+      SlotPolicyClientSmoke.render(event.getGuiGraphics());
+  }
+
+  @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {
     if (!Boolean.getBoolean("mmdlib.companionSmoke") || finished) return;
     var mc = Minecraft.getInstance();
@@ -68,6 +96,27 @@ public final class CompanionClientSmoke {
       if (System.currentTimeMillis() > deadline)
         throw new AssertionError("Timed out on " + mc.screen);
       if (!started && mc.screen instanceof TitleScreen) {
+        if (Boolean.getBoolean("mmdlib.inheritanceSmokeOnly"))
+          ElementInheritanceClientSmoke.install();
+        if (Boolean.getBoolean("mmdlib.statsSmokeOnly")) StatsExtensionClientSmoke.install();
+        if (Boolean.getBoolean("mmdlib.popoutSmokeOnly")) PopoutClientSmoke.install();
+        if (Boolean.getBoolean("mmdlib.tooltipSmokeOnly")) TooltipClientSmoke.install();
+        if (Boolean.getBoolean("mmdlib.valueTypeSmokeOnly")) ValueTypeClientSmoke.install();
+        if (Boolean.getBoolean("mmdlib.filterSmokeOnly")) {
+          FilterElementClientSmoke.install();
+          FragmentNavigationClientSmoke.install();
+          stage = 4;
+        }
+        if (Boolean.getBoolean("mmdlib.drawerSmokeOnly")) {
+          DrawerExtensionClientSmoke.install();
+          ContainerCellClientSmoke.install();
+        }
+        if (Boolean.getBoolean("mmdlib.rendererSmokeOnly")) ElementRendererClientSmoke.install();
+        if (Boolean.getBoolean("mmdlib.behaviorSmokeOnly")) ElementBehaviorClientSmoke.install();
+        if (Boolean.getBoolean("mmdlib.groupPresentationSmokeOnly")) {
+          GroupPresentationClientSmoke.install();
+          stage = 4;
+        }
         deadline = System.currentTimeMillis() + BUDGET_MILLIS;
         if (!net.neoforged.fml.ModList.get().isLoaded("jade"))
           throw new AssertionError("Jade must be installed in companion runs");
@@ -143,7 +192,10 @@ public final class CompanionClientSmoke {
         if (!DrawerMemoryClientSmoke.run()) return;
         finished = true;
         MMDLib.LOGGER.info(
-            "COMPANION_CLIENT_PASS: all five menus rendered and received their values");
+            Boolean.getBoolean("mmdlib.drawerSmokeOnly")
+                ? "COMPANION_CLIENT_PASS: focused drawers, equipment gestures and cross-machine"
+                    + " restoration"
+                : "COMPANION_CLIENT_PASS: all five menus rendered and received their values");
         mc.stop();
         return;
       }
@@ -242,6 +294,137 @@ public final class CompanionClientSmoke {
     var expected = CompanionMod.MACHINES.get(stage).type.get();
     if (menu.blockEntity.getType() != expected || ++frames < 25) return;
     try {
+      if (Boolean.getBoolean("mmdlib.statsSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!StatsExtensionClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: custom statistics and timescales, page synchronization,"
+                + " cycling, reorder/removal and empty recovery");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.popoutSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!PopoutClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: element-owned popout colour/content, inherited rendering,"
+                + " wrapping and scrolling");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.inheritanceSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!ElementInheritanceClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: inherited element rendering, display/fill overrides and tank"
+                + " bucket transfers");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.tooltipSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!TooltipClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: element/parent tooltip composition, server rows, native item"
+                + " merging and reservations");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.valueTypeSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!ValueTypeClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: custom getter types, mutable snapshots, deltas, null recovery"
+                + " and action correction");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.filterSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!FilterElementClientSmoke.run()
+            || !FragmentNavigationClientSmoke.run()
+            || !AutomationClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: focused filter elements, mod registration, focus/capture,"
+                + " widgets and server editor transitions");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.reservationSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!ReservationClientSmoke.run(screen) || !SlotPolicyClientSmoke.run()) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: focused typed reservation sync, client rules, overlays and"
+                + " clearing");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.drawerSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (stage == 0) {
+          if (!DrawerExtensionClientSmoke.run(screen)
+              || !CuriosClientSmoke.run(screen)
+              || !BackpackClientSmoke.run(screen)
+              || !RedstoneClientSmoke.run(screen)
+              || !StatsClientSmoke.run(screen)) return;
+          ContainerCellClientSmoke.verify();
+          stage = 4;
+        } else {
+          if (!AutomationClientSmoke.run(screen)) return;
+          stage = CompanionMod.MACHINES.size();
+        }
+        opening = false;
+        menuRequested = false;
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.behaviorSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!ElementBehaviorClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: focused element behaviors, typed actions, focus, capture and"
+                + " navigation");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.groupPresentationSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!GroupPresentationClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: focused group labels, mod highlights, coloured groups and"
+                + " fallback outlines");
+        mc.stop();
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.rendererSmokeOnly")) {
+        waitingTicks = 0;
+        frames = 0;
+        if (!ElementRendererClientSmoke.run(screen)) return;
+        finished = true;
+        MMDLib.LOGGER.info(
+            "COMPANION_CLIENT_PASS: focused registered element renderers, mod overrides, popout and"
+                + " context passes");
+        mc.stop();
+        return;
+      }
       if (Boolean.getBoolean("mmdlib.processorButtonSmokeOnly")) {
         waitingTicks = 0;
         frames = 0;
@@ -272,13 +455,14 @@ public final class CompanionClientSmoke {
         waitingTicks = 0;
         return;
       }
-      if (menu.automation != null && menu.bound.screen().playerInventory()) {
-        var row = screen.layout.inventoryColors().orElseThrow();
-        var inventory = screen.layout.inventory().orElseThrow();
+      if (menu.components().get(BuiltinMenuComponents.AUTOMATION) != null
+          && menu.bound.screen().playerInventory()) {
+        var row = screen.layout.region(PlayerInventoryElement.TOOLBAR).orElseThrow();
+        var inventory = screen.layout.region(PlayerInventoryElement.INVENTORY).orElseThrow();
         if (row.x() != inventory.x())
           throw new AssertionError("Colours align with inventory left edge");
-        var firstStorage = zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(inventory, 9);
-        var lastStorage = zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(inventory, 17);
+        var firstStorage = PlayerInventoryElement.slot(inventory, 9);
+        var lastStorage = PlayerInventoryElement.slot(inventory, 17);
         if (row.y() != inventory.y() || row.bottom() + 4 != firstStorage.y())
           throw new AssertionError("Toolbar shares the helmet row directly above inventory slots");
         for (String id : new String[] {"redstone", "toggle_0", "toggle_1"}) {
@@ -294,7 +478,7 @@ public final class CompanionClientSmoke {
         }
       }
       var energy = menu.bound.screen().find("energy").orElseThrow();
-      if (!(energy instanceof zone.moddev.mc.lib.gui.model.Element.EnergyGauge))
+      if (!(energy instanceof zone.moddev.mc.lib.gui.model.elements.EnergyGaugeElement))
         throw new AssertionError("Every companion screen must use the reusable battery gauge");
       if (screen.layout.bounds(energy).right() != screen.layout.panel().width() - 7)
         throw new AssertionError("Energy must sit against the right panel margin");
@@ -386,7 +570,7 @@ public final class CompanionClientSmoke {
           var expectedItem = fluidStage == 2 ? Items.BUCKET : Items.LAVA_BUCKET;
           if (!menu.getCarried().is(expectedItem)) return;
           var bounds = screen.bounds(tank);
-          if (!screen.mouseClicked(bounds.x() + 9, bounds.y() + 24, 0))
+          if (!screen.mouseClicked(bounds.x() + 9, bounds.y() + 24, fluidStage == 2 ? 1 : 0))
             throw new AssertionError("The tank gauge did not handle the container click");
           fluidStage++;
           frames = 0;
@@ -425,7 +609,7 @@ public final class CompanionClientSmoke {
       }
       if (stage < 3) {
         var info =
-            (zone.moddev.mc.lib.gui.model.Element.Popout)
+            (zone.moddev.mc.lib.gui.model.elements.PopoutElement)
                 menu.bound.screen().find("info").orElseThrow();
         var tab = screen.bounds(info);
         if (!info.iconOrDefault().toString().equals("mmdlib:icon_info"))
@@ -436,8 +620,14 @@ public final class CompanionClientSmoke {
           var exclusions = screen.exclusions();
           if (exclusions.size()
                   != 4
-                      + (menu.redstone == null ? 0 : 1)
-                      + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1)
+                      + (menu.components().get(BuiltinMenuComponents.REDSTONE) == null ? 0 : 1)
+                      + (menu.components()
+                              .get(BuiltinMenuComponents.CURIOS)
+                              .state()
+                              .icons()
+                              .isEmpty()
+                          ? 0
+                          : 1)
               || exclusions.get(1).right() != tab.x())
             throw new AssertionError("The drawer must extend left while retaining its icon tab");
           if (exclusions.get(0).bottom() != exclusions.get(1).bottom()
@@ -475,17 +665,20 @@ public final class CompanionClientSmoke {
               throw new AssertionError("Drawer swallowed mouse button " + button);
             if (screen.exclusions().size()
                 != 4
-                    + (menu.redstone == null ? 0 : 1)
-                    + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
+                    + (menu.components().get(BuiltinMenuComponents.REDSTONE) == null ? 0 : 1)
+                    + (menu.components().get(BuiltinMenuComponents.CURIOS).state().icons().isEmpty()
+                        ? 0
+                        : 1))
               throw new AssertionError("Extra mouse button changed the drawer state");
           }
         screen.mouseScrolled(tab.x() - 10, tab.y() + 10, 0, -1);
         screen.mouseClicked(tab.x() + 10, tab.y() + 10, 0);
         if (screen.exclusions().size()
             != 3
-                + (menu.redstone == null ? 0 : 1)
-                + (menu.curiosDrawer.state().icons().isEmpty() ? 0 : 1))
-          throw new AssertionError("The icon tab did not close its drawer");
+                + (menu.components().get(BuiltinMenuComponents.REDSTONE) == null ? 0 : 1)
+                + (menu.components().get(BuiltinMenuComponents.CURIOS).state().icons().isEmpty()
+                    ? 0
+                    : 1)) throw new AssertionError("The icon tab did not close its drawer");
         drawerStage = 0;
         if (stage == 0) {
           fluidStage = 1;

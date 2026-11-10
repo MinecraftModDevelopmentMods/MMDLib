@@ -59,12 +59,9 @@ public abstract class BaseMachine extends BlockEntity
     return RelativeFace.facing(getBlockState());
   }
 
-  public long getEnergy() {
-    return powerStorage() == null ? 0 : powerStorage().stored();
-  }
-
-  public long getEnergyCapacity() {
-    return powerStorage() == null ? 0 : powerStorage().capacity();
+  @Override
+  public EnergyBuffer screenEnergy() {
+    return powerStorage();
   }
 
   /** Common warnings for the inherited info panel; subclasses may append their own messages. */

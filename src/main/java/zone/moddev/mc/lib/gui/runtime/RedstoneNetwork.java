@@ -4,13 +4,17 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
+import zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry;
 
 /**
  * Menu/session-bound commands; a bounded snapshot includes live strengths and configuration
  * revision.
  */
 public final class RedstoneNetwork {
+  public static final String VERSION = "16";
+
   private RedstoneNetwork() {}
 
   public record Action(
@@ -110,20 +114,22 @@ public final class RedstoneNetwork {
     }
   }
 
-  public static void register(PayloadRegistrar r) {
+  public static void register(NetworkRegistry.Registrar r) {
     r.playToServer(
         Action.TYPE,
         Action.CODEC,
         (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu m && m.redstone != null)
-            m.redstone.action(c.player(), p);
+          if (c.player().containerMenu instanceof MachineMenu m
+              && m.components().get(BuiltinMenuComponents.REDSTONE) != null)
+            m.components().get(BuiltinMenuComponents.REDSTONE).action(c.player(), p);
         });
     r.playToClient(
         State.TYPE,
         State.CODEC,
         (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu m && m.redstone != null)
-            m.redstone.receive(p);
+          if (c.player().containerMenu instanceof MachineMenu m
+              && m.components().get(BuiltinMenuComponents.REDSTONE) != null)
+            m.components().get(BuiltinMenuComponents.REDSTONE).receive(p);
         });
   }
 }

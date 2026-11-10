@@ -8,7 +8,9 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import zone.moddev.mc.companion.CompanionWidgets;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
+import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 
 /** Real client focus, text editing, captures, resize, navigation and acknowledged actions. */
 final class CompanionWidgetSmoke {
@@ -35,16 +37,16 @@ final class CompanionWidgetSmoke {
       throw new AssertionError("Inventory shortcut closed focused editor");
   }
 
-  private static boolean nameIs(MachineScreen s, Element.Custom e, String name) {
+  private static boolean nameIs(MachineScreen s, CustomElement e, String name) {
     return s.getMenu().value(e, false) instanceof Component c && c.getString().equals(name);
   }
 
   static boolean run(MachineScreen s) {
     var mc = Minecraft.getInstance();
     var menu = s.getMenu();
-    var name = (Element.Custom) menu.bound.screen().find("name_editor").orElseThrow();
-    var slider = (Element.Custom) menu.bound.screen().find("reserve_slider").orElseThrow();
-    var selector = (Element.Custom) menu.bound.screen().find("lane_selector").orElseThrow();
+    var name = (CustomElement) menu.bound.screen().find("name_editor").orElseThrow();
+    var slider = (CustomElement) menu.bound.screen().find("reserve_slider").orElseThrow();
+    var selector = (CustomElement) menu.bound.screen().find("lane_selector").orElseThrow();
     var n = s.bounds(name);
     var r = s.bounds(slider);
     var l = s.bounds(selector);
@@ -55,17 +57,19 @@ final class CompanionWidgetSmoke {
           throw new AssertionError("View change replaced menu slot");
         if (slot.container == mc.player.getInventory()) {
           var expected =
-              zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(
-                  s.layout.inventory().orElseThrow(), slot.getSlotIndex());
+              PlayerInventoryElement.slot(
+                  s.layout.region(PlayerInventoryElement.INVENTORY).orElseThrow(),
+                  slot.getSlotIndex());
           if (slot.x != expected.x() + 1 || slot.y != expected.y() + 1)
             throw new AssertionError("Resized player slot does not match its background");
         }
       }
       for (var element : menu.elements) {
-        if (element instanceof Element.Slot slotElement) {
-          var slot = menu.slots.get(slotElement.index());
+        if (element instanceof SlotElement slotElement) {
+          var slot = menu.slot(slotElement);
           var expected =
-              zone.moddev.mc.lib.gui.layout.ScreenLayout.itemPosition(s.layout.bounds(element));
+              ((zone.moddev.mc.lib.gui.model.elements.SlotElement) element)
+                  .itemPosition(s.layout.bounds(element));
           if (slot.x != expected[0] || slot.y != expected[1])
             throw new AssertionError("Resized machine slot does not match its background");
         }

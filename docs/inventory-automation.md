@@ -3,13 +3,19 @@
 Implement `ScreenHost.screenAutomation()` to opt a machine into the inventory drawer. Existing
 screens need no new XML element. The host inserts a colour selector row above the player inventory,
 reserves the first right drawer button, and places a second selector vertically inside the drawer.
-Each selection configures one resource group. The reusable `InventoryColorButtonBar` builds the
-buttons automatically from the groups and their screen anchors: screen reading order (rows from
-left to right, stacks from top to bottom), once per group. Groups without a matching anchor follow
-in declaration order; item groups without explicit anchors can use their slot indices. The same
+Each selection configures one resource group. Elements provide associations through
+`Element.associatedGroups`; `GroupOrder` orders their IDs by document traversal, once per group.
+The default matches explicit anchors; `SlotElement` also matches unanchored item groups by named
+inventory and local index. Mods can override these associations directly. Groups without a matching
+element follow in declaration order. The reusable `ColourButtonBar<K>` receives only ordered IDs
+and RGB colours; the drawer maps them to automation selections. The same
 order drives the drawer selector and keyboard navigation, without renumbering saved groups or
 menu slots. F6 focuses the selector; arrow keys change inventory. Overflow scrolls within the
 colour bar instead of covering adjacent controls.
+
+`Element.highlightedGroups` also supplies decoration and emphasis targets, defaulting to the
+element's associations. Mods can override highlight participation independently of ordering;
+the drawer no longer resolves highlight targets directly from resource-group anchor strings.
 
 Place optional machine buttons in a top-level `<inventory-controls>` after the main screen body.
 They align right on the same row as the left-aligned colour bar, against the player inventory's
@@ -35,8 +41,8 @@ screen highlights. Construct it after defining the physical `ItemStorage`, `Flui
 
 ```java
 var resources = new MachineResources(this, this::facing)
-    .items(inputGroup, items)
-    .items(outputGroup, items)
+    .items(inputGroup, inventories.inventory("input"))
+    .items(outputGroup, inventories.inventory("output"))
     .fluids(coolantGroup, fluids)
     .energy(energyGroup, energy)
     .recipeInputs(MyRecipes.PROCESSING, "input", "coolant")
@@ -47,11 +53,15 @@ features.add(new RecipeProcessor("work", MyRecipes.PROCESSING, resources.recipes
 
 Here the supplied groups have IDs `input`, `output`, `coolant` and `energy`. The resulting recipe
 inventory uses those IDs as keys. `recipeGroup("combined", "left", "right")` can define an alternate
-recipe mapping over groups from the same physical storage; it creates no extra automation group.
+recipe mapping over item groups from separate or shared physical storages; it creates no extra
+automation group. Each group's member indexes are local to its backing inventory. Independent
+inventories can both have member zero. `ItemInventories` supplies an optional combined capability
+view without merging their contents or reservation ownership. Addon/filter slots also have an
+independent handler per resource group.
 Finish all bindings/aliases/input links before the single `build()` call.
 
 Validation rejects duplicate group IDs, empty/out-of-range membership, overlapping physical groups,
-role/IO contradictions, and multiple physical storages for the same resource type. A group's active
+and role/IO contradictions. A group's active
 transfer view is restricted to its own members. `recipes()` and `automation()` require a completed
 build. `ScreenInventoryValidation.validate(this)` can validate after construction; menus repeat
 validation on opening, checking real slot bounds, highlight IDs and processor-button targets.
@@ -166,17 +176,79 @@ input, `Number` for bounded numeric values, and `Samples` for a wrapped ghost gr
 by the drawer; tall content scrolls within the available screen space. Counts, nesting, IDs and
 text lengths are bounded. A sample comes from the **server's cursor stack**, without consuming it.
 Standard item samples match item IDs; fluid samples use a fluid container's contents. A filter
-may override sample extraction and validation for stricter matching. Ghost item previews render at
-60% opacity. A toggle may provide separate icons and tooltips for its false/true states; the
+may override sample extraction and validation for stricter matching. Ghost item previews use their slot appearance (42% opacity by default). A toggle may provide separate icons and tooltips for its false/true states; the
 three-argument constructor retains one shared icon and tooltip. The companion's basic item filter
 provides eight ghost cells and white/black list cards for its mode toggle.
 
-For specialised controls, register a common `FilterWidgetType<T>` with a bounded action codec and
+`FilterControl` is an open `Element` interface. Controls own their measurement and server-side
+`edit(FilterControl.Edit)` validation. Its `Box` accepts ordinary elements alongside filter controls;
+the shared `FlowLayout` handles wrapping, and `ElementFragmentLayout` traverses `childLayout` without
+switching on control types. Width-dependent elements can override `measure(text, availableWidth)`.
+`FilterPanelLayout` remains a named-bounds view for integrations.
+
+`FilterControl.Samples` is extensible without another registration. Its inherited renderer and
+behavior call these common-side hooks:
+
+- `sampleDisplay(configuration, index)` chooses the displayed item stack. Defaults map item IDs to
+  items and fluid IDs to buckets; subclasses may interpret other resource types or configuration.
+- `sampleTooltip(configuration, index)` supplies any number of rows. The default names the stack
+  selected by `sampleDisplay`, or shows the empty-sample hint.
+- `sampleSlot(index)` supplies a `SlotElement` for its background, empty icon, item size and ghost
+  opacity. This is presentation only; it does not install a native inventory slot.
+- `cellSize()` supplies the grid pitch (18 pixels by default). `sampleBounds(bounds, index)` can
+  override placement, spacing and cell dimensions. Measurement, rendering, tooltip targeting and
+  clicks share those bounds. During measurement the outer height is zero; base placement on width
+  and the cell index. `sampleIndex(bounds, x, y)` is also overridable; the default checks cells in
+  reverse drawing order, excludes gaps, and clips hits to the control.
+
+For example, a subclass can add a second tooltip row while retaining default sampling and drawing:
+
+```java
+public class DescribedSamples extends FilterControl.Samples {
+    public DescribedSamples(String id, int count, ResourceType<?> resource) {
+        super(id, count, resource);
+    }
+
+    @Override
+    public List<Component> sampleTooltip(CompoundTag configuration, int index) {
+        var rows = new ArrayList<>(super.sampleTooltip(configuration, index));
+        rows.add(Component.translatable("example.sample_help"));
+        return List.copyOf(rows);
+    }
+}
+```
+
+Treat synchronized configuration as read-only. These presentation hooks do not change server-side
+sample extraction or edit validation; inherited clicks still submit the selected index and the
+`sample`/`clear` operation through `FilterEdits`.
+
+On the client, filter elements use `ElementRenderers`, `ElementBehaviors` and `ElementInput`, just
+like screen elements. `ElementFragment` hosts the tree in the drawer's clipped, scrollable viewport.
+The drawer owns attachment changes and transport; individual behaviors own drafts, ghost-grid
+interaction and tooltips. Text and custom-widget state survives ordinary configuration updates.
+Changing the attachment/tree removes old behaviors; moving or resizing the viewport cancels focus
+and capture. Mouse release reaches the capturing control even outside its bounds.
+
+For a new mod-defined control, implement `FilterControl` and register its class with the two client
+registries. In its behavior, submit through the host service:
+
+```java
+FilterEdits.submit(access, element, entryIndex, proposedValue);
+```
+
+`access.value()` is a configuration copy. `FilterEdits` checks pending state, and the host verifies
+that the control belongs to the current fragment. The server resolves the installed control and
+calls its `edit` method on a candidate configuration, followed by the filter's whole-configuration
+validation. The default control implementation refuses edits. No new drawer, layout or network
+type switch is required. Edit strings remain limited to 256 characters.
+
+For the existing typed-widget API, register a common `FilterWidgetType<T>` with a bounded action codec and
 a handler that updates only a candidate configuration. Include `FilterControl.Custom` in the tree.
 On the client, `FilterWidgets.register(type, factory)` supplies a fresh instance per open panel.
 Its access object exposes measured bounds, configuration copies, pending state and a typed
 submitter. The host clips rendering and routes focus, keyboard, pointer dragging, release and
-scroll events. `cancel`/`removed` let controls discard drafts and capture when their attachment,
+scroll events through `FilterCustomBehavior`, an adapter to the same element input/render path.
+There is no separate custom-widget input dispatcher in the drawer. `cancel`/`removed` let controls discard drafts and capture when their attachment,
 layout or selection changes. Client registrations must stay in client-only classes.
 
 The server resolves the current installed item and declared control before any edit. Menu session,

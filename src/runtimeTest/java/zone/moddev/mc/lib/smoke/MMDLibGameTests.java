@@ -16,6 +16,21 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class MMDLibGameTests {
   @GameTest(template = "empty")
+  public static void statisticsPageTransport(GameTestHelper helper) {
+    StatsPageSmoke.check(helper.getLevel().registryAccess());
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void registeredMenuComponents(GameTestHelper helper) {
+    MenuComponentSmoke.check(
+        helper.getLevel(),
+        helper.absolutePos(new BlockPos(2, 1, 2)),
+        helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
   public static void inventoryScreenReferences(GameTestHelper helper) throws Exception {
     InventoryArchitectureSmoke.screenValidation(helper.getLevel());
     helper.succeed();

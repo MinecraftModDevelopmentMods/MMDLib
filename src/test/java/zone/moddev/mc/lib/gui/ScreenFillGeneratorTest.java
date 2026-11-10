@@ -15,7 +15,10 @@ import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.load.*;
 import zone.moddev.mc.lib.gui.load.ScreenReader.Node;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.*;
+import zone.moddev.mc.lib.gui.model.containers.*;
+import zone.moddev.mc.lib.gui.model.elements.ItemSlotElement;
+import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.machine.definition.*;
 
 class ScreenFillGeneratorTest {
@@ -47,8 +50,12 @@ class ScreenFillGeneratorTest {
     assertTrue(screen.find("energy").isEmpty());
     for (int index = 0; index < 2; index++) {
       var tank = screen.find("tank_" + index).orElseThrow();
-      assertEquals("#getTankFluid(" + index + ")", tank.common().value().orElseThrow().text());
-      assertEquals("#getTankCapacity(" + index + ")", tank.common().max().orElseThrow().text());
+      assertInstanceOf(zone.moddev.mc.lib.gui.model.elements.FluidTankElement.class, tank);
+      assertEquals(
+          new zone.moddev.mc.lib.gui.model.ResourceBinding("fluids", index),
+          tank.resourceBinding().orElseThrow());
+      assertTrue(tank.common().value().isEmpty());
+      assertTrue(tank.common().max().isEmpty());
     }
     var layout = ScreenLayout.of(screen, TextMeasure.NONE);
     var tank = layout.bounds(screen.find("tank_0").orElseThrow());
@@ -104,7 +111,7 @@ class ScreenFillGeneratorTest {
     assertTrue(
         screens.get(ResourceLocation.parse("test:manual")).screen().find("manual").isPresent());
     assertInstanceOf(
-        Element.Slot.class,
+        SlotElement.class,
         screens
             .get(ResourceLocation.parse("test:default"))
             .screen()
@@ -133,16 +140,88 @@ class ScreenFillGeneratorTest {
     var screen = screens.get(id).screen();
     assertDoesNotThrow(() -> MachineScreenGenerators.validate(machines.get(id), screen));
     var highlights = MachineScreenGenerators.compileHighlights(machines.get(id), screen);
-    assertEquals(List.of("slot_0"), highlights.get("input"));
-    assertEquals(List.of("slot_1", "slot_2"), highlights.get("output"));
+    assertEquals(List.of("inventory_input"), highlights.get("input"));
+    assertEquals(List.of("inventory_output"), highlights.get("output"));
     assertEquals(List.of("energy"), highlights.get("energy"));
+    class Scope extends BoxElement implements InventoryScope {
+      Scope(List<Element> children) {
+        super(Common.empty(), true, 0, 0, Align.START, children);
+      }
+
+      public String inventory() {
+        return "input";
+      }
+    }
+    var scopedSlot = screen.find("slot_0").orElseThrow();
+    var wrapper = new BoxElement(Common.empty(), true, 0, 0, Align.START, List.of(scopedSlot));
+    var outline =
+        new ColouredGroupElement(
+            screen.find("inventory_input").orElseThrow().common(),
+            0xffffff,
+            new Scope(List.of(wrapper)));
+    var custom =
+        new Screen(
+            screen.id(),
+            screen.source(),
+            screen.title(),
+            screen.blockEntity(),
+            false,
+            List.of(outline),
+            List.of());
+    assertEquals(
+        List.of("inventory_input"),
+        MachineScreenGenerators.compileHighlights(machines.get(id), custom).get("input"));
+    var invalidScoped =
+        new ItemSlotElement(
+            Common.empty(), 1, SlotKind.NORMAL, ((SlotElement) scopedSlot).appearance());
+    var invalidScope =
+        new Screen(
+            screen.id(),
+            screen.source(),
+            screen.title(),
+            screen.blockEntity(),
+            false,
+            List.of(new Scope(List.of(invalidScoped))),
+            List.of());
+    assertThrows(
+        ScreenException.class,
+        () -> MachineScreenGenerators.validate(machines.get(id), invalidScope));
+    int[] validations = {0};
+    var customPolicy =
+        new ItemSlotElement(
+            scopedSlot.common(), 999, SlotKind.NORMAL, ((SlotElement) scopedSlot).appearance()) {
+          public void validateResources(ResourceValidationContext context) {
+            validations[0]++;
+            assertEquals(1, context.inventories().get("input"));
+            assertEquals(2, context.inventories().get("output"));
+            assertFalse(context.bindings().get("processors").isEmpty());
+          }
+
+          public List<String> highlightedGroups(Screen screen, List<ElementGroup> groups) {
+            return List.of("output", "output", "absent");
+          }
+        };
+    var customPolicyScreen =
+        new Screen(
+            screen.id(),
+            screen.source(),
+            screen.title(),
+            screen.blockEntity(),
+            false,
+            List.of(customPolicy),
+            List.of());
+    var customHighlights =
+        MachineScreenGenerators.compileHighlights(machines.get(id), customPolicyScreen);
+    assertEquals(1, validations[0]);
+    assertEquals(List.of(scopedSlot.common().id().orElseThrow()), customHighlights.get("output"));
+    assertTrue(customHighlights.get("input").isEmpty());
     assertThrows(UnsupportedOperationException.class, () -> highlights.put("other", List.of()));
     assertThrows(UnsupportedOperationException.class, () -> highlights.get("input").add("other"));
     assertEquals(
-        List.of(0, 1, 2),
+        List.of(0, 0, 1),
         screen.elements().stream()
-            .filter(e -> e instanceof Element.Slot)
-            .map(e -> ((Element.Slot) e).index())
+            .filter(e -> e instanceof SlotElement slot && !slot.playerInventory())
+            .map(e -> ((SlotElement) e).index())
             .toList());
     assertTrue(screen.find("energy").isPresent());
     assertTrue(screen.find("info").isPresent());

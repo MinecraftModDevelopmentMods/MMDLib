@@ -1,17 +1,20 @@
 package zone.moddev.mc.companion.test;
 
 import java.util.function.Consumer;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.PacketDistributor;
+
 import zone.moddev.mc.lib.gui.client.MachineScreen;
-import zone.moddev.mc.lib.gui.layout.ContainerDrawerLayout;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Networked functional/cosmetic equipment, optional absence, paging and dynamic-slot checks. */
 final class CuriosClientSmoke {
@@ -22,7 +25,7 @@ final class CuriosClientSmoke {
   static boolean run(MachineScreen screen) {
     var mc = Minecraft.getInstance();
     var menu = screen.getMenu();
-    var drawer = menu.curiosDrawer;
+    var drawer = menu.components().get(BuiltinMenuComponents.CURIOS);
     if (reportedStep != step) {
       reportedStep = step;
       zone.moddev.mc.lib.MMDLib.LOGGER.info("CURIOS_DRAWER_STEP {}", step);
@@ -32,36 +35,30 @@ final class CuriosClientSmoke {
       return true;
     }
     if (step == 20) return !drawer.state().open();
-    if (drawer.pending() || menu.containerDrawer.pending()) return false;
+    if (drawer.pending() || menu.components().get(BuiltinMenuComponents.BACKPACK).pending())
+      return false;
     var state = drawer.state();
     if (state.icons().isEmpty()) return false;
-    var layout =
-        ContainerDrawerLayout.equipment(
-            screen.panelBounds(),
-            screen.drawerBottom(),
-            state.sizes().getFirst(),
-            !menu.containerDrawer.state().icons().isEmpty());
+    var layout = DrawerExtensionClientSmoke.containerLayout(screen, true);
     require(
         layout.pageSize() > 0 && layout.body().height() == screen.panelBounds().height() - 8,
         "Full-height equipment drawer fits");
     switch (step) {
       case 0 -> {
-        var bag =
-            ContainerDrawerLayout.of(
-                screen.panelBounds(),
-                screen.drawerBottom(),
-                menu.containerDrawer.state().sizes().getFirst());
+        var bag = DrawerExtensionClientSmoke.containerLayout(screen, false);
         click(screen, bag.tab(), 0);
         step++;
       }
       case 1 -> {
-        if (!menu.containerDrawer.state().open()) return false;
+        if (!menu.components().get(BuiltinMenuComponents.BACKPACK).state().open()) return false;
         click(screen, layout.tab(), 0);
         step++;
       }
       case 2 -> {
         if (!state.open() || state.pageSize() != layout.pageSize()) return false;
-        require(!menu.containerDrawer.state().open(), "Opening Curios closes backpack storage");
+        require(
+            !menu.components().get(BuiltinMenuComponents.BACKPACK).state().open(),
+            "Opening Curios closes backpack storage");
         require(
             state.descriptions().getFirst().identifier().equals("ring")
                 && !state.descriptions().getFirst().cosmetic(),

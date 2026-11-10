@@ -2,10 +2,12 @@ package zone.moddev.mc.companion.test;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+
 import zone.moddev.mc.companion.*;
 import zone.moddev.mc.lib.api.redstone.*;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.*;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Real face controls, crossing range handles, output cycling and sibling exclusion. */
 final class RedstoneClientSmoke {
@@ -15,29 +17,39 @@ final class RedstoneClientSmoke {
   static boolean run(MachineScreen screen) {
     var mc = Minecraft.getInstance();
     var menu = screen.getMenu();
-    var model = menu.redstone;
+    var model = menu.components().get(BuiltinMenuComponents.REDSTONE);
     if (reported != step) {
       reported = step;
       zone.moddev.mc.lib.MMDLib.LOGGER.info("REDSTONE_DRAWER_STEP {}", step);
     }
     if (model == null) throw new AssertionError("Processor must expose redstone drawer");
-    if (model.pending() || menu.automation != null && menu.automation.pending()) return false;
+    if (model.pending()
+        || menu.components().get(BuiltinMenuComponents.AUTOMATION) != null
+            && menu.components().get(BuiltinMenuComponents.AUTOMATION).pending()) return false;
     var panel = screen.panelBounds();
     int x = panel.right() + AutomationLayout.RAIL, y = panel.y() + AutomationLayout.TOP;
     var tab =
-        new Rect(
-            panel.right(),
-            y + AutomationLayout.TAB_HEIGHT + 2,
-            AutomationLayout.RAIL,
-            AutomationLayout.TAB_HEIGHT);
+        screen.drawers().entries().stream()
+            .filter(zone.moddev.mc.lib.gui.client.RedstoneDrawer.class::isInstance)
+            .findFirst()
+            .orElseThrow()
+            .tabBounds();
     switch (step) {
       case 0 -> {
         require(menu.bound.screen().find("redstone").isEmpty(), "Main redstone button removed");
-        if (!model.open()) click(screen, tab, 0);
+        if (!model.open()) {
+          click(screen, tab, 0);
+          for (int tick = 0; tick < 99; tick++) model.tick();
+          require(model.pending(), "Redstone remains pending before timeout");
+          model.tick();
+          require(model.pending(), "Redstone timeout starts a resync request");
+        }
       }
       case 1 -> {
         if (!model.open()) return false;
-        require(!menu.automation.open(), "Redstone excludes inventory drawer on right");
+        require(
+            !menu.components().get(BuiltinMenuComponents.AUTOMATION).open(),
+            "Redstone excludes inventory drawer on right");
         click(screen, RedstoneLayout.face(model.selected()).offset(x, y), 0);
       }
       case 2 -> {
@@ -168,7 +180,8 @@ final class RedstoneClientSmoke {
             0);
       }
       case 14 -> {
-        if (!menu.automation.open() || model.open()) return false;
+        if (!menu.components().get(BuiltinMenuComponents.AUTOMATION).open() || model.open())
+          return false;
         screen.keyPressed(256, 0, 0);
         server(
             player -> {
@@ -182,7 +195,9 @@ final class RedstoneClientSmoke {
             });
       }
       default -> {
-        return ready && !model.open() && !menu.automation.open();
+        return ready
+            && !model.open()
+            && !menu.components().get(BuiltinMenuComponents.AUTOMATION).open();
       }
     }
     step =
@@ -197,13 +212,14 @@ final class RedstoneClientSmoke {
   private static void range(MachineScreen screen, int x, int y, boolean lower, int from, int to) {
     var bar = RedstoneLayout.bar().offset(x, y);
     int mouseY = lower ? bar.y() - 3 : bar.bottom() + 3;
-    int beforeLow = screen.getMenu().redstone.lower(0),
-        beforeHigh = screen.getMenu().redstone.upper(0);
+    int beforeLow = screen.getMenu().components().get(BuiltinMenuComponents.REDSTONE).lower(0),
+        beforeHigh = screen.getMenu().components().get(BuiltinMenuComponents.REDSTONE).upper(0);
     screen.mouseClicked(RedstoneLayout.signalX(bar, from), mouseY, 0);
     screen.mouseDragged(RedstoneLayout.signalX(bar, to), mouseY, 0, (to - from) * 6, 0);
     require(
-        screen.getMenu().redstone.lower(0) == beforeLow
-            && screen.getMenu().redstone.upper(0) == beforeHigh,
+        screen.getMenu().components().get(BuiltinMenuComponents.REDSTONE).lower(0) == beforeLow
+            && screen.getMenu().components().get(BuiltinMenuComponents.REDSTONE).upper(0)
+                == beforeHigh,
         "Dragging previews without applying early");
     screen.mouseReleased(RedstoneLayout.signalX(bar, to), mouseY, 0);
   }

@@ -16,14 +16,19 @@ import zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot;
 import zone.moddev.mc.lib.gui.load.ScreenBinder;
 import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenLoader;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.containers.BoxElement;
+import zone.moddev.mc.lib.gui.model.elements.ButtonElement;
+import zone.moddev.mc.lib.gui.model.elements.LabelElement;
+import zone.moddev.mc.lib.gui.model.elements.PopoutElement;
+import zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement;
+import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 
 class ScreenInheritanceTest {
   @TempDir Path directory;
 
   private static final String NS = " xmlns=\"https://moddev.zone/mmdlib/screen\"";
   private static final String HOST =
-      " block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\"";
+      " block-entity=\"zone.moddev.mc.lib.gui.ElementInteractionTest$Host\"";
 
   private Path write(String id, String attributes, String body) throws Exception {
     var parts = id.split(":", 2);
@@ -69,13 +74,13 @@ class ScreenInheritanceTest {
         "zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine", bound.screen().blockEntity());
     for (var id : List.of("energy", "progress")) {
       var element = bound.screen().find(id).orElseThrow();
-      assertTrue(bound.values().containsKey(element));
-      assertTrue(bound.maxima().containsKey(element));
+      assertEquals(id.equals("progress"), bound.values().containsKey(element));
+      assertEquals(id.equals("progress"), bound.maxima().containsKey(element));
     }
-    var button = (Element.Button) bound.screen().find("toggle_0").orElseThrow();
-    assertTrue(button.processorControl());
+    var button = (ProcessorButtonElement) bound.screen().find("toggle_0").orElseThrow();
+    assertTrue(button.interactive());
     assertTrue(button.processorKey().isEmpty());
-    var info = (Element.Popout) bound.screen().find("info").orElseThrow();
+    var info = (PopoutElement) bound.screen().find("info").orElseThrow();
     assertEquals("test:powered.info", info.text().orElseThrow().key());
     assertTrue(bound.values().containsKey(info));
   }
@@ -103,17 +108,17 @@ class ScreenInheritanceTest {
       var id = "test:" + name;
       var screen = screens.get(ResourceLocation.parse(id)).screen();
       assertEquals(id + ".title", screen.title().key());
-      var label = (Element.Label) screen.find("label").orElseThrow();
+      var label = (LabelElement) screen.find("label").orElseThrow();
       assertEquals(id + ".label", label.text().key());
       assertEquals("Literal {machineId}", label.text().fallback().orElseThrow());
       assertEquals(id + ".tip", label.common().tooltip().orElseThrow().key());
       assertEquals(
           "{value} / {max}", label.common().tooltip().orElseThrow().fallback().orElseThrow());
-      var button = (Element.Button) screen.find("button").orElseThrow();
+      var button = (ButtonElement) screen.find("button").orElseThrow();
       assertEquals(
           List.of(id + ".off", id + ".on"),
           button.valueLabels().stream().map(zone.moddev.mc.lib.gui.model.Text::key).toList());
-      var info = (Element.Popout) screen.find("info").orElseThrow();
+      var info = (PopoutElement) screen.find("info").orElseThrow();
       assertEquals(id + ".info", info.text().orElseThrow().key());
       assertTrue(screen.source(info.common()).endsWith("base.xml"));
     }
@@ -126,7 +131,7 @@ class ScreenInheritanceTest {
             .get(ResourceLocation.parse("test:custom"));
     assertEquals(
         "custom.info",
-        ((Element.Popout) custom.screen().find("info").orElseThrow()).text().orElseThrow().key());
+        ((PopoutElement) custom.screen().find("info").orElseThrow()).text().orElseThrow().key());
   }
 
   @Test
@@ -138,8 +143,8 @@ class ScreenInheritanceTest {
     var screen =
         ScreenLoader.read(List.of(source("test")), new zone.moddev.mc.lib.gui.WidgetTypes())
             .get(ResourceLocation.parse("test:child"));
-    var button = (Element.Button) screen.find("toggle").orElseThrow();
-    assertTrue(button.processorControl());
+    var button = (ProcessorButtonElement) screen.find("toggle").orElseThrow();
+    assertTrue(button.interactive());
     assertTrue(button.processorKey().isEmpty());
     assertTrue(screen.source(button.common()).endsWith("base.xml"));
   }
@@ -172,13 +177,14 @@ class ScreenInheritanceTest {
     assertEquals(1, loaded.size());
     var bound = loaded.get(ResourceLocation.parse("test:child"));
     var screen = bound.screen();
-    var row = (Element.Box) screen.body().getFirst();
+    var row = (BoxElement) screen.body().getFirst();
     assertEquals(4, row.children().size());
-    assertEquals(2, ((Element.Slot) row.children().getFirst()).index());
-    assertEquals(5, ((Element.Slot) row.children().get(2)).index());
+    assertEquals(2, ((SlotElement) row.children().getFirst()).index());
+    assertEquals(5, ((SlotElement) row.children().get(2)).index());
     var energy = screen.find("energy").orElseThrow();
-    assertTrue(bound.values().containsKey(energy));
-    assertTrue(bound.maxima().containsKey(energy));
+    assertFalse(bound.values().containsKey(energy));
+    assertFalse(bound.maxima().containsKey(energy));
+    assertEquals("energy", energy.resourceBinding().orElseThrow().kind());
     assertTrue(screen.playerInventory());
     assertTrue(screen.source(energy.common()).endsWith("base.xml"));
     assertTrue(screen.source(row.children().getFirst().common()).endsWith("child.xml"));
@@ -198,7 +204,7 @@ class ScreenInheritanceTest {
                 source("test"), new SourceRoot("other", directory.resolve("other"), inaccessible)));
     assertEquals(1, loaded.size());
     assertInstanceOf(
-        Element.Label.class,
+        LabelElement.class,
         loaded.get(ResourceLocation.parse("test:a_child")).screen().body().getFirst());
   }
 
@@ -219,7 +225,11 @@ class ScreenInheritanceTest {
         "extends=\"test:middle\" title=\"test.child\"" + HOST,
         "<fill name=\"input\"><slot index=\"0\"/></fill><fill name=\"optional\"/>");
     var screen = load().get(ResourceLocation.parse("test:child")).screen();
-    assertEquals(2, screen.elements().stream().filter(e -> e instanceof Element.Slot).count());
+    assertEquals(
+        2,
+        screen.elements().stream()
+            .filter(e -> e instanceof SlotElement slot && !slot.playerInventory())
+            .count());
     assertTrue(screen.find("default").isEmpty());
   }
 
@@ -316,7 +326,9 @@ class ScreenInheritanceTest {
 
   @Test
   void inheritedBindingErrorsNameBaseAndDoNotMutateOtherChildren() throws Exception {
-    base("<vbox><energy-gauge value=\"#missing\"/><placeholder name=\"machine\"/></vbox>");
+    base(
+        "<vbox><meter thickness=\"5\" length=\"54\" color=\"#FFFFFF\" value=\"#missing\""
+            + " max=\"#getEnergyCapacity\"/><placeholder name=\"machine\"/></vbox>");
     child("<fill name=\"machine\"><slot index=\"0\"/></fill>");
     assertTrue(failure("missing").contains("base.xml:2"));
     base("<placeholder name=\"machine\"/>");
@@ -327,12 +339,11 @@ class ScreenInheritanceTest {
     var loaded = load();
     assertEquals(
         0,
-        ((Element.Slot) loaded.get(ResourceLocation.parse("test:child")).screen().body().getFirst())
+        ((SlotElement) loaded.get(ResourceLocation.parse("test:child")).screen().body().getFirst())
             .index());
     assertEquals(
         5,
-        ((Element.Slot)
-                loaded.get(ResourceLocation.parse("test:second")).screen().body().getFirst())
+        ((SlotElement) loaded.get(ResourceLocation.parse("test:second")).screen().body().getFirst())
             .index());
   }
 

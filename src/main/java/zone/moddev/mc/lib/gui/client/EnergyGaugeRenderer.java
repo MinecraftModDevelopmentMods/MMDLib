@@ -3,7 +3,8 @@ package zone.moddev.mc.lib.gui.client;
 import net.minecraft.client.gui.GuiGraphics;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.Orientation;
+import zone.moddev.mc.lib.gui.model.elements.EnergyGaugeElement;
 
 /** Thin, lightly glossy charge bars inside the shared slim casing, without graduations. */
 final class EnergyGaugeRenderer {
@@ -12,8 +13,8 @@ final class EnergyGaugeRenderer {
 
   private EnergyGaugeRenderer() {}
 
-  static void draw(GuiGraphics g, Rect r, Element.EnergyGauge gauge, double ratio) {
-    boolean vertical = gauge.orientation() == Element.Orientation.VERTICAL;
+  static void draw(GuiGraphics g, Rect r, EnergyGaugeElement gauge, double ratio) {
+    boolean vertical = gauge.orientation() == Orientation.VERTICAL;
     int length = vertical ? r.height() : r.width();
     GaugeRenderer.background(g, r, vertical);
     int inside = length - 4;
@@ -33,8 +34,7 @@ final class EnergyGaugeRenderer {
         if (lit >= 3) {
           fill(g, r, vertical, 3, 2 + position, 12, 1, shade(gauge.color(), -22));
         }
-        if (lit >= 2)
-          fill(g, r, vertical, 4, 1 + position + lit, 10, 1, shade(gauge.color(), 28));
+        if (lit >= 2) fill(g, r, vertical, 4, 1 + position + lit, 10, 1, shade(gauge.color(), 28));
       }
       position += size + 1;
     }
@@ -54,13 +54,22 @@ final class EnergyGaugeRenderer {
 
   /** Coordinates run from the bottom upwards, or left to right for a horizontal gauge. */
   private static void fill(
-      GuiGraphics g, Rect r, boolean vertical, int cross, int along, int width, int length, int color) {
+      GuiGraphics g,
+      Rect r,
+      boolean vertical,
+      int cross,
+      int along,
+      int width,
+      int length,
+      int color) {
     if (width <= 0 || length <= 0) return;
     if (vertical)
-      g.fill(r.x() + cross, r.bottom() - along - length,
-          r.x() + cross + width, r.bottom() - along, color);
-    else
-      g.fill(r.x() + along, r.y() + cross,
-          r.x() + along + length, r.y() + cross + width, color);
+      g.fill(
+          r.x() + cross,
+          r.bottom() - along - length,
+          r.x() + cross + width,
+          r.bottom() - along,
+          color);
+    else g.fill(r.x() + along, r.y() + cross, r.x() + along + length, r.y() + cross + width, color);
   }
 }

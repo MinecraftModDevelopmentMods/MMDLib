@@ -232,7 +232,14 @@ public final class MachineSmoke {
     }
 
     public int[] screenRecipeSlots(ResourceLocation category) {
+      if (Boolean.getBoolean("mmdlib.transferSmokeOnly")) return new int[0];
       return new int[] {0};
+    }
+
+    public java.util.List<zone.moddev.mc.lib.api.capabilities.ItemInventories.Address>
+        screenRecipeItems(ResourceLocation category) {
+      return java.util.List.of(
+          new zone.moddev.mc.lib.api.capabilities.ItemInventories.Address("items", 0));
     }
 
     Counter(BlockEntityType<Counter> type, BlockPos pos, BlockState state) {

@@ -18,6 +18,7 @@ import io.netty.buffer.Unpooled;
 import zone.moddev.mc.lib.api.*;
 import zone.moddev.mc.lib.gui.Screens;
 import zone.moddev.mc.lib.gui.load.*;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 import zone.moddev.mc.lib.gui.runtime.*;
 import zone.moddev.mc.lib.smoke.MachineSmoke.Counter;
 
@@ -124,8 +125,51 @@ public final class GuiRuntimeChecks {
                   .ordinal()
               == before,
           "Hidden side action");
-      require(menu.ghost(player, ghost, new ItemStack(Items.DIAMOND, 64)), "Ghost filter rejected");
+      var selected = ghostPacket(player, menu, ghost, 1, new ItemStack(Items.DIAMOND, 64));
+      require(
+          menu.elementAction(
+                  player,
+                  new ScreenNetwork.Widget(
+                      menu.containerId,
+                      menu.widgetSession() + 1,
+                      ghost,
+                      1,
+                      selected.action(),
+                      selected.data()))
+              == null,
+          "Stale ghost session accepted");
+      require(menu.elementAction(player, selected).accepted(), "Ghost filter rejected");
       require(entity.ghost.getCount() == 1 && entity.ghost.is(Items.DIAMOND), "Ghost filter count");
+      require(menu.elementAction(player, selected) == null, "Ghost request replayed");
+      require(
+          !menu.elementAction(
+                  player,
+                  ghostPacket(
+                      player, menu, index(menu, "input_slot"), 2, new ItemStack(Items.STONE)))
+              .accepted(),
+          "Real slot accepted ghost action");
+      require(
+          !menu.elementAction(
+                  player,
+                  new ScreenNetwork.Widget(
+                      menu.containerId,
+                      menu.widgetSession(),
+                      ghost,
+                      3,
+                      selected.action(),
+                      new byte[] {0, 1}))
+              .accepted(),
+          "Trailing ghost payload accepted");
+      require(
+          menu.elementAction(player, ghostPacket(player, menu, ghost, 4, ItemStack.EMPTY))
+                  .accepted()
+              && entity.ghost.isEmpty(),
+          "Ghost clear rejected");
+      require(
+          menu.elementAction(
+                  player, ghostPacket(player, menu, ghost, 5, new ItemStack(Items.DIAMOND)))
+              .accepted(),
+          "Ghost reselection rejected");
       var originalSlots = java.util.List.copyOf(menu.slots);
       var originalPanel = menu.layout().panel();
       menu.clickMenuButton(player, new ScreenNetwork.Action(73, nav, 1, 0, 0, 0).pack());
@@ -135,14 +179,20 @@ public final class GuiRuntimeChecks {
         require(slot == originalSlots.get(i), "Context replaced slot identity");
         if (slot.container == player.getInventory()) {
           var r =
-              zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(
-                  menu.layout().inventory().orElseThrow(), slot.getSlotIndex());
+              PlayerInventoryElement.slot(
+                  menu.layout().region(PlayerInventoryElement.INVENTORY).orElseThrow(),
+                  slot.getSlotIndex());
           require(
               slot.x == r.x() + 1 && slot.y == r.y() + 1, "Player slot layout after navigation");
         }
       }
       require(menu.slots.get(1).isActive() && !menu.slots.get(0).isActive(), "Context visibility");
-      require(!menu.ghost(player, ghost, new ItemStack(Items.STONE)), "Hidden ghost changed");
+      require(
+          !menu.elementAction(
+                  player, ghostPacket(player, menu, ghost, 6, new ItemStack(Items.STONE)))
+              .accepted(),
+          "Hidden ghost changed");
+      require(entity.ghost.is(Items.DIAMOND), "Rejected ghost action mutated selection");
       menu.clickMenuButton(player, new ScreenNetwork.Action(73, config, 3, 0, 0, 0).pack());
       require(
           entity
@@ -154,9 +204,11 @@ public final class GuiRuntimeChecks {
           "Side config unchanged");
       int calls = entity.guiReads;
       menu.broadcastChanges();
+      int sampled = entity.guiReads;
+      require(sampled >= calls && sampled <= calls + 1, "Broadcast sampled getters more than once");
       var secondMenu = new MachineMenu(74, player.getInventory(), entity);
       secondMenu.broadcastChanges();
-      require(entity.guiReads == calls + 1, "Getters recomputed for each viewer");
+      require(entity.guiReads == sampled, "Getters recomputed for each viewer");
       var first = new HashMap<Integer, Object>();
       for (int i = 0; i < menu.elements.size(); i++) {
         var e = menu.elements.get(i);
@@ -180,14 +232,28 @@ public final class GuiRuntimeChecks {
       require(!rich.equals(textCopy), "Nested text snapshot aliases machine");
       var fluid = entity.getGuiWater();
       var snapshot = (FluidStack) ScreenValues.snapshot(fluid, player.registryAccess());
+      var withoutRegistries = (FluidStack) ScreenValues.snapshot(fluid);
       fluid.setAmount(10);
       require(snapshot.getAmount() == 500, "Fluid snapshot aliases machine");
+      require(withoutRegistries.getAmount() == 500, "Registry-free fluid copy aliases machine");
+      var item = new ItemStack(Items.IRON_INGOT, 3);
+      var itemCopy = (ItemStack) ScreenValues.snapshot(item);
+      item.setCount(1);
+      require(itemCopy.getCount() == 3, "Registry-free item copy aliases machine");
       player.containerMenu = previous;
+      require(
+          menu.elementAction(player, ghostPacket(player, menu, ghost, 7, ItemStack.EMPTY)) == null,
+          "Closed menu accepted ghost action");
       menu.clickMenuButton(player, new ScreenNetwork.Action(73, action, 0, 0, 0, 0).pack());
       require(entity.clicks == clicks + 1, "Stale menu action executed");
       double x = player.getX(), y = player.getY(), z = player.getZ();
       player.setPos(x + 100, y, z);
       require(!menu.stillValid(player), "Out-of-reach menu valid");
+      player.containerMenu = menu;
+      require(
+          menu.elementAction(player, ghostPacket(player, menu, ghost, 7, ItemStack.EMPTY)) == null,
+          "Out-of-reach ghost action accepted");
+      player.containerMenu = previous;
       player.setPos(x, y, z);
       zone.moddev.mc.lib.MMDLib.LOGGER.info(
           "MMDLIB_GUI_RUNTIME_PASS: hidden slots, actions, ghost filters, side configuration,"
@@ -199,6 +265,18 @@ public final class GuiRuntimeChecks {
 
   private static int index(MachineMenu menu, String id) {
     return menu.elements.indexOf(menu.bound.screen().find(id).orElseThrow());
+  }
+
+  private static ScreenNetwork.Widget ghostPacket(
+      ServerPlayer player, MachineMenu menu, int element, int request, ItemStack stack) {
+    var action = zone.moddev.mc.lib.gui.model.elements.GhostSlotElement.SELECT_GHOST;
+    return new ScreenNetwork.Widget(
+        menu.containerId,
+        menu.widgetSession(),
+        element,
+        request,
+        action.id(),
+        action.encode(player.registryAccess(), stack));
   }
 
   private static void require(boolean condition, String label) {

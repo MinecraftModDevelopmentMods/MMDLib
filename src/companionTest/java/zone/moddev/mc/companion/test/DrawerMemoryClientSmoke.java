@@ -2,11 +2,12 @@ package zone.moddev.mc.companion.test;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+
 import zone.moddev.mc.companion.CompanionMod;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
-import zone.moddev.mc.lib.gui.layout.ContainerDrawerLayout;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Reopens different real machine types on the same connection, including an explicit close. */
 final class DrawerMemoryClientSmoke {
@@ -24,22 +25,33 @@ final class DrawerMemoryClientSmoke {
       zone.moddev.mc.lib.MMDLib.LOGGER.info("DRAWER_MEMORY_STEP {}", step);
     }
     if (++waitTicks > 160)
-      throw new AssertionError("Drawer memory timed out at step " + step
-          + "; reopening=" + reopenAfterClose + "; client=" + describeClient(mc)
-          + "; server=" + serverMenu);
+      throw new AssertionError(
+          "Drawer memory timed out at step "
+              + step
+              + "; reopening="
+              + reopenAfterClose
+              + "; client="
+              + describeClient(mc)
+              + "; server="
+              + serverMenu);
     if (waitTicks == 1 || waitTicks % 20 == 0)
-      server(player -> serverMenu = player.containerMenu.getClass().getSimpleName()
-          + "#" + player.containerMenu.containerId);
+      server(
+          player ->
+              serverMenu =
+                  player.containerMenu.getClass().getSimpleName()
+                      + "#"
+                      + player.containerMenu.containerId);
     if (reopenAfterClose != null) {
       var target = reopenAfterClose;
-      server(player -> {
-        // The client close packet and server.execute use different queues. Never open a
-        // replacement menu until the server has actually handled the vanilla close.
-        if (reopenAfterClose == target && player.containerMenu == player.inventoryMenu) {
-          reopenAfterClose = null;
-          ScreenRuntime.open(player, player.serverLevel().getBlockEntity(target));
-        }
-      });
+      server(
+          player -> {
+            // The client close packet and server.execute use different queues. Never open a
+            // replacement menu until the server has actually handled the vanilla close.
+            if (reopenAfterClose == target && player.containerMenu == player.inventoryMenu) {
+              reopenAfterClose = null;
+              ScreenRuntime.open(player, player.serverLevel().getBlockEntity(target));
+            }
+          });
       return false;
     }
     if (step == 0) {
@@ -69,15 +81,14 @@ final class DrawerMemoryClientSmoke {
     boolean first = menu.blockEntity.getBlockPos().equals(FIRST);
     boolean second = menu.blockEntity.getBlockPos().equals(SECOND);
     if (!first && !second
-        || menu.containerDrawer.pending()
-        || menu.curiosDrawer.pending()
-        || menu.automation != null && menu.automation.pending()) return false;
-    var bag = menu.containerDrawer.state();
-    var curios = menu.curiosDrawer.state();
+        || menu.components().get(BuiltinMenuComponents.BACKPACK).pending()
+        || menu.components().get(BuiltinMenuComponents.CURIOS).pending()
+        || menu.components().get(BuiltinMenuComponents.AUTOMATION) != null
+            && menu.components().get(BuiltinMenuComponents.AUTOMATION).pending()) return false;
+    var bag = menu.components().get(BuiltinMenuComponents.BACKPACK).state();
+    var curios = menu.components().get(BuiltinMenuComponents.CURIOS).state();
     if (bag.keys().isEmpty()) return false;
-    var bagLayout =
-        ContainerDrawerLayout.of(
-            screen.panelBounds(), screen.drawerBottom(), bag.sizes().getFirst());
+    var bagLayout = DrawerExtensionClientSmoke.containerLayout(screen, false);
     switch (step) {
       case 1 -> {
         if (!first) return false;
@@ -95,20 +106,23 @@ final class DrawerMemoryClientSmoke {
             bag.keys().get(bag.selected()).equals("back:0"),
             "Same equipped container restored across machines");
         screen.keyPressed(256, 0, 0);
+        require(
+            menu.components().get(BuiltinMenuComponents.BACKPACK).pending(),
+            "Explicit close awaits acknowledgment");
+        // Close the screen before that acknowledgment: the user's intent must survive capture.
+        open(FIRST);
         advance();
       }
       case 4 -> {
-        if (bag.open()) return false;
-        open(FIRST);
+        if (!first || waitTicks < 15) return false;
+        require(!bag.open(), "Pending explicit close is remembered on another machine");
         advance();
       }
       case 5 -> {
         if (!first || waitTicks < 15) return false;
         require(!bag.open(), "Explicit close is remembered on another machine");
         if (curios.icons().isEmpty()) return false;
-        var layout =
-            ContainerDrawerLayout.equipment(
-                screen.panelBounds(), screen.drawerBottom(), curios.sizes().getFirst(), true);
+        var layout = DrawerExtensionClientSmoke.containerLayout(screen, true);
         click(screen, layout.tab());
         advance();
       }
@@ -127,8 +141,9 @@ final class DrawerMemoryClientSmoke {
       }
       case 8 -> {
         if (curios.open()) return false;
-        if (menu.automation == null) throw new AssertionError("Fixture has automation");
-        if (!menu.automation.open()) {
+        if (menu.components().get(BuiltinMenuComponents.AUTOMATION) == null)
+          throw new AssertionError("Fixture has automation");
+        if (!menu.components().get(BuiltinMenuComponents.AUTOMATION).open()) {
           var panel = screen.panelBounds();
           click(screen, new Rect(panel.right(), panel.y() + 4, 22, 24));
           return false;
@@ -146,12 +161,15 @@ final class DrawerMemoryClientSmoke {
         advance();
       }
       case 9 -> {
-        if (!first || menu.automation == null || !menu.automation.open()) return false;
+        if (!first
+            || menu.components().get(BuiltinMenuComponents.AUTOMATION) == null
+            || !menu.components().get(BuiltinMenuComponents.AUTOMATION).open()) return false;
         require(
             !bag.open() && !curios.open(),
             "Closed left drawers remain closed while right drawer restores");
         // Deliberately drop a configuration request instead of sending it to the server.
-        menu.containerDrawer
+        menu.components()
+            .get(BuiltinMenuComponents.BACKPACK)
             .request(zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu.SYNC, 0, bag.pageSize())
             .orElseThrow();
         var slot =
@@ -169,7 +187,8 @@ final class DrawerMemoryClientSmoke {
       case 10 -> {
         // The normal pending guard above waits for the one-second SYNC recovery.
         require(waitTicks >= 15, "Lost acknowledgment exercised timeout recovery");
-        menu.containerDrawer
+        menu.components()
+            .get(BuiltinMenuComponents.BACKPACK)
             .request(zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu.PICKUP, 0, bag.pageSize())
             .orElseThrow();
         int exclusions = screen.exclusions().size();
@@ -187,11 +206,15 @@ final class DrawerMemoryClientSmoke {
       case 11 -> {
         if (!second || waitTicks < 15) return false;
         require(
-            !bag.open() && !curios.open() && !menu.automation.open(),
+            !bag.open()
+                && !curios.open()
+                && !menu.components().get(BuiltinMenuComponents.AUTOMATION).open(),
             "Logout clears drawer preferences before the next screen");
-        if (menu.redstone != null) {
+        if (menu.components().get(BuiltinMenuComponents.REDSTONE) != null) {
           require(
-              menu.redstone.send(zone.moddev.mc.lib.gui.runtime.RedstoneMenu.SYNC, 0, 0, 0),
+              menu.components()
+                  .get(BuiltinMenuComponents.REDSTONE)
+                  .send(zone.moddev.mc.lib.gui.runtime.RedstoneMenu.SYNC, 0, 0, 0),
               "Redstone sync is pending before the next client tick");
           require(!screen.keyPressed(65, 0, 0), "Pending redstone does not swallow unrelated keys");
           screen.keyPressed(256, 0, 0);
@@ -202,12 +225,14 @@ final class DrawerMemoryClientSmoke {
       }
       case 12 -> {
         if (!first || waitTicks < 15) return false;
-        if (!menu.automation.open()) {
+        if (!menu.components().get(BuiltinMenuComponents.AUTOMATION).open()) {
           var panel = screen.panelBounds();
           click(screen, new Rect(panel.right(), panel.y() + 4, 22, 24));
           return false;
         }
-        require(menu.automation.send("select", 0, 0, "", 0, ""), "Automation request is pending");
+        require(
+            menu.components().get(BuiltinMenuComponents.AUTOMATION).send("select", 0, 0, "", 0, ""),
+            "Automation request is pending");
         screen.keyPressed(256, 0, 0);
         require(
             mc.screen != screen, "Escape closes immediately during a pending automation request");
@@ -216,13 +241,13 @@ final class DrawerMemoryClientSmoke {
       }
       case 13 -> {
         if (!second || waitTicks < 15) return false;
-        if (!menu.automation.open()) {
+        if (!menu.components().get(BuiltinMenuComponents.AUTOMATION).open()) {
           var panel = screen.panelBounds();
           click(screen, new Rect(panel.right(), panel.y() + 4, 22, 24));
           return false;
         }
         require(
-            menu.automation.send("select", 0, 0, "", 0, ""),
+            menu.components().get(BuiltinMenuComponents.AUTOMATION).send("select", 0, 0, "", 0, ""),
             "Second automation request is pending");
         screen.keyPressed(69, 0, 0);
         require(mc.screen != screen, "Inventory key closes during a pending automation request");
@@ -240,11 +265,21 @@ final class DrawerMemoryClientSmoke {
   private static String describeClient(Minecraft mc) {
     if (!(mc.screen instanceof MachineScreen screen)) return String.valueOf(mc.screen);
     var menu = screen.getMenu();
-    return "MachineMenu#" + menu.containerId + " at " + menu.blockEntity.getBlockPos()
-        + ", backpackPending=" + menu.containerDrawer.pending()
-        + ", curiosPending=" + menu.curiosDrawer.pending()
-        + ", automation=" + (menu.automation == null ? "absent"
-            : "open:" + menu.automation.open() + ",pending:" + menu.automation.pending());
+    return "MachineMenu#"
+        + menu.containerId
+        + " at "
+        + menu.blockEntity.getBlockPos()
+        + ", backpackPending="
+        + menu.components().get(BuiltinMenuComponents.BACKPACK).pending()
+        + ", curiosPending="
+        + menu.components().get(BuiltinMenuComponents.CURIOS).pending()
+        + ", automation="
+        + (menu.components().get(BuiltinMenuComponents.AUTOMATION) == null
+            ? "absent"
+            : "open:"
+                + menu.components().get(BuiltinMenuComponents.AUTOMATION).open()
+                + ",pending:"
+                + menu.components().get(BuiltinMenuComponents.AUTOMATION).pending());
   }
 
   private static void advance() {

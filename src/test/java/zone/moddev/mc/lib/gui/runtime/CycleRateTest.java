@@ -6,6 +6,8 @@ import java.math.BigInteger;
 
 import org.junit.jupiter.api.Test;
 
+import zone.moddev.mc.lib.api.stats.CounterRate;
+
 class CycleRateTest {
   @Test
   void roundsToTwoDecimalsBeforeGrouping() {

@@ -100,7 +100,7 @@ public final class CrusherSmoke {
             MaterialEventTypes.GUI_CLICK,
             click -> ((Crusher) click.menu().blockEntity).toggleInterrupt());
     String xml =
-        """
+"""
 <screen xmlns="https://moddev.zone/mmdlib/screen" title="crusher.title" title-fallback="Crusher"
         block-entity="zone.moddev.mc.lib.smoke.CrusherSmoke$Crusher">
   <vbox padding="7" spacing="4">
@@ -150,14 +150,14 @@ public final class CrusherSmoke {
   }
 
   /** Ore in slot 0, products in 1 and 2, the byproduct in 3, water and energy beside them. */
-  public static final class Crusher extends BlockEntity implements ScreenHost, DropsContents, Clearable {
+  public static final class Crusher extends BlockEntity
+      implements ScreenHost, DropsContents, Clearable {
     public final Capped items = capped(this::setChanged);
     public IItemHandlerModifiable menuItems = items;
     public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
     public final EnergyBuffer energy =
         new EnergyBuffer(10_000_000_000L, 1_000).onChange(this::setChanged);
-    public final FeatureHost host =
-        new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
+    public final FeatureHost host = new FeatureHost(this::setChanged, () -> FeatureSync.send(this));
     public final RecipeProcessor processor;
 
     Crusher(BlockEntityType<Crusher> type, BlockPos pos, BlockState state) {
@@ -312,7 +312,8 @@ public final class CrusherSmoke {
 
     reset(menu, player, items, stack(iron, 50), takeOne);
     menu.clicked(0, 2, ClickType.SWAP, player);
-    require(count(items) == 1 && player.getInventory().getItem(2).getCount() == 49,
+    require(
+        count(items) == 1 && player.getInventory().getItem(2).getCount() == 49,
         "swap moves only unreserved items to an empty hotbar slot");
     require(totalIron(player, items) == 50, "swap duplicates nothing");
     reset(menu, player, items, stack(iron, 50), takeOne);
@@ -323,13 +324,15 @@ public final class CrusherSmoke {
     reset(menu, player, items, stack(iron, 50), takeOne);
     player.getInventory().setItem(2, stack(iron, 20));
     menu.clicked(0, 2, ClickType.SWAP, player);
-    require(count(items) == 21 && player.getInventory().getItem(2).getCount() == 49,
+    require(
+        count(items) == 21 && player.getInventory().getItem(2).getCount() == 49,
         "same-item swap preserves the reserved portion");
     require(totalIron(player, items) == 70, "same-item swap conserves items");
     reset(menu, player, items, stack(iron, 50), takeOne);
     player.getInventory().setItem(40, ItemStack.EMPTY);
     menu.clicked(0, 40, ClickType.SWAP, player);
-    require(count(items) == 1 && player.getInventory().getItem(40).getCount() == 49,
+    require(
+        count(items) == 1 && player.getInventory().getItem(40).getCount() == 49,
         "offhand swap moves only the free portion");
     player.getInventory().setItem(40, ItemStack.EMPTY);
 
@@ -416,19 +419,33 @@ public final class CrusherSmoke {
     var server = new MachineMenu(85, player.getInventory(), crusher);
     var client = new MachineMenu(86, player.getInventory(), crusher, true) {};
     client.getSlot(0).set(stack(Items.IRON_INGOT, 10));
-    var snapshot = server.reservationSnapshot();
-    require(snapshot.get(MachineMenu.PLAN_KEYS) instanceof SlotPlan sent && sent.sameAs(plan),
+    var snapshot = server.components().snapshot();
+    require(
+        server
+            .components()
+            .state(
+                server
+                    .components()
+                    .require(
+                        zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents
+                            .RESERVATIONS),
+                zone.moddev.mc.lib.gui.runtime.slot.ReservationMenuComponent.PLANS)
+            .get(0)
+            .sameAs(plan),
         "Wrapped storage publishes its reservation");
     client.apply(snapshot);
     server.clicked(0, 0, ClickType.PICKUP, player);
     client.clicked(0, 0, ClickType.PICKUP, player);
-    require(server.getCarried().getCount() == 7 && client.getCarried().getCount() == 7,
+    require(
+        server.getCarried().getCount() == 7 && client.getCarried().getCount() == 7,
         "Both sides take only the free portion");
-    require(server.getSlot(0).getItem().getCount() == 3 && client.getSlot(0).getItem().getCount() == 3,
+    require(
+        server.getSlot(0).getItem().getCount() == 3 && client.getSlot(0).getItem().getCount() == 3,
         "Both sides display the reserved remainder outside interactions");
     crusher.items.setPlan(0, SlotPlan.NONE);
-    client.apply(zone.moddev.mc.lib.gui.runtime.ScreenValues.changed(
-        snapshot, server.reservationSnapshot(), false));
+    client.apply(
+        zone.moddev.mc.lib.gui.runtime.ScreenValues.changed(
+            snapshot, server.components().snapshot(), false));
     client.setCarried(ItemStack.EMPTY);
     client.clicked(0, 0, ClickType.PICKUP, player);
     require(client.getCarried().getCount() == 3, "A released wrapper plan reaches the client");
@@ -524,10 +541,10 @@ public final class CrusherSmoke {
       rows.add(new Row(name + "1 iron take 1", stack(iron, 1), takeOne, none, none, action));
       rows.add(new Row(name + "2 iron, add gold", stack(iron, 2), jam, none, none, action));
       rows.add(new Row(name + "no plan", stack(iron, 50), SlotPlan.NONE, none, none, action));
-      rows.add(new Row(name + "gold in hotbar", stack(iron, 50), takeOne, none, hotbarGold, action));
+      rows.add(
+          new Row(name + "gold in hotbar", stack(iron, 50), takeOne, none, hotbarGold, action));
     }
-    BiConsumer<MachineMenu, ServerPlayer> place =
-        (m, p) -> m.clicked(0, 0, ClickType.PICKUP, p);
+    BiConsumer<MachineMenu, ServerPlayer> place = (m, p) -> m.clicked(0, 0, ClickType.PICKUP, p);
     var addIron = new SlotPlan(1, stack(iron, 2));
     var addGold = new SlotPlan(0, stack(gold, 1));
     for (var carried :
@@ -566,8 +583,7 @@ public final class CrusherSmoke {
       crusher.items.setStackInSlot(0, ItemStack.EMPTY);
       var onClient = outcome(client, player, row, null, clientItems);
       require(
-          onServer.equals(onClient),
-          row.name() + ": server " + onServer + ", client " + onClient);
+          onServer.equals(onClient), row.name() + ": server " + onServer + ", client " + onClient);
     }
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
   }

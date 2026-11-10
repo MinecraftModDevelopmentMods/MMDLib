@@ -45,7 +45,13 @@ public final class SimpleLavaFurnaceTests {
   public static void tankTooltipDescribesContentsAndEachViewersContainer(GameTestHelper h) {
     var machine = place(h);
     var gauge = Screens.get(ID).orElseThrow().screen().find("tank_0").orElseThrow();
-    var empty = machine.screenTankTooltip(gauge, ItemStack.EMPTY);
+    var displayFluid = new FluidStack(Fluids.LAVA, 250);
+    require(gauge.displayValue(displayFluid).equals(250), "Tank owns fluid display conversion");
+    require(gauge.fillRatio(displayFluid, 1000) == .25, "Tank owns fluid fill ratio");
+    require(
+        gauge.displayText(displayFluid, false).getString().equals("250"), "Fluid display amount");
+    require(displayFluid.getAmount() == 250, "Presentation does not mutate synchronized fluid");
+    var empty = gauge.tooltip(machine, ItemStack.EMPTY);
     require(empty.size() == 3 && empty.getFirst().getString().equals("fuel"), "Group name first");
     require(
         ((net.minecraft.network.chat.contents.TranslatableContents) empty.get(1).getContents())
@@ -55,8 +61,8 @@ public final class SimpleLavaFurnaceTests {
     machine.fluids.fill(new FluidStack(Fluids.LAVA, 100), FluidAction.EXECUTE);
     var lava = new ItemStack(Items.LAVA_BUCKET);
     var water = new ItemStack(Items.WATER_BUCKET);
-    var allowed = machine.screenTankTooltip(gauge, lava);
-    var rejected = machine.screenTankTooltip(gauge, water);
+    var allowed = gauge.tooltip(machine, lava);
+    var rejected = gauge.tooltip(machine, water);
     var contents =
         (net.minecraft.network.chat.contents.TranslatableContents) allowed.get(1).getContents();
     require(
@@ -74,17 +80,17 @@ public final class SimpleLavaFurnaceTests {
     require(
         lava.is(Items.LAVA_BUCKET)
             && water.is(Items.WATER_BUCKET)
-            && machine.getTankFluid(0).getAmount() == 100,
+            && machine.fluids.getFluidInTank(0).getAmount() == 100,
         "Tooltip never transfers contents");
     require(
-        machine.screenTankTooltip(gauge, new ItemStack(Items.BUCKET)).size() == 3,
+        gauge.tooltip(machine, new ItemStack(Items.BUCKET)).size() == 3,
         "Empty containers add no misleading fluid line");
     var portable = new ItemStack(Items.GLASS_BOTTLE);
     portable.set(DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Tank"));
     net.neoforged.neoforge.fluids.FluidUtil.getFluidHandler(portable)
         .orElseThrow()
         .fill(new FluidStack(Fluids.WATER, 350), FluidAction.EXECUTE);
-    var tankLine = machine.screenTankTooltip(gauge, portable).getLast();
+    var tankLine = gauge.tooltip(machine, portable).getLast();
     var tankText =
         (net.minecraft.network.chat.contents.TranslatableContents) tankLine.getContents();
     require(
@@ -105,13 +111,82 @@ public final class SimpleLavaFurnaceTests {
     var second = new zone.moddev.mc.lib.gui.runtime.MachineMenu(82, player.getInventory(), machine);
     first.setCarried(lava);
     second.setCarried(water);
+    first.components().snapshot();
+    second.components().snapshot();
+    var firstTips =
+        first
+            .components()
+            .requireCapability(zone.moddev.mc.lib.gui.runtime.component.ServerTooltips.class);
+    var secondTips =
+        second
+            .components()
+            .requireCapability(zone.moddev.mc.lib.gui.runtime.component.ServerTooltips.class);
     require(
-        !first.tooltipSnapshot().equals(second.tooltipSnapshot()),
+        firstTips.lines(gauge).equals(allowed) && secondTips.lines(gauge).equals(rejected),
         "Viewer-specific cursor is not shared between menus");
-    first.setCarried(ItemStack.EMPTY);
+    ((net.minecraft.network.chat.MutableComponent) firstTips.lines(gauge).getFirst())
+        .withStyle(net.minecraft.ChatFormatting.OBFUSCATED);
     require(
-        first.tooltipSnapshot().values().stream().allMatch(value -> ((List<?>) value).size() == 3),
+        firstTips.lines(gauge).equals(allowed),
+        "Reading tooltip rows cannot mutate synchronized state");
+    first.setCarried(ItemStack.EMPTY);
+    first.components().snapshot();
+    require(
+        firstTips.lines(gauge).size() == 3 && secondTips.lines(gauge).equals(rejected),
         "Removing cursor clears acceptance line");
+    h.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void generatedGaugeFillsAndManuallyDrainsOnlyUnreservedFluid(GameTestHelper h) {
+    var machine = place(h);
+    var player = h.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    player.getAbilities().instabuild = false;
+    var menu =
+        new zone.moddev.mc.lib.gui.runtime.MachineMenu(47, player.getInventory(), machine) {
+          @Override
+          public void broadcastChanges() {}
+        };
+    player.containerMenu = menu;
+    var gauge = menu.bound.screen().find("tank_0").orElseThrow();
+    int index = menu.index(gauge);
+    var left = new zone.moddev.mc.lib.gui.runtime.ScreenNetwork.Action(47, index, 0, 0, 0, 0);
+    var right = new zone.moddev.mc.lib.gui.runtime.ScreenNetwork.Action(47, index, 0, 1, 0, 0);
+    menu.setCarried(new ItemStack(Items.WATER_BUCKET));
+    menu.action(player, left);
+    require(
+        machine.fluids.getFluidInTank(0).isEmpty() && menu.getCarried().is(Items.WATER_BUCKET),
+        "Recipe filter rejects wrong fluid");
+    menu.setCarried(new ItemStack(Items.LAVA_BUCKET));
+    menu.action(player, right);
+    require(machine.fluids.getFluidInTank(0).isEmpty(), "Right click never pours into tank");
+    menu.action(player, left);
+    require(
+        machine.fluids.getFluidInTank(0).getAmount() == 1000 && menu.getCarried().is(Items.BUCKET),
+        "Generated gauge pours into bound tank");
+    menu.action(player, left);
+    require(machine.fluids.getFluidInTank(0).getAmount() == 1000, "Left click never drains tank");
+    machine.fluids.setPlan(
+        0,
+        new zone.moddev.mc.lib.machine.inventory.TankPlan(
+            100, zone.moddev.mc.lib.machine.ingredient.FluidAmount.EMPTY));
+    menu.action(player, right);
+    require(
+        machine.fluids.getFluidInTank(0).getAmount() == 1000 && menu.getCarried().is(Items.BUCKET),
+        "Bucket cannot take reserved fluid");
+    machine.fluids.setPlan(0, zone.moddev.mc.lib.machine.inventory.TankPlan.NONE);
+    menu.action(player, right);
+    require(
+        machine.fluids.getFluidInTank(0).isEmpty() && menu.getCarried().is(Items.LAVA_BUCKET),
+        "Input tank allows manual bucket extraction");
+    player.getAbilities().instabuild = true;
+    menu.action(player, left);
+    require(
+        machine.fluids.getFluidInTank(0).getAmount() == 1000
+            && menu.getCarried().is(Items.LAVA_BUCKET),
+        "Creative transfer keeps container");
     h.succeed();
   }
 
@@ -250,7 +325,7 @@ public final class SimpleLavaFurnaceTests {
     require(
         result == net.minecraft.world.ItemInteractionResult.CONSUME
             && player.getMainHandItem().is(Items.BUCKET)
-            && machine.getTankFluid(0).getAmount() == 1000,
+            && machine.fluids.getFluidInTank(0).getAmount() == 1000,
         "Bucket fills tank and returns empty bucket");
     player.setItemInHand(
         net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(Items.WATER_BUCKET));
@@ -267,13 +342,13 @@ public final class SimpleLavaFurnaceTests {
         "Wrong fluid blocks vanilla bucket placement");
     require(
         player.getMainHandItem().is(Items.WATER_BUCKET)
-            && machine.getTankFluid(0).getAmount() == 1000,
+            && machine.fluids.getFluidInTank(0).getAmount() == 1000,
         "Rejected bucket preserves contents");
     machine.fluids.restoreFluid(0, new FluidStack(Fluids.WATER, 500));
     var saved = machine.saveWithoutMetadata(h.getLevel().registryAccess());
     machine.loadWithComponents(saved, h.getLevel().registryAccess());
     require(
-        machine.getTankFluid(0).isEmpty() && !machine.fluids.recoveryContents().isEmpty(),
+        machine.fluids.getFluidInTank(0).isEmpty() && !machine.fluids.recoveryContents().isEmpty(),
         "Fluid rejected by changed tank filter is recoverable");
     h.succeed();
   }

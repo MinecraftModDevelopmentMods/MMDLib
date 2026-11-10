@@ -4,8 +4,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element.Edge;
-import zone.moddev.mc.lib.gui.model.Element.PopoutKind;
+import zone.moddev.mc.lib.gui.model.Edge;
 
 /** Coloured edge tabs and full-height drawer backgrounds from the machine GUI reference. */
 public final class SideDrawerRenderer {
@@ -13,14 +12,6 @@ public final class SideDrawerRenderer {
   private static final ResourceLocation PANEL = ResourceLocation.parse("mmdlib:drawer_panel");
 
   private SideDrawerRenderer() {}
-
-  private static int color(PopoutKind kind) {
-    return switch (kind) {
-      case INFO -> 0xf1d462;
-      case WARNING -> 0xe7ac50;
-      case ERROR -> 0xd85c59;
-    };
-  }
 
   private static void sprite(GuiGraphics graphics, ResourceLocation sprite, Rect rect, int color) {
     com.mojang.blaze3d.systems.RenderSystem.enableBlend();
@@ -32,16 +23,8 @@ public final class SideDrawerRenderer {
     com.mojang.blaze3d.systems.RenderSystem.disableBlend();
   }
 
-  public static void tab(GuiGraphics graphics, Rect tab, PopoutKind kind) {
-    tab(graphics, tab, color(kind));
-  }
-
   public static void tab(GuiGraphics graphics, Rect tab, int color) {
     sprite(graphics, TAB, tab, color);
-  }
-
-  public static void open(GuiGraphics graphics, Rect tab, Rect body, Edge edge, PopoutKind kind) {
-    open(graphics, tab, body, edge, color(kind));
   }
 
   public static void open(GuiGraphics graphics, Rect tab, Rect body, Edge edge, int color) {

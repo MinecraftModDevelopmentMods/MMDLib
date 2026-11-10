@@ -262,7 +262,7 @@ class MachineDefinitionsTest {
     assertEquals(
         6,
         built.get(plan.id()).elements().stream()
-            .filter(e -> e instanceof zone.moddev.mc.lib.gui.model.Element.Label)
+            .filter(e -> e instanceof zone.moddev.mc.lib.gui.model.elements.LabelElement)
             .count());
   }
 

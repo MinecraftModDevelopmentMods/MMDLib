@@ -1,83 +1,40 @@
 package zone.moddev.mc.lib.gui.layout;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
+import net.minecraft.resources.ResourceLocation;
+
+import zone.moddev.mc.lib.gui.drawer.*;
 import zone.moddev.mc.lib.gui.model.Element;
-import zone.moddev.mc.lib.gui.model.Element.*;
 import zone.moddev.mc.lib.gui.model.Screen;
 
 /**
- * Places every element of a screen, in GUI pixels relative to the main panel's top-left corner.
- *
- * <p>The main panel stacks the screen's top-level elements, then (unless the screen places it or
- * leaves it out) the player inventory, centred. Boxes stack their children; inside a {@code vbox} a
- * child {@code hbox} stretches to the full width, and inside an {@code hbox} a child {@code vbox}
- * stretches to the full height, so {@code spacer}s have room to fill. A context area sizes itself
- * to its selected view and fills the available width in vertical layouts. Side tabs and pop-out
- * tabs stack down their panel edge, side tabs first.
- *
- * <p>Fixed sizes come from the sprites ({@code docs/gui-sprites.md}): slots 18 px (26 large),
- * gauges 18 px thick, progress arrows 24x16, checkboxes and radios 10 px, buttons 20 px high,
- * side-configuration faces 20 px in a 3x3 grid.
+ * Composes measured element trees, registered drawer tabs and element-owned layout contributions.
+ * Coordinates are GUI pixels relative to the main panel's top-left corner. Elements own their
+ * measurement and child placement; contributions own footer and associated-root placement.
  */
 public final class ScreenLayout {
-  /** Three inventory rows and a hotbar, with a toolbar and equipment column on the right. */
-  public static final int INVENTORY_WIDTH = 162 + 4 + 18, INVENTORY_HEIGHT = 18 + 3 * 18 + 4 + 18;
-
-  /** Slot background for a vanilla player inventory index (0..40), relative to the panel. */
-  public static Rect playerSlot(Rect inventory, int index) {
-    if (index < 0 || index > 40) throw new IllegalArgumentException("Player slot: " + index);
-    int x, y;
-    if (index < 36) {
-      x = (index % 9) * 18;
-      y = index < 9 ? 76 : 18 + (index / 9 - 1) * 18;
-    } else {
-      x = 166;
-      y = index == 40 ? 76 : (39 - index) * 18;
-    }
-    return new Rect(inventory.x() + x, inventory.y() + y, 18, 18);
-  }
-
   /** Margin around the panel's content, as vanilla screens. */
   public static final int PANEL_MARGIN = 7;
 
   /** Gap between stacked top-level elements, and before the player inventory. */
   public static final int GAP = 4;
 
-  /** Space around the content of a side tab, and the tab's overlap with the panel. */
-  public static final int TAB_PADDING = SideDrawerLayout.MARGIN, TAB_OVERLAP = 4, TAB_BORDER = 3;
-
-  /** Width of a pop-out edge tab: a 16 px icon with a 3 px border. */
-  public static final int POPOUT_TAB = 22;
-
-  /** Height of a compact rectangular drawer tab. */
-  public static final int POPOUT_HEIGHT = 24;
-
-  /** Gap between tabs stacked on one edge. */
-  public static final int TAB_GAP = 2;
-
-  /** Size of one side-configuration face, and the gap between faces. */
-  public static final int FACE = 20, FACE_GAP = 2;
-
-  /** Height of the side-configuration group selector above the faces. */
-  public static final int SELECTOR = 20;
-
   private final Map<Element, Rect> bounds = new IdentityHashMap<>();
-  private final java.util.Set<View> alternateViews =
-      java.util.Collections.newSetFromMap(new IdentityHashMap<>());
-  private final TextMeasure text;
-  private final Map<String, String> views;
-  private Rect panel;
-  private Rect inventory;
-  private Rect inventoryColors;
+  private final LayoutContext text;
+  private List<DrawerDefinition> drawers = List.of();
 
-  private ScreenLayout(TextMeasure text, Map<String, String> views) {
+  public List<DrawerDefinition> drawers() {
+    return drawers;
+  }
+
+  private Rect panel;
+  private List<LayoutContribution> contributions = List.of();
+  private final Map<LayoutContribution, Rect> footers = new IdentityHashMap<>();
+  private final Map<ResourceLocation, Rect> regions = new HashMap<>();
+
+  private ScreenLayout(LayoutContext text) {
     this.text = text;
-    this.views = Map.copyOf(views);
   }
 
   /**
@@ -107,48 +64,107 @@ public final class ScreenLayout {
       boolean automation,
       boolean redstone,
       Map<String, String> views) {
-    var layout = new ScreenLayout(text, views);
-    layout.place(screen, (automation ? 1 : 0) + (redstone ? 1 : 0));
-    var controls =
-        screen.body().stream()
-            .filter(InventoryControls.class::isInstance)
-            .map(InventoryControls.class::cast)
-            .findFirst()
-            .orElse(null);
-    if (controls != null && layout.inventory == null)
-      throw new IllegalArgumentException("inventory-controls requires a player inventory");
-    if ((automation || controls != null) && layout.inventory != null) {
-      int start = layout.inventory.y();
-      int controlsWidth = controls == null ? 0 : layout.size(controls)[0];
-      int rowHeight =
-          Math.max(
-              AutomationLayout.SELECTOR_ROW_HEIGHT,
-              controls == null ? 0 : layout.size(controls)[1] + GAP);
-      int storageRight = playerSlot(layout.inventory, 17).right();
-      int colourWidth =
-          storageRight - layout.inventory.x() - (controlsWidth == 0 ? 0 : controlsWidth + GAP);
-      if (colourWidth < (automation ? 34 : 0))
-        throw new IllegalArgumentException(
-            "Inventory controls leave too little room for colour selectors");
-      // The inventory already reserves one slot row beside the helmet. Only taller controls
-      // need more space; ordinary flat controls and colour selectors use that existing row.
-      int extraHeight = Math.max(0, rowHeight - 18);
-      for (var element : screen.body()) layout.shiftInventoryBody(element, start, extraHeight);
-      layout.inventoryColors = new Rect(layout.inventory.x(), start, colourWidth, rowHeight - GAP);
-      if (controls != null)
-        layout.placeAt(
-            controls, storageRight - controlsWidth, start, controlsWidth, rowHeight - GAP);
-      layout.inventory = layout.inventory.offset(0, extraHeight);
-      layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + extraHeight);
+    var context = new LayoutContext(text, views);
+    return arrange(
+        screen,
+        context,
+        DrawerRegistry.GLOBAL.resolve(
+            DrawerRegistry.legacy(screen, context, automation, redstone)));
+  }
+
+  /** Layout consumes typed state without knowing which elements declare it. */
+  public static ScreenLayout of(
+      Screen screen,
+      TextMeasure text,
+      boolean automation,
+      boolean redstone,
+      zone.moddev.mc.lib.gui.sync.ElementStateView state) {
+    var context = new LayoutContext(text, state);
+    return arrange(
+        screen,
+        context,
+        DrawerRegistry.GLOBAL.resolve(
+            DrawerRegistry.legacy(screen, context, automation, redstone)));
+  }
+
+  public static ScreenLayout of(
+      Screen screen,
+      TextMeasure text,
+      zone.moddev.mc.lib.gui.runtime.ScreenHost host,
+      zone.moddev.mc.lib.gui.sync.ElementStateView state) {
+    var context = new LayoutContext(text, state);
+    return arrange(
+        screen,
+        context,
+        DrawerRegistry.GLOBAL.resolve(new DrawerRegistry.Context(screen, context, host)));
+  }
+
+  public static ScreenLayout of(
+      Screen screen,
+      TextMeasure text,
+      List<DrawerDefinition> drawers,
+      zone.moddev.mc.lib.gui.sync.ElementStateView state) {
+    return arrange(screen, new LayoutContext(text, state), List.copyOf(drawers));
+  }
+
+  private static ScreenLayout arrange(
+      Screen screen, LayoutContext text, List<DrawerDefinition> drawers) {
+    var layout = new ScreenLayout(text);
+    layout.drawers = drawers;
+    var context = new LayoutContribution.Context(screen, text, drawers);
+    layout.contributions =
+        screen.elements().stream()
+            .flatMap(element -> element.layoutContribution(context).stream())
+            .toList();
+    layout.place(screen);
+    var placement =
+        new LayoutContribution.Panel() {
+          public Rect bounds(Element element) {
+            return layout.bounds(element);
+          }
+
+          public void place(Element element, Rect r) {
+            layout.placeAt(element, r.x(), r.y(), r.width(), r.height());
+          }
+
+          public void shift(Element element, int dx, int dy) {
+            layout.shift(element, dx, dy);
+          }
+
+          public void shiftBelow(int y, int amount) {
+            for (var element : screen.body()) layout.shiftBelow(element, y, amount);
+            for (var element : screen.implicitElements()) layout.shiftBelow(element, y, amount);
+            layout.footers.replaceAll(
+                (plan, rect) -> rect.y() >= y ? rect.offset(0, amount) : rect);
+          }
+
+          public void grow(int amount) {
+            layout.panel = new Rect(0, 0, layout.panel.width(), layout.panel.height() + amount);
+          }
+        };
+    for (var plan : layout.contributions) {
+      var footer = layout.footers.remove(plan);
+      if (footer != null) plan.footer(footer);
+      plan.finish(placement);
     }
+    layout.placeTabs();
+    layout.contributions.forEach(plan -> plan.beforeOffsets(placement));
     layout.applyOffsets(screen);
+    layout.contributions.forEach(plan -> plan.resolveOffsets(placement));
+    for (var plan : layout.contributions)
+      plan.regions()
+          .forEach(
+              (id, rect) -> {
+                if (layout.regions.putIfAbsent(id, rect) != null)
+                  throw new IllegalArgumentException("Duplicate layout region: " + id);
+              });
     return layout;
   }
 
-  private void shiftInventoryBody(Element element, int start, int dy) {
+  private void shiftBelow(Element element, int start, int dy) {
     var rect = bounds.get(element);
     if (rect != null && rect.y() >= start) bounds.put(element, rect.offset(0, dy));
-    for (var child : element.children()) shiftInventoryBody(child, start, dy);
+    for (var child : element.children()) shiftBelow(child, start, dy);
   }
 
   /** The main panel, at (0, 0). */
@@ -156,14 +172,9 @@ public final class ScreenLayout {
     return panel;
   }
 
-  /** Bounds of the player inventory, including the toolbar row and equipment column. */
-  public Optional<Rect> inventory() {
-    return Optional.ofNullable(inventory);
-  }
-
-  /** Left-hand region of the shared inventory toolbar, excluding its right-hand controls. */
-  public Optional<Rect> inventoryColors() {
-    return Optional.ofNullable(inventoryColors);
+  /** A final region published by an element's layout contribution. */
+  public Optional<Rect> region(ResourceLocation id) {
+    return Optional.ofNullable(regions.get(id));
   }
 
   /** Where {@code element} is drawn. */
@@ -173,327 +184,83 @@ public final class ScreenLayout {
     return rect;
   }
 
-  /**
-   * Where a menu slot puts its item, as vanilla {@code Slot} coordinates: 1 px inside an 18 px
-   * slot, centred in a 26 px one.
-   */
-  public static int[] itemPosition(Rect slot) {
-    int inset = slot.width() == 26 ? 5 : 1;
-    return new int[] {slot.x() + inset, slot.y() + inset};
-  }
-
-  // Measuring
-
   private int[] size(Element element) {
-    return switch (element) {
-      case Box box -> boxSize(box);
-      case InventoryControls controls -> {
-        int width = Math.max(0, controls.children().size() - 1) * 2, height = 0;
-        for (var child : controls.children()) {
-          int[] size = size(child);
-          width += size[0];
-          height = Math.max(height, size[1]);
-        }
-        yield new int[] {width, height};
+    return ElementLayouts.size(element, text);
+  }
+
+  private int[] stack(List<Element> children, int gap) {
+    return ElementLayouts.stack(children, gap, text);
+  }
+
+  private void place(Screen screen) {
+    screen.forEach(element -> element.prepareLayout(text));
+    var claimed = java.util.Collections.newSetFromMap(new IdentityHashMap<Element, Boolean>());
+    for (var plan : contributions)
+      for (var root : plan.claimedRoots()) {
+        if (screen.body().stream().noneMatch(element -> element == root))
+          throw new IllegalArgumentException("Layout contribution must claim a body root");
+        if (!claimed.add(root)) throw new IllegalArgumentException("Body root claimed twice");
       }
-      case Spacer spacer -> new int[] {0, 0};
-      case Custom custom -> new int[] {custom.width(), custom.height()};
-      case Group group -> {
-        int[] inner = stack(group.children(), 2);
-        int label = group.label().isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0;
-        int width = Math.max(inner[0], group.label().map(text::width).orElse(0));
-        yield new int[] {width + 2 * group.padding(), inner[1] + label + 2 * group.padding()};
-      }
-      case Slot slot -> slot.size() == SlotSize.LARGE ? new int[] {26, 26} : new int[] {18, 18};
-      // A fill length counts as its minimum here; placement stretches it.
-      case Gauge gauge -> oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
-      case EnergyGauge gauge ->
-          oriented(gauge.orientation(), 18, gauge.fills() ? 8 : gauge.length());
-      case Meter meter ->
-          oriented(meter.orientation(), meter.thickness(), meter.fills() ? 4 : meter.length());
-      case Progress progress ->
-          progress.direction() == Direction.UP || progress.direction() == Direction.DOWN
-              ? new int[] {16, 24}
-              : new int[] {24, 16};
-      case Label label -> new int[] {text.width(label.text()), TextMeasure.LINE_HEIGHT};
-      case Button button ->
-          button.flat()
-              ? new int[] {14, 14}
-              : button.text().isPresent()
-                  ? new int[] {Math.max(20, text.width(button.text().get()) + 8), 20}
-                  : new int[] {20, 20};
-      case Checkbox box -> new int[] {10 + 4 + text.width(box.text()), 10};
-      case Radio radio -> new int[] {10 + 4 + text.width(radio.text()), 10};
-      case RadioGroup group -> {
-        int[] inner = stack(group.children(), 2);
-        int label = group.label().isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0;
-        yield new int[] {
-          Math.max(inner[0], group.label().map(text::width).orElse(0)), inner[1] + label
-        };
-      }
-      case Context context -> size(selectedView(context));
-      case View view -> {
-        int[] inner = stack(view.children(), GAP);
-        int title = viewHeader(view);
-        yield new int[] {
-          Math.max(inner[0], view.title().map(text::width).orElse(0) + 12), inner[1] + title
-        };
-      }
-      case SideConfig config -> {
-        int grid = 3 * FACE + 2 * FACE_GAP;
-        yield new int[] {grid, SELECTOR + GAP + grid};
-      }
-      case PlayerInventory inventory -> new int[] {INVENTORY_WIDTH, INVENTORY_HEIGHT};
-      case SideTab tab -> {
-        int[] inner = stack(tab.children(), 2);
-        yield new int[] {
-          inner[0] + 2 * TAB_PADDING + TAB_OVERLAP + TAB_BORDER, inner[1] + 2 * TAB_PADDING
-        };
-      }
-      case Popout popout -> new int[] {POPOUT_TAB, POPOUT_HEIGHT};
-    };
-  }
-
-  private static int[] oriented(Orientation orientation, int thickness, int length) {
-    return orientation == Orientation.VERTICAL
-        ? new int[] {thickness, length}
-        : new int[] {length, thickness};
-  }
-
-  private int[] boxSize(Box box) {
-    int[] inner = box.vertical() ? stack(box.children(), box.spacing()) : row(box);
-    return new int[] {inner[0] + 2 * box.padding(), inner[1] + 2 * box.padding()};
-  }
-
-  private int[] row(Box box) {
-    int width = 0, height = 0;
-    for (var child : box.children()) {
-      int[] size = size(child);
-      width += size[0];
-      height = Math.max(height, size[1]);
-    }
-    width += box.spacing() * Math.max(0, box.children().size() - 1);
-    return new int[] {width, height};
-  }
-
-  /** Children stacked top to bottom: widest child, summed heights plus gaps. */
-  private int[] stack(List<Element> children, int spacing) {
-    int width = 0, height = 0;
-    for (var child : children) {
-      int[] size = size(child);
-      width = Math.max(width, size[0]);
-      height += size[1];
-    }
-    height += spacing * Math.max(0, children.size() - 1);
-    return new int[] {width, height};
-  }
-
-  // Placing
-
-  private int viewHeader(View view) {
-    return view.title().isPresent() || alternateViews.contains(view)
-        ? TextMeasure.LINE_HEIGHT + GAP
-        : 0;
-  }
-
-  private View selectedView(Context context) {
-    String selected = views.get(context.common().id().orElse(""));
-    return context.views().stream()
-        .filter(view -> view.common().id().orElse("").equals(selected))
-        .findFirst()
-        .orElse(context.defaultView());
-  }
-
-  private void place(Screen screen, int rightDrawers) {
-    screen.forEach(
-        e -> {
-          if (e instanceof Context context)
-            alternateViews.addAll(context.views().subList(1, context.views().size()));
-        });
-    var content = screen.body().stream().filter(e -> !(e instanceof InventoryControls)).toList();
-    int[] body = stack(content, GAP);
-    boolean addInventory =
-        screen.playerInventory()
-            && screen.elements().stream().noneMatch(PlayerInventory.class::isInstance);
+    var bodyElements =
+        screen.body().stream().filter(element -> !claimed.contains(element)).toList();
+    int[] body = stack(bodyElements, GAP);
+    var footers = contributions.stream().map(LayoutContribution::footerSize).toList();
     int width = Math.max(body[0], text.width(screen.title()) + 2 * PANEL_MARGIN);
     int titleHeight = PANEL_MARGIN + TextMeasure.LINE_HEIGHT + GAP;
     int height = body[1] + titleHeight;
-    if (addInventory) {
-      width = Math.max(width, INVENTORY_WIDTH + 2 * PANEL_MARGIN);
-      height += GAP + INVENTORY_HEIGHT + PANEL_MARGIN;
-    }
+    for (var footer : footers)
+      if (footer.isPresent()) {
+        width = Math.max(width, footer.get().width() + 2 * PANEL_MARGIN);
+        height += GAP + footer.get().height();
+      }
+    if (footers.stream().anyMatch(Optional::isPresent)) height += PANEL_MARGIN;
     int y = titleHeight;
-    for (var element : content) {
+    for (var element : bodyElements) {
       int[] size = size(element);
       // Top-level boxes and context areas span the panel, as a vbox's children do.
-      int w =
-          element instanceof Box || element instanceof Context || fills(element) ? width : size[0];
+      int w = element.stretchToPanel() ? width : size[0];
       placeAt(element, 0, y, w, size[1]);
       y += size[1] + GAP;
     }
     panel = new Rect(0, 0, width, height);
-    if (addInventory)
-      inventory =
-          new Rect(
-              (width - INVENTORY_WIDTH) / 2,
-              body[1] + titleHeight + GAP,
-              INVENTORY_WIDTH,
-              INVENTORY_HEIGHT);
-    for (var element : screen.elements())
-      if (element instanceof PlayerInventory) inventory = bounds.get(element);
-    if (rightDrawers > 0) {
-      int tabsHeight = TAB_PADDING + rightDrawers * (POPOUT_HEIGHT + TAB_GAP) - TAB_GAP;
-      for (var tab : screen.tabs())
-        if (tab instanceof SideTab side && side.edge() == Edge.RIGHT
-            || tab instanceof Popout popout && popout.edge() == Edge.RIGHT)
-          tabsHeight += TAB_GAP + size(tab)[1];
-      panel = new Rect(0, 0, width, Math.max(height, tabsHeight + TAB_PADDING));
+    int footerY = body[1] + titleHeight;
+    for (int i = 0; i < contributions.size(); i++) {
+      var footer = footers.get(i);
+      if (footer.isEmpty()) continue;
+      var size = footer.get();
+      footerY += GAP;
+      this.footers.put(
+          contributions.get(i),
+          new Rect((width - size.width()) / 2, footerY, size.width(), size.height()));
+      footerY += size.height();
     }
-    placeTabs(screen, Edge.LEFT, 0);
-    placeTabs(screen, Edge.RIGHT, rightDrawers);
+    if (drawers.stream().anyMatch(d -> d.element().isEmpty()))
+      panel = new Rect(0, 0, width, Math.max(height, DrawerTabs.minimumHeight(drawers)));
   }
 
   private void placeAt(Element element, int x, int y, int width, int height) {
     bounds.put(element, new Rect(x, y, width, height));
-    switch (element) {
-      case Box box -> placeBox(box, x, y, width, height);
-      case InventoryControls controls -> {
-        int left = x;
-        for (var child : controls.children()) {
-          int[] size = size(child);
-          placeAt(child, left, y + (height - size[1]) / 2, size[0], size[1]);
-          left += size[0] + 2;
-        }
-      }
-      case Group group -> {
-        int top =
-            y + group.padding() + (group.label().isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0);
-        placeStack(group.children(), x + group.padding(), top, width - 2 * group.padding(), 2);
-      }
-      case RadioGroup group -> {
-        int top = y + (group.label().isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0);
-        placeStack(group.children(), x, top, width, 2);
-      }
-      case Context context -> {
-        for (var view : context.views()) {
-          // Hidden elements still need bounds for their persistent menu slots and widgets.
-          int[] size = size(view);
-          placeAt(
-              view,
-              x,
-              y,
-              Math.max(width, size[0]),
-              view == selectedView(context) ? height : size[1]);
-        }
-      }
-      case View view -> {
-        int top = y + (viewHeader(view));
-        placeStack(view.children(), x, top, width, GAP);
-      }
-      case SideTab tab -> {
-        int inner =
-            tab.edge() == Edge.RIGHT ? x + TAB_OVERLAP + TAB_PADDING : x + TAB_BORDER + TAB_PADDING;
-        placeStack(
-            tab.children(),
-            inner,
-            y + TAB_PADDING,
-            width - 2 * TAB_PADDING - TAB_OVERLAP - TAB_BORDER,
-            2);
-      }
-      default -> {}
-    }
+    element
+        .childLayout(new Rect(0, 0, width, height), text)
+        .forEach(
+            (child, rect) ->
+                placeAt(child, x + rect.x(), y + rect.y(), rect.width(), rect.height()));
   }
 
-  private void placeStack(List<Element> children, int x, int y, int width, int spacing) {
-    for (var child : children) {
-      int[] size = size(child);
-      int w =
-          (child instanceof Box box && !box.vertical()) || child instanceof Context || fills(child)
-              ? width
-              : size[0];
-      placeAt(child, x, y, w, size[1]);
-      y += size[1] + spacing;
-    }
-  }
-
-  private void placeBox(Box box, int x, int y, int width, int height) {
-    int innerX = x + box.padding(), innerY = y + box.padding();
-    int innerW = width - 2 * box.padding(), innerH = height - 2 * box.padding();
-    var sizes = new ArrayList<int[]>();
-    int used = 0, spacers = 0;
-    for (var child : box.children()) {
-      int[] size = size(child);
-      sizes.add(size);
-      used += box.vertical() ? size[1] : size[0];
-      if (child instanceof Spacer) spacers++;
-    }
-    used += box.spacing() * Math.max(0, box.children().size() - 1);
-    int leftover = Math.max(0, (box.vertical() ? innerH : innerW) - used);
-    int position = box.vertical() ? innerY : innerX;
-    int spacerIndex = 0;
-    for (int i = 0; i < box.children().size(); i++) {
-      var child = box.children().get(i);
-      int[] size = sizes.get(i);
-      int main = box.vertical() ? size[1] : size[0];
-      if (child instanceof Spacer) {
-        // Share the leftover room; the first spacers take any remainder pixel.
-        main = leftover / spacers + (spacerIndex++ < leftover % spacers ? 1 : 0);
-      }
-      if (box.vertical()) {
-        boolean stretch =
-            (child instanceof Box b && !b.vertical()) || child instanceof Context || fills(child);
-        int w = stretch ? innerW : size[0];
-        placeAt(child, innerX + align(box.align(), innerW, w), position, w, main);
-      } else {
-        boolean stretch = (child instanceof Box b && b.vertical()) || fills(child);
-        int h = stretch ? innerH : size[1];
-        placeAt(child, position, innerY + align(box.align(), innerH, h), main, h);
-      }
-      position += main + box.spacing();
-    }
-  }
-
-  /** Whether {@code element} has {@code length="fill"}; the reader checks it sits where it can. */
-  private static boolean fills(Element element) {
-    return (element instanceof Gauge gauge && gauge.fills())
-        || (element instanceof EnergyGauge energy && energy.fills())
-        || (element instanceof Meter meter && meter.fills());
-  }
-
-  private static int align(Align align, int room, int size) {
-    return switch (align) {
-      case START -> 0;
-      case CENTER -> (room - size) / 2;
-      case END -> room - size;
-    };
-  }
-
-  private void placeTabs(Screen screen, Edge edge, int runtimeTabs) {
-    int y = TAB_PADDING + runtimeTabs * (POPOUT_HEIGHT + TAB_GAP);
-    // Side tabs first, then pop-outs, each in document order.
-    var ordered = new ArrayList<Element>();
-    for (var tab : screen.tabs())
-      if (tab instanceof SideTab side && side.edge() == edge) ordered.add(tab);
-    for (var tab : screen.tabs())
-      if (tab instanceof Popout popout && popout.edge() == edge) ordered.add(tab);
-    for (var tab : ordered) {
-      int[] size = size(tab);
-      int x =
-          edge == Edge.RIGHT
-              ? panel.width() - (tab instanceof SideTab ? TAB_OVERLAP : 0)
-              : -size[0] + (tab instanceof SideTab ? TAB_OVERLAP : 0);
-      placeAt(tab, x, y, size[0], size[1]);
-      y += size[1] + TAB_GAP;
-    }
-    if (y - TAB_GAP > panel.height())
-      throw new IllegalArgumentException(
-          "The tabs on the "
-              + edge.name().toLowerCase(java.util.Locale.ROOT)
-              + " edge need "
-              + (y - TAB_GAP)
-              + " px but the panel is "
-              + panel.height()
-              + " px high; move some to the other edge");
+  private void placeTabs() {
+    var tabs = DrawerTabs.place(drawers, panel, panel.bottom(), definition -> true);
+    tabs.forEach(
+        (definition, rect) -> {
+          if (rect.bottom() > panel.height())
+            throw new IllegalArgumentException(
+                "The tabs on the "
+                    + definition.placement().edge().name().toLowerCase(java.util.Locale.ROOT)
+                    + " edge need more panel height");
+          definition
+              .element()
+              .ifPresent(
+                  element -> placeAt(element, rect.x(), rect.y(), rect.width(), rect.height()));
+        });
   }
 
   /** Nudges each offset element together with everything inside it. */

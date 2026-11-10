@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.gui.runtime;
 
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.load.ScreenException;
+import zone.moddev.mc.lib.gui.load.ScreenValidationContext;
 import zone.moddev.mc.lib.gui.model.Screen;
 
 /** Validates screen references against the actual host, before either side constructs slots. */
@@ -17,28 +18,18 @@ public final class ScreenInventoryValidation {
   }
 
   public static void validate(Screen screen, ScreenHost host) {
-    int count = host.screenItems().getSlots();
+    var context = new ScreenValidationContext(screen);
     for (var element : screen.elements()) {
-      if (element instanceof Element.Button button && button.processorControl()) {
-        var key = button.processorKey();
-        if (host.screenFeatures() == null || host.screenFeatures().processor(key).isEmpty())
-          throw new zone.moddev.mc.lib.gui.load.ScreenException(
-              screen.source(button.common()),
-              button.common().line(),
-              key.map(value -> "Unknown processor-key: " + value)
-                  .orElse("<processor-button> requires at least one recipe processor"));
+      try {
+        element.validate();
+        element.validateResources(host.screenResourceCounts());
+        element.validateHost(context, host);
+      } catch (ScreenException failure) {
+        throw failure;
+      } catch (IllegalArgumentException failure) {
+        throw new zone.moddev.mc.lib.gui.load.ScreenException(
+            screen.source(element.common()), element.common().line(), failure.getMessage());
       }
-      if (element instanceof Element.Slot slot
-          && slot.kind() != Element.SlotKind.GHOST
-          && (slot.index() < 0 || slot.index() >= count))
-        throw new IllegalArgumentException(
-            screen.id()
-                + ": slot "
-                + slot.common().id().orElse("<unnamed>")
-                + " index "
-                + slot.index()
-                + " outside storage of size "
-                + count);
     }
     // Highlights are optional decoration: a shared group may name elements absent from this screen.
   }

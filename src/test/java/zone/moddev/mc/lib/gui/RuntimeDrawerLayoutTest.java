@@ -10,10 +10,53 @@ import net.minecraft.resources.ResourceLocation;
 
 import org.junit.jupiter.api.Test;
 
+import zone.moddev.mc.lib.gui.drawer.DrawerPlacement;
 import zone.moddev.mc.lib.gui.layout.*;
+import zone.moddev.mc.lib.gui.layout.SideDrawerLayout;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 
 class RuntimeDrawerLayoutTest {
+  @Test
+  void explicitInventoryOffsetsMoveNativeSlotsToolbarAndControlsTogether() throws Exception {
+    ScreenLayout previous = null;
+    zone.moddev.mc.lib.gui.model.Screen previousScreen = null;
+    for (boolean offset : new boolean[] {false, true}) {
+      var xml =
+          """
+          <screen xmlns="https://moddev.zone/mmdlib/screen" title="test"
+              block-entity="net.minecraft.world.level.block.entity.BlockEntity">
+            <vbox offset-x="%s" offset-y="%s"><player-inventory id="inventory" offset-x="%s" offset-y="%s"/></vbox>
+            <inventory-controls id="controls"><button id="button" icon="mmdlib:icon_info" tooltip="test.tip"/></inventory-controls>
+          </screen>
+          """
+              .formatted(offset ? 3 : 0, offset ? 4 : 0, offset ? 2 : 0, offset ? 1 : 0);
+      var screen =
+          ScreenReader.read(
+              ResourceLocation.parse("test:offset"),
+              "offset.xml",
+              new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+      var layout = ScreenLayout.of(screen, TextMeasure.NONE, true);
+      assertEquals(
+          layout.bounds(screen.find("inventory").orElseThrow()),
+          layout.region(PlayerInventoryElement.INVENTORY).orElseThrow());
+      if (previous != null) {
+        assertEquals(
+            previous.region(PlayerInventoryElement.INVENTORY).orElseThrow().offset(5, 5),
+            layout.region(PlayerInventoryElement.INVENTORY).orElseThrow());
+        assertEquals(
+            previous.region(PlayerInventoryElement.TOOLBAR).orElseThrow().offset(5, 5),
+            layout.region(PlayerInventoryElement.TOOLBAR).orElseThrow());
+        for (var id : new String[] {"controls", "button"})
+          assertEquals(
+              previous.bounds(previousScreen.find(id).orElseThrow()).offset(5, 5),
+              layout.bounds(screen.find(id).orElseThrow()));
+      }
+      previous = layout;
+      previousScreen = screen;
+    }
+  }
+
   @Test
   void tallInventoryControlsDoNotMoveEdgeTabsOrTheirContents() throws Exception {
     ScreenLayout previous = null;
@@ -45,7 +88,9 @@ class RuntimeDrawerLayoutTest {
               previous.bounds(previousScreen.find(id).orElseThrow()),
               layout.bounds(screen.find(id).orElseThrow()),
               id);
-        int dy = layout.inventory().orElseThrow().y() - previous.inventory().orElseThrow().y();
+        int dy =
+            layout.region(PlayerInventoryElement.INVENTORY).orElseThrow().y()
+                - previous.region(PlayerInventoryElement.INVENTORY).orElseThrow().y();
         assertTrue(dy > 0);
         assertEquals(
             previous.bounds(previousScreen.find("below").orElseThrow()).y() + dy,
@@ -75,13 +120,14 @@ class RuntimeDrawerLayoutTest {
     for (boolean automation : new boolean[] {false, true}) {
       var layout = ScreenLayout.of(screen, TextMeasure.NONE, automation, true, Map.of());
       int previous =
-          ScreenLayout.TAB_PADDING
-              + (automation ? 2 : 1) * (ScreenLayout.POPOUT_HEIGHT + ScreenLayout.TAB_GAP)
-              - ScreenLayout.TAB_GAP;
+          SideDrawerLayout.MARGIN
+              + (automation ? 2 : 1)
+                  * (DrawerPlacement.DEFAULT_HEIGHT + DrawerPlacement.DEFAULT_GAP)
+              - DrawerPlacement.DEFAULT_GAP;
       for (var tab : screen.tabs()) {
         var bounds = layout.bounds(tab);
-        assertTrue(bounds.y() >= previous + ScreenLayout.TAB_GAP);
-        assertTrue(bounds.bottom() <= layout.panel().bottom() - ScreenLayout.TAB_PADDING);
+        assertTrue(bounds.y() >= previous + DrawerPlacement.DEFAULT_GAP);
+        assertTrue(bounds.bottom() <= layout.panel().bottom() - SideDrawerLayout.MARGIN);
         previous = bounds.bottom();
       }
     }

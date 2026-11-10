@@ -7,12 +7,14 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
-
 import zone.moddev.mc.lib.api.automation.AutomationInventory;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
+import zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry;
 
 /** Dedicated menu-bound protocol for the opt-in drawer and item-provided editor. */
 public final class AutomationNetwork {
+  public static final String VERSION = "16";
+
   private AutomationNetwork() {}
 
   public record Action(
@@ -135,20 +137,22 @@ public final class AutomationNetwork {
     }
   }
 
-  public static void register(PayloadRegistrar registrar) {
+  public static void register(NetworkRegistry.Registrar registrar) {
     registrar.playToServer(
         Action.TYPE,
         Action.CODEC,
         (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu menu && menu.automation != null)
-            menu.automation.action(c.player(), p);
+          if (c.player().containerMenu instanceof MachineMenu menu
+              && menu.components().get(BuiltinMenuComponents.AUTOMATION) != null)
+            menu.components().get(BuiltinMenuComponents.AUTOMATION).action(c.player(), p);
         });
     registrar.playToClient(
         State.TYPE,
         State.CODEC,
         (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu menu && menu.automation != null)
-            menu.automation.receive(p);
+          if (c.player().containerMenu instanceof MachineMenu menu
+              && menu.components().get(BuiltinMenuComponents.AUTOMATION) != null)
+            menu.components().get(BuiltinMenuComponents.AUTOMATION).receive(p);
         });
   }
 }

@@ -3,13 +3,17 @@ package zone.moddev.mc.lib.compat.curios;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+
 import net.neoforged.neoforge.items.IItemHandler;
+
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.SlotContext;
 import top.theillusivec4.curios.api.type.ISlotType;
+
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
 import zone.moddev.mc.lib.gui.runtime.EquippedContainers;
 import zone.moddev.mc.lib.gui.runtime.EquippedContainers.SlotInfo;
@@ -19,6 +23,38 @@ public final class CuriosEquipment {
   private CuriosEquipment() {}
 
   private record Entry(SlotInfo info, IItemHandler handler, boolean active, boolean render) {}
+
+  private static net.minecraft.network.chat.Component text(String name) {
+    return net.minecraft.network.chat.Component.translatable("screen.mmdlib.curios." + name);
+  }
+
+  public static EquippedContainers.Presentation presentation() {
+    return new EquippedContainers.Presentation(
+        text("title"),
+        java.util.Optional.of(ResourceLocation.parse("curios:slot/empty_curio_slot")),
+        0xa6a0ca,
+        List.of(text("equipment"), text("functional.short"), text("cosmetic.short")),
+        List.of(text("toggle")),
+        List.of(text("store")),
+        List.of(text("columns"), text("store")));
+  }
+
+  private static SlotInfo describe(
+      String identifier, int index, boolean cosmetic, boolean available, ResourceLocation icon) {
+    var name =
+        net.minecraft.network.chat.Component.translatableWithFallback(
+            "curios.identifier." + identifier, identifier);
+    if (index > 0) name.append(" " + (index + 1));
+    return new SlotInfo(
+        identifier,
+        index,
+        cosmetic,
+        available,
+        icon,
+        cosmetic ? net.minecraft.network.chat.Component.empty() : name,
+        List.of(name, text(!available ? "unavailable" : cosmetic ? "cosmetic" : "functional")),
+        net.minecraft.network.chat.Component.literal("-"));
+  }
 
   public static List<EquippedContainers.Source> find(Player player, ItemStack identity) {
     return discover(player, identity).equipment();
@@ -81,13 +117,13 @@ public final class CuriosEquipment {
                   boolean render = i >= stacks.getRenders().size() || stacks.getRenders().get(i);
                   entries.add(
                       new Entry(
-                          new SlotInfo(group.getKey(), i, false, active, icon),
+                          describe(group.getKey(), i, false, active, icon),
                           stacks.getStacks(),
                           active,
                           render));
                   entries.add(
                       new Entry(
-                          new SlotInfo(
+                          describe(
                               group.getKey(),
                               i,
                               true,
@@ -172,6 +208,14 @@ public final class CuriosEquipment {
           }
         };
     return new EquippedContainers.Snapshot(
-        backpacks, List.of(new EquippedContainers.Source(topology.toString(), identity, handler)));
+        backpacks,
+        List.of(
+            new EquippedContainers.Source(
+                topology.toString(),
+                identity,
+                handler,
+                presentation(),
+                "curios",
+                zone.moddev.mc.lib.gui.runtime.ContainerPolicy.EQUIPMENT)));
   }
 }

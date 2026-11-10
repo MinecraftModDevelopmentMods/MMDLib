@@ -12,20 +12,21 @@ import org.junit.jupiter.api.Test;
 import zone.moddev.mc.lib.gui.load.ScreenBinder;
 import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
-import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
 import zone.moddev.mc.lib.gui.model.Screen;
+import zone.moddev.mc.lib.gui.model.elements.ButtonElement;
+import zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement;
 
 class ProcessorButtonTest {
   @Test
   void omittedKeyStillCreatesAProcessorControl() throws Exception {
-    var button = (Element.Button) read("<processor-button/>").body().getFirst();
-    assertTrue(button.processorControl());
+    var button = (ProcessorButtonElement) read("<processor-button/>").body().getFirst();
+    assertTrue(button.interactive());
     assertTrue(button.processorKey().isEmpty());
     var ordinary =
-        (Element.Button)
+        (ButtonElement)
             read("<button icon=\"mmdlib:icon_info\" tooltip=\"test.tip\"/>").body().getFirst();
-    assertFalse(ordinary.processorControl());
+    assertFalse(ordinary.interactive());
   }
 
   private Screen read(String body) throws Exception {
@@ -43,7 +44,8 @@ class ProcessorButtonTest {
   @Test
   void showsCurrentPauseProcessingAndIdleStatesWithoutMachineSpecificBindings() throws Exception {
     var button =
-        (Element.Button) read("<processor-button processor-key=\"lane_1\"/>").body().getFirst();
+        (ProcessorButtonElement)
+            read("<processor-button processor-key=\"lane_1\"/>").body().getFirst();
     assertEquals("lane_1", button.processorKey().orElseThrow());
     assertTrue(button.flat());
     assertTrue(button.common().value().isEmpty());
@@ -69,7 +71,7 @@ class ProcessorButtonTest {
       assertEquals(
           ResourceLocation.parse("mmdlib:icon_processor_stop"),
           button.iconFor(state.wireValue()).orElseThrow());
-    assertTrue(button.common().tooltip().isPresent());
+    assertTrue(button.tooltipText().isPresent());
   }
 
   @Test
@@ -96,7 +98,7 @@ class ProcessorButtonTest {
             </inventory-controls>
             """);
     assertEquals(3, screen.body().get(1).children().size());
-    assertFalse(((Element.Button) screen.body().get(1).children().getLast()).flat());
+    assertFalse(((ProcessorButtonElement) screen.body().get(1).children().getLast()).flat());
   }
 
   @Test

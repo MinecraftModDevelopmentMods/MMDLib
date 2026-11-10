@@ -3,20 +3,15 @@ package zone.moddev.mc.lib.gui.load;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 import javax.xml.XMLConstants;
+import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -28,19 +23,12 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import zone.moddev.mc.lib.gui.WidgetTypes;
-import zone.moddev.mc.lib.gui.model.Common;
-import zone.moddev.mc.lib.gui.model.Element;
-import zone.moddev.mc.lib.gui.model.Element.*;
-import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
 import zone.moddev.mc.lib.gui.model.Screen;
-import zone.moddev.mc.lib.gui.model.Text;
-import zone.moddev.mc.lib.gui.model.ValueRef;
 
 /**
- * Reads a screen file into a {@link Screen}. The file is validated against {@code
- * mmdlib/schema/screen.xsd} (structure, attribute names and value formats), then checked for what a
- * schema cannot express: unique IDs and slot indexes, references between elements, required
- * pairings, and each element's needs. Errors name the file and line.
+ * Reads a screen file into a {@link Screen}. Registered tag contracts validate structure, attribute
+ * names and value formats. Model validation then checks unique IDs and slot indexes, references
+ * between elements, required pairings, and each element's needs. Errors name the file and line.
  *
  * <p>The parser is hardened: DOCTYPE declarations, external entities and XInclude are refused, so a
  * screen file cannot read other files or expand entities.
@@ -48,8 +36,6 @@ import zone.moddev.mc.lib.gui.model.ValueRef;
 public final class ScreenReader {
   /** The XML namespace of screen files. */
   public static final String NAMESPACE = "https://moddev.zone/mmdlib/screen";
-
-  private static final Schema SCHEMA = loadSchema();
 
   private ScreenReader() {}
 
@@ -70,15 +56,29 @@ public final class ScreenReader {
   public static Screen read(
       ResourceLocation id, String source, InputStream input, WidgetTypes widgets)
       throws IOException {
-    Node root = parse(source, input);
-    return build(id, new ScreenTemplates(Map.of(id, root)).expand(id), widgets);
+    return read(id, source, input, widgets, ScreenTags.GLOBAL);
+  }
+
+  /** Reads with an isolated XML registry, including namespaced mod tags. */
+  public static Screen read(
+      ResourceLocation id, String source, InputStream input, WidgetTypes widgets, ScreenTags tags)
+      throws IOException {
+    Node root = parse(source, input, tags);
+    return build(
+        id,
+        new ScreenTemplates(Map.of(id, root), ScreenFillGenerator.UNAVAILABLE, tags).expand(id),
+        widgets,
+        tags);
   }
 
   static Screen build(ResourceLocation id, Node root, WidgetTypes widgets) {
-    root = validateExpanded(root);
-    String source = root.source();
-    var screen = new Builder(id, source, widgets).screen(id, root);
-    check(screen);
+    return build(id, root, widgets, ScreenTags.GLOBAL);
+  }
+
+  static Screen build(ResourceLocation id, Node root, WidgetTypes widgets, ScreenTags tags) {
+    root = validateExpanded(root, tags);
+    var screen = new ScreenXml(id, root, widgets, tags).read(root, Screen.class);
+    ScreenValidation.check(screen, widgets);
     return screen;
   }
 
@@ -86,22 +86,40 @@ public final class ScreenReader {
 
   /** One parsed element, with its attributes as written (schema defaults filled in). */
   public record Node(
-      String name, Map<String, String> attributes, List<Node> children, String source, int line) {
+      String name,
+      Map<String, String> attributes,
+      List<Node> children,
+      String source,
+      int line,
+      String namespace) {
+    public Node(
+        String name, Map<String, String> attributes, List<Node> children, String source, int line) {
+      this(name, attributes, children, source, line, NAMESPACE);
+    }
+
+    public QName tag() {
+      return new QName(namespace, name);
+    }
+
     public Node withChildren(List<Node> children) {
-      return new Node(name, attributes, children, source, line);
+      return new Node(name, attributes, children, source, line, namespace);
     }
   }
 
   static Node parse(String source, InputStream input) throws IOException {
-    return parseTree(source, input, true);
+    return parse(source, input, ScreenTags.GLOBAL);
+  }
+
+  static Node parse(String source, InputStream input, ScreenTags tags) throws IOException {
+    return parseTree(source, input, tags.schema());
   }
 
   /** Secure, source-aware tree reader for machine definitions containing embedded screens. */
   public static Node parseMachine(String source, InputStream input) throws IOException {
-    return parseTree(source, input, false);
+    return parseTree(source, input, null);
   }
 
-  private static Node parseTree(String source, InputStream input, boolean screen)
+  private static Node parseTree(String source, InputStream input, Schema schema)
       throws IOException {
     try {
       var factory = SAXParserFactory.newInstance();
@@ -112,8 +130,8 @@ public final class ScreenReader {
       factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
       factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
       factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-      if (screen) factory.setSchema(SCHEMA);
-      var handler = new TreeHandler(source, screen);
+      if (schema != null) factory.setSchema(schema);
+      var handler = new TreeHandler(source, schema == null);
       var parser = factory.newSAXParser();
       parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
       parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
@@ -132,15 +150,16 @@ public final class ScreenReader {
         Map.copyOf(node.attributes()),
         node.children().stream().map(ScreenReader::freeze).toList(),
         node.source(),
-        node.line());
+        node.line(),
+        node.namespace());
   }
 
   /** Check placement again after fills are spliced into their destination containers. */
-  private static Node validateExpanded(Node root) {
-    var validator = SCHEMA.newValidatorHandler();
+  static Node validateExpanded(Node root, ScreenTags tags) {
+    var validator = tags.schema().newValidatorHandler();
     var locator = new org.xml.sax.helpers.LocatorImpl();
     validator.setDocumentLocator(locator);
-    var tree = new TreeHandler(root.source(), true);
+    var tree = new TreeHandler(root.source(), false);
     tree.setDocumentLocator(locator);
     validator.setContentHandler(tree);
     validator.setErrorHandler(
@@ -176,24 +195,14 @@ public final class ScreenReader {
     var attributes = new org.xml.sax.helpers.AttributesImpl();
     node.attributes()
         .forEach((name, value) -> attributes.addAttribute("", name, name, "CDATA", value));
-    validator.startElement(NAMESPACE, node.name(), node.name(), attributes);
+    // The URI, not the author's chosen prefix, is the registry identity.
+    validator.startPrefixMapping("", node.namespace());
+    validator.startElement(node.namespace(), node.name(), node.name(), attributes);
     for (var child : node.children()) validateNode(child, validator, locator);
     locator.setSystemId(node.source());
     locator.setLineNumber(node.line());
-    validator.endElement(NAMESPACE, node.name(), node.name());
-  }
-
-  private static Schema loadSchema() {
-    try (var stream = ScreenReader.class.getResourceAsStream("/mmdlib/schema/screen.xsd")) {
-      if (stream == null) throw new IllegalStateException("Missing mmdlib/schema/screen.xsd");
-      var factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-      factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-      factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-      factory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-      return factory.newSchema(new StreamSource(stream));
-    } catch (IOException | SAXException ex) {
-      throw new IllegalStateException("Cannot load the screen schema", ex);
-    }
+    validator.endElement(node.namespace(), node.name(), node.name());
+    validator.endPrefixMapping("");
   }
 
   private static final class TreeHandler extends DefaultHandler {
@@ -202,11 +211,11 @@ public final class ScreenReader {
     private final List<Node> stack = new ArrayList<>();
     private Locator locator;
     private Node root;
-    private final boolean screen;
+    private final boolean machine;
 
-    TreeHandler(String source, boolean screen) {
+    TreeHandler(String source, boolean machine) {
       this.source = source;
-      this.screen = screen;
+      this.machine = machine;
     }
 
     @Override
@@ -217,9 +226,8 @@ public final class ScreenReader {
     @Override
     public void startElement(String uri, String local, String qName, Attributes attributes)
         throws SAXException {
-      if (!NAMESPACE.equals(uri) && (screen || !"https://moddev.zone/mmdlib/machine".equals(uri)))
-        throw new SAXParseException(
-            "Element <" + qName + "> is not in the screen namespace " + NAMESPACE, locator);
+      if (uri.isEmpty())
+        throw new SAXParseException("Screen elements require an XML namespace", locator);
       var values = new LinkedHashMap<String, String>();
       for (int i = 0; i < attributes.getLength(); i++)
         if (attributes.getURI(i).isEmpty())
@@ -231,11 +239,18 @@ public final class ScreenReader {
               values,
               children,
               locator.getSystemId() == null ? source : locator.getSystemId(),
-              locator.getLineNumber());
+              locator.getLineNumber(),
+              machine && uri.equals("https://moddev.zone/mmdlib/machine") ? NAMESPACE : uri);
       if (stack.isEmpty()) root = node;
       else open.getLast().add(node);
       stack.add(node);
       open.add(children);
+    }
+
+    @Override
+    public void characters(char[] text, int start, int length) throws SAXException {
+      if (!new String(text, start, length).isBlank())
+        throw new SAXParseException("Inline text is not allowed; use text attributes", locator);
     }
 
     @Override
@@ -253,492 +268,5 @@ public final class ScreenReader {
     public void fatalError(SAXParseException ex) throws SAXException {
       throw ex;
     }
-  }
-
-  // Conversion to the model
-
-  private static final class Builder {
-    private final String machineId;
-    private final String source;
-    private final WidgetTypes widgets;
-    private final Map<Common, String> origins = new java.util.IdentityHashMap<>();
-
-    Builder(ResourceLocation id, String source, WidgetTypes widgets) {
-      this.machineId = id.toString();
-      this.source = source;
-      this.widgets = widgets;
-    }
-
-    Screen screen(ResourceLocation id, Node root) {
-      var body = new ArrayList<Element>();
-      var tabs = new ArrayList<Element>();
-      for (var child : root.children()) {
-        var element = element(child);
-        if (element instanceof SideTab || element instanceof Popout) tabs.add(element);
-        else body.add(element);
-      }
-      if (body.isEmpty() || body.getFirst() instanceof InventoryControls)
-        throw error(root, "A screen requires at least one body element");
-      return new Screen(
-          id,
-          source,
-          text(root, "title").orElseThrow(),
-          root.attributes().get("block-entity"),
-          !"none".equals(root.attributes().get("inventory")),
-          body,
-          tabs,
-          origins);
-    }
-
-    private List<Element> children(Node node) {
-      return node.children().stream().map(this::element).toList();
-    }
-
-    private Element element(Node node) {
-      if (node.name().equals("energy-gauge")) node = energyDefaults(node);
-      if (node.name().equals("processor-button")) node = processorDefaults(node);
-      var c = common(node);
-      return switch (node.name()) {
-        case "vbox", "hbox" ->
-            new Box(
-                c,
-                node.name().equals("vbox"),
-                size(node, "padding", 0),
-                size(node, "spacing", 0),
-                enumValue(Align.class, node, "align"),
-                children(node));
-        case "spacer" -> new Spacer(c);
-        case "inventory-controls" -> new InventoryControls(c, children(node));
-        case "custom" -> custom(node, c);
-        case "group" ->
-            new Group(
-                c,
-                text(node, "label"),
-                color(node, "tint"),
-                size(node, "padding", 0),
-                children(node));
-        case "slot" ->
-            new Slot(
-                c,
-                integer(node, "index"),
-                enumValue(SlotSize.class, node, "size"),
-                enumValue(SlotKind.class, node, "kind"),
-                color(node, "tint"),
-                id(node, "icon"));
-        case "gauge" ->
-            new Gauge(
-                c,
-                enumValue(Orientation.class, node, "orientation"),
-                length(node, 8),
-                color(node, "color"));
-        case "energy-gauge" ->
-            new EnergyGauge(
-                c,
-                enumValue(Orientation.class, node, "orientation"),
-                length(node, 8),
-                color(node, "color").orElseThrow());
-        case "meter" ->
-            new Meter(
-                c,
-                enumValue(Orientation.class, node, "orientation"),
-                integer(node, "thickness"),
-                length(node, 4),
-                color(node, "color").orElseThrow(),
-                size(node, "segment", 1),
-                size(node, "gap", 0),
-                color(node, "gap-color"));
-        case "progress" ->
-            new Progress(c, id(node, "icon"), enumValue(Direction.class, node, "direction"));
-        case "label" -> new Label(c, text(node, "text").orElseThrow());
-        case "button", "processor-button" ->
-            new Button(
-                c,
-                text(node, "text"),
-                id(node, "icon"),
-                Optional.ofNullable(node.attributes().get("shows")).map(ViewRef::parse),
-                words(node, "icons").stream().map(ResourceLocation::parse).toList(),
-                words(node, "value-labels").stream()
-                    .map(key -> new Text(translationKey(key), Optional.empty()))
-                    .toList(),
-                java.util.Set.of("true", "1")
-                    .contains(node.attributes().getOrDefault("flat", "false")),
-                Optional.ofNullable(node.attributes().get("processor-key")),
-                node.name().equals("processor-button"));
-        case "checkbox" -> new Checkbox(c, text(node, "text").orElseThrow());
-        case "radio-group" ->
-            new RadioGroup(
-                c,
-                text(node, "label"),
-                node.children().stream().map(child -> (Radio) element(child)).toList());
-        case "radio" -> new Radio(c, text(node, "text").orElseThrow());
-        case "context" ->
-            new Context(c, node.children().stream().map(child -> (View) element(child)).toList());
-        case "view" -> new View(c, text(node, "title"), children(node));
-        case "side-config" ->
-            new SideConfig(c, List.of(node.attributes().get("groups").trim().split("\\s+")));
-        case "player-inventory" -> new PlayerInventory(c);
-        case "side-tab" -> new SideTab(c, enumValue(Edge.class, node, "edge"), children(node));
-        case "popout" ->
-            new Popout(
-                c,
-                enumValue(PopoutKind.class, node, "kind"),
-                id(node, "icon"),
-                enumValue(Edge.class, node, "edge"),
-                text(node, "text"));
-        default -> throw error(node, "Unknown element <" + node.name() + ">");
-      };
-    }
-
-    private Custom custom(Node node, Common common) {
-      var properties = new LinkedHashMap<String, String>();
-      for (var property : node.children()) {
-        var name = property.attributes().get("name");
-        if (properties.putIfAbsent(name, property.attributes().get("value")) != null)
-          throw error(property, "Duplicate widget property: " + name);
-      }
-      var element =
-          new Custom(
-              common,
-              id(node, "type").orElseThrow(),
-              size(node, "width", 1),
-              size(node, "height", 1),
-              properties);
-      try {
-        var type = widgets.require(element.type());
-        if (common.value().isPresent() && type.valueKinds().isEmpty())
-          throw new IllegalArgumentException("This widget does not accept a value binding");
-        type.validator().accept(element);
-      } catch (RuntimeException ex) {
-        throw new ScreenException(
-            node.source(), node.line(), element.type() + ": " + ex.getMessage(), ex);
-      }
-      return element;
-    }
-
-    /** Standard energy bindings can be overridden for machines with several buffers. */
-    private Node energyDefaults(Node node) {
-      var attributes = new LinkedHashMap<>(node.attributes());
-      attributes.putIfAbsent("value", "#getEnergy");
-      attributes.putIfAbsent("max", "#getEnergyCapacity");
-      if (!attributes.containsKey("tooltip")) {
-        attributes.put("tooltip", "screen.mmdlib.energy");
-        attributes.putIfAbsent("tooltip-fallback", "{value} / {max} FE");
-      }
-      return new Node(node.name(), attributes, node.children(), node.source(), node.line());
-    }
-
-    private Node processorDefaults(Node node) {
-      if (node.attributes().containsKey("processor-key")
-          && node.attributes().get("processor-key").isBlank())
-        throw error(node, "processor-key must not be blank");
-      var attributes = new LinkedHashMap<>(node.attributes());
-      attributes.put(
-          "icons",
-          java.util.Arrays.stream(ProcessorButtonState.values())
-              .map(state -> state.icon().toString())
-              .collect(java.util.stream.Collectors.joining(" ")));
-      attributes.put(
-          "value-labels",
-          java.util.Arrays.stream(ProcessorButtonState.values())
-              .map(ProcessorButtonState::label)
-              .collect(java.util.stream.Collectors.joining(" ")));
-      if (!attributes.containsKey("tooltip"))
-        attributes.put("tooltip", "screen.mmdlib.processor.toggle");
-      return new Node(node.name(), attributes, node.children(), node.source(), node.line());
-    }
-
-    private Common common(Node node) {
-      var a = node.attributes();
-      var recipes = a.get("jei-recipes");
-      var common =
-          new Common(
-              Optional.ofNullable(a.get("id")),
-              value(node, "value"),
-              value(node, "max"),
-              text(node, "tooltip"),
-              text(node, "tooltip-shift"),
-              new Common.Clicks(
-                  id(node, "on-click"),
-                  id(node, "on-right-click"),
-                  id(node, "on-shift-click"),
-                  id(node, "on-shift-right-click")),
-              id(node, "on-hover"),
-              Optional.ofNullable(a.get("hover-shows")),
-              recipes == null || recipes.isBlank()
-                  ? List.of()
-                  : java.util.Arrays.stream(recipes.trim().split("\\s+"))
-                      .map(ResourceLocation::parse)
-                      .toList(),
-              a.containsKey("offset-x") ? offset(node, "offset-x") : 0,
-              a.containsKey("offset-y") ? offset(node, "offset-y") : 0,
-              node.line());
-      origins.put(common, node.source());
-      return common;
-    }
-
-    private Optional<Text> text(Node node, String name) {
-      var key = node.attributes().get(name);
-      var fallback = Optional.ofNullable(node.attributes().get(name + "-fallback"));
-      if (key == null) {
-        if (fallback.isPresent())
-          throw error(node, name + "-fallback needs " + name + " (a translation key)");
-        return Optional.empty();
-      }
-      return Optional.of(new Text(translationKey(key), fallback));
-    }
-
-    private String translationKey(String key) {
-      return key.replace("{machineId}", machineId);
-    }
-
-    private List<String> words(Node node, String name) {
-      String value = node.attributes().getOrDefault(name, "").trim();
-      return value.isEmpty() ? List.of() : List.of(value.split("\\s+"));
-    }
-
-    private Optional<ValueRef> value(Node node, String name) {
-      return Optional.ofNullable(node.attributes().get(name)).map(ValueRef::parse);
-    }
-
-    private Optional<ResourceLocation> id(Node node, String name) {
-      var value = node.attributes().get(name);
-      if (value == null) return Optional.empty();
-      var id = ResourceLocation.tryParse(value);
-      if (id == null) throw error(node, "Invalid ID in " + name + ": " + value);
-      return Optional.of(id);
-    }
-
-    private Optional<Integer> color(Node node, String name) {
-      var value = node.attributes().get(name);
-      if (value == null) return Optional.empty();
-      long rgb = Long.parseLong(value.substring(1), 16);
-      return Optional.of((int) (value.length() == 7 ? 0xFF000000L | rgb : rgb));
-    }
-
-    /**
-     * A size attribute in GUI pixels: a plain number is pixels, an {@code s} suffix counts slots
-     * (18 px each), rounded to the nearest pixel.
-     */
-    private int size(Node node, String name, int minimum) {
-      int pixels = pixels(node, name);
-      if (pixels < minimum || pixels > 1024)
-        throw error(node, name + " must be from " + minimum + " to 1024 px, not " + pixels);
-      return pixels;
-    }
-
-    private int length(Node node, int minimum) {
-      return "fill".equals(node.attributes().get("length"))
-          ? Element.FILL
-          : size(node, "length", minimum);
-    }
-
-    private int offset(Node node, String name) {
-      int pixels = pixels(node, name);
-      if (Math.abs(pixels) > 64)
-        throw error(node, name + " must be within 64 px either way, not " + pixels);
-      return pixels;
-    }
-
-    private int pixels(Node node, String name) {
-      var value = node.attributes().get(name).trim();
-      try {
-        if (!value.endsWith("s")) return Integer.parseInt(value);
-        var slots = new java.math.BigDecimal(value.substring(0, value.length() - 1));
-        return slots
-            .multiply(java.math.BigDecimal.valueOf(Element.SLOT))
-            .setScale(0, java.math.RoundingMode.HALF_UP)
-            .intValueExact();
-      } catch (NumberFormatException | ArithmeticException ex) {
-        throw error(node, name + " is too large: " + value);
-      }
-    }
-
-    private int integer(Node node, String name) {
-      return Integer.parseInt(node.attributes().get(name).trim());
-    }
-
-    private <E extends Enum<E>> E enumValue(Class<E> type, Node node, String name) {
-      return Enum.valueOf(
-          type, node.attributes().get(name).toUpperCase(java.util.Locale.ROOT).replace('-', '_'));
-    }
-
-    private ScreenException error(Node node, String message) {
-      return new ScreenException(node.source(), node.line(), message);
-    }
-  }
-
-  // Checks a schema cannot express
-
-  private static void check(Screen screen) {
-    var ids = new HashMap<String, Element>();
-    var slots = new HashMap<Integer, Element>();
-    var contexts = new HashMap<String, Set<String>>();
-    Element inventory = null;
-    for (var element : screen.elements()) {
-      var c = element.common();
-      var source = screen.source(c);
-      if (c.id().isPresent() && ids.putIfAbsent(c.id().get(), element) != null)
-        throw new ScreenException(source, c.line(), "Duplicate id: " + c.id().get());
-      if (element instanceof Slot slot && slots.putIfAbsent(slot.index(), element) != null)
-        throw new ScreenException(
-            source, c.line(), "Slot " + slot.index() + " is placed twice on this screen");
-      if (element instanceof Context context) {
-        if (c.id().isEmpty())
-          throw new ScreenException(source, c.line(), "<context> needs an id for buttons to name");
-        var views = new HashSet<String>();
-        for (var view : context.views())
-          if (view.common().id().isEmpty())
-            throw new ScreenException(
-                screen.source(view.common()),
-                view.common().line(),
-                "<view> needs an id for buttons to name");
-          else views.add(view.common().id().get());
-        contexts.put(c.id().get(), views);
-      }
-      if (element instanceof PlayerInventory) {
-        if (inventory != null)
-          throw new ScreenException(source, c.line(), "<player-inventory> may appear only once");
-        inventory = element;
-      }
-    }
-    if (inventory != null && !screen.playerInventory())
-      throw new ScreenException(
-          screen.source(inventory.common()),
-          inventory.common().line(),
-          "<player-inventory> cannot be placed on a screen with inventory=\"none\"");
-    for (var element : screen.elements()) {
-      var c = element.common();
-      var source = screen.source(c);
-      int line = c.line();
-      if (c.hoverShows().isPresent() && !ids.containsKey(c.hoverShows().get()))
-        throw new ScreenException(
-            source, line, "hover-shows names no element: " + c.hoverShows().get());
-      if (c.max().isPresent() && c.value().isEmpty())
-        throw new ScreenException(source, line, "max needs value");
-      switch (element) {
-        case Button button -> {
-          if (button.processorControl()
-              && (c.value().isPresent()
-                  || c.max().isPresent()
-                  || c.clicks().any()
-                  || !c.jeiRecipes().isEmpty()))
-            throw new ScreenException(
-                source,
-                line,
-                "<processor-button> owns its state and click action; value, max, click handlers and"
-                    + " jei-recipes are not allowed");
-          if (button.flat() && button.text().isPresent())
-            throw new ScreenException(
-                source, line, "A flat button uses an icon, not a text caption");
-          if (c.tooltip().isEmpty())
-            throw new ScreenException(source, line, "<button> needs a tooltip saying what it does");
-          if (button.text().isEmpty() && button.icon().isEmpty() && button.icons().isEmpty())
-            throw new ScreenException(source, line, "<button> needs text or icon");
-          if (!button.processorControl()
-              && (!button.icons().isEmpty() || !button.valueLabels().isEmpty()))
-            requireValue(source, element, "a stateful <button>", false);
-          if (!button.icons().isEmpty()
-              && !button.valueLabels().isEmpty()
-              && button.icons().size() != button.valueLabels().size())
-            throw new ScreenException(
-                source, line, "button icons and value-labels must have equal counts");
-          if (button.shows().isPresent()) {
-            var target = button.shows().get();
-            var views = contexts.get(target.context());
-            if (views == null)
-              throw new ScreenException(
-                  source, line, "shows names no context: " + target.context());
-            if (!views.contains(target.view()))
-              throw new ScreenException(source, line, "shows names no view: " + target);
-            if (c.clicks().any())
-              throw new ScreenException(
-                  source, line, "A <button> that shows a view cannot also have click handlers");
-          }
-        }
-        case Gauge gauge -> requireValue(source, element, "a <gauge>", true);
-        case EnergyGauge gauge -> requireValue(source, element, "an <energy-gauge>", true);
-        case Meter meter -> requireValue(source, element, "a <meter>", true);
-        case Progress progress -> requireValue(source, element, "a <progress>", true);
-        case Checkbox checkbox -> requireValue(source, element, "a <checkbox>", false);
-        case RadioGroup group -> requireValue(source, element, "a <radio-group>", false);
-        case SideConfig config -> {
-          for (var group : config.groups())
-            if (!ids.containsKey(group))
-              throw new ScreenException(
-                  source, line, "side-config group names no element: " + group);
-        }
-        case Popout popout -> {
-          if (popout.kind() == PopoutKind.INFO && popout.text().isEmpty())
-            throw new ScreenException(source, line, "An info <popout> needs text");
-          if (popout.kind() != PopoutKind.INFO && c.value().isEmpty())
-            throw new ScreenException(
-                source,
-                line,
-                "A "
-                    + popout.kind().name().toLowerCase()
-                    + " <popout> needs a value getter reporting it");
-        }
-        case Spacer spacer -> {}
-        default -> {}
-      }
-    }
-    checkSpacers(screen);
-    for (var element : screen.body()) checkFill(screen, element, true);
-    for (var element : screen.tabs()) checkFill(screen, element, true);
-  }
-
-  /**
-   * A {@code fill} length matches the box around it across, so a vertical gauge or meter must sit
-   * directly in an {@code hbox}, and a horizontal one in a vertical stack (a {@code vbox}, group,
-   * view, side tab, or the screen itself).
-   *
-   * @param verticalParent whether the element's parent stacks its children vertically
-   */
-  private static void checkFill(Screen screen, Element element, boolean verticalParent) {
-    var source = screen.source(element.common());
-    Orientation orientation = null;
-    if (element instanceof Gauge gauge && gauge.fills()) orientation = gauge.orientation();
-    if (element instanceof EnergyGauge gauge && gauge.fills()) orientation = gauge.orientation();
-    if (element instanceof Meter meter && meter.fills()) orientation = meter.orientation();
-    if (orientation == Orientation.VERTICAL && verticalParent)
-      throw new ScreenException(
-          source,
-          element.common().line(),
-          "A vertical length=\"fill\" matches the height of its row, so it belongs directly in"
-              + " an <hbox>");
-    if (orientation == Orientation.HORIZONTAL && !verticalParent)
-      throw new ScreenException(
-          source,
-          element.common().line(),
-          "A horizontal length=\"fill\" matches the width of its column, so it belongs directly"
-              + " in a <vbox>, <group>, <view> or <side-tab>");
-    boolean vertical = !(element instanceof Box box && !box.vertical());
-    for (var child : element.children()) checkFill(screen, child, vertical);
-  }
-
-  private static void requireValue(String source, Element element, String what, boolean needsMax) {
-    var c = element.common();
-    if (c.value().isEmpty())
-      throw new ScreenException(source, c.line(), what + " needs a value getter");
-    if (needsMax && c.max().isEmpty())
-      throw new ScreenException(source, c.line(), what + " needs a max getter");
-  }
-
-  private static void checkSpacers(Screen screen) {
-    // A spacer only has room to fill inside a box.
-    for (var element : screen.elements())
-      if (!(element instanceof Box))
-        for (var child : element.children())
-          if (child instanceof Spacer)
-            throw new ScreenException(
-                screen.source(child.common()),
-                child.common().line(),
-                "<spacer> belongs directly inside a vbox or hbox");
-    for (var element : screen.body())
-      if (element instanceof Spacer)
-        throw new ScreenException(
-            screen.source(element.common()),
-            element.common().line(),
-            "<spacer> belongs directly inside a vbox or hbox");
   }
 }

@@ -7,7 +7,8 @@ import java.util.Objects;
 import net.minecraft.network.chat.Component;
 
 /**
- * Immutable descriptions of a part's statistics; sampling, formatting and sync belong to the UI.
+ * Immutable descriptions of a part's statistics. Values own sampling and formatting; the UI
+ * transports their display pages.
  */
 public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximumUses) {
   public static final Statistics EMPTY = new Statistics(Component.empty(), List.of(), List.of());
@@ -58,10 +59,48 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
     }
   }
 
-  public sealed interface Value permits Counter, Rate, Text, MaximumUse {}
+  /** An open statistic type; no registration or client implementation is required. */
+  public interface Value {
+    /** Immutable equality key for sampling configuration, excluding the current reading. */
+    default Object samplingKey() {
+      return getClass();
+    }
+
+    /**
+     * Called once per sampling update, independently of the number of timescales. Previous is null
+     * for a new row, a changed value class/configuration, or after a row/provider was removed.
+     * Return fresh sampled data or update the supplied history; never store it in the definition.
+     */
+    Sample sample(StatsSamplingContext context, Sample previous);
+  }
+
+  /** Per-row sampled data/history. Formatting must not change history or read live storage. */
+  @FunctionalInterface
+  public interface Sample {
+    Component format(StatsFormatContext context);
+  }
+
+  private record CounterSample(CounterRate rate) implements Sample {
+    public Component format(StatsFormatContext context) {
+      return context.number(rate.format(context.ticks(), context.decimals()));
+    }
+  }
 
   /** A lifetime counter, measured over the most recent window (20..1200 game ticks). */
   public record Counter(BigInteger total, int windowTicks) implements Value {
+    public Object samplingKey() {
+      return windowTicks;
+    }
+
+    public Sample sample(StatsSamplingContext context, Sample previous) {
+      var sampled =
+          previous == null
+              ? new CounterSample(new CounterRate(windowTicks))
+              : (CounterSample) previous;
+      sampled.rate().sample(total, context.tick());
+      return sampled;
+    }
+
     public Counter {
       if (total.signum() < 0 || windowTicks < 20 || windowTicks > 1200)
         throw new IllegalArgumentException("Invalid statistics counter");
@@ -70,6 +109,11 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
 
   /** Exact amount per number of game ticks; a non-timescale row uses this as a fixed quantity. */
   public record Rate(BigInteger amount, long ticks) implements Value {
+    public Sample sample(StatsSamplingContext context, Sample previous) {
+      return format ->
+          format.number(StatsNumbers.rate(amount, ticks, format.ticks(), format.decimals()));
+    }
+
     public Rate {
       if (amount.signum() < 0 || ticks <= 0)
         throw new IllegalArgumentException("Invalid statistics rate");
@@ -77,6 +121,11 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
   }
 
   public record Text(Component text) implements Value {
+    public Sample sample(StatsSamplingContext context, Sample previous) {
+      var sampled = text.copy();
+      return format -> sampled.copy();
+    }
+
     public Text {
       text = Objects.requireNonNull(text).copy();
     }
@@ -84,6 +133,12 @@ public record Statistics(Component title, List<Row> rows, List<EnergyUse> maximu
 
   /** Resolves the combined demands of all registered providers against this exact resource. */
   public record MaximumUse(Object resource) implements Value {
+    public Sample sample(StatsSamplingContext context, Sample previous) {
+      var amount = context.demand(resource);
+      return format ->
+          format.number(StatsNumbers.rate(amount, 1, format.ticks(), format.decimals()));
+    }
+
     public MaximumUse {
       Objects.requireNonNull(resource);
     }

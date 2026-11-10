@@ -15,7 +15,8 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.GaugeFill;
+import zone.moddev.mc.lib.gui.model.Orientation;
 
 /** Graduated glass gauge, with clipped fluid tiles kept upright in both orientations. */
 final class GaugeRenderer {
@@ -36,12 +37,12 @@ final class GaugeRenderer {
     }
   }
 
-  static void draw(GuiGraphics g, Rect r, Element.Gauge gauge, Object value, Object max) {
+  static void draw(GuiGraphics g, Rect r, Orientation orientation, GaugeFill fill, double ratio) {
     var state = RenderState.capture();
     try {
       g.flush();
       g.setColor(1, 1, 1, 1);
-      drawGauge(g, r, gauge, value, max);
+      drawGauge(g, r, orientation, fill, ratio);
     } finally {
       try {
         g.flush();
@@ -52,20 +53,15 @@ final class GaugeRenderer {
   }
 
   private static void drawGauge(
-      GuiGraphics g, Rect r, Element.Gauge gauge, Object value, Object max) {
-    boolean vertical = gauge.orientation() == Element.Orientation.VERTICAL;
+      GuiGraphics g, Rect r, Orientation orientation, GaugeFill fill, double ratio) {
+    boolean vertical = orientation == Orientation.VERTICAL;
     int length = vertical ? r.height() : r.width();
     shell(g, r, vertical, length, "body");
-    int filled = (int) Math.round((length - 2) * ScreenText.ratio(value, max));
-    FluidStack fluid = value instanceof FluidStack f ? f : null;
+    int filled = (int) Math.round((length - 2) * ratio);
+    FluidStack fluid = fill.fluid().orElse(null);
     int color =
-        gauge
-            .color()
-            .orElseGet(
-                () ->
-                    fluid == null || fluid.isEmpty()
-                        ? 0xff777777
-                        : IClientFluidTypeExtensions.of(fluid.getFluid()).getTintColor(fluid));
+        fill.colour()
+            .orElseGet(() -> IClientFluidTypeExtensions.of(fluid.getFluid()).getTintColor(fluid));
     for (int step = 0; step < filled; step++) {
       int row = length - 2 - step;
       int inset = (row == 1 || row == length - 2) ? 2 : 1;
@@ -73,16 +69,14 @@ final class GaugeRenderer {
           vertical
               ? new Rect(r.x() + inset, r.y() + row, 18 - 2 * inset, 1)
               : new Rect(r.x() + length - 1 - row, r.y() + inset, 1, 18 - 2 * inset);
-      if (fluid != null && !fluid.isEmpty() && gauge.color().isEmpty())
-        fluid(g, strip, r, fluid, color);
+      if (fluid != null) fluid(g, strip, r, fluid, color);
       else g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(), color | 0xff000000);
       if (vertical && step == filled - 1)
         g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(), 0x4dffffff);
     }
     // Keep the shared empty background flat. Only the contents get curved lighting.
     if (filled > 0) {
-      if (vertical)
-        g.enableScissor(r.x(), r.bottom() - 1 - filled, r.right(), r.bottom() - 1);
+      if (vertical) g.enableScissor(r.x(), r.bottom() - 1 - filled, r.right(), r.bottom() - 1);
       else g.enableScissor(r.x() + 1, r.y(), r.x() + 1 + filled, r.bottom());
       try {
         shell(g, r, vertical, length, "glass");

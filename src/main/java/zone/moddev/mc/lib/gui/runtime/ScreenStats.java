@@ -6,12 +6,11 @@ import java.util.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
-import zone.moddev.mc.lib.api.stats.Statistics;
+import zone.moddev.mc.lib.api.stats.*;
 import zone.moddev.mc.lib.api.stats.StatsProvider;
 
 /** Server snapshots from the public provider contract; no concrete storage/processor knowledge. */
 final class ScreenStats {
-  static final int KEY = 1 << 21;
 
   // Menus own the sampler; weak keys AND values prevent provider closures retaining machines.
   private static final Map<ScreenHost, java.lang.ref.WeakReference<ScreenStats>> SHARED =
@@ -27,20 +26,30 @@ final class ScreenStats {
     return shared;
   }
 
-  private record Sampled(int window, CounterRate rate) {}
+  private record Sampled(Class<?> type, Object key, Statistics.Sample sample) {}
 
   private record Part(StatsProvider provider, Statistics section) {}
 
-  private final Map<StatsProvider, Map<String, Sampled>> counters = new IdentityHashMap<>();
-  private Map<Integer, Object> snapshot = Map.of();
+  private final Map<StatsProvider, Map<String, Sampled>> samples = new IdentityHashMap<>();
+  private List<StatsPage> snapshot = List.of();
   private long lastTick = Long.MIN_VALUE;
 
-  Map<Integer, Object> read(ScreenHost host, long tick) {
+  List<StatsPage> read(ScreenHost host, long tick) {
     if (lastTick != Long.MIN_VALUE && tick >= lastTick && tick - lastTick < 20) return snapshot;
-    return readParts(host == null ? List.of() : host.screenStats(), tick);
+    return readParts(
+        host == null ? List.of() : host.screenStats(),
+        host == null ? StatsTimescale.DEFAULTS : host.screenStatsTimescales(),
+        tick);
   }
 
-  Map<Integer, Object> readParts(List<? extends StatsProvider> providers, long tick) {
+  List<StatsPage> readParts(List<? extends StatsProvider> providers, long tick) {
+    return readParts(providers, StatsTimescale.DEFAULTS, tick);
+  }
+
+  List<StatsPage> readParts(
+      List<? extends StatsProvider> providers, List<StatsTimescale> timescales, long tick) {
+    timescales = StatsTimescale.checked(timescales);
+    if (tick < lastTick) samples.clear();
     lastTick = tick;
     var seen = Collections.newSetFromMap(new IdentityHashMap<StatsProvider, Boolean>());
     var parts = new ArrayList<Part>();
@@ -51,25 +60,28 @@ final class ScreenStats {
       parts.add(new Part(provider, section));
       for (var use : section.maximumUses())
         demands.merge(use.resource(), use.perTick(), BigInteger::add);
-      var samples = counters.computeIfAbsent(provider, ignored -> new HashMap<>());
-      var currentIds = new HashSet<String>();
-      for (var row : section.rows())
-        if (row.value() instanceof Statistics.Counter counter) {
-          currentIds.add(row.id());
-          var sampled = samples.get(row.id());
-          if (sampled == null || sampled.window() != counter.windowTicks()) {
-            sampled = new Sampled(counter.windowTicks(), new CounterRate(counter.windowTicks()));
-            samples.put(row.id(), sampled);
-          }
-          sampled.rate().sample(counter.total(), tick);
-        }
-      samples.keySet().retainAll(currentIds);
     }
-    counters.keySet().retainAll(seen);
-    var result = new HashMap<Integer, Object>();
-    int[] units = {1, 20, 1200};
-    String[] names = {"tick", "second", "minute"};
-    for (int unit = 0; unit < units.length; unit++) {
+    var context = new StatsSamplingContext(tick, demands);
+    for (var part : parts) {
+      var rows = samples.computeIfAbsent(part.provider(), ignored -> new HashMap<>());
+      var currentIds = new HashSet<String>();
+      for (var row : part.section().rows()) {
+        currentIds.add(row.id());
+        var value = row.value();
+        var key = Objects.requireNonNull(value.samplingKey(), "Statistic sampling key");
+        var old = rows.get(row.id());
+        var previous =
+            old != null && old.type() == value.getClass() && Objects.equals(old.key(), key)
+                ? old.sample()
+                : null;
+        var sample = Objects.requireNonNull(value.sample(context, previous), "Statistic sample");
+        rows.put(row.id(), new Sampled(value.getClass(), key, sample));
+      }
+      rows.keySet().retainAll(currentIds);
+    }
+    samples.keySet().retainAll(seen);
+    var result = new ArrayList<StatsPage>();
+    for (var timescale : timescales) {
       var lines = new ArrayList<Component>();
       for (var part : parts) {
         var section = part.section();
@@ -87,37 +99,20 @@ final class ScreenStats {
           lines.add(section.title().copy().withStyle(ChatFormatting.BOLD));
         for (var row : visible) {
           var line = row.label().copy().append(": ");
-          if (row.value() instanceof Statistics.Text text) line.append(text.text().copy());
-          else {
-            int multiplier = row.perTimescale() ? units[unit] : 1;
-            String number =
-                switch (row.value()) {
-                  case Statistics.Counter ignored ->
-                      counters
-                          .get(part.provider())
-                          .get(row.id())
-                          .rate()
-                          .format(multiplier, row.decimals());
-                  case Statistics.Rate rate ->
-                      StatsNumbers.rate(rate.amount(), rate.ticks(), multiplier, row.decimals());
-                  case Statistics.MaximumUse use ->
-                      StatsNumbers.rate(
-                          demands.getOrDefault(use.resource(), BigInteger.ZERO),
-                          1,
-                          multiplier,
-                          row.decimals());
-                  default -> throw new IllegalStateException("Unsupported statistics value");
-                };
-            line.append(number).append(" ").append(row.unit().copy());
-            if (row.perTimescale()) line.append("/").append(Statistics.label(names[unit]));
-          }
+          line.append(
+              samples
+                  .get(part.provider())
+                  .get(row.id())
+                  .sample()
+                  .format(
+                      new StatsFormatContext(
+                          timescale, row.unit(), row.decimals(), row.perTimescale())));
           lines.add(line);
         }
       }
       if (lines.isEmpty()) lines.add(Statistics.label("empty"));
-      if (lines.size() > 4096) throw new IllegalArgumentException("Too many statistics rows");
-      result.put(KEY + unit, List.copyOf(lines));
+      result.add(new StatsPage(timescale.id(), timescale.label(), lines));
     }
-    return snapshot = Map.copyOf(result);
+    return snapshot = List.copyOf(result);
   }
 }

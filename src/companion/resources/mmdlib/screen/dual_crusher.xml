@@ -2,7 +2,7 @@
         block-entity="zone.moddev.mc.companion.ProcessorEntity" extends="mmdlib:base_powered_machine">
   <fill name="machine">
     <spacer/>
-    <slot id="input" index="0"/>
+    <inventory storage="input"><item-slot id="input" index="0"/></inventory>
     <vbox spacing="4">
       <spacer/>
       <hbox spacing="4" align="center">
@@ -15,7 +15,7 @@
       </hbox>
       <spacer/>
     </vbox>
-    <slot id="output" index="1"/>
+    <inventory storage="output"><item-slot id="output" index="0"/></inventory>
   </fill>
   <fill name="inventory_controls">
     <inventory-controls id="inventory_controls">

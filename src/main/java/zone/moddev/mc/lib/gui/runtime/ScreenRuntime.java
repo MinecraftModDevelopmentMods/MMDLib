@@ -27,7 +27,7 @@ public final class ScreenRuntime {
 
   public static void register(IEventBus bus) {
     REGISTER.register(bus);
-    bus.addListener(ScreenNetwork::register);
+    bus.addListener(zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry.GLOBAL::install);
   }
 
   /** Checks extension contracts and limits before any screen can be opened. */
@@ -39,13 +39,6 @@ public final class ScreenRuntime {
         throw new zone.moddev.mc.lib.gui.load.ScreenException(
             screen.source(), 0, "At most 4096 elements are supported");
       for (var e : screen.elements()) {
-        if (e instanceof zone.moddev.mc.lib.gui.model.Element.Slot slot && slot.index() > 4095)
-          throw new zone.moddev.mc.lib.gui.load.ScreenException(
-              screen.source(), e.common().line(), "Slot index exceeds 4095");
-        if (e instanceof zone.moddev.mc.lib.gui.model.Element.SideConfig config
-            && config.groups().size() > 682)
-          throw new zone.moddev.mc.lib.gui.load.ScreenException(
-              screen.source(), e.common().line(), "At most 682 side groups are supported");
         var c = e.common();
         var clicks = c.clicks();
         for (var id :
@@ -87,19 +80,33 @@ public final class ScreenRuntime {
   }
 
   public static String fingerprint(zone.moddev.mc.lib.gui.model.Screen screen) {
-    return screen.fingerprint();
+    return screen.fingerprint()
+        + "|"
+        + zone.moddev.mc.lib.gui.value.ValueTypeRegistry.GLOBAL.fingerprint();
   }
 
   /** Includes host storage/group configuration even when it produces an identical screen. */
   public static String fingerprint(zone.moddev.mc.lib.gui.model.Screen screen, BlockEntity entity) {
     var definition = entity instanceof ScreenHost host ? host.screenDefinitionFingerprint() : "";
-    if (definition.isEmpty()) return fingerprint(screen);
+    var drawers =
+        zone.moddev.mc.lib.gui.drawer.DrawerRegistry.GLOBAL.resolve(
+            new zone.moddev.mc.lib.gui.drawer.DrawerRegistry.Context(
+                screen,
+                zone.moddev.mc.lib.gui.layout.TextMeasure.NONE,
+                entity instanceof ScreenHost host ? host : null));
+    definition += "|drawers:" + drawers;
     try {
       return java.util.HexFormat.of()
           .formatHex(
               java.security.MessageDigest.getInstance("SHA-256")
                   .digest(
-                      (fingerprint(screen) + "|" + definition)
+                      (fingerprint(screen)
+                              + "|"
+                              + definition
+                              + "|"
+                              + zone.moddev.mc.lib.gui.runtime.component.MenuComponentRegistry
+                                  .GLOBAL
+                                  .fingerprint())
                           .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     } catch (java.security.NoSuchAlgorithmException impossible) {
       throw new AssertionError(impossible);

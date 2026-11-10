@@ -17,7 +17,8 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
  * <p>Reservations arrive as each slot's {@link SlotPlan} and apply the same way they do in the
  * server's storage.
  */
-public final class ClientMenuItems extends PlannedItemHandler {
+public final class ClientMenuItems extends PlannedItemHandler
+    implements zone.moddev.mc.lib.api.capabilities.ReservationReceiver {
   private final IItemHandler rules;
 
   /**

@@ -8,11 +8,19 @@ import java.util.function.Supplier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /** Per-viewer, server-authoritative access to an equipped container's generic I/O capability. */
-public final class ContainerDrawerMenu {
+public final class ContainerDrawerMenu
+    implements zone.moddev.mc.lib.gui.runtime.component.DrawerSession {
+  public net.minecraft.resources.ResourceLocation drawerType() {
+    return equipment
+        ? zone.moddev.mc.lib.gui.drawer.BuiltinDrawers.CURIOS
+        : zone.moddev.mc.lib.gui.drawer.BuiltinDrawers.BACKPACK;
+  }
+
   public static final int MAX_CONTAINERS = 16, MAX_SLOTS = 4096, MAX_PAGE = 54;
   public static final int TOGGLE = 0,
       SELECT = 1,
@@ -28,20 +36,16 @@ public final class ContainerDrawerMenu {
   private final MachineMenu menu;
   private final boolean equipment;
   private final Player owner;
+  private final ContainerTargets targets;
   private final Supplier<List<EquippedContainers.Source>> discover;
   private final Runnable invalidateDiscovery;
   private List<EquippedContainers.Source> sources = List.of();
   private List<Integer> sourceSizes = List.of();
-  private int selected,
-      offset,
-      pageSize = 27,
-      lastRequest,
-      nextRequest,
-      pendingRequest,
-      pendingTicks;
+  private int selected, offset, pageSize = 27;
+  private final MenuRequests.Client requests = new MenuRequests.Client(20);
+  private final MenuRequests.Server received = new MenuRequests.Server(32);
   private boolean open, pendingInventory;
-  private long revision, actionTick = Long.MIN_VALUE;
-  private int actions;
+  private long revision;
   private ContainerDrawerNetwork.State state;
   private boolean dirty;
 
@@ -74,15 +78,15 @@ public final class ContainerDrawerMenu {
       Runnable invalidateDiscovery) {
     this.invalidateDiscovery = invalidateDiscovery;
     this.equipment = equipment;
-    if (equipment) pageSize = 20;
     this.menu = menu;
     this.owner = owner;
+    targets = new ContainerTargets(owner, menu.nativeSlots(), this::state);
     this.discover = discover;
     state =
         new ContainerDrawerNetwork.State(
             menu.containerId,
             equipment,
-            menu.widgetSession(),
+            menu.sessionId(),
             0,
             0,
             false,
@@ -100,8 +104,22 @@ public final class ContainerDrawerMenu {
     return state;
   }
 
+  public ContainerTargets targets() {
+    return targets;
+  }
+
+  public ContainerPolicy.Settings policy() {
+    return state.presentations().isEmpty()
+        ? ContainerPolicy.STORAGE.settings()
+        : state.presentations().get(state.selected()).policy();
+  }
+
+  public boolean allows(int kind) {
+    return policy().allowsRequest(kind);
+  }
+
   public boolean pending() {
-    return pendingRequest != 0;
+    return requests.pending();
   }
 
   /** Only item-changing requests need to serialize vanilla inventory gestures. */
@@ -115,7 +133,8 @@ public final class ContainerDrawerMenu {
 
   public Optional<ContainerDrawerNetwork.Request> request(
       int kind, int argument, int size, List<Integer> slots) {
-    if (pending() || nextRequest == Integer.MAX_VALUE) return Optional.empty();
+    int request = requests.begin();
+    if (request == 0) return Optional.empty();
     pendingInventory |=
         kind == PICKUP
             || kind == QUICK_TAKE
@@ -123,15 +142,13 @@ public final class ContainerDrawerMenu {
             || kind == DISTRIBUTE
             || kind == COLLECT
             || kind == SWAP;
-    pendingRequest = ++nextRequest;
-    pendingTicks = 0;
     return Optional.of(
         new ContainerDrawerNetwork.Request(
             menu.containerId,
             equipment,
-            menu.widgetSession(),
+            menu.sessionId(),
             state.revision(),
-            pendingRequest,
+            request,
             kind,
             argument,
             size,
@@ -142,19 +159,14 @@ public final class ContainerDrawerMenu {
   public void receive(ContainerDrawerNetwork.State update) {
     if (update.equipment() != equipment
         || update.menu() != menu.containerId
-        || update.session() != menu.widgetSession()
+        || update.session() != menu.sessionId()
         || update.revision() < state.revision()) return;
     state = update;
-    nextRequest = Math.max(nextRequest, update.acknowledged());
-    if (update.acknowledged() >= pendingRequest) {
-      pendingRequest = 0;
-      pendingInventory = false;
-    }
+    if (requests.acknowledgeThrough(update.acknowledged())) pendingInventory = false;
   }
 
   public void tickClient() {
-    if (pending() && ++pendingTicks >= 20) {
-      pendingRequest = 0;
+    if (requests.tick()) {
       request(SYNC, 0, state.pageSize()).ifPresent(PacketDistributor::sendToServer);
     }
   }
@@ -182,14 +194,32 @@ public final class ContainerDrawerMenu {
       }
     // Capabilities may be replaced without replacing the equipped stack. Always use the live one.
     sources = found;
+    var presentations = found.stream().map(EquippedContainers.Source::presentation).toList();
+    boolean policiesChanged =
+        !presentations.stream()
+            .map(EquippedContainers.Presentation::policy)
+            .toList()
+            .equals(
+                state.presentations().stream()
+                    .map(EquippedContainers.Presentation::policy)
+                    .toList());
     if (replaced) {
       sourceSizes = found.stream().map(s -> s.items().getSlots()).toList();
       open = false;
       offset = 0;
       selected = 0;
+      if (!presentations.isEmpty()) pageSize = presentations.getFirst().policy().initialPageSize();
       revision++;
       dirty = true;
     }
+    if (!presentations.isEmpty() && policiesChanged) {
+      var policy = presentations.get(selected).policy();
+      if (!policy.acceptsPage(offset, pageSize)) {
+        pageSize = policy.initialPageSize();
+        offset = offset / policy.pageAlignment() * policy.pageAlignment();
+      }
+    }
+    boolean presentationChanged = !presentations.equals(state.presentations());
     boolean iconsChanged = found.size() != state.icons().size();
     if (!iconsChanged)
       for (int i = 0; i < found.size(); i++)
@@ -215,6 +245,7 @@ public final class ContainerDrawerMenu {
     // Only changes to interaction identity/layout invalidate a gesture. Live contents and
     // icon components (which may include the backpack's contents) still sync every tick.
     if (descriptionsChanged
+        || policiesChanged
         || open != state.open()
         || selected != state.selected()
         || offset != state.offset()
@@ -223,11 +254,12 @@ public final class ContainerDrawerMenu {
       dirty = true;
     }
     // Scan live handlers, but copy immutable packet data only when something actually changed.
-    if (iconsChanged || contentsChanged) dirty = true;
+    if (iconsChanged || contentsChanged || presentationChanged) dirty = true;
     if (revision == state.revision()
-        && lastRequest == state.acknowledged()
+        && received.acknowledged() == state.acknowledged()
         && !iconsChanged
-        && !contentsChanged) return;
+        && !contentsChanged
+        && !presentationChanged) return;
     var icons =
         iconsChanged ? found.stream().map(s -> s.stack().copyWithCount(1)).toList() : state.icons();
     List<ItemStack> contents = state.contents();
@@ -245,20 +277,21 @@ public final class ContainerDrawerMenu {
         new ContainerDrawerNetwork.State(
             menu.containerId,
             equipment,
-            menu.widgetSession(),
+            menu.sessionId(),
             revision,
-            lastRequest,
+            received.acknowledged(),
             open,
             selected,
             offset,
             pageSize,
             icons,
             replaced
-                ? found.stream().map(s -> equipment ? "curios" : s.key()).toList()
+                ? found.stream().map(EquippedContainers.Source::selectionKey).toList()
                 : state.keys(),
             sourceSizes,
             contents,
-            descriptions);
+            descriptions,
+            presentations);
   }
 
   public void broadcast() {
@@ -278,78 +311,68 @@ public final class ContainerDrawerMenu {
         || player.containerMenu != menu
         || !menu.stillValid(player)
         || request.menu() != menu.containerId
-        || request.session() != menu.widgetSession()
-        || request.request() <= lastRequest) return;
-    lastRequest = request.request();
+        || request.session() != menu.sessionId()
+        || !received.receive(request.request())) return;
     invalidateDiscovery.run();
     refresh();
-    long tick = player.level().getGameTime();
-    if (tick != actionTick) {
-      actionTick = tick;
-      actions = 0;
-    }
-    if (++actions <= 32 && request.revision() == revision) {
+    if (received.allow(player.level().getGameTime()) && request.revision() == revision) {
       if (request.kind() == TOGGLE && !sources.isEmpty()) {
         open = !open;
-        if (open) (equipment ? menu.containerDrawer : menu.curiosDrawer).closeServer();
+        if (open) menu.components().activate(this);
       } else if (open && !sources.isEmpty()) {
         var source = sources.get(selected);
         int argument = request.argument();
-        switch (request.kind()) {
-          case SELECT -> {
-            if (argument >= 0 && argument < sources.size()) {
-              selected = argument;
-              offset = 0;
+        if (allows(request.kind()))
+          switch (request.kind()) {
+            case SELECT -> {
+              if (argument >= 0 && argument < sources.size()) {
+                selected = argument;
+                offset = 0;
+                pageSize = state.presentations().get(selected).policy().initialPageSize();
+              }
             }
-          }
-          case PAGE -> {
-            if (request.pageSize() >= 1
-                && request.pageSize() <= MAX_PAGE
-                && (!equipment || request.pageSize() % 2 == 0 && argument % 2 == 0)
-                && argument >= 0
-                && argument < source.items().getSlots()) {
-              pageSize = request.pageSize();
-              offset = argument;
+            case PAGE -> {
+              if (policy().acceptsPage(argument, request.pageSize())
+                  && argument >= 0
+                  && argument < source.items().getSlots()) {
+                pageSize = request.pageSize();
+                offset = argument;
+              }
             }
-          }
-          case PICKUP, QUICK_TAKE -> {
-            int slot = argument / 2;
-            if (argument >= 0
-                && slot >= offset
-                && slot < Math.min(offset + pageSize, source.items().getSlots())
-                && ItemStack.matches(request.carried(), menu.getCarried())) {
-              if (request.kind() == QUICK_TAKE) takeToPlayer(source.items(), slot);
-              else click(source, slot, argument % 2 == 1);
+            case PICKUP, QUICK_TAKE -> {
+              int slot = argument / 2;
+              if (argument >= 0
+                  && slot >= offset
+                  && slot < Math.min(offset + pageSize, source.items().getSlots())
+                  && ItemStack.matches(request.carried(), menu.getCarried())) {
+                if (request.kind() == QUICK_TAKE) takeToPlayer(source.items(), slot);
+                else click(source, slot, argument % 2 == 1);
+              }
             }
+            case QUICK_STORE -> {
+              if (ContainerTargets.playerIndexValid(argument)
+                  && ItemStack.matches(request.carried(), menu.getCarried()))
+                storeFromPlayer(source, argument);
+            }
+            case DISTRIBUTE -> {
+              if (argument <= 1
+                  && validTargets(request.slots(), source)
+                  && ItemStack.matches(request.carried(), menu.getCarried()))
+                distribute(source, request.slots(), argument == 1);
+            }
+            case COLLECT -> {
+              if (visibleSlot(argument, source)
+                  && ItemStack.matches(request.carried(), menu.getCarried())) collect(source);
+            }
+            case SWAP -> {
+              if (argument < ContainerTargets.HOTBAR_SLOTS
+                  && request.slots().size() == 1
+                  && visibleSlot(request.slots().getFirst(), source)
+                  && ItemStack.matches(request.carried(), menu.getCarried()))
+                swap(source, request.slots().getFirst(), argument);
+            }
+            default -> {}
           }
-          case QUICK_STORE -> {
-            if (argument >= 0
-                && argument < 36
-                && ItemStack.matches(request.carried(), menu.getCarried()))
-              storeFromPlayer(source, argument);
-          }
-          case DISTRIBUTE -> {
-            if (!equipment
-                && argument <= 1
-                && validTargets(request.slots(), source)
-                && ItemStack.matches(request.carried(), menu.getCarried()))
-              distribute(source, request.slots(), argument == 1);
-          }
-          case COLLECT -> {
-            if (!equipment
-                && visibleSlot(argument, source)
-                && ItemStack.matches(request.carried(), menu.getCarried())) collect(source);
-          }
-          case SWAP -> {
-            if (!equipment
-                && argument < 9
-                && request.slots().size() == 1
-                && visibleSlot(request.slots().getFirst(), source)
-                && ItemStack.matches(request.carried(), menu.getCarried()))
-              swap(source, request.slots().getFirst(), argument);
-          }
-          default -> {}
-        }
       }
     }
     revision++;
@@ -376,21 +399,24 @@ public final class ContainerDrawerMenu {
   private boolean validTargets(List<Integer> slots, EquippedContainers.Source source) {
     return !slots.isEmpty()
         && slots.stream().distinct().count() == slots.size()
-        && slots.stream()
-            .allMatch(i -> visibleSlot(i, source) || i >= MAX_SLOTS && i < MAX_SLOTS + 36);
+        && slots.stream().allMatch(i -> targets.resolve(i, source) != null);
   }
 
   private void distribute(EquippedContainers.Source source, List<Integer> slots, boolean right) {
     var carried = menu.getCarried();
-    if (carried.isEmpty() || ItemStack.isSameItemSameComponents(carried, source.stack())) return;
-    var inventory = new net.neoforged.neoforge.items.wrapper.InvWrapper(owner.getInventory());
+    if (carried.isEmpty()
+        || policy().protectSource() && ItemStack.isSameItemSameComponents(carried, source.stack()))
+      return;
     var eligible =
         slots.stream()
             .filter(
                 i -> {
-                  var handler = i >= MAX_SLOTS ? inventory : source.items();
-                  int slot = i >= MAX_SLOTS ? i - MAX_SLOTS : i;
-                  return handler.insertItem(slot, carried.copyWithCount(1), true).isEmpty();
+                  var target = targets.resolve(i, source);
+                  return target != null
+                      && target
+                          .items()
+                          .insertItem(target.index(), carried.copyWithCount(1), true)
+                          .isEmpty();
                 })
             .toList();
     if (eligible.isEmpty()) return;
@@ -398,8 +424,10 @@ public final class ContainerDrawerMenu {
     if (amount == 0) return;
     var remaining = carried.copy();
     for (int i : eligible) {
-      var handler = i >= MAX_SLOTS ? inventory : source.items();
-      int slot = i >= MAX_SLOTS ? i - MAX_SLOTS : i;
+      var target = targets.resolve(i, source);
+      if (target == null) continue;
+      var handler = target.items();
+      int slot = target.index();
       int count = Math.min(amount, remaining.getCount());
       var rest = handler.insertItem(slot, remaining.copyWithCount(count), false);
       remaining.shrink(count - rest.getCount());
@@ -415,7 +443,7 @@ public final class ContainerDrawerMenu {
     // Vanilla collects partial stacks first. Include all storage pages and ordinary player slots.
     for (int pass = 0; pass < 2; pass++) {
       for (var handler : List.of(source.items(), inventory)) {
-        int count = handler == inventory ? 36 : handler.getSlots();
+        int count = handler == inventory ? ContainerTargets.PLAYER_SLOTS : handler.getSlots();
         for (int slot = 0; slot < count && carried.getCount() < carried.getMaxStackSize(); slot++) {
           var stored = handler.getStackInSlot(slot);
           if (!ItemStack.isSameItemSameComponents(stored, carried)
@@ -435,7 +463,7 @@ public final class ContainerDrawerMenu {
     var incoming = owner.getInventory().getItem(hotbar).copy();
     var outgoing = handler.getStackInSlot(slot).copy();
     if (!incoming.isEmpty()
-        && (ItemStack.isSameItemSameComponents(incoming, source.stack())
+        && (policy().protectSource() && ItemStack.isSameItemSameComponents(incoming, source.stack())
             || !handler.isItemValid(slot, incoming)
             || incoming.getCount()
                 > Math.min(handler.getSlotLimit(slot), incoming.getMaxStackSize()))) return;
@@ -474,7 +502,7 @@ public final class ContainerDrawerMenu {
     // Inventory.add can discard overflow in creative mode or merge into the offhand.
     // Recovery must preserve every item and use only ordinary player storage.
     for (int pass = 0; pass < 2; pass++)
-      for (int i = 0; i < 36 && !stack.isEmpty(); i++) {
+      for (int i = 0; i < ContainerTargets.PLAYER_SLOTS && !stack.isEmpty(); i++) {
         var existing = owner.getInventory().getItem(i);
         if (!(pass == 0 ? ItemStack.isSameItemSameComponents(existing, stack) : existing.isEmpty()))
           continue;
@@ -503,7 +531,8 @@ public final class ContainerDrawerMenu {
               shown.getMaxStackSize(),
               right ? shown.getCount() / 2 + shown.getCount() % 2 : shown.getCount());
       menu.setCarried(handler.extractItem(slot, amount, false));
-    } else if (equipment || !ItemStack.isSameItemSameComponents(carried, source.stack())) {
+    } else if (!policy().protectSource()
+        || !ItemStack.isSameItemSameComponents(carried, source.stack())) {
       int amount = right ? 1 : carried.getCount();
       var remainder = handler.insertItem(slot, carried.copyWithCount(amount), false);
       int inserted = amount - remainder.getCount();
@@ -514,7 +543,8 @@ public final class ContainerDrawerMenu {
   private void storeFromPlayer(EquippedContainers.Source source, int index) {
     var original = owner.getInventory().getItem(index);
     if (original.isEmpty()
-        || !equipment && ItemStack.isSameItemSameComponents(original, source.stack())) return;
+        || policy().protectSource() && ItemStack.isSameItemSameComponents(original, source.stack()))
+      return;
     var remaining = original.copy();
     for (int pass = 0; pass < 2; pass++)
       for (int slot = 0; slot < source.items().getSlots() && !remaining.isEmpty(); slot++) {
@@ -534,7 +564,7 @@ public final class ContainerDrawerMenu {
     var simulated = handler.extractItem(slot, shown.getMaxStackSize(), true);
     if (simulated.isEmpty()) return;
     int room = 0;
-    for (int i = 0; i < 36; i++) {
+    for (int i = 0; i < ContainerTargets.PLAYER_SLOTS; i++) {
       var existing = owner.getInventory().getItem(i);
       if (existing.isEmpty() || ItemStack.isSameItemSameComponents(existing, simulated))
         room +=

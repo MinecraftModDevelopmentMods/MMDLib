@@ -36,6 +36,21 @@ public record MachineDefinition(
 
   public record Power(String id, long capacity, long input, long output, int color) {}
 
+  /** Stable names of the independent inventories, in legacy capability slot order. */
+  public List<String> inventoryNames() {
+    var names = new java.util.ArrayList<>(java.util.Collections.nCopies(slots.size(), "items"));
+    for (var group : groups) for (int member : group.members()) names.set(member, group.id());
+    return List.copyOf(names);
+  }
+
+  public List<Integer> inventorySlots(String name) {
+    var names = inventoryNames();
+    return java.util.stream.IntStream.range(0, names.size())
+        .filter(i -> names.get(i).equals(name))
+        .boxed()
+        .toList();
+  }
+
   public record Slot(String id, Role role, int limit) {}
 
   public record Tank(String id, Role role, int capacity, ResourceLocation fluid) {}

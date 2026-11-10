@@ -11,9 +11,10 @@ import org.junit.jupiter.api.Test;
 import zone.moddev.mc.lib.gui.client.*;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.*;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
 class WidgetInputTest {
-  private static Element.Custom element(String id) {
+  private static CustomElement element(String id) {
     var c =
         new Common(
             Optional.of(id),
@@ -28,7 +29,7 @@ class WidgetInputTest {
             0,
             0,
             1);
-    return new Element.Custom(c, ResourceLocation.parse("test:editor"), 40, 20, Map.of());
+    return new CustomElement(c, ResourceLocation.parse("test:editor"), 40, 20, Map.of());
   }
 
   private static final class Editor implements WidgetInstance {
@@ -89,9 +90,9 @@ class WidgetInputTest {
   }
 
   private static final class Fixture {
-    final Element.Custom a = element("a"), b = element("b");
+    final CustomElement a = element("a"), b = element("b");
     final Editor first = new Editor(), second = new Editor();
-    final Set<Element.Custom> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
+    final Set<CustomElement> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
     final WidgetInput input =
         new WidgetInput(
             List.of(a, b),

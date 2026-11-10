@@ -14,6 +14,7 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 
 class PlayerInventoryLayoutTest {
   @Test
@@ -26,10 +27,10 @@ class PlayerInventoryLayoutTest {
         }) {
       for (boolean automation : new boolean[] {false, true}) {
         var layout = layout("", body, automation);
-        var inventory = layout.inventory().orElseThrow();
+        var inventory = layout.region(PlayerInventoryElement.INVENTORY).orElseThrow();
         var slots = new ArrayList<Rect>();
         for (int index = 0; index <= 40; index++) {
-          var slot = ScreenLayout.playerSlot(inventory, index);
+          var slot = PlayerInventoryElement.slot(inventory, index);
           assertTrue(slot.x() >= inventory.x() && slot.y() >= inventory.y());
           assertTrue(slot.right() <= inventory.right() && slot.bottom() <= inventory.bottom());
           for (var other : slots)
@@ -45,7 +46,7 @@ class PlayerInventoryLayoutTest {
         assertTrue(slots.get(38).y() < slots.get(37).y());
         assertTrue(slots.get(37).y() < slots.get(36).y());
         if (automation) {
-          var toolbar = layout.inventoryColors().orElseThrow();
+          var toolbar = layout.region(PlayerInventoryElement.TOOLBAR).orElseThrow();
           assertEquals(slots.get(39).y(), toolbar.y());
           assertEquals(slots.get(9).y(), toolbar.bottom() + ScreenLayout.GAP);
           assertEquals(slots.get(17).right(), toolbar.right());
@@ -56,7 +57,10 @@ class PlayerInventoryLayoutTest {
 
   @Test
   void inventoryNoneOmitsEquipmentToo() throws Exception {
-    assertTrue(layout(" inventory=\"none\"", "", false).inventory().isEmpty());
+    assertTrue(
+        layout(" inventory=\"none\"", "", false)
+            .region(PlayerInventoryElement.INVENTORY)
+            .isEmpty());
   }
 
   private static ScreenLayout layout(String attributes, String body, boolean automation)

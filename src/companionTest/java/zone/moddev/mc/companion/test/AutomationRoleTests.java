@@ -16,6 +16,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import zone.moddev.mc.companion.*;
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.gui.runtime.*;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 @GameTestHolder(CompanionMod.ID)
 @PrefixGameTestTemplate(false)
@@ -78,11 +79,13 @@ public final class AutomationRoleTests {
         machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ());
     var menu = new MachineMenu(71, player.getInventory(), machine);
     player.containerMenu = menu;
-    menu.automation.action(
-        player,
-        new AutomationNetwork.Action(
-            71, menu.widgetSession(), 1, "select", 0, -1, 0, 0, "", 0, ""));
-    int destination = menu.automation.slotStart() + 1;
+    menu.components()
+        .get(BuiltinMenuComponents.AUTOMATION)
+        .action(
+            player,
+            new AutomationNetwork.Action(
+                71, menu.widgetSession(), 1, "select", 0, -1, 0, 0, "", 0, ""));
+    int destination = menu.components().get(BuiltinMenuComponents.AUTOMATION).slotStart() + 1;
     menu.setCarried(puller.copy());
     menu.clicked(destination, 0, ClickType.PICKUP, player);
     require(

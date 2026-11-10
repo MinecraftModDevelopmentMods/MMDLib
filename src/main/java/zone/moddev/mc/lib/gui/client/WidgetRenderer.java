@@ -3,7 +3,7 @@ package zone.moddev.mc.lib.gui.client;
 import net.minecraft.client.gui.GuiGraphics;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
 /**
  * Client-only drawing for a registered custom widget. Rendering is clipped to the widget bounds.
@@ -22,7 +22,7 @@ public interface WidgetRenderer {
    */
   record Context(
       GuiGraphics graphics,
-      Element.Custom widget,
+      CustomElement widget,
       Rect bounds,
       Object value,
       Object maximum,
@@ -31,7 +31,7 @@ public interface WidgetRenderer {
       float partialTick) {
     /** A clamped 0..1 numeric ratio, including large integers; unavailable values give zero. */
     public double ratio() {
-      return ScreenText.ratio(value, maximum);
+      return widget.fillRatio(value, maximum);
     }
 
     public boolean hovered() {

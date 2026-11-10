@@ -2,11 +2,11 @@ package zone.moddev.mc.lib.gui.client;
 
 import zone.moddev.mc.lib.gui.WidgetAction;
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
 
 /** Live, client-only access for one widget instance. Values are server snapshots, never getters. */
 public interface WidgetAccess {
-  Element.Custom element();
+  CustomElement element();
 
   Rect bounds();
 

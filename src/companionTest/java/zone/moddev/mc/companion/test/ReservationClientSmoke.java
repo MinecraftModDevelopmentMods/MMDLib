@@ -47,12 +47,14 @@ final class ReservationClientSmoke {
                 .orElseThrow()
                 .index;
         require(menu.reservationPlan(playerSlot).isNone(), "Player slots have no overlay");
+        SlotTooltipClientSmoke.check(screen, 0, true);
         capture("reservations-counts.png");
         server(player -> machine(player).items.setStackInSlot(1, ItemStack.EMPTY));
       }
       case 2 -> {
         if (!menu.getSlot(1).getItem().isEmpty() || menu.reservationPlan(1).add().isEmpty())
           return false;
+        SlotTooltipClientSmoke.check(screen, 1, false);
         capture("reservations-ghost.png");
         var slot = menu.getSlot(1);
         double x = screen.panelBounds().x() + slot.x + 8;
@@ -113,12 +115,9 @@ final class ReservationClientSmoke {
             || menu.getSlot(1).getItem().getCount() != 63
             || menu.getSlot(2).getItem().getCount() != 63) return false;
         require(menu.getSlot(2).isActive(), "Second crusher output is visible and interactive");
+        var output = ((ProcessorEntity) menu.blockEntity).automation.group(1);
         require(
-            ((ProcessorEntity) menu.blockEntity)
-                .automation
-                .group(1)
-                .members()
-                .equals(java.util.List.of(1, 2)),
+            output.inventory().equals("output") && output.members().equals(java.util.List.of(0, 1)),
             "Both outputs share the same colour group");
         capture("crusher-split-output-reservations.png");
         server(

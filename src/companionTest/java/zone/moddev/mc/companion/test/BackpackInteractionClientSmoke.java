@@ -3,10 +3,11 @@ package zone.moddev.mc.companion.test;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
 import zone.moddev.mc.lib.gui.client.MachineScreen;
-import zone.moddev.mc.lib.gui.layout.ContainerDrawerLayout;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.runtime.EquippedContainers;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Real mouse gestures and hotbar keys, including a double-click before pickup acknowledgement. */
 final class BackpackInteractionClientSmoke {
@@ -16,15 +17,13 @@ final class BackpackInteractionClientSmoke {
   static boolean run(MachineScreen screen) {
     var mc = Minecraft.getInstance();
     var menu = screen.getMenu();
-    var state = menu.containerDrawer.state();
+    var state = menu.components().get(BuiltinMenuComponents.BACKPACK).state();
     if (reported != step) {
       reported = step;
       zone.moddev.mc.lib.MMDLib.LOGGER.info("BACKPACK_INTERACTION_STEP {}", step);
     }
-    if (menu.containerDrawer.pending()) return false;
-    var layout =
-        ContainerDrawerLayout.of(
-            screen.panelBounds(), screen.drawerBottom(), state.sizes().getFirst());
+    if (menu.components().get(BuiltinMenuComponents.BACKPACK).pending()) return false;
+    var layout = DrawerExtensionClientSmoke.containerLayout(screen, false);
     switch (step) {
       case 0 ->
           setup(

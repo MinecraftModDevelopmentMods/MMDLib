@@ -6,6 +6,7 @@ import net.minecraft.client.Screenshot;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.AutomationLayout;
 import zone.moddev.mc.lib.gui.layout.Rect;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Real synced throughput rows, left drawer switching and the cycling timescale control. */
 final class StatsClientSmoke {
@@ -29,17 +30,25 @@ final class StatsClientSmoke {
     var mc = Minecraft.getInstance();
     switch (step) {
       case 0 -> {
-        if (menu.stats(0).isEmpty()
-            || menu.containerDrawer.pending()
-            || menu.curiosDrawer.pending()) return false;
+        if (menu.components().require(BuiltinMenuComponents.STATS).pages().isEmpty()
+            || menu.components()
+                .require(BuiltinMenuComponents.STATS)
+                .pages()
+                .get(0)
+                .lines()
+                .isEmpty()
+            || menu.components().get(BuiltinMenuComponents.BACKPACK).pending()
+            || menu.components().get(BuiltinMenuComponents.CURIOS).pending()) return false;
         int processors = name.contains("dual") ? 2 : 1;
         boolean consuming =
-            menu.stats(0).stream().anyMatch(c -> c.getString().startsWith("RF used:"));
-        if (menu.stats(0).size() != (consuming ? 5 : 3) + 4 * processors)
+            menu.components().require(BuiltinMenuComponents.STATS).pages().get(0).lines().stream()
+                .anyMatch(c -> c.getString().startsWith("RF used:"));
+        if (menu.components().require(BuiltinMenuComponents.STATS).pages().get(0).lines().size()
+            != (consuming ? 5 : 3) + 4 * processors)
           throw new AssertionError(
               "Statistics should contain directional energy rows, conditional usage and two rows"
                   + " under each processor header");
-        if (menu.stats(0).stream()
+        if (menu.components().require(BuiltinMenuComponents.STATS).pages().get(0).lines().stream()
                 .filter(
                     c ->
                         c.getString().contains("cycles/t")
@@ -51,7 +60,8 @@ final class StatsClientSmoke {
       }
       case 1 -> {
         // Opening Info can close a restored equipment drawer through a server round trip.
-        if (menu.containerDrawer.pending() || menu.curiosDrawer.pending()) return false;
+        if (menu.components().get(BuiltinMenuComponents.BACKPACK).pending()
+            || menu.components().get(BuiltinMenuComponents.CURIOS).pending()) return false;
         click(screen, tab.x() + 5, tab.y() + 5, 0);
       }
       case 2 -> {
@@ -107,9 +117,11 @@ final class StatsClientSmoke {
 
   private static void clickUnit(MachineScreen screen, int button) {
     try {
-      var field = MachineScreen.class.getDeclaredField("stats");
-      field.setAccessible(true);
-      var drawer = field.get(screen);
+      var drawer =
+          screen.drawers().entries().stream()
+              .filter(zone.moddev.mc.lib.gui.client.StatsDrawer.class::isInstance)
+              .findFirst()
+              .orElseThrow();
       var layout = drawer.getClass().getDeclaredMethod("layout");
       layout.setAccessible(true);
       layout.invoke(drawer);
@@ -123,23 +135,16 @@ final class StatsClientSmoke {
   }
 
   private static void requireUnit(MachineScreen screen, int expected) {
-    try {
-      var field = MachineScreen.class.getDeclaredField("stats");
-      field.setAccessible(true);
-      var drawer = field.get(screen);
-      var unit = drawer.getClass().getDeclaredField("unit");
-      unit.setAccessible(true);
-      if (unit.getInt(drawer) != expected)
-        throw new AssertionError(
-            "Timescale did not cycle to "
-                + expected
-                + "; actual="
-                + unit.getInt(drawer)
-                + "; screen="
-                + screen.getMenu().bound.screen().id());
-    } catch (ReflectiveOperationException error) {
-      throw new AssertionError(error);
-    }
+    var drawer =
+        (zone.moddev.mc.lib.gui.client.StatsDrawer)
+            screen.drawers().entries().stream()
+                .filter(zone.moddev.mc.lib.gui.client.StatsDrawer.class::isInstance)
+                .findFirst()
+                .orElseThrow();
+    var selected = drawer.selectedPage();
+    var expectedId = zone.moddev.mc.lib.api.stats.StatsTimescale.DEFAULTS.get(expected).id();
+    if (!selected.equals(java.util.Optional.of(expectedId)))
+      throw new AssertionError("Wrong statistics page: " + selected + ", expected " + expectedId);
   }
 
   private static void click(MachineScreen screen, int x, int y, int button) {

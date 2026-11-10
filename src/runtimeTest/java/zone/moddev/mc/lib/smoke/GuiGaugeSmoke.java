@@ -13,7 +13,7 @@ import org.lwjgl.opengl.GL14;
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.Rect;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.elements.GaugeElement;
 
 /** Checks actual GL state around buffered solid and fluid gauge draws. */
 public final class GuiGaugeSmoke {
@@ -31,12 +31,12 @@ public final class GuiGaugeSmoke {
                   "draw",
                   GuiGraphics.class,
                   Rect.class,
-                  Element.Gauge.class,
+                  GaugeElement.class,
                   Object.class,
                   Object.class);
       draw.setAccessible(true);
       for (String id : new String[] {"energy", "water"}) {
-        var gauge = (Element.Gauge) screen.getMenu().bound.screen().find(id).orElseThrow();
+        var gauge = (GaugeElement) screen.getMenu().bound.screen().find(id).orElseThrow();
         for (boolean enabled : new boolean[] {false, true}) {
           graphics.drawManaged(
               () -> {

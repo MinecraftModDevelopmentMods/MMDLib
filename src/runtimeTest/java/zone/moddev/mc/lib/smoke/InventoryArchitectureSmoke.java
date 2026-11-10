@@ -22,17 +22,29 @@ import net.neoforged.neoforge.items.IItemHandler;
 
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
+import zone.moddev.mc.lib.gui.model.SlotKind;
 import zone.moddev.mc.lib.machine.ingredient.MachineIngredient;
 import zone.moddev.mc.lib.machine.inventory.ItemGroup;
 import zone.moddev.mc.lib.machine.neoforge.*;
 import zone.moddev.mc.lib.machine.recipe.*;
 
 final class InventoryArchitectureSmoke {
+  private record ModSlot(
+      zone.moddev.mc.lib.gui.model.Common common,
+      int index,
+      zone.moddev.mc.lib.gui.model.elements.SlotElement.Appearance appearance)
+      implements zone.moddev.mc.lib.gui.model.elements.SlotElement {
+    public SlotKind kind() {
+      return SlotKind.NORMAL;
+    }
+  }
+
   private static void require(boolean condition, String message) {
     if (!condition) throw new AssertionError(message);
   }
 
   static void itemMigration(ServerLevel level) {
+    namedInventories(level);
     var provider = level.registryAccess();
     var original = new ItemStorage(3).slotId(0, "ore").slotId(1, "result").slotId(2, "removed");
     original.restoreStack(0, new ItemStack(Items.IRON_ORE, 40));
@@ -105,6 +117,84 @@ final class InventoryArchitectureSmoke {
     require(
         restored.recoveryContents().getCompound(0).equals(unknown),
         "unknown item NBT retained verbatim");
+  }
+
+  private static void namedInventories(ServerLevel level) {
+    var registries = level.registryAccess();
+    var old = new ItemStorage(2).slotId(0, "ore").slotId(1, "result");
+    old.restoreStack(0, new ItemStack(Items.IRON_ORE, 7));
+    old.restoreStack(1, new ItemStack(Items.GOLD_INGOT, 3));
+    var split =
+        ItemInventories.partition(List.of("input", "output")).slotId(0, "ore").slotId(1, "result");
+    split.deserializeNBT(registries, old.serializeNBT(registries));
+    require(
+        split.inventory("input").getStackInSlot(0).getCount() == 7
+            && split.inventory("output").getStackInSlot(0).is(Items.GOLD_INGOT),
+        "flat saves migrate into independent inventories");
+    var reordered =
+        ItemInventories.partition(List.of("output", "input")).slotId(0, "result").slotId(1, "ore");
+    reordered.deserializeNBT(registries, split.serializeNBT(registries));
+    require(
+        reordered.getStackInSlot(0).is(Items.GOLD_INGOT)
+            && reordered.getStackInSlot(1).getCount() == 7,
+        "named save survives inventory order changes");
+    var removed = ItemInventories.partition(List.of("input")).slotId(0, "ore");
+    removed.deserializeNBT(registries, reordered.serializeNBT(registries));
+    for (int i = 0; i < 3; i++)
+      removed.deserializeNBT(registries, removed.serializeNBT(registries));
+    require(
+        removed.recoveryContents().size() == 1, "removed inventory has one durable recovery entry");
+    reordered.deserializeNBT(registries, removed.serializeNBT(registries));
+    require(
+        reordered.inventory("output").getStackInSlot(0).getCount() == 3
+            && reordered.recoveryContents().isEmpty(),
+        "reintroduced inventory recovers its contents exactly once");
+    var sameIds = ItemInventories.partition(List.of("a", "b"));
+    sameIds.restoreStack(0, new ItemStack(Items.DIAMOND, 2));
+    sameIds.restoreStack(1, new ItemStack(Items.EMERALD, 4));
+    var swapped = ItemInventories.partition(List.of("b", "a"));
+    swapped.deserializeNBT(registries, sameIds.serializeNBT(registries));
+    require(
+        swapped.getStackInSlot(0).is(Items.EMERALD) && swapped.getStackInSlot(1).is(Items.DIAMOND),
+        "identical local stable IDs stay scoped to each inventory");
+    var resources =
+        new MachineResources(owner(level), () -> Direction.NORTH)
+            .items(items("a", IoMode.BOTH, 0), sameIds.inventory("a"))
+            .items(items("b", IoMode.BOTH, 0), sameIds.inventory("b"))
+            .recipeGroup("both", "a", "b")
+            .build();
+    var both = (ItemGroup) resources.recipes().group("both").orElseThrow();
+    var single = (ItemGroup) resources.recipes().group("a").orElseThrow();
+    try (var tx = resources.recipes().begin()) {
+      require(
+          both.extract(0, 1, tx) == 1
+              && single.extract(0, 1, tx) == 1
+              && both.extract(1, 2, tx) == 2,
+          "combined recipe addresses independent inventories");
+    }
+    require(
+        sameIds.getStackInSlot(0).getCount() == 2 && sameIds.getStackInSlot(1).getCount() == 4,
+        "rollback tracks physical slots once across aliases");
+    var plan = new zone.moddev.mc.lib.machine.inventory.SlotPlan(1, ItemStack.EMPTY);
+    try (var tx = resources.recipes().begin()) {
+      require(both.reserve(1, plan, tx), "reserve second inventory's local slot zero");
+      tx.commit();
+    }
+    require(
+        !sameIds.inventory("a").hasPlan(0) && sameIds.inventory("b").plan(0).take() == 1,
+        "reservations belong to physical inventories");
+    var appearance =
+        zone.moddev.mc.lib.gui.model.elements.SlotElement.Appearance.standard(
+            zone.moddev.mc.lib.gui.model.SlotSize.NORMAL, Optional.empty(), Optional.empty());
+    var ghost =
+        new zone.moddev.mc.lib.gui.model.elements.GhostSlotElement(
+            zone.moddev.mc.lib.gui.model.Common.empty(), 0, appearance);
+    var carried = new ItemStack(Items.DIAMOND, 12);
+    require(
+        ghost.selection(0, carried).getCount() == 1
+            && ghost.selection(1, carried).isEmpty()
+            && carried.getCount() == 12,
+        "ghost selection never consumes the carried stack");
   }
 
   static void fluidMigration(ServerLevel level) {
@@ -256,6 +346,7 @@ final class InventoryArchitectureSmoke {
   }
 
   static void screenValidation(ServerLevel level) throws Exception {
+    inventoryElements();
     var storage = new ItemStorage(1);
     var group =
         new ResourceGroup<>(
@@ -301,6 +392,141 @@ final class InventoryArchitectureSmoke {
             () -> zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(screen, host),
             "index 2");
     }
+  }
+
+  private static void inventoryElements() throws Exception {
+    var backing = ItemInventories.partition(List.of("first", "items"));
+    var extra = new ItemStorage(1);
+    var ghostValues = new HashMap<String, ItemStack>();
+    var host =
+        new zone.moddev.mc.lib.gui.runtime.ScreenHost() {
+          public ItemInventories screenItems() {
+            return backing;
+          }
+
+          public Map<String, ItemStorage> screenInventories() {
+            return Map.of("items", backing.inventory("items"), "extra", extra);
+          }
+
+          public boolean setScreenGhost(
+              net.minecraft.world.entity.player.Player player,
+              String inventory,
+              int slot,
+              ItemStack stack) {
+            ghostValues.put(inventory + "/" + slot, stack);
+            return true;
+          }
+        };
+    String xml =
+        """
+        <screen xmlns="https://moddev.zone/mmdlib/screen" title="test" block-entity="net.minecraft.world.level.block.entity.ChestBlockEntity">
+          <inventory storage="items"><item-slot id="named" index="0"/></inventory>
+          <inventory storage="extra"><item-slot id="extra" index="0"/><ghost-slot id="ghost" index="1"/></inventory>
+        </screen>
+        """;
+    var screen =
+        zone.moddev.mc.lib.gui.load.ScreenReader.read(
+            ResourceLocation.parse("test:named"),
+            "named.xml",
+            new java.io.ByteArrayInputStream(
+                xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    var body = new ArrayList<zone.moddev.mc.lib.gui.model.Element>();
+    for (var element : screen.body()) {
+      var view = (zone.moddev.mc.lib.gui.model.containers.InventoryElement) element;
+      var children =
+          view.children().stream()
+              .map(
+                  child ->
+                      child instanceof zone.moddev.mc.lib.gui.model.elements.ItemSlotElement item
+                          ? (zone.moddev.mc.lib.gui.model.Element)
+                              new ModSlot(item.common(), item.index(), item.appearance())
+                          : child)
+              .toList();
+      body.add(
+          new zone.moddev.mc.lib.gui.model.containers.InventoryElement(
+              view.common(), view.inventory(), view.columns(), view.spacing(), children));
+    }
+    screen =
+        new zone.moddev.mc.lib.gui.model.Screen(
+            screen.id(),
+            screen.source(),
+            screen.title(),
+            screen.blockEntity(),
+            screen.playerInventory(),
+            body,
+            screen.tabs());
+    zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(screen, host);
+    var layout =
+        zone.moddev.mc.lib.gui.layout.ScreenLayout.of(
+            screen, zone.moddev.mc.lib.gui.layout.TextMeasure.NONE);
+    var session =
+        new zone.moddev.mc.lib.gui.model.containers.InventoryElement.Session(
+            screen, host, layout, false, e -> true, () -> false, () -> {});
+    var named =
+        (zone.moddev.mc.lib.gui.model.elements.SlotElement) screen.find("named").orElseThrow();
+    var addon =
+        (zone.moddev.mc.lib.gui.model.elements.SlotElement) screen.find("extra").orElseThrow();
+    session.slot(named).set(new ItemStack(Items.DIAMOND, 4));
+    session.slot(addon).set(new ItemStack(Items.EMERALD, 2));
+    require(
+        backing.inventory("first").getStackInSlot(0).isEmpty()
+            && backing.inventory("items").getStackInSlot(0).getCount() == 4
+            && extra.getStackInSlot(0).getCount() == 2,
+        "named local zero resolves actual storage, including inventory named items and external"
+            + " addon");
+    require(
+        session.index(new ItemInventories.Address("items", 0)) == session.index(named)
+            && session.index(new ItemInventories.Address("extra", 0)) == session.index(addon),
+        "named routing resolves menu indexes");
+    var ghost =
+        (zone.moddev.mc.lib.gui.model.elements.GhostSlotElement) screen.find("ghost").orElseThrow();
+    var selection = new ItemStack(Items.DIAMOND, 64);
+    require(
+        session.ghost(ghost, null, selection)
+            && ghostValues.get("extra/1").getCount() == 1
+            && selection.getCount() == 64,
+        "Ghost edit uses its named inventory without consuming real items");
+    require(!session.ghost(named, null, selection), "Ordinary inventory slot accepted ghost edit");
+    require(
+        !session.ghost(
+            new zone.moddev.mc.lib.gui.model.elements.GhostSlotElement(
+                ghost.common(), ghost.index(), ghost.appearance()),
+            null,
+            selection),
+        "Unregistered ghost element accepted edit");
+    var hiddenSession =
+        new zone.moddev.mc.lib.gui.model.containers.InventoryElement.Session(
+            screen, host, layout, false, e -> false, () -> false, () -> {});
+    require(
+        !hiddenSession.ghost(ghost, null, ItemStack.EMPTY), "Hidden inventory ghost accepted edit");
+    var events = new ArrayList<String>();
+    var painter =
+        new zone.moddev.mc.lib.gui.model.elements.SlotElement.Painter() {
+          public void background(ResourceLocation sprite, int tint) {
+            events.add("background");
+          }
+
+          public void icon(ResourceLocation sprite, Optional<ResourceLocation> atlas) {
+            events.add("icon");
+          }
+
+          public void ghost(ItemStack stack, float alpha) {
+            events.add("ghost:" + stack.getCount());
+          }
+        };
+    named.render(painter, ItemStack.EMPTY, new ItemStack(Items.DIAMOND));
+    require(
+        events.equals(List.of("background", "ghost:1")),
+        "empty real slot renders remembered ghost");
+    events.clear();
+    named.render(painter, new ItemStack(Items.EMERALD), new ItemStack(Items.DIAMOND));
+    require(events.equals(List.of("background")), "real item suppresses remembered ghost");
+    events.clear();
+    ghost.render(painter, new ItemStack(Items.DIAMOND), ItemStack.EMPTY);
+    require(
+        events.equals(List.of("background", "ghost:1"))
+            && !session.slot(ghost).mayPlace(new ItemStack(Items.DIAMOND)),
+        "ghost slot uses shared presentation without accepting real items");
   }
 
   static void recipeFilters(ServerLevel level) {

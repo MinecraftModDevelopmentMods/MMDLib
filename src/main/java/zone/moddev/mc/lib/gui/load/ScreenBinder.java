@@ -11,11 +11,11 @@ import java.util.Map;
 import java.util.Set;
 
 import zone.moddev.mc.lib.gui.WidgetTypes;
-import zone.moddev.mc.lib.gui.load.BoundValue.Kind;
 import zone.moddev.mc.lib.gui.model.Element;
-import zone.moddev.mc.lib.gui.model.Element.*;
 import zone.moddev.mc.lib.gui.model.Screen;
 import zone.moddev.mc.lib.gui.model.ValueRef;
+import zone.moddev.mc.lib.gui.value.ValueType;
+import zone.moddev.mc.lib.gui.value.ValueTypeRegistry;
 
 /**
  * Resolves a screen's {@code value} and {@code max} getters against its block-entity class at load,
@@ -62,6 +62,13 @@ public final class ScreenBinder {
 
   /** Binds a screen read with an explicit widget registry. */
   public static Bound bind(Screen screen, ClassLoader loader, WidgetTypes widgets) {
+    return bind(screen, loader, widgets, ValueTypeRegistry.GLOBAL);
+  }
+
+  /** Binds using explicit registries, useful for isolated loaders and extension tests. */
+  public static Bound bind(
+      Screen screen, ClassLoader loader, WidgetTypes widgets, ValueTypeRegistry types) {
+    ScreenValidation.check(screen, widgets);
     var source = screen.source();
     Class<?> owner = load(screen.blockEntity(), loader, source, 0, "block-entity class");
     Class<?> base =
@@ -73,11 +80,15 @@ public final class ScreenBinder {
     for (var element : screen.elements()) {
       var c = element.common();
       var elementSource = screen.source(c);
-      if (element instanceof Button button
-          && button.processorControl()
+      if (element.resourceBinding().isPresent()
           && !zone.moddev.mc.lib.gui.runtime.ScreenHost.class.isAssignableFrom(owner))
         throw new ScreenException(
-            elementSource, c.line(), "<processor-button> requires a ScreenHost");
+            elementSource, c.line(), "Resource-bound elements require a ScreenHost");
+      try {
+        element.validateHostType(owner);
+      } catch (IllegalArgumentException failure) {
+        throw new ScreenException(elementSource, c.line(), failure.getMessage());
+      }
       if (c.value().isPresent())
         values.put(
             element,
@@ -87,35 +98,21 @@ public final class ScreenBinder {
                 loader,
                 elementSource,
                 c.line(),
-                valueKinds(element, widgets)));
+                element.valueKinds(widgets),
+                types));
       if (c.max().isPresent())
         maxima.put(
-            element, resolve(c.max().get(), owner, loader, elementSource, c.line(), NUMBERS));
+            element,
+            resolve(
+                c.max().get(),
+                owner,
+                loader,
+                elementSource,
+                c.line(),
+                element.maximumKinds(),
+                types));
     }
     return new Bound(screen, owner, values, maxima);
-  }
-
-  private static final Set<Kind> NUMBERS = Set.of(Kind.WHOLE, Kind.DECIMAL, Kind.NUMBER);
-
-  /** What each element's {@code value} may return. */
-  private static Set<Kind> valueKinds(Element element, WidgetTypes widgets) {
-    return switch (element) {
-      case Custom custom -> widgets.require(custom.type()).valueKinds();
-      case Gauge gauge ->
-          gauge.color().isPresent()
-              ? NUMBERS
-              : Set.of(Kind.WHOLE, Kind.DECIMAL, Kind.NUMBER, Kind.FLUID);
-      case Meter meter -> NUMBERS;
-      case EnergyGauge gauge -> NUMBERS;
-      case Progress progress -> NUMBERS;
-      case Checkbox checkbox -> Set.of(Kind.BOOLEAN);
-      case Button button when !button.icons().isEmpty() || !button.valueLabels().isEmpty() ->
-          Set.of(Kind.BOOLEAN, Kind.WHOLE);
-      case RadioGroup group -> Set.of(Kind.WHOLE);
-      case Popout popout -> Set.of(Kind.TEXT, Kind.TEXT_LIST);
-      // Anything else only feeds {value} into its tooltip.
-      default -> Set.of(Kind.values());
-    };
   }
 
   private static BoundValue resolve(
@@ -124,14 +121,20 @@ public final class ScreenBinder {
       ClassLoader loader,
       String source,
       int line,
-      Set<Kind> allowed) {
+      Set<ValueType<?>> allowed,
+      ValueTypeRegistry types) {
     Method method =
         switch (ref) {
           case ValueRef.Instance instance -> instanceMethod(owner, instance, source, line);
           case ValueRef.Indexed indexed -> indexedMethod(owner, indexed, source, line);
           case ValueRef.Static fixed -> staticMethod(owner, fixed, loader, source, line);
         };
-    var kind = Kind.of(method.getReturnType());
+    ValueType<?> kind;
+    try {
+      kind = types.binding(method.getReturnType()).orElse(null);
+    } catch (IllegalArgumentException failure) {
+      throw new ScreenException(source, line, failure.getMessage(), failure);
+    }
     if (kind == null || !allowed.contains(kind))
       throw new ScreenException(
           source,
@@ -219,22 +222,11 @@ public final class ScreenBinder {
     }
   }
 
-  private static String describe(Set<Kind> kinds) {
-    if (kinds.equals(NUMBERS)) return "a number";
+  private static String describe(Set<ValueType<?>> kinds) {
     if (kinds.isEmpty()) return "no value binding";
     return kinds.stream()
-        .sorted()
-        .map(
-            kind ->
-                switch (kind) {
-                  case WHOLE -> "a whole number";
-                  case DECIMAL -> "a decimal number";
-                  case NUMBER -> "a declared Number";
-                  case BOOLEAN -> "a boolean";
-                  case FLUID -> "a FluidStack";
-                  case TEXT -> "a Component";
-                  case TEXT_LIST -> "a collection of Components";
-                })
+        .sorted(java.util.Comparator.comparing(ValueType::id))
+        .map(ValueType::description)
         .collect(java.util.stream.Collectors.joining(" or "));
   }
 }

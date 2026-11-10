@@ -8,10 +8,14 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
+import zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry;
 
 /** Bounded snapshots and session/revision-bound requests for generic equipped containers. */
 public final class ContainerDrawerNetwork {
+  public static final String VERSION = "19";
+
   private ContainerDrawerNetwork() {}
 
   public record Request(
@@ -63,8 +67,8 @@ public final class ContainerDrawerNetwork {
           || argument >= ContainerDrawerMenu.MAX_SLOTS * 2
           || pageSize < 1
           || pageSize > ContainerDrawerMenu.MAX_PAGE
-          || slots.size() > ContainerDrawerMenu.MAX_PAGE + 36
-          || slots.stream().anyMatch(n -> n < 0 || n >= ContainerDrawerMenu.MAX_SLOTS + 36))
+          || slots.size() > ContainerTargets.MAX_TARGETS
+          || slots.stream().anyMatch(n -> n < 0 || n >= ContainerTargets.TARGET_LIMIT))
         throw new IllegalArgumentException("Invalid container drawer request");
     }
 
@@ -104,7 +108,7 @@ public final class ContainerDrawerNetwork {
   }
 
   private static List<Integer> readSlots(RegistryFriendlyByteBuf b) {
-    int count = boundedCount(b, ContainerDrawerMenu.MAX_PAGE + 36);
+    int count = boundedCount(b, ContainerTargets.MAX_TARGETS);
     var slots = new ArrayList<Integer>(count);
     for (int i = 0; i < count; i++) slots.add(b.readVarInt());
     return slots;
@@ -124,22 +128,57 @@ public final class ContainerDrawerNetwork {
       List<String> keys,
       List<Integer> sizes,
       List<ItemStack> contents,
-      List<EquippedContainers.SlotInfo> descriptions)
+      List<EquippedContainers.SlotInfo> descriptions,
+      List<EquippedContainers.Presentation> presentations)
       implements CustomPacketPayload {
+    public State(
+        int menu,
+        boolean equipment,
+        long session,
+        long revision,
+        int acknowledged,
+        boolean open,
+        int selected,
+        int offset,
+        int pageSize,
+        List<ItemStack> icons,
+        List<String> keys,
+        List<Integer> sizes,
+        List<ItemStack> contents,
+        List<EquippedContainers.SlotInfo> descriptions) {
+      this(
+          menu,
+          equipment,
+          session,
+          revision,
+          acknowledged,
+          open,
+          selected,
+          offset,
+          pageSize,
+          icons,
+          keys,
+          sizes,
+          contents,
+          descriptions,
+          icons.stream().map(EquippedContainers.Presentation::container).toList());
+    }
+
     public State {
       descriptions = List.copyOf(descriptions);
+      presentations = List.copyOf(presentations);
       icons = List.copyOf(icons);
       keys = List.copyOf(keys);
       sizes = List.copyOf(sizes);
       contents = List.copyOf(contents);
       if ((!descriptions.isEmpty() && descriptions.size() != contents.size())
           || descriptions.size() > ContainerDrawerMenu.MAX_PAGE
-          || (!equipment && !descriptions.isEmpty())
           || revision < 0
           || acknowledged < 0
           || pageSize < 1
           || pageSize > ContainerDrawerMenu.MAX_PAGE
           || icons.size() > ContainerDrawerMenu.MAX_CONTAINERS
+          || icons.size() != presentations.size()
           || icons.size() != sizes.size()
           || icons.size() != keys.size()
           || keys.stream().anyMatch(k -> k.isEmpty() || k.length() > 256)
@@ -172,6 +211,7 @@ public final class ContainerDrawerNetwork {
                 ItemStack.OPTIONAL_STREAM_CODEC.encode(b, p.icons.get(i));
                 b.writeVarInt(p.sizes.get(i));
                 b.writeUtf(p.keys.get(i), 256);
+                writePresentation(b, p.presentations.get(i));
               }
               b.writeVarInt(p.contents.size());
               for (var stack : p.contents) ItemStack.OPTIONAL_STREAM_CODEC.encode(b, stack);
@@ -182,6 +222,9 @@ public final class ContainerDrawerNetwork {
                 b.writeBoolean(info.cosmetic());
                 b.writeBoolean(info.available());
                 b.writeResourceLocation(info.icon());
+                writeText(b, info.label());
+                writeRows(b, info.tooltip());
+                writeText(b, info.placeholder());
               }
             },
             b -> {
@@ -195,10 +238,12 @@ public final class ContainerDrawerNetwork {
               var icons = new ArrayList<ItemStack>();
               var sizes = new ArrayList<Integer>();
               var keys = new ArrayList<String>();
+              var presentations = new ArrayList<EquippedContainers.Presentation>();
               for (int i = 0; i < count; i++) {
                 icons.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(b));
                 sizes.add(b.readVarInt());
                 keys.add(b.readUtf(256));
+                presentations.add(readPresentation(b));
               }
               int length = boundedCount(b, ContainerDrawerMenu.MAX_PAGE);
               var contents = new ArrayList<ItemStack>();
@@ -213,7 +258,10 @@ public final class ContainerDrawerNetwork {
                         b.readVarInt(),
                         b.readBoolean(),
                         b.readBoolean(),
-                        b.readResourceLocation()));
+                        b.readResourceLocation(),
+                        readText(b),
+                        readRows(b),
+                        readText(b)));
               return new State(
                   menu,
                   equipment,
@@ -228,12 +276,110 @@ public final class ContainerDrawerNetwork {
                   keys,
                   sizes,
                   contents,
-                  descriptions);
+                  descriptions,
+                  presentations);
             });
 
     public Type<State> type() {
       return TYPE;
     }
+  }
+
+  private static void writeText(
+      RegistryFriendlyByteBuf b, net.minecraft.network.chat.Component text) {
+    b.writeUtf(
+        net.minecraft.network.chat.Component.Serializer.toJson(text, b.registryAccess()), 8192);
+  }
+
+  private static net.minecraft.network.chat.Component readText(RegistryFriendlyByteBuf b) {
+    return java.util.Objects.requireNonNull(
+        net.minecraft.network.chat.Component.Serializer.fromJson(
+            b.readUtf(8192), b.registryAccess()));
+  }
+
+  private static void writeRows(
+      RegistryFriendlyByteBuf b, List<net.minecraft.network.chat.Component> rows) {
+    b.writeVarInt(rows.size());
+    rows.forEach(row -> writeText(b, row));
+  }
+
+  private static List<net.minecraft.network.chat.Component> readRows(RegistryFriendlyByteBuf b) {
+    int count = boundedCount(b, 16);
+    var rows = new ArrayList<net.minecraft.network.chat.Component>(count);
+    for (int i = 0; i < count; i++) rows.add(readText(b));
+    return rows;
+  }
+
+  private static void writePresentation(
+      RegistryFriendlyByteBuf b, EquippedContainers.Presentation p) {
+    writeText(b, p.title());
+    b.writeBoolean(p.icon().isPresent());
+    p.icon().ifPresent(b::writeResourceLocation);
+    b.writeInt(p.colour());
+    writeRows(b, p.headings());
+    writeRows(b, p.tabRows());
+    writeRows(b, p.openRows());
+    writeRows(b, p.headerRows());
+    writePolicy(b, p.policy());
+    writeRows(b, p.gestureRows());
+  }
+
+  private static EquippedContainers.Presentation readPresentation(RegistryFriendlyByteBuf b) {
+    var title = readText(b);
+    var icon =
+        b.readBoolean()
+            ? java.util.Optional.of(b.readResourceLocation())
+            : java.util.Optional.<ResourceLocation>empty();
+    return new EquippedContainers.Presentation(
+        title,
+        icon,
+        b.readInt(),
+        readRows(b),
+        readRows(b),
+        readRows(b),
+        readRows(b),
+        readPolicy(b),
+        readRows(b));
+  }
+
+  private static void writePolicy(RegistryFriendlyByteBuf b, ContainerPolicy.Settings settings) {
+    var l = settings.layout();
+    b.writeVarInt(l.width());
+    b.writeVarInt(l.columns());
+    b.writeVarInt(l.maxRows());
+    b.writeVarInt(l.cellX());
+    b.writeVarInt(l.cellY());
+    b.writeVarInt(l.strideX());
+    b.writeVarInt(l.strideY());
+    b.writeVarInt(l.cellSize());
+    b.writeVarInt(l.footer());
+    b.writeVarInt(settings.initialPageSize());
+    b.writeVarInt(settings.pageAlignment());
+    int mask = 0;
+    for (var gesture : settings.gestures()) mask |= 1 << gesture.ordinal();
+    b.writeVarInt(mask);
+    b.writeBoolean(settings.protectSource());
+  }
+
+  private static ContainerPolicy.Settings readPolicy(RegistryFriendlyByteBuf b) {
+    var layout =
+        new ContainerPolicy.Layout(
+            b.readVarInt(),
+            b.readVarInt(),
+            b.readVarInt(),
+            b.readVarInt(),
+            b.readVarInt(),
+            b.readVarInt(),
+            b.readVarInt(),
+            b.readVarInt(),
+            b.readVarInt());
+    int size = b.readVarInt(), alignment = b.readVarInt(), mask = b.readVarInt();
+    var gestures = java.util.EnumSet.noneOf(ContainerPolicy.Gesture.class);
+    if (mask < 0 || mask >= 1 << ContainerPolicy.Gesture.values().length)
+      throw new IllegalArgumentException("Invalid container gestures");
+    for (var gesture : ContainerPolicy.Gesture.values())
+      if ((mask & 1 << gesture.ordinal()) != 0) gestures.add(gesture);
+    return new ContainerPolicy.Settings(layout, size, alignment, gestures, b.readBoolean());
   }
 
   private static int boundedCount(RegistryFriendlyByteBuf buffer, int max) {
@@ -243,20 +389,34 @@ public final class ContainerDrawerNetwork {
     return count;
   }
 
-  public static void register(PayloadRegistrar registrar) {
+  public static void register(NetworkRegistry.Registrar registrar) {
     registrar.playToServer(
         Request.TYPE,
         Request.CODEC,
         (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu menu)
-            (p.equipment() ? menu.curiosDrawer : menu.containerDrawer).action(c.player(), p);
+          if (c.player().containerMenu instanceof MachineMenu menu) {
+            var component =
+                menu.components()
+                    .get(
+                        p.equipment()
+                            ? BuiltinMenuComponents.CURIOS
+                            : BuiltinMenuComponents.BACKPACK);
+            if (component != null) component.action(c.player(), p);
+          }
         });
     registrar.playToClient(
         State.TYPE,
         State.CODEC,
         (p, c) -> {
-          if (c.player().containerMenu instanceof MachineMenu menu)
-            (p.equipment() ? menu.curiosDrawer : menu.containerDrawer).receive(p);
+          if (c.player().containerMenu instanceof MachineMenu menu) {
+            var component =
+                menu.components()
+                    .get(
+                        p.equipment()
+                            ? BuiltinMenuComponents.CURIOS
+                            : BuiltinMenuComponents.BACKPACK);
+            if (component != null) component.receive(p);
+          }
         });
   }
 }

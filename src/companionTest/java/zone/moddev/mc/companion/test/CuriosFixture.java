@@ -5,13 +5,17 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.util.TriState;
+
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.event.CurioCanUnequipEvent;
+
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerNetwork;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Only loaded in the real optional-mod client run. Slot definitions/tags are test resources. */
 final class CuriosFixture {
@@ -101,7 +105,7 @@ final class CuriosFixture {
 
   static void resize(ServerPlayer player) {
     var menu = (MachineMenu) player.containerMenu;
-    var drawer = menu.curiosDrawer;
+    var drawer = menu.components().get(BuiltinMenuComponents.CURIOS);
     stale =
         new ContainerDrawerNetwork.Request(
             menu.containerId,
@@ -124,7 +128,7 @@ final class CuriosFixture {
 
   static void checkStale(ServerPlayer player) {
     var menu = (MachineMenu) player.containerMenu;
-    menu.curiosDrawer.action(player, stale);
+    menu.components().get(BuiltinMenuComponents.CURIOS).action(player, stale);
     require(menu.getCarried().isEmpty(), "Pre-resize request cannot mutate the new topology");
     require(
         CuriosApi.getCuriosInventory(player)

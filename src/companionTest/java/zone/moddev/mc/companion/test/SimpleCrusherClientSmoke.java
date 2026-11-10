@@ -19,6 +19,7 @@ import net.neoforged.neoforge.client.event.*;
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 import zone.moddev.mc.lib.machine.neoforge.*;
 
 /** Focused real-client check of XML registration, generated layout, recipes and /reload. */
@@ -39,6 +40,7 @@ public final class SimpleCrusherClientSmoke {
   private static boolean recipesOpened;
   private static int frames;
   private static int tooltipStage;
+  private static int transferStage;
 
   @SubscribeEvent
   public static void tick(ClientTickEvent.Post event) {
@@ -142,11 +144,64 @@ public final class SimpleCrusherClientSmoke {
     try {
       if (++frames < 30) return;
       var menu = screen.getMenu();
+      var inventoryViews =
+          menu.bound.screen().elements().stream()
+              .filter(zone.moddev.mc.lib.gui.model.containers.InventoryElement.class::isInstance)
+              .map(zone.moddev.mc.lib.gui.model.containers.InventoryElement.class::cast)
+              .toList();
+      if (inventoryViews.size() < 2)
+        throw new AssertionError("Generated independent inventory elements missing");
+      for (var view : inventoryViews) {
+        var outline =
+            menu.elements.stream()
+                .filter(
+                    zone.moddev.mc.lib.gui.model.containers.ColouredGroupElement.class::isInstance)
+                .map(zone.moddev.mc.lib.gui.model.containers.ColouredGroupElement.class::cast)
+                .filter(group -> group.child() == view)
+                .findFirst()
+                .orElseThrow();
+        if (!menu.layout().bounds(outline).equals(menu.layout().bounds(view)))
+          throw new AssertionError("Group decoration changed inventory geometry");
+        if (menu.components().get(BuiltinMenuComponents.AUTOMATION).inventory.groups().stream()
+            .filter(group -> group.inventory().equals(view.inventory()))
+            .noneMatch(
+                group ->
+                    group
+                        .highlights()
+                        .equals(java.util.List.of(outline.common().id().orElseThrow()))))
+          throw new AssertionError("Automation does not highlight the inventory's outline");
+      }
+      var seenSlots = new java.util.HashSet<Integer>();
+      for (var view : inventoryViews)
+        for (var slot : view.slots()) {
+          if (!seenSlots.add(menu.slotIndex(slot)))
+            throw new AssertionError("Local slots alias one menu index");
+          var bounds = menu.layout().bounds(slot);
+          int[] expected = slot.itemPosition(bounds);
+          if (menu.slot(slot).x != expected[0] || menu.slot(slot).y != expected[1])
+            throw new AssertionError("Inventory element did not position its native slot");
+        }
+      if (menu.playerSlotElements().stream().filter(s -> s.icon().isPresent()).count() != 5)
+        throw new AssertionError("Shared slot appearance lost equipment placeholders");
       var progress = menu.bound.screen().find("generated_progress").orElseThrow();
       if (menu.value(progress, true) == null)
         throw new AssertionError("Progress maximum not synced");
       if (MachineContent.recipeType(TYPE).recipes(mc.level.getRecipeManager()).isEmpty())
         throw new AssertionError("Generated recipes not synced");
+      if (!LAVA) {
+        var energy = menu.bound.screen().find("energy").orElseThrow();
+        if (!(energy instanceof zone.moddev.mc.lib.gui.model.elements.EnergyGaugeElement)
+            || !(menu.value(energy, false) instanceof java.math.BigInteger stored)
+            || stored.signum() <= 0
+            || !java.math.BigInteger.valueOf(100_000).equals(menu.value(energy, true)))
+          throw new AssertionError("Energy component did not synchronize");
+        var tooltip = screen.tooltipLines(energy, 0, 0);
+        String expected =
+            zone.moddev.mc.lib.gui.client.ScreenText.number(menu.value(energy, false), false)
+                + " / 100 k FE";
+        if (tooltip.size() != 1 || !tooltip.getFirst().getString().equals(expected))
+          throw new AssertionError("Energy component tooltip changed: " + tooltip);
+      }
       if (LAVA) {
         var gauge = menu.bound.screen().find("tank_0").orElseThrow();
         var gaugeBounds = screen.bounds(gauge);
@@ -203,6 +258,47 @@ public final class SimpleCrusherClientSmoke {
           tooltipStage++;
           frames = 0;
           return;
+        }
+        if (transferStage == 0) {
+          transferStage = 1;
+          frames = 0;
+          mc.getSingleplayerServer()
+              .execute(
+                  () -> {
+                    var player = mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst();
+                    var machine = (DefinedMachineEntity) player.serverLevel().getBlockEntity(POS);
+                    var features = machine.screenFeatures();
+                    features.setProcessorPaused(
+                        features.processor(java.util.Optional.empty()).orElseThrow().key(), true);
+                    machine.fluids.restoreFluid(
+                        0,
+                        new net.neoforged.neoforge.fluids.FluidStack(
+                            net.minecraft.world.level.material.Fluids.LAVA, 4000));
+                    player.getAbilities().instabuild = false;
+                    player.containerMenu.setCarried(new ItemStack(Items.BUCKET));
+                    player.containerMenu.broadcastChanges();
+                  });
+          return;
+        }
+        if (transferStage == 1 || transferStage == 2) {
+          var expected = transferStage == 1 ? Items.BUCKET : Items.LAVA_BUCKET;
+          int amount = transferStage == 1 ? 4000 : 3000;
+          if (!menu.getCarried().is(expected) || fluid.getAmount() != amount) return;
+          if (!screen.mouseClicked(
+              gaugeBounds.x() + 9, gaugeBounds.y() + 24, transferStage == 1 ? 1 : 0))
+            throw new AssertionError("Generated gauge did not handle container click");
+          transferStage++;
+          frames = 0;
+          return;
+        }
+        if (transferStage == 3) {
+          if (!menu.getCarried().is(Items.BUCKET) || fluid.getAmount() != 4000) return;
+          transferStage = 4;
+          Screenshot.grab(
+              mc.gameDirectory, NAME + "-container.png", mc.getMainRenderTarget(), message -> {});
+          MMDLib.LOGGER.info(
+              "SIMPLE_LAVA_FURNACE_CONTAINER_PASS: right drain, left fill, cursor and tank"
+                  + " synchronized");
         }
       }
       if (!LAVA)

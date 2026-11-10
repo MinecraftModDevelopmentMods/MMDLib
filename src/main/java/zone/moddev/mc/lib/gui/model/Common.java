@@ -20,6 +20,7 @@ import net.minecraft.resources.ResourceLocation;
  * @param offsetX a pixel nudge applied after layout
  * @param offsetY a pixel nudge applied after layout
  * @param line the line in the screen file, for error messages
+ * @param interaction reusable server behavior and its screen-authored target
  */
 public record Common(
     Optional<String> id,
@@ -33,7 +34,55 @@ public record Common(
     List<ResourceLocation> jeiRecipes,
     int offsetX,
     int offsetY,
-    int line) {
+    int line,
+    Optional<Interaction> interaction) {
+  public static Common empty() {
+    return new Common(
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        new Clicks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()),
+        Optional.empty(),
+        Optional.empty(),
+        List.of(),
+        0,
+        0,
+        0,
+        Optional.empty());
+  }
+
+  /** Source-compatible constructor for elements without a built-in interaction. */
+  public Common(
+      Optional<String> id,
+      Optional<ValueRef> value,
+      Optional<ValueRef> max,
+      Optional<Text> tooltip,
+      Optional<Text> tooltipShift,
+      Clicks clicks,
+      Optional<ResourceLocation> onHover,
+      Optional<String> hoverShows,
+      List<ResourceLocation> jeiRecipes,
+      int offsetX,
+      int offsetY,
+      int line) {
+    this(
+        id,
+        value,
+        max,
+        tooltip,
+        tooltipShift,
+        clicks,
+        onHover,
+        hoverShows,
+        jeiRecipes,
+        offsetX,
+        offsetY,
+        line,
+        Optional.empty());
+  }
+
   /** Copies the recipe list. */
   public Common {
     jeiRecipes = List.copyOf(jeiRecipes);

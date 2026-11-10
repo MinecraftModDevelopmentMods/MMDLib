@@ -1,4 +1,5 @@
 {
+  "screen.mmdlib.tank.name": "Tank %s",
   "screen.mmdlib.tank.empty": "Empty",
   "screen.mmdlib.tank.contents": "%s mB of %s",
   "screen.mmdlib.tank.accepts": "Accepts: %s",
@@ -312,6 +313,9 @@
   "screen.mmdlib.container.room": "Reduce GUI scale or enlarge the window to show storage.",
   "screen.mmdlib.container.select": "Click to select the next equipped container.",
   "screen.mmdlib.container.store": "Shift-click inventory items to store them here.",
+  "screen.mmdlib.container.distribute": "Drag to distribute items.",
+  "screen.mmdlib.container.collect": "Double-click to collect matching items.",
+  "screen.mmdlib.container.swap": "Use hotbar keys to swap slots.",
   "screen.mmdlib.container.gestures": "Drag to distribute; double-click to collect; hotbar keys swap slots.",
   "screen.mmdlib.curios.title": "Curios",
   "screen.mmdlib.curios.toggle": "Open or close equipped accessories",
@@ -381,9 +385,9 @@
   "screen.mmdlib.stats.per_second": "Per second",
   "screen.mmdlib.stats.per_minute": "Per minute",
   "screen.mmdlib.stats.cycles": "Cycles",
-  "screen.mmdlib.stats.cycle_tip": "Click to cycle tick / second / minute. Right-click to cycle backwards.",
+  "screen.mmdlib.stats.cycle_tip": "Click to select the next timescale. Right-click to select the previous one.",
   "screen.mmdlib.stats.empty": "No statistics available.",
-  "screen.mmdlib.stats.tip": "Measured RF: latest 20 ticks. Cycles: up to 60 game seconds. Max cycles uses the active recipe duration; max use is peak recipe demand. Max transfer rates use one transfer per tick.",
+  "screen.mmdlib.stats.tip": "Statistics and available timescales are supplied by the machine.",
   "item.mmdlib.fluid_bottle": "Fluid Bottle",
   "item.mmdlib.fluid_bottle.filled": "Bottle of %s"
 }

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 import zone.moddev.mc.lib.api.capabilities.EnergyBuffer;
-import zone.moddev.mc.lib.gui.runtime.CounterRate;
+import zone.moddev.mc.lib.api.stats.CounterRate;
 
 class EnergyRateTest {
   private static final class EnergyRate {

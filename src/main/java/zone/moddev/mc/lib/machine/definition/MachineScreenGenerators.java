@@ -4,12 +4,14 @@ import java.util.*;
 
 import net.minecraft.resources.ResourceLocation;
 
+import zone.moddev.mc.lib.api.automation.ResourceType;
 import zone.moddev.mc.lib.api.capabilities.IoMode;
+import zone.moddev.mc.lib.gui.layout.GroupHighlights;
+import zone.moddev.mc.lib.gui.load.ResourceValidationContext;
 import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenReader.Node;
-import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.ElementGroup;
 import zone.moddev.mc.lib.gui.model.Screen;
-import zone.moddev.mc.lib.gui.model.ValueRef;
 
 /** Registered fragment builders; templates retain ownership of the enclosing screen. */
 public final class MachineScreenGenerators {
@@ -50,34 +52,29 @@ public final class MachineScreenGenerators {
 
   /** Checks references against the resolved machine before any block can be placed. */
   public static void validate(MachineDefinition machine, Screen screen) {
+    var inventories = new LinkedHashMap<String, Integer>();
+    for (var name : machine.inventoryNames()) inventories.merge(name, 1, Integer::sum);
+    var context =
+        new ResourceValidationContext(
+            screen,
+            Map.of(
+                "items",
+                machine.slots().size(),
+                "fluids",
+                machine.fluids() == null ? 0 : machine.fluids().tanks().size(),
+                "energy",
+                machine.power() == null ? 0 : 1),
+            inventories,
+            Map.of(
+                "processors",
+                machine.processor() == null ? Set.of() : Set.of(machine.processor())));
     for (var element : screen.elements()) {
-      if (element instanceof Element.EnergyGauge && machine.power() == null)
+      try {
+        element.validateResources(context);
+      } catch (IllegalArgumentException failure) {
         throw new ScreenException(
-            screen.source(element.common()),
-            element.common().line(),
-            "Energy gauge requires energy storage");
-      for (var ref : List.of(element.common().value(), element.common().max()))
-        if (ref.orElse(null) instanceof ValueRef.Indexed indexed
-            && Set.of("getTankFluid", "getTankCapacity").contains(indexed.method())
-            && (machine.fluids() == null || indexed.index() >= machine.fluids().tanks().size()))
-          throw new ScreenException(
-              screen.source(element.common()),
-              element.common().line(),
-              "Tank index outside machine storage: " + indexed.index());
-      if (element instanceof Element.Slot slot
-          && slot.kind() != Element.SlotKind.GHOST
-          && (slot.index() < 0 || slot.index() >= machine.slots().size()))
-        throw new ScreenException(
-            screen.source(slot.common()),
-            slot.common().line(),
-            "Slot index outside machine storage: " + slot.index());
-      if (element instanceof Element.Button button
-          && button.processorControl()
-          && button.processorKey().filter(key -> !key.equals(machine.processor())).isPresent())
-        throw new ScreenException(
-            screen.source(button.common()),
-            button.common().line(),
-            "Unknown processor-key: " + button.processorKey().orElseThrow());
+            screen.source(element.common()), element.common().line(), failure.getMessage());
+      }
     }
   }
 
@@ -85,35 +82,45 @@ public final class MachineScreenGenerators {
   public static Map<String, List<String>> compileHighlights(
       MachineDefinition machine, Screen screen) {
     validate(machine, screen);
-    var highlights = new LinkedHashMap<String, List<String>>();
-    var slots = new HashMap<Integer, String>();
+    var groups = new ArrayList<ElementGroup>();
     for (var group : machine.groups()) {
-      highlights.put(group.id(), new ArrayList<>());
-      group.members().forEach(index -> slots.put(index, group.id()));
+      var local =
+          java.util.stream.IntStream.range(0, machine.inventorySlots(group.id()).size())
+              .boxed()
+              .toList();
+      groups.add(
+          new ElementGroup(
+              group.id(),
+              List.of(),
+              java.util.Optional.of(
+                  new ElementGroup.Members(
+                      ResourceType.ITEMS.id(), group.id(), local, group.members()))));
     }
-    if (machine.power() != null) highlights.put(machine.power().id(), new ArrayList<>());
-    var tanks = new HashMap<Integer, String>();
+    if (machine.power() != null)
+      groups.add(
+          new ElementGroup(
+              machine.power().id(),
+              List.of(),
+              java.util.Optional.of(
+                  new ElementGroup.Members(
+                      ResourceType.ENERGY.id(), machine.power().id(), List.of(0)))));
     if (machine.fluids() != null)
-      for (var group : machine.fluids().groups()) {
-        highlights.put(group.id(), new ArrayList<>());
-        group.members().forEach(index -> tanks.put(index, group.id()));
-      }
-    for (var element : screen.elements()) {
-      var group =
-          element instanceof Element.Slot slot
-              ? slots.get(slot.index())
-              : element instanceof Element.EnergyGauge && machine.power() != null
-                  ? machine.power().id()
-                  : element instanceof Element.Gauge
-                          && element.common().value().orElse(null)
-                              instanceof ValueRef.Indexed indexed
-                          && indexed.method().equals("getTankFluid")
-                      ? tanks.get(indexed.index())
-                      : null;
-      if (group != null) element.common().id().ifPresent(id -> highlights.get(group).add(id));
-    }
-    highlights.replaceAll((key, ids) -> List.copyOf(ids));
-    return Map.copyOf(highlights);
+      for (var group : machine.fluids().groups())
+        groups.add(
+            new ElementGroup(
+                group.id(),
+                List.of(),
+                java.util.Optional.of(
+                    new ElementGroup.Members(
+                        ResourceType.FLUIDS.id(), machine.fluids().id(), group.members()))));
+    var result = new LinkedHashMap<String, List<String>>();
+    GroupHighlights.of(screen, groups, element -> element.common().id().isPresent())
+        .forEach(
+            (id, targets) ->
+                result.put(
+                    id,
+                    targets.stream().map(element -> element.common().id().orElseThrow()).toList()));
+    return Collections.unmodifiableMap(result);
   }
 
   private static void options(Node node, Set<String> allowed) {
@@ -188,16 +195,8 @@ public final class MachineScreenGenerators {
       result.add(
           n(
               node,
-              "gauge",
-              Map.of(
-                  "id",
-                  "tank_" + index,
-                  "length",
-                  "3s",
-                  "value",
-                  "#getTankFluid(" + index + ")",
-                  "max",
-                  "#getTankCapacity(" + index + ")"),
+              "fluid-tank",
+              Map.of("id", "tank_" + index, "length", "3s", "tank", Integer.toString(index)),
               List.of()));
     return result;
   }
@@ -208,19 +207,36 @@ public final class MachineScreenGenerators {
       if (group.mode() == mode || (mode == IoMode.BOTH && group.mode() == IoMode.DISABLED)) {
         var rows = new ArrayList<Node>();
         rows.add(spacer(node));
-        for (int start = 0; start < group.members().size(); start += columns) {
-          var row = new ArrayList<Node>();
-          for (int j = start; j < Math.min(start + columns, group.members().size()); j++) {
-            int index = group.members().get(j);
-            row.add(
-                n(
-                    node,
-                    "slot",
-                    Map.of("id", "slot_" + index, "index", Integer.toString(index)),
-                    List.of()));
-          }
-          rows.add(n(node, "hbox", Map.of("spacing", "2"), row));
-        }
+        var children = new ArrayList<Node>();
+        var members = machine.inventorySlots(group.id());
+        for (int index : group.members())
+          children.add(
+              n(
+                  node,
+                  "item-slot",
+                  Map.of("id", "slot_" + index, "index", Integer.toString(members.indexOf(index))),
+                  List.of()));
+        rows.add(
+            n(
+                node,
+                "coloured-group",
+                Map.of(
+                    "id",
+                    "inventory_" + group.id(),
+                    "color",
+                    String.format("#%06X", group.color() & 0xffffff)),
+                List.of(
+                    n(
+                        node,
+                        "inventory",
+                        Map.of(
+                            "storage",
+                            group.id(),
+                            "columns",
+                            Integer.toString(columns),
+                            "spacing",
+                            "2"),
+                        children))));
         rows.add(spacer(node));
         result.add(n(node, "vbox", Map.of("spacing", "2"), rows));
       }

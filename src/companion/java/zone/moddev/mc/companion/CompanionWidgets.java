@@ -7,7 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import zone.moddev.mc.lib.gui.WidgetAction;
 import zone.moddev.mc.lib.gui.WidgetType;
 import zone.moddev.mc.lib.gui.WidgetTypes;
-import zone.moddev.mc.lib.gui.load.BoundValue.Kind;
+import zone.moddev.mc.lib.gui.value.ValueTypes;
 
 /** A consuming mod owns the widget contract; no client class is referenced here. */
 public final class CompanionWidgets {
@@ -64,19 +64,19 @@ public final class CompanionWidgets {
     WidgetTypes.GLOBAL.register(
         NAME_EDITOR,
         new WidgetType(
-            Set.of(Kind.TEXT),
+            Set.of(ValueTypes.TEXT),
             widget -> validateEditor(widget, 140, 42, Set.of()),
             java.util.List.of(RENAME)));
     WidgetTypes.GLOBAL.register(
         RESERVE_SLIDER,
         new WidgetType(
-            Set.of(Kind.WHOLE),
+            Set.of(ValueTypes.WHOLE),
             widget -> validateEditor(widget, 100, 30, Set.of()),
             java.util.List.of(RESERVE)));
     WidgetTypes.GLOBAL.register(
         LANE_SELECTOR,
         new WidgetType(
-            Set.of(Kind.BOOLEAN),
+            Set.of(ValueTypes.BOOLEAN),
             widget -> {
               validateEditor(widget, 100, 30, Set.of("lane"));
               String lane = widget.properties().get("lane");
@@ -87,7 +87,7 @@ public final class CompanionWidgets {
     WidgetTypes.GLOBAL.register(
         PROGRESS_DIAL,
         new WidgetType(
-            Set.of(Kind.WHOLE, Kind.DECIMAL, Kind.NUMBER),
+            Set.of(ValueTypes.WHOLE, ValueTypes.DECIMAL, ValueTypes.NUMBER),
             widget -> {
               if (widget.common().value().isEmpty() || widget.common().max().isEmpty())
                 throw new IllegalArgumentException("A progress dial needs value and max getters");
@@ -103,7 +103,7 @@ public final class CompanionWidgets {
   }
 
   private static void validateEditor(
-      zone.moddev.mc.lib.gui.model.Element.Custom widget,
+      zone.moddev.mc.lib.gui.model.elements.CustomElement widget,
       int width,
       int height,
       Set<String> properties) {

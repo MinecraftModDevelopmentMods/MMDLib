@@ -100,6 +100,11 @@ Numbers use locale-independent syntax with a dot decimal separator, such as
 `hardness="3.5"`. Invalid hardness values and resource locations report the source
 file, line, attribute and value, including when authored in an inherited base.
 
+Each item resource group has its own physical `ItemStorage`. Generated screen fills use an
+`InventoryElement` named after that group, with local `ItemSlotElement` indexes starting at zero.
+The machine retains a combined capability view for external automation and legacy callers;
+recipe groups operate on the independent handlers.
+
 `<slots id="input" count="2" role="input"/>` creates stable member IDs `input/0`
 and `input/1`, plus a recipe/automation group named `input`. Growing the count
 retains those identities. `<slot id="catalyst" role="input"/>` creates one member
@@ -146,6 +151,12 @@ There is no base fluid machine. The furnace owns its tank definition and has no 
 buffer or FE capability. Right-click it with a lava bucket or fill it through its
 fluid capability. The generated gauge and side controls use the `fuel` group.
 Wrong fluids are rejected; a failed bucket interaction does not spill fluid into the world.
+
+Generated gauges also support cursor containers: left-click pours into the selected tank;
+right-click fills the container from that tank. Players can drain input tanks, while reserved
+fluid and output space remain protected. The shared gauge behavior also applies to handwritten
+screens using `<fluid-tank tank="0" length="3s"/>`. Both create `FluidTankElement`, which owns
+its snapshots, tooltips and transfers; machine classes only expose storage through `screenFluids()`.
 
 Generated tank tooltips show the resource group name, current amount/fluid (or
 `Empty`), and accepted fluid names. Carry a filled fluid container on the cursor

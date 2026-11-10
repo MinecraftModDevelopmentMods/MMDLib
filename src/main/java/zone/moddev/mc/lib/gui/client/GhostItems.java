@@ -15,9 +15,13 @@ import net.minecraft.world.item.ItemStack;
 
 /** Translucent samples retain their item's model, texture and lighting, including opaque blocks. */
 final class GhostItems {
-  private final Map<RenderType, RenderType> translucent = new IdentityHashMap<>();
+  private final Map<Float, Map<RenderType, RenderType>> translucent = new java.util.HashMap<>();
 
   void render(GuiGraphics graphics, ItemStack stack, int x, int y) {
+    render(graphics, stack, x, y, .50f);
+  }
+
+  void render(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha) {
     var minecraft = Minecraft.getInstance();
     var renderer = minecraft.getItemRenderer();
     var model = renderer.getModel(stack, minecraft.level, minecraft.player, 0);
@@ -35,7 +39,10 @@ final class GhostItems {
           type ->
               graphics
                   .bufferSource()
-                  .getBuffer(translucent.computeIfAbsent(type, original -> fade(original, .50f))),
+                  .getBuffer(
+                      translucent
+                          .computeIfAbsent(alpha, ignored -> new IdentityHashMap<>())
+                          .computeIfAbsent(type, original -> fade(original, alpha))),
           15728880,
           OverlayTexture.NO_OVERLAY,
           model);

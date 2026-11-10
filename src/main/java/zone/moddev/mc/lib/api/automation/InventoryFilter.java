@@ -70,41 +70,10 @@ public interface InventoryFilter {
             .findFirst()
             .orElse(null);
     var config = configuration(copy);
-    switch (control) {
-      case FilterControl.Custom custom -> {
-        if (!custom.type().dispatch(config, value)) return false;
-      }
-      case FilterControl.Toggle toggle -> config.putBoolean(id, !config.getBoolean(id));
-      case FilterControl.Text text -> {
-        if (value.length() > text.maxLength()
-            || value.codePoints().anyMatch(Character::isISOControl)) return false;
-        config.putString(id, value);
-      }
-      case FilterControl.Number number -> {
-        int proposed;
-        try {
-          proposed = Integer.parseInt(value);
-        } catch (NumberFormatException invalid) {
-          return false;
-        }
-        if (proposed < number.min() || proposed > number.max()) return false;
-        config.putInt(id, proposed);
-      }
-      case FilterControl.Samples samples -> {
-        if (!value.equals("sample") && !value.equals("clear")) return false;
-        if (index < 0 || index >= samples.count() || samples.resource() != resource(copy))
-          return false;
-        var entries = config.getList(id, Tag.TAG_STRING).copy();
-        while (entries.size() < samples.count()) entries.add(StringTag.valueOf(""));
-        String sample = value.equals("clear") ? "" : sample(copy, cursor, registries);
-        if (!value.equals("clear") && sample.isEmpty()) return false;
-        entries.set(index, StringTag.valueOf(sample));
-        config.put(id, entries);
-      }
-      case null, default -> {
-        return false;
-      }
-    }
+    if (control == null
+        || !control.edit(
+            new FilterControl.Edit(this, copy, config, index, value, cursor, registries)))
+      return false;
     if (!validate(copy, config, registries)) return false;
     configure(copy, config);
     return true;

@@ -30,6 +30,7 @@ import zone.moddev.mc.companion.ProcessorEntity;
 import zone.moddev.mc.lib.gui.Screens;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.gui.runtime.ScreenNetwork;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor.Status;
 
 /** Exercises the consumer's registration and wiring with the real recipe files and block types. */
@@ -55,8 +56,18 @@ public final class CompanionGameTests {
           (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine) level.getBlockEntity(pos);
       machine.energy.setStored(7_321);
       require(
-          machine.getEnergy() == 7_321 && machine.getEnergyCapacity() == 100_000,
-          "Shared getters expose the owned buffer");
+          machine.energy.stored() == 7_321 && machine.energy.capacity() == 100_000,
+          "The owned buffer preserves its full values");
+      var bound = Screens.get(definition.type.getId()).orElseThrow();
+      var gauge = bound.screen().find("energy").orElseThrow();
+      var energySnapshot = gauge.snapshot(machine).orElseThrow();
+      require(
+          machine.screenEnergy() == machine.energy
+              && energySnapshot.value().equals(7_321L)
+              && energySnapshot.maximum().equals(100_000L)
+              && !bound.values().containsKey(gauge)
+              && !bound.maxima().containsKey(gauge),
+          "Every powered machine uses the component-owned energy snapshot");
       require(
           machine.screenFeatures() == machine.features
               && machine.screenStats().getFirst() == machine.energy,
@@ -71,7 +82,7 @@ public final class CompanionGameTests {
       var copy =
           (zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine)
               BlockEntity.loadStatic(pos, machine.getBlockState(), saved, registries);
-      require(copy.getEnergy() == 7_321, "Power survives a full save/load for every machine");
+      require(copy.energy.stored() == 7_321, "Power survives a full save/load for every machine");
       if (copy instanceof ProcessorEntity processor) {
         require(
             processor.getPaused() && processor.getReservePercent() == 25,
@@ -96,7 +107,7 @@ public final class CompanionGameTests {
             java.util.Objects.equals(beforeUpdate.get(key), afterUpdate.get(key)),
             "Feature update preserves " + key);
       copy.clearContent();
-      require(copy.getEnergy() == 0, "Shared clear resets owned power");
+      require(copy.energy.stored() == 0, "Shared clear resets owned power");
       machine.clearContent();
       level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     }
@@ -113,11 +124,9 @@ public final class CompanionGameTests {
     var menu = new MachineMenu(43, player.getInventory(), machine);
     player.containerMenu = menu;
     var button =
-        (zone.moddev.mc.lib.gui.model.Element.Button)
+        (zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement)
             menu.bound.screen().find("toggle_0").orElseThrow();
-    require(
-        button.processorControl() && button.processorKey().isEmpty(),
-        "Inherited control uses no machine-specific key");
+    require(button.processorKey().isEmpty(), "Inherited control uses no machine-specific key");
     // Mock players have no negotiated GUI channel; inspect the actual server snapshot directly.
     var read =
         Class.forName("zone.moddev.mc.lib.gui.runtime.ScreenSnapshots")
@@ -171,12 +180,16 @@ public final class CompanionGameTests {
         "Explicit keys never fall back to the first processor");
     var emptyHost =
         new zone.moddev.mc.lib.gui.runtime.ScreenHost() {
-          public zone.moddev.mc.lib.api.capabilities.ItemStorage screenItems() {
+          public net.neoforged.neoforge.items.IItemHandlerModifiable screenItems() {
             return machine.items;
           }
 
           public zone.moddev.mc.lib.machine.feature.FeatureHost screenFeatures() {
             return new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> {});
+          }
+
+          public zone.moddev.mc.lib.api.capabilities.EnergyBuffer screenEnergy() {
+            return machine.energy;
           }
         };
     try {
@@ -252,7 +265,7 @@ public final class CompanionGameTests {
     var menu = new MachineMenu(42, player.getInventory(), machine);
     player.containerMenu = menu;
     var button =
-        (zone.moddev.mc.lib.gui.model.Element.Button)
+        (zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement)
             menu.bound.screen().find("toggle_1").orElseThrow();
     require(
         button.processorKey().orElseThrow().equals("lane_1") && !button.common().clicks().any(),
@@ -268,27 +281,33 @@ public final class CompanionGameTests {
         machine.lanes.get(1).paused() && !machine.lanes.getFirst().paused(),
         "Only the keyed lane pauses");
     require(
-        !menu.redstone.watching() && !menu.redstone.conflicts(true),
+        !menu.components().get(BuiltinMenuComponents.REDSTONE).watching()
+            && !menu.components().get(BuiltinMenuComponents.REDSTONE).conflicts(true),
         "No input watching means no conflict indicator");
     machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.EMIT);
-    require(!menu.redstone.watching(), "Output-only redstone does not watch inputs");
+    require(
+        !menu.components().get(BuiltinMenuComponents.REDSTONE).watching(),
+        "Output-only redstone does not watch inputs");
     machine.redstone.mode(0, zone.moddev.mc.lib.api.redstone.RedstoneControl.Mode.READ);
     machine.redstone.range(0, 0, 15);
     machine.redstone.readInputs();
     require(
-        menu.redstone.watching()
-            && menu.redstone.paused()
-            && !menu.redstone.conflicts(true)
-            && menu.redstone.conflicts(false),
+        menu.components().get(BuiltinMenuComponents.REDSTONE).watching()
+            && menu.components().get(BuiltinMenuComponents.REDSTONE).paused()
+            && !menu.components().get(BuiltinMenuComponents.REDSTONE).conflicts(true)
+            && menu.components().get(BuiltinMenuComponents.REDSTONE).conflicts(false),
         "A redstone hold conflicts only with an enabled manual state");
     menu.action(player, action);
     require(
-        !machine.lanes.get(1).paused() && menu.redstone.paused(),
+        !machine.lanes.get(1).paused()
+            && menu.components().get(BuiltinMenuComponents.REDSTONE).paused(),
         "Resume changes the manual state while redstone still holds processing");
     machine.redstone.outside(0, true);
     machine.redstone.readInputs();
     require(
-        !menu.redstone.paused() && menu.redstone.conflicts(true) && !menu.redstone.conflicts(false),
+        !menu.components().get(BuiltinMenuComponents.REDSTONE).paused()
+            && menu.components().get(BuiltinMenuComponents.REDSTONE).conflicts(true)
+            && !menu.components().get(BuiltinMenuComponents.REDSTONE).conflicts(false),
         "Redstone allowing work conflicts with manual pause");
 
     int[] changes = {0}, syncs = {0};
@@ -308,15 +327,8 @@ public final class CompanionGameTests {
     machine.lanes.get(1).setPaused(false);
     require(!machine.lanes.get(1).paused(), "The public pause setter resumes too");
     var invalid =
-        new zone.moddev.mc.lib.gui.model.Element.Button(
-            button.common(),
-            button.text(),
-            button.icon(),
-            button.shows(),
-            button.icons(),
-            button.valueLabels(),
-            button.flat(),
-            java.util.Optional.of("missing"));
+        new zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement(
+            button.common(), java.util.Optional.of("missing"), button.text(), button.flat());
     var original = menu.bound.screen();
     var invalidScreen =
         new zone.moddev.mc.lib.gui.model.Screen(
@@ -435,11 +447,72 @@ public final class CompanionGameTests {
     helper.succeed();
   }
 
+  @GameTest(template = "empty")
+  public static void elementStateIsPerMenuAndRejectionsRestorePredictedViews(
+      GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    var server = new MachineMenu(55, player.getInventory(), machine);
+    var client = new MachineMenu(55, player.getInventory(), machine, server.widgetSession());
+    var other = new MachineMenu(56, player.getInventory(), machine);
+    player.containerMenu = server;
+    var button = client.bound.screen().find("open_settings").orElseThrow();
+    var action = zone.moddev.mc.lib.gui.model.elements.ButtonElement.NAVIGATE;
+    try {
+      var invalid =
+          client
+              .prepareElementAction(
+                  button, action, new zone.moddev.mc.lib.gui.ElementActions.Click(0, 0, 1))
+              .orElseThrow();
+      client.navigate("panel", "settings");
+      var rejected = server.elementAction(player, invalid);
+      require(
+          !rejected.accepted() && !rejected.states().isEmpty(),
+          "Rejection includes authoritative element state");
+      client.receiveWidgetResult(rejected);
+      require(
+          client.views().get("panel").equals("machine"),
+          "Rejected prediction is corrected before the callback");
+      client.takeElementResult(button);
+      var valid =
+          client
+              .prepareElementAction(
+                  button, action, new zone.moddev.mc.lib.gui.ElementActions.Click(0, 0, 0))
+              .orElseThrow();
+      var accepted = server.elementAction(player, valid);
+      require(accepted.accepted(), "Valid navigation accepted");
+      client.receiveWidgetResult(accepted);
+      require(
+          client.views().get("panel").equals("settings")
+              && other.views().get("panel").equals("machine"),
+          "Selected views are synchronized per menu, never shared across viewers");
+      client.takeElementResult(button);
+      var panel = client.bound.screen().find("panel").orElseThrow();
+      client
+          .prepareElementAction(
+              panel,
+              zone.moddev.mc.lib.gui.model.containers.ContextElement.BACK,
+              new zone.moddev.mc.lib.gui.ElementActions.Click(0, 0, 0))
+          .orElseThrow();
+      client.navigate("panel", "machine");
+      for (int i = 0; i < 100; i++) client.tickWidgetActions();
+      require(
+          client.views().get("panel").equals("settings"),
+          "Timeout restores the last confirmed view");
+    } finally {
+      player.containerMenu = player.inventoryMenu;
+      helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
   private static <T> ScreenNetwork.Widget widgetPacket(
       MachineMenu menu,
       String element,
       int request,
-      zone.moddev.mc.lib.gui.WidgetAction<T> action,
+      zone.moddev.mc.lib.gui.ElementAction<T> action,
       T value) {
     return new ScreenNetwork.Widget(
         menu.containerId,
@@ -448,6 +521,70 @@ public final class CompanionGameTests {
         request,
         action.id(),
         action.encode(menu.blockEntity.getLevel().registryAccess(), value));
+  }
+
+  @GameTest(template = "empty")
+  public static void builtinElementsUseAuthorizedTypedActions(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    var menu = new MachineMenu(53, player.getInventory(), machine);
+    player.containerMenu = menu;
+    var navigate = zone.moddev.mc.lib.gui.model.elements.ButtonElement.NAVIGATE;
+    var back = zone.moddev.mc.lib.gui.model.containers.ContextElement.BACK;
+    var click = new zone.moddev.mc.lib.gui.ElementActions.Click(0, 0, 0);
+    try {
+      require(
+          !menu.elementAction(
+                  player,
+                  widgetPacket(
+                      menu,
+                      "open_settings",
+                      1,
+                      navigate,
+                      new zone.moddev.mc.lib.gui.ElementActions.Click(0, 0, 1)))
+              .accepted(),
+          "Navigation validates its own payload");
+      var packet = widgetPacket(menu, "open_settings", 2, navigate, click);
+      require(
+          menu.elementAction(player, packet).accepted()
+              && menu.views().get("panel").equals("settings"),
+          "Typed navigation selects its target view");
+      require(menu.elementAction(player, packet) == null, "Built-in actions cannot be replayed");
+      require(
+          !menu.elementAction(player, widgetPacket(menu, "open_settings", 3, navigate, click))
+              .accepted(),
+          "A hidden navigation button cannot act");
+      boolean paused = machine.getPaused();
+      require(
+          !menu.elementAction(
+                      player,
+                      widgetPacket(
+                          menu, "progress", 4, zone.moddev.mc.lib.gui.ElementActions.CLICK, click))
+                  .accepted()
+              && machine.getPaused() == paused,
+          "A hidden common callback cannot mutate the host");
+      require(
+          menu.elementAction(player, widgetPacket(menu, "panel", 5, back, click)).accepted()
+              && menu.views().get("panel").equals("machine"),
+          "Context owns its typed back action");
+      require(
+          menu.elementAction(
+                      player,
+                      widgetPacket(
+                          menu, "progress", 6, zone.moddev.mc.lib.gui.ElementActions.CLICK, click))
+                  .accepted()
+              && machine.getPaused() != paused,
+          "Generic click dispatch preserves common callbacks");
+      require(
+          !menu.elementAction(player, widgetPacket(menu, "progress", 7, navigate, click))
+              .accepted(),
+          "A visible element cannot invoke another element type's action");
+    } finally {
+      player.containerMenu = player.inventoryMenu;
+    }
+    helper.succeed();
   }
 
   @GameTest(template = "empty")
@@ -614,7 +751,7 @@ public final class CompanionGameTests {
                   pos, machine.getBlockState(), saved, helper.getLevel().registryAccess());
       require(copy.getReservePercent() == 25, "Reserve persists");
       var name =
-          (zone.moddev.mc.lib.gui.model.Element.Custom)
+          (zone.moddev.mc.lib.gui.model.elements.CustomElement)
               menu.bound.screen().find("name_editor").orElseThrow();
       require(
           menu.prepareWidgetAction(
@@ -671,7 +808,7 @@ public final class CompanionGameTests {
     server.navigate("panel", "settings");
     client.navigate("panel", "settings");
     var name =
-        (zone.moddev.mc.lib.gui.model.Element.Custom)
+        (zone.moddev.mc.lib.gui.model.elements.CustomElement)
             server.bound.screen().find("name_editor").orElseThrow();
     int key = server.index(name) * 2;
     var rename = zone.moddev.mc.companion.CompanionWidgets.RENAME;
@@ -702,6 +839,91 @@ public final class CompanionGameTests {
       }
       require(machine.getMachineName().getString().equals("Edit 8"), "Ninth edit never mutates");
       require(server.widgetAction(player, packet) == null, "Rejected requests cannot be replayed");
+    } finally {
+      player.containerMenu = player.inventoryMenu;
+      helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+    }
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void elementActionSessionTimeoutRetryAndClose(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    var server = new MachineMenu(55, player.getInventory(), machine);
+    var client = new MachineMenu(55, player.getInventory(), machine, server.sessionId());
+    player.containerMenu = server;
+    server.navigate("panel", "settings");
+    client.navigate("panel", "settings");
+    // Establish confirmed navigation just as the initial server snapshot does in a real menu.
+    client.apply(new java.util.HashMap<Integer, Object>(server.elementStates().snapshot()));
+    var element = server.bound.screen().find("name_editor").orElseThrow();
+    var rename = zone.moddev.mc.companion.CompanionWidgets.RENAME;
+    var original = machine.getMachineName();
+    int key = server.index(element) * 2;
+    server.apply(java.util.Map.of(key, original));
+    client.apply(java.util.Map.of(key, original));
+    try {
+      var first = client.prepareElementAction(element, rename, "First").orElseThrow();
+      var late = server.elementAction(player, first);
+      require(late.accepted(), "Server accepted the delayed action");
+      for (int i = 0; i < 99; i++) client.tickElementActions();
+      require(
+          client.elementPending(element), "Request remains pending before the timeout boundary");
+      client.tickElementActions();
+      require(!client.elementPending(element), "Timeout clears pending state");
+      require(client.value(element, false).equals(original), "Timeout uses confirmed values");
+      require(
+          client.prepareElementAction(element, rename, "Retry").isEmpty(),
+          "Timeout result must be consumed before retry");
+      require(!client.takeElementResult(element).accepted(), "Timeout reports rejection");
+      require(client.visible(element), "Timeout preserves the confirmed Settings view");
+      var retry = client.prepareElementAction(element, rename, "Retry").orElseThrow();
+      require(retry.request() > first.request(), "Retry never reuses request identity");
+      client.receiveElementResult(late);
+      require(
+          client.elementPending(element) && client.value(element, false).equals(original),
+          "Late acknowledgment cannot settle or overwrite a newer request");
+      client.receiveElementResult(server.elementAction(player, retry));
+      require(
+          !client.elementPending(element) && client.takeElementResult(element).accepted(),
+          "Matching retry acknowledgment settles immediately");
+      require(
+          ((net.minecraft.network.chat.Component) client.value(element, false))
+              .getString()
+              .equals("Retry"),
+          "Retry carries fresh authoritative values");
+      var pending = client.prepareElementAction(element, rename, "After close").orElseThrow();
+      var afterClose = server.elementAction(player, pending);
+      client.removed(player);
+      client.receiveElementResult(afterClose);
+      client.tickElementActions();
+      require(
+          !client.elementPending(element) && client.takeElementResult(element) == null,
+          "Closing clears pending requests and results and ignores later acknowledgments");
+      require(
+          client.prepareElementAction(element, rename, "Closed").isEmpty(),
+          "Closed sessions refuse new requests");
+      require(
+          ((net.minecraft.network.chat.Component) client.value(element, false))
+              .getString()
+              .equals("Retry"),
+          "Closing prevents late authoritative result application");
+      server.removed(player);
+      require(
+          server.elementAction(
+                  player,
+                  new ScreenNetwork.Widget(
+                      server.containerId,
+                      server.sessionId(),
+                      server.index(element),
+                      pending.request() + 1,
+                      rename.id(),
+                      rename.encode(player.registryAccess(), "Closed server")))
+              == null,
+          "Closed server sessions refuse dispatch even while the owner still references the menu");
     } finally {
       player.containerMenu = player.inventoryMenu;
       helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
@@ -782,7 +1004,7 @@ public final class CompanionGameTests {
     try {
       var dial = menu.bound.screen().find("progress").orElseThrow();
       require(
-          dial instanceof zone.moddev.mc.lib.gui.model.Element.Custom,
+          dial instanceof zone.moddev.mc.lib.gui.model.elements.CustomElement,
           "The consuming mod's widget loads on a dedicated server");
       int index = menu.index(dial);
       menu.action(player, new ScreenNetwork.Action(47, index, 0, 0, 0, 1));
@@ -995,8 +1217,8 @@ public final class CompanionGameTests {
     var menu = new MachineMenu(46, helper.makeMockServerPlayerInLevel().getInventory(), power);
     require(
         menu.slots.isEmpty()
-            && menu.automation.slotCount() == 0
-            && !menu.automation.addonsEnabled(),
+            && menu.components().get(BuiltinMenuComponents.AUTOMATION).slotCount() == 0
+            && !menu.components().get(BuiltinMenuComponents.AUTOMATION).addonsEnabled(),
         "Generator side configuration exposes no inventory slots");
     require(menu.bound.screen().find("info").isPresent(), "Generator has an Info panel");
     require(group.cycle(top, output, false), "Output side can be disabled");
@@ -1093,7 +1315,8 @@ public final class CompanionGameTests {
     var pos = machine.getBlockPos();
     require(machine.items.getSlots() == 3, "Crusher has one input and two outputs");
     require(
-        machine.automation.group(1).members().equals(java.util.List.of(1, 2)),
+        machine.automation.group(1).members().equals(java.util.List.of(0, 1))
+            && machine.items.inventory("input") != machine.items.inventory("output"),
         "Both outputs belong to one configurable inventory");
     var player = helper.makeMockServerPlayerInLevel();
     player.setPos(pos.getX() + .5, pos.getY() + .5, pos.getZ() + .5);
@@ -1316,7 +1539,7 @@ public final class CompanionGameTests {
       require(
           handler.fill(new FluidStack(Fluids.WATER, 5_000), FluidAction.SIMULATE) == 4_000,
           "Simulated fill respects capacity");
-      require(machine.getTankFluid().isEmpty(), "Simulation leaves the tank empty");
+      require(machine.fluids.getFluidInTank(0).isEmpty(), "Simulation leaves the tank empty");
     }
     var handler = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, Direction.UP);
     require(
@@ -1344,15 +1567,16 @@ public final class CompanionGameTests {
         (ProcessorEntity)
             BlockEntity.loadStatic(pos, machine.getBlockState(), saved, level.registryAccess());
     require(
-        copy.getTankFluid().getFluid() == Fluids.LAVA && copy.getTankFluid().getAmount() == 2_000,
+        copy.fluids.getFluidInTank(0).getFluid() == Fluids.LAVA
+            && copy.fluids.getFluidInTank(0).getAmount() == 2_000,
         "Fluid type and amount survive save/load");
     saved.remove("fluids");
     var legacy =
         (ProcessorEntity)
             BlockEntity.loadStatic(pos, machine.getBlockState(), saved, level.registryAccess());
-    require(legacy.getTankFluid().isEmpty(), "Older saves start with an empty tank");
+    require(legacy.fluids.getFluidInTank(0).isEmpty(), "Older saves start with an empty tank");
     machine.clearContent();
-    require(machine.getTankFluid().isEmpty(), "Clearing the machine clears its fluid");
+    require(machine.fluids.getFluidInTank(0).isEmpty(), "Clearing the machine clears its fluid");
     for (var other : java.util.List.of(CompanionMod.TRANSMUTER, CompanionMod.DUAL_CRUSHER)) {
       place(helper, other);
       require(
@@ -1378,7 +1602,8 @@ public final class CompanionGameTests {
             == ItemInteractionResult.CONSUME,
         "Water bucket handled by the block");
     require(
-        player.getMainHandItem().is(Items.BUCKET) && machine.getTankFluid().getAmount() == 1_000,
+        player.getMainHandItem().is(Items.BUCKET)
+            && machine.fluids.getFluidInTank(0).getAmount() == 1_000,
         "Filling consumes the water and returns an empty bucket");
     player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.LAVA_BUCKET));
     require(
@@ -1387,24 +1612,26 @@ public final class CompanionGameTests {
         "Mixed bucket stops before vanilla can place lava");
     require(
         player.getMainHandItem().is(Items.LAVA_BUCKET)
-            && machine.getTankFluid().getFluid() == Fluids.WATER
-            && machine.getTankFluid().getAmount() == 1_000,
+            && machine.fluids.getFluidInTank(0).getFluid() == Fluids.WATER
+            && machine.fluids.getFluidInTank(0).getAmount() == 1_000,
         "Rejected transfer leaves the bucket and tank unchanged");
     player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BUCKET));
     state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit);
     require(
-        player.getMainHandItem().is(Items.WATER_BUCKET) && machine.getTankFluid().isEmpty(),
+        player.getMainHandItem().is(Items.WATER_BUCKET)
+            && machine.fluids.getFluidInTank(0).isEmpty(),
         "An empty bucket drains water");
     player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.LAVA_BUCKET));
     state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit);
     require(
         player.getMainHandItem().is(Items.BUCKET)
-            && machine.getTankFluid().getFluid() == Fluids.LAVA,
+            && machine.fluids.getFluidInTank(0).getFluid() == Fluids.LAVA,
         "Lava can be put in after draining water");
     player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BUCKET));
     state.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND, hit);
     require(
-        player.getMainHandItem().is(Items.LAVA_BUCKET) && machine.getTankFluid().isEmpty(),
+        player.getMainHandItem().is(Items.LAVA_BUCKET)
+            && machine.fluids.getFluidInTank(0).isEmpty(),
         "An empty bucket drains lava");
     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     helper.succeed();
@@ -1431,14 +1658,27 @@ public final class CompanionGameTests {
     menu.setCarried(new ItemStack(Items.WATER_BUCKET));
     menu.clickMenuButton(player, left);
     require(
-        menu.getCarried().is(Items.BUCKET) && machine.getTankFluid().getAmount() == 1_000,
+        menu.getCarried().is(Items.BUCKET) && machine.fluids.getFluidInTank(0).getAmount() == 1_000,
         "Clicking the gauge empties a cursor bucket and returns the empty container");
+    var component = menu.bound.screen().find("tank").orElseThrow();
+    var snapshot = component.snapshot(machine).orElseThrow();
+    ((FluidStack) snapshot.value()).shrink(500);
+    require(
+        machine.fluids.getFluidInTank(0).getAmount() == 1000
+            && ((Number) snapshot.maximum()).intValue() == 4000,
+        "Tank component supplies independent snapshots without machine getters");
+    var tooltip = component.tooltip(machine, new ItemStack(Items.WATER_BUCKET));
+    require(
+        tooltip.size() == 4
+            && tooltip.getLast().getStyle().getColor().getValue()
+                == net.minecraft.ChatFormatting.BLUE.getColor(),
+        "Handwritten tank uses the component tooltip without a machine callback");
     menu.setCarried(new ItemStack(Items.LAVA_BUCKET));
     menu.clickMenuButton(player, left);
     require(
         menu.getCarried().is(Items.LAVA_BUCKET)
-            && machine.getTankFluid().getFluid() == Fluids.WATER
-            && machine.getTankFluid().getAmount() == 1_000,
+            && machine.fluids.getFluidInTank(0).getFluid() == Fluids.WATER
+            && machine.fluids.getFluidInTank(0).getAmount() == 1_000,
         "Mixed cursor fluid leaves both sides untouched");
     menu.setCarried(new ItemStack(Items.BUCKET, 2));
     menu.clickMenuButton(player, right);
@@ -1447,7 +1687,7 @@ public final class CompanionGameTests {
         "A stacked cursor processes exactly one container");
     require(
         player.getInventory().countItem(Items.WATER_BUCKET) == 1
-            && machine.getTankFluid().isEmpty(),
+            && machine.fluids.getFluidInTank(0).isEmpty(),
         "The filled bucket goes to inventory without duplicating water");
 
     var container = new ItemStack(Items.GLASS_BOTTLE);
@@ -1458,7 +1698,7 @@ public final class CompanionGameTests {
     menu.setCarried(container);
     menu.clickMenuButton(player, left);
     require(
-        machine.getTankFluid().getAmount() == 4_000
+        machine.fluids.getFluidInTank(0).getAmount() == 4_000
             && FluidUtil.getFluidHandler(menu.getCarried())
                     .orElseThrow()
                     .getFluidInTank(0)
@@ -1468,7 +1708,7 @@ public final class CompanionGameTests {
     machine.fluids.drain(Integer.MAX_VALUE, FluidAction.EXECUTE);
     menu.clickMenuButton(player, left);
     require(
-        machine.getTankFluid().getAmount() == 1_000
+        machine.fluids.getFluidInTank(0).getAmount() == 1_000
             && FluidUtil.getFluidHandler(menu.getCarried())
                 .orElseThrow()
                 .getFluidInTank(0)
@@ -1476,7 +1716,7 @@ public final class CompanionGameTests {
         "The partial container can be completely emptied");
     menu.clickMenuButton(player, right);
     require(
-        machine.getTankFluid().isEmpty()
+        machine.fluids.getFluidInTank(0).isEmpty()
             && FluidUtil.getFluidHandler(menu.getCarried())
                     .orElseThrow()
                     .getFluidInTank(0)
@@ -1486,13 +1726,13 @@ public final class CompanionGameTests {
     menu.setCarried(new ItemStack(Items.IRON_INGOT));
     menu.clickMenuButton(player, left);
     require(
-        menu.getCarried().is(Items.IRON_INGOT) && machine.getTankFluid().isEmpty(),
+        menu.getCarried().is(Items.IRON_INGOT) && machine.fluids.getFluidInTank(0).isEmpty(),
         "Non-container items are unchanged");
     menu.setCarried(new ItemStack(Items.WATER_BUCKET));
     player.setPos(pos.getX() + 100, pos.getY(), pos.getZ());
     menu.clickMenuButton(player, left);
     require(
-        machine.getTankFluid().isEmpty() && menu.getCarried().is(Items.WATER_BUCKET),
+        machine.fluids.getFluidInTank(0).isEmpty() && menu.getCarried().is(Items.WATER_BUCKET),
         "A remote stale menu cannot transfer fluid");
     helper.getLevel().setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
     helper.succeed();
@@ -1502,6 +1742,128 @@ public final class CompanionGameTests {
     var pos = helper.absolutePos(CENTER);
     helper.getLevel().setBlock(pos, machine.block.get().defaultBlockState(), 3);
     return (ProcessorEntity) helper.getLevel().getBlockEntity(pos);
+  }
+
+  @GameTest(template = "empty")
+  public static void gaugeTargetsExactlyOneTankAndProtectsOutputSpace(GameTestHelper helper) {
+    var machine = place(helper, CompanionMod.LOGISTICS);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    player.getAbilities().instabuild = false;
+    var menu =
+        new MachineMenu(48, player.getInventory(), machine) {
+          @Override
+          public void broadcastChanges() {}
+        };
+    player.containerMenu = menu;
+    int input = menu.index(menu.bound.screen().find("tank_1").orElseThrow());
+    int output = menu.index(menu.bound.screen().find("tank_2").orElseThrow());
+    menu.setCarried(new ItemStack(Items.WATER_BUCKET));
+    menu.action(player, new ScreenNetwork.Action(48, input, 0, 0, 0, 0));
+    require(
+        machine.fluids.getFluidInTank(0).isEmpty()
+            && machine.fluids.getFluidInTank(1).getAmount() == 1000,
+        "Second gauge fills only second tank");
+    machine.fluids.setPlan(
+        1,
+        new zone.moddev.mc.lib.machine.inventory.TankPlan(
+            100, zone.moddev.mc.lib.machine.ingredient.FluidAmount.EMPTY));
+    menu.setCarried(new ItemStack(Items.GLASS_BOTTLE));
+    menu.action(player, new ScreenNetwork.Action(48, input, 0, 1, 0, 0));
+    require(
+        machine.fluids.getFluidInTank(1).getAmount() == 100
+            && FluidUtil.getFluidHandler(menu.getCarried())
+                    .orElseThrow()
+                    .getFluidInTank(0)
+                    .getAmount()
+                == 900,
+        "Partial container takes exactly the unreserved input fluid");
+    menu.action(player, new ScreenNetwork.Action(48, input, 0, 0, 0, 0));
+    machine.fluids.setPlan(1, zone.moddev.mc.lib.machine.inventory.TankPlan.NONE);
+    menu.setCarried(new ItemStack(Items.BUCKET));
+    menu.action(player, new ScreenNetwork.Action(48, input, 0, 1, 0, 0));
+    require(
+        menu.getCarried().is(Items.WATER_BUCKET) && machine.fluids.getFluidInTank(1).isEmpty(),
+        "Input tank can be drained manually");
+    menu.action(player, new ScreenNetwork.Action(48, output, 0, 0, 0, 0));
+    require(
+        machine.fluids.getFluidInTank(2).isEmpty() && menu.getCarried().is(Items.WATER_BUCKET),
+        "Output tank rejects player insertion");
+    machine.fluids.setPlan(
+        1,
+        new zone.moddev.mc.lib.machine.inventory.TankPlan(
+            0,
+            zone.moddev.mc.lib.machine.neoforge.FluidStacks.amount(
+                new FluidStack(Fluids.WATER, 3500))));
+    menu.action(player, new ScreenNetwork.Action(48, input, 0, 0, 0, 0));
+    require(
+        machine.fluids.getFluidInTank(1).isEmpty() && menu.getCarried().is(Items.WATER_BUCKET),
+        "Bucket cannot consume reserved capacity");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void ordinaryLabelUsesSharedInteractionAndMenuAuthorization(GameTestHelper helper)
+      throws Exception {
+    var machine = place(helper, CompanionMod.CRUSHER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var pos = machine.getBlockPos();
+    player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+    player.getAbilities().instabuild = false;
+    var saved = zone.moddev.mc.lib.gui.Screens.all();
+    var id = net.minecraft.resources.ResourceLocation.parse("mmdlib_companion:crusher");
+    String xml =
+        """
+        <screen xmlns="https://moddev.zone/mmdlib/screen" title="test.screen"
+                block-entity="zone.moddev.mc.companion.ProcessorEntity">
+          <label id="transfer" text="test.transfer" interaction="mmdlib:fluid-container" interaction-target="0"/>
+          <context id="context">
+            <view id="first"><label text="test.first"/></view>
+            <view id="second"><label id="hidden" text="test.hidden" interaction="mmdlib:fluid-container" interaction-target="0"/></view>
+          </context>
+        </screen>
+        """;
+    var screen =
+        zone.moddev.mc.lib.gui.load.ScreenReader.read(
+            id,
+            "interaction-test.xml",
+            new java.io.ByteArrayInputStream(
+                xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    var bound =
+        zone.moddev.mc.lib.gui.load.ScreenBinder.bind(
+            screen, CompanionGameTests.class.getClassLoader());
+    var changed = new java.util.HashMap<>(saved);
+    changed.put(id, bound);
+    try {
+      zone.moddev.mc.lib.gui.Screens.install(changed);
+      var menu =
+          new MachineMenu(49, player.getInventory(), machine) {
+            @Override
+            public void broadcastChanges() {}
+          };
+      player.containerMenu = menu;
+      int target = menu.index(screen.find("transfer").orElseThrow());
+      int hidden = menu.index(screen.find("hidden").orElseThrow());
+      menu.setCarried(new ItemStack(Items.WATER_BUCKET));
+      menu.action(player, new ScreenNetwork.Action(49, hidden, 0, 0, 0, 0));
+      menu.action(player, new ScreenNetwork.Action(50, target, 0, 0, 0, 0));
+      menu.action(player, new ScreenNetwork.Action(49, target, 0, 0, 0, 1));
+      require(
+          machine.fluids.getFluidInTank(0).isEmpty(),
+          "Hidden, wrong-menu and malformed clicks are rejected");
+      menu.action(player, new ScreenNetwork.Action(49, target, 0, 0, 1, 0));
+      require(
+          machine.fluids.getFluidInTank(0).getAmount() == 1000
+              && menu.getCarried().is(Items.BUCKET),
+          "Ordinary label runs shared interaction with modifiers");
+      player.containerMenu = player.inventoryMenu;
+      menu.action(player, new ScreenNetwork.Action(49, target, 0, 1, 0, 0));
+      require(machine.fluids.getFluidInTank(0).getAmount() == 1000, "Closed menu cannot transfer");
+    } finally {
+      zone.moddev.mc.lib.gui.Screens.install(saved);
+    }
+    helper.succeed();
   }
 
   private static void tick(ProcessorEntity machine, int ticks) {

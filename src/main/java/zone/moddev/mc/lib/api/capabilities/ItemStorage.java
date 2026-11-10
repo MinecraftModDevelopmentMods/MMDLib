@@ -28,7 +28,22 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * refuse placement, so players cannot put items into outputs. The machine fills outputs with {@link
  * #insertResult}.
  */
-public class ItemStorage extends PlannedItemHandler {
+public class ItemStorage extends PlannedItemHandler implements ItemStore {
+  @Override
+  public ItemStorage storage(int slot) {
+    checked(slot);
+    return this;
+  }
+
+  @Override
+  public int localSlot(int slot) {
+    return checked(slot);
+  }
+
+  public String slotId(int slot) {
+    return slotIds[checked(slot)];
+  }
+
   private final Role[] roles;
   private final int[] limits;
 

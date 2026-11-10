@@ -191,7 +191,15 @@ public final class MachineContent {
           type,
           (entity, side) ->
               entity.items.view(
-                  index -> entity.resources.automation().mode(ResourceType.ITEMS, index, side)));
+                  index ->
+                      entity
+                          .resources
+                          .automation()
+                          .mode(
+                              ResourceType.ITEMS,
+                              entity.items.address(index).inventory(),
+                              entity.items.address(index).slot(),
+                              side)));
       event.registerBlockEntity(
           Capabilities.FluidHandler.BLOCK,
           type,

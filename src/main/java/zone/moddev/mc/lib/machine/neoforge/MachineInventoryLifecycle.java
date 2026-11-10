@@ -55,7 +55,7 @@ public final class MachineInventoryLifecycle {
     this.power = power;
   }
 
-  public MachineInventoryLifecycle items(String saveKey, ItemStorage storage) {
+  public MachineInventoryLifecycle items(String saveKey, ItemStore storage) {
     return add(saveKey, storage);
   }
 
@@ -94,7 +94,7 @@ public final class MachineInventoryLifecycle {
   public void save(CompoundTag tag, HolderLookup.Provider registries) {
     storages.forEach(
         (key, storage) -> {
-          if (storage instanceof ItemStorage items) tag.put(key, items.serializeNBT(registries));
+          if (storage instanceof ItemStore items) tag.put(key, items.serializeNBT(registries));
           else if (storage instanceof FluidStorage fluids)
             tag.put(key, fluids.serializeNBT(registries));
           else tag.put(key, ((EnergyBuffer) storage).serializeNBT(registries));
@@ -115,7 +115,7 @@ public final class MachineInventoryLifecycle {
     features.reset();
     storages.forEach(
         (key, storage) -> {
-          if (storage instanceof ItemStorage items)
+          if (storage instanceof ItemStore items)
             items.deserializeNBT(registries, tag.getCompound(key), legacySlots.apply(key, tag));
           else if (storage instanceof FluidStorage fluids)
             fluids.deserializeNBT(registries, tag.getCompound(key), legacySlots.apply(key, tag));
@@ -141,7 +141,7 @@ public final class MachineInventoryLifecycle {
     features.reset();
     automation.clear();
     for (var storage : storages.values()) {
-      if (storage instanceof ItemStorage items) items.clear();
+      if (storage instanceof ItemStore items) items.clear();
       else if (storage instanceof FluidStorage fluids) fluids.clear();
       else ((EnergyBuffer) storage).setStored(0);
     }
@@ -161,7 +161,7 @@ public final class MachineInventoryLifecycle {
     automation.dropAll(recoverResources);
     features.reset();
     for (var storage : storages.values())
-      if (storage instanceof ItemStorage items)
+      if (storage instanceof ItemStore items)
         items.dropAll(level, owner.getBlockPos(), recoverResources);
   }
 }

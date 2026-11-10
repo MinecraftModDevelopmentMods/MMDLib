@@ -23,6 +23,7 @@ import zone.moddev.mc.companion.*;
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 @GameTestHolder(CompanionMod.ID)
 @PrefixGameTestTemplate(false)
@@ -164,8 +165,8 @@ public final class AutomationRecoveryTests {
     a.group(0).sides().set(RelativeFace.FRONT, IoMode.DISABLED);
     require(
         a.viewRevision() > revision
-            && a.mode(ResourceType.ITEMS, 0, Direction.NORTH) == IoMode.DISABLED
-            && a.mode(ResourceType.ITEMS, 1, Direction.NORTH) == IoMode.OUTPUT,
+            && a.mode(ResourceType.ITEMS, "input", 0, Direction.NORTH) == IoMode.DISABLED
+            && a.mode(ResourceType.ITEMS, "output", 0, Direction.NORTH) == IoMode.OUTPUT,
         "Indexed membership preserves independent modes and notifies menu revision");
     h.succeed();
   }
@@ -406,11 +407,21 @@ public final class AutomationRecoveryTests {
     field.setAccessible(true);
     var original = machine.items;
     try {
-      field.set(machine, new ItemStorage(5));
+      field.set(
+          machine,
+          zone.moddev.mc.lib.api.capabilities.ItemInventories.partition(
+              java.util.List.of("input", "output", "output", "hidden", "hidden")));
       var player = h.makeMockServerPlayerInLevel();
       var menu = new MachineMenu(91, player.getInventory(), machine);
+      menu.components().snapshot();
       require(
-          menu.automation.slotStart() == 3 && menu.reservationSnapshot().size() == 3,
+          menu.components().get(BuiltinMenuComponents.AUTOMATION).slotStart() == 3
+              && menu.components()
+                  .state(
+                      menu.components().require(BuiltinMenuComponents.RESERVATIONS),
+                      zone.moddev.mc.lib.gui.runtime.slot.ReservationMenuComponent.PLANS)
+                  .keySet()
+                  .equals(java.util.Set.of(0, 1, 2)),
           "Reservation snapshot includes only displayed base slots, not hidden underlying slots or"
               + " addon indices");
     } finally {

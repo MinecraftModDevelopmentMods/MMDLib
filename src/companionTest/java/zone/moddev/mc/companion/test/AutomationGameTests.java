@@ -12,6 +12,7 @@ import zone.moddev.mc.companion.*;
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.gui.runtime.*;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 @GameTestHolder(CompanionMod.ID)
 @PrefixGameTestTemplate(false)
@@ -41,12 +42,17 @@ public final class AutomationGameTests {
         machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ());
     var menu = new MachineMenu(72, player.getInventory(), machine);
     player.containerMenu = menu;
-    menu.automation.action(
-        player,
-        new AutomationNetwork.Action(
-            72, menu.widgetSession(), 1, "select", 0, -1, 0, 0, "", 0, ""));
+    menu.components()
+        .get(BuiltinMenuComponents.AUTOMATION)
+        .action(
+            player,
+            new AutomationNetwork.Action(
+                72, menu.widgetSession(), 1, "select", 0, -1, 0, 0, "", 0, ""));
     menu.clicked(
-        menu.automation.slotStart(), 0, net.minecraft.world.inventory.ClickType.PICKUP, player);
+        menu.components().get(BuiltinMenuComponents.AUTOMATION).slotStart(),
+        0,
+        net.minecraft.world.inventory.ClickType.PICKUP,
+        player);
     require(
         player.getInventory().countItem(CompanionAddons.ITEM_FILTER.get()) == 1,
         "Only the filter detached by this player's click goes to that player");
@@ -323,7 +329,7 @@ public final class AutomationGameTests {
         machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ());
     var menu = new MachineMenu(71, player.getInventory(), machine);
     player.containerMenu = menu;
-    var a = menu.automation;
+    var a = menu.components().get(BuiltinMenuComponents.AUTOMATION);
     a.action(
         player,
         new AutomationNetwork.Action(

@@ -21,6 +21,7 @@ public final class ResourceGroup<T> {
   private final List<String> highlights;
   private final SideConfig sides;
   private final String definitionKey;
+  private String inventory = "";
   private Function<Direction, T> port;
   private Supplier<Direction> facing = () -> Direction.NORTH;
 
@@ -58,6 +59,20 @@ public final class ResourceGroup<T> {
 
   public String id() {
     return id;
+  }
+
+  /** Identity of the backing inventory; member indexes are local to this inventory. */
+  public String inventory() {
+    return inventory;
+  }
+
+  public ResourceGroup<T> inventory(String name) {
+    if (port != null)
+      throw new IllegalStateException("Inventory identity must be set before binding");
+    if (name == null || !name.matches("[a-z0-9_.-]{1,64}"))
+      throw new IllegalArgumentException("Invalid inventory identity");
+    inventory = name;
+    return this;
   }
 
   public String definitionKey() {

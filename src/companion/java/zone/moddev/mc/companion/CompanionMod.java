@@ -21,14 +21,12 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import zone.moddev.mc.lib.api.MaterialEventTypes;
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.api.capabilities.MachineCapabilities;
-import zone.moddev.mc.lib.gui.runtime.ScreenClick;
 import zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine;
 import zone.moddev.mc.lib.machine.neoforge.MachineRecipeTypes;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
@@ -87,12 +85,6 @@ public final class CompanionMod {
     SERIALIZERS.register(bus);
     TABS.register(bus);
     bus.addListener(CompanionMod::capabilities);
-    MaterialExtensions.GLOBAL
-        .events()
-        .registerCallback(
-            id("tank_container"),
-            MaterialEventTypes.GUI_CLICK,
-            CompanionMod::transferTankContainer);
     // The custom progress dial remains clickable; processor buttons have a library-owned action.
     MaterialExtensions.GLOBAL
         .events()
@@ -102,32 +94,6 @@ public final class CompanionMod {
             click -> {
               if (click.menu().blockEntity instanceof ProcessorEntity machine) machine.toggle(0);
             });
-  }
-
-  private static void transferTankContainer(ScreenClick click) {
-    if (!(click.menu().blockEntity instanceof ProcessorEntity machine) || !machine.hasTank())
-      return;
-    var carried = click.menu().getCarried();
-    if (carried.isEmpty() || FluidUtil.getFluidHandler(carried).isEmpty()) return;
-    var inventory = click.player().getCapability(Capabilities.ItemHandler.ENTITY);
-    if (inventory == null) return;
-    // Work on the server's cursor stack. NeoForge handles partial containers and stacked results.
-    var result =
-        FluidUtil.tryEmptyContainerAndStow(
-            carried, machine.fluids, inventory, Integer.MAX_VALUE, click.player(), true);
-    if (!result.isSuccess())
-      result =
-          FluidUtil.tryFillContainerAndStow(
-              carried, machine.fluids, inventory, Integer.MAX_VALUE, click.player(), true);
-    if (result.isSuccess()) {
-      click.menu().setCarried(result.getResult());
-      click.menu().broadcastChanges();
-    } else {
-      click
-          .player()
-          .displayClientMessage(
-              Component.translatable("screen.mmdlib_companion.tank.refused"), true);
-    }
   }
 
   private static void capabilities(RegisterCapabilitiesEvent event) {
@@ -152,7 +118,10 @@ public final class CompanionMod {
             return p.items.view(
                 slot ->
                     p.automation.mode(
-                        zone.moddev.mc.lib.api.automation.ResourceType.ITEMS, slot, side));
+                        zone.moddev.mc.lib.api.automation.ResourceType.ITEMS,
+                        p.items.address(slot).inventory(),
+                        p.items.address(slot).slot(),
+                        side));
           });
       event.registerBlockEntity(
           Capabilities.FluidHandler.BLOCK,

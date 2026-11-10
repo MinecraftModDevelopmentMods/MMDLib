@@ -21,7 +21,24 @@ import zone.moddev.mc.lib.gui.load.ScreenBinder;
 import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
 import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.Orientation;
 import zone.moddev.mc.lib.gui.model.Screen;
+import zone.moddev.mc.lib.gui.model.containers.BoxElement;
+import zone.moddev.mc.lib.gui.model.containers.ContextElement;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
+import zone.moddev.mc.lib.gui.model.elements.ButtonElement;
+import zone.moddev.mc.lib.gui.model.elements.CheckboxElement;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
+import zone.moddev.mc.lib.gui.model.elements.EnergyGaugeElement;
+import zone.moddev.mc.lib.gui.model.elements.GaugeElement;
+import zone.moddev.mc.lib.gui.model.elements.LabelElement;
+import zone.moddev.mc.lib.gui.model.elements.MeterElement;
+import zone.moddev.mc.lib.gui.model.elements.PopoutElement;
+import zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement;
+import zone.moddev.mc.lib.gui.model.elements.ProgressElement;
+import zone.moddev.mc.lib.gui.model.elements.SlotElement;
+import zone.moddev.mc.lib.gui.value.ValueTypeRegistry;
+import zone.moddev.mc.lib.gui.value.ValueTypes;
 
 public final class ScreenLoaderTest {
   /** Stands in for a mod's machine; only its getters matter here. */
@@ -148,29 +165,27 @@ public final class ScreenLoaderTest {
     var screen = bound.screen();
     require(screen.playerInventory());
     require(screen.body().size() == 1 && screen.tabs().size() == 2);
-    var water = (Element.Gauge) screen.find("water").orElseThrow();
-    require(bound.values().get(water).kind() == BoundValue.Kind.FLUID);
+    var water = (GaugeElement) screen.find("water").orElseThrow();
+    require(bound.values().get(water).kind() == ValueTypes.FLUID);
     var meter =
-        screen.elements().stream()
-            .filter(Element.Meter.class::isInstance)
-            .findFirst()
-            .orElseThrow();
-    require(bound.values().get(meter).kind() == BoundValue.Kind.WHOLE);
-    require(bound.maxima().get(meter).kind() == BoundValue.Kind.DECIMAL);
+        screen.elements().stream().filter(MeterElement.class::isInstance).findFirst().orElseThrow();
+    require(bound.values().get(meter).kind() == ValueTypes.WHOLE);
+    require(bound.maxima().get(meter).kind() == ValueTypes.DECIMAL);
     var energy = screen.find("energy").orElseThrow();
-    require(((Element.Gauge) energy).color().orElseThrow() == 0xFFC0392B);
-    var context = (Element.Context) screen.find("main").orElseThrow();
+    require(((GaugeElement) energy).color().orElseThrow() == 0xFFC0392B);
+    var context = (ContextElement) screen.find("main").orElseThrow();
     require(context.defaultView().common().id().orElseThrow().equals("machine"));
     var label =
-        screen.elements().stream()
-            .filter(Element.Label.class::isInstance)
-            .findFirst()
-            .orElseThrow();
+        screen.elements().stream().filter(LabelElement.class::isInstance).findFirst().orElseThrow();
     require(bound.values().get(label).read(null).equals(300));
-    var popout = (Element.Popout) screen.tabs().get(1);
+    var popout = (PopoutElement) screen.tabs().get(1);
     require(popout.iconOrDefault().toString().equals("mmdlib:icon_info"));
     require(popout.text().orElseThrow().fallback().orElseThrow().equals("How the press works"));
-    require(screen.elements().stream().filter(Element.Slot.class::isInstance).count() == 5);
+    require(
+        screen.elements().stream()
+                .filter(e -> e instanceof SlotElement slot && !slot.playerInventory())
+                .count()
+            == 5);
     require(BoundValue.whole(7L).equals(BigInteger.valueOf(7)));
 
     checkLayout(screen);
@@ -235,7 +250,7 @@ public final class ScreenLoaderTest {
                 + "<vbox padding=\"0.5s\" spacing=\"1.25s\"><label text=\"a\""
                 + " offset-x=\"-1s\"/></vbox></screen>")
             .screen();
-    var unitBox = (Element.Box) units.body().getFirst();
+    var unitBox = (BoxElement) units.body().getFirst();
     require(unitBox.padding() == 9 && unitBox.spacing() == 23);
     require(unitBox.children().getFirst().common().offsetX() == -18);
     // Getter binding.
@@ -256,33 +271,28 @@ public final class ScreenLoaderTest {
   }
 
   @Test
-  void energyGaugeBindsDefaultsAndAllowsOverrides() throws Exception {
-    var defaults = bind(HEAD + "<energy-gauge id=\"energy\"/></screen>");
-    var gauge = (Element.EnergyGauge) defaults.screen().find("energy").orElseThrow();
-    require(defaults.values().get(gauge).kind() == BoundValue.Kind.WHOLE);
-    require(defaults.maxima().get(gauge).kind() == BoundValue.Kind.WHOLE);
-    require(gauge.orientation() == Element.Orientation.VERTICAL && gauge.length() == 54);
+  void energyGaugeOwnsValuesAndAllowsPresentationOverrides() throws Exception {
+    String host = HEAD.replace(Press.class.getName(), ElementInteractionTest.Host.class.getName());
+    var defaults = bind(host + "<energy-gauge id=\"energy\"/></screen>");
+    var gauge = (EnergyGaugeElement) defaults.screen().find("energy").orElseThrow();
+    require(defaults.values().isEmpty() && defaults.maxima().isEmpty());
+    require(gauge.common().value().isEmpty() && gauge.common().max().isEmpty());
+    require(gauge.orientation() == Orientation.VERTICAL && gauge.length() == 54);
     require(gauge.color() == 0xFFE64B38);
     require(
-        gauge
-            .common()
-            .tooltip()
-            .orElseThrow()
-            .fallback()
-            .orElseThrow()
-            .equals("{value} / {max} FE"));
+        gauge.tooltipText().orElseThrow().fallback().orElseThrow().equals("{value} / {max} FE"));
 
     var custom =
         bind(
-            HEAD
+            host
                 + """
                 <vbox>
                   <energy-gauge id="reserve" orientation="horizontal" length="fill" color="#123456"
-                                value="#getThroughput" max="#getMaxThroughput" tooltip="example.reserve"/>
+                                tooltip="example.reserve"/>
                 </vbox></screen>
                 """);
-    var reserve = (Element.EnergyGauge) custom.screen().find("reserve").orElseThrow();
-    require(custom.maxima().get(reserve).kind() == BoundValue.Kind.DECIMAL);
+    var reserve = (EnergyGaugeElement) custom.screen().find("reserve").orElseThrow();
+    require(custom.maxima().isEmpty());
     require(reserve.color() == 0xFF123456);
     require(reserve.common().tooltip().orElseThrow().key().equals("example.reserve"));
     require(reserve.common().tooltip().orElseThrow().fallback().isEmpty());
@@ -291,6 +301,8 @@ public final class ScreenLoaderTest {
     require(layout.bounds(reserve).height() == Element.SLOT);
 
     fails("energy getter missing", HEAD + "<energy-gauge value=\"#getMissing\"/></screen>");
+    fails("energy requires a host", HEAD + "<energy-gauge/></screen>");
+    fails("energy owns its maximum", host + "<energy-gauge max=\"#getEnergyCapacity\"/></screen>");
     fails("energy must be numeric", HEAD + "<energy-gauge value=\"#getWaterTank\"/></screen>");
     fails("energy gauge too short", HEAD + "<energy-gauge length=\"7\"/></screen>");
     fails("energy fill direction", HEAD + "<vbox><energy-gauge length=\"fill\"/></vbox></screen>");
@@ -306,7 +318,7 @@ public final class ScreenLoaderTest {
                 </screen>
                 """)
             .screen();
-    var button = (Element.Button) screen.find("mode").orElseThrow();
+    var button = (ButtonElement) screen.find("mode").orElseThrow();
     require(button.iconFor(BigInteger.ONE).orElseThrow().getPath().equals("on"));
     require(button.iconFor(Boolean.FALSE).orElseThrow().getPath().equals("off"));
     require(button.labelFor(Boolean.TRUE).orElseThrow().key().equals("screen.test.on"));
@@ -340,17 +352,18 @@ public final class ScreenLoaderTest {
           layout.bounds(
               screen.find(name.equals("dual_crusher") ? "toggle_1" : "toggle_0").orElseThrow());
       require(controls.y() > layout.bounds(screen.find("energy").orElseThrow()).bottom());
-      var inventory = layout.inventory().orElseThrow();
-      require(controls.y() == ScreenLayout.playerSlot(inventory, 39).y());
-      require(controls.bottom() + ScreenLayout.GAP == ScreenLayout.playerSlot(inventory, 9).y());
-      require(pause.right() == ScreenLayout.playerSlot(inventory, 17).right());
-      var colours = layout.inventoryColors().orElseThrow();
-      require(colours.x() == layout.inventory().orElseThrow().x());
+      var inventory = layout.region(PlayerInventoryElement.INVENTORY).orElseThrow();
+      require(controls.y() == PlayerInventoryElement.slot(inventory, 39).y());
+      require(
+          controls.bottom() + ScreenLayout.GAP == PlayerInventoryElement.slot(inventory, 9).y());
+      require(pause.right() == PlayerInventoryElement.slot(inventory, 17).right());
+      var colours = layout.region(PlayerInventoryElement.TOOLBAR).orElseThrow();
+      require(colours.x() == layout.region(PlayerInventoryElement.INVENTORY).orElseThrow().x());
       require(colours.y() == firstPause.y() && colours.height() == firstPause.height());
       require(colours.right() + ScreenLayout.GAP == firstPause.x());
       require(firstPause.y() == pause.y());
       require(pause.width() == 14 && pause.height() == 14);
-      require(((Element.Button) screen.find("toggle_0").orElseThrow()).flat());
+      require(((ProcessorButtonElement) screen.find("toggle_0").orElseThrow()).flat());
       if (!name.equals("dual_crusher"))
         require(
             screen
@@ -365,28 +378,26 @@ public final class ScreenLoaderTest {
     for (var name :
         java.util.List.of("crusher", "transmuter", "dual_crusher", "creative_power", "logistics")) {
       var screen = screens.get(ResourceLocation.parse("mmdlib_companion:" + name));
-      var info = (Element.Popout) screen.find("info").orElseThrow();
+      var info = (PopoutElement) screen.find("info").orElseThrow();
       require(screen.source(info.common()).endsWith("base_machine.xml"));
       require(info.text().orElseThrow().key().equals("mmdlib_companion:" + name + ".info"));
       if (name.equals("creative_power") || name.equals("logistics"))
-        require(
-            screen.elements().stream()
-                .noneMatch(e -> e instanceof Element.Button button && button.processorControl()));
+        require(screen.elements().stream().noneMatch(e -> e instanceof ProcessorButtonElement));
       require(screen.playerInventory() != name.equals("creative_power"));
       var layout = ScreenLayout.of(screen, text -> text.fallback().orElse(text.key()).length() * 6);
       var energy = screen.find("energy").orElseThrow();
-      require(energy instanceof Element.EnergyGauge);
+      require(energy instanceof EnergyGaugeElement);
       var bounds = layout.bounds(energy);
       require(bounds.right() == layout.panel().width() - 7);
       require(bounds.height() == 54 && bounds.width() == 18);
       for (var element : screen.elements()) {
         if (screen.find("settings").filter(view -> containsElement(view, element)).isPresent())
           continue;
-        if (element instanceof Element.Slot
-            || element instanceof Element.Progress
-            || element instanceof Element.Custom
-            || element instanceof Element.Checkbox
-            || element instanceof Element.Label) {
+        if (element instanceof SlotElement
+            || element instanceof ProgressElement
+            || element instanceof CustomElement
+            || element instanceof CheckboxElement
+            || element instanceof LabelElement) {
           var other = layout.bounds(element);
           require(
               other.right() <= bounds.x()
@@ -405,7 +416,7 @@ public final class ScreenLoaderTest {
     var energy = layout.bounds(screen.find("energy").orElseThrow());
     var tank = layout.bounds(screen.find("tank").orElseThrow());
     var arrow = layout.bounds(screen.find("progress").orElseThrow());
-    var slots = screen.elements().stream().filter(Element.Slot.class::isInstance).toList();
+    var slots = screen.elements().stream().filter(SlotElement.class::isInstance).toList();
     var input = layout.bounds(slots.get(0));
     var output = layout.bounds(slots.get(1));
     require(tank.x() == 7 && tank.right() < input.x());
@@ -414,7 +425,7 @@ public final class ScreenLoaderTest {
     require(input.y() + input.height() / 2 == energy.y() + energy.height() / 2);
     require(output.y() == input.y());
     require(energy.right() == layout.panel().width() - 7);
-    require(energy.bottom() < layout.inventory().orElseThrow().y());
+    require(energy.bottom() < layout.region(PlayerInventoryElement.INVENTORY).orElseThrow().y());
   }
 
   @Test
@@ -430,12 +441,14 @@ public final class ScreenLoaderTest {
     org.junit.jupiter.api.Assertions.assertTrue(growth > 0, name);
     require(expanded.bounds(context).height() - compact.bounds(context).height() == growth);
     require(
-        expanded.inventory().orElseThrow().y() - compact.inventory().orElseThrow().y() == growth);
+        expanded.region(PlayerInventoryElement.INVENTORY).orElseThrow().y()
+                - compact.region(PlayerInventoryElement.INVENTORY).orElseThrow().y()
+            == growth);
     require(compact.panel().equals(collapsed.panel()));
     for (var element : screen.elements())
       require(compact.bounds(element).equals(collapsed.bounds(element)));
     for (var layout : java.util.List.of(compact, expanded)) {
-      var inventory = layout.inventory().orElseThrow();
+      var inventory = layout.region(PlayerInventoryElement.INVENTORY).orElseThrow();
       require(inventory.bottom() == layout.panel().bottom() - ScreenLayout.PANEL_MARGIN);
       require(layout.bounds(screen.find("inventory_controls").orElseThrow()).y() == inventory.y());
     }
@@ -461,10 +474,10 @@ public final class ScreenLoaderTest {
     for (var type : java.util.List.of("name_editor", "reserve_slider", "lane_selector"))
       types.register(
           ResourceLocation.parse("mmdlib_companion:" + type),
-          new WidgetType(java.util.Set.of(BoundValue.Kind.values()), widget -> {}));
+          new WidgetType(ValueTypeRegistry.GLOBAL.bindingTypes(), widget -> {}));
     types.register(
         ResourceLocation.parse("mmdlib_companion:progress_dial"),
-        new WidgetType(java.util.Set.of(BoundValue.Kind.WHOLE), widget -> {}));
+        new WidgetType(java.util.Set.of(ValueTypes.WHOLE), widget -> {}));
     return types;
   }
 
@@ -477,20 +490,17 @@ public final class ScreenLoaderTest {
     // Six pixels per character stands in for the font.
     var layout = ScreenLayout.of(screen, text -> text.key().length() * 6);
     var panel = layout.panel();
-    require(panel.width() >= ScreenLayout.INVENTORY_WIDTH + 14);
-    var inventory = layout.inventory().orElseThrow();
+    require(panel.width() >= PlayerInventoryElement.WIDTH + 14);
+    var inventory = layout.region(PlayerInventoryElement.INVENTORY).orElseThrow();
     require(
-        inventory.x() == (panel.width() - ScreenLayout.INVENTORY_WIDTH) / 2
+        inventory.x() == (panel.width() - PlayerInventoryElement.WIDTH) / 2
             && inventory.bottom() == panel.height() - 7);
     // A spacer pushes the rest of the bottom row against the root vbox's 7 px padding.
     var label =
-        screen.elements().stream()
-            .filter(Element.Label.class::isInstance)
-            .findFirst()
-            .orElseThrow();
+        screen.elements().stream().filter(LabelElement.class::isInstance).findFirst().orElseThrow();
     require(layout.bounds(label).right() == panel.width() - 7);
     // The context measures its default view; hidden views retain independent bounds.
-    var context = (Element.Context) screen.find("main").orElseThrow();
+    var context = (ContextElement) screen.find("main").orElseThrow();
     var machine = layout.bounds(context.views().get(0));
     var sides = layout.bounds(context.views().get(1));
     require(machine.equals(layout.bounds(context)));
@@ -500,23 +510,26 @@ public final class ScreenLoaderTest {
     require(tab.x() == panel.width() - 4);
     var upgrade =
         screen.elements().stream()
-            .filter(e -> e instanceof Element.Slot slot && slot.index() == 3)
+            .filter(e -> e instanceof SlotElement slot && slot.index() == 3)
             .findFirst()
             .orElseThrow();
     require(layout.bounds(upgrade).x() == panel.width() + 4);
-    require(ScreenLayout.itemPosition(layout.bounds(upgrade))[0] == panel.width() + 5);
+    require(
+        ((zone.moddev.mc.lib.gui.model.elements.SlotElement) upgrade)
+                .itemPosition(layout.bounds(upgrade))[0]
+            == panel.width() + 5);
     var large =
         screen.elements().stream()
-            .filter(e -> e instanceof Element.Slot slot && slot.index() == 1)
+            .filter(e -> e instanceof SlotElement slot && slot.index() == 1)
             .findFirst()
             .orElseThrow();
     require(layout.bounds(large).width() == 26);
     // Slot units: 3.5 slots is 63 px. A fill gauge is as tall as its row.
     var water = screen.find("water").orElseThrow();
-    require(((Element.Gauge) water).length() == 63 && layout.bounds(water).height() == 63);
+    require(((GaugeElement) water).length() == 63 && layout.bounds(water).height() == 63);
     var energy = screen.find("energy").orElseThrow();
-    require(((Element.Gauge) energy).fills());
-    var row = (Element.Box) context.views().get(0).children().getFirst();
+    require(((GaugeElement) energy).fills());
+    var row = (BoxElement) context.views().get(0).children().getFirst();
     require(layout.bounds(energy).height() == layout.bounds(row).height());
     // The info pop-out defaults to the left edge, outside the panel.
     require(layout.bounds(screen.tabs().get(1)).right() == 0);

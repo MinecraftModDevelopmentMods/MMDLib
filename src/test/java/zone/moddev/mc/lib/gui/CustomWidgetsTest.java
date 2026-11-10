@@ -14,12 +14,13 @@ import org.junit.jupiter.api.Test;
 import zone.moddev.mc.lib.gui.client.WidgetRenderers;
 import zone.moddev.mc.lib.gui.layout.ScreenLayout;
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
-import zone.moddev.mc.lib.gui.load.BoundValue.Kind;
 import zone.moddev.mc.lib.gui.load.ScreenBinder;
 import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
-import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Screen;
+import zone.moddev.mc.lib.gui.model.elements.CustomElement;
+import zone.moddev.mc.lib.gui.value.ValueType;
+import zone.moddev.mc.lib.gui.value.ValueTypes;
 
 class CustomWidgetsTest {
   private static final ResourceLocation ID = ResourceLocation.parse("example:dial");
@@ -34,7 +35,7 @@ class CustomWidgetsTest {
     types.register(
         ID,
         new WidgetType(
-            Set.of(Kind.WHOLE),
+            Set.of(ValueTypes.WHOLE),
             widget -> {
               if (!Set.of("color", "style").containsAll(widget.properties().keySet()))
                 throw new IllegalArgumentException("Unsupported dial property");
@@ -75,10 +76,10 @@ class CustomWidgetsTest {
                         + " tooltip=\"screen.example.tip\"",
                     "<property name=\"color\" value=\"#ABCDEF\"/>")
                 + "<slot index=\"0\"/></hbox>");
-    var custom = (Element.Custom) screen.find("dial").orElseThrow();
+    var custom = (CustomElement) screen.find("dial").orElseThrow();
     var bound = ScreenBinder.bind(screen, getClass().getClassLoader(), types);
-    assertEquals(Kind.WHOLE, bound.values().get(custom).kind());
-    assertEquals(Kind.WHOLE, bound.maxima().get(custom).kind());
+    assertEquals(ValueTypes.WHOLE, bound.values().get(custom).kind());
+    assertEquals(ValueTypes.WHOLE, bound.maxima().get(custom).kind());
     assertEquals(Map.of("color", "#ABCDEF"), custom.properties());
     assertThrows(
         UnsupportedOperationException.class, () -> custom.properties().put("color", "red"));
@@ -152,7 +153,7 @@ class CustomWidgetsTest {
       types.register(
           ID,
           new WidgetType(
-              Set.of(Kind.WHOLE),
+              Set.of(ValueTypes.WHOLE),
               widget -> {
                 throw failure;
               }));
@@ -165,18 +166,18 @@ class CustomWidgetsTest {
 
   @Test
   void customKindErrorsDescribeOnlyTheAcceptedKinds() throws Exception {
-    var cases =
+    Map<Set<ValueType<?>>, String> cases =
         Map.of(
-            Set.of(Kind.FLUID), "a FluidStack",
-            Set.of(Kind.TEXT), "a Component",
-            Set.of(Kind.TEXT_LIST), "a collection of Components",
-            Set.of(Kind.BOOLEAN, Kind.TEXT), "a boolean or a Component",
-            Set.of(Kind.WHOLE, Kind.FLUID), "a whole number or a FluidStack",
-            Set.of(Kind.DECIMAL), "a decimal number");
+            Set.of(ValueTypes.FLUID), "a FluidStack",
+            Set.of(ValueTypes.TEXT), "a Component",
+            Set.of(ValueTypes.TEXT_LIST), "a collection of Components",
+            Set.of(ValueTypes.BOOLEAN, ValueTypes.TEXT), "a boolean or a Component",
+            Set.of(ValueTypes.WHOLE, ValueTypes.FLUID), "a FluidStack or a whole number",
+            Set.of(ValueTypes.DECIMAL), "a decimal number");
     for (var entry : cases.entrySet()) {
       var types = new WidgetTypes();
       types.register(ID, new WidgetType(entry.getKey(), widget -> {}));
-      var getter = entry.getKey().contains(Kind.BOOLEAN) ? "#getProgress" : "#isAutoEject";
+      var getter = entry.getKey().contains(ValueTypes.BOOLEAN) ? "#getProgress" : "#isAutoEject";
       var screen = read(types, widget("value=\"" + getter + "\"", ""));
       var error =
           assertThrows(
@@ -236,10 +237,12 @@ class CustomWidgetsTest {
     var types = registry();
     var screen = read(types, widget(VALUES, ""));
     var renderers = new WidgetRenderers();
-    var error = assertThrows(ScreenException.class, () -> renderers.validate(screen));
+    var elements = zone.moddev.mc.lib.gui.client.ElementRenderers.builtins();
+    elements.replace(CustomElement.class, renderers.elementRenderer());
+    var error = assertThrows(ScreenException.class, () -> elements.validate(screen));
     assertTrue(error.getMessage().contains("custom.xml:3: Missing widget renderer: example:dial"));
     renderers.register(ID, context -> {});
-    assertDoesNotThrow(() -> renderers.validate(screen));
+    assertDoesNotThrow(() -> elements.validate(screen));
     assertThrows(IllegalArgumentException.class, () -> renderers.freeze(new WidgetTypes()));
   }
 }

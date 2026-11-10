@@ -11,8 +11,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
-import net.neoforged.neoforge.fluids.FluidStack;
-
 import zone.moddev.mc.lib.api.automation.*;
 import zone.moddev.mc.lib.api.capabilities.*;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
@@ -23,7 +21,7 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 /** Shared runtime assembled from XML. There is no per-machine Java subclass. */
 public final class DefinedMachineEntity extends BaseMachine {
   public final MachineDefinition definition;
-  public final ItemStorage items;
+  public final ItemInventories items;
   public final FluidStorage fluids;
   public final EnergyBuffer energy;
   public final MachineResources resources;
@@ -59,7 +57,7 @@ public final class DefinedMachineEntity extends BaseMachine {
                         || BuiltInRegistries.FLUID.getKey(stack.getFluid()).equals(filter));
         fluids.tankId(index, tank.id());
       }
-    items = new ItemStorage(definition.slots().size()).onChange(this::setChanged);
+    items = ItemInventories.partition(definition.inventoryNames()).onChange(this::setChanged);
     for (int i = 0; i < definition.slots().size(); i++) {
       var slot = definition.slots().get(i);
       items.slotId(i, slot.id()).role(slot.role(), i).limit(slot.limit(), i);
@@ -74,10 +72,10 @@ public final class DefinedMachineEntity extends BaseMachine {
               group.color(),
               ResourceType.ITEMS,
               group.mode(),
-              group.members(),
+              group.members().stream().map(definition.inventorySlots(group.id())::indexOf).toList(),
               highlights.get(group.id()),
               new SideConfig(group.mode())),
-          items);
+          items.inventory(group.id()));
     }
     if (energy != null)
       resources.energy(
@@ -125,60 +123,9 @@ public final class DefinedMachineEntity extends BaseMachine {
     return energy;
   }
 
-  public FluidStack getTankFluid(int index) {
-    return fluids.getFluidInTank(index).copy();
-  }
-
-  public int getTankCapacity(int index) {
-    return fluids.getTankCapacity(index);
-  }
-
   @Override
-  public List<Component> screenTankTooltip(
-      zone.moddev.mc.lib.gui.model.Element element, net.minecraft.world.item.ItemStack carried) {
-    if (!(element instanceof zone.moddev.mc.lib.gui.model.Element.Gauge)
-        || !(element.common().value().orElse(null)
-            instanceof zone.moddev.mc.lib.gui.model.ValueRef.Indexed getter)
-        || !getter.method().equals("getTankFluid")
-        || definition.fluids() == null) return List.of();
-    int index = getter.index();
-    if (index < 0 || index >= fluids.getTanks()) return List.of();
-    var group =
-        definition.fluids().groups().stream()
-            .filter(g -> g.members().contains(index))
-            .findFirst()
-            .orElseThrow();
-    var tank = definition.fluids().tanks().get(index);
-    var name =
-        resources.automation().groups().stream()
-            .filter(g -> g.id().equals(group.id()))
-            .findFirst()
-            .orElseThrow()
-            .name();
-    java.util.function.Predicate<FluidStack> accepts =
-        stack ->
-            tank.role().canInsert()
-                && group.mode().canInsert()
-                && fluids.isFluidValid(index, stack);
-    var candidates =
-        tank.fluid() == null
-            ? BuiltInRegistries.FLUID.stream()
-            : java.util.stream.Stream.of(BuiltInRegistries.FLUID.get(tank.fluid()));
-    var accepted =
-        candidates
-            .filter(
-                fluid ->
-                    fluid != net.minecraft.world.level.material.Fluids.EMPTY
-                        && fluid.isSource(fluid.defaultFluidState()))
-            .filter(
-                fluid ->
-                    tank.fluid() == null
-                        || BuiltInRegistries.FLUID.getKey(fluid).equals(tank.fluid()))
-            .map(fluid -> new FluidStack(fluid, 1))
-            .filter(accepts)
-            .map(FluidStack::getHoverName)
-            .toList();
-    return FluidTankTooltip.lines(name, fluids.getFluidInTank(index), accepted, carried, accepts);
+  public FluidStorage screenFluids() {
+    return fluids;
   }
 
   @Override
@@ -187,7 +134,7 @@ public final class DefinedMachineEntity extends BaseMachine {
   }
 
   @Override
-  public ItemStorage screenItems() {
+  public ItemInventories screenItems() {
     return items;
   }
 

@@ -12,6 +12,18 @@ public final class SideDrawerLayout {
 
   private SideDrawerLayout() {}
 
+  public static int bodyX(zone.moddev.mc.lib.gui.model.Edge edge, Rect tab, int width) {
+    return edge == zone.moddev.mc.lib.gui.model.Edge.LEFT ? tab.x() - width : tab.right();
+  }
+
+  public static int room(zone.moddev.mc.lib.gui.model.Edge edge, Rect tab, int screenWidth) {
+    return Math.max(
+        0,
+        edge == zone.moddev.mc.lib.gui.model.Edge.LEFT
+            ? tab.x() - MARGIN
+            : screenWidth - tab.right() - MARGIN);
+  }
+
   public static int top(Rect panel) {
     return Math.max(MARGIN, panel.y() + MARGIN);
   }

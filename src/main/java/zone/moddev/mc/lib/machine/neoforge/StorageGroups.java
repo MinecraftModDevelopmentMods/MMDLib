@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import zone.moddev.mc.lib.api.capabilities.EnergyBuffer;
 import zone.moddev.mc.lib.api.capabilities.FluidStorage;
-import zone.moddev.mc.lib.api.capabilities.ItemStorage;
+import zone.moddev.mc.lib.api.capabilities.ItemStore;
 import zone.moddev.mc.lib.machine.ingredient.FluidAmount;
 import zone.moddev.mc.lib.machine.inventory.EnergyGroup;
 import zone.moddev.mc.lib.machine.inventory.FluidGroup;
@@ -22,7 +22,7 @@ import zone.moddev.mc.lib.machine.inventory.TankPlan;
 
 /**
  * Machine groups over MMDLib's storages. They work as the block entity does: items through {@link
- * ItemStorage#insertResult} and the storage's own extract (so slot roles and filters don't apply),
+ * ItemStore#insertResult} and the storage's own extract (so slot roles and filters don't apply),
  * fluids through {@link FluidStorage#tank}, energy ignoring the buffer's transfer rates but not its
  * capacity. Storages keep their plans, so extract and insert stop short of what is reserved.
  * Transactions copy a slot, tank or buffer the first time they change it, and a slot's or tank's
@@ -32,7 +32,7 @@ public final class StorageGroups {
   private StorageGroups() {}
 
   /** Slots {@code slots} of {@code storage}, as group slots 0, 1, ... */
-  public static ItemGroup items(ItemStorage storage, int... slots) {
+  public static ItemGroup items(ItemStore storage, int... slots) {
     for (int slot : slots)
       if (slot < 0 || slot >= storage.getSlots())
         throw new IndexOutOfBoundsException(
@@ -57,7 +57,7 @@ public final class StorageGroups {
   /** A transaction key for the contents of one slot or tank; storages compare by identity. */
   private record Key(Object storage, int index) {}
 
-  private record ItemSlots(ItemStorage storage, int[] slots) implements ItemGroup {
+  private record ItemSlots(ItemStore storage, int[] slots) implements ItemGroup {
     @Override
     public long revision() {
       return storage.revision();
@@ -111,19 +111,28 @@ public final class StorageGroups {
     @Override
     public boolean reserve(int slot, SlotPlan plan, MachineTx tx) {
       if (!valid(slot)) return false;
-      return storage.reservationPlans().reserve(slots[slot], plan, tx);
+      return storage
+          .storage(slots[slot])
+          .reservationPlans()
+          .reserve(storage.localSlot(slots[slot]), plan, tx);
     }
 
     @Override
     public boolean restore(int slot, SlotPlan plan, MachineTx tx) {
       if (!valid(slot)) return false;
-      return storage.reservationPlans().restore(slots[slot], plan, tx);
+      return storage
+          .storage(slots[slot])
+          .reservationPlans()
+          .restore(storage.localSlot(slots[slot]), plan, tx);
     }
 
     @Override
     public void release(int slot, SlotPlan plan, MachineTx tx) {
       if (!valid(slot)) return;
-      storage.reservationPlans().release(slots[slot], plan, tx);
+      storage
+          .storage(slots[slot])
+          .reservationPlans()
+          .release(storage.localSlot(slots[slot]), plan, tx);
     }
 
     @Override
@@ -165,7 +174,7 @@ public final class StorageGroups {
 
     private void track(int index, MachineTx tx) {
       tx.track(
-          new Key(storage, index),
+          new Key(storage.storage(index), storage.localSlot(index)),
           () -> {
             var before = storage.getStackInSlot(index).copy();
             return () -> storage.restoreStack(index, before);

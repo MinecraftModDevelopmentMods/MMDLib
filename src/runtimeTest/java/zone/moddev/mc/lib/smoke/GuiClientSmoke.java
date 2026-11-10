@@ -19,6 +19,7 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
+import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 import zone.moddev.mc.lib.gui.runtime.*;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 
@@ -41,6 +42,7 @@ public final class GuiClientSmoke {
       if (System.currentTimeMillis() > deadline)
         throw new AssertionError("GUI smoke timed out on " + mc.screen);
       if (!started && mc.screen instanceof TitleScreen) {
+        if (Boolean.getBoolean("mmdlib.ghostSmokeOnly")) GuiIngredientDropSmoke.install();
         started = true;
         var settings =
             new LevelSettings(
@@ -145,6 +147,32 @@ public final class GuiClientSmoke {
                   }
                 });
       }
+      if (Boolean.getBoolean("mmdlib.transferSmokeOnly")) {
+        if (mc.screen instanceof MachineScreen screen) {
+          if (++ticks == 30) GuiJeiSmoke.transferOnly(screen);
+          if (ticks > 35 && !screen.getMenu().slots.get(0).getItem().isEmpty()) {
+            finished = true;
+            MMDLib.LOGGER.info(
+                "MMDLIB_GUI_TRANSFER_PASS: named-only destinations, offhand exclusion and server"
+                    + " transfer");
+            mc.stop();
+          }
+          if (ticks > 90) throw new AssertionError("Named recipe transfer did not synchronize");
+        }
+        return;
+      }
+      if (Boolean.getBoolean("mmdlib.ghostSmokeOnly")) {
+        if (mc.screen instanceof MachineScreen screen
+            && GuiGhostSmoke.tick(screen)
+            && GuiIngredientDropSmoke.tick(screen)) {
+          finished = true;
+          MMDLib.LOGGER.info(
+              "MMDLIB_GUI_GHOST_PASS: typed JEI drops, pending edits, clicks, clearing and hidden"
+                  + " targets; custom fluid-drop elements and rejected/closed-screen drops");
+          mc.stop();
+        }
+        return;
+      }
       checkFeatureSync(mc);
       if (stage == 4) checkPlans(mc);
       if (mc.screen instanceof MachineScreen screen && ++ticks == 30) {
@@ -166,6 +194,11 @@ public final class GuiClientSmoke {
 
   @SubscribeEvent
   public static void frame(RenderFrameEvent.Post event) {
+    if (Boolean.getBoolean("mmdlib.transferSmokeOnly")) return;
+    if (Boolean.getBoolean("mmdlib.ghostSmokeOnly")) {
+      GuiIngredientDropSmoke.rendered();
+      return;
+    }
     if (!Boolean.getBoolean("mmdlib.guiSmoke") || finished) return;
     var mc = Minecraft.getInstance();
     if (stage == 0 && mc.screen instanceof MachineScreen screen && ticks >= 55 && ++frames == 5) {
@@ -194,13 +227,11 @@ public final class GuiClientSmoke {
         return;
       }
       GuiGaugeSmoke.check(screen);
-      var inventoryBounds = screen.layout.inventory().orElseThrow();
+      var inventoryBounds = screen.layout.region(PlayerInventoryElement.INVENTORY).orElseThrow();
       int equipment = 0;
       for (var slot : screen.getMenu().slots) {
         if (slot.container != mc.player.getInventory() || slot.getContainerSlot() < 36) continue;
-        var expected =
-            zone.moddev.mc.lib.gui.layout.ScreenLayout.playerSlot(
-                inventoryBounds, slot.getContainerSlot());
+        var expected = PlayerInventoryElement.slot(inventoryBounds, slot.getContainerSlot());
         if (slot.x != expected.x() + 1
             || slot.y != expected.y() + 1
             || slot.getNoItemIcon() == null) {
@@ -320,8 +351,7 @@ public final class GuiClientSmoke {
       server.execute(
           () ->
               ((CrusherSmoke.Crusher) server.overworld().getBlockEntity(CRUSHER))
-                  .processor
-                  .interrupt());
+                  .processor.interrupt());
     } else if (syncStage == 2) {
       if (client.processor.status() == RecipeProcessor.Status.PAUSED) {
         syncStage = 3;
@@ -345,8 +375,7 @@ public final class GuiClientSmoke {
     var iron = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_INGOT);
     var gold = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLD_INGOT);
     var handler = ((net.neoforged.neoforge.items.SlotItemHandler) slot).getItemHandler();
-    var plan =
-        new zone.moddev.mc.lib.machine.inventory.SlotPlan(1, iron.copyWithCount(4));
+    var plan = new zone.moddev.mc.lib.machine.inventory.SlotPlan(1, iron.copyWithCount(4));
     if (plansStage == 0) {
       if (!slot.isActive()) return;
       plansStage = 1;
@@ -403,8 +432,7 @@ public final class GuiClientSmoke {
           () -> {
             try {
               ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS))
-                  .items
-                  .release(0, plan);
+                  .items.release(0, plan);
             } catch (Throwable error) {
               fail(error);
             }
@@ -417,14 +445,12 @@ public final class GuiClientSmoke {
       }
       if (client.extractItem(0, 64, true).getCount() != 10
           || slot.getMaxStackSize(iron) != 16
-          || !slot.mayPlace(gold))
-        throw new AssertionError("a released slot is still held");
+          || !slot.mayPlace(gold)) throw new AssertionError("a released slot is still held");
       plansStage = 7;
       server.execute(
           () ->
               ((MachineSmoke.Counter) server.overworld().getBlockEntity(POS))
-                  .items
-                  .setStackInSlot(0, savedInput));
+                  .items.setStackInSlot(0, savedInput));
       MMDLib.LOGGER.info(
           "MMDLIB_GUI_PLANS_PASS: the client menu held a reserved slot, predicted real clicks on"
               + " it as the server answered them, and let it go again");
@@ -447,8 +473,7 @@ public final class GuiClientSmoke {
         server
             .submit(
                 () -> {
-                  var menu =
-                      server.getPlayerList().getPlayers().getFirst().containerMenu;
+                  var menu = server.getPlayerList().getPlayers().getFirst().containerMenu;
                   return new int[] {
                     menu.getSlot(0).getItem().getCount(), menu.getCarried().getCount()
                   };

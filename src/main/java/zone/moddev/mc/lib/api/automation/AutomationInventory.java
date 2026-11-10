@@ -15,7 +15,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
@@ -45,7 +44,7 @@ public final class AutomationInventory {
   private CompoundTag unknown = new CompoundTag();
   private CompoundTag transfers = new CompoundTag();
   private boolean loading;
-  private final ItemStackHandler slots;
+  private final ItemInventories slots;
 
   public AutomationInventory(BlockEntity owner, List<ResourceGroup<?>> groups) {
     if (groups.isEmpty() || groups.size() > MAX_GROUPS)
@@ -55,60 +54,74 @@ public final class AutomationInventory {
     generation = new long[groups.size() * COLUMNS];
     revision = new long[generation.length];
     var membership = new HashSet<String>();
+    var ambiguous = new HashSet<String>();
     for (int i = 0; i < groups.size(); i++) {
       var group = groups.get(i);
       if (ids.putIfAbsent(group.id(), i) != null)
         throw new IllegalArgumentException("Duplicate group ID");
       for (int member : group.members())
-        if (!membership.add(group.type().id() + "/" + member))
+        if (!membership.add(group.type().id() + "/" + group.inventory() + "/" + member))
           throw new IllegalArgumentException("Overlapping resource membership: " + group.id());
       var indexed = members.computeIfAbsent(group.type(), ignored -> new Int2ObjectOpenHashMap<>());
-      for (int member : group.members()) indexed.put(member, group);
+      for (int member : group.members()) {
+        String key = group.type().id() + "/" + member;
+        if (indexed.containsKey(member)) {
+          indexed.remove(member);
+          ambiguous.add(key);
+        } else if (!ambiguous.contains(key)) indexed.put(member, group);
+      }
       group.sides().onChange(this::viewChanged);
     }
-    slots =
-        new ItemStackHandler(groups.size() * SLOTS_PER_GROUP) {
-          @Override
-          public int getSlotLimit(int slot) {
-            return 1;
-          }
-
-          @Override
-          public boolean isItemValid(int slot, ItemStack stack) {
-            return accepts(slot, stack);
-          }
-
-          @Override
-          public void setStackInSlot(int slot, ItemStack stack) {
-            if (stack.getCount() > 1)
-              throw new IllegalArgumentException("One addon/filter per slot");
-            if (!loading && !stack.isEmpty() && !accepts(slot, stack))
-              throw new IllegalArgumentException("Incompatible or duplicate addon/filter role");
-            // Even replacing an identical stack is a new attachment generation.
-            if (!loading && slot % SLOTS_PER_GROUP < COLUMNS)
-              detach(slot / SLOTS_PER_GROUP, slot % COLUMNS);
-            super.setStackInSlot(slot, stack);
-          }
-
-          @Override
-          protected void onContentsChanged(int slot) {
-            if (loading) return;
-            int group = slot / SLOTS_PER_GROUP, column = slot % COLUMNS;
-            dirtyGroups.set(group);
-            int key = group * COLUMNS + column;
-            if (slot % SLOTS_PER_GROUP < COLUMNS) {
-              generation[key]++;
-              // extractItem mutates without calling setStackInSlot.
-              var addon = addon(group, column);
-              var filter = filter(group, column);
-              if (!filter.isEmpty() && addon.isEmpty()) detach(group, column);
-            } else {
-              generation[key]++;
-              revision[key]++;
+    var inventories = new LinkedHashMap<String, ItemStorage>();
+    for (int g = 0; g < groups.size(); g++) {
+      final int groupIndex = g;
+      inventories.put(
+          groups.get(g).id(),
+          new ItemStorage(SLOTS_PER_GROUP) {
+            @Override
+            public int getSlotLimit(int slot) {
+              return 1;
             }
-            viewChanged();
-          }
-        };
+
+            @Override
+            public boolean isItemValid(int slot, ItemStack stack) {
+              return accepts(groupIndex * SLOTS_PER_GROUP + slot, stack);
+            }
+
+            @Override
+            public void setStackInSlot(int slot, ItemStack stack) {
+              if (stack.getCount() > 1)
+                throw new IllegalArgumentException("One addon/filter per slot");
+              if (!loading
+                  && !stack.isEmpty()
+                  && !accepts(groupIndex * SLOTS_PER_GROUP + slot, stack))
+                throw new IllegalArgumentException("Incompatible or duplicate addon/filter role");
+              // Even replacing an identical stack is a new attachment generation.
+              if (!loading && slot % SLOTS_PER_GROUP < COLUMNS) detach(groupIndex, slot % COLUMNS);
+              super.setStackInSlot(slot, stack);
+            }
+
+            @Override
+            protected void onContentsChanged(int slot) {
+              if (loading) return;
+              int group = groupIndex, column = slot % COLUMNS;
+              dirtyGroups.set(group);
+              int key = group * COLUMNS + column;
+              if (slot % SLOTS_PER_GROUP < COLUMNS) {
+                generation[key]++;
+                // extractItem mutates without calling setStackInSlot.
+                var addon = addon(group, column);
+                var filter = AutomationInventory.this.filter(group, column);
+                if (!filter.isEmpty() && addon.isEmpty()) detach(group, column);
+              } else {
+                generation[key]++;
+                revision[key]++;
+              }
+              viewChanged();
+            }
+          });
+    }
+    slots = new ItemInventories(inventories);
   }
 
   public BlockEntity owner() {
@@ -127,7 +140,7 @@ public final class AutomationInventory {
     return ids.getOrDefault(id, -1);
   }
 
-  public ItemStackHandler slots() {
+  public ItemInventories slots() {
     return slots;
   }
 
@@ -273,7 +286,7 @@ public final class AutomationInventory {
   }
 
   private void detach(int group, int column) {
-    var filter = filter(group, column);
+    var filter = AutomationInventory.this.filter(group, column);
     if (!filter.isEmpty()) {
       recovery.add(filter.copy());
       slots.setStackInSlot(filterSlot(group, column), ItemStack.EMPTY);
@@ -364,6 +377,20 @@ public final class AutomationInventory {
     var indexed = members.get(type);
     var group = indexed == null ? null : indexed.get(member);
     return group == null ? IoMode.DISABLED : group.mode(side);
+  }
+
+  /** Use a named inventory when several handlers have the same local slot numbers. */
+  public IoMode mode(
+      ResourceType<?> type, String inventory, int member, net.minecraft.core.Direction side) {
+    return groups.stream()
+        .filter(
+            group ->
+                group.type() == type
+                    && group.inventory().equals(inventory)
+                    && group.contains(member))
+        .findFirst()
+        .map(group -> group.mode(side))
+        .orElse(IoMode.DISABLED);
   }
 
   public CompoundTag save(HolderLookup.Provider registries) {

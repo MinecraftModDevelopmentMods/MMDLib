@@ -1,28 +1,37 @@
 package zone.moddev.mc.lib.gui.client;
 
-import java.util.List;
 import java.util.LinkedHashSet;
-import net.minecraft.world.item.ItemStack;
+import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import zone.moddev.mc.lib.gui.layout.ContainerDrawerLayout;
 import zone.moddev.mc.lib.gui.layout.Rect;
+import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.containers.ContainerInventoryElement;
+import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
+import zone.moddev.mc.lib.gui.runtime.EquippedContainers;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Item-rendered equipment tab and paged, server-synced storage cells. */
-final class ContainerDrawer {
-  private final boolean equipment;
-  private final int color;
-  private final MachineScreen screen;
+public class ContainerDrawer extends Drawer {
   private final ContainerDrawerMenu menu;
   private ContainerDrawerLayout layout;
+  private ContainerInventoryElement inventory;
+  private ElementFragment cells;
+  private ContainerInventoryElement.Page cellPage;
+  private String cellSource;
   private boolean handledPress;
+  private int elementButton = -1;
+  private long cellRevision = Long.MIN_VALUE;
   private int mouseX, mouseY;
   private final LinkedHashSet<Integer> dragSlots = new LinkedHashSet<>();
   private int dragButton = -1, firstSlot = -1, lastClickSlot = -1;
@@ -33,38 +42,54 @@ final class ContainerDrawer {
   private String lastSource = "";
 
   private int slotAt(double x, double y) {
-    if (!bodyVisible()) return -1;
-    var state = menu.state();
-    for (int i = 0; i < Math.min(state.contents().size(), layout.pageSize()); i++)
-      if (layout.cell(i).contains(x, y)) return state.offset() + i;
-    return -1;
+    if (!bodyVisible() || !layout.body().contains(x, y)) return -1;
+    prepareCells();
+    var hit = cells.hit(x, y);
+    return hit instanceof SlotElement slot ? slot.index() : -1;
+  }
+
+  private boolean inputLocked() {
+    return screen.drawers().pending(edge()) || inventoryPending();
+  }
+
+  private void discardCells() {
+    if (cells != null) cells.removed();
+    cells = null;
+    inventory = null;
+    cellPage = null;
+    cellSource = null;
+  }
+
+  private boolean readyCells() {
+    layout();
+    if (!bodyVisible()) {
+      discardCells();
+      return false;
+    }
+    prepareCells();
+    return true;
+  }
+
+  private boolean cellInputArea(double x, double y) {
+    return layout.body().contains(x, y)
+        && !layout.selection().contains(x, y)
+        && !layout.previous().contains(x, y)
+        && !layout.next().contains(x, y);
   }
 
   private boolean inventoryPending() {
-    return screen.getMenu().containerDrawer.pendingInventory()
-        || screen.getMenu().curiosDrawer.pendingInventory();
+    return screen.getMenu().components().pendingInventory();
   }
 
   private boolean inventoryTarget(double x, double y) {
     // Outside clicks can drop the carried stack. Settings inside the panel remain usable.
-    return !screen.onDrawerTab(x, y)
+    return !screen.drawers().tabContains(x, y)
             && screen.hasClickedOutside(x, y, screen.guiLeft(), screen.guiTop(), 0)
-        || screen.getMenu().slots.stream().anyMatch(slot -> overSlot(slot, x, y));
-  }
-
-  private boolean overSlot(net.minecraft.world.inventory.Slot slot, double x, double y) {
-    return x >= screen.guiLeft() + slot.x
-        && x < screen.guiLeft() + slot.x + 16
-        && y >= screen.guiTop() + slot.y
-        && y < screen.guiTop() + slot.y + 16;
+        || screen.nativeSlotAt(x, y, false) != null;
   }
 
   private int playerSlotAt(double x, double y) {
-    for (var slot : screen.getMenu().slots)
-      if (slot.container == Minecraft.getInstance().player.getInventory()
-          && slot.getContainerSlot() < 36
-          && overSlot(slot, x, y)) return ContainerDrawerMenu.MAX_SLOTS + slot.getContainerSlot();
-    return -1;
+    return menu.targets().playerTarget(screen.nativeSlotAt(x, y));
   }
 
   void cancelGesture() {
@@ -77,21 +102,15 @@ final class ContainerDrawer {
 
   private boolean gestureValid() {
     return bodyVisible()
-        && !menu.pending()
+        && !inputLocked()
         && menu.state().revision() == dragRevision
         && layout.body().equals(dragBody)
         && ItemStack.matches(screen.getMenu().getCarried(), dragStack);
   }
 
   private void addDragSlot(int slot) {
-    if (slot < 0 || dragSlots.size() >= ContainerDrawerMenu.MAX_PAGE + 36) return;
-    var stored =
-        slot >= ContainerDrawerMenu.MAX_SLOTS
-            ? Minecraft.getInstance()
-                .player
-                .getInventory()
-                .getItem(slot - ContainerDrawerMenu.MAX_SLOTS)
-            : menu.state().contents().get(slot - menu.state().offset());
+    if (!menu.targets().contains(slot) || dragSlots.size() >= menu.targets().maxTargets()) return;
+    var stored = menu.targets().contents(slot);
     if ((stored.isEmpty() || ItemStack.isSameItemSameComponents(stored, dragStack))
         && stored.getCount() < dragStack.getMaxStackSize()
         && dragSlots.size() < dragStack.getCount()) dragSlots.add(slot);
@@ -109,7 +128,7 @@ final class ContainerDrawer {
   }
 
   private void collect() {
-    if (!menu.pending()) {
+    if (!inputLocked()) {
       collectQueued = false;
       var state = menu.state();
       if (bodyVisible()
@@ -121,31 +140,37 @@ final class ContainerDrawer {
     }
   }
 
-  ContainerDrawer(MachineScreen screen) {
-    this(screen, false);
+  public ContainerDrawer(
+      MachineScreen screen,
+      zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition,
+      boolean equipment) {
+    super(screen, definition, (graphics, x, y) -> {}, 0xc5aa7b);
+    menu =
+        equipment
+            ? screen.getMenu().components().get(BuiltinMenuComponents.CURIOS)
+            : screen.getMenu().components().get(BuiltinMenuComponents.BACKPACK);
   }
 
-  ContainerDrawer(MachineScreen screen, boolean equipment) {
-    this.equipment = equipment;
-    color = equipment ? 0xa6a0ca : 0xc5aa7b;
-    this.screen = screen;
-    menu = equipment ? screen.getMenu().curiosDrawer : screen.getMenu().containerDrawer;
-  }
-
-  private boolean available() {
+  public boolean available() {
     return !menu.state().icons().isEmpty();
   }
 
   private void layout() {
     int slots = available() ? menu.state().sizes().get(menu.state().selected()) : 0;
     layout =
-        equipment
-            ? ContainerDrawerLayout.equipment(
-                screen.panelBounds(),
-                screen.drawerBottom(),
-                slots,
-                !screen.getMenu().containerDrawer.state().icons().isEmpty())
-            : ContainerDrawerLayout.of(screen.panelBounds(), screen.drawerBottom(), slots);
+        ContainerDrawerLayout.of(
+            screen.panelBounds(),
+            screen.drawerBottom(),
+            slots,
+            super.tabBounds(),
+            menu.policy().layout(),
+            edge(),
+            screen.width);
+  }
+
+  public ContainerDrawerLayout contentLayout() {
+    layout();
+    return layout;
   }
 
   private boolean bodyVisible() {
@@ -153,103 +178,265 @@ final class ContainerDrawer {
   }
 
   private void send(int kind, int argument, int size) {
+    if (!menu.allows(kind)) return;
     menu.request(kind, argument, size)
         .ifPresent(
             request -> {
-              screen.rememberContainerIntent(equipment, menu.state(), kind, argument);
+              var state = menu.state();
+              if (!state.keys().isEmpty()) {
+                if (kind == ContainerDrawerMenu.TOGGLE && state.open())
+                  remember(false, selection());
+                else if (kind == ContainerDrawerMenu.TOGGLE
+                    || kind == ContainerDrawerMenu.SELECT
+                    || kind == ContainerDrawerMenu.PAGE) {
+                  int index = kind == ContainerDrawerMenu.SELECT ? argument : state.selected();
+                  remember(
+                      true,
+                      new Selection(
+                          state.keys().get(index),
+                          kind == ContainerDrawerMenu.PAGE ? argument : state.offset()));
+                }
+              }
               PacketDistributor.sendToServer(request);
             });
   }
 
-  void close() {
+  public void close() {
+    cancelGesture();
+    if (cells != null) cells.cancelInteraction();
     if (menu.state().open() && !menu.pending())
-      send(ContainerDrawerMenu.TOGGLE, 0, menu.state().pageSize());
+      menu.request(ContainerDrawerMenu.TOGGLE, 0, menu.state().pageSize())
+          .ifPresent(PacketDistributor::sendToServer);
   }
 
-  List<Rect> exclusions() {
+  public List<Rect> exclusions() {
     layout();
     if (!available()) return List.of();
     return bodyVisible() ? List.of(layout.rail(), layout.body()) : List.of(layout.tab());
   }
 
-  boolean contains(double x, double y) {
+  public boolean contains(double x, double y) {
     layout();
     return available()
         && (layout.tab().contains(x, y)
             || bodyVisible() && (layout.body().contains(x, y) || layout.rail().contains(x, y)));
   }
 
-  boolean tabContains(double x, double y) {
+  public boolean tabContains(double x, double y) {
     layout();
     return available() && layout.tab().contains(x, y);
   }
 
+  protected EquippedContainers.Presentation presentation() {
+    return menu.state().presentations().get(menu.state().selected());
+  }
+
+  /** Provider defaults may also be customized by a client drawer subclass. */
+  protected List<Component> gestureInstructions() {
+    return presentation().gestureRows();
+  }
+
   private Component title() {
-    return equipment
-        ? Component.translatable("screen.mmdlib.curios.title")
-        : menu.state().icons().get(menu.state().selected()).getHoverName();
+    return presentation().title();
   }
 
-  void renderTab(GuiGraphics g) {
+  @Override
+  public int colour() {
+    return available() ? presentation().colour() : super.colour();
+  }
+
+  @Override
+  public IconSprite iconSprite() {
+    if (!available()) return super.iconSprite();
+    return presentation()
+        .icon()
+        .map(IconSprite::atlas)
+        .orElseGet(
+            () -> IconSprite.item(() -> menu.state().icons().get(menu.state().selected()).copy()));
+  }
+
+  /**
+   * Called when source, page metadata or geometry changes. Override or supply custom slot
+   * factories.
+   */
+  protected ContainerInventoryElement createInventory(ContainerInventoryElement.Page page) {
+    return new ContainerInventoryElement(page);
+  }
+
+  private void prepareCells() {
+    var state = menu.state();
+    int count = Math.min(state.contents().size(), layout.pageSize());
+    var bounds = new java.util.ArrayList<Rect>();
+    for (int i = 0; i < count; i++)
+      bounds.add(layout.cell(i).offset(-layout.body().x(), -layout.body().y()));
+    var descriptions =
+        state.descriptions().isEmpty()
+            ? List.<EquippedContainers.SlotInfo>of()
+            : state.descriptions().subList(0, count);
+    var page =
+        new ContainerInventoryElement.Page(
+            state.offset(),
+            layout.body().width(),
+            layout.body().height(),
+            bounds,
+            descriptions,
+            presentation());
+    String source = state.keys().get(state.selected());
+    if (!page.equals(cellPage) || !source.equals(cellSource)) {
+      if (cells != null) cells.removed();
+      cellPage = page;
+      cellSource = source;
+      inventory = java.util.Objects.requireNonNull(createInventory(page));
+      cells =
+          new ElementFragment(
+              inventory,
+              page.width(),
+              new ElementFragment.Host() {
+                public ResourceLocation screenId() {
+                  return ResourceLocation.parse("mmdlib:container_drawer");
+                }
+
+                public ItemStack contents(SlotElement element) {
+                  int local = element.index() - menu.state().offset();
+                  return local >= 0 && local < menu.state().contents().size()
+                      ? menu.state().contents().get(local).copy()
+                      : ItemStack.EMPTY;
+                }
+
+                public Object value(Element element, boolean maximum) {
+                  return inventory.drawerValue(
+                      element,
+                      maximum,
+                      element instanceof SlotElement slot ? contents(slot) : ItemStack.EMPTY,
+                      element instanceof SlotElement slot
+                          && dragButton >= 0
+                          && dragSlots.contains(slot.index()));
+                }
+
+                public Rect hitBounds(Element element, Rect frame) {
+                  return element instanceof SlotElement slot ? slot.cellHitBounds(frame) : frame;
+                }
+
+                public boolean inputEnabled() {
+                  return !inputLocked();
+                }
+
+                public boolean visible(Element element) {
+                  return bodyVisible();
+                }
+
+                public boolean pending(Element element) {
+                  return inputLocked();
+                }
+
+                public ItemStack carried() {
+                  return screen.getMenu().getCarried().copy();
+                }
+              });
+    }
+    if (cellRevision != state.revision()) {
+      cells.cancelInteraction();
+      cellRevision = state.revision();
+    }
+    cells.place(layout.body().x(), layout.body().y(), layout.body());
+  }
+
+  /** Composed virtual-cell tooltip, including all parent rows after the native item hook. */
+  public List<Component> cellTooltip(int x, int y) {
     layout();
-    if (!available()) return;
-    SideDrawerRenderer.tab(g, layout.tab(), color);
-    if (equipment)
-      emptyIcon(
-          g,
-          ResourceLocation.parse("curios:slot/empty_curio_slot"),
-          layout.tab().x() + 3,
-          layout.tab().y() + 4);
-    else
-      g.renderItem(
-          menu.state().icons().get(menu.state().selected()),
-          layout.tab().x() + 3,
-          layout.tab().y() + 4);
+    int index = slotAt(x, y);
+    if (index < 0) return List.of();
+    var slot = inventory.slots().stream().filter(s -> s.index() == index).findFirst().orElseThrow();
+    var stack = menu.state().contents().get(index - menu.state().offset()).copy();
+    var rows = cells.tooltip(slot, x, y);
+    return stack.isEmpty()
+        ? rows
+        : NativeSlotRenderer.itemTooltip(
+            slot, stack, Screen.getTooltipFromItem(Minecraft.getInstance(), stack), rows);
   }
 
-  private static void emptyIcon(GuiGraphics g, ResourceLocation icon, int x, int y) {
-    g.blit(
-        x,
-        y,
-        0,
-        16,
-        16,
-        Minecraft.getInstance()
-            .getTextureAtlas(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)
-            .apply(icon));
+  @Override
+  public void removed() {
+    discardCells();
+    elementButton = -1;
+    cancelGesture();
   }
 
-  private static String slotName(zone.moddev.mc.lib.gui.runtime.EquippedContainers.SlotInfo info) {
-    String key = "curios.identifier." + info.identifier();
-    return (net.minecraft.client.resources.language.I18n.exists(key)
-            ? Component.translatable(key).getString()
-            : info.identifier())
-        + (info.index() == 0 ? "" : " " + (info.index() + 1));
+  @Override
+  public void tick() {
+    if (readyCells()) cells.tick();
   }
 
-  void render(GuiGraphics g, int mx, int my) {
+  public Rect tabBounds() {
+    layout();
+    return layout.tab();
+  }
+
+  public boolean open() {
+    return menu.state().open();
+  }
+
+  public boolean pending() {
+    return menu.pending();
+  }
+
+  public void resized() {
+    if (cells != null) cells.cancelInteraction();
+    cancelGesture();
+  }
+
+  public Selection selection() {
+    var state = menu.state();
+    return state.keys().isEmpty()
+        ? new Selection()
+        : new Selection(state.keys().get(state.selected()), state.offset());
+  }
+
+  public boolean restore(Selection selection) {
+    if (!screen.getMenu().bound.screen().playerInventory()) return true;
+    var state = menu.state();
+    if (state.keys().isEmpty() || pending()) return false;
+    int index = state.keys().indexOf(selection.key());
+    if (index < 0) return true;
+    if (!state.open())
+      menu.request(ContainerDrawerMenu.TOGGLE, 0, state.pageSize())
+          .ifPresent(PacketDistributor::sendToServer);
+    else if (state.selected() != index)
+      menu.request(ContainerDrawerMenu.SELECT, index, state.pageSize())
+          .ifPresent(PacketDistributor::sendToServer);
+    else {
+      int offset = Math.min(selection.offset(), Math.max(0, state.sizes().get(index) - 1));
+      offset = offset / state.pageSize() * state.pageSize();
+      if (state.offset() != offset)
+        menu.request(ContainerDrawerMenu.PAGE, offset, state.pageSize())
+            .ifPresent(PacketDistributor::sendToServer);
+      activated();
+      return true;
+    }
+    return false;
+  }
+
+  public void render(GuiGraphics g, int mx, int my) {
     layout();
     mouseX = mx;
     mouseY = my;
-    if (!available()) return;
+    if (!available()) {
+      discardCells();
+      return;
+    }
     var state = menu.state();
-    var icon = state.icons().get(state.selected());
-    if (bodyVisible())
-      SideDrawerRenderer.open(
-          g, layout.tab(), layout.body(), zone.moddev.mc.lib.gui.model.Element.Edge.LEFT, color);
-    renderTab(g);
+    drawFrame(g, layout.tab(), layout.body(), bodyVisible());
     if (dragButton >= 0 && !gestureValid()) cancelGesture();
     if (collectQueued) collect();
-    if (!bodyVisible()) return;
+    if (!bodyVisible()) {
+      discardCells();
+      return;
+    }
     if (layout.pageSize() != state.pageSize() && !menu.pending())
       send(ContainerDrawerMenu.PAGE, state.offset(), layout.pageSize());
     var font = Minecraft.getInstance().font;
     var body = layout.body();
-    // The selected item itself is also the drawer header, including item tint/model components.
-    if (equipment)
-      emptyIcon(
-          g, ResourceLocation.parse("curios:slot/empty_curio_slot"), body.x() + 4, body.y() + 3);
-    else g.renderItem(icon, body.x() + 4, body.y() + 3);
+    iconSprite().draw(g, body.x() + 4, body.y() + 3);
     if (body.width() > 45)
       g.drawString(
           font,
@@ -258,56 +445,8 @@ final class ContainerDrawer {
           body.y() + 7,
           0xff404040,
           false);
-    if (equipment) {
-      g.drawString(
-          font,
-          Component.translatable("screen.mmdlib.curios.equipment"),
-          body.x() + 6,
-          body.y() + 22,
-          0xff404040,
-          false);
-      g.drawString(
-          font,
-          Component.translatable("screen.mmdlib.curios.functional.short"),
-          body.right() - 40,
-          body.y() + 22,
-          0xff404040,
-          false);
-      g.drawString(
-          font,
-          Component.translatable("screen.mmdlib.curios.cosmetic.short"),
-          body.right() - 20,
-          body.y() + 22,
-          0xff404040,
-          false);
-    }
-    for (int i = 0; i < Math.min(state.contents().size(), layout.pageSize()); i++) {
-      var cell = layout.cell(i);
-      var info = i < state.descriptions().size() ? state.descriptions().get(i) : null;
-      if (equipment && info == null) continue;
-      if (equipment && i % 2 == 0)
-        g.drawString(
-            font,
-            font.plainSubstrByWidth(slotName(info), body.width() - 54),
-            body.x() + 6,
-            cell.y() + 5,
-            0xff404040,
-            false);
-      if (info != null && !info.available()) {
-        g.drawString(font, "-", cell.x() + 6, cell.y() + 5, 0xff666666, false);
-        continue;
-      }
-      g.blitSprite(ResourceLocation.parse("mmdlib:slot"), cell.x(), cell.y(), 18, 18);
-      var stack = state.contents().get(i);
-      if (stack.isEmpty() && info != null) emptyIcon(g, info.icon(), cell.x() + 1, cell.y() + 1);
-      if (!stack.isEmpty()) {
-        g.renderItem(stack, cell.x() + 1, cell.y() + 1);
-        g.renderItemDecorations(font, stack, cell.x() + 1, cell.y() + 1);
-      }
-      // Generic insertion may route to another slot. Highlight targets without inventing counts.
-      if (cell.contains(mx, my) || dragButton >= 0 && dragSlots.contains(state.offset() + i))
-        g.fill(cell.x() + 1, cell.y() + 1, cell.right() - 1, cell.bottom() - 1, 0x80ffffff);
-    }
+    prepareCells();
+    cells.render(g, mx, my);
     var previous = layout.previous();
     var next = layout.next();
     g.drawString(
@@ -341,61 +480,34 @@ final class ContainerDrawer {
     }
   }
 
-  void tooltip(GuiGraphics g, int mx, int my) {
+  public void tooltip(GuiGraphics g, int mx, int my) {
     if (!contains(mx, my)) return;
     var font = Minecraft.getInstance().font;
     var state = menu.state();
     if (layout.tab().contains(mx, my)) {
       var lines = new java.util.ArrayList<Component>();
       lines.add(title());
-      lines.add(
-          Component.translatable(
-              equipment ? "screen.mmdlib.curios.toggle" : "screen.mmdlib.container.toggle"));
-      if (state.open())
-        lines.add(
-            Component.translatable(
-                equipment ? "screen.mmdlib.curios.store" : "screen.mmdlib.container.store"));
-      if (!equipment) lines.add(Component.translatable("screen.mmdlib.container.gestures"));
+      lines.addAll(presentation().tabRows());
+      if (state.open()) lines.addAll(presentation().openRows());
+      lines.addAll(gestureInstructions());
       if (layout.pageSize() == 0) lines.add(Component.translatable("screen.mmdlib.container.room"));
       g.renderComponentTooltip(font, lines, mx, my);
     } else if (bodyVisible()) {
-      if (equipment) {
-        for (int i = 0; i < Math.min(state.descriptions().size(), layout.pageSize()); i++) {
-          var info = state.descriptions().get(i);
-          var cell = layout.cell(i);
-          if (cell.contains(mx, my) && state.contents().get(i).isEmpty()) {
-            g.renderComponentTooltip(
-                font,
-                List.of(
-                    Component.literal(slotName(info)),
-                    Component.translatable(
-                        !info.available()
-                            ? "screen.mmdlib.curios.unavailable"
-                            : info.cosmetic()
-                                ? "screen.mmdlib.curios.cosmetic"
-                                : "screen.mmdlib.curios.functional")),
-                mx,
-                my);
-            return;
-          }
-        }
-        if (my < layout.body().y() + 34) {
-          g.renderComponentTooltip(
-              font,
-              List.of(
-                  title(),
-                  Component.translatable("screen.mmdlib.curios.columns"),
-                  Component.translatable("screen.mmdlib.curios.store")),
-              mx,
-              my);
-          return;
-        }
+      int hit = slotAt(mx, my);
+      if (hit >= 0) {
+        var rows = cellTooltip(mx, my);
+        var stack = state.contents().get(hit - state.offset()).copy();
+        if (!rows.isEmpty()) g.renderTooltip(font, rows, stack.getTooltipImage(), stack, mx, my);
+        return;
       }
-      for (int i = 0; i < Math.min(state.contents().size(), layout.pageSize()); i++)
-        if (layout.cell(i).contains(mx, my) && !state.contents().get(i).isEmpty()) {
-          g.renderTooltip(font, state.contents().get(i), mx, my);
-          return;
-        }
+      if (!presentation().headerRows().isEmpty()
+          && my < layout.body().y() + menu.policy().layout().cellY()) {
+        var rows = new java.util.ArrayList<Component>();
+        rows.add(title());
+        rows.addAll(presentation().headerRows());
+        g.renderComponentTooltip(font, rows, mx, my);
+        return;
+      }
       if (layout.selection().contains(mx, my))
         g.renderComponentTooltip(
             font,
@@ -410,13 +522,23 @@ final class ContainerDrawer {
     }
   }
 
-  boolean click(double x, double y, int button) {
+  public boolean click(double x, double y, int button) {
     layout();
     mouseX = (int) x;
     mouseY = (int) y;
     int hit = slotAt(x, y);
     long now = net.minecraft.Util.getMillis();
-    if (!equipment
+    if (readyCells() && !inputLocked() && dragButton < 0) {
+      if (elementButton >= 0 || cellInputArea(x, y)) {
+        if (cells.click(x, y, button)) {
+          cancelGesture();
+          if (elementButton < 0) elementButton = button;
+          handledPress = true;
+          return true;
+        }
+      } else cells.cancelInteraction();
+    }
+    if (menu.allows(ContainerDrawerMenu.COLLECT)
         && button == 0
         && hit >= 0
         && hit == lastClickSlot
@@ -428,7 +550,7 @@ final class ContainerDrawer {
       lastClickTime = 0;
       return true;
     }
-    if (screen.getMenu().containerDrawer.pending() || screen.getMenu().curiosDrawer.pending()) {
+    if (inputLocked()) {
       // Configuration requests do not touch vanilla slots. Only serialize item-changing gestures.
       boolean blocked = contains(x, y) || inventoryPending() && inventoryTarget(x, y);
       handledPress = blocked;
@@ -439,13 +561,13 @@ final class ContainerDrawer {
     if (layout.tab().contains(x, y)) {
       handledPress = true;
       if (button == 0) {
-        if (!state.open()) screen.closeLeftDrawers();
+        if (!state.open()) activated();
         send(ContainerDrawerMenu.TOGGLE, 0, state.pageSize());
       }
       return true;
     }
     if (!bodyVisible()) return false;
-    if (!equipment
+    if (menu.allows(ContainerDrawerMenu.DISTRIBUTE)
         && button >= 0
         && button <= 1
         && !Screen.hasShiftDown()
@@ -457,7 +579,7 @@ final class ContainerDrawer {
         return true;
       }
     }
-    if (layout.rail().contains(x, y) && !screen.onDrawerTab(x, y)) {
+    if (layout.rail().contains(x, y) && !screen.drawers().tabContains(x, y)) {
       handledPress = true;
       return true;
     }
@@ -475,8 +597,8 @@ final class ContainerDrawer {
       else if (layout.next().contains(x, y)) page(1);
       else
         for (int i = 0; i < Math.min(state.contents().size(), layout.pageSize()); i++)
-          if (layout.cell(i).contains(x, y)) {
-            if (!equipment && button == 0 && !Screen.hasShiftDown()) {
+          if (state.offset() + i == hit) {
+            if (menu.allows(ContainerDrawerMenu.COLLECT) && button == 0 && !Screen.hasShiftDown()) {
               lastClickSlot = state.offset() + i;
               lastClickTime = now;
               lastClickStack = state.contents().get(i).copy();
@@ -490,13 +612,10 @@ final class ContainerDrawer {
           }
       return true;
     }
-    if (button == 0 && Screen.hasShiftDown()) {
+    if (button == 0 && Screen.hasShiftDown() && menu.allows(ContainerDrawerMenu.QUICK_STORE)) {
       int slot = playerSlotAt(x, y);
       if (slot >= 0) {
-        send(
-            ContainerDrawerMenu.QUICK_STORE,
-            slot - ContainerDrawerMenu.MAX_SLOTS,
-            state.pageSize());
+        send(ContainerDrawerMenu.QUICK_STORE, menu.targets().playerIndex(slot), state.pageSize());
         handledPress = true;
         return true;
       }
@@ -511,22 +630,27 @@ final class ContainerDrawer {
       send(ContainerDrawerMenu.PAGE, offset, state.pageSize());
   }
 
-  boolean scroll(double x, double y, double amount) {
+  public boolean scroll(double x, double y, double amount) {
     if (!contains(x, y) || !menu.state().open()) return false;
-    if (!menu.pending() && amount != 0) page(amount < 0 ? 1 : -1);
+    if (readyCells() && !inputLocked() && dragButton < 0 && cells.scroll(x, y, amount)) return true;
+    if (!inputLocked() && amount != 0) page(amount < 0 ? 1 : -1);
     return true;
   }
 
-  boolean key(int key, int scan) {
+  public boolean key(int key, int scan, int modifiers) {
     layout();
     if (key == 256 && dragButton >= 0) {
       cancelGesture();
       return true;
     }
-    if (!equipment && bodyVisible() && !menu.pending()) {
+    if (readyCells() && !inputLocked() && dragButton < 0 && cells.key(key, scan, modifiers))
+      return true;
+    if (menu.allows(ContainerDrawerMenu.SWAP) && bodyVisible() && !inputLocked()) {
       int slot = slotAt(mouseX, mouseY);
       if (slot >= 0) {
-        for (int hotbar = 0; hotbar < 9; hotbar++)
+        for (int hotbar = 0;
+            hotbar < Minecraft.getInstance().options.keyHotbarSlots.length;
+            hotbar++)
           if (Minecraft.getInstance().options.keyHotbarSlots[hotbar].matches(key, scan)) {
             cancelGesture();
             menu.request(ContainerDrawerMenu.SWAP, hotbar, menu.state().pageSize(), List.of(slot))
@@ -536,7 +660,7 @@ final class ContainerDrawer {
       }
     }
     if (key == 256 && menu.state().open()) {
-      close();
+      send(ContainerDrawerMenu.TOGGLE, 0, menu.state().pageSize());
       return true;
     }
     if (key == 256) return false;
@@ -548,13 +672,34 @@ final class ContainerDrawer {
         && !Minecraft.getInstance().options.keyInventory.matches(key, scan);
   }
 
-  void mouseMoved(double x, double y) {
-    mouseX = (int) x;
-    mouseY = (int) y;
+  @Override
+  public boolean character(char character, int modifiers) {
+    return readyCells()
+        && !inputLocked()
+        && dragButton < 0
+        && cells.character(character, modifiers);
   }
 
-  boolean drag(double x, double y, int button) {
+  @Override
+  public boolean keyReleased(int key, int scan, int modifiers) {
+    return readyCells()
+        && !inputLocked()
+        && dragButton < 0
+        && cells.keyReleased(key, scan, modifiers);
+  }
+
+  public void mouseMoved(double x, double y) {
+    mouseX = (int) x;
+    mouseY = (int) y;
+    if (readyCells() && !inputLocked() && dragButton < 0) cells.mouseMoved(x, y);
+  }
+
+  public boolean drag(double x, double y, int button, double dx, double dy) {
     layout();
+    if (elementButton >= 0) {
+      if (readyCells() && !inputLocked()) cells.drag(x, y, button, dx, dy);
+      return true;
+    }
     if (dragButton >= 0) {
       if (!gestureValid() || button != dragButton) cancelGesture();
       else {
@@ -566,7 +711,15 @@ final class ContainerDrawer {
     return handledPress;
   }
 
-  boolean release(double x, double y, int button) {
+  public boolean release(double x, double y, int button) {
+    if (elementButton >= 0) {
+      if (readyCells() && !inputLocked()) cells.release(x, y, button);
+      if (button == elementButton) {
+        elementButton = -1;
+        handledPress = false;
+      }
+      return true;
+    }
     boolean handled = handledPress;
     handledPress = false;
     layout();

@@ -16,15 +16,13 @@ import net.minecraft.world.item.Items;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.redstone.*;
 import zone.moddev.mc.lib.gui.layout.*;
-import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.runtime.RedstoneMenu;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Per-face redstone setup using the same neighbour grid and frame as the inventory drawer. */
-final class RedstoneDrawer {
-  private final MachineScreen screen;
+public final class RedstoneDrawer extends Drawer {
   private final RedstoneMenu model;
   private final FaceConfigRenderer faces = new FaceConfigRenderer();
-  private final ItemStack tabIcon = new ItemStack(Items.REDSTONE);
   private static final RelativeFace[] FACES = RelativeFace.values();
   private static final ResourceLocation
       DISABLED = ResourceLocation.parse("mmdlib:side_mode_disabled"),
@@ -48,30 +46,22 @@ final class RedstoneDrawer {
   private int sliderHandle = -1, sliderFace, previewLow, previewHigh;
   private long sliderRevision;
 
-  RedstoneDrawer(MachineScreen screen) {
-    this.screen = screen;
-    model = screen.getMenu().redstone;
+  public RedstoneDrawer(
+      MachineScreen screen, zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition) {
+    super(screen, definition, IconSprite.item(() -> new ItemStack(Items.REDSTONE)), 0xc78181);
+    model = screen.getMenu().components().get(BuiltinMenuComponents.REDSTONE);
   }
 
   void layout() {
     var panel = screen.panelBounds();
-    tab =
-        new Rect(
-            panel.right(),
-            panel.y()
-                + AutomationLayout.TOP
-                + (screen.getMenu().automation == null
-                    ? 0
-                    : AutomationLayout.TAB_HEIGHT + ScreenLayout.TAB_GAP),
-            AutomationLayout.RAIL,
-            AutomationLayout.TAB_HEIGHT);
+    tab = super.tabBounds();
     if (!model.open()) return;
     int height = contentHeight();
     body =
         SideDrawerLayout.body(
             panel,
             screen.drawerBottom(),
-            tab.right(),
+            SideDrawerLayout.bodyX(edge(), tab, RedstoneLayout.WIDTH),
             panel.y() + AutomationLayout.TOP,
             RedstoneLayout.WIDTH,
             height,
@@ -99,12 +89,10 @@ final class RedstoneDrawer {
     return Component.translatable("screen.mmdlib.redstone." + key, args);
   }
 
-  void render(GuiGraphics g, int mx, int my) {
+  public void render(GuiGraphics g, int mx, int my) {
     layout();
     tooltip = List.of();
-    if (model.open()) SideDrawerRenderer.open(g, tab, body, Element.Edge.RIGHT, 0xc78181);
-    else SideDrawerRenderer.tab(g, tab, 0xc78181);
-    renderTabIcon(g);
+    drawFrame(g, tab, body, model.open());
     if (tab.contains(mx, my)) tooltip = List.of(text("title"));
     if (!model.open()) return;
     g.enableScissor(body.x(), body.y(), body.right(), body.bottom());
@@ -387,18 +375,51 @@ final class RedstoneDrawer {
     g.pose().popPose();
   }
 
-  void tooltip(GuiGraphics g, int x, int y) {
+  public void tooltip(GuiGraphics g, int x, int y) {
     if (!tooltip.isEmpty()) g.renderComponentTooltip(Minecraft.getInstance().font, tooltip, x, y);
   }
 
-  void renderTab(GuiGraphics g) {
+  public Rect tabBounds() {
     layout();
-    SideDrawerRenderer.tab(g, tab, 0xc78181);
-    renderTabIcon(g);
+    return tab;
   }
 
-  private void renderTabIcon(GuiGraphics g) {
-    g.renderItem(tabIcon, tab.x() + 3, tab.y() + 4);
+  public boolean open() {
+    return model.open();
+  }
+
+  public boolean pending() {
+    return model.pending();
+  }
+
+  public void close() {
+    if (open() && !pending()) model.send(RedstoneMenu.TOGGLE, model.selected(), 0, 0);
+  }
+
+  public Selection selection() {
+    return new Selection("", model.selected());
+  }
+
+  public boolean restore(Selection selection) {
+    if (pending()) return false;
+    if (!open()) {
+      model.send(RedstoneMenu.TOGGLE, 0, 0, 0);
+      return false;
+    }
+    if (model.selected() != selection.offset())
+      model.send(RedstoneMenu.SELECT, selection.offset(), 0, 0);
+    activated();
+    return true;
+  }
+
+  public void resized() {
+    sliderHandle = -1;
+    handled = false;
+  }
+
+  @Override
+  protected void drawIcon(GuiGraphics g, Rect tab) {
+    super.drawIcon(g, tab);
     if (model.watching()) {
       g.pose().pushPose();
       g.pose().translate(0, 0, 200);
@@ -407,12 +428,12 @@ final class RedstoneDrawer {
     }
   }
 
-  List<Rect> exclusions() {
+  public List<Rect> exclusions() {
     layout();
     return model.open() ? List.of(SideDrawerLayout.rail(tab, body), body) : List.of(tab);
   }
 
-  boolean contains(double x, double y) {
+  public boolean contains(double x, double y) {
     layout();
     return tab.contains(x, y)
         || model.open() && (body.contains(x, y) || SideDrawerLayout.rail(tab, body).contains(x, y));
@@ -421,20 +442,13 @@ final class RedstoneDrawer {
   private void send(int kind, int face, int column, int value) {
     if (model.send(kind, face, column, value)) {
       if (kind == RedstoneMenu.TOGGLE || kind == RedstoneMenu.SELECT)
-        screen.rememberRedstoneIntent(kind, face);
-      if (kind == RedstoneMenu.TOGGLE && !model.open()) screen.closeRightPopouts();
+        remember(kind != RedstoneMenu.TOGGLE || !model.open(), new Selection("", face));
+      if (kind == RedstoneMenu.TOGGLE && !model.open()) activated();
     }
   }
 
-  boolean click(double x, double y, int button) {
-    var panel = screen.panelBounds();
-    if (screen.getMenu().automation != null
-        && new Rect(
-                panel.right(),
-                panel.y() + AutomationLayout.TOP,
-                AutomationLayout.RAIL,
-                AutomationLayout.TAB_HEIGHT)
-            .contains(x, y)) return false;
+  public boolean click(double x, double y, int button) {
+    if (otherTab(x, y)) return false;
     if (!contains(x, y)) return false;
     if (button < 0 || button > 1 || model.pending()) {
       handled = true;
@@ -500,7 +514,7 @@ final class RedstoneDrawer {
     return true;
   }
 
-  boolean scroll(double x, double y, double amount) {
+  public boolean scroll(double x, double y, double amount) {
     if (sliderHandle >= 0) return true;
     if (!contains(x, y) || !model.open()) return false;
     editorScroll =
@@ -511,7 +525,7 @@ final class RedstoneDrawer {
     return true;
   }
 
-  boolean key(int key) {
+  public boolean key(int key, int scan, int modifiers) {
     if (key == 256 && sliderHandle >= 0) {
       sliderHandle = -1;
       handled = false;
@@ -536,12 +550,12 @@ final class RedstoneDrawer {
     }
   }
 
-  boolean drag(double x, double y, int button) {
+  public boolean drag(double x, double y, int button, double dx, double dy) {
     if (sliderHandle >= 0 && button == 0) updateSlider(x);
     return handled;
   }
 
-  boolean release(double x, double y, int button) {
+  public boolean release(double x, double y, int button) {
     if (sliderHandle >= 0) {
       if (button != 0) return true;
       updateSlider(x);
