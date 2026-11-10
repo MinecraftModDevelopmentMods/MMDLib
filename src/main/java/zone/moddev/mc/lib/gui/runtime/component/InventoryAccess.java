@@ -8,11 +8,11 @@ import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 
 /** Optional bridge for named machine storage and ghost slots. */
 public interface InventoryAccess extends MenuComponent {
-  int menuSlot(int storageIndex);
+    int menuSlot(int storageIndex);
 
-  int menuSlot(ItemInventories.Address address);
+    int menuSlot(ItemInventories.Address address);
 
-  boolean ghost(SlotElement slot, Player player, ItemStack stack);
+    boolean ghost(SlotElement slot, Player player, ItemStack stack);
 
-  ItemStack hint(SlotElement slot);
+    ItemStack hint(SlotElement slot);
 }

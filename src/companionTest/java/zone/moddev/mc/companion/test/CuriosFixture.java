@@ -19,95 +19,94 @@ import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
 /** Only loaded in the real optional-mod client run. Slot definitions/tags are test resources. */
 final class CuriosFixture {
-  private static ContainerDrawerNetwork.Request stale;
+    private static ContainerDrawerNetwork.Request stale;
 
-  static void setup(ServerPlayer player) {
-    var inventory = CuriosApi.getCuriosInventory(player).orElseThrow();
-    var rings = inventory.getStacksHandler("ring").orElseThrow();
-    require(
-        rings.hasCosmetic() && rings.getStacks().getSlots() == 3,
-        "Cosmetic fixture slots registered");
-    require(
-        rings.getStacks().insertItem(0, new ItemStack(Items.DIAMOND), false).isEmpty(),
-        "Functional fixture accepts tagged item");
-    var locked = new ItemStack(Items.DIAMOND);
-    locked.set(
-        net.minecraft.core.component.DataComponents.CUSTOM_NAME,
-        net.minecraft.network.chat.Component.literal("Locked ring"));
-    rings.getStacks().insertItem(1, locked, false);
-    rings.getCosmeticStacks().insertItem(0, new ItemStack(Items.EMERALD), false);
-    inventory
-        .getStacksHandler("necklace")
-        .orElseThrow()
-        .getStacks()
-        .insertItem(0, new ItemStack(Items.GOLD_INGOT), false);
-    inventory
-        .getStacksHandler("charm")
-        .orElseThrow()
-        .getStacks()
-        .insertItem(11, new ItemStack(Items.AMETHYST_SHARD), false);
-    checkInactive(player);
-    // Keep one empty pair inactive for the client presentation/interaction checks.
-    inventory.setSlotActive("ring", 2, false);
-    NeoForge.EVENT_BUS.addListener(
-        (CurioCanUnequipEvent event) -> {
-          if (event.getSlotContext().entity() == player
-              && event.getSlotContext().identifier().equals("ring")
-              && event.getSlotContext().index() == 1) event.setUnequipResult(TriState.FALSE);
-        });
-  }
-
-  private static void checkInactive(ServerPlayer player) {
-    var inventory = CuriosApi.getCuriosInventory(player).orElseThrow();
-    var identity = new ItemStack(Items.CHEST);
-    var live =
-        zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity).getFirst().items();
-    inventory.setSlotActive("ring", 0, false);
-    for (int slot : new int[] {0, 1}) {
-      require(
-          live.extractItem(slot, 1, true).isEmpty() && live.extractItem(slot, 1, false).isEmpty(),
-          "Retained handler rejects inactive extraction");
-      require(
-          !live.isItemValid(slot, new ItemStack(Items.DIAMOND))
-              && live.insertItem(slot, new ItemStack(Items.DIAMOND), true).getCount() == 1
-              && live.insertItem(slot, new ItemStack(Items.DIAMOND), false).getCount() == 1,
-          "Retained handler rejects inactive insertion");
+    static void setup(ServerPlayer player) {
+        var inventory = CuriosApi.getCuriosInventory(player).orElseThrow();
+        var rings = inventory.getStacksHandler("ring").orElseThrow();
+        require(
+            rings.hasCosmetic() && rings.getStacks().getSlots() == 3,
+            "Cosmetic fixture slots registered");
+        require(
+            rings.getStacks().insertItem(0, new ItemStack(Items.DIAMOND), false).isEmpty(),
+            "Functional fixture accepts tagged item");
+        var locked = new ItemStack(Items.DIAMOND);
+        locked.set(
+            net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+            net.minecraft.network.chat.Component.literal("Locked ring"));
+        rings.getStacks().insertItem(1, locked, false);
+        rings.getCosmeticStacks().insertItem(0, new ItemStack(Items.EMERALD), false);
+        inventory
+            .getStacksHandler("necklace")
+            .orElseThrow()
+            .getStacks()
+            .insertItem(0, new ItemStack(Items.GOLD_INGOT), false);
+        inventory
+            .getStacksHandler("charm")
+            .orElseThrow()
+            .getStacks()
+            .insertItem(11, new ItemStack(Items.AMETHYST_SHARD), false);
+        checkInactive(player);
+        // Keep one empty pair inactive for the client presentation/interaction checks.
+        inventory.setSlotActive("ring", 2, false);
+        NeoForge.EVENT_BUS.addListener(
+            (CurioCanUnequipEvent event) -> {
+                if (event.getSlotContext().entity() == player
+                    && event.getSlotContext().identifier().equals("ring")
+                    && event.getSlotContext().index() == 1)
+                    event.setUnequipResult(TriState.FALSE);
+            });
     }
-    var fresh =
-        (zone.moddev.mc.lib.gui.runtime.EquippedContainers.DescribedHandler)
-            zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity)
-                .getFirst()
-                .items();
-    require(
-        !fresh.describe(0).available() && !fresh.describe(1).available(),
-        "Both inactive functional/cosmetic slots are presented as unavailable");
-    inventory.setSlotActive("ring", 0, true);
-    require(
-        live.getStackInSlot(0).is(Items.DIAMOND) && live.getStackInSlot(1).is(Items.EMERALD),
-        "Inactive attempts preserve functional and cosmetic contents");
-    inventory.setSlotActive("ring", 2, false);
-    fresh =
-        (zone.moddev.mc.lib.gui.runtime.EquippedContainers.DescribedHandler)
-            zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity)
-                .getFirst()
-                .items();
-    for (int slot : new int[] {4, 5})
-      require(
-          fresh.insertItem(slot, new ItemStack(Items.DIAMOND), false).getCount() == 1,
-          "Inactive empty pair refuses otherwise valid items");
-    inventory.setSlotActive("ring", 2, true);
-    inventory.setSlotActive("back", 0, false);
-    require(
-        zone.moddev.mc.lib.gui.runtime.EquippedContainers.find(player).isEmpty(),
-        "Inactive backpack is not exposed as storage");
-    inventory.setSlotActive("back", 0, true);
-  }
 
-  static void resize(ServerPlayer player) {
-    var menu = (MachineMenu) player.containerMenu;
-    var drawer = menu.components().get(BuiltinMenuComponents.CURIOS);
-    stale =
-        new ContainerDrawerNetwork.Request(
+    private static void checkInactive(ServerPlayer player) {
+        var inventory = CuriosApi.getCuriosInventory(player).orElseThrow();
+        var identity = new ItemStack(Items.CHEST);
+        var live = zone.moddev.mc.lib.compat.curios.CuriosEquipment.find(player, identity)
+            .getFirst().items();
+        inventory.setSlotActive("ring", 0, false);
+        for (int slot : new int[]{0, 1}) {
+            require(
+                live.extractItem(slot, 1, true).isEmpty()
+                    && live.extractItem(slot, 1, false).isEmpty(),
+                "Retained handler rejects inactive extraction");
+            require(
+                !live.isItemValid(slot, new ItemStack(Items.DIAMOND))
+                    && live.insertItem(slot, new ItemStack(Items.DIAMOND), true).getCount() == 1
+                    && live.insertItem(slot, new ItemStack(Items.DIAMOND), false).getCount() == 1,
+                "Retained handler rejects inactive insertion");
+        }
+        var fresh = (zone.moddev.mc.lib.gui.runtime.EquippedContainers.DescribedHandler) zone.moddev.mc.lib.compat.curios.CuriosEquipment
+            .find(player, identity)
+            .getFirst()
+            .items();
+        require(
+            !fresh.describe(0).available() && !fresh.describe(1).available(),
+            "Both inactive functional/cosmetic slots are presented as unavailable");
+        inventory.setSlotActive("ring", 0, true);
+        require(
+            live.getStackInSlot(0).is(Items.DIAMOND) && live.getStackInSlot(1).is(Items.EMERALD),
+            "Inactive attempts preserve functional and cosmetic contents");
+        inventory.setSlotActive("ring", 2, false);
+        fresh = (zone.moddev.mc.lib.gui.runtime.EquippedContainers.DescribedHandler) zone.moddev.mc.lib.compat.curios.CuriosEquipment
+            .find(player, identity)
+            .getFirst()
+            .items();
+        for (int slot : new int[]{4, 5})
+            require(
+                fresh.insertItem(slot, new ItemStack(Items.DIAMOND), false).getCount() == 1,
+                "Inactive empty pair refuses otherwise valid items");
+        inventory.setSlotActive("ring", 2, true);
+        inventory.setSlotActive("back", 0, false);
+        require(
+            zone.moddev.mc.lib.gui.runtime.EquippedContainers.find(player).isEmpty(),
+            "Inactive backpack is not exposed as storage");
+        inventory.setSlotActive("back", 0, true);
+    }
+
+    static void resize(ServerPlayer player) {
+        var menu = (MachineMenu) player.containerMenu;
+        var drawer = menu.components().get(BuiltinMenuComponents.CURIOS);
+        stale = new ContainerDrawerNetwork.Request(
             menu.containerId,
             true,
             menu.widgetSession(),
@@ -117,31 +116,32 @@ final class CuriosFixture {
             0,
             drawer.state().pageSize(),
             ItemStack.EMPTY);
-    CuriosApi.getCuriosInventory(player)
-        .orElseThrow()
-        .addTransientSlotModifier(
-            "ring",
-            ResourceLocation.parse("mmdlib_companion:drawer_test"),
-            1,
-            AttributeModifier.Operation.ADD_VALUE);
-  }
-
-  static void checkStale(ServerPlayer player) {
-    var menu = (MachineMenu) player.containerMenu;
-    menu.components().get(BuiltinMenuComponents.CURIOS).action(player, stale);
-    require(menu.getCarried().isEmpty(), "Pre-resize request cannot mutate the new topology");
-    require(
         CuriosApi.getCuriosInventory(player)
             .orElseThrow()
-            .getStacksHandler("ring")
-            .orElseThrow()
-            .getStacks()
-            .getStackInSlot(0)
-            .is(Items.DIAMOND),
-        "Stale click left equipment intact");
-  }
+            .addTransientSlotModifier(
+                "ring",
+                ResourceLocation.parse("mmdlib_companion:drawer_test"),
+                1,
+                AttributeModifier.Operation.ADD_VALUE);
+    }
 
-  private static void require(boolean ok, String message) {
-    if (!ok) throw new AssertionError(message);
-  }
+    static void checkStale(ServerPlayer player) {
+        var menu = (MachineMenu) player.containerMenu;
+        menu.components().get(BuiltinMenuComponents.CURIOS).action(player, stale);
+        require(menu.getCarried().isEmpty(), "Pre-resize request cannot mutate the new topology");
+        require(
+            CuriosApi.getCuriosInventory(player)
+                .orElseThrow()
+                .getStacksHandler("ring")
+                .orElseThrow()
+                .getStacks()
+                .getStackInSlot(0)
+                .is(Items.DIAMOND),
+            "Stale click left equipment intact");
+    }
+
+    private static void require(boolean ok, String message) {
+        if (!ok)
+            throw new AssertionError(message);
+    }
 }

@@ -28,57 +28,63 @@ public record MachineDefinition(
     String processorName,
     boolean redstone,
     Node screen) {
-  public MachineDefinition {
-    textures = Map.copyOf(textures);
-    slots = List.copyOf(slots);
-    groups = List.copyOf(groups);
-  }
-
-  public record Power(String id, long capacity, long input, long output, int color) {}
-
-  /** Stable names of the independent inventories, in legacy capability slot order. */
-  public List<String> inventoryNames() {
-    var names = new java.util.ArrayList<>(java.util.Collections.nCopies(slots.size(), "items"));
-    for (var group : groups) for (int member : group.members()) names.set(member, group.id());
-    return List.copyOf(names);
-  }
-
-  public List<Integer> inventorySlots(String name) {
-    var names = inventoryNames();
-    return java.util.stream.IntStream.range(0, names.size())
-        .filter(i -> names.get(i).equals(name))
-        .boxed()
-        .toList();
-  }
-
-  public record Slot(String id, Role role, int limit) {}
-
-  public record Tank(String id, Role role, int capacity, ResourceLocation fluid) {}
-
-  public record Fluids(String id, List<Tank> tanks, List<Group> groups) {
-    public Fluids {
-      tanks = List.copyOf(tanks);
-      groups = List.copyOf(groups);
+    public MachineDefinition {
+        textures = Map.copyOf(textures);
+        slots = List.copyOf(slots);
+        groups = List.copyOf(groups);
     }
-  }
 
-  public record Group(String id, List<Integer> members, IoMode mode, int color) {
-    public Group {
-      members = List.copyOf(members);
+    public record Power(String id, long capacity, long input, long output, int color) {
     }
-  }
 
-  public record RecipeType(
-      ResourceLocation id, boolean declare, String name, Generator generator) {}
-
-  public record Generator(
-      String className,
-      Map<String, String> properties,
-      String source,
-      int line,
-      ClassLoader loader) {
-    public Generator {
-      properties = Map.copyOf(properties);
+    /** Stable names of the independent inventories, in legacy capability slot order. */
+    public List<String> inventoryNames() {
+        var names = new java.util.ArrayList<>(java.util.Collections.nCopies(slots.size(), "items"));
+        for (var group : groups)
+            for (int member : group.members())
+                names.set(member, group.id());
+        return List.copyOf(names);
     }
-  }
+
+    public List<Integer> inventorySlots(String name) {
+        var names = inventoryNames();
+        return java.util.stream.IntStream.range(0, names.size())
+            .filter(i -> names.get(i).equals(name))
+            .boxed()
+            .toList();
+    }
+
+    public record Slot(String id, Role role, int limit) {
+    }
+
+    public record Tank(String id, Role role, int capacity, ResourceLocation fluid) {
+    }
+
+    public record Fluids(String id, List<Tank> tanks, List<Group> groups) {
+        public Fluids {
+            tanks = List.copyOf(tanks);
+            groups = List.copyOf(groups);
+        }
+    }
+
+    public record Group(String id, List<Integer> members, IoMode mode, int color) {
+        public Group {
+            members = List.copyOf(members);
+        }
+    }
+
+    public record RecipeType(
+        ResourceLocation id, boolean declare, String name, Generator generator) {
+    }
+
+    public record Generator(
+        String className,
+        Map<String, String> properties,
+        String source,
+        int line,
+        ClassLoader loader) {
+        public Generator {
+            properties = Map.copyOf(properties);
+        }
+    }
 }

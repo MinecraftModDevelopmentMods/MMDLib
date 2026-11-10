@@ -13,17 +13,16 @@ public record ResourceValidationContext(
     Map<String, Integer> resources,
     Map<String, Integer> inventories,
     Map<String, Set<String>> bindings) {
-  public ResourceValidationContext {
-    Objects.requireNonNull(screen);
-    resources = Map.copyOf(resources);
-    inventories = Map.copyOf(inventories);
-    bindings =
-        bindings.entrySet().stream()
+    public ResourceValidationContext {
+        Objects.requireNonNull(screen);
+        resources = Map.copyOf(resources);
+        inventories = Map.copyOf(inventories);
+        bindings = bindings.entrySet().stream()
             .collect(
                 Collectors.toUnmodifiableMap(
                     Map.Entry::getKey, entry -> Set.copyOf(entry.getValue())));
-    if (resources.values().stream().anyMatch(count -> count < 0)
-        || inventories.values().stream().anyMatch(count -> count < 0))
-      throw new IllegalArgumentException("Negative resource count");
-  }
+        if (resources.values().stream().anyMatch(count -> count < 0)
+            || inventories.values().stream().anyMatch(count -> count < 0))
+            throw new IllegalArgumentException("Negative resource count");
+    }
 }

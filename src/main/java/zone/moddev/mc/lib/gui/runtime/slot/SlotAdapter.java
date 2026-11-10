@@ -10,18 +10,21 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /** Optional behavior implemented by native slots, including mod-provided slot classes. */
 public interface SlotAdapter {
-  default void endInteraction() {}
+    default void endInteraction() {
+    }
 
-  default SlotPlan plan() {
-    return SlotPlan.NONE;
-  }
+    default SlotPlan plan() {
+        return SlotPlan.NONE;
+    }
 
-  default void applyPlan(SlotPlan plan) {}
+    default void applyPlan(SlotPlan plan) {
+    }
 
-  /**
-   * Empty delegates to vanilla-style transfer; a present empty stack means handled without moving.
-   */
-  default Optional<ItemStack> quickMove(Player player, Predicate<ItemStack> move) {
-    return Optional.empty();
-  }
+    /**
+     * Empty delegates to vanilla-style transfer; a present empty stack means handled without
+     * moving.
+     */
+    default Optional<ItemStack> quickMove(Player player, Predicate<ItemStack> move) {
+        return Optional.empty();
+    }
 }

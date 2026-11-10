@@ -4,7 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 
 /** Server-authoritative drawer state. Its registered type determines the exclusion edge. */
 public interface DrawerSession extends MenuComponent {
-  ResourceLocation drawerType();
+    ResourceLocation drawerType();
 
-  void closeServer();
+    void closeServer();
 }

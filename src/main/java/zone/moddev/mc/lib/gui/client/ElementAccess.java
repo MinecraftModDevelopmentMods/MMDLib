@@ -14,48 +14,48 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /** Live services for one client behavior; no host getters or raw packet/menu access. */
 public interface ElementAccess {
-  Element element();
+    Element element();
 
-  Rect bounds();
+    Rect bounds();
 
-  Object value();
+    Object value();
 
-  Object maximum();
+    Object maximum();
 
-  ElementRenderAccess presentation();
+    ElementRenderAccess presentation();
 
-  /** Optional host-specific behavior services; render access stays read-only. */
-  default <T> java.util.Optional<T> service(Class<T> type) {
-    return java.util.Optional.empty();
-  }
+    /** Optional host-specific behavior services; render access stays read-only. */
+    default <T> java.util.Optional<T> service(Class<T> type) {
+        return java.util.Optional.empty();
+    }
 
-  List<Element> elements();
+    List<Element> elements();
 
-  ResourceLocation screenId();
+    ResourceLocation screenId();
 
-  boolean pending(Element element);
+    boolean pending(Element element);
 
-  <T> boolean submit(Element element, ElementAction<T> action, T value);
+    <T> boolean submit(Element element, ElementAction<T> action, T value);
 
-  default <T> boolean submit(ElementAction<T> action, T value) {
-    return submit(element(), action, value);
-  }
+    default <T> boolean submit(ElementAction<T> action, T value) {
+        return submit(element(), action, value);
+    }
 
-  default boolean click(ElementAction<ElementActions.Click> action, int button, int option) {
-    return submit(action, new ElementActions.Click(button, modifiers(), option));
-  }
+    default boolean click(ElementAction<ElementActions.Click> action, int button, int option) {
+        return submit(action, new ElementActions.Click(button, modifiers(), option));
+    }
 
-  default int modifiers() {
-    return (net.minecraft.client.gui.screens.Screen.hasShiftDown() ? 1 : 0)
-        | (net.minecraft.client.gui.screens.Screen.hasControlDown() ? 2 : 0)
-        | (net.minecraft.client.gui.screens.Screen.hasAltDown() ? 4 : 0);
-  }
+    default int modifiers() {
+        return (net.minecraft.client.gui.screens.Screen.hasShiftDown() ? 1 : 0)
+            | (net.minecraft.client.gui.screens.Screen.hasControlDown() ? 2 : 0)
+            | (net.minecraft.client.gui.screens.Screen.hasAltDown() ? 4 : 0);
+    }
 
-  void navigate(String context, String view);
+    void navigate(String context, String view);
 
-  ItemStack carried();
+    ItemStack carried();
 
-  SlotPlan reservation(SlotElement element);
+    SlotPlan reservation(SlotElement element);
 
-  boolean showRecipes();
+    boolean showRecipes();
 }

@@ -15,16 +15,16 @@ public record DrawerDefinition(
     Optional<Element> element,
     int toolbarWidth,
     boolean interactive) {
-  public DrawerDefinition {
-    Objects.requireNonNull(type);
-    Objects.requireNonNull(id);
-    Objects.requireNonNull(placement);
-    Objects.requireNonNull(element);
-    if (id.isBlank() || toolbarWidth < 0 || toolbarWidth > 8192)
-      throw new IllegalArgumentException("Invalid drawer definition");
-  }
+    public DrawerDefinition {
+        Objects.requireNonNull(type);
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(placement);
+        Objects.requireNonNull(element);
+        if (id.isBlank() || toolbarWidth < 0 || toolbarWidth > 8192)
+            throw new IllegalArgumentException("Invalid drawer definition");
+    }
 
-  public DrawerDefinition(ResourceLocation type, String id, DrawerPlacement placement) {
-    this(type, id, placement, Optional.empty(), 0, true);
-  }
+    public DrawerDefinition(ResourceLocation type, String id, DrawerPlacement placement) {
+        this(type, id, placement, Optional.empty(), 0, true);
+    }
 }

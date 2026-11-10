@@ -7,13 +7,13 @@ import zone.moddev.mc.lib.api.automation.FilterControl;
  */
 @FunctionalInterface
 public interface FilterEdits {
-  boolean submit(FilterControl control, int entry, String value);
+    boolean submit(FilterControl control, int entry, String value);
 
-  static boolean submit(ElementAccess access, FilterControl control, int entry, String value) {
-    return !access.pending(control)
-        && access
-            .service(FilterEdits.class)
-            .map(service -> service.submit(control, entry, value))
-            .orElse(false);
-  }
+    static boolean submit(ElementAccess access, FilterControl control, int entry, String value) {
+        return !access.pending(control)
+            && access
+                .service(FilterEdits.class)
+                .map(service -> service.submit(control, entry, value))
+                .orElse(false);
+    }
 }

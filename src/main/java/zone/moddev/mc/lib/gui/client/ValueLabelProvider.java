@@ -6,5 +6,5 @@ import zone.moddev.mc.lib.gui.model.Text;
 
 /** Optional human-readable label for a behavior's current value. */
 public interface ValueLabelProvider {
-  Optional<Text> valueLabel();
+    Optional<Text> valueLabel();
 }

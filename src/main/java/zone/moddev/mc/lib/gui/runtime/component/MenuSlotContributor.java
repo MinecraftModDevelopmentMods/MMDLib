@@ -10,17 +10,19 @@ import zone.moddev.mc.lib.gui.runtime.slot.MenuSlots;
 
 /** Optional native-slot assembly, placement and shift-click routing. */
 public interface MenuSlotContributor extends MenuComponent {
-  void addSlots(MenuSlots.Registrar slots, ScreenLayout layout);
+    void addSlots(MenuSlots.Registrar slots, ScreenLayout layout);
 
-  default void finishSlots(MenuSlots.Registrar slots, ScreenLayout layout) {}
+    default void finishSlots(MenuSlots.Registrar slots, ScreenLayout layout) {
+    }
 
-  default void position(ScreenLayout layout) {}
+    default void position(ScreenLayout layout) {
+    }
 
-  default int transferPriority() {
-    return 0;
-  }
+    default int transferPriority() {
+        return 0;
+    }
 
-  default List<Slot> destinations(ItemStack stack) {
-    return List.of();
-  }
+    default List<Slot> destinations(ItemStack stack) {
+        return List.of();
+    }
 }

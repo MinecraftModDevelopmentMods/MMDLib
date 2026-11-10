@@ -8,5 +8,5 @@ import zone.moddev.mc.lib.gui.model.Element;
 
 /** Read-only synchronized tooltip rows. Element hooks own their meaning and composition. */
 public interface ServerTooltips extends MenuComponent {
-  List<Component> lines(Element element);
+    List<Component> lines(Element element);
 }

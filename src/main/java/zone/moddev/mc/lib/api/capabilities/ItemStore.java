@@ -16,31 +16,31 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 /** Item storage access, including a combined view over independently owned inventories. */
 public interface ItemStore extends IItemHandlerModifiable, ReservedSlots {
-  /** Physical owner and local index, used for reservation and transaction identity. */
-  ItemStorage storage(int slot);
+    /** Physical owner and local index, used for reservation and transaction identity. */
+    ItemStorage storage(int slot);
 
-  int localSlot(int slot);
+    int localSlot(int slot);
 
-  Role role(int slot);
+    Role role(int slot);
 
-  ItemStore restrict(Predicate<ItemStack> filter, int... slots);
+    ItemStore restrict(Predicate<ItemStack> filter, int... slots);
 
-  ItemStack insertResult(int slot, ItemStack stack, boolean simulate);
+    ItemStack insertResult(int slot, ItemStack stack, boolean simulate);
 
-  void restoreStack(int slot, ItemStack stack);
+    void restoreStack(int slot, ItemStack stack);
 
-  long revision();
+    long revision();
 
-  void markChanged();
+    void markChanged();
 
-  void clear();
+    void clear();
 
-  CompoundTag serializeNBT(HolderLookup.Provider registries);
+    CompoundTag serializeNBT(HolderLookup.Provider registries);
 
-  void deserializeNBT(
-      HolderLookup.Provider registries, CompoundTag tag, IntUnaryOperator legacySlots);
+    void deserializeNBT(
+        HolderLookup.Provider registries, CompoundTag tag, IntUnaryOperator legacySlots);
 
-  void dropAll(Level level, BlockPos pos, Consumer<CompoundTag> recovery);
+    void dropAll(Level level, BlockPos pos, Consumer<CompoundTag> recovery);
 
-  IItemHandler view(IntFunction<IoMode> mode);
+    IItemHandler view(IntFunction<IoMode> mode);
 }
