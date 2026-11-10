@@ -27,7 +27,7 @@ import zone.moddev.mc.lib.machine.neoforge.BaseMachine;
 @PrefixGameTestTemplate(false)
 public final class RedstoneConnectionTests {
     @GameTest(template = "empty")
-    public static void dustConnectsOnlyToConfiguredOutputs(GameTestHelper helper) {
+    public static void dustConnectsOnlyToConfiguredInputsAndOutputs(GameTestHelper helper) {
         var level = helper.getLevel();
         var pos = helper.absolutePos(new BlockPos(2, 2, 2));
         var dust = pos.east();
@@ -97,16 +97,17 @@ public final class RedstoneConnectionTests {
                 for (var mode : List.of(RedstoneControl.Mode.READ, RedstoneControl.Mode.IGNORE)) {
                     control.mode(face, mode);
                     control.updateOutputs();
-                    require(!state.canRedstoneConnectTo(level, pos, Direction.WEST),
-                        "Non-output face refuses dust while retaining its selection");
+                    boolean connected = mode == RedstoneControl.Mode.READ;
+                    require(state.canRedstoneConnectTo(level, pos, Direction.WEST) == connected,
+                        "Read accepts dust and Ignore refuses it while retaining the selection");
                     require(
                         level.getBlockState(dust)
-                            .getValue(RedStoneWireBlock.WEST) == RedstoneSide.NONE,
-                        "Disabling a zero-strength output disconnects existing dust");
+                            .getValue(RedStoneWireBlock.WEST).isConnected() == connected,
+                        "Dust geometry follows configured input/output faces at zero strength");
                     client.handleUpdateTag(machine.getUpdateTag(level.registryAccess()),
                         level.registryAccess());
-                    require(!client.screenRedstone().connects(Direction.WEST),
-                        "Client update clears a disabled connection");
+                    require(client.screenRedstone().connects(Direction.WEST) == connected,
+                        "Client update preserves Read and clears Ignore connections");
                     control.mode(face, RedstoneControl.Mode.EMIT);
                     control.updateOutputs();
                 }
@@ -118,6 +119,16 @@ public final class RedstoneConnectionTests {
                     && level.getBlockState(dust)
                         .getValue(RedStoneWireBlock.WEST) == RedstoneSide.NONE,
                     "A removed output source disconnects dust");
+                control.mode(face, RedstoneControl.Mode.READ);
+                control.updateOutputs();
+                require(state.canRedstoneConnectTo(level, pos, Direction.WEST)
+                    && level.getBlockState(dust).getValue(RedStoneWireBlock.WEST).isConnected(),
+                    "Read connects without an available output source");
+                level.setBlock(dust.north().north(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+                control.readInputs();
+                require(control.incoming(face) > 0 && control.paused(),
+                    "A connected side branch delivers dust input and gates processing");
+                level.setBlock(dust.north().north(), Blocks.AIR.defaultBlockState(), 3);
                 for (var wirePos : List.of(dust.north(), dust, dust.south()))
                     level.setBlock(wirePos, Blocks.AIR.defaultBlockState(), 3);
             }

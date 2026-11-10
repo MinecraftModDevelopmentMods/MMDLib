@@ -2526,8 +2526,8 @@ processing it, so a held processor cannot retain a stale running signal. Save/lo
 tag and return `signal(direction)` from the block's redstone output hook. The direction passed
 to `signal` is Minecraft's query direction, not the outward face. Forward the block's
 `canConnectRedstone` hook to `redstone.connects(direction)` with that same query direction.
-Dust connects only to Emit faces with a selected, available output, including outputs currently
-at zero. Ignore, Read and unselected Emit faces do not connect. `updateOutputs()` refreshes
+Dust connects to Read faces and to Emit faces with a selected, available output, including outputs
+currently at zero. Ignore and unselected Emit faces do not connect. `updateOutputs()` refreshes
 neighboring dust shapes when connections change. Include the controller tag in block-entity
 client updates so client-side connection queries agree; `BaseMachine` handles this automatically.
 Stateless hosts can call

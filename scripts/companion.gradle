@@ -61,6 +61,8 @@ neoForge {
             sourceSet = sourceSets.companionTest
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
             systemProperty 'mmdlib.companionSmoke', 'true'
+            if (project.hasProperty('redstoneConnectionSmokeOnly'))
+                systemProperty 'mmdlib.redstoneConnectionSmokeOnly', 'true'
             if (project.hasProperty('processorButtonSmokeOnly'))
                 systemProperty 'mmdlib.processorButtonSmokeOnly', 'true'
             if (project.hasProperty('rendererSmokeOnly'))

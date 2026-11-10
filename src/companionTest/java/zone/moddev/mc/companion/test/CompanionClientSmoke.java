@@ -313,6 +313,17 @@ public final class CompanionClientSmoke {
         if (menu.blockEntity.getType() != expected || ++frames < 25)
             return;
         try {
+            if (Boolean.getBoolean("mmdlib.redstoneConnectionSmokeOnly")) {
+                waitingTicks = 0;
+                frames = 0;
+                if (!RedstoneConnectionClientSmoke.run(screen))
+                    return;
+                finished = true;
+                MMDLib.LOGGER.info(
+                    "COMPANION_CLIENT_PASS: redstone drawer edits update client dust connections");
+                mc.stop();
+                return;
+            }
             if (Boolean.getBoolean("mmdlib.statsSmokeOnly")) {
                 waitingTicks = 0;
                 frames = 0;

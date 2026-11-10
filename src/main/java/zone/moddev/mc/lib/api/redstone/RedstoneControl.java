@@ -212,8 +212,9 @@ public final class RedstoneControl {
         for (int face = 0; face < 6; face++) {
             int index = source(face);
             int output = 0;
-            if (mode(face) == Mode.EMIT && index >= 0) {
+            if (connects(face))
                 newConnections |= 1 << world(face).ordinal();
+            if (mode(face) == Mode.EMIT && index >= 0) {
                 // At most six faces: reuse an earlier face's raw sample without a per-tick map.
                 int earlier = 0;
                 while (earlier < face
@@ -250,13 +251,20 @@ public final class RedstoneControl {
             .ordinal()];
     }
 
-    /** Dust uses the same receiver-to-block query direction as {@link #signal(Direction)}. */
+    /**
+     * Read faces and configured Emit faces accept dust. Uses the receiver-to-block query direction
+     * from {@link #signal(Direction)}.
+     */
     public boolean connects(@Nullable Direction queryDirection) {
         if (queryDirection == null)
             return false;
         int face = RelativeFace.of(
             RelativeFace.facing(owner.getBlockState()), queryDirection.getOpposite()).ordinal();
-        return mode(face) == Mode.EMIT && source(face) >= 0;
+        return connects(face);
+    }
+
+    private boolean connects(int face) {
+        return mode(face) == Mode.READ || mode(face) == Mode.EMIT && source(face) >= 0;
     }
 
     public CompoundTag save(HolderLookup.Provider registries) {
