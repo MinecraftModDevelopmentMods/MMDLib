@@ -2030,6 +2030,7 @@ and some values (ProjectE's EMC, for one) exceed even a Java `long`.
 | `tooltip-shift` | client | Detailed tooltip shown while Shift is held; a "Shift for more" hint is added automatically |
 | `on-click`, `on-right-click` | server | Handler IDs from extension files; the handler receives the player, menu, element, and held modifier keys |
 | `on-shift-click`, `on-shift-right-click` | server | Optional: used instead of the plain handler while Shift is held |
+| `click-sound` | client only | Sound event ID played for the player when the element is clicked, as an interface sound like vanilla's button click. Any sound in a `sounds.json` works, registered or not; see [sound events](definition-loading.md#sound-events) |
 | `interaction`, `interaction-target` | server | Reusable registered behavior and its screen-authored target; supported on every element except inventory slots |
 | `on-hover` | client only | Handler run when the mouse enters and leaves the element; display only, it cannot change game state |
 | `hover-shows` | client | ID of an element to show while hovering, without any handler |

@@ -21,6 +21,9 @@ import zone.moddev.mc.lib.common.codecs.EventExtension;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.modules.DataModules;
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
+import zone.moddev.mc.lib.common.types.CreativeTabDefinition;
+import zone.moddev.mc.lib.common.types.SoundDefinition;
+import zone.moddev.mc.lib.common.types.SoundTypeDefinition;
 import zone.moddev.mc.lib.common.types.StandaloneBlock;
 import zone.moddev.mc.lib.common.types.StandaloneItem;
 
@@ -30,8 +33,9 @@ import zone.moddev.mc.lib.common.types.StandaloneItem;
  * installed in a fixed order so results do not depend on timing: extension
  * files (event handlers), then modules, then code-built definitions from
  * {@link MaterialExtensions#registerDefinitionSource} (which may add modules),
- * then materials, then standalone blocks and items from files and sources. See
- * {@code docs/definition-loading.md}.
+ * then materials, then standalone blocks and items from files and sources.
+ * Sound events, block sound sets and creative tabs, which depend on nothing,
+ * are decoded with the modules. See {@code docs/definition-loading.md}.
  */
 public final class DefinitionLoader {
     private DefinitionLoader() {
@@ -39,10 +43,14 @@ public final class DefinitionLoader {
 
     private static final String STANDALONE_BLOCKS = "standalone/block";
     private static final String STANDALONE_ITEMS = "standalone/item";
+    private static final String SOUNDS = "sound";
+    private static final String SOUND_TYPES = "sound_type";
+    private static final String CREATIVE_TABS = "creative_tab";
 
     /**
      * root contains extension/, item/, block/, fluid/, material/,
-     * standalone/block/, standalone/item/. The caller owns its filesystem.
+     * standalone/block/, standalone/item/, sound/, sound_type/, creative_tab/.
+     * The caller owns its filesystem.
      */
     public record SourceRoot(String namespace, Path root,
         ClassLoader classLoader) {
@@ -72,18 +80,40 @@ public final class DefinitionLoader {
      *            the planned standalone blocks
      * @param standaloneItems
      *            the planned standalone items
+     * @param sounds
+     *            the sound events declared
+     * @param soundTypes
+     *            the block sound sets declared
+     * @param creativeTabs
+     *            the creative tabs declared
      */
     public record Loaded(ModuleCatalog modules,
         Map<ResourceLocation, EventExtension> extensions,
         Map<ResourceLocation, MaterialFactory.Result> materials,
         Map<ResourceLocation, MaterialFactory.Result> standalone,
-        Map<ResourceLocation, MaterialFactory.Result> standaloneItems) {
+        Map<ResourceLocation, MaterialFactory.Result> standaloneItems,
+        Map<ResourceLocation, SoundDefinition> sounds,
+        Map<ResourceLocation, SoundTypeDefinition> soundTypes,
+        Map<ResourceLocation, CreativeTabDefinition> creativeTabs) {
         /** Copies each map, sorted by ID. */
         public Loaded {
             extensions = immutableSorted(extensions);
             materials = immutableSorted(materials);
             standalone = immutableSorted(standalone);
             standaloneItems = immutableSorted(standaloneItems);
+            sounds = immutableSorted(sounds);
+            soundTypes = immutableSorted(soundTypes);
+            creativeTabs = immutableSorted(creativeTabs);
+        }
+
+        /** Everything loaded, without sound events, sound sets or tabs. */
+        public Loaded(ModuleCatalog modules,
+            Map<ResourceLocation, EventExtension> extensions,
+            Map<ResourceLocation, MaterialFactory.Result> materials,
+            Map<ResourceLocation, MaterialFactory.Result> standalone,
+            Map<ResourceLocation, MaterialFactory.Result> standaloneItems) {
+            this(modules, extensions, materials, standalone, standaloneItems,
+                Map.of(), Map.of(), Map.of());
         }
 
         /** Everything loaded, without standalone items. */
@@ -106,6 +136,9 @@ public final class DefinitionLoader {
         final Map<ResourceLocation, Located<Path>> materials = new TreeMap<>();
         final Map<ResourceLocation, Located<StandaloneBlock>> standalone = new TreeMap<>();
         final Map<ResourceLocation, Located<StandaloneItem>> standaloneItems = new TreeMap<>();
+        final Map<ResourceLocation, Located<SoundDefinition>> sounds = new TreeMap<>();
+        final Map<ResourceLocation, Located<SoundTypeDefinition>> soundTypes = new TreeMap<>();
+        final Map<ResourceLocation, Located<CreativeTabDefinition>> creativeTabs = new TreeMap<>();
 
         void merge(Batch other) {
             mergeInto(items, other.items);
@@ -115,6 +148,9 @@ public final class DefinitionLoader {
             mergeInto(materials, other.materials);
             mergeInto(standalone, other.standalone);
             mergeInto(standaloneItems, other.standaloneItems);
+            mergeInto(sounds, other.sounds);
+            mergeInto(soundTypes, other.soundTypes);
+            mergeInto(creativeTabs, other.creativeTabs);
         }
     }
 
@@ -147,10 +183,9 @@ public final class DefinitionLoader {
             .forEach((id, source) -> api.events().loadExtension(source.value(),
                 source.classLoader(), source.path().toString()));
         ordered.parallelStream()
-            .map(
-                source -> discover(source,
-                    List.of("block", "item", "fluid", "material",
-                        STANDALONE_BLOCKS, STANDALONE_ITEMS)))
+            .map(source -> discover(source,
+                List.of("block", "item", "fluid", "material", STANDALONE_BLOCKS,
+                    STANDALONE_ITEMS, SOUNDS, SOUND_TYPES, CREATIVE_TABS)))
             .toList().forEach(all::merge);
         all.items.forEach((id, source) -> install(source,
             () -> api.registerItemModule(id, source.value())));
@@ -282,7 +317,9 @@ public final class DefinitionLoader {
         return new Loaded(
             new ModuleCatalog(values(all.items), values(all.blocks),
                 values(all.fluids)),
-            values(all.extensions), materials, standalone, standaloneItems);
+            values(all.extensions), materials, standalone, standaloneItems,
+            values(all.sounds), values(all.soundTypes),
+            values(all.creativeTabs));
     }
 
     private static Batch discover(SourceRoot source, List<String> sections) {
@@ -322,6 +359,16 @@ public final class DefinitionLoader {
                         case STANDALONE_ITEMS ->
                             add(batch.standaloneItems, id, new Located<>(file,
                                 decode(file, StandaloneItem.CODEC), loader));
+                        case SOUNDS -> add(batch.sounds, id, new Located<>(file,
+                            decode(file, SoundDefinition.CODEC), loader));
+                        case CREATIVE_TABS -> add(batch.creativeTabs, id,
+                            new Located<>(file,
+                                decode(file, CreativeTabDefinition.CODEC),
+                                loader));
+                        case SOUND_TYPES -> add(batch.soundTypes, id,
+                            new Located<>(file,
+                                decode(file, SoundTypeDefinition.CODEC),
+                                loader));
                         default -> throw new IllegalStateException(
                             "Unhandled definition section: " + section);
                     }

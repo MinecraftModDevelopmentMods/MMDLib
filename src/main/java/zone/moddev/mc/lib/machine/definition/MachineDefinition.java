@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import net.minecraft.resources.ResourceLocation;
@@ -27,7 +28,7 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
     boolean redstone, Node screen, RecipeSelection recipeSelection,
-    List<Ghost> ghosts) {
+    List<Ghost> ghosts, Sounds sounds) {
     public record Ghost(String id, int count, ResourceLocation defaultItem) {
     }
 
@@ -66,6 +67,22 @@ public record MachineDefinition(ResourceLocation id, String checksum,
             slots, groups, recipeType, processor, processorName, redstone,
             screen, recipeSelection, List.of());
     }
+    /** Without processor sounds. */
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection,
+        List<Ghost> ghosts) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, ghosts, Sounds.NONE);
+    }
+
     public record RecipeSelection(ResourceLocation defaultRecipe) {
     }
 
@@ -118,6 +135,24 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         faceTextures = List.copyOf(faceTextures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
+        java.util.Objects.requireNonNull(sounds);
+    }
+
+    /**
+     * The processor's sounds, as sound event IDs.
+     *
+     * @param running
+     *            looped at the machine while a cycle runs
+     *            ({@code running-sound})
+     * @param finish
+     *            played at the machine when a cycle completes
+     *            ({@code finish-sound})
+     */
+    public record Sounds(Optional<ResourceLocation> running,
+        Optional<ResourceLocation> finish) {
+        /** No sounds. */
+        public static final Sounds NONE = new Sounds(Optional.empty(),
+            Optional.empty());
     }
 
     public Map<String, Object> visualDefaults() {

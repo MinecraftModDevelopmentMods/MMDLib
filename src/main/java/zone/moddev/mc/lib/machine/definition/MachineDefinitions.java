@@ -190,7 +190,7 @@ public final class MachineDefinitions {
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
         Map.entry("processor",
             Set.of("id", "name", "recipe-type", "filter-inputs", "selectable",
-                "default-recipe")),
+                "default-recipe", "running-sound", "finish-sound")),
         Map.entry("redstone", Set.of("enabled", "pause")),
         Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
@@ -227,7 +227,8 @@ public final class MachineDefinitions {
             case "part" -> List.of("model");
             case "face-texture" -> List.of("texture", "emissive-mask");
             case "recipe-type" -> List.of("id");
-            case "processor" -> List.of("recipe-type", "default-recipe");
+            case "processor" -> List.of("recipe-type", "default-recipe",
+                "running-sound", "finish-sound");
             case "tank", "tanks" -> List.of("fluid");
             case "slot", "slots" -> List.of("default-item");
             default -> List.<String>of();
@@ -627,7 +628,10 @@ public final class MachineDefinitions {
                         ? resource(processor, "default-recipe")
                         : null)
                 : null,
-            ghosts);
+            ghosts,
+            new MachineDefinition.Sounds(
+                optionalResource(processor, "running-sound"),
+                optionalResource(processor, "finish-sound")));
         var defaults = definition.hasConditionalAppearance()
             ? definition.visualDefaults()
             : Map.<String, Object>of();
@@ -639,6 +643,13 @@ public final class MachineDefinitions {
             }
         }
         return definition;
+    }
+
+    private static java.util.Optional<ResourceLocation> optionalResource(
+        Node node, String key) {
+        return node.attributes().containsKey(key)
+            ? java.util.Optional.of(resource(node, key))
+            : java.util.Optional.empty();
     }
 
     public static String required(Node node, String key) {

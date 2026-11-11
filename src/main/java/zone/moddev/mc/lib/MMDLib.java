@@ -30,9 +30,12 @@ import zone.moddev.mc.lib.api.MaterialRegistration;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader;
 import zone.moddev.mc.lib.common.runtime.ItemEventBridge;
+import zone.moddev.mc.lib.common.runtime.SoundTypes;
+import zone.moddev.mc.lib.common.types.CreativeTabDefinition;
 import zone.moddev.mc.lib.common.types.MMDBlock;
 import zone.moddev.mc.lib.common.types.MMDItem;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
+import zone.moddev.mc.lib.common.types.SoundDefinition;
 import zone.moddev.mc.lib.compat.CraftTweaker.CraftTweakerInit;
 
 /**
@@ -74,6 +77,10 @@ public class MMDLib {
     private static volatile Map<ResourceLocation, MaterialFactory.Result> standaloneBlocks = Map
         .of();
     private static volatile Map<ResourceLocation, MaterialFactory.Result> standaloneItems = Map
+        .of();
+    private static volatile Map<ResourceLocation, SoundDefinition> sounds = Map
+        .of();
+    private static volatile Map<ResourceLocation, CreativeTabDefinition> creativeTabs = Map
         .of();
     private static volatile Map<ResourceLocation, MMDItem> itemDefinitions = Map
         .of();
@@ -121,6 +128,24 @@ public class MMDLib {
      */
     public static Map<ResourceLocation, MaterialFactory.Result> standaloneItems() {
         return standaloneItems;
+    }
+
+    /**
+     * Sound events declared in every mod's {@code mmdlib/sound/}, by ID. MMDLib
+     * registers its own namespace's; another mod queues its own with
+     * {@link zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar#queueSound}.
+     */
+    public static Map<ResourceLocation, SoundDefinition> sounds() {
+        return sounds;
+    }
+
+    /**
+     * Creative tabs declared in every mod's {@code mmdlib/creative_tab/}, by
+     * ID. MMDLib registers its own namespace's; another mod queues its own with
+     * {@link zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar#queueTab}.
+     */
+    public static Map<ResourceLocation, CreativeTabDefinition> creativeTabs() {
+        return creativeTabs;
     }
 
     /**
@@ -214,6 +239,18 @@ public class MMDLib {
         loadedMaterials = loaded.materials();
         standaloneBlocks = loaded.standalone();
         standaloneItems = loaded.standaloneItems();
+        sounds = loaded.sounds();
+        SoundTypes.install(loaded.soundTypes());
+        creativeTabs = loaded.creativeTabs();
+        creativeTabs.forEach((id, tab) -> {
+            if (id.getNamespace().equals(MODID))
+                runtime.queueTab(id, tab);
+        });
+        checkBlockSounds(blocks, blockOwners);
+        sounds.forEach((id, sound) -> {
+            if (id.getNamespace().equals(MODID))
+                runtime.queueSound(id, sound);
+        });
         results.stream().filter(result -> result.material().name().orElseThrow()
             .getNamespace().equals(MODID)).forEach(runtime::queue);
         runtime.blockEntityHandles().values()
@@ -223,12 +260,33 @@ public class MMDLib {
         LOGGER.info(
             "Loaded MMDLib definitions: {} item modules, {} block modules, {} fluid modules, {}"
                 + " extension files, {} materials, {} standalone blocks, {} standalone items, {}"
-                + " screens",
+                + " sound events, {} creative tabs, {} screens",
             loaded.modules().items().size(), loaded.modules().blocks().size(),
             loaded.modules().fluids().size(), loaded.extensions().size(),
             loadedMaterials.size(), standaloneBlocks.size(),
-            standaloneItems.size(),
+            standaloneItems.size(), sounds.size(), creativeTabs.size(),
             zone.moddev.mc.lib.gui.Screens.all().size());
+    }
+
+    /**
+     * Fails loading for a block whose sound names no sound set, naming the
+     * block, rather than when the block is created.
+     */
+    private static void checkBlockSounds(Map<ResourceLocation, MMDBlock> blocks,
+        Map<ResourceLocation, MMDMaterial> owners) {
+        blocks.forEach((id, block) -> {
+            var sound = block.properties().sound();
+            if (!SoundTypes.exists(sound))
+                throw new IllegalArgumentException(
+                    "Block " + id + " names an unknown sound set: " + sound);
+        });
+        owners.values().stream().distinct()
+            .forEach(material -> material.runtime().blockSound()
+                .filter(sound -> !SoundTypes.exists(sound)).ifPresent(sound -> {
+                    throw new IllegalArgumentException(
+                        "Material " + material.name().orElseThrow()
+                            + " names an unknown block_sound: " + sound);
+                }));
     }
 
     private void publishDefinitions(RegisterEvent event) {

@@ -145,7 +145,25 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void toolsAndArmor(GameTestHelper helper) throws Exception {
+    public static void soundEventsRegistered(GameTestHelper helper) {
+        SoundSmoke.registered();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void creativeTabFromData(GameTestHelper helper) {
+        CreativeTabSmoke.workshop(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void blockSoundSets(GameTestHelper helper) {
+        SoundSmoke.blockSoundSet();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void toolsAndArmor(GameTestHelper helper) {
         ContentSmoke.toolsAndArmor();
         helper.succeed();
     }

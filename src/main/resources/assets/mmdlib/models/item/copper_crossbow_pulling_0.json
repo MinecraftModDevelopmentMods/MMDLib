@@ -1,6 +1,0 @@
-{
-  "parent": "mmdlib:item/copper_crossbow",
-  "textures": {
-    "layer0": "mmdlib:item/copper_crossbow_pulling_0"
-  }
-}

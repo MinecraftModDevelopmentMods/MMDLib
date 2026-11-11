@@ -83,8 +83,11 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level,
         BlockState state, BlockEntityType<T> requested) {
-        return level.isClientSide() || requested != type.get()
-            ? null
+        if (requested != type.get())
+            return null;
+        return level.isClientSide()
+            ? (world, pos, s, entity) -> ((DefinedMachineEntity) entity)
+                .clientTick()
             : (world, pos, s, entity) -> ((DefinedMachineEntity) entity)
                 .serverTick();
     }

@@ -5,7 +5,6 @@ import java.util.Locale;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 
@@ -51,7 +50,7 @@ public final class RuntimeProperties {
             .strength(d.hardness(), d.blastResistance()).friction(d.friction())
             .speedFactor(d.speedFactor()).jumpFactor(d.jumpFactor())
             .lightLevel(state -> d.lightLevel())
-            .sound(named(SoundType.class,
+            .sound(SoundTypes.resolve(
                 fluid ? d.sound() : runtime.blockSound().orElse(d.sound())))
             .mapColor(named(MapColor.class,
                 fluid

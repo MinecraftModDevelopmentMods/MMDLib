@@ -6,6 +6,8 @@ import java.math.BigInteger;
 
 import java.nio.charset.StandardCharsets;
 
+import java.util.Optional;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -144,7 +146,7 @@ public final class ScreenLoaderTest {
               <button icon="mmdlib:icon_sides" shows="main:sides" tooltip="screen.mmdlib.side_config.show"/>
               <button text="screen.example.eject" on-click="example:eject_outputs"
                       on-right-click="example:eject_one" on-shift-click="example:eject_all"
-                      tooltip="screen.example.eject.tooltip"/>
+                      click-sound="example:ui/eject" tooltip="screen.example.eject.tooltip"/>
               <checkbox text="screen.example.auto_eject" value="#isAutoEject" on-click="example:toggle_auto_eject"/>
               <label text="screen.example.temperature" value="zone.moddev.mc.lib.gui.ScreenLoaderTest$Helpers#temperature"/>
             </hbox>
@@ -188,6 +190,13 @@ public final class ScreenLoaderTest {
                 e -> e instanceof SlotElement slot && !slot.playerInventory())
             .count() == 5);
         require(BoundValue.whole(7L).equals(BigInteger.valueOf(7)));
+        var eject = screen.elements().stream()
+            .filter(e -> e.common().clicks().click().equals(
+                Optional.of(ResourceLocation.parse("example:eject_outputs"))))
+            .findFirst().orElseThrow();
+        require(eject.common().clicks().sound()
+            .equals(Optional.of(ResourceLocation.parse("example:ui/eject"))));
+        require(meter.common().clicks().sound().isEmpty());
 
         checkLayout(screen);
 

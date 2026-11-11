@@ -59,6 +59,11 @@ boundary. The same codec supports NbtOps. Example:
 }
 ```
 
+`sound` is either one of vanilla's block sound sets by name (`stone`, `wood`,
+`metal`, ...) or the ID of a sound set declared in `mmdlib/sound_type/` (see
+[block sound sets](definition-loading.md#block-sound-sets)). A material's
+`runtime.block_sound` takes the same values.
+
 Name can come from the resource path via `new BlockParser(templateId, json)`;
 conflicting embedded names fail. Properties are nested under `properties`.
 `has_item` defaults true and cannot be false alongside an explicit item template.
