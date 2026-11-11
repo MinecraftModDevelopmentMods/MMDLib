@@ -123,6 +123,8 @@
     <xs:attribute name="on-right-click" type="resourceId"/>
     <xs:attribute name="on-shift-click" type="resourceId"/>
     <xs:attribute name="on-shift-right-click" type="resourceId"/>
+    <!-- Played for the player when the element is clicked: a sound event ID -->
+    <xs:attribute name="click-sound" type="resourceId"/>
     <xs:attribute name="on-hover" type="resourceId"/>
     <xs:attribute name="interaction" type="resourceId"/>
     <xs:attribute name="interaction-target" type="xs:string"/>

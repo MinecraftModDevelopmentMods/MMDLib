@@ -1,0 +1,11 @@
+{
+  "title_fallback": "MMDLib Test Workshop",
+  "contents": [
+    { "material": "mmdlib:iron" },
+    "minecraft:stick",
+    "#c:gears",
+    "minecraft:stick"
+  ],
+  "after": ["minecraft:tools_and_utilities"],
+  "search_bar": true
+}

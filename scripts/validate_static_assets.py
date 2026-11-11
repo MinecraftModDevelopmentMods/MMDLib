@@ -30,9 +30,8 @@ def main():
         for override in value.get('overrides',[]):read_model(override['model'])
         for ref in value.get('textures',{}).values():
             if not ref.startswith('#'):texture(ref)
-    rules=json.loads((assets/'imported_assets.json').read_text())
-    roots={'mmdlib:item/'+identifier.split(':',1)[1] for identifier in rules['untinted_items']}
-    roots.update('mmdlib:item/'+p.stem for p in (assets/'models/item').glob('*_bucket.json'))
+    # Fully resolve the item models whose faces must find a texture: every bucket.
+    roots={'mmdlib:item/'+p.stem for p in (assets/'models/item').glob('*_bucket.json')}
     pending=list(roots);checked=set()
     while pending:
         ref=pending.pop()

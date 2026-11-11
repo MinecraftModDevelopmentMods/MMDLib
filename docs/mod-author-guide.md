@@ -16,7 +16,8 @@ available for mods that own their loading stage.
 
 `RuntimeContentRegistrar` can apply supported built-in plans to Minecraft
 registries, including ammunition, armor, stateful blocks, fluid families, and
-client hooks. MMDLib uses it for its [playable vanilla extensions](vanilla-extensions.md).
+client hooks. MMDLib itself ships no materials; BaseMetals 4.0 is a complete
+example, including the extra forms for vanilla materials that MMDLib 2.0 used to ship.
 Mods must still supply their assets/recipes, or a generator appropriate to their
 forms. Powered item-processing machines can use [XML definitions](xml-machines.md),
 including inherited storage, generated screens and dynamic recipes. More specialized
@@ -378,8 +379,7 @@ item helper rather than the whole application layer.
 
 ## 6. Add resources and recipes for the registered objects
 
-The vanilla example includes static artwork and a maintained gameplay-data generator. Other mods can
-supply resources by hand or through their own datagen providers; arbitrary mod
+Mods supply resources by hand or through their own datagen providers; arbitrary mod
 assets are not inferred automatically from a material definition.
 
 * **Item models/textures:** every registered item, including ammunition and block
@@ -403,8 +403,10 @@ assets are not inferred automatically from a material definition.
 * **Ore world generation:** supply configured/placed features and biome/dimension
   integration if ores should occur naturally. Selecting an ore part does not
   schedule world generation.
-* **Translations and creative tabs:** supply display names and include the actual
-  registered item holders in your mod's creative tab.
+* **Translations and creative tabs:** supply display names. Your registrar's
+  `<mod>:materials` tab holds every item it registers; for tabs of your own, list
+  items, tags and whole materials in `mmdlib/creative_tab/` files (see
+  [creative tabs](creative-tabs.md)).
 
 For example, the repair tag `data/c/tags/item/ingots/orichalcum.json`:
 
@@ -485,4 +487,4 @@ See [load-time method events](method-events.md) for `events` extension arrays, p
 
 See [startup definition loading](definition-loading.md) for folder dispatch, IDs, loading stages, and access to loaded material plans.
 
-See [the maintained vanilla extensions](vanilla-extensions.md) for a complete, playable use of the same data and runtime APIs.
+BaseMetals 4.0 is a complete, playable use of the same data and runtime APIs.

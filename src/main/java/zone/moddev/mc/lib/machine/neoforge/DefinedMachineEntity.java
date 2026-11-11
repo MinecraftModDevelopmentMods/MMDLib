@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,6 +20,7 @@ import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.ItemInventories;
 import zone.moddev.mc.lib.api.capabilities.SideConfig;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
+import zone.moddev.mc.lib.common.types.SoundDefinition;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.presentation.BuiltinVisualVariables;
@@ -40,6 +42,8 @@ public final class DefinedMachineEntity extends BaseMachine
     private final MachineShapeState shapes;
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
+    private final RecipeProcessor processor;
+    private java.math.BigInteger cyclesBefore = java.math.BigInteger.ZERO;
 
     public DefinedMachineEntity(BlockEntityType<?> type, BlockPos pos,
         BlockState state, MachineDefinition definition,
@@ -127,21 +131,23 @@ public final class DefinedMachineEntity extends BaseMachine
         }
         resources.build();
         zone.moddev.mc.lib.machine.feature.Processor<?> visualProcessor = null;
-        RecipeProcessor processor = null;
+        RecipeProcessor recipeProcessor = null;
         if (definition.behavior().processor() != null) {
             visualProcessor = definition.behavior().processor()
                 .create(definition.processor(), this);
             features.add(visualProcessor);
         } else if (definition.hasProcessor()) {
-            processor = new RecipeProcessor(definition.processor(), recipes,
-                resources.recipes(),
+            recipeProcessor = new RecipeProcessor(definition.processor(),
+                recipes, resources.recipes(),
                 Component.literal(definition.processorName()));
             if (definition.recipeSelection() != null)
-                processor
+                recipeProcessor
                     .selectable(definition.recipeSelection().defaultRecipe());
-            features.add(processor);
-            visualProcessor = processor;
+            features.add(recipeProcessor);
+            visualProcessor = recipeProcessor;
         }
+        // Cycle sounds follow recipe processors; custom ones have none.
+        processor = recipeProcessor;
         inventory = genericInventory(resources.automation());
         if (definition.itemStorageId() != null)
             inventory.items(definition.itemStorageId(), items);
@@ -411,6 +417,40 @@ public final class DefinedMachineEntity extends BaseMachine
     @Override
     public net.neoforged.neoforge.client.model.data.ModelData getModelData() {
         return visuals.modelData();
+    }
+
+    /**
+     * Whether a cycle is running; on a client, as of the last state the server
+     * sent.
+     */
+    public boolean running() {
+        return processor != null
+            && processor.status() == RecipeProcessor.Status.RUNNING;
+    }
+
+    @Override
+    protected void beforeMachineTick() {
+        if (processor != null)
+            cyclesBefore = processor.completedCycles();
+    }
+
+    /** Plays the {@code finish-sound} for everyone near a completed cycle. */
+    @Override
+    protected void afterMachineTick() {
+        var finish = definition.sounds().finish();
+        if (finish.isPresent() && level != null && processor != null
+            && !processor.completedCycles().equals(cyclesBefore))
+            level.playSound(null, worldPosition,
+                SoundDefinition.event(finish.get()), SoundSource.BLOCKS, 1, 1);
+    }
+
+    /**
+     * Keeps the {@code running-sound} looping while a cycle runs; called each
+     * client tick.
+     */
+    public void clientTick() {
+        if (definition.sounds().running().isPresent())
+            zone.moddev.mc.lib.client.MachineSoundsClient.tick(this);
     }
 
     @Override

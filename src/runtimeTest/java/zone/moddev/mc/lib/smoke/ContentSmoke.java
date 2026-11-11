@@ -27,21 +27,23 @@ import zone.moddev.mc.lib.common.recipes.CrushingRecipe;
 import zone.moddev.mc.lib.common.runtime.*;
 
 /**
- * Checks MMDLib's own material content on a running server: registration, block
- * placement, ammunition recovery, buckets, crushing, mining tiers and armor
- * textures.
+ * Checks material content registered through MMDLib's own registrar on a
+ * running server: registration, block placement, ammunition recovery, buckets,
+ * crushing, mining tiers and armor layers. MMDLib ships no materials; the five
+ * used here (iron, copper, gold, emerald, quartz) are test resources.
  */
 final class ContentSmoke {
     private ContentSmoke() {
     }
 
     /**
-     * The materials, the standalone blocks (the detector plate; the test-only
-     * NAND gate and hook block from test resources; the hook block from the
-     * test script) and the item count.
+     * The materials (five from test resources, one from the test script), the
+     * standalone blocks (the detector plate; the test-only NAND gate and hook
+     * block from test resources; the hook block from the test script) and the
+     * item count.
      */
     static void registered() {
-        if (MMDLib.loadedMaterials().size() != 16)
+        if (MMDLib.loadedMaterials().size() != 6)
             throw new AssertionError("Missing materials");
         var detector = BuiltInRegistries.BLOCK
             .get(ResourceLocation.parse("mmdlib:human_detector"));
@@ -49,13 +51,11 @@ final class ContentSmoke {
             || !(detector instanceof StandardBlocks.DetectorPressurePlate))
             throw new AssertionError(
                 "Standalone player-only plate missing: " + detector);
-        // 234 release items; from test resources the gate's and hook block's
-        // block items and the
-        // hook
-        // tool; from the test script the hook block's block item, the hook
-        // tool, the hammer, the
-        // phase 2 material tool, and seven phase 3 entries.
-        if (registrar().items().size() != 254)
+        // The release detector plate; from test resources the five materials'
+        // items, the gate's and hook block's block items and the hook tool;
+        // from the test script the hook block's block item, the hook tool, the
+        // hammer, the phase 2 material tool, and seven phase 3 entries.
+        if (registrar().items().size() != 168)
             throw new AssertionError(
                 "Wrong runtime item count: " + registrar().items().size());
     }
@@ -86,9 +86,9 @@ final class ContentSmoke {
                     + " result " + result);
             placed++;
         }
-        // 59 release blocks, the test gate, the hook block and the script hook
-        // block.
-        if (placed != 69)
+        // The test materials' blocks, the release detector plate, the test
+        // gate, the hook block and the script hook block.
+        if (placed != 50)
             throw new AssertionError("Wrong placed block count: " + placed);
     }
 
@@ -121,7 +121,8 @@ final class ContentSmoke {
                 restored.getPickupItemStackOrigin());
             projectiles++;
         }
-        if (projectiles != 14)
+        // An arrow and a bolt for each of the five test materials.
+        if (projectiles != 10)
             throw new AssertionError("Wrong projectile count: " + projectiles);
     }
 
@@ -150,7 +151,8 @@ final class ContentSmoke {
                 throw new AssertionError("Wrong fluid bucket recovered");
             fluids++;
         }
-        if (fluids != 15)
+        // One molten fluid for each of the five test materials.
+        if (fluids != 5)
             throw new AssertionError("Wrong bucket count: " + fluids);
     }
 
@@ -193,8 +195,12 @@ final class ContentSmoke {
                     .getAllRecipesFor(CrushingRecipe.TYPE.get()).size());
     }
 
-    /** Tag-based mining tiers and packaged armor textures. */
-    static void toolsAndArmor() throws Exception {
+    /**
+     * Tag-based mining tiers, and armor that uses its own layer textures
+     * instead of a tint. MMDLib ships no armor art, so only the texture
+     * locations are checked, not that the files exist.
+     */
+    static void toolsAndArmor() {
         var emerald = new ItemStack(item("mmdlib:emerald_pickaxe"));
         var quartz = new ItemStack(item("mmdlib:quartz_pickaxe"));
         if (!emerald.isCorrectToolForDrops(Blocks.OBSIDIAN.defaultBlockState())
@@ -209,9 +215,9 @@ final class ContentSmoke {
             .layers().getFirst().texture(false);
         if (!texture.getNamespace().equals("mmdlib"))
             throw new AssertionError("Missing custom armor layer");
-        requireResource(texture, "Armor texture");
         var horse = (AnimalArmorItem) item("mmdlib:emerald_horse_armor");
-        requireResource(horse.getTexture(), "Horse armor texture");
+        if (!horse.getTexture().getNamespace().equals("mmdlib"))
+            throw new AssertionError("Missing custom horse armor texture");
     }
 
     /** MMDLib's own registrar; the machine smoke registrar is skipped. */
@@ -227,15 +233,6 @@ final class ContentSmoke {
 
     private static Item item(String id) {
         return registrar().items().get(ResourceLocation.parse(id)).get();
-    }
-
-    private static void requireResource(ResourceLocation texture, String what)
-        throws Exception {
-        try (var stream = ContentSmoke.class.getResourceAsStream(
-            "/assets/" + texture.getNamespace() + "/" + texture.getPath())) {
-            if (stream == null)
-                throw new AssertionError(what + " not packaged: " + texture);
-        }
     }
 
     private static void checkStack(ItemStack expected, ItemStack actual) {

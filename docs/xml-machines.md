@@ -452,6 +452,22 @@ uses the `energy/input` group. Item storage IDs `energy`, `features`, `automatio
 the processor's recipes; an explicit `filter-inputs` list must name those groups.
 Processor `name` optionally overrides the displayed machine name.
 
+A processor can also have sounds, given as sound event IDs:
+
+* `running-sound` loops at the machine for every player nearby while a cycle runs,
+  and stops when the cycle finishes, stalls or pauses, or the machine is removed.
+* `finish-sound` plays once at the machine each time a cycle completes.
+
+```xml
+<processor id="crusher" recipe-type="example:crushing"
+           running-sound="example:machine/crusher_run"
+           finish-sound="example:machine/crusher_done"/>
+```
+
+Any sound in a `sounds.json` works; to declare your own sound events, see
+[sound events](definition-loading.md#sound-events). A looping sound's `.ogg` should
+loop cleanly.
+
 Stable storage IDs, processing reservations and side settings survive saves.
 Displaced resources use `mmdlib:machine_recovery_capsule`; use a capsule on an XML
 machine to restore compatible items, fluids and energy. Overflow and unknown resource

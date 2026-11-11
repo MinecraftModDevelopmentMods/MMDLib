@@ -11,6 +11,9 @@ src/main/resources/mmdlib/
   fluid/coolant.json
   extension/armor_effects.json
   material/copper.json
+  sound/machine/hum.json
+  sound_type/steel_plate.json
+  creative_tab/tools.json
   machine/simple_crusher.xml
 ```
 
@@ -102,11 +105,79 @@ Like materials, standalone blocks and items in another mod's namespace are only
 registered when that mod queues them on its own `RuntimeContentRegistrar`
 (`MMDLib.standaloneBlocks()` / `standaloneItems()`, filtered to its namespace).
 
+## Sound events
+
+`mmdlib/sound/<path>.json` declares one sound event, with the usual ID: for mod ID
+`example`, `example:mmdlib/sound/machine/hum.json` is the sound event
+`example:machine/hum`. The file holds one optional setting:
+
+```json
+{ "range": 24 }
+```
+
+* `range`: the fixed distance in blocks the sound can be heard from, whatever
+  volume it is played at. Leave it out (an empty `{}` file) for Minecraft's
+  default, which is 16 blocks, growing with volumes above 1.
+
+The file only registers the event. What it sounds like is defined as for any
+other sound: an entry for `machine/hum` in `assets/example/sounds.json` naming the
+`.ogg` files and an optional subtitle, in the mod or in a resource pack. A
+registered event with no `sounds.json` entry plays nothing.
+
+Registration happens at startup, like items and blocks: adding a sound event needs
+a restart. MMDLib registers the sound events in its own namespace. As with
+materials, another mod registers its own: `MMDLib.sounds()` lists every declared
+event, and `RuntimeContentRegistrar.queueSound(id, definition)` queues one, for
+IDs in that registrar's namespace only:
+
+```java
+MMDLib.sounds().forEach((id, sound) -> {
+    if (id.getNamespace().equals("example"))
+        registrar.queueSound(id, sound);
+});
+```
+
+Once registered, the event works anywhere Minecraft takes a sound event ID: the
+`/playsound` command, jukebox songs, goat-horn instruments and enchantment effects
+in datapacks, and code playing it through its registry holder.
+
+## Creative tabs
+
+`mmdlib/creative_tab/<path>.json` describes one creative tab: its title, icon,
+placement and contents (items, item tags and whole materials). See
+[creative tabs](creative-tabs.md).
+
+## Block sound sets
+
+A block's `sound` (and a material's `runtime.block_sound`) is either one of
+vanilla's sound sets by name, such as `"metal"`, or the ID of a sound set declared
+in `mmdlib/sound_type/<path>.json`, such as `"example:steel_plate"`:
+
+```json
+{
+  "base": "metal",
+  "place": "example:block/steel_place",
+  "step": "example:block/steel_step",
+  "pitch": 0.9
+}
+```
+
+* `break`, `step`, `place`, `hit`, `fall`: the sound event played when the block is
+  broken, walked on, placed, mined and landed on. Each can be any registered sound
+  event: vanilla's, one from `mmdlib/sound/`, or another mod's.
+* `volume`, `pitch`: how all of them play.
+* `base`: the vanilla sound set anything left out comes from; defaults to `stone`.
+  It must be a vanilla name, not another declared set.
+
+Sound sets are not registry entries, so a block in any namespace can use any
+declared set. A block naming an unknown set fails loading, naming the block; a set
+naming an unregistered sound event fails when the first block using it is created.
+
 ## Stages
 
 1. Discover extension files in parallel across mod files and resolve all handlers.
-2. After that phase completes, discover/decode item, block, and fluid modules in
-   parallel across mod files. Collect material paths without decoding them.
+2. After that phase completes, discover/decode item, block, and fluid modules and
+   sound events in parallel across mod files. Collect material paths without decoding them.
 3. Merge results in a defined order and install the modules, rejecting duplicate IDs.
 4. Call each definition source registered with
    `MaterialExtensions.registerDefinitionSource`, such as MMDLib's
@@ -121,7 +192,7 @@ registered when that mod queues them on its own `RuntimeContentRegistrar`
    file (or source) and definition named. A source material, standalone block or item
    whose ID matches a file's, or another source's, fails loading.
 6. Retain results, index their item and block definitions (and owning materials)
-   for the runtime event bridge, queue MMDLib's playable example content, and
+   for the runtime event bridge, queue MMDLib's own content and sound events, and
    publish definitions during NeoForge registry events.
 
 Missing folders and non-JSON files are skipped. Nested JSON files are supported.
@@ -153,7 +224,7 @@ var loaded = DefinitionLoader.load(List.of(source), extensions, installedModPred
 var materials = loaded.materials();
 ```
 
-`definitionRoot` contains the five section folders. It can be a directory or a
+`definitionRoot` contains the section folders described above. It can be a directory or a
 path in a mounted ZIP filesystem. The caller owns any mounted filesystem and must
 keep it open until `load` returns. The loader closes every traversal/reader it
 opens, but never closes its caller's filesystem. All schema choice and ordering
@@ -166,7 +237,7 @@ The published declaration tables are **MMDLib definition registries**.
 Minecraft DeferredRegisters. Other mods can use that registrar for supported
 built-in forms, provide custom item/block implementation factories, or own their
 runtime registrar. Machine and custom world-entity wiring still uses its dedicated
-factory APIs. See [the playable vanilla example](vanilla-extensions.md). This stage does not discover enabled world datapacks or add registry IDs on
+factory APIs. This stage does not discover enabled world datapacks or add registry IDs on
 ordinary datapack reload.
 
 `DefinitionLoaderTest` (JUnit) checks cross-mod module and handler references, delayed
