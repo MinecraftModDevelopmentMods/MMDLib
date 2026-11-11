@@ -636,6 +636,66 @@ hammer.build();
 Sneaking mines a single block. The game tests run this hammer
 (`src/runtimeTest/scripts/mmdlib_hooks.zs`).
 
+## Creative tabs
+
+Scripts can make creative tabs, and change the tabs that `mmdlib/creative_tab/`
+JSON files declare (see [creative tabs](creative-tabs.md) for the file format).
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.CreativeTabBuilder;
+
+var tools = new CreativeTabBuilder("tools");
+tools.titleFallback = "Tools";
+tools.icon = "mmdlib:copper_hammer";
+tools.addMaterials("mmdlib:copper").addItems("minecraft:stick");
+tools.addTags("c:gears");
+tools.after = ["minecraft:tools_and_utilities"];
+tools.searchBar = true;
+tools.build();
+
+var workshop = CreativeTabBuilder.edit("example:workshop");
+workshop.addItems("minecraft:apple").removeTags("c:gears");
+workshop.build();
+```
+
+`new CreativeTabBuilder("tools")` starts the tab `mmdlib:tools`; other namespaces
+are rejected, as for materials. A name a JSON file already declares is rejected
+too: change that tab with `edit` instead.
+
+`CreativeTabBuilder.edit(id)` starts from the tab a JSON file declares, in any
+namespace, with all its settings and contents. Building it replaces the file's
+version, so the changed tab is the one registered. A tab in another mod's namespace
+is registered by that mod; the change applies when it registers its tabs from
+`MMDLib.creativeTabs()`, as [creative tabs](creative-tabs.md) describes.
+`CreativeTabBuilder.exists(id)` tells whether a file declares a tab, and
+`CreativeTabBuilder.declared()` lists every file tab's ID.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `name` | string, read-only | the tab's ID |
+| `title` | translation key | `""`: `itemGroup.<namespace>.<path>` |
+| `titleFallback` | string | `""`: none |
+| `icon` | item ID | `""`: the first item or material entry |
+| `searchBar` | bool | `false` |
+| `before`, `after` | tab IDs, string[] | empty |
+| `contents` | string[], read-only | empty |
+
+`contents` lists the entries in order: an item as `"minecraft:stick"`, a tag as
+`"#c:gears"`, a material as `"material=mmdlib:copper"`. Change them with these
+methods, which return the builder so they can be chained:
+
+* `addItems(ids...)`, `addTags(tags...)`, `addMaterials(ids...)` add entries at the
+  end. A tag may be written with or without its `#`.
+* `removeItems(ids...)`, `removeTags(tags...)`, `removeMaterials(ids...)` remove
+  every entry of that kind with those IDs; removing an item does not affect a tag
+  or material that also includes it.
+* `clearContents()` removes every entry.
+
+`build()` checks the tab: one whose contents are all tags needs an `icon`. Building
+the same tab twice is an error. Items, materials and placement are checked once
+registries are complete, as for tab files.
+
 ## Generated resources
 
 Script materials need no resource pack, and script blocks and items need only their
@@ -706,8 +766,8 @@ items, blocks, and their resources are created at startup on both sides.
   Other item factories keep their native use behavior; these properties do not
   turn an arbitrary sword or tool into an item used over time.
 * Rarity, feature flags, advanced block-property predicates, custom sound events,
-  independent tool tiers, and user-defined creative tabs have no matching exposed
-  definition path. The registrar supplies its existing materials tab.
+  block sound sets and independent tool tiers have no matching exposed definition
+  path.
 
 ## Implementation
 

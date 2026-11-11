@@ -157,6 +157,12 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void creativeTabFromScript(GameTestHelper helper) {
+        CreativeTabSmoke.scriptTab(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void blockSoundSets(GameTestHelper helper) {
         SoundSmoke.blockSoundSet();
         helper.succeed();

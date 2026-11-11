@@ -191,6 +191,37 @@ Source: [ScriptClickHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTwe
 
 - method `void handle(ClickContext context)`
 
+### `CreativeTabBuilder`
+
+Source: [ScriptCreativeTabBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptCreativeTabBuilder.java).
+
+- constructor `CreativeTabBuilder(String name)`
+- static method `CreativeTabBuilder edit(String id)`
+- static method `boolean exists(String id)`
+- static method `String[] declared()`
+- get `name` — `String getName()`
+- get `title` — `String getTitle()`
+- set `title` — `void setTitle(String value)`
+- get `titleFallback` — `String getTitleFallback()`
+- set `titleFallback` — `void setTitleFallback(String value)`
+- get `icon` — `String getIcon()`
+- set `icon` — `void setIcon(String value)`
+- get `searchBar` — `boolean getSearchBar()`
+- set `searchBar` — `void setSearchBar(boolean value)`
+- get `before` — `String[] getBefore()`
+- set `before` — `void setBefore(String[] tabs)`
+- get `after` — `String[] getAfter()`
+- set `after` — `void setAfter(String[] tabs)`
+- get `contents` — `String[] getContents()`
+- method `CreativeTabBuilder addItems(String... items)`
+- method `CreativeTabBuilder addTags(String... tags)`
+- method `CreativeTabBuilder addMaterials(String... materials)`
+- method `CreativeTabBuilder removeItems(String... items)`
+- method `CreativeTabBuilder removeTags(String... tags)`
+- method `CreativeTabBuilder removeMaterials(String... materials)`
+- method `CreativeTabBuilder clearContents()`
+- method `void build()`
+
 ### `DefinitionProperties`
 
 Source: [ScriptDefinitionProperties](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptDefinitionProperties.java).

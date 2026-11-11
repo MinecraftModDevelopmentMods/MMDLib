@@ -197,6 +197,8 @@ public final class DefinitionLoader {
         // visible to every
         // material decoded below, from files as well as from the sources
         // themselves.
+        // Sources may read the file tabs and return changed copies of them.
+        api.creativeTabFiles(values(all.creativeTabs));
         var sourced = new LinkedHashMap<String, MaterialExtensions.Definitions>();
         for (var source : api.definitionSources()) {
             var origin = "definition source '" + source.name() + "'";
@@ -319,7 +321,30 @@ public final class DefinitionLoader {
                 values(all.fluids)),
             values(all.extensions), materials, standalone, standaloneItems,
             values(all.sounds), values(all.soundTypes),
-            values(all.creativeTabs));
+            creativeTabs(values(all.creativeTabs), sourced));
+    }
+
+    /**
+     * The file tabs, with each source's tabs added; a source's tab with a file
+     * tab's ID replaces it.
+     *
+     * @throws IllegalArgumentException
+     *             if two sources supply the same tab
+     */
+    private static Map<ResourceLocation, CreativeTabDefinition> creativeTabs(
+        Map<ResourceLocation, CreativeTabDefinition> files,
+        Map<String, MaterialExtensions.Definitions> sourced) {
+        var tabs = new TreeMap<>(files);
+        var origins = new HashMap<ResourceLocation, String>();
+        sourced.forEach((origin, definitions) -> definitions.creativeTabs()
+            .forEach((id, tab) -> {
+                var previous = origins.putIfAbsent(id, origin);
+                if (previous != null)
+                    throw new IllegalArgumentException("Duplicate creative tab "
+                        + id + ": " + previous + " and " + origin);
+                tabs.put(id, tab);
+            }));
+        return tabs;
     }
 
     private static Batch discover(SourceRoot source, List<String> sections) {
