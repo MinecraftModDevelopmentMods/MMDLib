@@ -733,6 +733,54 @@ processor naming an ID nobody registered, or a start handler as its `on-finish`,
 fails loading. A handler function that throws is logged, and the machine carries
 on.
 
+## Machine recipes
+
+An XML machine's recipe type is declared in its XML (see
+[XML machines](xml-machines.md)); its recipes can come from datapacks, generators,
+and ordinary CraftTweaker recipe scripts (the default `crafttweaker` loader, not
+`#loader mmdlib`). The type works with CraftTweaker's own recipe manager, like any
+recipe type, and MMDLib adds a typed builder:
+
+```zenscript
+import mods.mmdlib.MachineRecipeBuilder;
+
+new MachineRecipeBuilder("example:crushing")
+    .inputItems("input", <item:minecraft:cobblestone>, 2)
+    .inputEnergy("energy", 2000)
+    .outputItem("output", <item:minecraft:gravel> * 3)
+    .outputItem("output", <item:minecraft:flint>, 0.1)
+    .time(100)
+    .build("cobble_to_gravel");
+
+<recipetype:example:crushing>.removeByName("example:crushing/gravel");
+
+<recipetype:example:crushing>.addJsonRecipe("dirt_to_diamond", {
+    inputs: { input: [{ items: { item: "minecraft:dirt" } }] },
+    outputs: { output: [{ item: { id: "minecraft:diamond", count: 1 } }] },
+    time: 100
+});
+```
+
+`new MachineRecipeBuilder(recipeType)` starts a recipe of a type some machine XML
+declares; an unknown type is an error. Group names are the logical input and output
+groups the machine declares, as in recipe JSON:
+
+| Method | Adds |
+| --- | --- |
+| `inputItems(group, ingredient, count = 1)` | takes `count` items matching `ingredient` |
+| `inputFluid(group, fluid)` | takes the fluid stack's amount, such as `<fluid:minecraft:water> * 500` |
+| `inputEnergy(group, energy)` | draws `energy` over the cycle |
+| `outputItem(group, stack, chance = 1)` | places `stack`, with `chance` from 0 to 1 |
+| `outputFluid(group, fluid, chance = 1)` | places the fluid stack |
+| `time(ticks)` | the cycle's length; required |
+
+`build(name)` adds the recipe like any CraftTweaker recipe; it needs at least one
+input and a time. Removing recipes, and adding them as JSON in the recipe file
+format, use the type's `<recipetype:...>` manager: `removeByName`, `addJsonRecipe`
+and the rest of CraftTweaker's recipe manager methods. A machine's input slots only
+accept items some recipe uses, so removing every recipe for an item also stops the
+machine taking it.
+
 ## Screen values
 
 Scripts can also supply the values screen elements show. An element reads a value

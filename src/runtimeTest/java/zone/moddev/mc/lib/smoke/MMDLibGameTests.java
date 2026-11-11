@@ -573,6 +573,13 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void scriptMachineRecipes(GameTestHelper helper) {
+        MachineScriptSmoke.scriptRecipes(helper.getLevel(),
+            helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void scriptMachineCycleHandlers(GameTestHelper helper) {
         MachineScriptSmoke.cycleHandlers(helper.getLevel(),
             helper.absolutePos(CENTER));

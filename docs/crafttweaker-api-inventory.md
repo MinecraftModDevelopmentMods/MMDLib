@@ -387,6 +387,19 @@ Source: [ScriptMachineHandlers](../src/main/java/zone/moddev/mc/lib/compat/Craft
 - static method `String onFinish(String name, MachineCycleHandler handler)`
 - static method `boolean exists(String id)`
 
+### `MachineRecipeBuilder`
+
+Source: [ScriptMachineRecipeBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineRecipeBuilder.java). Registered for the default `crafttweaker` loader (recipe scripts).
+
+- constructor `MachineRecipeBuilder(String recipeType)`
+- method `MachineRecipeBuilder inputItems(String group, IIngredient ingredient, int count = 1)`
+- method `MachineRecipeBuilder inputFluid(String group, IFluidStack fluid)`
+- method `MachineRecipeBuilder inputEnergy(String group, long energy)`
+- method `MachineRecipeBuilder outputItem(String group, IItemStack stack, float chance = 1)`
+- method `MachineRecipeBuilder outputFluid(String group, IFluidStack fluid, float chance = 1)`
+- method `MachineRecipeBuilder time(int ticks)`
+- method `void build(String name)`
+
 ### `MaterialBuilder`
 
 Source: [ScriptMaterialBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMaterialBuilder.java).
