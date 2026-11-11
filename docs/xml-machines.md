@@ -816,6 +816,10 @@ the reload. An authored recipe with the same ID replaces the generated one.
 Generator failure prevents publishing the candidate recipe manager; a successful
 reload synchronizes ordinary machine recipes to clients.
 
+CraftTweaker recipe scripts can add and remove a declared type's recipes too, with
+CraftTweaker's own `<recipetype:...>` manager or the typed
+`mods.mmdlib.MachineRecipeBuilder`; see [CraftTweaker machine recipes](crafttweaker.md#machine-recipes).
+
 `OreToIngotGenerator` matches `c:ores/<metal>` with `c:ingots/<metal>`, including
 metals from other installed mods. Empty/unmatched tags are skipped. It consumes
 one ore and produces two ingots; these are generator defaults, independent of
