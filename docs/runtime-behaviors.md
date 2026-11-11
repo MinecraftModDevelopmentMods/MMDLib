@@ -242,9 +242,8 @@ This pass does not turn tag metadata into generated resources for each material.
 
 `RuntimeContentRegistrar` applies the built-in item/block helpers, material-aware
 arrow/bolt classes, and fluid families to actual registries. Client rendering and
-fluid extensions are installed by the client-only runtime subscriber. MMDLib's
-[vanilla example](vanilla-extensions.md) exercises this route; custom machinery,
-and world entities still need their specific APIs. Event bindings on loaded item,
+fluid extensions are installed by the client-only runtime subscriber. Custom
+machinery and world entities still need their specific APIs. Event bindings on loaded item,
 block, and material definitions are dispatched by the runtime event bridge.
 `StandardItems` by itself deliberately rejects ammunition instead of substituting
 an item that cannot shoot.

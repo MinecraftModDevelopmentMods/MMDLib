@@ -1,5 +1,54 @@
 # Changelog
 
+## Unreleased — 2.0.2
+
+- Update NeoForge to 21.1.265 (from 21.1.247); it is now the minimum NeoForge
+  version MMDLib requires. Update the Gradle wrapper to 9.9.1 (from 9.8.2).
+- Add data-driven sound events: each `mmdlib/sound/<path>.json` registers the
+  sound event `<mod>:<path>` at startup, with an optional fixed hearing `range`.
+  Audio comes from `sounds.json` as usual. MMDLib registers its own namespace's;
+  other mods queue theirs with `RuntimeContentRegistrar.queueSound`, and
+  `MMDLib.sounds()` lists them all.
+- Play sounds from data:
+  - Blocks: a block's `sound` (or a material's `block_sound`) can now name a sound
+    set declared in `mmdlib/sound_type/<path>.json`, choosing the break, step,
+    place, hit and fall sounds, volume and pitch, over a vanilla `base` set.
+    Vanilla names such as `"metal"` work as before.
+  - Screens: any element can have a `click-sound`, played for the player when it
+    is clicked.
+  - XML machines: `<processor>` takes a `running-sound`, looped at the machine
+    while a cycle runs, and a `finish-sound`, played when a cycle completes.
+  - CraftTweaker scripts can't set these yet.
+- Add creative tabs from data: each `mmdlib/creative_tab/<path>.json` describes
+  the tab `<mod>:<path>`, with its contents in order (items, `#tags` and whole
+  materials, each item shown once), a translated title with an optional fallback,
+  an icon, `before`/`after` placement and an optional search bar.
+  `CreativeTabDefinition.builder()` builds the same in Java. MMDLib registers its
+  own namespace's; other mods queue theirs with `RuntimeContentRegistrar.queueTab`,
+  and `MMDLib.creativeTabs()` lists them all. Not yet available to CraftTweaker
+  scripts.
+- Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
+  gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
+  prismarine, redstone) with their tools, armor, decorative blocks, ammunition,
+  crackhammers, dusts, gears and molten fluids, plus their art, recipes, loot
+  tables and tags. They now live in BaseMetals 4.0. MMDLib registers no materials
+  of its own; script-defined and standalone content is unaffected.
+- **Worlds:** items and blocks with the removed `mmdlib:` IDs (such as
+  `mmdlib:iron_crackhammer` or `mmdlib:copper_molten`) disappear from existing
+  worlds when MMDLib is updated.
+- The release jar no longer contains the data generator for that content, which
+  ran an external Python script.
+- The human detector's recipe needs `#c:gears`, which MMDLib no longer supplies;
+  it is craftable when another mod (such as BaseMetals) adds gears.
+- MMDLib's creative tab is now titled "MMDLib" (it was "MMDLib: Vanilla
+  Extensions"); it holds MMDLib's standalone and script-defined items.
+- For mods built on MMDLib:
+  - `MachineDefinition` has a new `sounds` component; code constructing one
+    directly must pass `MachineDefinition.Sounds.NONE` or the sounds it wants.
+  - `DefinitionLoader.Loaded` and `Common.Clicks` have new components; their
+    previous constructors remain.
+  - `StaticAssetRules`, which only served the removed artwork, is gone.
+
 ## Unreleased — CraftTweaker integration
 
 Changes on `crafttweaker-integration` since `master-2.0-1.21.1-neo`.

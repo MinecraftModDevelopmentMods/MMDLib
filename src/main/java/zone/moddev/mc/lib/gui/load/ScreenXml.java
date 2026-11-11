@@ -179,7 +179,8 @@ public final class ScreenXml {
             value(node, "value"), value(node, "max"), text(node, "tooltip"),
             text(node, "tooltip-shift"),
             new Common.Clicks(id(node, "on-click"), id(node, "on-right-click"),
-                id(node, "on-shift-click"), id(node, "on-shift-right-click")),
+                id(node, "on-shift-click"), id(node, "on-shift-right-click"),
+                id(node, "click-sound")),
             id(node, "on-hover"), Optional.ofNullable(a.get("hover-shows")),
             recipes == null || recipes.isBlank()
                 ? List.of()

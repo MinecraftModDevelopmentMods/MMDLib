@@ -1,6 +1,0 @@
-{
-  "parent": "mmdlib:item/copper_bow",
-  "textures": {
-    "layer0": "mmdlib:item/copper_bow_pulling_2"
-  }
-}

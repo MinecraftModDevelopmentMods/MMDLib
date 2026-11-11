@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.machine.definition;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -18,11 +19,29 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     boolean requiresTool, Map<String, String> textures, Power power,
     Fluids fluids, String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
-    boolean redstone, Node screen) {
+    boolean redstone, Node screen, Sounds sounds) {
     public MachineDefinition {
         textures = Map.copyOf(textures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
+        java.util.Objects.requireNonNull(sounds);
+    }
+
+    /**
+     * The processor's sounds, as sound event IDs.
+     *
+     * @param running
+     *            looped at the machine while a cycle runs
+     *            ({@code running-sound})
+     * @param finish
+     *            played at the machine when a cycle completes
+     *            ({@code finish-sound})
+     */
+    public record Sounds(Optional<ResourceLocation> running,
+        Optional<ResourceLocation> finish) {
+        /** No sounds. */
+        public static final Sounds NONE = new Sounds(Optional.empty(),
+            Optional.empty());
     }
 
     public record Power(String id, long capacity, long input, long output,

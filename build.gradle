@@ -104,11 +104,6 @@ neoForge {
         }
         data {
             data()
-            systemProperty 'mmdlib.projectDir', project.layout.projectDirectory.asFile.absolutePath
-            systemProperty 'mmdlib.python', providers.gradleProperty('mmdlibPython').getOrElse('python3')
-            if (providers.gradleProperty('mmdlibMinecraftAssets').isPresent()) {
-                systemProperty 'mmdlib.minecraftAssets', providers.gradleProperty('mmdlibMinecraftAssets').get()
-            }
             programArguments.addAll '--mod', mod_id, '--all', '--output',
                     file('src/generated/resources').absolutePath, '--existing', file('src/main/resources').absolutePath
         }

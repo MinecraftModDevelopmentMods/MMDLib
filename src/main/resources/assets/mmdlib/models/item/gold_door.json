@@ -1,7 +1,0 @@
-{
-  "parent": "mmdlib:item/door_item",
-  "textures": {
-    "bottom": "mmdlib:block/gold_door_lower",
-    "top": "mmdlib:block/gold_door_upper"
-  }
-}

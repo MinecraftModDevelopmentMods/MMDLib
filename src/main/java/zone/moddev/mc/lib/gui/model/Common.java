@@ -82,16 +82,29 @@ public record Common(Optional<String> id, Optional<ValueRef> value,
      * @param shiftRightClick
      *            right click with Shift held; used instead of
      *            {@code rightClick}
+     * @param sound
+     *            the sound event played for the player when the element is
+     *            clicked ({@code click-sound}); not a handler
      */
     public record Clicks(Optional<ResourceLocation> click,
         Optional<ResourceLocation> rightClick,
         Optional<ResourceLocation> shiftClick,
-        Optional<ResourceLocation> shiftRightClick) {
+        Optional<ResourceLocation> shiftRightClick,
+        Optional<ResourceLocation> sound) {
         /** No handlers. */
         public static final Clicks NONE = new Clicks(Optional.empty(),
             Optional.empty(), Optional.empty(), Optional.empty());
 
-        /** Whether any handler is set. */
+        /** Click handlers without a click sound. */
+        public Clicks(Optional<ResourceLocation> click,
+            Optional<ResourceLocation> rightClick,
+            Optional<ResourceLocation> shiftClick,
+            Optional<ResourceLocation> shiftRightClick) {
+            this(click, rightClick, shiftClick, shiftRightClick,
+                Optional.empty());
+        }
+
+        /** Whether any handler is set; the sound is not a handler. */
         public boolean any() {
             return click.isPresent() || rightClick.isPresent()
                 || shiftClick.isPresent() || shiftRightClick.isPresent();

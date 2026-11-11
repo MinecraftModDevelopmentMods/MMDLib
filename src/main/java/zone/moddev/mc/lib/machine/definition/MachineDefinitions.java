@@ -168,7 +168,8 @@ public final class MachineDefinitions {
         Map.entry("group", Set.of("id", "storage", "members", "mode", "color")),
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
         Map.entry("processor",
-            Set.of("id", "name", "recipe-type", "filter-inputs")),
+            Set.of("id", "name", "recipe-type", "filter-inputs",
+                "running-sound", "finish-sound")),
         Map.entry("redstone", Set.of("enabled", "pause")),
         Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
@@ -201,7 +202,8 @@ public final class MachineDefinitions {
             case "block" -> List.of("mineable");
             case "appearance" -> List.of("front", "side", "top", "bottom");
             case "recipe-type" -> List.of("id");
-            case "processor" -> List.of("recipe-type");
+            case "processor" ->
+                List.of("recipe-type", "running-sound", "finish-sound");
             case "tank", "tanks" -> List.of("fluid");
             default -> List.<String>of();
         };
@@ -491,7 +493,17 @@ public final class MachineDefinitions {
             processor.attributes().getOrDefault("name", required(root, "name")),
             redstone != null && bool(redstone, "enabled", false),
             new Node("screen", attrs, screen.children(), screen.source(),
-                screen.line()));
+                screen.line()),
+            new MachineDefinition.Sounds(
+                optionalResource(processor, "running-sound"),
+                optionalResource(processor, "finish-sound")));
+    }
+
+    private static java.util.Optional<ResourceLocation> optionalResource(
+        Node node, String key) {
+        return node.attributes().containsKey(key)
+            ? java.util.Optional.of(resource(node, key))
+            : java.util.Optional.empty();
     }
 
     public static String required(Node node, String key) {
