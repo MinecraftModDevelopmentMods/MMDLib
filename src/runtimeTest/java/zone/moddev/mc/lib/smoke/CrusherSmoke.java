@@ -317,6 +317,41 @@ public final class CrusherSmoke {
             "the handler saw the screen: " + player.getTags());
     }
 
+    /**
+     * The test script {@code mmdlib_screen_values.zs}'s providers, read from a
+     * placed machine: each has its kind, and computes from the block entity.
+     */
+    static void scriptScreenValues(ServerLevel level, BlockPos pos) {
+        var crusher = place(level, pos);
+        var providers = zone.moddev.mc.lib.gui.value.ScreenValueProviders.GLOBAL;
+        var x = providers.get(ResourceLocation.parse("mmdlib:test/x"))
+            .orElseThrow();
+        require(
+            x.kind() == zone.moddev.mc.lib.gui.value.ValueTypes.WHOLE
+                && x.reader().apply(crusher)
+                    .equals(java.math.BigInteger.valueOf(pos.getX())),
+            "the whole provider reads the machine's x");
+        var half = providers.get(ResourceLocation.parse("mmdlib:test/half"))
+            .orElseThrow();
+        require(
+            half.kind() == zone.moddev.mc.lib.gui.value.ValueTypes.DECIMAL
+                && half.reader().apply(crusher).equals(2.5),
+            "the decimal provider");
+        var placed = providers.get(ResourceLocation.parse("mmdlib:test/placed"))
+            .orElseThrow();
+        require(
+            placed.kind() == zone.moddev.mc.lib.gui.value.ValueTypes.BOOLEAN
+                && placed.reader().apply(crusher).equals(true),
+            "the flag provider");
+        var where = providers.get(ResourceLocation.parse("mmdlib:test/where"))
+            .orElseThrow();
+        require(
+            where.kind() == zone.moddev.mc.lib.gui.value.ValueTypes.TEXT
+                && ((net.minecraft.network.chat.Component) where.reader()
+                    .apply(crusher)).getString().equals("At " + pos.getX()),
+            "the text provider");
+    }
+
     /** Every row of the reservations tables, driven through a real menu. */
     static void menuRows(ServerLevel level, BlockPos pos, ServerPlayer player) {
         var crusher = place(level, pos);

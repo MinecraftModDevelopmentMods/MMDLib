@@ -465,6 +465,18 @@ Source: [ScriptScreenHandlers](../src/main/java/zone/moddev/mc/lib/compat/CraftT
 - static method `String onHover(String name, ScreenHoverHandler handler)`
 - static method `boolean exists(String id)`
 
+### `ScreenDecimalValue`
+
+Source: [ScriptScreenDecimalValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenDecimalValue.java).
+
+- method `double read(BlockEntity blockEntity)`
+
+### `ScreenFlagValue`
+
+Source: [ScriptScreenFlagValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenFlagValue.java).
+
+- method `boolean read(BlockEntity blockEntity)`
+
 ### `ScreenHoverContext`
 
 Source: [ScriptScreenHoverContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHoverContext.java).
@@ -481,6 +493,28 @@ Source: [ScriptScreenHoverContext](../src/main/java/zone/moddev/mc/lib/compat/Cr
 Source: [ScriptScreenHoverHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHoverHandler.java).
 
 - method `void handle(ScreenHoverContext hover)`
+
+### `ScreenTextValue`
+
+Source: [ScriptScreenTextValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenTextValue.java).
+
+- method `String read(BlockEntity blockEntity)`
+
+### `ScreenValues`
+
+Source: [ScriptScreenValues](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenValues.java).
+
+- static method `String whole(String name, ScreenWholeValue function)`
+- static method `String decimal(String name, ScreenDecimalValue function)`
+- static method `String flag(String name, ScreenFlagValue function)`
+- static method `String text(String name, ScreenTextValue function)`
+- static method `boolean exists(String id)`
+
+### `ScreenWholeValue`
+
+Source: [ScriptScreenWholeValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenWholeValue.java).
+
+- method `long read(BlockEntity blockEntity)`
 
 ### `SoundBuilder`
 
