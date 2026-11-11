@@ -19,12 +19,30 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     boolean requiresTool, Map<String, String> textures, Power power,
     Fluids fluids, String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
-    boolean redstone, Node screen, Sounds sounds) {
+    boolean redstone, Node screen, Sounds sounds, Events events) {
     public MachineDefinition {
         textures = Map.copyOf(textures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
         java.util.Objects.requireNonNull(sounds);
+        java.util.Objects.requireNonNull(events);
+    }
+
+    /**
+     * The processor's event handlers, as callback IDs.
+     *
+     * @param start
+     *            run when a cycle starts ({@code on-start}), a
+     *            {@code machine-cycle-start} handler
+     * @param finish
+     *            run when a cycle finishes ({@code on-finish}), a
+     *            {@code machine-cycle-finish} handler
+     */
+    public record Events(Optional<ResourceLocation> start,
+        Optional<ResourceLocation> finish) {
+        /** No handlers. */
+        public static final Events NONE = new Events(Optional.empty(),
+            Optional.empty());
     }
 
     /**

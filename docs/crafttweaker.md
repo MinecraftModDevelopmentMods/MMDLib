@@ -689,6 +689,50 @@ and gets a `ScreenHoverContext` with `blockEntity`, `level`, `pos`, `screen`,
 `element` and `entered` (true on entering). Use it for display; it cannot change
 the world. A handler function that throws is logged, and the game carries on.
 
+## Machine handlers
+
+XML machines stay XML; scripts can supply what happens when their processor starts
+or finishes a cycle. The machine's `<processor>` names handler IDs in `on-start`
+and `on-finish` (see [XML machines](xml-machines.md)), and a script registers a
+function under each:
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.MachineHandlers;
+
+MachineHandlers.onStart("crusher_started", (cycle) => {
+    println(cycle.machineId + " started " + cycle.recipe);
+});
+
+MachineHandlers.onFinish("crusher_done", (cycle) => {
+    cycle.level.setBlockAndUpdate(cycle.pos.above(), cycle.level.getBlockState(cycle.pos.below()));
+});
+```
+
+```xml
+<processor id="crusher" recipe-type="example:crushing"
+           on-start="mmdlib:crusher_started" on-finish="mmdlib:crusher_done"/>
+```
+
+`MachineHandlers.onStart(name, function)` and `onFinish(name, function)` register
+`mmdlib:<name>` and return that ID; `MachineHandlers.exists(id)` tells whether a
+handler is registered. A start handler runs when a new cycle starts, not when a
+paused one resumes; a finish handler runs once the outputs are placed. Both run on
+the server and get a `MachineCycleContext`:
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `machine` | BlockEntity | the machine |
+| `level`, `pos` | Level, BlockPos | where it is |
+| `machineId` | string | the machine definition's ID |
+| `recipe` | string | the cycle's recipe ID |
+| `time` | int | the cycle's length, in ticks |
+
+Machines load after the scripts run, and their handler IDs are checked then: a
+processor naming an ID nobody registered, or a start handler as its `on-finish`,
+fails loading. A handler function that throws is logged, and the machine carries
+on.
+
 ## Screen values
 
 Scripts can also supply the values screen elements show. An element reads a value

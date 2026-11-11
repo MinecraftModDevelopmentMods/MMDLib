@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:test/script_machine",
+  "inputs": {
+    "input": [{ "items": { "item": "minecraft:stick" } }]
+  },
+  "outputs": {
+    "output": [{ "item": { "id": "minecraft:apple", "count": 1 } }]
+  },
+  "time": 2
+}

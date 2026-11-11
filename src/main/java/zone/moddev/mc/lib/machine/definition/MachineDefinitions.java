@@ -169,7 +169,7 @@ public final class MachineDefinitions {
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
         Map.entry("processor",
             Set.of("id", "name", "recipe-type", "filter-inputs",
-                "running-sound", "finish-sound")),
+                "running-sound", "finish-sound", "on-start", "on-finish")),
         Map.entry("redstone", Set.of("enabled", "pause")),
         Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
@@ -202,8 +202,8 @@ public final class MachineDefinitions {
             case "block" -> List.of("mineable");
             case "appearance" -> List.of("front", "side", "top", "bottom");
             case "recipe-type" -> List.of("id");
-            case "processor" ->
-                List.of("recipe-type", "running-sound", "finish-sound");
+            case "processor" -> List.of("recipe-type", "running-sound",
+                "finish-sound", "on-start", "on-finish");
             case "tank", "tanks" -> List.of("fluid");
             default -> List.<String>of();
         };
@@ -496,7 +496,10 @@ public final class MachineDefinitions {
                 screen.line()),
             new MachineDefinition.Sounds(
                 optionalResource(processor, "running-sound"),
-                optionalResource(processor, "finish-sound")));
+                optionalResource(processor, "finish-sound")),
+            new MachineDefinition.Events(
+                optionalResource(processor, "on-start"),
+                optionalResource(processor, "on-finish")));
     }
 
     private static java.util.Optional<ResourceLocation> optionalResource(
