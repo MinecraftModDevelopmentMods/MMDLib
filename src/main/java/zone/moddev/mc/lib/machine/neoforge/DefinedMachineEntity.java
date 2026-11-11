@@ -41,6 +41,7 @@ public final class DefinedMachineEntity extends BaseMachine {
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
     private final RecipeProcessor processor;
     private java.math.BigInteger cyclesBefore = java.math.BigInteger.ZERO;
+    private long startsBefore;
 
     public DefinedMachineEntity(BlockEntityType<?> type, BlockPos pos,
         BlockState state, MachineDefinition definition,
@@ -296,16 +297,42 @@ public final class DefinedMachineEntity extends BaseMachine {
     @Override
     protected void beforeMachineTick() {
         cyclesBefore = processor.completedCycles();
+        startsBefore = processor.startedCycles();
     }
 
-    /** Plays the {@code finish-sound} for everyone near a completed cycle. */
+    /**
+     * Runs the processor's {@code on-start} and {@code on-finish} handlers, and
+     * plays the {@code finish-sound} for everyone near a completed cycle.
+     */
     @Override
     protected void afterMachineTick() {
-        var finish = definition.sounds().finish();
-        if (finish.isPresent() && level != null
-            && !processor.completedCycles().equals(cyclesBefore))
-            level.playSound(null, worldPosition,
-                SoundDefinition.event(finish.get()), SoundSource.BLOCKS, 1, 1);
+        if (!(level instanceof net.minecraft.server.level.ServerLevel server))
+            return;
+        if (processor.startedCycles() != startsBefore)
+            definition.events().start()
+                .ifPresent(id -> processor.cycle().ifPresent(cycle -> fire(id,
+                    zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
+                    server, cycle)));
+        if (processor.completedCycles().equals(cyclesBefore))
+            return;
+        definition.sounds().finish()
+            .ifPresent(sound -> level.playSound(null, worldPosition,
+                SoundDefinition.event(sound), SoundSource.BLOCKS, 1, 1));
+        definition.events().finish().ifPresent(id -> processor.justFinished()
+            .ifPresent(cycle -> fire(id,
+                zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
+                server, cycle)));
+    }
+
+    private void fire(ResourceLocation id,
+        zone.moddev.mc.lib.api.MaterialEvent<zone.moddev.mc.lib.api.MaterialEventContexts.MachineCycle> event,
+        net.minecraft.server.level.ServerLevel server,
+        zone.moddev.mc.lib.machine.recipe.CyclePlan cycle) {
+        zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.events().dispatch(id,
+            event,
+            new zone.moddev.mc.lib.api.MaterialEventContexts.MachineCycle(this,
+                server, worldPosition, definition.id(), cycle.recipe(),
+                cycle.time()));
     }
 
     /**

@@ -190,7 +190,8 @@ public final class MachineDefinitions {
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
         Map.entry("processor",
             Set.of("id", "name", "recipe-type", "filter-inputs", "selectable",
-                "default-recipe", "running-sound", "finish-sound")),
+                "default-recipe", "running-sound", "finish-sound", "on-start",
+                "on-finish")),
         Map.entry("redstone", Set.of("enabled", "pause")),
         Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
@@ -228,7 +229,7 @@ public final class MachineDefinitions {
             case "face-texture" -> List.of("texture", "emissive-mask");
             case "recipe-type" -> List.of("id");
             case "processor" -> List.of("recipe-type", "default-recipe",
-                "running-sound", "finish-sound");
+                "running-sound", "finish-sound", "on-start", "on-finish");
             case "tank", "tanks" -> List.of("fluid");
             case "slot", "slots" -> List.of("default-item");
             default -> List.<String>of();
@@ -631,7 +632,10 @@ public final class MachineDefinitions {
             ghosts,
             new MachineDefinition.Sounds(
                 optionalResource(processor, "running-sound"),
-                optionalResource(processor, "finish-sound")));
+                optionalResource(processor, "finish-sound")),
+            new MachineDefinition.Events(
+                optionalResource(processor, "on-start"),
+                optionalResource(processor, "on-finish")));
         var defaults = definition.hasConditionalAppearance()
             ? definition.visualDefaults()
             : Map.<String, Object>of();

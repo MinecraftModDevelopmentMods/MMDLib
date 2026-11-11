@@ -544,6 +544,20 @@ class MachineDefinitionsTest {
         assertEquals(ResourceLocation.parse("test:machine/ding"),
             sounds.finish().orElseThrow());
         write(crusher().replace("<processor",
+            "<processor on-start=\"test:machine/started\""
+                + " on-finish=\"test:machine/finished\""));
+        var events = MachineDefinitions.load(sources()).get(id).events();
+        assertEquals(ResourceLocation.parse("test:machine/started"),
+            events.start().orElseThrow());
+        assertEquals(ResourceLocation.parse("test:machine/finished"),
+            events.finish().orElseThrow());
+        write(crusher().replace("<processor",
+            "<processor on-finish=\"Not A Handler\""));
+        var badEvent = assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        assertTrue(badEvent.getMessage().contains("on-finish"),
+            badEvent.getMessage());
+        write(crusher().replace("<processor",
             "<processor finish-sound=\"Not A Sound\""));
         var bad = assertThrows(IllegalArgumentException.class,
             () -> MachineDefinitions.load(sources()));
