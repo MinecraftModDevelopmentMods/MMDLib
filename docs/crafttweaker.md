@@ -69,7 +69,7 @@ runtime registration; sounds and map colors name vanilla constant keys.
 | `incorrectBlocks` | `minecraft:incorrect_for_iron_tool` | block tag this material's tools cannot harvest |
 | `baseBlock` | `minecraft:iron_block` | base behavior for factories such as stairs |
 | `blockSetType` | `minecraft:iron` | behavior for doors, buttons and pressure plates |
-| `blockSound` | `""` | material block sound override, e.g. `wood`; empty keeps module sound |
+| `blockSound` | `""` | material block sound override: a vanilla set such as `wood`, or a [sound set](#sounds) ID such as `mmdlib:steel_plate`; empty keeps module sound |
 | `mapColor` | `""` | material map-color override, e.g. `gold`; empty keeps module map color |
 
 Named methods `toolDurability(int)`, `toolEfficiency(double)`,
@@ -143,7 +143,7 @@ is put in `minecraft:mineable/pickaxe`.
 | `friction`, `speedFactor`, `jumpFactor` | float | slipperiness (ice 0.98); walk and jump multipliers |
 | `lightLevel` | int | 0 to 15 |
 | `requiresCorrectTool`, `collision`, `occlusion`, `randomTicks`, `replaceable`, `hasItem` | bool | |
-| `sound`, `mapColor` | string | such as `stone`, `wood`, `metal` |
+| `sound`, `mapColor` | string | such as `stone`, `wood`, `metal`; `sound` may also be a [sound set](#sounds) ID |
 | `factoryData` | map | settings for the module's Java implementation |
 | `blockEntityData` | map, write-only | settings for a machine's block entity |
 | `baseBlock` | block ID | what stairs copy their behavior from |
@@ -636,6 +636,66 @@ hammer.build();
 Sneaking mines a single block. The game tests run this hammer
 (`src/runtimeTest/scripts/mmdlib_hooks.zs`).
 
+## Sounds
+
+Scripts can declare sound events and block sound sets, and change the ones that
+`mmdlib/sound/` and `mmdlib/sound_type/` JSON files declare (see
+[sound events](definition-loading.md#sound-events) and
+[block sound sets](definition-loading.md#block-sound-sets) for those files).
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.SoundBuilder;
+import mods.mmdlib.SoundTypeBuilder;
+
+var hum = new SoundBuilder("machine/hum");
+hum.range = 24;
+hum.build();
+
+var steel = new SoundTypeBuilder("steel_plate");
+steel.base = "metal";
+steel.placeSound = "mmdlib:block/steel_place";
+steel.stepSound = "mmdlib:block/steel_step";
+steel.pitch = 0.9;
+steel.build();
+
+var chime = SoundBuilder.edit("example:machine/chime");
+chime.range = 0;
+chime.build();
+```
+
+A sound event only gets an ID: what it sounds like comes from `sounds.json`, as for
+any sound event. A sound set chooses the sounds a block plays; a block uses it by
+naming its ID as its `sound`, and a material as its `blockSound`.
+
+As with [creative tabs](#creative-tabs), `new SoundBuilder(name)` and
+`new SoundTypeBuilder(name)` start an `mmdlib:` ID, and reject a name a file
+already declares. `edit(id)` starts from a file's definition, in any namespace,
+and building it replaces the file's version. `exists(id)` and `declared()` look up
+the file definitions.
+
+`SoundBuilder` has one property:
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `name` | string, read-only | the sound event's ID |
+| `range` | float, blocks | `0`: Minecraft's default, which grows with volume |
+
+`SoundTypeBuilder`:
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `name` | string, read-only | the sound set's ID |
+| `base` | vanilla sound set name | `stone` |
+| `breakSound`, `stepSound`, `placeSound`, `hitSound`, `fallSound` | sound event ID | `""`: the base set's |
+| `volume`, `pitch` | float | `0`: the base set's |
+
+`base` must be one of vanilla's sets, such as `metal` or `wood`, not another
+declared set. Negative `range`, `volume` and `pitch` are errors. Building the same
+ID twice is an error. A block or material naming an unknown sound set fails at
+startup, naming it; a set naming an unregistered sound event fails when the first
+block using it is created.
+
 ## Creative tabs
 
 Scripts can make creative tabs, and change the tabs that `mmdlib/creative_tab/`
@@ -765,9 +825,9 @@ items, blocks, and their resources are created at startup on both sides.
 * Use duration and animation are exposed and applied by the basic-item factory.
   Other item factories keep their native use behavior; these properties do not
   turn an arbitrary sword or tool into an item used over time.
-* Rarity, feature flags, advanced block-property predicates, custom sound events,
-  block sound sets and independent tool tiers have no matching exposed definition
-  path.
+* Rarity, feature flags, advanced block-property predicates and independent tool
+  tiers have no matching exposed definition path. Screen click sounds and XML
+  machine sounds are set in their XML, not from scripts.
 
 ## Implementation
 

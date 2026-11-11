@@ -169,6 +169,12 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void scriptSoundSets(GameTestHelper helper) {
+        SoundSmoke.scriptSoundSet();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void toolsAndArmor(GameTestHelper helper) {
         ContentSmoke.toolsAndArmor();
         helper.succeed();

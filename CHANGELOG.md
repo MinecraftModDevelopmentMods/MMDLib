@@ -18,7 +18,7 @@
     is clicked.
   - XML machines: `<processor>` takes a `running-sound`, looped at the machine
     while a cycle runs, and a `finish-sound`, played when a cycle completes.
-  - CraftTweaker scripts can't set these yet.
+  - Click sounds and machine sounds are set in their XML only.
 - Add creative tabs from data: each `mmdlib/creative_tab/<path>.json` describes
   the tab `<mod>:<path>`, with its contents in order (items, `#tags` and whole
   materials, each item shown once), a translated title with an optional fallback,
@@ -33,6 +33,16 @@
   file tabs. For code-built definition sources, `Definitions` now carries creative
   tabs, and `MaterialExtensions.creativeTabFiles()` lets a source read the file
   tabs; a source's tab with a file tab's ID replaces it.
+- CraftTweaker: `#loader mmdlib` scripts can declare sound events
+  (`mods.mmdlib.SoundBuilder`, with `range`) and block sound sets
+  (`mods.mmdlib.SoundTypeBuilder`: base, break, step, place, hit and fall sounds,
+  volume, pitch), and change those declared in `mmdlib/sound/` and
+  `mmdlib/sound_type/` files with `edit(id)`; `exists` and `declared` list the file
+  definitions. A material's `blockSound` now accepts a sound set's ID, as a block's
+  `sound` already did. For code-built definition sources, `Definitions` carries
+  sound events and sound sets, and `MaterialExtensions.soundFiles()` and
+  `soundTypeFiles()` expose the file definitions; a source's definition with a
+  file's ID replaces it.
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,

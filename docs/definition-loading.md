@@ -173,6 +173,12 @@ Sound sets are not registry entries, so a block in any namespace can use any
 declared set. A block naming an unknown set fails loading, naming the block; a set
 naming an unregistered sound event fails when the first block using it is created.
 
+CraftTweaker scripts can declare sound events and sound sets, and change the ones
+these files declare; see [CraftTweaker sounds](crafttweaker.md#sounds). Code-built
+definition sources can too: `MaterialExtensions.soundFiles()` and
+`soundTypeFiles()` list the file definitions while sources run, and one a source
+returns with a file's ID replaces it.
+
 ## Stages
 
 1. Discover extension files in parallel across mod files and resolve all handlers.

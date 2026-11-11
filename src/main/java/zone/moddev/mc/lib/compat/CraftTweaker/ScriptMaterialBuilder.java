@@ -384,9 +384,16 @@ public final class ScriptMaterialBuilder {
         return blockSound.map(Object::toString).orElse("");
     }
 
+    /**
+     * A vanilla sound set's name, such as {@code "metal"}, or a sound set's ID
+     * from {@code mmdlib/sound_type/} or a {@code SoundTypeBuilder}; an unknown
+     * ID fails at startup, naming the material.
+     */
     @ZenCodeType.Setter("blockSound")
     public void setBlockSound(String value) {
-        if (!value.isEmpty()) {
+        if (value.indexOf(':') >= 0)
+            ResourceLocation.parse(value);
+        else if (!value.isEmpty()) {
             try {
                 net.minecraft.world.level.block.SoundType.class
                     .getField(value.toUpperCase(java.util.Locale.ROOT));

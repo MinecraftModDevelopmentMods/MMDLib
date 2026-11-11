@@ -16,6 +16,8 @@ import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.types.CreativeTabDefinition;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
+import zone.moddev.mc.lib.common.types.SoundDefinition;
+import zone.moddev.mc.lib.common.types.SoundTypeDefinition;
 import zone.moddev.mc.lib.common.types.StandaloneBlock;
 import zone.moddev.mc.lib.common.types.StandaloneItem;
 
@@ -39,6 +41,8 @@ final class ScriptDefinitions {
     private static final Map<ResourceLocation, StandaloneBlock> blocks = new LinkedHashMap<>();
     private static final Map<ResourceLocation, StandaloneItem> items = new LinkedHashMap<>();
     private static final Map<ResourceLocation, CreativeTabDefinition> tabs = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, SoundDefinition> sounds = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, SoundTypeDefinition> soundTypes = new LinkedHashMap<>();
     private static final Map<ResourceLocation, Set<ResourceLocation>> itemTags = new LinkedHashMap<>();
     private static final Map<ResourceLocation, ResourceLocation> basedOn = new LinkedHashMap<>();
     private static volatile Set<ResourceLocation> materialIds = Set.of();
@@ -81,6 +85,8 @@ final class ScriptDefinitions {
         blocks.clear();
         items.clear();
         tabs.clear();
+        sounds.clear();
+        soundTypes.clear();
         itemTags.clear();
         basedOn.clear();
         resources.clear();
@@ -110,11 +116,13 @@ final class ScriptDefinitions {
         builtBasedOn = Map.copyOf(basedOn);
         builtResources = Map.copyOf(resources);
         var result = new MaterialExtensions.Definitions(materials.values(),
-            blocks, items, tabs);
+            blocks, items, tabs, sounds, soundTypes);
         materials.clear();
         blocks.clear();
         items.clear();
         tabs.clear();
+        sounds.clear();
+        soundTypes.clear();
         return result;
     }
 
@@ -164,6 +172,42 @@ final class ScriptDefinitions {
         if (tabs.putIfAbsent(id, tab) != null)
             throw new IllegalStateException(
                 "Creative tab " + id + " is already built");
+    }
+
+    /**
+     * Queues a built sound event; one declared in a file is replaced by it.
+     *
+     * @throws IllegalStateException
+     *             if a script already built {@code id}
+     */
+    static synchronized void add(ResourceLocation id, SoundDefinition sound) {
+        catalog();
+        if (sounds.putIfAbsent(id, sound) != null)
+            throw new IllegalStateException(
+                "Sound event " + id + " is already built");
+    }
+
+    /**
+     * Queues a built block sound set; one declared in a file is replaced by it.
+     *
+     * @throws IllegalStateException
+     *             if a script already built {@code id}
+     */
+    static synchronized void add(ResourceLocation id, SoundTypeDefinition set) {
+        catalog();
+        if (soundTypes.putIfAbsent(id, set) != null)
+            throw new IllegalStateException(
+                "Sound set " + id + " is already built");
+    }
+
+    /** The sound events declared in {@code mmdlib/sound/} files. */
+    static Map<ResourceLocation, SoundDefinition> soundFiles() {
+        return catalog().soundFiles();
+    }
+
+    /** The block sound sets declared in {@code mmdlib/sound_type/} files. */
+    static Map<ResourceLocation, SoundTypeDefinition> soundTypeFiles() {
+        return catalog().soundTypeFiles();
     }
 
     /** The creative tabs declared in {@code mmdlib/creative_tab/} files. */
