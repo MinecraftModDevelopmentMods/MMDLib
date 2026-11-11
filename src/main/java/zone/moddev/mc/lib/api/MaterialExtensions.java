@@ -65,14 +65,23 @@ public final class MaterialExtensions {
      *            creative tabs by ID, like {@code mmdlib/creative_tab} files;
      *            one with the ID of a file's tab replaces it (see
      *            {@link MaterialExtensions#creativeTabFiles()})
+     * @param sounds
+     *            sound events by ID, like {@code mmdlib/sound} files; one with
+     *            the ID of a file's event replaces it
+     * @param soundTypes
+     *            block sound sets by ID, like {@code mmdlib/sound_type} files;
+     *            one with the ID of a file's set replaces it
      */
     public record Definitions(java.util.Collection<MMDMaterial> materials,
         Map<ResourceLocation, StandaloneBlock> standaloneBlocks,
         Map<ResourceLocation, StandaloneItem> standaloneItems,
-        Map<ResourceLocation, CreativeTabDefinition> creativeTabs) {
+        Map<ResourceLocation, CreativeTabDefinition> creativeTabs,
+        Map<ResourceLocation, SoundDefinition> sounds,
+        Map<ResourceLocation, SoundTypeDefinition> soundTypes) {
         /** Nothing. */
         public static final Definitions EMPTY = new Definitions(
-            java.util.List.of(), Map.of(), Map.of(), Map.of());
+            java.util.List.of(), Map.of(), Map.of(), Map.of(), Map.of(),
+            Map.of());
 
         /** Copies every collection. */
         public Definitions {
@@ -80,6 +89,17 @@ public final class MaterialExtensions {
             standaloneBlocks = Map.copyOf(standaloneBlocks);
             standaloneItems = Map.copyOf(standaloneItems);
             creativeTabs = Map.copyOf(creativeTabs);
+            sounds = Map.copyOf(sounds);
+            soundTypes = Map.copyOf(soundTypes);
+        }
+
+        /** Everything but sound events and sound sets. */
+        public Definitions(java.util.Collection<MMDMaterial> materials,
+            Map<ResourceLocation, StandaloneBlock> standaloneBlocks,
+            Map<ResourceLocation, StandaloneItem> standaloneItems,
+            Map<ResourceLocation, CreativeTabDefinition> creativeTabs) {
+            this(materials, standaloneBlocks, standaloneItems, creativeTabs,
+                Map.of(), Map.of());
         }
 
         /** Materials, standalone blocks and items, without creative tabs. */
@@ -165,6 +185,10 @@ public final class MaterialExtensions {
     private final MaterialEvents events = new MaterialEvents();
     private final java.util.List<NamedSource> definitionSources = new java.util.concurrent.CopyOnWriteArrayList<>();
     private volatile Map<ResourceLocation, CreativeTabDefinition> creativeTabFiles = Map
+        .of();
+    private volatile Map<ResourceLocation, SoundDefinition> soundFiles = Map
+        .of();
+    private volatile Map<ResourceLocation, SoundTypeDefinition> soundTypeFiles = Map
         .of();
     private final ConcurrentHashMap<ResourceLocation, ItemImplementation<?>> itemImplementations = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<ResourceLocation, BlockImplementation<?>> blockImplementations = new ConcurrentHashMap<>();
@@ -563,6 +587,33 @@ public final class MaterialExtensions {
     public void creativeTabFiles(
         Map<ResourceLocation, CreativeTabDefinition> tabs) {
         creativeTabFiles = Map.copyOf(tabs);
+    }
+
+    /**
+     * The sound events declared in {@code mmdlib/sound/} files, by ID; like
+     * {@link #creativeTabFiles()}, set before the definition sources run.
+     */
+    public Map<ResourceLocation, SoundDefinition> soundFiles() {
+        return soundFiles;
+    }
+
+    /** Sets {@link #soundFiles()}; called by the definition loader. */
+    public void soundFiles(Map<ResourceLocation, SoundDefinition> sounds) {
+        soundFiles = Map.copyOf(sounds);
+    }
+
+    /**
+     * The block sound sets declared in {@code mmdlib/sound_type/} files, by ID;
+     * like {@link #creativeTabFiles()}, set before the definition sources run.
+     */
+    public Map<ResourceLocation, SoundTypeDefinition> soundTypeFiles() {
+        return soundTypeFiles;
+    }
+
+    /** Sets {@link #soundTypeFiles()}; called by the definition loader. */
+    public void soundTypeFiles(
+        Map<ResourceLocation, SoundTypeDefinition> sets) {
+        soundTypeFiles = Map.copyOf(sets);
     }
 
     /** The registered definition sources, in registration order. */

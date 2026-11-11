@@ -329,6 +329,46 @@ public final class DefinitionLoaderTest {
     }
 
     @Test
+    void sourcesReplaceSoundsAndSoundSets() throws Exception {
+        Path temporary = Files.createTempDirectory("mmdlib-source-sounds");
+        var loader = DefinitionLoaderTest.class.getClassLoader();
+        try {
+            var root = temporary.resolve("alpha/mmdlib");
+            write(root, "sound/hum.json", "{}");
+            write(root, "sound_type/steel.json", "{\"base\": \"metal\"}");
+            var louder = new zone.moddev.mc.lib.common.types.SoundDefinition(
+                java.util.Optional.of(40f));
+            var wooden = new zone.moddev.mc.lib.common.types.SoundTypeDefinition(
+                "wood", java.util.Optional.empty(), java.util.Optional.empty(),
+                java.util.Optional.empty(), java.util.Optional.empty(),
+                java.util.Optional.empty(), java.util.Optional.empty(),
+                java.util.Optional.empty());
+            var seen = new java.util.ArrayList<ResourceLocation>();
+            var api = api();
+            api.registerDefinitionSource("scripts", catalog -> {
+                seen.addAll(catalog.soundFiles().keySet());
+                seen.addAll(catalog.soundTypeFiles().keySet());
+                return new MaterialExtensions.Definitions(List.of(), Map.of(),
+                    Map.of(), Map.of(), Map.of(id("alpha:hum"), louder), Map.of(
+                        id("alpha:steel"), wooden, id("mmdlib:new"), wooden));
+            });
+            var loaded = DefinitionLoader.load(
+                List.of(new SourceRoot("alpha", root, loader)), api,
+                mod -> false);
+            require(seen.equals(List.of(id("alpha:hum"), id("alpha:steel"))));
+            require(loaded.sounds().get(id("alpha:hum")).equals(louder));
+            require(loaded.soundTypes().get(id("alpha:steel")).equals(wooden)
+                && loaded.soundTypes().containsKey(id("mmdlib:new")));
+        } finally {
+            try (var paths = Files.walk(temporary)) {
+                for (var path : paths
+                    .sorted(java.util.Comparator.reverseOrder()).toList())
+                    Files.delete(path);
+            }
+        }
+    }
+
+    @Test
     void sourcesReplaceAndAddCreativeTabs() throws Exception {
         Path temporary = Files.createTempDirectory("mmdlib-source-tabs");
         var loader = DefinitionLoaderTest.class.getClassLoader();
