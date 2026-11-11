@@ -43,6 +43,13 @@
   sound events and sound sets, and `MaterialExtensions.soundFiles()` and
   `soundTypeFiles()` expose the file definitions; a source's definition with a
   file's ID replaces it.
+- CraftTweaker: scripts can supply screen click and hover handlers with
+  `mods.mmdlib.ScreenHandlers.onClick(name, function)` and `onHover(...)`,
+  registered as `mmdlib:<name>` for screen XML (machines' screens included) to
+  name in `on-click` and its variants, or `on-hover`. Screens stay XML; their
+  handler IDs are checked at startup, after scripts run. A click handler runs on
+  the server with the player, block entity, screen, element, button, modifier keys
+  and option; a hover handler runs on the client.
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,

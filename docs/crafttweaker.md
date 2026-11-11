@@ -636,6 +636,59 @@ hammer.build();
 Sneaking mines a single block. The game tests run this hammer
 (`src/runtimeTest/scripts/mmdlib_hooks.zs`).
 
+## Screen handlers
+
+Screens, including XML machines' screens, are defined in XML; scripts can supply
+what their click and hover handlers do. An element names a handler ID in
+`on-click`, `on-right-click`, `on-shift-click`, `on-shift-right-click` or `on-hover`
+(see [GUI screens](gui-screens.md)), and a script registers a function under that
+ID:
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.ScreenHandlers;
+
+ScreenHandlers.onClick("eject", (click) => {
+    if (click.shift) {
+        click.player.addTag("ejected_all");
+    }
+});
+
+ScreenHandlers.onHover("eject_hint", (hover) => {
+    println("Hovering " + hover.element);
+});
+```
+
+```xml
+<button id="eject" text="screen.example.eject" on-click="mmdlib:eject" on-hover="mmdlib:eject_hint"/>
+```
+
+`ScreenHandlers.onClick(name, function)` and `onHover(name, function)` register the
+handler `mmdlib:<name>` and return that ID. Each ID can be registered once, by a
+script or by code. `ScreenHandlers.exists(id)` tells whether a handler ID is
+registered.
+
+Screens load after the scripts run, and every handler ID they name is checked then:
+an `on-click` naming an ID no script or mod registered, or a hover handler used for
+a click, fails loading with the XML file and line.
+
+A click handler runs on the server and gets a `ScreenClickContext`:
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `player` | Player | who clicked |
+| `blockEntity`, `level`, `pos` | BlockEntity, Level, BlockPos | the screen's block entity, such as an XML machine |
+| `screen` | string | the screen's ID |
+| `element` | string | the clicked element's `id`; `""` if it has none |
+| `button` | int | 0 left, 1 right |
+| `shift`, `control`, `alt` | bool | the keys held |
+| `option` | int | the option chosen, such as a radio button's index; otherwise 0 |
+
+A hover handler runs on the client, when the mouse enters or leaves the element,
+and gets a `ScreenHoverContext` with `blockEntity`, `level`, `pos`, `screen`,
+`element` and `entered` (true on entering). Use it for display; it cannot change
+the world. A handler function that throws is logged, and the game carries on.
+
 ## Sounds
 
 Scripts can declare sound events and block sound sets, and change the ones that

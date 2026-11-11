@@ -435,6 +435,53 @@ Source: [ScriptRedstoneHandler](../src/main/java/zone/moddev/mc/lib/compat/Craft
 
 - method `void handle(RedstoneContext context)`
 
+### `ScreenClickContext`
+
+Source: [ScriptScreenClickContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenClickContext.java).
+
+- get `player` — `Player getPlayer()`
+- get `blockEntity` — `BlockEntity getBlockEntity()`
+- get `level` — `Level getLevel()`
+- get `pos` — `BlockPos getPos()`
+- get `screen` — `String getScreen()`
+- get `element` — `String getElement()`
+- get `button` — `int getButton()`
+- get `shift` — `boolean getShift()`
+- get `control` — `boolean getControl()`
+- get `alt` — `boolean getAlt()`
+- get `option` — `int getOption()`
+
+### `ScreenClickHandler`
+
+Source: [ScriptScreenClickHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenClickHandler.java).
+
+- method `void handle(ScreenClickContext click)`
+
+### `ScreenHandlers`
+
+Source: [ScriptScreenHandlers](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHandlers.java).
+
+- static method `String onClick(String name, ScreenClickHandler handler)`
+- static method `String onHover(String name, ScreenHoverHandler handler)`
+- static method `boolean exists(String id)`
+
+### `ScreenHoverContext`
+
+Source: [ScriptScreenHoverContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHoverContext.java).
+
+- get `blockEntity` — `BlockEntity getBlockEntity()`
+- get `level` — `Level getLevel()`
+- get `pos` — `BlockPos getPos()`
+- get `screen` — `String getScreen()`
+- get `element` — `String getElement()`
+- get `entered` — `boolean getEntered()`
+
+### `ScreenHoverHandler`
+
+Source: [ScriptScreenHoverHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHoverHandler.java).
+
+- method `void handle(ScreenHoverContext hover)`
+
 ### `SoundBuilder`
 
 Source: [ScriptSoundBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptSoundBuilder.java).
