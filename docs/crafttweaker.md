@@ -689,6 +689,44 @@ and gets a `ScreenHoverContext` with `blockEntity`, `level`, `pos`, `screen`,
 `element` and `entered` (true on entering). Use it for display; it cannot change
 the world. A handler function that throws is logged, and the game carries on.
 
+## Screen values
+
+Scripts can also supply the values screen elements show. An element reads a value
+provider with `value="@mmdlib:<name>"` (or `max`), and a script registers a function
+under that name; the screen, including an XML machine's, stays XML:
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.ScreenValues;
+
+ScreenValues.whole("height", (machine) => machine.blockPos.y);
+ScreenValues.decimal("efficiency", (machine) => 0.85);
+ScreenValues.flag("placed", (machine) => machine.hasLevel);
+ScreenValues.text("where", (machine) => "At " + machine.blockPos.x);
+```
+
+```xml
+<label text="screen.example.height" value="@mmdlib:height"/>
+<checkbox text="screen.example.placed" value="@mmdlib:placed"/>
+```
+
+| Method | Value | Shown by |
+| --- | --- | --- |
+| `whole(name, function)` | a whole number (`long`) | gauges, meters, progress bars, labels |
+| `decimal(name, function)` | a decimal number | meters, labels |
+| `flag(name, function)` | `true`/`false` | checkboxes, toggles |
+| `text(name, function)` | a string, shown as written | labels |
+
+Each function gets the screen's block entity and runs on the server every tick the
+screen is open; its result is sent to the player like any other value. Each returns
+the provider's ID, `mmdlib:<name>`. `ScreenValues.exists(id)` tells whether a
+provider is registered.
+
+Screens are checked after the scripts run: an element naming a provider nobody
+registered, or one whose kind it cannot show (text on a gauge, say), fails loading
+with the XML file and line. A function that throws is logged once, and the element
+shows no value.
+
 ## Sounds
 
 Scripts can declare sound events and block sound sets, and change the ones that

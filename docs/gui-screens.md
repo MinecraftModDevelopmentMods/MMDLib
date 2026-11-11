@@ -1981,7 +1981,7 @@ use `layout.bounds(slotElement)` for independently placed sections.
 ## Values
 
 `value` and `max` name a getter on the mod's own Java code, which is always present behind a
-screen anyway. Every open screen belongs to exactly one block entity (the menu is created for
+screen anyway, or a named value provider. Every open screen belongs to exactly one block entity (the menu is created for
 the block at a position), and that instance is what the getters are called on:
 
 | Form | Resolves to | Called as |
@@ -1989,6 +1989,15 @@ the block at a position), and that instance is what the getters are called on:
 | `#method` | A public instance method on the screen's `block-entity` class (or a superclass or interface of it), taking no parameters | `blockEntity.method()` |
 | `#method(index)` | A public instance getter taking one fixed nonnegative `int`, e.g. `#getTankFluid(0)` | `blockEntity.method(index)` |
 | `Class#method` | A public **static** method taking the block entity (or a supertype) as its only parameter, e.g. a helper shared by several machines | `Class.method(blockEntity)` |
+| `@namespace:id` | A value provider registered under that ID, by code or a CraftTweaker script | `provider(blockEntity)` |
+
+A value provider is registered with
+`ScreenValueProviders.GLOBAL.register(id, valueType, blockEntity -> value)` during mod
+construction, on both sides, like a value type; the registry freezes when screens load. It
+declares the value type it returns (`ValueTypes.WHOLE`, `DECIMAL`, `BOOLEAN`, `TEXT`, ...), which
+is checked against the element at load like a getter's return type; an unknown provider fails
+with the file and line. Providers suit values that don't belong on the block entity class, and
+let a pack's [CraftTweaker scripts](crafttweaker.md#screen-values) supply values to XML screens.
 
 Resolution happens in two steps. At load, each reference is looked up from the class and name
 alone (`findVirtual` / `findStatic`) and checked; no instance is involved. When a player opens
