@@ -258,6 +258,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     private boolean changed;
     private Status status = Status.IDLE;
     private java.math.BigInteger completedCycles = java.math.BigInteger.ZERO;
+    private long startedCycles;
     private final Component displayName;
 
     /**
@@ -266,6 +267,24 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      */
     public java.math.BigInteger completedCycles() {
         return completedCycles;
+    }
+
+    /**
+     * Cycles started since this processor was created: new cycles only, not a
+     * paused or saved cycle taken up again. Not saved.
+     */
+    public long startedCycles() {
+        return startedCycles;
+    }
+
+    /** The running cycle, if any. */
+    public Optional<CyclePlan> cycle() {
+        return Optional.ofNullable(cycle);
+    }
+
+    /** The cycle finished on the latest tick, if one was. */
+    public Optional<CyclePlan> justFinished() {
+        return Optional.ofNullable(justFinished);
     }
 
     public Component displayName() {
@@ -760,6 +779,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         progress = 0;
         status = Status.RUNNING;
         progressChanges.changed();
+        startedCycles++;
         host.markChanged();
     }
 

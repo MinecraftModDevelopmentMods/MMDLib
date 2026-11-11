@@ -544,4 +544,36 @@ public final class MaterialEventContexts {
             Objects.requireNonNull(state);
         }
     }
+
+    /**
+     * Context of {@code machine-cycle-start} and {@code machine-cycle-finish}:
+     * an XML machine's processor started or finished a cycle, on the server.
+     *
+     * @param machine
+     *            the machine's block entity
+     * @param level
+     *            its level
+     * @param position
+     *            its position
+     * @param machineId
+     *            the machine definition's ID
+     * @param recipe
+     *            the cycle's recipe
+     * @param time
+     *            the cycle's length, in ticks
+     */
+    public record MachineCycle(
+        net.minecraft.world.level.block.entity.BlockEntity machine,
+        ServerLevel level, BlockPos position,
+        net.minecraft.resources.ResourceLocation machineId,
+        net.minecraft.resources.ResourceLocation recipe, int time) {
+        /** Requires every value. */
+        public MachineCycle {
+            Objects.requireNonNull(machine);
+            Objects.requireNonNull(level);
+            position = Objects.requireNonNull(position).immutable();
+            Objects.requireNonNull(machineId);
+            Objects.requireNonNull(recipe);
+        }
+    }
 }

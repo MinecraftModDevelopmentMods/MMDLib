@@ -57,6 +57,13 @@
   `mods.mmdlib.ScreenValues.whole`, `decimal`, `flag` and `text`, as
   `mmdlib:<name>`; each function gets the screen's block entity and runs on the
   server.
+- XML machine cycle events: a `<processor>` can name `on-start` and `on-finish`
+  handlers, new `machine-cycle-start` and `machine-cycle-finish` events run on the
+  server when a new cycle starts and when one finishes with its outputs placed.
+  Handlers get the machine, level, position, machine ID, recipe and cycle length,
+  and are registered in code, extension files, or CraftTweaker scripts
+  (`mods.mmdlib.MachineHandlers.onStart` / `onFinish`, as `mmdlib:<name>`). Each
+  machine's handler IDs are checked when machines load.
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,
@@ -73,8 +80,9 @@
 - MMDLib's creative tab is now titled "MMDLib" (it was "MMDLib: Vanilla
   Extensions"); it holds MMDLib's standalone and script-defined items.
 - For mods built on MMDLib:
-  - `MachineDefinition` has a new `sounds` component; code constructing one
-    directly must pass `MachineDefinition.Sounds.NONE` or the sounds it wants.
+  - `MachineDefinition` has new `sounds` and `events` components; code
+    constructing one directly must pass `MachineDefinition.Sounds.NONE` and
+    `MachineDefinition.Events.NONE`, or the values it wants.
   - `DefinitionLoader.Loaded` and `Common.Clicks` have new components; their
     previous constructors remain.
   - `StaticAssetRules`, which only served the removed artwork, is gone.

@@ -468,6 +468,29 @@ Any sound in a `sounds.json` works; to declare your own sound events, see
 [sound events](definition-loading.md#sound-events). A looping sound's `.ogg` should
 loop cleanly.
 
+A processor can also run handlers, named by callback ID:
+
+* `on-start` runs when the processor starts a new cycle: a `machine-cycle-start`
+  handler. Resuming a paused or saved cycle does not count.
+* `on-finish` runs when a cycle has finished and placed its outputs: a
+  `machine-cycle-finish` handler.
+
+```xml
+<processor id="crusher" recipe-type="example:crushing"
+           on-start="example:crusher_started" on-finish="example:crusher_done"/>
+```
+
+Both run on the server and receive a `MaterialEventContexts.MachineCycle`: the
+machine's block entity, its level and position, the machine definition's ID, and
+the cycle's recipe ID and length in ticks. Register a handler in code with
+`MaterialExtensions.GLOBAL.events().registerCallback(id,
+MaterialEventTypes.MACHINE_CYCLE_FINISH, cycle -> ...)`, in an extension file
+(`"type": "machine-cycle-finish"`, a `public static void method(MachineCycle)`), or
+from a [CraftTweaker script](crafttweaker.md#machine-handlers). Machines load after
+extension files, code and scripts have registered their handlers; a machine naming
+an ID nobody registered, or a handler of the other event, fails loading with the
+machine's ID.
+
 Stable storage IDs, processing reservations and side settings survive saves.
 Displaced resources use `mmdlib:machine_recovery_capsule`; use a capsule on an XML
 machine to restore compatible items, fluids and energy. Overflow and unknown resource

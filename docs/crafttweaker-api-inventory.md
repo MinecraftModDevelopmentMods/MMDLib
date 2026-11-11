@@ -362,6 +362,31 @@ Source: [ScriptItemUseHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftT
 
 - method `void handle(ItemUseContext context)`
 
+### `MachineCycleContext`
+
+Source: [ScriptMachineCycleContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineCycleContext.java).
+
+- get `machine` — `BlockEntity getMachine()`
+- get `level` — `Level getLevel()`
+- get `pos` — `BlockPos getPos()`
+- get `machineId` — `String getMachineId()`
+- get `recipe` — `String getRecipe()`
+- get `time` — `int getTime()`
+
+### `MachineCycleHandler`
+
+Source: [ScriptMachineCycleHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineCycleHandler.java).
+
+- method `void handle(MachineCycleContext cycle)`
+
+### `MachineHandlers`
+
+Source: [ScriptMachineHandlers](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineHandlers.java).
+
+- static method `String onStart(String name, MachineCycleHandler handler)`
+- static method `String onFinish(String name, MachineCycleHandler handler)`
+- static method `boolean exists(String id)`
+
 ### `MaterialBuilder`
 
 Source: [ScriptMaterialBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMaterialBuilder.java).
