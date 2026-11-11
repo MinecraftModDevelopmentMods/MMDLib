@@ -89,6 +89,15 @@ registrar.queueTab(ResourceLocation.parse("example:tools"),
         .build());
 ```
 
+## From CraftTweaker scripts
+
+`#loader mmdlib` scripts can make tabs with `mods.mmdlib.CreativeTabBuilder`, and
+change the tabs these files declare with `CreativeTabBuilder.edit(id)`; a changed
+tab replaces the file's version. See [CraftTweaker definitions](crafttweaker.md#creative-tabs).
+Code-built definition sources can do the same: `MaterialExtensions.creativeTabFiles()`
+lists the file tabs while sources run, and a tab a source returns with a file tab's
+ID replaces it.
+
 ## The materials tab
 
 Every registrar also has its automatic `<mod>:materials` tab, holding every item it

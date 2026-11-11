@@ -25,8 +25,14 @@
   an icon, `before`/`after` placement and an optional search bar.
   `CreativeTabDefinition.builder()` builds the same in Java. MMDLib registers its
   own namespace's; other mods queue theirs with `RuntimeContentRegistrar.queueTab`,
-  and `MMDLib.creativeTabs()` lists them all. Not yet available to CraftTweaker
-  scripts.
+  and `MMDLib.creativeTabs()` lists them all.
+- CraftTweaker: `#loader mmdlib` scripts can make creative tabs with
+  `mods.mmdlib.CreativeTabBuilder`, and change tabs declared in JSON files with
+  `CreativeTabBuilder.edit(id)`: title, fallback, icon, placement, search bar, and
+  adding or removing items, tags and materials. `exists` and `declared` list the
+  file tabs. For code-built definition sources, `Definitions` now carries creative
+  tabs, and `MaterialExtensions.creativeTabFiles()` lets a source read the file
+  tabs; a source's tab with a file tab's ID replaces it.
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,

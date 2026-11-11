@@ -14,6 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
+import zone.moddev.mc.lib.common.types.CreativeTabDefinition;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
 import zone.moddev.mc.lib.common.types.StandaloneBlock;
 import zone.moddev.mc.lib.common.types.StandaloneItem;
@@ -37,6 +38,7 @@ final class ScriptDefinitions {
     private static final Map<ResourceLocation, MMDMaterial> materials = new LinkedHashMap<>();
     private static final Map<ResourceLocation, StandaloneBlock> blocks = new LinkedHashMap<>();
     private static final Map<ResourceLocation, StandaloneItem> items = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, CreativeTabDefinition> tabs = new LinkedHashMap<>();
     private static final Map<ResourceLocation, Set<ResourceLocation>> itemTags = new LinkedHashMap<>();
     private static final Map<ResourceLocation, ResourceLocation> basedOn = new LinkedHashMap<>();
     private static volatile Set<ResourceLocation> materialIds = Set.of();
@@ -78,6 +80,7 @@ final class ScriptDefinitions {
         materials.clear();
         blocks.clear();
         items.clear();
+        tabs.clear();
         itemTags.clear();
         basedOn.clear();
         resources.clear();
@@ -107,10 +110,11 @@ final class ScriptDefinitions {
         builtBasedOn = Map.copyOf(basedOn);
         builtResources = Map.copyOf(resources);
         var result = new MaterialExtensions.Definitions(materials.values(),
-            blocks, items);
+            blocks, items, tabs);
         materials.clear();
         blocks.clear();
         items.clear();
+        tabs.clear();
         return result;
     }
 
@@ -148,6 +152,25 @@ final class ScriptDefinitions {
      * @throws IllegalStateException
      *             outside the startup run, or if the ID was already built
      */
+    /**
+     * Queues a built creative tab; a tab declared in a file is replaced by it.
+     *
+     * @throws IllegalStateException
+     *             if a script already built {@code id}
+     */
+    static synchronized void add(ResourceLocation id,
+        CreativeTabDefinition tab) {
+        catalog();
+        if (tabs.putIfAbsent(id, tab) != null)
+            throw new IllegalStateException(
+                "Creative tab " + id + " is already built");
+    }
+
+    /** The creative tabs declared in {@code mmdlib/creative_tab/} files. */
+    static Map<ResourceLocation, CreativeTabDefinition> creativeTabFiles() {
+        return catalog().creativeTabFiles();
+    }
+
     static synchronized void add(ResourceLocation id, StandaloneBlock block) {
         catalog();
         if (blocks.putIfAbsent(id, block) != null)

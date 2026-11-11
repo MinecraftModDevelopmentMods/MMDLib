@@ -61,19 +61,32 @@ public final class MaterialExtensions {
      * @param standaloneItems
      *            standalone items by registry ID, planned like {@code
      *     mmdlib/standalone/item} files
+     * @param creativeTabs
+     *            creative tabs by ID, like {@code mmdlib/creative_tab} files;
+     *            one with the ID of a file's tab replaces it (see
+     *            {@link MaterialExtensions#creativeTabFiles()})
      */
     public record Definitions(java.util.Collection<MMDMaterial> materials,
         Map<ResourceLocation, StandaloneBlock> standaloneBlocks,
-        Map<ResourceLocation, StandaloneItem> standaloneItems) {
+        Map<ResourceLocation, StandaloneItem> standaloneItems,
+        Map<ResourceLocation, CreativeTabDefinition> creativeTabs) {
         /** Nothing. */
         public static final Definitions EMPTY = new Definitions(
-            java.util.List.of(), Map.of(), Map.of());
+            java.util.List.of(), Map.of(), Map.of(), Map.of());
 
         /** Copies every collection. */
         public Definitions {
             materials = java.util.List.copyOf(materials);
             standaloneBlocks = Map.copyOf(standaloneBlocks);
             standaloneItems = Map.copyOf(standaloneItems);
+            creativeTabs = Map.copyOf(creativeTabs);
+        }
+
+        /** Materials, standalone blocks and items, without creative tabs. */
+        public Definitions(java.util.Collection<MMDMaterial> materials,
+            Map<ResourceLocation, StandaloneBlock> standaloneBlocks,
+            Map<ResourceLocation, StandaloneItem> standaloneItems) {
+            this(materials, standaloneBlocks, standaloneItems, Map.of());
         }
 
         /** Materials and standalone blocks, without standalone items. */
@@ -151,6 +164,8 @@ public final class MaterialExtensions {
     private final ConcurrentHashMap<ResourceLocation, BlockType> blocks = new ConcurrentHashMap<>();
     private final MaterialEvents events = new MaterialEvents();
     private final java.util.List<NamedSource> definitionSources = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private volatile Map<ResourceLocation, CreativeTabDefinition> creativeTabFiles = Map
+        .of();
     private final ConcurrentHashMap<ResourceLocation, ItemImplementation<?>> itemImplementations = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<ResourceLocation, BlockImplementation<?>> blockImplementations = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<ResourceLocation, zone.moddev.mc.lib.common.modules.DataModules.Item> itemModules = new ConcurrentHashMap<>();
@@ -530,6 +545,24 @@ public final class MaterialExtensions {
             throw new IllegalArgumentException(
                 "Duplicate definition source '" + name + "'");
         definitionSources.add(named);
+    }
+
+    /**
+     * The creative tabs declared in {@code mmdlib/creative_tab/} files, by ID.
+     * The definition loader sets them before it calls the definition sources,
+     * so a source can read a file's tab and return a changed copy under the
+     * same ID, which then replaces it.
+     */
+    public Map<ResourceLocation, CreativeTabDefinition> creativeTabFiles() {
+        return creativeTabFiles;
+    }
+
+    /**
+     * Sets {@link #creativeTabFiles()}; called by the definition loader.
+     */
+    public void creativeTabFiles(
+        Map<ResourceLocation, CreativeTabDefinition> tabs) {
+        creativeTabFiles = Map.copyOf(tabs);
     }
 
     /** The registered definition sources, in registration order. */
