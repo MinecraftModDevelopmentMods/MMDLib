@@ -64,6 +64,11 @@
   and are registered in code, extension files, or CraftTweaker scripts
   (`mods.mmdlib.MachineHandlers.onStart` / `onFinish`, as `mmdlib:<name>`). Each
   machine's handler IDs are checked when machines load.
+- CraftTweaker machine recipes: recipe scripts can add and remove recipes of XML
+  machines' declared recipe types with CraftTweaker's own `<recipetype:...>`
+  manager (`addJsonRecipe`, `removeByName`, ...), or add them with the typed
+  `mods.mmdlib.MachineRecipeBuilder`: item, fluid and energy inputs, item and fluid
+  outputs with chances, and time.
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,
@@ -86,10 +91,41 @@
   - `DefinitionLoader.Loaded` and `Common.Clicks` have new components; their
     previous constructors remain.
   - `StaticAssetRules`, which only served the removed artwork, is gone.
+  - New for code: `RecipeProcessor.startedCycles()`, `cycle()` and
+    `justFinished()`; a `ScreenBinder.bind` overload taking a
+    `ScreenValueProviders` registry, whose constructor is now public for
+    isolated binding and tests.
 
-## Unreleased — CraftTweaker integration
+## 2.0.1 — 2026-11-10
 
-Changes on `crafttweaker-integration` since `master-2.0-1.21.1-neo`.
+2.0.0 (2026-11-03) shipped without a changelog; this lists what 2.0.1 added.
+
+### Machines and screens
+
+- Shared machine recipe processor, with centralized input and output
+  reservations, compact pause and redstone controls above machine inventories,
+  and persistence fixes for in-place shift-click transfers (#90).
+- Mod-defined interactive GUI widgets (#91).
+- Coloured inventory and side-configuration drawers, with capability-driven
+  automation addons, filter editors and ghost samples (#92); player equipment and
+  optional inventory drawers, including Curios slots (#93).
+- Per-face redstone controls and machine reservation overlays (#94).
+- A provider-based statistics drawer and configurable generator panels (#95).
+- A shared powered-machine entity and a reusable powered-machine screen template;
+  machine screens can inherit info panels and processor controls (#96).
+- XML-defined machines, with generated recipes, recipe bundles, an XML lava
+  furnace, fluid recipe adapters and tank tooltips (#97).
+- Extensible, self-contained machine UI elements; redstone dust connects to a
+  machine's configured redstone inputs and outputs (#103).
+
+### Fluids
+
+- A generic fluid capability lets glass bottles hold fluids in
+  `#mmdlib:bottleable`, unless another mod already gives glass bottles one (#99).
+- Glass bottles filled with an experience fluid (`#c:experience`) become Bottles
+  o' Enchanting, 250 mB each (#101).
+
+### CraftTweaker
 
 - Add optional CraftTweaker support for defining materials, standalone blocks and
   items, and reusable block and item modules in ZenScript.
@@ -109,11 +145,11 @@ Changes on `crafttweaker-integration` since `master-2.0-1.21.1-neo`.
   limitations in [CraftTweaker definitions](docs/crafttweaker.md) and
   [definition loading](docs/definition-loading.md).
 
-+- Expose material repair/harvest settings, block runtime overrides, and named tool
-+  stat methods to CraftTweaker. Add a typed helper for existing generic-tool factory
-+  data, with script integration tests and an API/runtime capability inventory.
-+  Per-tool durability scaling remains limited by vanilla TieredItem resetting the
-+  computed durability to the material tier's uses; material durability works.
+- Expose material repair/harvest settings, block runtime overrides, and named tool
+  stat methods to CraftTweaker. Add a typed helper for existing generic-tool factory
+  data, with script integration tests and an API/runtime capability inventory.
+  Per-tool durability scaling remains limited by vanilla TieredItem resetting the
+  computed durability to the material tier's uses; material durability works.
 - Add typed item/block/tag/module ID references and independent module snapshots
   for CraftTweaker. Snapshot copies rebind locally owned handlers; module tags are
   now available to subsequent builders during the same script run.
@@ -125,3 +161,9 @@ Changes on `crafttweaker-integration` since `master-2.0-1.21.1-neo`.
 - Add a typed CraftTweaker manager for shared `mmdlib:crushing` recipes under a
   separate crusher integration package. Reuse standard recipe actions, removals,
   queries and reload handling; test script-added recipes through the crackhammer.
+
+### Build
+
+- Spotless formats the code: an Eclipse profile (4-space indent, 80-column
+  target) and import blocks, ratcheted so files are reformatted as they are
+  edited, with `-PformatAll` for a whole-tree pass (#102, #104).
