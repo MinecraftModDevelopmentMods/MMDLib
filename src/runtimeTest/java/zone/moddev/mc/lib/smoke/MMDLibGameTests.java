@@ -573,6 +573,13 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void scriptScreenHandlers(GameTestHelper helper) {
+        CrusherSmoke.scriptScreenHandlers(helper.getLevel(),
+            helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void crusherMenuRows(GameTestHelper helper) {
         CrusherSmoke.menuRows(helper.getLevel(), helper.absolutePos(CENTER),
             helper.makeMockServerPlayerInLevel());

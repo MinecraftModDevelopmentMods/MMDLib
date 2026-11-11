@@ -776,6 +776,12 @@ validate any machine-specific permission or operation it implements.
              "handler": "example.PressEvents#eject", "name": "Eject outputs"}]}
 ```
 
+Code can register a handler directly, with
+`MaterialExtensions.GLOBAL.events().registerCallback(id, MaterialEventTypes.GUI_CLICK, click -> ...)`.
+CraftTweaker scripts can supply handlers too, as `mmdlib:` IDs: the screen stays
+XML and names them like any other handler. See
+[CraftTweaker screen handlers](crafttweaker.md#screen-handlers).
+
 The owning mod must register every prepared block-entity handle after queuing its definitions;
 see [block entities](block-entities.md). MMDLib uses the resulting type for block construction,
 screen lookup and capability registration.

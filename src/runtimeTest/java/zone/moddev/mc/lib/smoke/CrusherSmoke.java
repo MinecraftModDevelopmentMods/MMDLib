@@ -284,6 +284,39 @@ public final class CrusherSmoke {
         }
     }
 
+    /**
+     * The test script {@code mmdlib_screens.zs}'s click handler
+     * {@code mmdlib:test/script_click}, given a real menu's click: it tags the
+     * player with the button, Shift and the screen's ID. Its hover handler is
+     * registered for {@code gui-hover}.
+     */
+    static void scriptScreenHandlers(ServerLevel level, BlockPos pos,
+        ServerPlayer player) {
+        var crusher = place(level, pos);
+        var menu = new MachineMenu(87, player.getInventory(), crusher);
+        var events = zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.events();
+        var click = ResourceLocation.parse("mmdlib:test/script_click");
+        var hover = ResourceLocation.parse("mmdlib:test/script_hover");
+        require(
+            events.callbacks().get(click)
+                .event() == zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK,
+            "the script's click handler is a gui-click handler");
+        require(
+            events.callbacks().get(hover)
+                .event() == zone.moddev.mc.lib.api.MaterialEventTypes.GUI_HOVER,
+            "the script's hover handler is a gui-hover handler");
+        events.dispatch(click,
+            zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK,
+            new zone.moddev.mc.lib.gui.runtime.ScreenClick(player, menu,
+                menu.elements.getFirst(), 1, true, false, false, 0));
+        require(player.getTags().contains("mmdlib_click_1_shift"),
+            "the handler saw the right button and Shift: " + player.getTags());
+        require(
+            player.getTags()
+                .contains("mmdlib_screen_" + menu.bound.screen().id()),
+            "the handler saw the screen: " + player.getTags());
+    }
+
     /** Every row of the reservations tables, driven through a real menu. */
     static void menuRows(ServerLevel level, BlockPos pos, ServerPlayer player) {
         var crusher = place(level, pos);
