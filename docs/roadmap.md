@@ -30,10 +30,10 @@ The policy choices below remain open; these items are not implemented or verifie
 - [ ] **Creative-tab membership and custom tabs.** Custom tabs are done for JSON
   and Java ([creative tabs](creative-tabs.md)): ID, translated title with fallback,
   icon, ordered contents (items, tags, materials), relative placement and a search
-  bar. Still to do: apply items' existing `group` and `creative_menu_stacks`
-  declarations to vanilla or modded tabs; CraftTweaker wrappers using the same
-  path; and moving MMDLib's own materials tab (and the XML machines' tab) onto the
-  public mechanism.
+  bar; CraftTweaker scripts can make tabs and change file tabs. Still to do: apply
+  items' existing `group` and `creative_menu_stacks` declarations to vanilla or
+  modded tabs, and move MMDLib's own materials tab (and the XML machines' tab)
+  onto the public mechanism.
   **Decisions needed:** duplicate entries, ordering, visibility, missing tab IDs,
   default materials-tab membership for explicitly assigned items, and modern
   component-aware stack definitions versus the existing legacy `tag` field.

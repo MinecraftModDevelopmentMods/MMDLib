@@ -329,6 +329,52 @@ public final class DefinitionLoaderTest {
     }
 
     @Test
+    void sourcesReplaceAndAddCreativeTabs() throws Exception {
+        Path temporary = Files.createTempDirectory("mmdlib-source-tabs");
+        var loader = DefinitionLoaderTest.class.getClassLoader();
+        try {
+            var root = temporary.resolve("alpha/mmdlib");
+            write(root, "creative_tab/tools.json",
+                "{\"contents\": [\"alpha:hammer\"]}");
+            var sources = List.of(new SourceRoot("alpha", root, loader));
+            var changed = CreativeTabDefinition.builder()
+                .item(id("alpha:hammer")).item(id("minecraft:apple")).build();
+            var added = CreativeTabDefinition.builder()
+                .item(id("minecraft:stick")).build();
+            var seen = new java.util.ArrayList<ResourceLocation>();
+            var api = api();
+            api.registerDefinitionSource("scripts", catalog -> {
+                // The file's tab is visible before any source returns.
+                seen.addAll(catalog.creativeTabFiles().keySet());
+                return new MaterialExtensions.Definitions(List.of(), Map.of(),
+                    Map.of(), Map.of(id("alpha:tools"), changed,
+                        id("mmdlib:extra"), added));
+            });
+            var tabs = DefinitionLoader.load(sources, api, mod -> false)
+                .creativeTabs();
+            require(seen.equals(List.of(id("alpha:tools"))));
+            require(tabs.get(id("alpha:tools")).equals(changed)
+                && tabs.get(id("mmdlib:extra")).equals(added)
+                && tabs.size() == 2);
+
+            var twice = api();
+            for (var name : List.of("first", "second"))
+                twice.registerDefinitionSource(name,
+                    catalog -> new MaterialExtensions.Definitions(List.of(),
+                        Map.of(), Map.of(), Map.of(id("mmdlib:extra"), added)));
+            expectFailure(
+                () -> DefinitionLoader.load(sources, twice, mod -> false),
+                "Duplicate creative tab mmdlib:extra", "first", "second");
+        } finally {
+            try (var paths = Files.walk(temporary)) {
+                for (var path : paths
+                    .sorted(java.util.Comparator.reverseOrder()).toList())
+                    Files.delete(path);
+            }
+        }
+    }
+
+    @Test
     void plansCodeMaterialSources() throws Exception {
         Path temporary = Files.createTempDirectory("mmdlib-sources");
         var loader = DefinitionLoaderTest.class.getClassLoader();
