@@ -44,6 +44,52 @@ final class MachineScriptSmoke {
             "the finish handler ran, for the expected machine and recipe");
     }
 
+    /**
+     * The recipe script {@code machine_recipes.zs}: CraftTweaker's generic
+     * manager for the machine's XML-declared recipe type added dirt to diamond
+     * and removed the datapack recipe glass to sand, and the typed
+     * {@code MachineRecipeBuilder} added two cobblestone to three gravel.
+     */
+    static void scriptRecipes(ServerLevel level, BlockPos pos) {
+        var machine = place(level, pos);
+        machine.items.insertItem(0, new ItemStack(Items.DIRT), false);
+        for (int i = 0; i < 5; i++)
+            machine.serverTick();
+        require(machine.items.getStackInSlot(1).is(Items.DIAMOND),
+            "the script's recipe ran: " + machine.items.getStackInSlot(1));
+        machine.items.extractItem(1, 64, false);
+        machine.items.extractItem(1, 64, false);
+        machine.items.insertItem(0, new ItemStack(Items.COBBLESTONE, 2), false);
+        for (int i = 0; i < 5; i++)
+            machine.serverTick();
+        require(
+            machine.items.getStackInSlot(1).is(Items.GRAVEL)
+                && machine.items.getStackInSlot(1).getCount() == 3
+                && machine.items.getStackInSlot(0).isEmpty(),
+            "the typed recipe took two cobblestone and made three gravel: "
+                + machine.items.getStackInSlot(1));
+        machine.items.extractItem(1, 64, false);
+        // With no recipe using glass, the input filter refuses it outright.
+        var refused = machine.items.insertItem(0, new ItemStack(Items.GLASS),
+            false);
+        require(refused.is(Items.GLASS),
+            "the input no longer accepts glass, since no recipe uses it");
+        for (int i = 0; i < 5; i++)
+            machine.serverTick();
+        require(machine.items.getStackInSlot(1).isEmpty(),
+            "the removed recipe did not run: "
+                + machine.items.getStackInSlot(1));
+    }
+
+    private static DefinedMachineEntity place(ServerLevel level, BlockPos pos) {
+        level.setBlock(pos,
+            BuiltInRegistries.BLOCK
+                .get(ResourceLocation.parse("mmdlib:test/script_machine"))
+                .defaultBlockState(),
+            3);
+        return (DefinedMachineEntity) level.getBlockEntity(pos);
+    }
+
     private static void require(boolean condition, String what) {
         if (!condition)
             throw new AssertionError("Machine script smoke failed: " + what);
