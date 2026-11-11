@@ -435,6 +435,46 @@ Source: [ScriptRedstoneHandler](../src/main/java/zone/moddev/mc/lib/compat/Craft
 
 - method `void handle(RedstoneContext context)`
 
+### `SoundBuilder`
+
+Source: [ScriptSoundBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptSoundBuilder.java).
+
+- constructor `SoundBuilder(String name)`
+- static method `SoundBuilder edit(String id)`
+- static method `boolean exists(String id)`
+- static method `String[] declared()`
+- get `name` — `String getName()`
+- get `range` — `float getRange()`
+- set `range` — `void setRange(float value)`
+- method `void build()`
+
+### `SoundTypeBuilder`
+
+Source: [ScriptSoundTypeBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptSoundTypeBuilder.java).
+
+- constructor `SoundTypeBuilder(String name)`
+- static method `SoundTypeBuilder edit(String id)`
+- static method `boolean exists(String id)`
+- static method `String[] declared()`
+- get `name` — `String getName()`
+- get `base` — `String getBase()`
+- set `base` — `void setBase(String value)`
+- get `breakSound` — `String getBreakSound()`
+- set `breakSound` — `void setBreakSound(String value)`
+- get `stepSound` — `String getStepSound()`
+- set `stepSound` — `void setStepSound(String value)`
+- get `placeSound` — `String getPlaceSound()`
+- set `placeSound` — `void setPlaceSound(String value)`
+- get `hitSound` — `String getHitSound()`
+- set `hitSound` — `void setHitSound(String value)`
+- get `fallSound` — `String getFallSound()`
+- set `fallSound` — `void setFallSound(String value)`
+- get `volume` — `float getVolume()`
+- set `volume` — `void setVolume(float value)`
+- get `pitch` — `float getPitch()`
+- set `pitch` — `void setPitch(float value)`
+- method `void build()`
+
 ### `ToolSettings`
 
 Source: [ScriptToolSettings](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptToolSettings.java).

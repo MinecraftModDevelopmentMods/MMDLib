@@ -199,6 +199,8 @@ public final class DefinitionLoader {
         // themselves.
         // Sources may read the file tabs and return changed copies of them.
         api.creativeTabFiles(values(all.creativeTabs));
+        api.soundFiles(values(all.sounds));
+        api.soundTypeFiles(values(all.soundTypes));
         var sourced = new LinkedHashMap<String, MaterialExtensions.Definitions>();
         for (var source : api.definitionSources()) {
             var origin = "definition source '" + source.name() + "'";
@@ -320,31 +322,37 @@ public final class DefinitionLoader {
             new ModuleCatalog(values(all.items), values(all.blocks),
                 values(all.fluids)),
             values(all.extensions), materials, standalone, standaloneItems,
-            values(all.sounds), values(all.soundTypes),
-            creativeTabs(values(all.creativeTabs), sourced));
+            merge(values(all.sounds), sourced,
+                MaterialExtensions.Definitions::sounds, "sound event"),
+            merge(values(all.soundTypes), sourced,
+                MaterialExtensions.Definitions::soundTypes, "sound set"),
+            merge(values(all.creativeTabs), sourced,
+                MaterialExtensions.Definitions::creativeTabs, "creative tab"));
     }
 
     /**
-     * The file tabs, with each source's tabs added; a source's tab with a file
-     * tab's ID replaces it.
+     * The file definitions, with each source's added; a source's definition
+     * with a file's ID replaces it.
      *
      * @throws IllegalArgumentException
-     *             if two sources supply the same tab
+     *             if two sources supply the same ID
      */
-    private static Map<ResourceLocation, CreativeTabDefinition> creativeTabs(
-        Map<ResourceLocation, CreativeTabDefinition> files,
-        Map<String, MaterialExtensions.Definitions> sourced) {
-        var tabs = new TreeMap<>(files);
+    private static <T> Map<ResourceLocation, T> merge(
+        Map<ResourceLocation, T> files,
+        Map<String, MaterialExtensions.Definitions> sourced,
+        java.util.function.Function<MaterialExtensions.Definitions, Map<ResourceLocation, T>> part,
+        String what) {
+        var merged = new TreeMap<>(files);
         var origins = new HashMap<ResourceLocation, String>();
-        sourced.forEach((origin, definitions) -> definitions.creativeTabs()
-            .forEach((id, tab) -> {
+        sourced.forEach((origin, definitions) -> part.apply(definitions)
+            .forEach((id, value) -> {
                 var previous = origins.putIfAbsent(id, origin);
                 if (previous != null)
-                    throw new IllegalArgumentException("Duplicate creative tab "
+                    throw new IllegalArgumentException("Duplicate " + what + " "
                         + id + ": " + previous + " and " + origin);
-                tabs.put(id, tab);
+                merged.put(id, value);
             }));
-        return tabs;
+        return merged;
     }
 
     private static Batch discover(SourceRoot source, List<String> sections) {

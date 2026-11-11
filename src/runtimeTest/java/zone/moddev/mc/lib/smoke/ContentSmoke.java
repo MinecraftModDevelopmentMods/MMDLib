@@ -37,13 +37,13 @@ final class ContentSmoke {
     }
 
     /**
-     * The materials (five from test resources, one from the test script), the
+     * The materials (five from test resources, two from the test scripts), the
      * standalone blocks (the detector plate; the test-only NAND gate and hook
      * block from test resources; the hook block from the test script) and the
      * item count.
      */
     static void registered() {
-        if (MMDLib.loadedMaterials().size() != 6)
+        if (MMDLib.loadedMaterials().size() != 7)
             throw new AssertionError("Missing materials");
         var detector = BuiltInRegistries.BLOCK
             .get(ResourceLocation.parse("mmdlib:human_detector"));
