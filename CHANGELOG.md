@@ -50,6 +50,13 @@
   handler IDs are checked at startup, after scripts run. A click handler runs on
   the server with the player, block entity, screen, element, button, modifier keys
   and option; a hover handler runs on the client.
+- Screen value providers: `value` and `max` in screen XML can name a provider as
+  `@namespace:id`, registered with `ScreenValueProviders.GLOBAL.register(id,
+  valueType, blockEntity -> value)` and checked against the element at load like
+  a getter. CraftTweaker scripts register providers with
+  `mods.mmdlib.ScreenValues.whole`, `decimal`, `flag` and `text`, as
+  `mmdlib:<name>`; each function gets the screen's block entity and runs on the
+  server.
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,

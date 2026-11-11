@@ -57,6 +57,7 @@ public final class ScreenLoader {
         ScreenFillGenerator generator) {
         WidgetTypes.GLOBAL.freeze();
         zone.moddev.mc.lib.gui.value.ValueTypeRegistry.GLOBAL.freeze();
+        zone.moddev.mc.lib.gui.value.ScreenValueProviders.GLOBAL.freeze();
         ScreenTags.GLOBAL.freeze();
         var discovered = discover(sources);
         var screens = new TreeMap<ResourceLocation, ScreenBinder.Bound>();
