@@ -104,10 +104,15 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
         return name;
     }
 
-    /** The flowing fluid's ID: {@code flowing_<name>}. */
+    /**
+     * The flowing fluid's ID: {@code flowing_<name>}, with the prefix on the
+     * last path segment ({@code test/flowing_syrup} for {@code test/syrup}).
+     */
     public ResourceLocation flowingId() {
+        var path = name.getPath();
+        int slash = path.lastIndexOf('/') + 1;
         return ResourceLocation.fromNamespaceAndPath(name.getNamespace(),
-            "flowing_" + name.getPath());
+            path.substring(0, slash) + "flowing_" + path.substring(slash));
     }
 
     /** The liquid block's ID, or null when there is no block. */

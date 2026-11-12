@@ -60,6 +60,9 @@ public final class DefinitionLoaderTest {
                 """
                     {"module":"beta:components/gear","template":{"max_stack_size":1}}
                     """);
+            write(beta, "standalone/fluid/brine.json", """
+                {"module":"beta:coolant","tint":-5,"viscosity":2000}
+                """);
             write(beta, "standalone/item/gated.json", """
                 {"module":"beta:optional"}
                 """);
@@ -118,6 +121,17 @@ public final class DefinitionLoaderTest {
                 && wrench.get(id("beta:tools/wrench")).maxStackSize() == 1);
             require(DefinitionLoader.load(sources, api(), mod -> true)
                 .standaloneItems().containsKey(id("beta:gated")));
+            // A standalone fluid keeps its file ID for the whole family.
+            require(loaded.standaloneFluids().keySet()
+                .equals(java.util.Set.of(id("beta:brine"))));
+            var brine = loaded.standaloneFluids().get(id("beta:brine"))
+                .content().fluid();
+            require(brine.name().equals(id("beta:brine"))
+                && brine.bucketId().equals(id("beta:brine_bucket"))
+                && brine.flowingId().equals(id("beta:flowing_brine"))
+                && brine.appearance().tint() == -5
+                && brine.typeProperties().viscosity() == 2000
+                && brine.factory().equals(id("beta:fluid")));
             var reversed = DefinitionLoader.load(
                 List.of(sources.get(1), sources.get(0)), api(), mod -> false);
             require(reversed.materials().equals(loaded.materials()));

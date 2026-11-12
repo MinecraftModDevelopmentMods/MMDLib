@@ -21,7 +21,7 @@ public final class FluidBuilder extends Builder<MMDFluid, FluidBuilder> {
     public static final FluidBuilder INSTANCE = new FluidBuilder(Map.of());
 
     private enum Key {
-        NAME, MATERIAL, PARENT, TYPE, FLOW, APPEARANCE, HAS_BLOCK, BLOCK, HAS_BUCKET, BUCKET, EVENTS, FACTORY, FACTORY_DATA
+        NAME, REGISTRY_NAME, MATERIAL, PARENT, TYPE, FLOW, APPEARANCE, HAS_BLOCK, BLOCK, HAS_BUCKET, BUCKET, EVENTS, FACTORY, FACTORY_DATA
     }
 
     private final Map<Key, Object> values;
@@ -77,8 +77,18 @@ public final class FluidBuilder extends Builder<MMDFluid, FluidBuilder> {
         return forMaterial(ResourceLocation.parse(material));
     }
 
+    /**
+     * Fixes the fluid's ID instead of {@code <material>_<template>}, as for a
+     * standalone fluid; its block and bucket follow it.
+     */
+    public FluidBuilder setRegistryName(ResourceLocation id) {
+        return with(Key.REGISTRY_NAME, id);
+    }
+
     @Override
     public ResourceLocation getRegistryName() {
+        if (values.containsKey(Key.REGISTRY_NAME))
+            return value(Key.REGISTRY_NAME, null);
         var template = getTemplateName();
         var material = getMaterialName();
         return template == null || material == null
@@ -346,14 +356,18 @@ public final class FluidBuilder extends Builder<MMDFluid, FluidBuilder> {
                 BlockBuilder.create().setHardness(100).setCollision(false)
                     .setOcclusion(false))
                 .setName(getTemplateName()).forMaterial(getMaterialName())
-                .setHasItem(false).build()
+                .setRegistryName(getRegistryName()).setHasItem(false).build()
             : null;
         var bucketName = ResourceLocation.fromNamespaceAndPath(
             getTemplateName().getNamespace(),
             getTemplateName().getPath() + "_bucket");
+        var bucketId = ResourceLocation.fromNamespaceAndPath(
+            getRegistryName().getNamespace(),
+            getRegistryName().getPath() + "_bucket");
         var bucket = value(Key.HAS_BUCKET, true)
             ? value(Key.BUCKET, ItemBuilder.create()).setName(bucketName)
-                .forMaterial(getMaterialName()).setMaxStackSize(1).build()
+                .forMaterial(getMaterialName()).setRegistryName(bucketId)
+                .setMaxStackSize(1).build()
             : null;
         return new MMDFluid(getRegistryName(), getTemplateName(),
             getMaterialName(), value(Key.PARENT, null), getTypeProperties(),

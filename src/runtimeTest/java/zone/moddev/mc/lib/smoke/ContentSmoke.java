@@ -54,8 +54,10 @@ final class ContentSmoke {
         // The release detector plate; from test resources the five materials'
         // items, the gate's and hook block's block items and the hook tool;
         // from the test script the hook block's block item, the hook tool, the
-        // hammer, the phase 2 material tool, and seven phase 3 entries.
-        if (registrar().items().size() != 168)
+        // hammer, the phase 2 material tool, and seven phase 3 entries; the
+        // buckets of the standalone fluids test/syrup (test resources),
+        // test/chocolate and test/plasma (test script).
+        if (registrar().items().size() != 171)
             throw new AssertionError(
                 "Wrong runtime item count: " + registrar().items().size());
     }
@@ -134,6 +136,8 @@ final class ContentSmoke {
         var player = FakePlayerFactory.getMinecraft(level);
         int fluids = 0;
         for (var family : registrar().fluidFamilies()) {
+            if (family.block == null || family.bucket == null)
+                continue; // A bucket-only fluid cannot be placed.
             var pos = floor.above();
             level.setBlock(floor, Blocks.STONE.defaultBlockState(), 3);
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
@@ -151,8 +155,9 @@ final class ContentSmoke {
                 throw new AssertionError("Wrong fluid bucket recovered");
             fluids++;
         }
-        // One molten fluid for each of the five test materials.
-        if (fluids != 5)
+        // One molten fluid for each of the five test materials, and the
+        // standalone test/syrup and test/chocolate; test/plasma has no block.
+        if (fluids != 7)
             throw new AssertionError("Wrong bucket count: " + fluids);
     }
 

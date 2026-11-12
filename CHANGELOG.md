@@ -4,6 +4,35 @@
 
 - Update NeoForge to 21.1.265 (from 21.1.247); it is now the minimum NeoForge
   version MMDLib requires. Update the Gradle wrapper to 9.9.1 (from 9.8.2).
+- Machines (#105):
+  - Multiblocks, as an early proof of concept whose API will change: Java
+    machines can span several blocks, with placement from one item, rotation,
+    formation and dismantling, member links, ports that expose the controller's
+    storage, and requirement rules. See [multiblocks](docs/multiblocks.md); the
+    companion adds a test bench.
+  - XML machine appearances: a `model` preset beside `cube-front`, conditional
+    `<part>` models and `<face-texture>` switches with optional emissive masks,
+    chosen by `when` conditions over the machine's processors, item groups,
+    tanks and energy (such as `$processors.worker.running`). Java machines
+    supply variables with `VisualVariableProvider`.
+  - Ghost inventories: sample-only item slots that recipes match without
+    consuming, with JEI's **+** button filling them.
+  - Recipe selection: a processor can be `selectable`, with an optional
+    `default-recipe`, chosen in screens through `<recipe-selector>`.
+  - Reusable recipe inputs: item and fluid inputs accept `"consumed": false`,
+    so they are required and reserved but not spent.
+  - Inline group colors (`color` on `<slots>`, `<tank>` and `<tanks>`) and a
+    default palette.
+  - Machine-owned unavailable faces for side configuration and redstone
+    (`SideConfig.disabledFaces`, `RedstoneControl.disabledFaces`), shown as
+    blocked in the drawers.
+  - Ghost slot default items and fixed tank fluids are checked at startup, and
+    recipes asking a ghost group for more samples than it has slots fail to
+    load.
+  - The screen protocol is now 21, and the automation and redstone drawers 17;
+    clients and servers must both run 2.0.2.
+  - A local Maven repository can be configured for development builds; see
+    [local development](docs/local-development.md).
 - Add data-driven sound events: each `mmdlib/sound/<path>.json` registers the
   sound event `<mod>:<path>` at startup, with an optional fixed hearing `range`.
   Audio comes from `sounds.json` as usual. MMDLib registers its own namespace's;
@@ -67,8 +96,28 @@
 - CraftTweaker machine recipes: recipe scripts can add and remove recipes of XML
   machines' declared recipe types with CraftTweaker's own `<recipetype:...>`
   manager (`addJsonRecipe`, `removeByName`, ...), or add them with the typed
-  `mods.mmdlib.MachineRecipeBuilder`: item, fluid and energy inputs, item and fluid
-  outputs with chances, and time.
+  `mods.mmdlib.MachineRecipeBuilder`: item, fluid and energy inputs (item and
+  fluid inputs optionally reusable, as `consumed: false`), item and fluid outputs
+  with chances, and time. The typed builder checks groups against the machines
+  using the type, as recipe reloads do; recipes added with `addJsonRecipe` are
+  not checked. `inputFluids` takes a fluid tag or several fluids.
+- CraftTweaker recipe handler for machine recipes: `/ct recipes` dumps them as
+  `MachineRecipeBuilder` calls, and CraftTweaker's ingredient replacement
+  (`Replacer`) works on them, keeping each part's group, count and consumption;
+  energy is `<recipecomponent:mmdlib:machine/energy>`.
+- CraftTweaker recipe generators: a `#loader mmdlib` script registers a generator
+  with `mods.mmdlib.RecipeGenerators.register(name, function)`, and machine XML
+  runs it with `<generator class="zone.moddev.mc.lib.compat.CraftTweaker.ScriptRecipeGenerator"
+  script="mmdlib:<name>" .../>`. On every data reload the function reads the
+  reload's item tags and the generator's attributes and adds recipes.
+- Standalone fluids: each `mmdlib/standalone/fluid/<path>.json` declares a fluid
+  with its own ID and no material, built from a fluid module with optional
+  `template`, `tint`, `temperature`, `density` and `viscosity` overrides: the fluid,
+  its flowing form, a liquid block and a bucket. MMDLib adds a plain water-like
+  `mmdlib:fluid` module beside `mmdlib:molten`. `MMDLib.standaloneFluids()` lists
+  them. CraftTweaker: `#loader mmdlib` scripts build them with
+  `mods.mmdlib.FluidBuilder` (type, flow and appearance values, block and bucket
+  switches, display name), with generated bucket models, blockstates and names.
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,
@@ -85,16 +134,29 @@
 - MMDLib's creative tab is now titled "MMDLib" (it was "MMDLib: Vanilla
   Extensions"); it holds MMDLib's standalone and script-defined items.
 - For mods built on MMDLib:
-  - `MachineDefinition` has new `sounds` and `events` components; code
-    constructing one directly must pass `MachineDefinition.Sounds.NONE` and
-    `MachineDefinition.Events.NONE`, or the values it wants.
-  - `DefinitionLoader.Loaded` and `Common.Clicks` have new components; their
-    previous constructors remain.
+  - `MachineDefinition` has new components: `baseModel`, `modelParts`,
+    `faceTextures`, `recipeSelection` and `ghosts` (#105), then `sounds` and
+    `events`. The 2.0.x constructor remains, as do constructors without sounds
+    and events, which use `Sounds.NONE` and `Events.NONE`.
+  - `DefinitionLoader.Loaded`, `MaterialExtensions.Definitions` and
+    `Common.Clicks` have new components (standalone fluids among them); their
+    previous constructors remain. `FluidBuilder.setRegistryName` fixes a fluid's
+    ID, as for blocks and items. `MMDFluid.flowingId()` puts `flowing_` on the
+    last path segment (`test/flowing_syrup` for `test/syrup`); IDs without a
+    slash, such as every material fluid's, are unchanged.
   - `StaticAssetRules`, which only served the removed artwork, is gone.
   - New for code: `RecipeProcessor.startedCycles()`, `cycle()` and
     `justFinished()`; a `ScreenBinder.bind` overload taking a
     `ScreenValueProviders` registry, whose constructor is now public for
-    isolated binding and tests.
+    isolated binding and tests. `GeneratedMachineRecipes.validateGroups` is
+    public, for checking recipes added after a reload.
+- Known issues, to be fixed by #105's author before release:
+  - Multiblock members must keep exactly their authored block state, so a member
+    whose state changes (connections, waterlogging, `lit`) breaks the structure,
+    and under `REMOVE_OWNED` removes it.
+  - Dismantling skips members in unloaded chunks, which keep stale links.
+  - Changing a multiblock definition's version or policy leaves existing
+    controllers unable to form again.
 
 ## 2.0.1 — 2026-11-10
 

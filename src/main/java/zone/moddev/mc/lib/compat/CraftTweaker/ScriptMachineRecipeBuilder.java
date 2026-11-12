@@ -4,6 +4,7 @@ import com.blamejared.crafttweaker.api.CraftTweakerAPI;
 import com.blamejared.crafttweaker.api.action.recipe.ActionAddRecipe;
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.blamejared.crafttweaker.api.bracket.custom.RecipeTypeBracketHandler;
+import com.blamejared.crafttweaker.api.fluid.CTFluidIngredient;
 import com.blamejared.crafttweaker.api.fluid.IFluidStack;
 import com.blamejared.crafttweaker.api.ingredient.IIngredient;
 import com.blamejared.crafttweaker.api.item.IItemStack;
@@ -83,6 +84,23 @@ public final class ScriptMachineRecipeBuilder {
             new MachineIngredient.FluidPart(
                 HolderSet.direct(fluid.getFluid().builtInRegistryHolder()),
                 amount(fluid), consumed));
+        return this;
+    }
+
+    /**
+     * Takes one of several fluids, or a tagged fluid, from the fluid group,
+     * such as {@code <tag:fluids:minecraft:water> * 250}; every choice has the
+     * same amount. With {@code consumed} false, only requires and reserves it.
+     *
+     * @throws IllegalArgumentException
+     *             if it mixes a tag with other choices, or its amounts differ
+     */
+    @ZenCodeType.Method
+    public ScriptMachineRecipeBuilder inputFluids(String group,
+        CTFluidIngredient fluids,
+        @ZenCodeType.OptionalBoolean(true) boolean consumed) {
+        builder.input(group, MachineRecipeHandler.fluidPart(fluids, consumed,
+            CraftTweakerAPI.getAccessibleElementsProvider().registryAccess()));
         return this;
     }
 

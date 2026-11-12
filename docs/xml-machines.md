@@ -819,6 +819,9 @@ reload synchronizes ordinary machine recipes to clients.
 CraftTweaker recipe scripts can add and remove a declared type's recipes too, with
 CraftTweaker's own `<recipetype:...>` manager or the typed
 `mods.mmdlib.MachineRecipeBuilder`; see [CraftTweaker machine recipes](crafttweaker.md#machine-recipes).
+A `#loader mmdlib` script can also be the generator itself, named through
+`zone.moddev.mc.lib.compat.CraftTweaker.ScriptRecipeGenerator` with a `script`
+attribute; see [CraftTweaker recipe generators](crafttweaker.md#recipe-generators).
 
 `OreToIngotGenerator` matches `c:ores/<metal>` with `c:ingots/<metal>`, including
 metals from other installed mods. Empty/unmatched tags are skipped. It consumes

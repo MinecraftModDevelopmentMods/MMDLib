@@ -33,6 +33,7 @@ Do not claim parity merely because a value can be stored in a definition.
 | Gameplay callbacks | Retain current hooks and improve discovery/examples | No additional core event contracts |
 | Generated resources and drops | Expose names and simple loot options through the existing generated pack | Generated resources only; no change to block runtime loot-source properties |
 | Food, rarity, arbitrary attributes | Defer | RuntimeProperties does not apply these as configurable definition properties |
+| Fluids | Done in 2.0.2 | Standalone fluids from data and `FluidBuilder`; materials still select fluid modules from files or code |
 | Creative tabs and sound registration | Done in 2.0.2 | Script builders over the data-driven definitions; scripts can also edit file definitions |
 | Advanced block predicates/properties | Defer | Current block schema and runtime do not represent/apply them |
 
@@ -163,6 +164,9 @@ integration classes and excludes smoke classes/scripts/resources. See the
 - Creative tabs, sound events and sound sets: no longer deferred. 2.0.2 added
   data-driven registration for each, and `CreativeTabBuilder`, `SoundBuilder` and
   `SoundTypeBuilder` build on it.
+- Fluids: no longer deferred. 2.0.2 added standalone fluids
+  (`mmdlib/standalone/fluid`) and a plain `mmdlib:fluid` module, and
+  `FluidBuilder` builds them from scripts.
 - State-dependent light/map color, spawning/suffocation/view/emissive predicates,
   piston reaction, instrument, offsets, and solidity flags: need new core property
   representation/application. `factoryData` alone cannot make these work.
