@@ -238,6 +238,20 @@ Source: [ScriptDefinitionProperties](../src/main/java/zone/moddev/mc/lib/compat/
 - method `DefinitionProperties addEvent(String event, String callback)`
 - method `DefinitionProperties removeEvents(String... events)`
 
+### `FluidBuilder`
+
+Source: [ScriptFluidBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptFluidBuilder.java).
+
+- constructor `FluidBuilder(String name)`, from module `mmdlib:fluid`
+- constructor `FluidBuilder(String name, String module)`
+- getter `name`
+- setters `density`, `viscosity`, `temperature`, `lightLevel` (int); `motionScale` (double)
+- setters `canSwim`, `canDrown`, `canExtinguish`, `supportsBoating`, `canHydrate` (bool)
+- setters `slopeFindDistance`, `levelDecreasePerBlock`, `tickRate` (int); `explosionResistance` (float); `canConvertToSource` (bool)
+- setters `still`, `flowing`, `overlay` (string texture IDs); `tint` (int ARGB)
+- setters `hasBlock`, `hasBucket` (bool); `displayName` (string)
+- method `void build()`
+
 ### `HitContext`
 
 Source: [ScriptHitContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptHitContext.java).
@@ -394,11 +408,28 @@ Source: [ScriptMachineRecipeBuilder](../src/main/java/zone/moddev/mc/lib/compat/
 - constructor `MachineRecipeBuilder(String recipeType)`
 - method `MachineRecipeBuilder inputItems(String group, IIngredient ingredient, int count = 1, boolean consumed = true)`
 - method `MachineRecipeBuilder inputFluid(String group, IFluidStack fluid, boolean consumed = true)`
+- method `MachineRecipeBuilder inputFluids(String group, CTFluidIngredient fluids, boolean consumed = true)`
 - method `MachineRecipeBuilder inputEnergy(String group, long energy)`
 - method `MachineRecipeBuilder outputItem(String group, IItemStack stack, float chance = 1)`
 - method `MachineRecipeBuilder outputFluid(String group, IFluidStack fluid, float chance = 1)`
 - method `MachineRecipeBuilder time(int ticks)`
 - method `void build(String name)`
+
+Machine recipes also have a CraftTweaker recipe handler
+([MachineRecipeHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/MachineRecipeHandler.java)):
+dumps as builder calls, and decomposition into `crafttweaker:input/ingredients`,
+`input/fluid_ingredients`, `output/chanced_items`, `output/fluids`,
+`processing/time`, plus `mmdlib:machine/energy` and `mmdlib:machine/layout`.
+
+### `RecipeGenerators`
+
+Source: [ScriptRecipeGeneratorRegistry](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptRecipeGeneratorRegistry.java). Registered for the `mmdlib` loader; run on each data reload through [ScriptRecipeGenerator](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptRecipeGenerator.java).
+
+- static method `String register(String name, RecipeGeneratorFunction generator)`
+- static method `boolean exists(String id)`
+- `RecipeGeneratorFunction`: `void generate(RecipeGeneration generation)`
+- `RecipeGeneration`: getter `recipeType`; methods `property(name, fallback = "")`, `intProperty(name, fallback)`, `doubleProperty(name, fallback)`, `tagIds(prefix)`, `hasTag(id)`, `tagItems(id)`, `recipe(name)`
+- `GeneratedRecipe`: `inputItems`, `inputTag(group, tag, count = 1, consumed = true)`, `inputFluid`, `inputEnergy`, `outputItem`, `outputFluid`, `time`, `add()`
 
 ### `MaterialBuilder`
 
@@ -665,8 +696,8 @@ from script callback execution are logged by the binding wrapper.
 | Runtime-supported through an existing generic script map | Tool stat overrides and generic tool settings; basic-item burn time | `MaterialStats`, `StandardItems.ToolSettings`, `StandardImplementations`; addSpecial/factoryData already reach them. Named stat methods and ToolSettings now wrap these existing paths; per-tool durability scaling is limited by TieredItem overriding durability. |
 | Schema-only in current standard runtime | food reference, lore, declared toolActions, general attributeModifiers, delayed-use onComplete/useFinishMode, creativeStacks | Stored in ItemTemplate/MMDItem; no standard runtime consumer found. Native tool attributes and generic tool abilities are separate implemented paths. |
 | Unavailable as a configurable definition capability | Item rarity/feature flags; advanced block predicates, piston reaction, instrument, offsets, solidity flags | Current definition/runtime property path does not represent and apply them. |
-| Unavailable as a public script registration path | Independent tool tiers, standalone fluids and fluid modules | Existing material armor/tier and fluid-module machinery is not a general script builder API. |
-| Script-exposed in 2.0.2 | Sound events and sound sets, creative tabs, screen handlers and value providers, machine cycle handlers, machine recipes | `SoundBuilder`, `SoundTypeBuilder`, `CreativeTabBuilder`, `ScreenHandlers`, `ScreenValues`, `MachineHandlers`, `MachineRecipeBuilder`; each feeds the same definition or registry path as data files. |
+| Unavailable as a public script registration path | Independent tool tiers, script fluid modules for materials | Existing material armor/tier machinery is not a general script builder API; scripts build standalone fluids, not modules materials select. |
+| Script-exposed in 2.0.2 | Sound events and sound sets, creative tabs, standalone fluids, screen handlers and value providers, machine cycle handlers, machine recipes | `SoundBuilder`, `SoundTypeBuilder`, `CreativeTabBuilder`, `FluidBuilder`, `ScreenHandlers`, `ScreenValues`, `MachineHandlers`, `MachineRecipeBuilder`; each feeds the same definition or registry path as data files. |
 | Script-exposed in phase 3 | Typed ID references and module snapshot copies | New wrappers unwrap into existing consumers; copy rebinds locally owned callbacks with separate handler maps. |
 | Script-exposed in phase 4 | Fluent builder aliases, displayName, default/self/empty/referenced loot | Aliases use existing setters. Immutable ScriptResourceOptions metadata feeds the generated pack; external resources keep priority. |
 | Unavailable script conveniences | Arbitrary game-object property cloning | Module configuration copying does not clone registered game objects. |

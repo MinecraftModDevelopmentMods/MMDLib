@@ -1,0 +1,19 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Generated Test Machine">
+  <appearance preset="cube-front"
+              front="minecraft:block/furnace_front"
+              side="minecraft:block/iron_block"
+              top="minecraft:block/smooth_stone"/>
+  <storage>
+    <items id="items">
+      <slots id="input" count="1" role="input"/>
+      <slots id="output" count="1" role="output"/>
+    </items>
+  </storage>
+  <!-- Its recipes come from the test script mmdlib_generators.zs. -->
+  <recipe-type id="mmdlib:test/generated" declare="true" name="Generated Test">
+    <generator class="zone.moddev.mc.lib.compat.CraftTweaker.ScriptRecipeGenerator"
+               script="mmdlib:test/ingot_nuggets" nuggets="4" time="2"/>
+  </recipe-type>
+  <processor id="worker" recipe-type="mmdlib:test/generated"/>
+</machine>

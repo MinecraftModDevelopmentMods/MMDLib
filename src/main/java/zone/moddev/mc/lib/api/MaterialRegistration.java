@@ -26,8 +26,9 @@ public final class MaterialRegistration {
     }
 
     /**
-     * A standalone block's or item's definitions: its items, blocks and block
-     * entities. Its host material is not a material and is not published.
+     * A standalone block's, item's or fluid's definitions: its items, blocks,
+     * block entities and fluid. Its host material is not a material and is not
+     * published.
      */
     public static void publishStandalone(RegisterEvent event,
         MaterialFactory.Result result) {
@@ -37,6 +38,11 @@ public final class MaterialRegistration {
             .blockDefinitions().forEach(helper::register));
         event.register(Registries.BLOCK_ENTITIES_KEY, helper -> result.content()
             .blockEntityDefinitions().forEach(helper::register));
+        event.register(Registries.FLUIDS_KEY, helper -> {
+            var fluid = result.content().fluid();
+            if (fluid != null)
+                helper.register(fluid.name(), fluid);
+        });
     }
 
     /**

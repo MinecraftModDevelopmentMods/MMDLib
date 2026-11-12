@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:test/script_machine",
+  "inputs": {
+    "input": [{ "items": { "item": "minecraft:flint" } }]
+  },
+  "outputs": {
+    "output": [{ "item": { "id": "minecraft:gunpowder", "count": 1 } }]
+  },
+  "time": 2
+}

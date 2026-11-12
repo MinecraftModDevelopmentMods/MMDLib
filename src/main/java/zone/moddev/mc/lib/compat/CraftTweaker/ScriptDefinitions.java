@@ -19,6 +19,7 @@ import zone.moddev.mc.lib.common.types.MMDMaterial;
 import zone.moddev.mc.lib.common.types.SoundDefinition;
 import zone.moddev.mc.lib.common.types.SoundTypeDefinition;
 import zone.moddev.mc.lib.common.types.StandaloneBlock;
+import zone.moddev.mc.lib.common.types.StandaloneFluid;
 import zone.moddev.mc.lib.common.types.StandaloneItem;
 
 /**
@@ -40,6 +41,7 @@ final class ScriptDefinitions {
     private static final Map<ResourceLocation, MMDMaterial> materials = new LinkedHashMap<>();
     private static final Map<ResourceLocation, StandaloneBlock> blocks = new LinkedHashMap<>();
     private static final Map<ResourceLocation, StandaloneItem> items = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, StandaloneFluid> fluids = new LinkedHashMap<>();
     private static final Map<ResourceLocation, CreativeTabDefinition> tabs = new LinkedHashMap<>();
     private static final Map<ResourceLocation, SoundDefinition> sounds = new LinkedHashMap<>();
     private static final Map<ResourceLocation, SoundTypeDefinition> soundTypes = new LinkedHashMap<>();
@@ -48,6 +50,7 @@ final class ScriptDefinitions {
     private static volatile Set<ResourceLocation> materialIds = Set.of();
     private static volatile Set<ResourceLocation> blockIds = Set.of();
     private static volatile Set<ResourceLocation> itemIds = Set.of();
+    private static volatile Set<ResourceLocation> fluidIds = Set.of();
     private static volatile Map<ResourceLocation, Set<ResourceLocation>> builtItemTags = Map
         .of();
     private static volatile Map<ResourceLocation, ResourceLocation> builtBasedOn = Map
@@ -84,6 +87,7 @@ final class ScriptDefinitions {
         materials.clear();
         blocks.clear();
         items.clear();
+        fluids.clear();
         tabs.clear();
         sounds.clear();
         soundTypes.clear();
@@ -107,19 +111,22 @@ final class ScriptDefinitions {
         } finally {
             catalog = null;
         }
-        logger.info("MMDLib scripts built {} materials, {} blocks and {} items",
-            materials.size(), blocks.size(), items.size());
+        logger.info(
+            "MMDLib scripts built {} materials, {} blocks, {} items and {} fluids",
+            materials.size(), blocks.size(), items.size(), fluids.size());
         materialIds = Set.copyOf(materials.keySet());
         blockIds = Set.copyOf(blocks.keySet());
         itemIds = Set.copyOf(items.keySet());
+        fluidIds = Set.copyOf(fluids.keySet());
         builtItemTags = Map.copyOf(itemTags);
         builtBasedOn = Map.copyOf(basedOn);
         builtResources = Map.copyOf(resources);
         var result = new MaterialExtensions.Definitions(materials.values(),
-            blocks, items, tabs, sounds, soundTypes);
+            blocks, items, tabs, sounds, soundTypes, fluids);
         materials.clear();
         blocks.clear();
         items.clear();
+        fluids.clear();
         tabs.clear();
         sounds.clear();
         soundTypes.clear();
@@ -223,6 +230,19 @@ final class ScriptDefinitions {
     }
 
     /**
+     * Records a built standalone fluid.
+     *
+     * @throws IllegalStateException
+     *             outside the startup run, or if the ID was already built
+     */
+    static synchronized void add(ResourceLocation id, StandaloneFluid fluid) {
+        catalog();
+        if (fluids.putIfAbsent(id, fluid) != null)
+            throw new IllegalStateException(
+                "Fluid " + id + " is already built");
+    }
+
+    /**
      * Records a built standalone item and its item tags.
      *
      * @throws IllegalStateException
@@ -271,6 +291,13 @@ final class ScriptDefinitions {
     static List<MaterialFactory.Result> materialResults() {
         var loaded = MMDLib.loadedMaterials();
         return materialIds.stream().sorted().map(loaded::get)
+            .filter(Objects::nonNull).toList();
+    }
+
+    /** The loaded results of script fluids; empty before definitions load. */
+    static List<MaterialFactory.Result> fluidResults() {
+        var loaded = MMDLib.standaloneFluids();
+        return fluidIds.stream().sorted().map(loaded::get)
             .filter(Objects::nonNull).toList();
     }
 

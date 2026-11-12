@@ -11,6 +11,7 @@ src/main/resources/mmdlib/
   fluid/coolant.json
   extension/armor_effects.json
   material/copper.json
+  standalone/fluid/syrup.json
   sound/machine/hum.json
   sound_type/steel_plate.json
   creative_tab/tools.json
@@ -101,9 +102,39 @@ module whose `requires_mod` is missing skips the item. `MMDLib.standaloneItems()
 lists them and their item definitions are published. Models, lang, tags and recipes
 are static resources.
 
-Like materials, standalone blocks and items in another mod's namespace are only
-registered when that mod queues them on its own `RuntimeContentRegistrar`
-(`MMDLib.standaloneBlocks()` / `standaloneItems()`, filtered to its namespace).
+## Standalone fluids
+
+`mmdlib/standalone/fluid/<path>.json` declares one fluid with its own ID and no
+material: a syrup, a coolant, a liquid chocolate. `example:mmdlib/standalone/fluid/syrup.json`
+becomes the fluid `example:syrup`:
+
+```json
+{ "module": "mmdlib:fluid", "tint": -2051824, "viscosity": 4000, "density": 1400 }
+```
+
+- `module`: a registered fluid module. MMDLib ships `mmdlib:fluid`, a plain
+  water-like liquid with water's textures, and `mmdlib:molten`, the molten-metal
+  fluid materials use.
+- `template`: replaces the module's fluid template (the same schema as a fluid
+  module's `template`: `type_properties`, `flow_properties`, `appearance`,
+  `has_block`, `block`, `has_bucket`, `bucket`).
+- `tint`, `temperature`, `density`, `viscosity`: replace single values of the
+  template, as a material's color and special stats would.
+- `runtime`: the settings a material would supply to the liquid block.
+
+The family follows the fluid's ID: the fluid type and source fluid `example:syrup`,
+the flowing fluid `example:flowing_syrup` (for a nested path such as `test/syrup`,
+`example:test/flowing_syrup`), the liquid block `example:syrup` and the bucket
+`example:syrup_bucket`, each only as the template enables. A module whose
+`requires_mod` is missing skips the fluid. `MMDLib.standaloneFluids()` lists them.
+The bucket model, the liquid block's blockstate, names and fluid tags are static
+resources, as for a material's fluid; the bucket model normally uses NeoForge's
+`neoforge:fluid_container` loader.
+
+Like materials, standalone blocks, items and fluids in another mod's namespace are
+only registered when that mod queues them on its own `RuntimeContentRegistrar`
+(`MMDLib.standaloneBlocks()` / `standaloneItems()` / `standaloneFluids()`, filtered
+to its namespace).
 
 ## Sound events
 

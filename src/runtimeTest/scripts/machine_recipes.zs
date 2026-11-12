@@ -24,3 +24,15 @@ new MachineRecipeBuilder("mmdlib:test/script_machine")
     .outputItem("output", <item:minecraft:bone_meal>, 1.0)
     .time(2)
     .build("bone_to_bone_meal");
+
+// CraftTweaker's ingredient replacement takes machine recipes apart and
+// rebuilds them: the datapack recipe test/flint_to_gunpowder now takes clay.
+import crafttweaker.api.ingredient.IIngredient;
+import crafttweaker.api.recipe.replacement.Replacer;
+import crafttweaker.api.recipe.replacement.type.NameFilteringRule;
+
+Replacer.create()
+    .filter(NameFilteringRule.anyOf("mmdlib:test/flint_to_gunpowder"))
+    .replace<IIngredient>(<recipecomponent:crafttweaker:input/ingredients>,
+        <item:minecraft:flint>, <item:minecraft:clay_ball>)
+    .execute();

@@ -265,6 +265,47 @@ tin.build();
 A module's tags go to every material part built from it. The part's art comes from
 the template of the module it was copied from, in the material color.
 
+## Fluids
+
+`mods.mmdlib.FluidBuilder` builds a fluid with its own ID, like a
+`mmdlib/standalone/fluid` file: the fluid, its flowing form, a liquid block and a
+bucket.
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.FluidBuilder;
+
+var chocolate = new FluidBuilder("chocolate");
+chocolate.tint = 0xFF5C3A21;
+chocolate.viscosity = 3000;
+chocolate.canSwim = false;
+chocolate.displayName = "Liquid Chocolate";
+chocolate.build();
+
+var plasma = new FluidBuilder("plasma", "mmdlib:molten");
+plasma.lightLevel = 15;
+plasma.hasBlock = false;
+plasma.build();
+```
+
+`new FluidBuilder(name)` starts from `mmdlib:fluid`, a plain water-like liquid with
+water's textures; `new FluidBuilder(name, module)` starts from another fluid module,
+such as `mmdlib:molten`. The fluid is `mmdlib:<name>`, its flowing form
+`mmdlib:flowing_<name>` and its bucket `mmdlib:<name>_bucket`.
+
+| Property | Sets |
+| --- | --- |
+| `density`, `viscosity`, `temperature`, `lightLevel`, `motionScale` | the fluid type's values; temperature in kelvin, water 300 |
+| `canSwim`, `canDrown`, `canExtinguish`, `supportsBoating`, `canHydrate` | what entities and blocks can do with it |
+| `slopeFindDistance`, `levelDecreasePerBlock`, `tickRate`, `explosionResistance`, `canConvertToSource` | how it flows |
+| `still`, `flowing`, `overlay` | block-atlas textures, such as `"minecraft:block/water_still"`; an empty `overlay` removes it |
+| `tint` | an ARGB tint over the textures; -1 for none |
+| `hasBlock`, `hasBucket` | whether it has a liquid block (to be placed in the world) and a bucket |
+| `displayName` | its English name; the bucket is "*name* Bucket" |
+
+MMDLib generates the bucket model, the liquid block's blockstate and the English
+names; the textures are block-atlas textures, as in fluid module files.
+
 ## Fluent conveniences and generated resource controls
 
 Property assignment remains supported. The following fluent aliases return their
@@ -769,6 +810,7 @@ groups the machine declares, as in recipe JSON:
 | --- | --- |
 | `inputItems(group, ingredient, count = 1, consumed = true)` | takes `count` items matching `ingredient`; with `consumed` false, only requires and reserves them |
 | `inputFluid(group, fluid, consumed = true)` | takes the fluid stack's amount, such as `<fluid:minecraft:water> * 500`; `consumed` as for items |
+| `inputFluids(group, fluids, consumed = true)` | takes one of several fluids or a fluid tag, such as `<tag:fluids:minecraft:water> * 250`; every choice has the same amount |
 | `inputEnergy(group, energy)` | draws `energy` over the cycle |
 | `outputItem(group, stack, chance = 1)` | places `stack`, with `chance` from 0 to 1 |
 | `outputFluid(group, fluid, chance = 1)` | places the fluid stack |
@@ -778,11 +820,87 @@ groups the machine declares, as in recipe JSON:
 input and a time. It first checks the groups against every machine using the type,
 as a recipe reload does: an unknown group, a group holding another kind of
 resource, or a ghost group asked for more samples than it has slots is an error, and
-the recipe is not added. Recipes added with `addJsonRecipe` skip this check. Removing recipes, and adding them as JSON in the recipe file
-format, use the type's `<recipetype:...>` manager: `removeByName`, `addJsonRecipe`
-and the rest of CraftTweaker's recipe manager methods. A machine's input slots only
-accept items some recipe uses, so removing every recipe for an item also stops the
-machine taking it.
+the recipe is not added. Recipes added with `addJsonRecipe` skip this check.
+
+Removing recipes, and adding them as JSON in the recipe file format, use the type's
+`<recipetype:...>` manager: `removeByName`, `addJsonRecipe` and the rest of
+CraftTweaker's recipe manager methods. A machine's input slots only accept items
+some recipe uses, so removing every recipe for an item also stops the machine
+taking it.
+
+MMDLib registers a CraftTweaker recipe handler for machine recipes, so
+CraftTweaker's own tools work on them too. `/ct recipes` and the recipe dumps print
+each one as `MachineRecipeBuilder` calls. Ingredient replacement takes them apart
+and rebuilds them: item inputs are `<recipecomponent:crafttweaker:input/ingredients>`,
+fluid inputs `input/fluid_ingredients`, item outputs `output/chanced_items`, fluid
+outputs `output/fluids` and the time `processing/time`, as for other recipes.
+Energy is `<recipecomponent:mmdlib:machine/energy>`. Each part keeps its group,
+count and consumption:
+
+```zenscript
+import crafttweaker.api.ingredient.IIngredient;
+import crafttweaker.api.recipe.replacement.Replacer;
+import crafttweaker.api.recipe.replacement.type.ManagerFilteringRule;
+
+Replacer.create()
+    .filter(ManagerFilteringRule.of(<recipetype:example:crushing>))
+    .replace<IIngredient>(<recipecomponent:crafttweaker:input/ingredients>,
+        <item:minecraft:cobblestone>, <tag:items:c:cobblestones>)
+    .execute();
+```
+
+A replaced recipe is renamed, as CraftTweaker renames every recipe it replaces.
+
+## Recipe generators
+
+A machine's recipe type can generate its recipes on every data reload (see
+[XML machines](xml-machines.md#recipe-generators-and-authored-recipes)). A
+`#loader mmdlib` script can be that generator: it registers a function, and the
+machine XML names it through `ScriptRecipeGenerator`:
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.RecipeGenerators;
+
+RecipeGenerators.register("ore_dusts", (gen) => {
+    for tag in gen.tagIds("c:ores/") {
+        val metal = tag[7 .. tag.length];
+        if gen.hasTag("c:dusts/" + metal) {
+            gen.recipe("ore_to_dust/" + metal)
+                .inputTag("input", tag)
+                .outputItem("output", gen.tagItems("c:dusts/" + metal)[0] * 2)
+                .time(gen.intProperty("time", 100))
+                .add();
+        }
+    }
+});
+```
+
+```xml
+<recipe-type id="example:crushing" declare="true" name="Crushing">
+  <generator class="zone.moddev.mc.lib.compat.CraftTweaker.ScriptRecipeGenerator"
+             script="mmdlib:ore_dusts" time="120"/>
+</recipe-type>
+```
+
+The generator's ID is `mmdlib:<name>`. Its function runs on every reload, with:
+
+| Member | Gives |
+| --- | --- |
+| `recipeType` | the type's ID |
+| `property(name, fallback = "")`, `intProperty(name, fallback)`, `doubleProperty(name, fallback)` | the generator element's other attributes, such as `time` above |
+| `tagIds(prefix)` | the IDs of the reload's item tags starting with `prefix`, sorted |
+| `hasTag(id)`, `tagItems(id)` | whether an item tag has items, and its items |
+| `recipe(name)` | a recipe `<type namespace>:<name>` to build and `add()` |
+
+A generated recipe has `inputItems`, `inputTag(group, tag, count = 1, consumed = true)`,
+`inputFluid`, `inputEnergy`, `outputItem`, `outputFluid` and `time`, as
+`MachineRecipeBuilder`, and `add()`. Read tags through the generation: tag brackets
+are not usable during a reload, which is when generators run. As for any generator,
+a recipe file with the same ID replaces a generated recipe, groups are checked
+against the machines, and an error fails the reload. Naming
+`ScriptRecipeGenerator` without CraftTweaker installed, or a generator no script
+registered, fails with a message saying so.
 
 ## Screen values
 

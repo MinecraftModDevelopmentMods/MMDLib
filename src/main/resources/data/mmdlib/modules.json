@@ -59,6 +59,7 @@
     "netherore"
   ],
   "fluids": [
+    "fluid",
     "molten"
   ]
 }

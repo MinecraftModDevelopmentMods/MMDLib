@@ -145,6 +145,18 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void standaloneFluidFromData(GameTestHelper helper) {
+        FluidSmoke.fromData(helper.getLevel(), helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void standaloneFluidFromScript(GameTestHelper helper) {
+        FluidSmoke.fromScript();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void soundEventsRegistered(GameTestHelper helper) {
         SoundSmoke.registered();
         helper.succeed();
@@ -575,6 +587,13 @@ public final class MMDLibGameTests {
     @GameTest(template = EMPTY)
     public static void scriptMachineRecipes(GameTestHelper helper) {
         MachineScriptSmoke.scriptRecipes(helper.getLevel(),
+            helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void scriptGeneratedRecipes(GameTestHelper helper) {
+        MachineScriptSmoke.generatedRecipes(helper.getLevel(),
             helper.absolutePos(CENTER));
         helper.succeed();
     }

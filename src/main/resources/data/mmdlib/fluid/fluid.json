@@ -1,0 +1,42 @@
+{
+  "factory": "mmdlib:flowing_fluid",
+  "material_defaults": true,
+  "template": {
+    "type_properties": {
+      "density": 1000,
+      "viscosity": 1000,
+      "temperature": 300,
+      "can_swim": true,
+      "can_drown": true,
+      "can_extinguish": true,
+      "can_hydrate": false
+    },
+    "flow_properties": {
+      "slope_find_distance": 4,
+      "level_decrease_per_block": 1,
+      "tick_rate": 5,
+      "explosion_resistance": 100,
+      "can_convert_to_source": false
+    },
+    "appearance": {
+      "still": "minecraft:block/water_still",
+      "flowing": "minecraft:block/water_flow",
+      "overlay": "minecraft:block/water_overlay",
+      "tint": -12618012
+    },
+    "has_block": true,
+    "block": {
+      "has_item": false,
+      "properties": {
+        "hardness": 100,
+        "collision": false,
+        "occlusion": false
+      }
+    },
+    "has_bucket": true,
+    "bucket": {
+      "max_stack_size": 1,
+      "container": "minecraft:bucket"
+    }
+  }
+}

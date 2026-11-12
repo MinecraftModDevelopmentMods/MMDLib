@@ -71,17 +71,21 @@ public final class MaterialExtensions {
      * @param soundTypes
      *            block sound sets by ID, like {@code mmdlib/sound_type} files;
      *            one with the ID of a file's set replaces it
+     * @param standaloneFluids
+     *            standalone fluids by registry ID, planned like {@code
+     *     mmdlib/standalone/fluid} files
      */
     public record Definitions(java.util.Collection<MMDMaterial> materials,
         Map<ResourceLocation, StandaloneBlock> standaloneBlocks,
         Map<ResourceLocation, StandaloneItem> standaloneItems,
         Map<ResourceLocation, CreativeTabDefinition> creativeTabs,
         Map<ResourceLocation, SoundDefinition> sounds,
-        Map<ResourceLocation, SoundTypeDefinition> soundTypes) {
+        Map<ResourceLocation, SoundTypeDefinition> soundTypes,
+        Map<ResourceLocation, StandaloneFluid> standaloneFluids) {
         /** Nothing. */
         public static final Definitions EMPTY = new Definitions(
             java.util.List.of(), Map.of(), Map.of(), Map.of(), Map.of(),
-            Map.of());
+            Map.of(), Map.of());
 
         /** Copies every collection. */
         public Definitions {
@@ -91,6 +95,18 @@ public final class MaterialExtensions {
             creativeTabs = Map.copyOf(creativeTabs);
             sounds = Map.copyOf(sounds);
             soundTypes = Map.copyOf(soundTypes);
+            standaloneFluids = Map.copyOf(standaloneFluids);
+        }
+
+        /** Everything but standalone fluids. */
+        public Definitions(java.util.Collection<MMDMaterial> materials,
+            Map<ResourceLocation, StandaloneBlock> standaloneBlocks,
+            Map<ResourceLocation, StandaloneItem> standaloneItems,
+            Map<ResourceLocation, CreativeTabDefinition> creativeTabs,
+            Map<ResourceLocation, SoundDefinition> sounds,
+            Map<ResourceLocation, SoundTypeDefinition> soundTypes) {
+            this(materials, standaloneBlocks, standaloneItems, creativeTabs,
+                sounds, soundTypes, Map.of());
         }
 
         /** Everything but sound events and sound sets. */

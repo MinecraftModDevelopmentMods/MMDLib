@@ -75,8 +75,27 @@ final class ScriptMaterialResources {
         Map<ResourceLocation, ResourceLocation> basedOn,
         MaterialTemplates templates, Path userFolder,
         Map<String, ScriptResourceOptions> options) {
+        return assets(materials, blocks, items, List.of(), basedOn, templates,
+            userFolder, options);
+    }
+
+    /**
+     * As above, with the script's standalone fluids: each gets an empty
+     * liquid-block model (the fluid renders itself), a filled-bucket model and
+     * English names for the fluid, its block and bucket.
+     */
+    static SortedMap<String, byte[]> assets(
+        Collection<MaterialFactory.Result> materials,
+        Collection<MaterialFactory.Result> blocks,
+        Collection<MaterialFactory.Result> items,
+        Collection<MaterialFactory.Result> fluids,
+        Map<ResourceLocation, ResourceLocation> basedOn,
+        MaterialTemplates templates, Path userFolder,
+        Map<String, ScriptResourceOptions> options) {
         var files = new TreeMap<String, byte[]>();
         var lang = new TreeMap<String, String>();
+        for (var result : fluids)
+            fluidAssets(result.content().fluid(), options, files, lang);
         for (var result : materials) {
             var material = result.material();
             var name = name(material);
@@ -213,6 +232,42 @@ final class ScriptMaterialResources {
             files.put("assets/" + NS + "/lang/en_us.json",
                 json(lang).getBytes(StandardCharsets.UTF_8));
         return files;
+    }
+
+    private static void fluidAssets(
+        zone.moddev.mc.lib.common.types.MMDFluid fluid,
+        Map<String, ScriptResourceOptions> options, Map<String, byte[]> files,
+        Map<String, String> lang) {
+        var id = fluid.name();
+        var ns = id.getNamespace();
+        var path = id.getPath();
+        var name = options
+            .getOrDefault(ScriptResourceOptions.key("fluid", id),
+                ScriptResourceOptions.DEFAULT)
+            .label(display(path), display(path));
+        lang.put("fluid_type." + ns + "." + path, name);
+        if (fluid.block() != null) {
+            lang.put("block." + ns + "." + path, name);
+            var state = new JsonObject();
+            var variants = new JsonObject();
+            var model = new JsonObject();
+            model.addProperty("model", "minecraft:block/air");
+            variants.add("", model);
+            state.add("variants", variants);
+            files.put("assets/" + ns + "/blockstates/" + path + ".json",
+                json(state).getBytes(StandardCharsets.UTF_8));
+        }
+        if (fluid.bucket() != null) {
+            var bucket = fluid.bucketId();
+            lang.put("item." + ns + "." + bucket.getPath(), name + " Bucket");
+            var model = new JsonObject();
+            model.addProperty("parent", "neoforge:item/bucket");
+            model.addProperty("loader", "neoforge:fluid_container");
+            model.addProperty("fluid", id.toString());
+            files.put(
+                "assets/" + ns + "/models/item/" + bucket.getPath() + ".json",
+                json(model).getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     /** Whether the part's redstone settings turn it to face its placer. */

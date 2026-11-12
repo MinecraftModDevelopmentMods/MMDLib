@@ -78,6 +78,8 @@ public class MMDLib {
         .of();
     private static volatile Map<ResourceLocation, MaterialFactory.Result> standaloneItems = Map
         .of();
+    private static volatile Map<ResourceLocation, MaterialFactory.Result> standaloneFluids = Map
+        .of();
     private static volatile Map<ResourceLocation, SoundDefinition> sounds = Map
         .of();
     private static volatile Map<ResourceLocation, CreativeTabDefinition> creativeTabs = Map
@@ -128,6 +130,14 @@ public class MMDLib {
      */
     public static Map<ResourceLocation, MaterialFactory.Result> standaloneItems() {
         return standaloneItems;
+    }
+
+    /**
+     * Standalone (material-less) fluids by registry ID; each result's material
+     * is a stats-free host and its plan holds only the fluid family.
+     */
+    public static Map<ResourceLocation, MaterialFactory.Result> standaloneFluids() {
+        return standaloneFluids;
     }
 
     /**
@@ -211,6 +221,7 @@ public class MMDLib {
             loaded.materials().values());
         results.addAll(loaded.standalone().values());
         results.addAll(loaded.standaloneItems().values());
+        results.addAll(loaded.standaloneFluids().values());
         for (var result : results) {
             var plan = result.content();
             var material = result.material();
@@ -239,6 +250,7 @@ public class MMDLib {
         loadedMaterials = loaded.materials();
         standaloneBlocks = loaded.standalone();
         standaloneItems = loaded.standaloneItems();
+        standaloneFluids = loaded.standaloneFluids();
         sounds = loaded.sounds();
         SoundTypes.install(loaded.soundTypes());
         creativeTabs = loaded.creativeTabs();
@@ -260,12 +272,12 @@ public class MMDLib {
         LOGGER.info(
             "Loaded MMDLib definitions: {} item modules, {} block modules, {} fluid modules, {}"
                 + " extension files, {} materials, {} standalone blocks, {} standalone items, {}"
-                + " sound events, {} creative tabs, {} screens",
+                + " standalone fluids, {} sound events, {} creative tabs, {} screens",
             loaded.modules().items().size(), loaded.modules().blocks().size(),
             loaded.modules().fluids().size(), loaded.extensions().size(),
             loadedMaterials.size(), standaloneBlocks.size(),
-            standaloneItems.size(), sounds.size(), creativeTabs.size(),
-            zone.moddev.mc.lib.gui.Screens.all().size());
+            standaloneItems.size(), standaloneFluids.size(), sounds.size(),
+            creativeTabs.size(), zone.moddev.mc.lib.gui.Screens.all().size());
     }
 
     /**
@@ -296,6 +308,8 @@ public class MMDLib {
         standaloneBlocks.values().forEach(
             result -> MaterialRegistration.publishStandalone(event, result));
         standaloneItems.values().forEach(
+            result -> MaterialRegistration.publishStandalone(event, result));
+        standaloneFluids.values().forEach(
             result -> MaterialRegistration.publishStandalone(event, result));
     }
 }
