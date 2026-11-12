@@ -41,9 +41,9 @@ public final class RecipeMatcher {
 
     /**
      * Whether {@code recipe} can start: every input present and room for every
-     * product once the inputs are gone, counting chance products as certain. A
-     * product may land in the slot or tank its own input empties. Changes
-     * nothing, and no storage's change callback runs.
+     * product once the consumed inputs are gone, counting chance products as
+     * certain. A product may land in the slot or tank its own input empties.
+     * Changes nothing, and no storage's change callback runs.
      */
     public static MatchResult check(MachineRecipe recipe,
         MachineInventory inventory) {
@@ -99,10 +99,12 @@ public final class RecipeMatcher {
     }
 
     /**
-     * Takes the item and fluid inputs in one transaction, all or nothing.
-     * Energy is not taken; it is drawn per tick while the recipe runs.
+     * Checks all inputs and takes only consumed item and fluid inputs in one
+     * transaction, all or nothing. Energy is not taken; it is drawn per tick
+     * while the recipe runs.
      *
-     * @return whether every input was taken
+     * @return whether every input was present and every consumed input was
+     *         taken
      */
     public static boolean consume(MachineRecipe recipe,
         MachineInventory inventory) {
@@ -164,7 +166,9 @@ public final class RecipeMatcher {
         }
         var claimed = new long[held.length];
         for (int entry = 0; entry < held.length; entry++)
-            claimed[entry] = claims.claimed(entry);
+            claimed[entry] = group instanceof ItemGroup items && items.ghost()
+                ? 0
+                : consumed(claims, ingredients, entry);
         taken.put(key, claimed);
         return MatchResult.OK;
     }
@@ -253,8 +257,10 @@ public final class RecipeMatcher {
         for (var ingredient : ingredients)
             if (claim(claims, group, ingredient, 1) != 0)
                 return false;
+        if (group instanceof ItemGroup items && items.ghost())
+            return true;
         for (int entry = 0; entry < held.length; entry++) {
-            int amount = (int) claims.claimed(entry);
+            int amount = (int) consumed(claims, ingredients, entry);
             if (amount == 0)
                 continue;
             int taken = switch (group) {
@@ -266,6 +272,19 @@ public final class RecipeMatcher {
                 return false;
         }
         return true;
+    }
+
+    /**
+     * Only consumed claims free capacity; retained inputs stay in their
+     * original slots/tanks.
+     */
+    static long consumed(InputClaims claims,
+        List<MachineIngredient> ingredients, int entry) {
+        long amount = 0;
+        for (int part = 0; part < ingredients.size(); part++)
+            if (ingredients.get(part).consumed())
+                amount += claims.claimed(part, entry);
+        return amount;
     }
 
     private static boolean put(SlotGroup group, MachineProduct product,

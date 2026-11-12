@@ -12,6 +12,7 @@ import net.neoforged.neoforge.energy.IEnergyStorage;
 
 import zone.moddev.mc.lib.api.stats.Statistics;
 import zone.moddev.mc.lib.api.stats.StatsProvider;
+import zone.moddev.mc.lib.api.util.ChangeSignal;
 
 /**
  * A machine's energy, counted as a {@code long} so large buffers do not
@@ -22,6 +23,16 @@ import zone.moddev.mc.lib.api.stats.StatsProvider;
  */
 public class EnergyBuffer
     implements IEnergyStorage, INBTSerializable<Tag>, StatsProvider {
+    private final ChangeSignal changes = new ChangeSignal();
+
+    /**
+     * Observe content/capacity changes without replacing the persistence
+     * callback.
+     */
+    public ChangeSignal changes() {
+        return changes;
+    }
+
     private java.math.BigInteger inserted = java.math.BigInteger.ZERO;
     private java.math.BigInteger extracted = java.math.BigInteger.ZERO;
     private java.math.BigInteger used = java.math.BigInteger.ZERO;
@@ -134,6 +145,7 @@ public class EnergyBuffer
         long clamped = Math.clamp(energy, 0, capacity);
         if (clamped != stored) {
             stored = clamped;
+            changes.changed();
             onChange.run();
         }
     }
@@ -142,8 +154,12 @@ public class EnergyBuffer
      * Sets the capacity, e.g. after an upgrade; stored energy above it is lost.
      */
     public void setCapacity(long capacity) {
-        this.capacity = Math.max(0, capacity);
+        long next = Math.max(0, capacity);
+        if (this.capacity == next)
+            return;
+        this.capacity = next;
         setStored(stored);
+        changes.changed();
     }
 
     /**
@@ -300,7 +316,12 @@ public class EnergyBuffer
 
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, Tag tag) {
-        if (tag instanceof NumericTag number)
-            stored = Math.clamp(number.getAsLong(), 0, capacity);
+        if (tag instanceof NumericTag number) {
+            long next = Math.clamp(number.getAsLong(), 0, capacity);
+            if (next != stored) {
+                stored = next;
+                changes.changed();
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.api.capabilities;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.mojang.serialization.Codec;
 
@@ -25,6 +26,7 @@ public final class SideConfig {
 
     private final EnumMap<RelativeFace, IoMode> modes = new EnumMap<>(
         RelativeFace.class);
+    private int disabledFaces;
     private Runnable onChange = () -> {
     };
 
@@ -48,15 +50,41 @@ public final class SideConfig {
         return this;
     }
 
+    /**
+     * Machine policy, independent of saved player modes. Re-enabled faces stay
+     * disabled.
+     */
+    public SideConfig disabledFaces(Set<RelativeFace> faces) {
+        int next = FaceMask.of(faces);
+        if (next != disabledFaces) {
+            disabledFaces = next;
+            for (var face : RelativeFace.values())
+                if (!faceAvailable(face))
+                    modes.put(face, IoMode.DISABLED);
+            onChange.run();
+        }
+        return this;
+    }
+
+    public int disabledFaceMask() {
+        return disabledFaces;
+    }
+
+    public boolean faceAvailable(RelativeFace face) {
+        return FaceMask.available(disabledFaces, face.ordinal());
+    }
+
     /** The mode of {@code face}. */
     public IoMode get(RelativeFace face) {
-        return modes.get(face);
+        return faceAvailable(face) ? modes.get(face) : IoMode.DISABLED;
     }
 
     /**
      * Sets the mode of {@code face}, running the change callback if it changed.
      */
     public SideConfig set(RelativeFace face, IoMode mode) {
+        if (!faceAvailable(face))
+            return this;
         if (modes.put(face, mode) != mode)
             onChange.run();
         return this;
@@ -66,6 +94,8 @@ public final class SideConfig {
      * Advances one face to its next mode, as a side-configuration button does.
      */
     public IoMode cycle(RelativeFace face) {
+        if (!faceAvailable(face))
+            return IoMode.DISABLED;
         IoMode next = get(face).next();
         set(face, next);
         return next;
@@ -92,6 +122,8 @@ public final class SideConfig {
      * the callback.
      */
     public void copyFrom(SideConfig other) {
-        modes.putAll(other.modes);
+        for (var face : RelativeFace.values())
+            modes.put(face,
+                faceAvailable(face) ? other.get(face) : IoMode.DISABLED);
     }
 }

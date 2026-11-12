@@ -28,15 +28,23 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
+
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import zone.moddev.mc.lib.MMDLib;
+import zone.moddev.mc.lib.api.capabilities.ItemInventories;
 import zone.moddev.mc.lib.gui.client.IngredientDrops;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Element;
+import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.machine.ingredient.MachineIngredient;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 
 /** Loaded exclusively by the optional JEI plugin. */
 final class MachineJei {
@@ -198,17 +206,68 @@ final class MachineJei {
                         .distinct().toList();
                     for (var id : categories) {
                         var type = runtime.getRecipeManager().getRecipeType(id);
-                        if (type.isPresent()
-                            && !host.screenRecipeItems(id).isEmpty()
-                            && runtime.getRecipeManager()
-                                .createRecipeLookup(type.get()).get()
-                                .anyMatch(recipe::equals))
+                        if (type.isPresent() && runtime.getRecipeManager()
+                            .createRecipeLookup(type.get()).get()
+                            .anyMatch(recipe::equals)) {
+                            if (host.screenRecipeItems(id).isEmpty())
+                                return selectGhost(helper, menu, recipe,
+                                    transfer);
                             return delegate(type.get(), helper, menu, recipe,
                                 slots, player, max, transfer);
+                        }
                     }
                     return helper.createInternalError();
                 }
             });
+    }
+
+    /**
+     * A single ghost sample selects a recipe without transferring its items or
+     * fluids.
+     */
+    private static IRecipeTransferError selectGhost(
+        IRecipeTransferHandlerHelper helper, MachineMenu menu, Object recipe,
+        boolean transfer) {
+        if (!(recipe instanceof RecipeHolder<?> holder)
+            || !(holder.value() instanceof MachineRecipeEntry entry))
+            return helper.createInternalError();
+        SlotElement target = null;
+        ItemStack sample = ItemStack.EMPTY;
+        for (var group : entry.recipe().inputs().entrySet())
+            for (var part : group.getValue()) {
+                if (!(part instanceof MachineIngredient.ItemPart item))
+                    continue;
+                // Multiple real or ghost ingredients need an inventory
+                // transfer, not a selector.
+                if (target != null)
+                    return helper.createInternalError();
+                int index = menu
+                    .menuSlot(new ItemInventories.Address(group.getKey(), 0));
+                var element = menu.slotElement(index);
+                if (element == null || !element.ghost()
+                    || !menu.visible(element)
+                    || element.selectionAction().isEmpty()
+                    || menu.elementPending(element))
+                    return helper.createInternalError();
+                var choices = item.items().getItems();
+                if (choices.length == 0)
+                    return helper.createInternalError();
+                sample = choices[0].copyWithCount(1);
+                if (!element.acceptsSelection(0, sample))
+                    return helper.createInternalError();
+                target = element;
+            }
+        if (target == null)
+            return helper.createInternalError();
+        if (transfer) {
+            var packet = menu.prepareElementAction(target,
+                target.selectionAction().orElseThrow(),
+                target.selection(0, sample));
+            if (packet.isEmpty())
+                return helper.createInternalError();
+            PacketDistributor.sendToServer(packet.get());
+        }
+        return null;
     }
 
     @SuppressWarnings("removal")

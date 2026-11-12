@@ -1,18 +1,32 @@
 package zone.moddev.mc.lib.machine.neoforge;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
 import java.nio.charset.StandardCharsets;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.*;
-import net.minecraft.server.packs.repository.*;
+import net.minecraft.server.packs.AbstractPackResources;
+import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackResources;
+import net.minecraft.server.packs.PackSelectionConfig;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.resources.IoSupplier;
 
 import net.neoforged.neoforge.event.AddPackFindersEvent;
@@ -57,18 +71,90 @@ public final class MachineResourcePack extends AbstractPackResources {
     }
 
     public static Map<ResourceLocation, byte[]> build(PackType type) {
+        return build(type, MachineContent.definitions());
+    }
+
+    /**
+     * Generate assets from resolved definitions, also usable by tooling before
+     * registration.
+     */
+    public static Map<ResourceLocation, byte[]> build(PackType type,
+        Map<ResourceLocation, zone.moddev.mc.lib.machine.definition.MachineDefinition> definitions) {
         var result = new TreeMap<ResourceLocation, byte[]>();
         var languages = new TreeMap<String, JsonObject>();
         var tags = new TreeMap<ResourceLocation, JsonArray>();
-        for (var machine : MachineContent.definitions().values()) {
+        for (var machine : definitions.values()) {
             var id = machine.id();
             String model = id.getNamespace() + ":block/" + id.getPath();
             if (type == PackType.CLIENT_RESOURCES) {
                 var block = new JsonObject();
-                block.addProperty("parent", "minecraft:block/orientable");
-                var textures = new JsonObject();
-                machine.textures().forEach(textures::addProperty);
-                block.add("textures", textures);
+                block.addProperty("parent",
+                    machine.baseModel() == null
+                        ? "minecraft:block/orientable"
+                        : machine.baseModel().toString());
+                if (machine.baseModel() == null) {
+                    var textures = new JsonObject();
+                    machine.textures().forEach(textures::addProperty);
+                    block.add("textures", textures);
+                }
+                if (machine.hasConditionalAppearance()) {
+                    put(result, id.withSuffix("_base"), "models/block/", block);
+                    block = new JsonObject();
+                    block.addProperty("loader", "mmdlib:conditional_machine");
+                    var base = new JsonObject();
+                    base.addProperty("parent", model + "_base");
+                    block.add("base", base);
+                    var variables = new JsonObject();
+                    machine.visualDefaults().forEach((name, value) -> {
+                        if (value instanceof Boolean bool)
+                            variables.addProperty(name, bool);
+                        else if (value instanceof Number number)
+                            variables.addProperty(name, number);
+                        else
+                            variables.addProperty(name, (String) value);
+                    });
+                    block.add("variables", variables);
+                    var parts = new JsonArray();
+                    for (var part : machine.modelParts()) {
+                        var json = new JsonObject();
+                        json.addProperty("id", part.id());
+                        json.addProperty("when", part.when());
+                        var child = new JsonObject();
+                        child.addProperty("parent", part.model().toString());
+                        json.add("model", child);
+                        parts.add(json);
+                    }
+                    block.add("parts", parts);
+                    var particle = new JsonObject();
+                    if (machine.baseModel() == null)
+                        particle.addProperty("particle",
+                            machine.textures().get("side"));
+                    var faceTextures = new JsonArray();
+                    for (int i = 0; i < machine.faceTextures().size(); i++) {
+                        var rule = machine.faceTextures().get(i);
+                        String textureKey = "face_texture_" + i;
+                        particle.addProperty(textureKey,
+                            rule.texture().toString());
+                        var json = new JsonObject();
+                        json.addProperty("face",
+                            rule.face().getSerializedName());
+                        json.addProperty("when", rule.when());
+                        json.addProperty("texture", textureKey);
+                        if (rule.emissiveMask() != null) {
+                            String maskKey = "face_mask_" + i;
+                            particle.addProperty(maskKey,
+                                rule.emissiveMask().toString());
+                            json.addProperty("emissive_mask", maskKey);
+                        }
+                        faceTextures.add(json);
+                    }
+                    block.add("face_textures", faceTextures);
+                    block.add("textures", particle);
+                    block.addProperty("parent",
+                        machine.baseModel() == null
+                            ? "minecraft:block/block"
+                            : model + "_base");
+                }
                 put(result, id, "models/block/", block);
                 var item = new JsonObject();
                 item.addProperty("parent", model);

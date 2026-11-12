@@ -104,9 +104,25 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
 
     /** Topmost visible hit without changing pointer or focus state. */
     public E hit(double x, double y) {
+        var overlay = overlayOwner();
+        if (overlay != null)
+            return hitArea.test(x, y)
+                && (bounds.apply(overlay).contains(x, y) || instances
+                    .get(overlay).overlayBounds().orElseThrow().contains(x, y))
+                        ? overlay
+                        : null;
         if (!closed && hitArea.test(x, y))
             for (var element : order.reversed())
                 if (isShown(element) && bounds.apply(element).contains(x, y))
+                    return element;
+        return null;
+    }
+
+    public E overlayOwner() {
+        if (!closed)
+            for (var element : order.reversed())
+                if (isShown(element)
+                    && instances.get(element).overlayBounds().isPresent())
                     return element;
         return null;
     }
@@ -196,6 +212,14 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
         if (captured != null)
             return true;
         beginClick();
+        var overlay = overlayOwner();
+        if (overlay != null) {
+            if (hit(x, y) == overlay)
+                click(overlay, x, y, button);
+            else
+                instances.get(overlay).dismissOverlay();
+            return true;
+        }
         if (hitArea.test(x, y))
             for (var element : order.reversed()) {
                 if (!isShown(element) || !bounds.apply(element).contains(x, y))
@@ -286,6 +310,11 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
             return false;
         if (captured != null)
             return true;
+        var overlay = overlayOwner();
+        if (overlay != null) {
+            instances.get(overlay).mouseScrolled(x, y, dx, dy);
+            return true;
+        }
         if (!hitArea.test(x, y))
             return false;
         for (var e : order.reversed())
@@ -298,6 +327,11 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
     public boolean keyPressed(int key, int scan, int modifiers) {
         if (closed)
             return false;
+        var overlay = overlayOwner();
+        if (overlay != null && key == 256) {
+            instances.get(overlay).dismissOverlay();
+            return true;
+        }
         if (key == 258) { // Tab / Shift+Tab.
             cancelCapture();
             var candidates = order.stream().filter(this::isShown)

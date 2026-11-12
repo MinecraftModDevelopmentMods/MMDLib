@@ -49,6 +49,14 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     }
 
     @Override
+    protected void tick(BlockState state,
+        net.minecraft.server.level.ServerLevel level, BlockPos pos,
+        net.minecraft.util.RandomSource random) {
+        if (level.getBlockEntity(pos) instanceof DefinedMachineEntity machine)
+            machine.flushVisuals();
+    }
+
+    @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         return defaultBlockState().setValue(
             BlockStateProperties.HORIZONTAL_FACING,

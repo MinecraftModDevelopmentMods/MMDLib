@@ -66,7 +66,8 @@ public final class MMDLibJeiPlugin implements IModPlugin {
                 level == null
                     ? List.of()
                     : MachineRecipeCategory
-                        .shown(type.recipes(level.getRecipeManager()))));
+                        .shown(type.recipes(level.getRecipeManager())),
+                registration.getJeiHelpers()));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package zone.moddev.mc.companion.test;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 import com.google.gson.JsonParser;
 
@@ -8,18 +9,27 @@ import com.mojang.serialization.JsonOps;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.gametest.framework.*;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.*;
-import net.minecraft.world.item.crafting.*;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
-import net.neoforged.neoforge.gametest.*;
+import net.neoforged.neoforge.gametest.GameTestHolder;
+import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import zone.moddev.mc.lib.gui.Screens;
-import zone.moddev.mc.lib.gui.runtime.*;
-import zone.moddev.mc.lib.machine.neoforge.*;
-import zone.moddev.mc.lib.machine.recipe.*;
+import zone.moddev.mc.lib.gui.runtime.MachineMenu;
+import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
+import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
+import zone.moddev.mc.lib.machine.neoforge.GeneratedMachineRecipes;
+import zone.moddev.mc.lib.machine.neoforge.MachineRecipeTypes;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipe;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 import zone.moddev.mc.lib.machine.recipe.generation.ReloadTags;
 
 @GameTestHolder("mmdlib_companion")
@@ -53,6 +63,44 @@ public final class MachineRecipeLoadingTests {
     private static void require(boolean condition, String message) {
         if (!condition)
             throw new AssertionError(message);
+    }
+
+    @GameTest(template = "empty")
+    public static void oldSaveAndExplicitlyClearedSelectionHaveDifferentPersistentStates(
+        GameTestHelper h) {
+        var ops = h.getLevel().registryAccess()
+            .createSerializationContext(JsonOps.INSTANCE);
+        var legacy = RecipeProcessor.State.CODEC
+            .parse(ops, JsonParser.parseString("{}")).getOrThrow();
+        require(legacy.selection().isEmpty(),
+            "Legacy saves have no selection setting");
+        var cleared = RecipeProcessor.State.CODEC
+            .parse(ops, JsonParser.parseString("{\"selection\":{}}"))
+            .getOrThrow();
+        require(cleared.selection().isPresent(),
+            "Explicit clearing retains a selection setting");
+        require(cleared.selection().orElseThrow().recipe().isEmpty(),
+            "Explicit clearing retains no recipe");
+        var selected = RecipeProcessor.State.CODEC
+            .parse(ops,
+                JsonParser
+                    .parseString("{\"selection\":{\"recipe\":\"test:stone\"}}"))
+            .getOrThrow();
+        require(
+            selected.selection().orElseThrow().recipe().orElseThrow()
+                .equals(ResourceLocation.parse("test:stone")),
+            "Selected recipe ID is preserved");
+        require(!selected.equals(cleared),
+            "Selected and cleared states remain distinct");
+        for (var state : List.of(legacy, cleared, selected)) {
+            var encoded = RecipeProcessor.State.CODEC.encodeStart(ops, state)
+                .getOrThrow();
+            require(
+                state.equals(RecipeProcessor.State.CODEC.parse(ops, encoded)
+                    .getOrThrow()),
+                "Selection state survives codec round trips");
+        }
+        h.succeed();
     }
 
     @GameTest(template = "empty")
@@ -182,6 +230,7 @@ public final class MachineRecipeLoadingTests {
                 data.writeBlockPos(pos);
                 data.writeUtf(fingerprint);
                 data.writeLong(42);
+                data.writeBlockPos(machine.getBlockPos());
                 if (fingerprint.equals(expected)) {
                     require(
                         new MachineMenu(1, player.getInventory(), data)

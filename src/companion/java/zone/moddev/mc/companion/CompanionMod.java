@@ -73,12 +73,14 @@ public final class CompanionMod {
                 .displayItems((parameters, output) -> {
                     MACHINES
                         .forEach(machine -> output.accept(machine.block.get()));
+                    output.accept(MultiblockDemo.ITEM.get());
                     CompanionAddons.items()
                         .forEach(item -> output.accept(item.get()));
                 }).build());
     }
 
     public CompanionMod(IEventBus bus) {
+        MultiblockDemo.register(bus);
         CompanionWidgets.register();
         CompanionAddons.register(bus);
         BLOCKS.register(bus);

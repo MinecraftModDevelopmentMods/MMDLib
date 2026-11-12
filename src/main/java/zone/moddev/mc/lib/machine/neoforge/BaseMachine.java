@@ -39,7 +39,8 @@ import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
  * consumer's choices.
  */
 public abstract class BaseMachine extends BlockEntity
-    implements ScreenHost, DropsContents, Clearable {
+    implements ScreenHost, DropsContents, Clearable,
+    zone.moddev.mc.lib.machine.multiblock.MultiblockController {
     public static final ResourceLocation SCREEN_TEMPLATE = ResourceLocation
         .parse("mmdlib:base_machine");
     private static final String CLIENT_DATA = "mmdlib_machine";
@@ -50,6 +51,44 @@ public abstract class BaseMachine extends BlockEntity
     protected BaseMachine(BlockEntityType<?> type, BlockPos pos,
         BlockState state) {
         super(type, pos, state);
+    }
+
+    /**
+     * Optional composed structure; existing single-block machines return null.
+     */
+    @Override
+    public zone.moddev.mc.lib.machine.multiblock.MultiblockInstance multiblock() {
+        return null;
+    }
+
+    /**
+     * Also gates consumer-owned push operations and custom before/after tick
+     * work.
+     */
+    public final boolean structureReady() {
+        return multiblock() == null || multiblock().ready();
+    }
+
+    @Override
+    public boolean screenInteractionAnchor(BlockPos anchor) {
+        if (anchor.equals(worldPosition))
+            return true;
+        if (level != null && level.isClientSide && multiblock() != null) {
+            var link = MultiblockMembers.INSTANCE.link(level, anchor);
+            return link != null && link.controller().equals(worldPosition)
+                && link.dimension().equals(level.dimension().location())
+                && link.formation().equals(multiblock().formation());
+        }
+        return multiblock() != null && level != null && level.hasChunkAt(anchor)
+            && multiblock().owns(anchor,
+                MultiblockMembers.INSTANCE.link(level, anchor));
+    }
+
+    @Override
+    public String screenInteractionIdentity(BlockPos anchor) {
+        return multiblock() == null || anchor.equals(worldPosition)
+            ? ""
+            : String.valueOf(multiblock().formation());
     }
 
     /**
@@ -181,18 +220,26 @@ public abstract class BaseMachine extends BlockEntity
     public final void serverTick() {
         if (level == null || level.isClientSide)
             return;
+        if (multiblock() != null)
+            multiblock().tick();
+        if (isRemoved())
+            return;
+        boolean structureReady = structureReady();
         var redstone = screenRedstone();
         if (redstone != null)
             redstone.readInputs();
-        beforeMachineTick();
+        if (structureReady)
+            beforeMachineTick();
         boolean paused = redstone != null && redstone.paused();
         var inventory = configuredInventory();
         if (inventory != null)
-            inventory.tick(processingAllowed(), paused, pausePolicy());
+            inventory.tick(structureReady && processingAllowed(), paused,
+                pausePolicy(), structureReady);
         else
-            features.tick(level,
-                processingAllowed() && pausePolicy().processingEnabled(paused));
-        afterMachineTick();
+            features.tick(level, structureReady && processingAllowed()
+                && pausePolicy().processingEnabled(paused));
+        if (structureReady)
+            afterMachineTick();
         if (redstone != null)
             redstone.updateOutputs();
     }
@@ -263,16 +310,25 @@ public abstract class BaseMachine extends BlockEntity
         if (redstone != null)
             tag.put("redstone_control", redstone.save(registries));
         saveMachineData(tag, registries);
+        if (multiblock() != null) {
+            var metadata = tag.getCompound(CLIENT_DATA);
+            metadata.put("multiblock", multiblock().save());
+            tag.put(CLIENT_DATA, metadata);
+        }
     }
 
     @Override
     protected final void loadAdditional(CompoundTag tag,
         HolderLookup.Provider registries) {
         if (FeatureSync.read(features, tag, registries)) {
+            if (multiblock() != null && (level == null || level.isClientSide))
+                multiblock().readClientState(tag.getCompound(CLIENT_DATA)
+                    .getCompound("multiblock_view"));
             var redstone = screenRedstone();
             if (redstone != null
                 && tag.contains("redstone_control", Tag.TAG_COMPOUND))
-                redstone.load(tag.getCompound("redstone_control"), registries);
+                redstone.loadClient(tag.getCompound("redstone_control"),
+                    registries);
             if (tag.contains(CLIENT_DATA, Tag.TAG_COMPOUND))
                 loadClientData(tag.getCompound(CLIENT_DATA), registries);
             return;
@@ -300,6 +356,12 @@ public abstract class BaseMachine extends BlockEntity
             }
         }
         loadMachineData(tag, registries);
+        if (multiblock() != null) {
+            var metadata = tag.getCompound(CLIENT_DATA);
+            multiblock().load(metadata.contains("multiblock")
+                ? metadata.getCompound("multiblock")
+                : tag.getCompound("multiblock"), registries);
+        }
     }
 
     @Override
@@ -307,10 +369,12 @@ public abstract class BaseMachine extends BlockEntity
         var tag = FeatureSync.updateTag(features, registries);
         var redstone = screenRedstone();
         if (redstone != null)
-            tag.put("redstone_control", redstone.save(registries));
+            tag.put("redstone_control", redstone.saveClient(registries));
         var clientData = new CompoundTag();
         saveClientData(clientData, registries);
         tag.put(CLIENT_DATA, clientData);
+        if (multiblock() != null)
+            clientData.put("multiblock_view", multiblock().clientState());
         return tag;
     }
 

@@ -55,6 +55,8 @@ public class MachineMenu extends AbstractContainerMenu {
     private final Map<Element, Integer> elementIndexes = new IdentityHashMap<>();
     private final Map<Integer, Object> values = new HashMap<>();
     private final ScreenHost host;
+    private final net.minecraft.core.BlockPos interactionAnchor;
+    private final String interactionIdentity;
     private final Player owner;
     private final MenuComponents components;
     private final MenuSlots nativeSlots = new MenuSlots();
@@ -78,7 +80,14 @@ public class MachineMenu extends AbstractContainerMenu {
 
     public MachineMenu(int id, Inventory inventory,
         RegistryFriendlyByteBuf data) {
-        this(id, inventory, readEntity(inventory, data), data.readLong());
+        this(id, inventory, readEntity(inventory, data), data.readLong(),
+            data.readBlockPos());
+    }
+
+    public MachineMenu(int id, Inventory inventory, BlockEntity entity,
+        long session, net.minecraft.core.BlockPos anchor) {
+        this(id, inventory, entity, inventory.player.level().isClientSide,
+            session, anchor);
     }
 
     public MachineMenu(int id, Inventory inventory, BlockEntity entity,
@@ -219,6 +228,11 @@ public class MachineMenu extends AbstractContainerMenu {
 
     private MachineMenu(int id, Inventory inventory, BlockEntity entity,
         boolean client, long session) {
+        this(id, inventory, entity, client, session, entity.getBlockPos());
+    }
+
+    private MachineMenu(int id, Inventory inventory, BlockEntity entity,
+        boolean client, long session, net.minecraft.core.BlockPos anchor) {
         super(ScreenRuntime.MENUS.get(), id);
         owner = inventory.player;
         blockEntity = entity;
@@ -234,6 +248,10 @@ public class MachineMenu extends AbstractContainerMenu {
             throw new IllegalArgumentException(
                 "A screen may have at most 4096 elements");
         host = entity instanceof ScreenHost h ? h : null;
+        interactionAnchor = anchor.immutable();
+        interactionIdentity = host == null
+            ? ""
+            : host.screenInteractionIdentity(anchor);
         elementStates = new ElementStates(elements, owner.registryAccess(),
             this::stateLayoutChanged);
         elementActions = new ElementActionSession(this, session,
@@ -381,9 +399,16 @@ public class MachineMenu extends AbstractContainerMenu {
     public boolean stillValid(Player player) {
         return !blockEntity.isRemoved()
             && player.level() == blockEntity.getLevel()
+            && player.level().hasChunkAt(blockEntity.getBlockPos())
             && player.level()
                 .getBlockEntity(blockEntity.getBlockPos()) == blockEntity
-            && player.canInteractWithBlock(blockEntity.getBlockPos(), 4.0);
+            && player.level().hasChunkAt(interactionAnchor)
+            && (host == null
+                ? interactionAnchor.equals(blockEntity.getBlockPos())
+                : host.screenInteractionAnchor(interactionAnchor)
+                    && interactionIdentity.equals(
+                        host.screenInteractionIdentity(interactionAnchor)))
+            && player.canInteractWithBlock(interactionAnchor, 4.0);
     }
 
     @Override

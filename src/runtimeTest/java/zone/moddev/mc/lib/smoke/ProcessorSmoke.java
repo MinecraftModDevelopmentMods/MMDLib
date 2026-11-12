@@ -63,11 +63,14 @@ final class ProcessorSmoke {
                 return super.getStackInSlot(slot);
             }
         };
-        var rig = new ProcessorRig(storage, false, false);
+        var rig = new ProcessorRig(storage, false, true);
         rig.ticks(level, 1);
         int firstSearch = reads[0];
         require(firstSearch > 0, "Initial search examined the inventory");
-        rig.ticks(level, 19);
+        for (int tick = 0; tick < 19; tick++) {
+            rig.energy.setStored(rig.energy.stored() + 10);
+            rig.ticks(level, 1);
+        }
         require(reads[0] == firstSearch,
             "An unchanged idle machine scanned recipes every tick");
         storage.setStackInSlot(0, new ItemStack(Items.COBBLESTONE));
@@ -90,6 +93,13 @@ final class ProcessorSmoke {
         wet.ticks(level, 1);
         require(wet.processor.status() == Status.RUNNING,
             "Fluid changes invalidate an idle search");
+
+        var charging = ProcessorRig.crusher(1, 1000, 0);
+        charging.ticks(level, 1);
+        charging.energy.setStored(100_000);
+        charging.ticks(level, 20);
+        require(charging.processor.status() == Status.RUNNING,
+            "Periodic idle retry starts an otherwise ready recipe after charging");
 
         var manager = level.getRecipeManager();
         var originals = new ArrayList<RecipeHolder<?>>(manager.getRecipes());

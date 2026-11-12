@@ -7,23 +7,32 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
+import mezz.jei.api.helpers.IJeiHelpers;
+import mezz.jei.api.ingredients.IIngredientRenderer;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.AbstractRecipeCategory;
+import mezz.jei.api.runtime.IIngredientManager;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.material.Fluid;
 
+import zone.moddev.mc.lib.machine.definition.MachineDefinition;
 import zone.moddev.mc.lib.machine.ingredient.MachineIngredient;
+import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 import zone.moddev.mc.lib.machine.recipe.MachineProduct;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipe;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
@@ -41,28 +50,29 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 public final class MachineRecipeCategory
     extends
         AbstractRecipeCategory<RecipeHolder<MachineRecipeEntry>> {
-    private static final int CELL = 18, COLUMNS = 3, ARROW = 24, GAP = 4,
-        TEXT = 10;
+    private static final int CELL = MachineRecipeLayout.CELL, TEXT = 10;
     private static final int TEXT_COLOR = 0xFF808080;
 
-    private final int inputColumns, rows, contentX;
+    private final int rows;
+    private final MachineRecipeLayout layout;
+    private final Set<String> ghostInputs;
+    private final IIngredientManager ingredients;
+    private final IIngredientRenderer<ItemStack> ghostItems;
 
-    private MachineRecipeCategory(MachineRecipeType type, int inputColumns,
-        int outputColumns, int rows, int textWidth) {
+    private MachineRecipeCategory(MachineRecipeType type, int width,
+        MachineRecipeLayout layout, Set<String> ghostInputs,
+        IJeiHelpers helpers) {
         super(recipeType(type),
             Component.translatableWithFallback(
                 "jei." + type.id().getNamespace() + "." + type.id().getPath(),
                 type.id().toString()),
-            null,
-            Math.max(
-                inputColumns * CELL + GAP + ARROW + GAP + outputColumns * CELL,
-                textWidth),
-            rows * CELL + TEXT);
-        this.inputColumns = inputColumns;
-        this.rows = rows;
-        contentX = (getWidth()
-            - (inputColumns * CELL + GAP + ARROW + GAP + outputColumns * CELL))
-            / 2;
+            null, width, layout.rows() * CELL + TEXT);
+        this.layout = layout;
+        this.rows = layout.rows();
+        this.ghostInputs = ghostInputs;
+        ingredients = helpers.getIngredientManager();
+        ghostItems = JeiGhostRenderer
+            .items(ingredients.getIngredientRenderer(VanillaTypes.ITEM_STACK));
     }
 
     /**
@@ -96,62 +106,127 @@ public final class MachineRecipeCategory
      * {@code recipes}.
      */
     static MachineRecipeCategory create(MachineRecipeType type,
-        Collection<RecipeHolder<MachineRecipeEntry>> recipes) {
-        int inputs = 1, outputs = 1, textWidth = 0;
+        Collection<RecipeHolder<MachineRecipeEntry>> recipes,
+        IJeiHelpers helpers) {
+        var ghosts = MachineDefinition
+            .ghostInputsFor(MachineContent.definitions().values(), type.id());
+        int width = 1;
+        var layout = new MachineRecipeLayout(0, 0, 0);
         for (var holder : recipes) {
-            inputs = Math.max(inputs, inputSlots(holder.value().recipe()));
-            outputs = Math.max(outputs, outputSlots(holder.value().recipe()));
-            textWidth = Math.max(textWidth, Minecraft.getInstance().font
-                .width(details(holder.value().recipe())));
+            var recipe = holder.value().recipe();
+            layout = layout.merge(layout(recipe, ghosts));
+            width = Math.max(width,
+                Minecraft.getInstance().font.width(details(recipe)));
         }
-        int inputColumns = Math.min(COLUMNS, inputs),
-            outputColumns = Math.min(COLUMNS, outputs);
-        int rows = Math.max(ceil(inputs, inputColumns),
-            ceil(outputs, outputColumns));
-        return new MachineRecipeCategory(type, inputColumns, outputColumns,
-            rows, textWidth);
+        return new MachineRecipeCategory(type, Math.max(width, layout.width()),
+            layout, ghosts, helpers);
+    }
+
+    private static boolean ghost(String group, MachineIngredient part,
+        Set<String> ghostInputs) {
+        return !part.consumed() || part instanceof MachineIngredient.ItemPart
+            && ghostInputs.contains(group);
+    }
+
+    private static MachineRecipeLayout layout(MachineRecipe recipe,
+        Set<String> ghostInputs) {
+        int ghosts = 0, inputs = 0;
+        for (var entry : recipe.inputs().entrySet())
+            for (var part : entry.getValue()) {
+                if (part instanceof MachineIngredient.EnergyPart)
+                    continue;
+                if (ghost(entry.getKey(), part, ghostInputs))
+                    ghosts++;
+                else
+                    inputs++;
+            }
+        return new MachineRecipeLayout(ghosts, inputs, outputSlots(recipe));
     }
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder,
         RecipeHolder<MachineRecipeEntry> holder, IFocusGroup focuses) {
         var recipe = holder.value().recipe();
-        int index = 0;
-        for (var parts : recipe.inputs().values())
-            for (var part : parts) {
+        var recipeLayout = layout(recipe, ghostInputs);
+        int originX = (getWidth() - layout.width()) / 2;
+        int ghostIndex = 0, inputIndex = 0;
+        for (var entry : recipe.inputs().entrySet())
+            for (var part : entry.getValue()) {
+                if (part instanceof MachineIngredient.EnergyPart)
+                    continue;
+                boolean ghost = ghost(entry.getKey(), part, ghostInputs);
+                boolean sample = part instanceof MachineIngredient.ItemPart
+                    && ghostInputs.contains(entry.getKey());
+                var role = sample
+                    ? RecipeIngredientRole.RENDER_ONLY
+                    : ghost
+                        ? RecipeIngredientRole.CATALYST
+                        : RecipeIngredientRole.INPUT;
+                var slot = slot(builder, role,
+                    originX + (ghost ? 0 : layout.inputX()),
+                    ghost ? ghostIndex++ : inputIndex++,
+                    ghost ? recipeLayout.ghosts() : recipeLayout.inputs());
+                slot.setSlotName(
+                    (sample ? "sample/" : ghost ? "catalyst/" : "input/")
+                        + entry.getKey() + "/"
+                        + (ghost ? ghostIndex : inputIndex));
                 switch (part) {
-                    case MachineIngredient.ItemPart items -> slot(builder,
-                        RecipeIngredientRole.INPUT, contentX, index++)
-                        .addItemStacks(Arrays.stream(items.items().getItems())
+                    case MachineIngredient.ItemPart items -> {
+                        slot.addItemStacks(Arrays
+                            .stream(items.items().getItems())
                             .map(stack -> stack.copyWithCount(items.count()))
                             .toList());
+                        if (ghost)
+                            slot.setCustomRenderer(VanillaTypes.ITEM_STACK,
+                                ghostItems);
+                    }
                     case MachineIngredient.FluidPart fluids -> {
-                        var slot = slot(builder, RecipeIngredientRole.INPUT,
-                            contentX, index++);
                         for (var fluid : sources(fluids.fluids()))
                             slot.addFluidStack(fluid.value(),
                                 fluids.millibuckets());
-                        slot.setFluidRenderer(fluids.millibuckets(), false, 16,
-                            16);
+                        long capacity = MachineRecipeLayout
+                            .fluidCapacity(fluids.millibuckets());
+                        if (ghost) {
+                            slot.setCustomRenderer(NeoForgeTypes.FLUID_STACK,
+                                JeiGhostRenderer
+                                    .fluids(
+                                        ingredients.getIngredientRenderer(
+                                            NeoForgeTypes.FLUID_STACK),
+                                        capacity));
+                            // JEI's default ingredient-list renderer does not
+                            // promise an amount
+                            // tooltip. A ghost still represents the full recipe
+                            // requirement.
+                            slot.addRichTooltipCallback((view,
+                                tooltip) -> tooltip.add(Component.translatable(
+                                    "jei.mmdlib.machine.required_fluid",
+                                    NumberFormat.getIntegerInstance(Locale.ROOT)
+                                        .format(fluids.millibuckets()))));
+                        } else
+                            slot.setFluidRenderer(capacity, false, 16, 16);
                     }
                     case MachineIngredient.EnergyPart energy -> {
                     }
                 }
+                if (ghost)
+                    slot.addRichTooltipCallback(
+                        (view, tooltip) -> tooltip.add(Component
+                            .translatable("jei.mmdlib.machine.not_consumed")));
             }
-        int outputX = contentX + inputColumns * CELL + GAP + ARROW + GAP;
-        index = 0;
+        int outputX = originX + layout.outputX();
+        int index = 0;
         for (var products : recipe.outputs().values())
             for (var product : products) {
                 var slot = slot(builder, RecipeIngredientRole.OUTPUT, outputX,
-                    index++);
+                    index++, recipeLayout.outputs());
                 switch (product) {
                     case MachineProduct.ItemProduct item ->
                         slot.addItemStack(item.stack());
                     case MachineProduct.FluidProduct fluid -> {
                         slot.addFluidStack(fluid.fluid().fluid().value(),
                             fluid.fluid().amount(), fluid.fluid().components());
-                        slot.setFluidRenderer(fluid.fluid().amount(), false, 16,
-                            16);
+                        slot.setFluidRenderer(MachineRecipeLayout.fluidCapacity(
+                            fluid.fluid().amount()), false, 16, 16);
                     }
                 }
                 if (product.chance() < 1)
@@ -165,8 +240,15 @@ public final class MachineRecipeCategory
     public void createRecipeExtras(IRecipeExtrasBuilder builder,
         RecipeHolder<MachineRecipeEntry> holder, IFocusGroup focuses) {
         var recipe = holder.value().recipe();
-        builder.addRecipeArrowWidget().setPosition(
-            contentX + inputColumns * CELL + GAP, (rows * CELL - 17) / 2);
+        int originX = (getWidth() - layout.width()) / 2;
+        if (layout(recipe, ghostInputs).separator())
+            builder.addText(Component.literal(":"), 4, TEXT)
+                .setPosition(originX
+                    + MachineRecipeLayout.columns(layout.ghosts()) * CELL + 4,
+                    (rows * CELL - TEXT) / 2)
+                .setColor(TEXT_COLOR);
+        builder.addRecipeArrowWidget().setPosition(originX + layout.arrowX(),
+            (rows * CELL - 17) / 2);
         builder.addText(details(recipe), getWidth(), TEXT)
             .setPosition(0, rows * CELL + 1).setColor(TEXT_COLOR);
     }
@@ -185,9 +267,11 @@ public final class MachineRecipeCategory
     }
 
     private IRecipeSlotBuilder slot(IRecipeLayoutBuilder builder,
-        RecipeIngredientRole role, int originX, int index) {
-        return builder.addSlot(role, originX + index % COLUMNS * CELL + 1,
-            index / COLUMNS * CELL + 1).setStandardSlotBackground();
+        RecipeIngredientRole role, int originX, int index, int count) {
+        int columns = MachineRecipeLayout.columns(count);
+        int top = (rows - MachineRecipeLayout.rows(count)) * CELL / 2;
+        return builder.addSlot(role, originX + index % columns * CELL + 1,
+            top + index / columns * CELL + 1).setStandardSlotBackground();
     }
 
     /**
@@ -201,18 +285,8 @@ public final class MachineRecipeCategory
         return list.isEmpty() ? fluids.stream().toList() : list;
     }
 
-    private static int inputSlots(MachineRecipe recipe) {
-        return (int) recipe.inputs().values().stream().flatMap(List::stream)
-            .filter(part -> !(part instanceof MachineIngredient.EnergyPart))
-            .count();
-    }
-
     private static int outputSlots(MachineRecipe recipe) {
         return recipe.outputs().values().stream().mapToInt(List::size).sum();
-    }
-
-    private static int ceil(int count, int columns) {
-        return Math.max(1, (count + columns - 1) / columns);
     }
 
     private static String percent(float chance) {

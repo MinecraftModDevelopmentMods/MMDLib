@@ -58,6 +58,7 @@ import zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement;
 import zone.moddev.mc.lib.gui.model.elements.ProgressElement;
 import zone.moddev.mc.lib.gui.model.elements.ProgressSpriteElement;
 import zone.moddev.mc.lib.gui.model.elements.RadioElement;
+import zone.moddev.mc.lib.gui.model.elements.RecipeSelectorElement;
 import zone.moddev.mc.lib.gui.model.elements.SideConfigElement;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.model.elements.SpriteElement;
@@ -122,6 +123,11 @@ public final class BuiltinElements {
     public static final ElementType<ProcessorButtonElement> PROCESSOR_BUTTON = builtin(
         "processor-button", ProcessorButtonElement.class,
         BuiltinElements::processorButton, "widget", "buttons");
+    public static final ElementType<RecipeSelectorElement> RECIPE_SELECTOR = builtin(
+        "recipe-selector", RecipeSelectorElement.class,
+        x -> new RecipeSelectorElement(x.common(),
+            x.node().attributes().get("processor-key")),
+        "widget");
     public static final ElementType<ButtonElement> BUTTON = builtin("button",
         ButtonElement.class, BuiltinElements::button, "widget", "buttons");
     public static final ElementType<CheckboxElement> CHECKBOX = builtin(
@@ -193,9 +199,10 @@ public final class BuiltinElements {
         for (var element : List.of(BOX, SPACER, INVENTORY_CONTROLS, CUSTOM,
             GROUP, INVENTORY, SLOT, GHOST_SLOT, LEGACY_GAUGE, ENERGY_GAUGE,
             METER, SPRITE, ANIMATED_SPRITE, PROGRESS_SPRITE, COLOURED_GROUP,
-            PROGRESS, LABEL, PROCESSOR_BUTTON, BUTTON, CHECKBOX, RADIO_GROUP,
-            RADIO, CONTEXT, VIEW, SIDE_CONFIG, PLAYER_INVENTORY, PLAYER_ARMOUR,
-            PLAYER_OFFHAND, SIDE_TAB, POPOUT, FLUID_TANK))
+            PROGRESS, LABEL, PROCESSOR_BUTTON, RECIPE_SELECTOR, BUTTON,
+            CHECKBOX, RADIO_GROUP, RADIO, CONTEXT, VIEW, SIDE_CONFIG,
+            PLAYER_INVENTORY, PLAYER_ARMOUR, PLAYER_OFFHAND, SIDE_TAB, POPOUT,
+            FLUID_TANK))
             element.register(tags);
         tags.register("screen", ScreenSchemas.builtin("screen", Screen.class,
             BuiltinElements::screen, ScreenTag.Role.DOCUMENT));

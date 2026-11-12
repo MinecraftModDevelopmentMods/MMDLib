@@ -35,6 +35,11 @@ public final class SideConfigRenderer {
         int[] colors = {0x777777, 0x679fea, 0xef994e, 0xad6fea};
         for (int i = 0; i < 6; i++) {
             var face = element.face(r, i);
+            if (!access.capability(element, SideConfigPresentation.class)
+                .orElseThrow().faceAvailable(group, i)) {
+                FaceConfigRenderer.unavailable(g, face);
+                continue;
+            }
             tinted(g, "slot", face,
                 colors[Math.clamp(
                     access.capability(element, SideConfigPresentation.class)

@@ -2,7 +2,12 @@ package zone.moddev.mc.lib.machine.neoforge;
 
 import java.lang.reflect.Constructor;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 
 import com.google.gson.JsonElement;
 
@@ -15,7 +20,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.*;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -24,8 +30,14 @@ import net.neoforged.neoforge.event.AddReloadListenerEvent;
 
 import zone.moddev.mc.lib.machine.definition.MachineDefinition;
 import zone.moddev.mc.lib.machine.ingredient.MachineIngredient;
-import zone.moddev.mc.lib.machine.recipe.*;
-import zone.moddev.mc.lib.machine.recipe.generation.*;
+import zone.moddev.mc.lib.machine.recipe.MachineProduct;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipe;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
+import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
+import zone.moddev.mc.lib.machine.recipe.generation.GeneratorProperties;
+import zone.moddev.mc.lib.machine.recipe.generation.MachineRecipeGenerator;
+import zone.moddev.mc.lib.machine.recipe.generation.RecipeGenerationContext;
+import zone.moddev.mc.lib.machine.recipe.generation.ReloadTags;
 
 /**
  * Appended after vanilla tag/recipe listeners: publishes only into the
@@ -216,45 +228,58 @@ public final class GeneratedMachineRecipes {
     private static void validateGroups(MachineRecipeType type,
         MachineRecipe recipe) {
         for (var machine : MachineContent.definitions().values())
-            if (machine.recipeType().id().equals(type.id())) {
-                var items = new HashSet<String>();
-                machine.groups().forEach(g -> items.add(g.id()));
-                var fluids = new HashSet<String>();
-                if (machine.fluids() != null)
-                    machine.fluids().groups().forEach(g -> fluids.add(g.id()));
-                String energy = machine.power() == null
-                    ? null
-                    : machine.power().id();
-                recipe.inputs().forEach((key, parts) -> {
-                    if (!items.contains(key) && !fluids.contains(key)
-                        && !key.equals(energy))
-                        throw new IllegalArgumentException(machine.id()
-                            + ": unknown recipe input group " + key);
-                    parts.forEach(part -> {
-                        boolean valid = part instanceof MachineIngredient.ItemPart
-                            ? items.contains(key)
-                            : part instanceof MachineIngredient.FluidPart
-                                ? fluids.contains(key)
-                                : part instanceof MachineIngredient.EnergyPart
-                                    && key.equals(energy);
-                        if (!valid)
-                            throw new IllegalArgumentException(machine.id()
-                                + ": incompatible recipe input group " + key);
-                    });
-                });
-                recipe.outputs().forEach((key, parts) -> {
-                    if (!items.contains(key) && !fluids.contains(key))
-                        throw new IllegalArgumentException(machine.id()
-                            + ": unknown recipe output group " + key);
-                    parts.forEach(part -> {
-                        if (!(part instanceof MachineProduct.ItemProduct
-                            && items.contains(key))
-                            && !(part instanceof MachineProduct.FluidProduct
-                                && fluids.contains(key)))
-                            throw new IllegalArgumentException(machine.id()
-                                + ": incompatible recipe output group " + key);
-                    });
-                });
-            }
+            if (machine.recipeType().id().equals(type.id()))
+                validateGroups(machine, recipe);
+    }
+
+    static void validateGroups(
+        zone.moddev.mc.lib.machine.definition.MachineDefinition machine,
+        MachineRecipe recipe) {
+        var items = new HashSet<String>();
+        machine.groups().forEach(g -> items.add(g.id()));
+        var ghostItems = new HashSet<String>();
+        machine.ghosts().forEach(g -> ghostItems.add(g.id()));
+        var fluids = new HashSet<String>();
+        if (machine.fluids() != null)
+            machine.fluids().groups().forEach(g -> fluids.add(g.id()));
+        String energy = machine.power() == null ? null : machine.power().id();
+        recipe.inputs().forEach((key, parts) -> {
+            if (!items.contains(key) && !ghostItems.contains(key)
+                && !fluids.contains(key) && !key.equals(energy))
+                throw new IllegalArgumentException(
+                    machine.id() + ": unknown recipe input group " + key);
+            var ghost = machine.ghosts().stream()
+                .filter(g -> g.id().equals(key)).findFirst().orElse(null);
+            if (ghost != null && parts.stream()
+                .mapToLong(MachineIngredient::amount).sum() > ghost.count())
+                throw new IllegalArgumentException(
+                    machine.id() + ": ghost input group " + key
+                        + " requires more samples than its " + ghost.count()
+                        + " slots");
+            parts.forEach(part -> {
+                boolean valid = part instanceof MachineIngredient.ItemPart
+                    ? items.contains(key) || ghostItems.contains(key)
+                    : part instanceof MachineIngredient.FluidPart
+                        ? fluids.contains(key)
+                        : part instanceof MachineIngredient.EnergyPart
+                            && key.equals(energy);
+                if (!valid)
+                    throw new IllegalArgumentException(machine.id()
+                        + ": incompatible recipe input group " + key);
+            });
+        });
+        recipe.outputs().forEach((key, parts) -> {
+            if (!items.contains(key) && !fluids.contains(key))
+                throw new IllegalArgumentException(
+                    machine.id() + ": unknown recipe output group " + key);
+            parts.forEach(part -> {
+                if (!(part instanceof MachineProduct.ItemProduct
+                    && items.contains(key))
+                    && !(part instanceof MachineProduct.FluidProduct
+                        && fluids.contains(key)))
+                    throw new IllegalArgumentException(machine.id()
+                        + ": incompatible recipe output group " + key);
+            });
+        });
     }
 }

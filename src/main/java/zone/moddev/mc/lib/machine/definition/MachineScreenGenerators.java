@@ -76,6 +76,8 @@ public final class MachineScreenGenerators {
         var inventories = new LinkedHashMap<String, Integer>();
         for (var name : machine.inventoryNames())
             inventories.merge(name, 1, Integer::sum);
+        machine.ghosts()
+            .forEach(ghost -> inventories.put(ghost.id(), ghost.count()));
         var context = new ResourceValidationContext(screen,
             Map.of("items", machine.slots().size(), "fluids",
                 machine.fluids() == null ? 0 : machine.fluids().tanks().size(),
@@ -118,11 +120,14 @@ public final class MachineScreenGenerators {
                     .of(new ElementGroup.Members(ResourceType.ENERGY.id(),
                         machine.power().id(), List.of(0)))));
         if (machine.fluids() != null)
-            for (var group : machine.fluids().groups())
+            for (var group : machine.fluids().groups()) {
+                if (!group.automation())
+                    continue;
                 groups.add(new ElementGroup(group.id(), List.of(),
                     java.util.Optional
                         .of(new ElementGroup.Members(ResourceType.FLUIDS.id(),
                             machine.fluids().id(), group.members()))));
+            }
         var result = new LinkedHashMap<String, List<String>>();
         GroupHighlights
             .of(screen, groups, element -> element.common().id().isPresent())
@@ -208,6 +213,17 @@ public final class MachineScreenGenerators {
     private static List<Node> groups(MachineDefinition machine, Node node,
         IoMode mode, int columns) {
         var result = new ArrayList<Node>();
+        if (mode == IoMode.INPUT)
+            for (var ghost : machine.ghosts()) {
+                var children = new ArrayList<Node>();
+                for (int i = 0; i < ghost.count(); i++)
+                    children.add(n(node, "ghost-slot",
+                        Map.of("id", "ghost_" + ghost.id() + "_" + i, "index",
+                            Integer.toString(i)),
+                        List.of()));
+                result.add(n(node, "inventory", Map.of("storage", ghost.id(),
+                    "columns", Integer.toString(columns)), children));
+            }
         for (var group : machine.groups())
             if (group.mode() == mode
                 || (mode == IoMode.BOTH && group.mode() == IoMode.DISABLED)) {

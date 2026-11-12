@@ -22,14 +22,24 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
 
 /**
- * Some amount of something a machine consumes: items, fluid or energy. JSON is
+ * Some amount of something a machine requires: items, fluid or energy. JSON is
  * one of {@code {"items": <ingredient>, "count": 1}}, {@code {"fluids":
- * "minecraft:water", "amount": 250}} or {@code {"energy": 4000}}.
+ * "minecraft:water", "amount": 250}} or {@code {"energy": 4000}}. Item and
+ * fluid inputs accept {@code "consumed": false} to reserve them without
+ * spending them; omitted means true.
  */
 public sealed interface MachineIngredient permits MachineIngredient.ItemPart,
     MachineIngredient.FluidPart, MachineIngredient.EnergyPart {
     /** The amount: an item count, mB, or FE. */
     long amount();
+
+    /**
+     * Whether processing spends this input. Reusable item and fluid inputs are
+     * still reserved.
+     */
+    default boolean consumed() {
+        return true;
+    }
 
     /**
      * The JSON form, picked by which of {@code items}, {@code fluids} or
@@ -75,18 +85,25 @@ public sealed interface MachineIngredient permits MachineIngredient.ItemPart,
      * @param count
      *            how many, at least 1
      */
-    record ItemPart(Ingredient items, int count) implements MachineIngredient {
+    record ItemPart(Ingredient items, int count, boolean consumed)
+        implements MachineIngredient {
+        public ItemPart(Ingredient items, int count) {
+            this(items, count, true);
+        }
         static final MapCodec<ItemPart> CODEC = RecordCodecBuilder
             .mapCodec(instance -> instance
                 .group(
                     Ingredient.CODEC_NONEMPTY.fieldOf("items")
                         .forGetter(ItemPart::items),
                     Codec.intRange(1, Integer.MAX_VALUE)
-                        .optionalFieldOf("count", 1).forGetter(ItemPart::count))
+                        .optionalFieldOf("count", 1).forGetter(ItemPart::count),
+                    Codec.BOOL.optionalFieldOf("consumed", true)
+                        .forGetter(ItemPart::consumed))
                 .apply(instance, ItemPart::new));
         static final StreamCodec<RegistryFriendlyByteBuf, ItemPart> STREAM_CODEC = StreamCodec
             .composite(Ingredient.CONTENTS_STREAM_CODEC, ItemPart::items,
-                ByteBufCodecs.VAR_INT, ItemPart::count, ItemPart::new);
+                ByteBufCodecs.VAR_INT, ItemPart::count, ByteBufCodecs.BOOL,
+                ItemPart::consumed, ItemPart::new);
 
         @Override
         public long amount() {
@@ -100,20 +117,26 @@ public sealed interface MachineIngredient permits MachineIngredient.ItemPart,
      * @param millibuckets
      *            the amount in mB, at least 1; JSON {@code amount}
      */
-    record FluidPart(HolderSet<Fluid> fluids, int millibuckets)
-        implements MachineIngredient {
+    record FluidPart(HolderSet<Fluid> fluids, int millibuckets,
+        boolean consumed) implements MachineIngredient {
+        public FluidPart(HolderSet<Fluid> fluids, int millibuckets) {
+            this(fluids, millibuckets, true);
+        }
         static final MapCodec<FluidPart> CODEC = RecordCodecBuilder
             .mapCodec(instance -> instance
                 .group(
                     RegistryCodecs.homogeneousList(Registries.FLUID)
                         .fieldOf("fluids").forGetter(FluidPart::fluids),
                     Codec.intRange(1, Integer.MAX_VALUE).fieldOf("amount")
-                        .forGetter(FluidPart::millibuckets))
+                        .forGetter(FluidPart::millibuckets),
+                    Codec.BOOL.optionalFieldOf("consumed", true)
+                        .forGetter(FluidPart::consumed))
                 .apply(instance, FluidPart::new));
         static final StreamCodec<RegistryFriendlyByteBuf, FluidPart> STREAM_CODEC = StreamCodec
             .composite(ByteBufCodecs.holderSet(Registries.FLUID),
                 FluidPart::fluids, ByteBufCodecs.VAR_INT,
-                FluidPart::millibuckets, FluidPart::new);
+                FluidPart::millibuckets, ByteBufCodecs.BOOL,
+                FluidPart::consumed, FluidPart::new);
 
         @Override
         public long amount() {
@@ -167,8 +190,12 @@ public sealed interface MachineIngredient permits MachineIngredient.ItemPart,
                     ItemPart.CODEC.decode(ops, input).map(part -> part);
                 case "fluids" ->
                     FluidPart.CODEC.decode(ops, input).map(part -> part);
-                default ->
-                    EnergyPart.CODEC.decode(ops, input).map(part -> part);
+                default -> Codec.BOOL.optionalFieldOf("consumed", true)
+                    .decode(ops, input)
+                    .flatMap(consumed -> consumed
+                        ? EnergyPart.CODEC.decode(ops, input).map(part -> part)
+                        : DataResult.error(
+                            () -> "Energy inputs cannot use consumed: false; energy is spent per tick"));
             };
         }
 

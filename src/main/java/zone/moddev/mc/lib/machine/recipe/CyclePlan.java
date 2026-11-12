@@ -74,14 +74,24 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
                 .forGetter(CyclePlan::energy))
             .apply(instance, CyclePlan::new));
 
-    /** What the cycle takes from one item slot. */
-    public record ItemTake(String group, int slot, ItemStack stack) {
+    /**
+     * What the cycle reserves from one item slot, including the count retained
+     * on completion.
+     */
+    public record ItemTake(String group, int slot, ItemStack stack,
+        int retained) {
+        public ItemTake(String group, int slot, ItemStack stack) {
+            this(group, slot, stack, 0);
+        }
         static final Codec<ItemTake> CODEC = RecordCodecBuilder
             .create(instance -> instance
                 .group(Codec.STRING.fieldOf("group").forGetter(ItemTake::group),
                     Codec.intRange(0, Integer.MAX_VALUE).fieldOf("slot")
                         .forGetter(ItemTake::slot),
-                    ItemStack.CODEC.fieldOf("stack").forGetter(ItemTake::stack))
+                    ItemStack.CODEC.fieldOf("stack").forGetter(ItemTake::stack),
+                    Codec.intRange(0, Integer.MAX_VALUE)
+                        .optionalFieldOf("retained", 0)
+                        .forGetter(ItemTake::retained))
                 .apply(instance, ItemTake::new));
 
         /** Copies the stack. */
@@ -96,14 +106,24 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
         }
     }
 
-    /** What the cycle takes from one tank. */
-    public record FluidTake(String group, int tank, FluidAmount fluid) {
+    /**
+     * What the cycle reserves from one tank, including the mB retained on
+     * completion.
+     */
+    public record FluidTake(String group, int tank, FluidAmount fluid,
+        int retained) {
+        public FluidTake(String group, int tank, FluidAmount fluid) {
+            this(group, tank, fluid, 0);
+        }
         static final Codec<FluidTake> CODEC = RecordCodecBuilder
             .create(instance -> instance.group(
                 Codec.STRING.fieldOf("group").forGetter(FluidTake::group),
                 Codec.intRange(0, Integer.MAX_VALUE).fieldOf("tank")
                     .forGetter(FluidTake::tank),
-                FluidAmount.CODEC.fieldOf("fluid").forGetter(FluidTake::fluid))
+                FluidAmount.CODEC.fieldOf("fluid").forGetter(FluidTake::fluid),
+                Codec.intRange(0, Integer.MAX_VALUE)
+                    .optionalFieldOf("retained", 0)
+                    .forGetter(FluidTake::retained))
                 .apply(instance, FluidTake::new));
     }
 
@@ -164,6 +184,15 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
      */
     public static Optional<CyclePlan> of(ResourceLocation id,
         MachineRecipe recipe, MachineInventory inventory) {
+        return of(id, recipe, inventory, false);
+    }
+
+    /**
+     * Resuming paid work keeps its recipe even if the user changed a ghost
+     * sample meanwhile.
+     */
+    public static Optional<CyclePlan> of(ResourceLocation id,
+        MachineRecipe recipe, MachineInventory inventory, boolean resuming) {
         var items = new ArrayList<ItemTake>();
         var fluids = new ArrayList<FluidTake>();
         var energy = new LinkedHashMap<String, Long>();
@@ -173,6 +202,12 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
             var group = inventory.group(key).orElse(null);
             if (group == null)
                 return Optional.empty();
+            if (resuming && group instanceof ItemGroup ghost && ghost.ghost()) {
+                if (!entry.getValue().stream().allMatch(
+                    zone.moddev.mc.lib.machine.ingredient.MachineIngredient.ItemPart.class::isInstance))
+                    return Optional.empty();
+                continue;
+            }
             if (group instanceof EnergyGroup) {
                 long total = 0;
                 for (var part : entry.getValue()) {
@@ -189,18 +224,22 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
                 if (RecipeMatcher.claim(claims, group, ingredient,
                     recipe.time()) != 0)
                     return Optional.empty();
+            if (group instanceof ItemGroup ghost && ghost.ghost())
+                continue;
             var claimed = new long[held.length];
             for (int at = 0; at < held.length; at++) {
-                claimed[at] = claims.claimed(at);
-                int amount = (int) claimed[at];
+                claimed[at] = RecipeMatcher.consumed(claims, entry.getValue(),
+                    at);
+                int amount = (int) claims.claimed(at);
+                int retained = amount - (int) claimed[at];
                 if (amount == 0)
                     continue;
                 if (group instanceof ItemGroup slots)
                     items.add(new ItemTake(key, at,
-                        slots.peek(at).copyWithCount(amount)));
+                        slots.peek(at).copyWithCount(amount), retained));
                 else if (group instanceof FluidGroup tanks)
                     fluids.add(new FluidTake(key, at,
-                        tanks.peek(at).withAmount(amount)));
+                        tanks.peek(at).withAmount(amount), retained));
             }
             taken.put(key, claimed);
         }
@@ -326,9 +365,9 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
 
     /**
      * Rolls each product's chance, then in one transaction releases this plan,
-     * takes the inputs and inserts the hits where they were placed. A product
-     * that misses leaves its space free, and nothing is kept of the roll, so a
-     * retry rolls again.
+     * takes the consumed inputs and inserts the hits where they were placed.
+     * Retained inputs stay untouched. A product that misses leaves its space
+     * free, and nothing is kept of the roll, so a retry rolls again.
      *
      * @return false, with the plan still in place and nothing changed, if an
      *         input is gone or a product no longer fits where it was placed
@@ -354,7 +393,9 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
                 if (!ItemStack.isSameItemSameComponents(held, take.stack)
                     || held.getCount() < count)
                     return false;
-                if (group.extract(take.slot, count, tx) != count)
+                int consumed = count - take.retained;
+                if (consumed > 0
+                    && group.extract(take.slot, consumed, tx) != consumed)
                     return false;
             }
             for (var take : fluids) {
@@ -365,8 +406,9 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
                 if (!held.sameFluid(take.fluid)
                     || held.amount() < take.fluid.amount())
                     return false;
-                if (group.extract(take.tank, take.fluid.amount(),
-                    tx) != take.fluid.amount())
+                int consumed = take.fluid.amount() - take.retained;
+                if (consumed > 0
+                    && group.extract(take.tank, consumed, tx) != consumed)
                     return false;
             }
             for (var placed : hits)
@@ -387,16 +429,19 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
      */
     private boolean canFinish(MachineInventory inventory, List<Placed> hits) {
         var left = new HashMap<Spot, Integer>();
+        var required = new HashMap<Spot, Integer>();
         for (var take : items) {
             var group = items(inventory, take.group);
             if (group == null)
                 return false;
             var held = group.peek(take.slot);
             var spot = new Spot(take.group, take.slot);
+            int total = required.merge(spot, take.stack.getCount(),
+                Integer::sum);
             int rest = left.getOrDefault(spot, held.getCount())
-                - take.stack.getCount();
+                - take.stack.getCount() + take.retained;
             if (!ItemStack.isSameItemSameComponents(held, take.stack)
-                || rest < 0)
+                || held.getCount() < total)
                 return false;
             left.put(spot, rest);
         }
@@ -406,9 +451,10 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
                 return false;
             var held = group.peek(take.tank);
             var spot = new Spot(take.group, take.tank);
+            int total = required.merge(spot, take.fluid.amount(), Integer::sum);
             int rest = left.getOrDefault(spot, held.amount())
-                - take.fluid.amount();
-            if (!held.sameFluid(take.fluid) || rest < 0)
+                - take.fluid.amount() + take.retained;
+            if (!held.sameFluid(take.fluid) || held.amount() < total)
                 return false;
             left.put(spot, rest);
         }
@@ -487,12 +533,18 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
         var itemPlans = new LinkedHashMap<Spot, SlotPlan>();
         var tankPlans = new LinkedHashMap<Spot, TankPlan>();
         for (var take : items) {
-            var plan = new SlotPlan(take.stack.getCount(), ItemStack.EMPTY);
+            if (take.retained < 0 || take.retained > take.stack.getCount())
+                return null;
+            var plan = new SlotPlan(take.stack.getCount(),
+                take.stack.copyWithCount(take.retained));
             if (!add(itemPlans, new Spot(take.group, take.slot), plan))
                 return null;
         }
         for (var take : fluids) {
-            var plan = new TankPlan(take.fluid.amount(), FluidAmount.EMPTY);
+            if (take.retained < 0 || take.retained > take.fluid.amount())
+                return null;
+            var plan = new TankPlan(take.fluid.amount(),
+                take.fluid.withAmount(take.retained));
             if (!add(tankPlans, new Spot(take.group, take.tank), plan))
                 return null;
         }

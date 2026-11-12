@@ -110,7 +110,26 @@ public final class ScreenRuntime {
     }
 
     public static boolean open(Player player, BlockEntity entity) {
+        return entity != null && open(player, entity, entity.getBlockPos());
+    }
+
+    /**
+     * Opens at a host-authorized physical member without weakening controller
+     * identity checks.
+     */
+    public static boolean open(Player player, BlockEntity entity,
+        net.minecraft.core.BlockPos anchor) {
         if (entity == null)
+            return false;
+        if (!player.level().isClientSide
+            && (entity.isRemoved() || entity.getLevel() != player.level()
+                || !player.level().hasChunkAt(entity.getBlockPos())
+                || player.level().getBlockEntity(entity.getBlockPos()) != entity
+                || !player.level().hasChunkAt(anchor)
+                || !player.canInteractWithBlock(anchor, 4.0)
+                || !(entity instanceof ScreenHost host
+                    ? host.screenInteractionAnchor(anchor)
+                    : anchor.equals(entity.getBlockPos()))))
             return false;
         var bound = Screens
             .get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()));
@@ -124,12 +143,14 @@ public final class ScreenRuntime {
             Component title = text.fallback()
                 .map(f -> Component.translatableWithFallback(text.key(), f))
                 .orElseGet(() -> Component.translatable(text.key()));
-            server.openMenu(new SimpleMenuProvider((id, inventory,
-                p) -> new MachineMenu(id, inventory, entity, session), title),
+            server.openMenu(
+                new SimpleMenuProvider((id, inventory, p) -> new MachineMenu(id,
+                    inventory, entity, session, anchor), title),
                 buf -> {
                     buf.writeBlockPos(entity.getBlockPos());
                     buf.writeUtf(fingerprint(bound.get().screen(), entity));
                     buf.writeLong(session);
+                    buf.writeBlockPos(anchor);
                 });
         }
         return true;

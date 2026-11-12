@@ -70,7 +70,25 @@ public final class RedstoneMenu
         return watching() && manuallyPaused != paused();
     }
 
+    public boolean faceAvailable(int face) {
+        return client
+            ? state != null && zone.moddev.mc.lib.api.capabilities.FaceMask
+                .available(state.disabledFaces(), face)
+            : control.faceAvailable(face);
+    }
+    private void normalizeSelection() {
+        if (faceAvailable(selected))
+            return;
+        selected = 0; // Harmless placeholder when every face is unavailable; no
+                      // controls are shown.
+        for (int face = 0; face < 6; face++)
+            if (faceAvailable(face)) {
+                selected = face;
+                break;
+            }
+    }
     public int selected() {
+        normalizeSelection();
         return selected;
     }
 
@@ -137,6 +155,8 @@ public final class RedstoneMenu
     }
 
     public boolean send(int kind, int face, int column, int value) {
+        if (kind != TOGGLE && kind != SYNC && !faceAvailable(face))
+            return false;
         int request = requests.begin();
         if (request == 0)
             return false;
@@ -157,12 +177,13 @@ public final class RedstoneMenu
             || p.session() != menu.sessionId()
             || !received.receive(p.request()))
             return;
+        normalizeSelection();
         if (received.allow(player.level().getGameTime())) {
             if (p.kind() == TOGGLE) {
                 open = !open;
                 if (open)
                     menu.components().activate(this);
-            } else if (open) {
+            } else if (open && faceAvailable(p.face())) {
                 if (p.kind() == SELECT)
                     selected = p.face();
                 else if (p.face() == selected && p.revision() == revision())
@@ -206,6 +227,7 @@ public final class RedstoneMenu
         state = p;
         open = p.open();
         selected = p.selected();
+        normalizeSelection();
         requests.acknowledgeThrough(p.acknowledged());
     }
 
@@ -214,6 +236,7 @@ public final class RedstoneMenu
             || !(owner instanceof net.minecraft.server.level.ServerPlayer player)
             || !player.connection.hasChannel(RedstoneNetwork.State.TYPE))
             return;
+        normalizeSelection();
         int[] faces = snapshotFaces;
         for (int i = 0; i < 6; i++) {
             faces[i * 8] = mode(i).ordinal();
@@ -228,12 +251,13 @@ public final class RedstoneMenu
         if (sent == null || sent.acknowledged() != received.acknowledged()
             || sent.revision() != revision() || sent.open() != open
             || sent.selected() != selected || sent.paused() != control.paused()
+            || sent.disabledFaces() != control.disabledFaceMask()
             || !Arrays.equals(sent.faces(), faces)) {
             // State owns a clone, so the scratch buffer cannot mutate an
             // in-flight packet.
             var next = new RedstoneNetwork.State(menu.containerId,
                 menu.sessionId(), received.acknowledged(), revision(), open,
-                selected, control.paused(), faces);
+                selected, control.paused(), faces, control.disabledFaceMask());
             PacketDistributor.sendToPlayer(player, next);
             sent = next;
         }

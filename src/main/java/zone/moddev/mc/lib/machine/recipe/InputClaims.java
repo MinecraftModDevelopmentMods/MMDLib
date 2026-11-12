@@ -52,6 +52,13 @@ public final class InputClaims {
     }
 
     /**
+     * The final allocation of one claim, after later claims may have moved it.
+     */
+    public long claimed(int part, int entry) {
+        return claims.get(part)[entry];
+    }
+
+    /**
      * Finds up to {@code amount} for {@code part} on one entry, from what's
      * free there and by moving other parts' claims elsewhere; returns how much
      * it found.

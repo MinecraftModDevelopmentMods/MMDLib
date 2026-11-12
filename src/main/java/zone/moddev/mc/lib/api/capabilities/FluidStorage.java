@@ -18,6 +18,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
+import zone.moddev.mc.lib.api.util.ChangeSignal;
 import zone.moddev.mc.lib.machine.inventory.ReservationPlans;
 import zone.moddev.mc.lib.machine.inventory.TankPlan;
 import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
@@ -35,6 +36,16 @@ import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
  */
 public class FluidStorage
     implements IFluidHandler, INBTSerializable<CompoundTag> {
+    private final ChangeSignal changes = new ChangeSignal();
+
+    /**
+     * Observe content/capacity changes without replacing the persistence
+     * callback.
+     */
+    public ChangeSignal changes() {
+        return changes;
+    }
+
     private final List<FluidTank> tanks = new ArrayList<>();
     private final List<Role> roles = new ArrayList<>();
     private final List<String> tankIds = new ArrayList<>();
@@ -79,7 +90,9 @@ public class FluidStorage
             @Override
             public FluidTank setCapacity(int capacity) {
                 revision++;
-                return super.setCapacity(capacity);
+                var result = super.setCapacity(capacity);
+                changes.changed();
+                return result;
             }
 
             @Override
@@ -91,6 +104,7 @@ public class FluidStorage
             @Override
             protected void onContentsChanged() {
                 revision++;
+                changes.changed();
                 onChange.run();
             }
 
@@ -195,12 +209,14 @@ public class FluidStorage
             restoreFluid(tank, FluidStack.EMPTY);
         }
         revision++;
+        changes.changed();
         onChange.run();
     }
 
     public void recover(Consumer<CompoundTag> receiver) {
         StorageRecovery.handoff(recovery, "mmdlib:fluids", "fluid", receiver);
         revision++;
+        changes.changed();
         onChange.run();
     }
 
@@ -480,6 +496,7 @@ public class FluidStorage
             }
         }
         revision++;
+        changes.changed();
         onChange.run();
     }
 }

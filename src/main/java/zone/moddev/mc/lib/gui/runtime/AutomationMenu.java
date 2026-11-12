@@ -80,7 +80,7 @@ public final class AutomationMenu
     private long editorGeneration;
     private net.minecraft.resources.ResourceLocation editorType;
     private long[] generations, revisions;
-    private int[] modes;
+    private int[] modes, disabledFaces;
     private long lastInventoryRevision = -1;
     private int lastSelected = -1, lastEditor = -2;
     private boolean lastOpen;
@@ -108,6 +108,8 @@ public final class AutomationMenu
         addons = !(menu.blockEntity instanceof ScreenHost host)
             || host.screenAutomationAddons();
         modes = new int[inventory.groups().size() * 6];
+        disabledFaces = new int[inventory.groups().size()];
+        java.util.Arrays.fill(disabledFaces, 63);
         generations = new long[inventory.groups().size() * COLUMNS];
         revisions = new long[generations.length];
         if (client) {
@@ -263,6 +265,14 @@ public final class AutomationMenu
 
     public long revision(int g, int c) {
         return client ? revisions[g * COLUMNS + c] : inventory.revision(g, c);
+    }
+
+    public boolean faceAvailable(int group, int face) {
+        return client
+            ? zone.moddev.mc.lib.api.capabilities.FaceMask
+                .available(disabledFaces[group], face)
+            : inventory.group(group).sides()
+                .faceAvailable(RelativeFace.values()[face]);
     }
 
     public IoMode mode(int g, int face) {
@@ -494,11 +504,12 @@ public final class AutomationMenu
 
     private AutomationNetwork.State snapshot(boolean accepted) {
         int n = inventory.groups().size();
-        int[] modes = new int[n * 6];
+        int[] modes = new int[n * 6], masks = new int[n];
         long[] gens = new long[n * COLUMNS], revs = new long[n * COLUMNS];
         String[] ids = new String[n];
         for (int g = 0; g < n; g++) {
             ids[g] = inventory.group(g).definitionKey();
+            masks[g] = inventory.group(g).sides().disabledFaceMask();
             for (int f = 0; f < 6; f++)
                 modes[g * 6 + f] = inventory.group(g).sides()
                     .get(RelativeFace.values()[f]).ordinal();
@@ -509,7 +520,7 @@ public final class AutomationMenu
         }
         return new AutomationNetwork.State(menu.containerId, menu.sessionId(),
             received.acknowledged(), accepted, selected, open, editor, ids,
-            modes, gens, revs);
+            modes, gens, revs, masks);
     }
 
     private void transmit(boolean accepted) {
@@ -546,6 +557,7 @@ public final class AutomationMenu
         open = state.open();
         editor = state.editor();
         modes = state.modes();
+        disabledFaces = state.disabledFaces();
         generations = state.generations();
         revisions = state.revisions();
         requests.acknowledgeExact(state.request());

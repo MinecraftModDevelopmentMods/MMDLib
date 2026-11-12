@@ -79,6 +79,27 @@ class ElementSyncTest {
     }
 
     @Test
+    void inlineSidePolicyIsBoundedAndDefaultsClosedUntilSnapshot() {
+        var element = new zone.moddev.mc.lib.gui.model.elements.SideConfigElement(
+            Common.empty(), List.of("food", "energy"));
+        var field = zone.moddev.mc.lib.gui.model.elements.SideConfigElement.DISABLED_FACES;
+        assertEquals(List.of(63, 63), field.initial(element));
+        var policy = List
+            .of(1 << zone.moddev.mc.lib.api.capabilities.RelativeFace.RIGHT
+                .ordinal(), 0);
+        var encoded = field.encode(RegistryAccess.EMPTY, element, policy);
+        assertEquals(policy,
+            field.decode(RegistryAccess.EMPTY, element, encoded));
+        assertThrows(IllegalArgumentException.class,
+            () -> field.encode(RegistryAccess.EMPTY, element, List.of(0)));
+        assertThrows(IllegalArgumentException.class,
+            () -> field.encode(RegistryAccess.EMPTY, element, List.of(0, 64)));
+        assertThrows(IllegalArgumentException.class,
+            () -> field.decode(RegistryAccess.EMPTY, element,
+                new ElementStateValue(new byte[]{2, 0, 64})));
+    }
+
+    @Test
     void menusAndEqualElementsHaveIndependentStateAndBatchLayoutNotification() {
         var first = element(COUNT);
         var second = element(COUNT);

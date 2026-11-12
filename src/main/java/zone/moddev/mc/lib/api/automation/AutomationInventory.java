@@ -89,7 +89,12 @@ public final class AutomationInventory {
                 } else if (!ambiguous.contains(key))
                     indexed.put(member, group);
             }
-            group.sides().onChange(this::viewChanged);
+            group.sides().onChange(() -> {
+                viewChanged();
+                if (owner.getLevel() != null)
+                    owner.getLevel()
+                        .invalidateCapabilities(owner.getBlockPos());
+            });
         }
         var inventories = new LinkedHashMap<String, ItemStorage>();
         for (int g = 0; g < groups.size(); g++) {

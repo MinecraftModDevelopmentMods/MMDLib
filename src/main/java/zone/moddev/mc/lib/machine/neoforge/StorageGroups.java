@@ -352,6 +352,10 @@ public final class StorageGroups {
     }
 
     private record EnergyStore(EnergyBuffer buffer) implements EnergyGroup {
+        // Charging must not invalidate failed recipe searches every tick. Idle
+        // searches
+        // retry on the processor's bounded interval; running cycles check power
+        // each tick.
         @Override
         public Object statisticsResource() {
             return buffer;

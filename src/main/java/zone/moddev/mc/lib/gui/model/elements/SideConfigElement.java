@@ -67,8 +67,44 @@ public class SideConfigElement implements SynchronizedElement {
             return List.copyOf(modes);
         }).build();
 
+    public static final ElementSync<List<Integer>> DISABLED_FACES = ElementSync
+        .field(ResourceLocation.parse("mmdlib:side_unavailable"),
+            StreamCodec.<net.minecraft.network.RegistryFriendlyByteBuf, List<Integer>>of(
+                (buffer, masks) -> {
+                    buffer.writeVarInt(masks.size());
+                    for (int mask : masks)
+                        buffer.writeByte(mask);
+                }, buffer -> {
+                    int count = buffer.readVarInt();
+                    if (count < 0 || count > 682)
+                        throw new IllegalArgumentException("Face policy count");
+                    var masks = new ArrayList<Integer>();
+                    for (int i = 0; i < count; i++)
+                        masks.add(zone.moddev.mc.lib.api.capabilities.FaceMask
+                            .checked(buffer.readUnsignedByte()));
+                    return List.copyOf(masks);
+                }),
+            1024,
+            element -> Collections
+                .nCopies(((SideConfigElement) element).groups().size(), 63))
+        .validate((element,
+            masks) -> masks.size() == ((SideConfigElement) element).groups()
+                .size()
+                && masks.stream().allMatch(mask -> mask >= 0 && mask <= 63))
+        .sample((source, previous) -> {
+            var config = (SideConfigElement) source.element();
+            var sides = source.machine() instanceof ScreenHost host
+                ? host.screenSides()
+                : java.util.Map.<String, zone.moddev.mc.lib.api.capabilities.SideConfig>of();
+            return config.groups().stream()
+                .map(group -> sides.containsKey(group)
+                    ? sides.get(group).disabledFaceMask()
+                    : 63)
+                .toList();
+        }).build();
+
     public List<ElementSync<?>> synchronizedValues() {
-        return List.of(MODES);
+        return List.of(MODES, DISABLED_FACES);
     }
 
     /** Copies the groups. */
@@ -114,7 +150,8 @@ public class SideConfigElement implements SynchronizedElement {
                 .menu().blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host))
                 return false;
             var sides = host.screenSides().get(element.groups().get(group));
-            if (sides == null)
+            if (sides == null
+                || !sides.faceAvailable(RelativeFace.values()[face]))
                 return false;
             sides.cycle(zone.moddev.mc.lib.api.capabilities.RelativeFace
                 .values()[face]);

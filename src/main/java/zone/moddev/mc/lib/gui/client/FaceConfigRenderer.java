@@ -1,12 +1,14 @@
 package zone.moddev.mc.lib.gui.client;
 
-import java.util.*;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 import com.mojang.math.Axis;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -22,6 +24,26 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 final class FaceConfigRenderer {
     private final Minecraft mc = Minecraft.getInstance();
     private final Map<RenderType, RenderType> fadedNeighbours = new IdentityHashMap<>();
+
+    /**
+     * A fixed cross distinguishes machine restrictions from player-selected
+     * Disabled.
+     */
+    static void unavailable(GuiGraphics g, Rect r) {
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 220);
+        g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0xff8b8b8b);
+        g.renderOutline(r.x(), r.y(), r.width(), r.height(), 0xff777777);
+        int size = Math.max(1, Math.min(r.width(), r.height()) / 2);
+        int x = r.x() + (r.width() - size) / 2,
+            y = r.y() + (r.height() - size) / 2;
+        for (int i = 0; i < size; i++) {
+            g.fill(x + i, y + i, x + i + 1, y + i + 1, 0xff686868);
+            g.fill(x + size - 1 - i, y + i, x + size - i, y + i + 1,
+                0xff686868);
+        }
+        g.pose().popPose();
+    }
 
     Component render(GuiGraphics g, Rect r, BlockEntity entity,
         Direction direction, boolean input, boolean output) {

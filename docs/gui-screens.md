@@ -752,7 +752,8 @@ submission path, including pending-request handling. The server dispatcher check
 request order, reach and visibility before decoding. The ghost action delegates to the inventory
 component; `InventoryElement.Session` resolves the named inventory and rejects inactive,
 unregistered or non-ghost slots. The old `ScreenNetwork.Ghost` packet and `MachineMenu.ghost`
-entry point are removed. Core screen protocol 20 requires matching client/server versions.
+entry point are removed. Core screen protocol 21 requires matching client/server versions;
+menu opening now carries a host-validated physical interaction anchor for multiblocks.
 
 Bind the block's `block-right-click` event to `mmdlib:open_menu`. This handler first looks for an
 XML screen matching the clicked block entity's type; otherwise it uses the block's own vanilla
@@ -956,7 +957,7 @@ payloads, codecs and handlers. `ScreenRuntime` only installs the registry; the g
 network has no list of feature networks. NeoForge continues to negotiate versions and dispatch
 payloads on its normal handler thread. Handlers remain responsible for menu/session identity,
 authorization, revisions and rate limits. Each feature declares its own version; the core screen
-protocol is 19, and automation, redstone and container drawers remain at version 16.
+protocol is 19, and automation and redstone drawers use version 17 (unavailable-face masks).
 
 ### Registered menu components and native slots
 
@@ -2562,3 +2563,23 @@ None.
 
 - **Meter extras:** colour zones (VU style) and peak hold (EQ style). Left out to keep the
   first version simple.
+
+### Unavailable resource and redstone faces
+
+`SideConfig.disabledFaces(Set<RelativeFace>)` and `RedstoneControl.disabledFaces(Set<RelativeFace>)`
+set machine-owned restrictions independently. Apply both when a physical obstruction blocks
+both resource access and redstone. The side drawer, inline `<side-config>`, and redstone drawer
+retain all six tiles but show unavailable faces as a centered gray X at half the tile size,
+without neighbor models or names. They explain the restriction on hover,
+and refuse edits. Redstone selection moves to an available face; all-unavailable configurations
+hide editing controls. Server validation also rejects stale or forged edits to blocked faces.
+
+Redstone restrictions prevent sampling, interval matching (including Outside), output emission,
+and dust connections. Modes normalize to Ignore, including after loading or legacy migration;
+re-enabled faces remain Ignore. Disk saves contain player settings only. Hosts outside BaseMachine
+must use `saveClient`/`loadClient` for world updates so client dust geometry receives policy.
+BaseMachine does this automatically. Normal disk persistence still uses `save`/`load`.
+
+Automation and redstone drawer protocols are version 17 with bounded unavailable-face masks.
+Inline controls synchronize a separate `mmdlib:side_unavailable` field. Existing machines default
+to all faces available and need no policy declaration.

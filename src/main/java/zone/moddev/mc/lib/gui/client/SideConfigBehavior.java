@@ -31,6 +31,13 @@ public class SideConfigBehavior extends DefaultElementBehavior
             .get(config, SideConfigElement.MODES).get(group * 6 + face);
     }
 
+    public boolean faceAvailable(int group, int face) {
+        return zone.moddev.mc.lib.api.capabilities.FaceMask.available(
+            access.presentation().state()
+                .get(config, SideConfigElement.DISABLED_FACES).get(group),
+            face);
+    }
+
     protected Click click(double x, double y, int button) {
         var bounds = access.bounds();
         if (y < bounds.y() + 20) {
@@ -39,8 +46,9 @@ public class SideConfigBehavior extends DefaultElementBehavior
         }
         for (int face = 0; face < 6; face++)
             if (config.face(bounds, face).contains(x, y)) {
-                access.click(SideConfigElement.CYCLE_FACE, button,
-                    group * 6 + face);
+                if (faceAvailable(group, face))
+                    access.click(SideConfigElement.CYCLE_FACE, button,
+                        group * 6 + face);
                 return Click.CONSUME;
             }
         return Click.PASS;
@@ -52,9 +60,11 @@ public class SideConfigBehavior extends DefaultElementBehavior
                 return List.of(
                     Component.translatable("screen.mmdlib.face."
                         + RelativeFace.values()[face].getSerializedName()),
-                    Component.translatable("screen.mmdlib.mode."
-                        + IoMode.values()[sideMode(group, face)]
-                            .getSerializedName()));
+                    Component.translatable(faceAvailable(group, face)
+                        ? "screen.mmdlib.mode."
+                            + IoMode.values()[sideMode(group, face)]
+                                .getSerializedName()
+                        : "screen.mmdlib.face.unavailable"));
         return List.of();
     }
 }

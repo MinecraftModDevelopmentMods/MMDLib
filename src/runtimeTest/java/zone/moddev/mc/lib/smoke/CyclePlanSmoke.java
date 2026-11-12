@@ -77,6 +77,7 @@ final class CyclePlanSmoke {
     }
 
     static void check(ServerLevel level) {
+        ReusableInputSmoke.check(level);
         var access = level.registryAccess();
         var jsonOps = RegistryOps.create(JsonOps.INSTANCE, access);
         var crusher = MachineRecipeSmoke.recipe(jsonOps,

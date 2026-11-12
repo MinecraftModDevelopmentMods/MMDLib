@@ -64,6 +64,9 @@ public final class RedstoneDrawer extends Drawer {
     }
 
     void layout() {
+        if (sliderHandle >= 0 && (!model.faceAvailable(sliderFace)
+            || model.revision() != sliderRevision))
+            sliderHandle = -1;
         var panel = screen.panelBounds();
         tab = super.tabBounds();
         if (!model.open())
@@ -109,6 +112,16 @@ public final class RedstoneDrawer extends Drawer {
         for (int face = 0; face < 6; face++) {
             var r = at(RedstoneLayout.face(face));
             var mode = model.mode(face);
+            if (!model.faceAvailable(face)) {
+                FaceConfigRenderer.unavailable(g, r);
+                if (r.contains(mx, my))
+                    tooltip = List.of(
+                        Component.translatable("screen.mmdlib.face."
+                            + FACES[face].getSerializedName()),
+                        Component
+                            .translatable("screen.mmdlib.face.unavailable"));
+                continue;
+            }
             var neighbour = faces.render(g, r, screen.getMenu().blockEntity,
                 model.control.world(face), mode == RedstoneControl.Mode.READ,
                 mode == RedstoneControl.Mode.EMIT);
@@ -150,12 +163,15 @@ public final class RedstoneDrawer extends Drawer {
         }
         // Draw last and above the neighbour models, so the front face stays
         // clearly selected.
-        var selectedFace = at(RedstoneLayout.face(model.selected()));
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 210);
-        g.renderOutline(selectedFace.x() - 1, selectedFace.y() - 1,
-            selectedFace.width() + 2, selectedFace.height() + 2, 0xffeeeeee);
-        g.pose().popPose();
+        if (model.faceAvailable(model.selected())) {
+            var selectedFace = at(RedstoneLayout.face(model.selected()));
+            g.pose().pushPose();
+            g.pose().translate(0, 0, 210);
+            g.renderOutline(selectedFace.x() - 1, selectedFace.y() - 1,
+                selectedFace.width() + 2, selectedFace.height() + 2,
+                0xffeeeeee);
+            g.pose().popPose();
+        }
         renderControls(g, mx, my);
         renderInfo(g);
         g.disableScissor();
@@ -171,6 +187,8 @@ public final class RedstoneDrawer extends Drawer {
 
     private Component explanation() {
         int face = model.selected();
+        if (!model.faceAvailable(face))
+            return Component.translatable("screen.mmdlib.face.unavailable");
         return switch (model.mode(face)) {
             case READ -> rangeExplanation().copy().append("\n")
                 .append(text("info.input", model.incoming(face)));
@@ -235,12 +253,13 @@ public final class RedstoneDrawer extends Drawer {
         infoSignal = signal;
         var font = textFont;
         var lines = new ArrayList<FormattedCharSequence>();
-        lines.addAll(font.split(
-            Component
-                .translatable("screen.mmdlib.face."
-                    + FACES[model.selected()].getSerializedName())
-                .withStyle(ChatFormatting.BOLD),
-            (int) ((RedstoneLayout.WIDTH - 18) / INFO_SCALE)));
+        if (model.faceAvailable(face))
+            lines.addAll(font.split(
+                Component
+                    .translatable("screen.mmdlib.face."
+                        + FACES[model.selected()].getSerializedName())
+                    .withStyle(ChatFormatting.BOLD),
+                (int) ((RedstoneLayout.WIDTH - 18) / INFO_SCALE)));
         lines.addAll(font.split(explanation(),
             (int) ((RedstoneLayout.WIDTH - 18) / INFO_SCALE)));
         return cachedInfo = List.copyOf(lines);
@@ -271,6 +290,8 @@ public final class RedstoneDrawer extends Drawer {
     }
 
     private void renderControls(GuiGraphics g, int mx, int my) {
+        if (!model.faceAvailable(model.selected()))
+            return;
         if (body.height() <= RedstoneLayout.CONTROLS_TOP)
             return;
         g.enableScissor(body.x(), body.y() + RedstoneLayout.CONTROLS_TOP,
@@ -410,7 +431,8 @@ public final class RedstoneDrawer extends Drawer {
             model.send(RedstoneMenu.TOGGLE, 0, 0, 0);
             return false;
         }
-        if (model.selected() != selection.offset())
+        if (model.faceAvailable(selection.offset())
+            && model.selected() != selection.offset())
             model.send(RedstoneMenu.SELECT, selection.offset(), 0, 0);
         activated();
         return true;
@@ -475,6 +497,10 @@ public final class RedstoneDrawer extends Drawer {
         int face = model.selected();
         for (int i = 0; i < 6; i++)
             if (at(RedstoneLayout.face(i)).contains(x, y)) {
+                if (!model.faceAvailable(i)) {
+                    handled = true;
+                    return true;
+                }
                 if (i != face)
                     send(RedstoneMenu.SELECT, i, 0, 0);
                 else
@@ -485,7 +511,9 @@ public final class RedstoneDrawer extends Drawer {
                 handled = true;
                 return true;
             }
-        if (y < body.y() + RedstoneLayout.CONTROLS_TOP || y >= body.bottom()) {
+        if (!model.faceAvailable(face)
+            || y < body.y() + RedstoneLayout.CONTROLS_TOP
+            || y >= body.bottom()) {
             handled = true;
             return true;
         }
@@ -562,12 +590,14 @@ public final class RedstoneDrawer extends Drawer {
     }
 
     public boolean drag(double x, double y, int button, double dx, double dy) {
+        layout();
         if (sliderHandle >= 0 && button == 0)
             updateSlider(x);
         return handled;
     }
 
     public boolean release(double x, double y, int button) {
+        layout();
         if (sliderHandle >= 0) {
             if (button != 0)
                 return true;

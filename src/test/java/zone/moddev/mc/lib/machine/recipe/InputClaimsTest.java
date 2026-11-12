@@ -12,6 +12,10 @@ class InputClaimsTest {
         assertEquals(0, claims.claim(1, entry -> entry == 0));
         assertEquals(1, claims.claimed(0));
         assertEquals(1, claims.claimed(1));
+        assertEquals(0, claims.claimed(0, 0));
+        assertEquals(1, claims.claimed(0, 1));
+        assertEquals(1, claims.claimed(1, 0));
+        assertEquals(0, claims.claimed(1, 1));
     }
 
     @Test

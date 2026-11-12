@@ -10,6 +10,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
 
 import org.jetbrains.annotations.Nullable;
@@ -19,12 +20,18 @@ import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 import zone.moddev.mc.lib.api.redstone.RedstoneOutput;
 import zone.moddev.mc.lib.api.stats.Statistics;
 import zone.moddev.mc.lib.api.stats.StatsProvider;
+import zone.moddev.mc.lib.api.util.ChangeSignal;
 import zone.moddev.mc.lib.machine.inventory.EnergyGroup;
 import zone.moddev.mc.lib.machine.inventory.MachineInventory;
+import zone.moddev.mc.lib.machine.presentation.BuiltinVisualVariables;
+import zone.moddev.mc.lib.machine.presentation.VisualVariableProvider;
+import zone.moddev.mc.lib.machine.presentation.VisualVariables;
 import zone.moddev.mc.lib.machine.recipe.CyclePlan;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeLookup;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
+import zone.moddev.mc.lib.machine.recipe.MatchResult;
+import zone.moddev.mc.lib.machine.recipe.RecipeMatcher;
 
 /**
  * Runs the recipes of one type on a machine's inventory, one cycle at a time. A
@@ -37,9 +44,19 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
  * Several processors may share an inventory; a processor sees what the others
  * reserved.
  */
-public final class RecipeProcessor implements
-    MachineFeature<RecipeProcessor.State>, IRedstoneOutput, StatsProvider {
+public final class RecipeProcessor
+    implements MachineFeature<RecipeProcessor.State>, IRedstoneOutput,
+    StatsProvider, VisualVariableProvider {
     private static final int SEARCH_RETRY_INTERVAL = 20;
+    private final ChangeSignal activityChanges = new ChangeSignal();
+    private final ChangeSignal progressChanges = new ChangeSignal();
+
+    public ChangeSignal activityChanges() {
+        return activityChanges;
+    }
+    public ChangeSignal progressChanges() {
+        return progressChanges;
+    }
 
     /** What the processor is doing. */
     public enum Status {
@@ -102,7 +119,14 @@ public final class RecipeProcessor implements
      */
     public record State(boolean paused, int progress,
         Optional<ResourceLocation> resumeRecipe, int resumeTime,
-        Optional<CyclePlan> cycle, Optional<Status> status) {
+        Optional<CyclePlan> cycle, Optional<Status> status,
+        Optional<Selection> selection) {
+        public State(boolean paused, int progress,
+            Optional<ResourceLocation> resumeRecipe, int resumeTime,
+            Optional<CyclePlan> cycle, Optional<Status> status) {
+            this(paused, progress, resumeRecipe, resumeTime, cycle, status,
+                Optional.empty());
+        }
         /** The save form. */
         public static final Codec<State> CODEC = RecordCodecBuilder
             .create(instance -> instance.group(
@@ -118,8 +142,104 @@ public final class RecipeProcessor implements
                 CyclePlan.CODEC.lenientOptionalFieldOf("cycle")
                     .forGetter(State::cycle),
                 STATUS_CODEC.lenientOptionalFieldOf("status")
-                    .forGetter(State::status))
+                    .forGetter(State::status),
+                Selection.CODEC.optionalFieldOf("selection")
+                    .forGetter(State::selection))
                 .apply(instance, State::new));
+    }
+
+    /**
+     * An explicitly empty selection differs from old saves that predate
+     * selection.
+     */
+    public record Selection(Optional<ResourceLocation> recipe) {
+        public static final Codec<Selection> CODEC = RecordCodecBuilder
+            .create(instance -> instance
+                .group(ResourceLocation.CODEC.optionalFieldOf("recipe")
+                    .forGetter(Selection::recipe))
+                .apply(instance, Selection::new));
+    }
+
+    private boolean selectionEnabled;
+    private ResourceLocation selectedRecipe;
+    private ResourceLocation clientActiveRecipe;
+    private Object recipeSnapshot;
+    private long recipeRevision;
+    private List<RecipeHolder<MachineRecipeEntry>> choices = List.of();
+
+    /**
+     * Enable explicit selection before loading saved state. Null means
+     * initially stopped.
+     */
+    public RecipeProcessor selectable(
+        @Nullable ResourceLocation defaultRecipe) {
+        selectionEnabled = true;
+        selectedRecipe = defaultRecipe;
+        return this;
+    }
+
+    public boolean selectionEnabled() {
+        return selectionEnabled;
+    }
+    public Optional<ResourceLocation> selectedRecipe() {
+        return Optional.ofNullable(selectedRecipe);
+    }
+    public Optional<ResourceLocation> activeRecipe() {
+        return Optional.ofNullable(cycle != null
+            ? cycle.recipe()
+            : resumeRecipe != null ? resumeRecipe : clientActiveRecipe);
+    }
+
+    /**
+     * Only this processor's recipes can be selected; null explicitly stops new
+     * cycles.
+     */
+    public boolean selectRecipe(Level level, @Nullable ResourceLocation id) {
+        if (!selectionEnabled || level.isClientSide)
+            return false;
+        if (id != null && selectedEntry(level, id).isEmpty())
+            return false;
+        if (!java.util.Objects.equals(selectedRecipe, id)) {
+            selectedRecipe = id;
+            searchDelay = 0;
+            changed = true;
+            activityChanges.changed();
+        }
+        return true;
+    }
+
+    public Optional<RecipeHolder<MachineRecipeEntry>> selectedEntry(Level level,
+        ResourceLocation id) {
+        var holder = level.getRecipeManager().byKey(id).orElse(null);
+        if (holder != null && holder.value() instanceof MachineRecipeEntry entry
+            && entry.type() == type)
+            return Optional.of(new RecipeHolder<>(id, entry));
+        return Optional.empty();
+    }
+
+    /**
+     * Indexed once per recipe-manager snapshot, never rebuilt on ordinary
+     * machine ticks.
+     */
+    public List<RecipeHolder<MachineRecipeEntry>> recipeChoices(Level level) {
+        var snapshot = level.getRecipeManager().getRecipes();
+        if (recipeSnapshot != snapshot) {
+            recipeSnapshot = snapshot;
+            recipeRevision++;
+            choices = type.recipes(level.getRecipeManager()).stream()
+                .sorted(java.util.Comparator.comparing(RecipeHolder::id))
+                .toList();
+        }
+        return choices;
+    }
+
+    public long recipeRevision(Level level) {
+        recipeChoices(level);
+        return recipeRevision;
+    }
+
+    public MatchResult recipeAvailability(MachineRecipeEntry entry) {
+        return RecipeMatcher.check(entry.recipe(), inventory);
     }
 
     private final String key;
@@ -240,12 +360,15 @@ public final class RecipeProcessor implements
     @Override
     public void suspended(FeatureHost host) {
         redstoneRunning = false;
+        if (justFinished != null)
+            progressChanges.changed();
         justFinished = null;
         var held = paused ? Status.PAUSED : Status.HELD;
         if (changed || status != held) {
             changed = false;
             status = held;
             host.markChanged();
+            host.markSync();
         }
         syncStatus(host);
     }
@@ -263,7 +386,10 @@ public final class RecipeProcessor implements
     @Override
     public State state() {
         return new State(paused, progress, Optional.ofNullable(resumeRecipe),
-            resumeTime, Optional.ofNullable(cycle), Optional.of(status));
+            resumeTime, Optional.ofNullable(cycle), Optional.of(status),
+            selectionEnabled
+                ? Optional.of(new Selection(selectedRecipe()))
+                : Optional.empty());
     }
 
     @Override
@@ -281,6 +407,10 @@ public final class RecipeProcessor implements
      */
     @Override
     public void restoreOnClient(State state) {
+        state.selection()
+            .ifPresent(value -> selectedRecipe = value.recipe().orElse(null));
+        clientActiveRecipe = state.cycle().map(CyclePlan::recipe)
+            .orElse(state.resumeRecipe().orElse(null));
         paused = state.paused();
         progress = state.progress();
         state.status().ifPresent(sent -> status = sent);
@@ -299,6 +429,9 @@ public final class RecipeProcessor implements
      */
     @Override
     public void restore(State state) {
+        if (selectionEnabled)
+            state.selection().ifPresent(
+                value -> selectedRecipe = value.recipe().orElse(null));
         if (cycle != null)
             cycle.release(inventory);
         cycle = null;
@@ -319,6 +452,8 @@ public final class RecipeProcessor implements
         status = paused
             ? Status.PAUSED
             : cycle == null ? Status.IDLE : Status.RUNNING;
+        activityChanges.changed();
+        progressChanges.changed();
     }
 
     /**
@@ -343,6 +478,11 @@ public final class RecipeProcessor implements
      */
     public boolean processing() {
         return redstoneRunning;
+    }
+
+    @Override
+    public void defineVisualVariables(VisualVariables.Builder variables) {
+        BuiltinVisualVariables.processor(this).defineVisualVariables(variables);
     }
 
     /**
@@ -373,6 +513,8 @@ public final class RecipeProcessor implements
         status = Status.PAUSED;
         justFinished = null;
         changed = true;
+        activityChanges.changed();
+        progressChanges.changed();
     }
 
     /**
@@ -388,6 +530,8 @@ public final class RecipeProcessor implements
         searchDelay = 0;
         status = Status.IDLE;
         changed = true;
+        activityChanges.changed();
+        progressChanges.changed();
     }
 
     /**
@@ -418,6 +562,8 @@ public final class RecipeProcessor implements
         searchDelay = 0;
         status = Status.IDLE;
         changed = true;
+        activityChanges.changed();
+        progressChanges.changed();
     }
 
     @Override
@@ -476,6 +622,8 @@ public final class RecipeProcessor implements
      */
     @Override
     public void tick(FeatureHost host) {
+        if (justFinished != null)
+            progressChanges.changed();
         justFinished = null;
         run(host);
         redstoneRunning = !paused
@@ -490,6 +638,7 @@ public final class RecipeProcessor implements
             marked = seen;
             markedTime = seenTime;
             host.markSync();
+            activityChanges.changed();
         }
     }
 
@@ -504,13 +653,17 @@ public final class RecipeProcessor implements
         if (justFinished == null)
             return state();
         return new State(false, justFinished.time(), Optional.empty(), 0,
-            Optional.of(justFinished), Optional.of(Status.RUNNING));
+            Optional.of(justFinished), Optional.of(Status.RUNNING),
+            selectionEnabled
+                ? Optional.of(new Selection(selectedRecipe()))
+                : Optional.empty());
     }
 
     private void run(FeatureHost host) {
         if (changed) {
             changed = false;
             host.markChanged();
+            host.markSync();
         }
         if (paused) {
             status = Status.PAUSED;
@@ -528,6 +681,7 @@ public final class RecipeProcessor implements
                 return;
             }
             progress++;
+            progressChanges.changed();
             status = Status.RUNNING;
             host.markChanged();
         }
@@ -558,16 +712,18 @@ public final class RecipeProcessor implements
         var holder = level.getRecipeManager().byKey(id).orElse(null);
         if (holder != null && holder.value() instanceof MachineRecipeEntry entry
             && entry.type() == type) {
-            plan = CyclePlan.of(id, entry.recipe(), inventory)
+            plan = CyclePlan.of(id, entry.recipe(), inventory, true)
                 .filter(found -> found.reserve(inventory)).orElse(null);
         }
         if (plan == null) {
             progress = 0;
+            progressChanges.changed();
             return false;
         }
         cycle = plan;
         if (plan.time() != resumeTime)
             progress = 0;
+        progressChanges.changed();
         return true;
     }
 
@@ -579,7 +735,14 @@ public final class RecipeProcessor implements
             searchDelay--;
             return;
         }
-        var found = lookup.find(level, inventory).orElse(null);
+        var found = selectionEnabled
+            ? selectedRecipe == null
+                ? null
+                : selectedEntry(level, selectedRecipe).orElse(null)
+            : lookup.find(level, inventory).orElse(null);
+        if (selectionEnabled && found != null
+            && !recipeAvailability(found.value()).ok())
+            found = null;
         var plan = found == null
             ? null
             : CyclePlan.of(found.id(), found.value().recipe(), inventory)
@@ -593,6 +756,7 @@ public final class RecipeProcessor implements
         searchDelay = 0;
         progress = 0;
         status = Status.RUNNING;
+        progressChanges.changed();
         host.markChanged();
     }
 

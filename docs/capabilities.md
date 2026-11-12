@@ -204,3 +204,22 @@ is checked every tick, keep a NeoForge `BlockCapabilityCache` instead.
 - The runtime smoke test covers roles, filters, limits, faces, out-of-range indices, transfer,
   NBT round trips, int clamping, and the face mapping. Real cables and pipes still need testing
   in game.
+
+### Physically unavailable faces
+
+Use `new SideConfig(IoMode.BOTH).disabledFaces(Set.of(RelativeFace.RIGHT))` for a face that
+must never expose this resource. All faces are available by default. Restrictions are relative
+to the controller front and rotate with it; RIGHT means the viewer's right while looking at
+the front (west for a north-facing controller).
+
+This is machine policy, distinct from a player's Disabled mode. `faceAvailable(face)` reports
+it; `get`, `set`, `cycle`, and `copyFrom` enforce it. Restore decoded modes into the existing
+policy-bearing instance. The codec saves modes only, not restrictions. Changing the mask
+notifies the owner once, and re-enabling a face leaves its mode Disabled. AutomationInventory
+also advances its view revision and invalidates capability caches on side changes.
+
+Retained handlers must still consult the current policy: use `items.view(slot ->
+sides.mode(facing(), side))` and `energy.view(() -> sides.mode(facing(), side))`, intersected
+with each resource's supported direction. Passing a mode value creates a fixed view and cannot
+track future changes. Active transfers must consult the same policy. Null-side/internal access
+remains host-owned; a machine may refuse it independently of its six physical faces.

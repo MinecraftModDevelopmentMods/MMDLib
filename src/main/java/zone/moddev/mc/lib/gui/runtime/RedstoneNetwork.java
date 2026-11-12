@@ -13,7 +13,7 @@ import zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry;
  * configuration revision.
  */
 public final class RedstoneNetwork {
-    public static final String VERSION = "16";
+    public static final String VERSION = "17";
 
     private RedstoneNetwork() {
     }
@@ -50,9 +50,10 @@ public final class RedstoneNetwork {
     }
 
     public record State(int menu, long session, int acknowledged, long revision,
-        boolean open, int selected, boolean paused, int[] faces)
-        implements CustomPacketPayload {
+        boolean open, int selected, boolean paused, int[] faces,
+        int disabledFaces) implements CustomPacketPayload {
         public State {
+            zone.moddev.mc.lib.api.capabilities.FaceMask.checked(disabledFaces);
             faces = faces.clone();
             if (acknowledged < 0 || revision < 0 || selected < 0 || selected > 5
                 || faces.length != 48)
@@ -64,6 +65,11 @@ public final class RedstoneNetwork {
                     throw new IllegalArgumentException("Invalid face state");
         }
 
+        public State(int menu, long session, int acknowledged, long revision,
+            boolean open, int selected, boolean paused, int[] faces) {
+            this(menu, session, acknowledged, revision, open, selected, paused,
+                faces, 0);
+        }
         public static final Type<State> TYPE = new Type<>(
             ResourceLocation.parse("mmdlib:redstone_state"));
         public static final StreamCodec<RegistryFriendlyByteBuf, State> CODEC = StreamCodec
@@ -76,9 +82,10 @@ public final class RedstoneNetwork {
                 b.writeVarInt(p.selected);
                 b.writeBoolean(p.paused);
                 b.writeVarIntArray(p.faces);
+                b.writeByte(p.disabledFaces);
             }, b -> new State(b.readVarInt(), b.readLong(), b.readVarInt(),
                 b.readVarLong(), b.readBoolean(), b.readVarInt(),
-                b.readBoolean(), b.readVarIntArray(48)));
+                b.readBoolean(), b.readVarIntArray(48), b.readUnsignedByte()));
 
         public Type<State> type() {
             return TYPE;

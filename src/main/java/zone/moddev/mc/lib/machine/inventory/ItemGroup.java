@@ -8,6 +8,13 @@ import org.jetbrains.annotations.Nullable;
 
 /** Item slots in a {@link MachineInventory}. */
 public non-sealed interface ItemGroup extends SlotGroup {
+    /**
+     * Ghost samples participate in matching only, never reservations,
+     * consumption or products.
+     */
+    default boolean ghost() {
+        return false;
+    }
     /** The number of slots. */
     int size();
 

@@ -10,6 +10,21 @@ import java.util.List;
  * capture without committing.
  */
 public interface ElementBehavior {
+    /**
+     * Optional transient chooser drawn above normal elements, outside the
+     * owner's layout box.
+     */
+    default java.util.Optional<zone.moddev.mc.lib.gui.layout.Rect> overlayBounds() {
+        return java.util.Optional.empty();
+    }
+
+    /**
+     * Outside clicks dismiss a transient chooser without reaching inventory
+     * slots underneath.
+     */
+    default void dismissOverlay() {
+    }
+
     enum Click {
         PASS, CONSUME, CAPTURE
     }
