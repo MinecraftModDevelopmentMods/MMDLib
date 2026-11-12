@@ -236,9 +236,8 @@ final class MachineRecipeHandler implements IRecipeHandler<MachineRecipeEntry> {
      * A CraftTweaker fluid ingredient as a fluid input: one fluid, several, or
      * a tag, all with the same amount.
      *
-     * @throws IllegalArgumentException
-     *             if it mixes tags with fluids or with each other, or its
-     *             amounts differ
+     * @throws IllegalArgumentException if it mixes tags with fluids or with
+     *             each other, or its amounts differ
      */
     static MachineIngredient.FluidPart fluidPart(CTFluidIngredient ingredient,
         boolean consumed, RegistryAccess registries) {

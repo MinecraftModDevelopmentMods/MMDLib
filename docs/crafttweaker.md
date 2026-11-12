@@ -1141,6 +1141,32 @@ of MMDLib is the `CraftTweakerInit.register(modBus)` call in MMDLib's constructo
 only when CraftTweaker is loaded. That call adds a code material source to
 `MaterialExtensions.GLOBAL`; see [startup definition loading](definition-loading.md#stages).
 
+## Generated API docs
+
+Every script type is documented for CraftTweaker's docs wiki. Compiling runs
+CraftTweaker's annotation processor, which writes the pages to
+`build/crafttweaker-docs`: `docs.json`, the navigation (Mods › MMDLib › Definitions,
+Events, Fluids, Machines, References, Screens, Sounds, Tabs, Crusher), and one JSON
+page per type under `docs/mods/MMDLib/`, in the same format as CraftTweaker's own.
+Those are what to contribute to the wiki.
+
+The pages come from the Javadoc of each `@ZenRegister` class in
+`compat/CraftTweaker`, which also carries `@Document("mods/MMDLib/<area>/<Type>")`.
+When adding or changing a script member, keep its page complete:
+
+- a description for the type and every member, written for script authors; state
+  what makes a call an error in the description, since `@throws` is not shown;
+- `@param name description` on one line (the formatter keeps it so), and `@return`
+  for anything returned;
+- `@docParam name example` for every parameter, as script code the wiki puts in its
+  examples, and `@docParam this example` on a type with instance members, for the
+  receiver, such as `new BlockBuilder("marble")` or `context`;
+- no `<pre>` examples in Javadoc; the wiki builds examples from `@docParam`, and full
+  scripts belong in this guide.
+
+Members a type inherits from CraftTweaker, such as a recipe manager's
+`removeByName`, are documented on CraftTweaker's own pages.
+
 ## Verification and executable examples
 
 See the [verification report](crafttweaker-verification.md) for reproducible server,

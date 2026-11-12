@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.compat.CraftTweaker;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.blamejared.crafttweaker.api.item.IItemStack;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -16,8 +17,11 @@ import zone.moddev.mc.lib.machine.recipe.generation.RecipeGenerationContext;
  * generator's properties from machine XML, the reload's item tags, and
  * {@link #recipe} to add recipes. Tag brackets are not usable during a reload;
  * read tags here instead.
+ *
+ * @docParam this gen
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/machines/RecipeGeneration")
 @ZenCodeType.Name("mods.mmdlib.RecipeGeneration")
 public final class ScriptRecipeGeneration {
     private final RecipeGenerationContext context;
@@ -29,13 +33,25 @@ public final class ScriptRecipeGeneration {
         this.output = output;
     }
 
-    /** The recipe type being generated, such as {@code example:crushing}. */
+    /**
+     * The recipe type being generated, such as {@code example:crushing}.
+     *
+     * @return the recipe type's ID
+     */
     @ZenCodeType.Getter("recipeType")
     public String getRecipeType() {
         return context.recipeType().id().toString();
     }
 
-    /** The generator's attribute {@code name}, or {@code fallback}. */
+    /**
+     * One of the generator element's attributes, as written.
+     *
+     * @param name the attribute
+     * @param fallback what to return when it is absent
+     * @return the attribute, or the fallback
+     * @docParam name "mode"
+     * @docParam fallback "fast"
+     */
     @ZenCodeType.Method
     public String property(String name,
         @ZenCodeType.OptionalString String fallback) {
@@ -43,11 +59,14 @@ public final class ScriptRecipeGeneration {
     }
 
     /**
-     * The generator's attribute {@code name} as a whole number, or
-     * {@code fallback}.
+     * One of the generator element's attributes as a whole number. It is an
+     * error if it is not a whole number.
      *
-     * @throws IllegalArgumentException
-     *             if it is not a whole number
+     * @param name the attribute
+     * @param fallback what to return when it is absent
+     * @return the number, or the fallback
+     * @docParam name "time"
+     * @docParam fallback 100
      */
     @ZenCodeType.Method
     public int intProperty(String name, int fallback) {
@@ -56,10 +75,14 @@ public final class ScriptRecipeGeneration {
     }
 
     /**
-     * The generator's attribute {@code name} as a number, or {@code fallback}.
+     * One of the generator element's attributes as a number. It is an error if
+     * it is not a number.
      *
-     * @throws IllegalArgumentException
-     *             if it is not a number
+     * @param name the attribute
+     * @param fallback what to return when it is absent
+     * @return the number, or the fallback
+     * @docParam name "chance"
+     * @docParam fallback 0.5
      */
     @ZenCodeType.Method
     public double doubleProperty(String name, double fallback) {
@@ -68,8 +91,12 @@ public final class ScriptRecipeGeneration {
     }
 
     /**
-     * The IDs of every item tag starting with {@code prefix}, such as
-     * {@code "c:ores/"}, sorted.
+     * The IDs of every item tag starting with {@code prefix}, such as {@code
+     * "c:ores/"}, sorted.
+     *
+     * @param prefix the start of the tag IDs to list
+     * @return the tag IDs
+     * @docParam prefix "c:ores/"
      */
     @ZenCodeType.Method
     public String[] tagIds(String prefix) {
@@ -78,13 +105,25 @@ public final class ScriptRecipeGeneration {
             .sorted().toArray(String[]::new);
     }
 
-    /** Whether the item tag {@code id} has any items. */
+    /**
+     * Whether the item tag {@code id} has any items.
+     *
+     * @param id the item tag's ID, without {@code #}
+     * @return true if it has items
+     * @docParam id "c:dusts/iron"
+     */
     @ZenCodeType.Method
     public boolean hasTag(String id) {
         return !context.tags().members(ResourceLocation.parse(id)).isEmpty();
     }
 
-    /** The items in the item tag {@code id}; empty if it has none. */
+    /**
+     * The items in the item tag {@code id}; empty if it has none.
+     *
+     * @param id the item tag's ID, without {@code #}
+     * @return the items
+     * @docParam id "c:dusts/iron"
+     */
     @ZenCodeType.Method
     public IItemStack[] tagItems(String id) {
         return context.tags().members(ResourceLocation.parse(id)).stream()
@@ -95,6 +134,10 @@ public final class ScriptRecipeGeneration {
     /**
      * Starts the recipe {@code <type namespace>:<name>}, added to this reload's
      * recipes by its {@code add()}.
+     *
+     * @param name the recipe's path
+     * @return a recipe to build
+     * @docParam name "ore_to_dust/iron"
      */
     @ZenCodeType.Method
     public ScriptGeneratedRecipe recipe(String name) {

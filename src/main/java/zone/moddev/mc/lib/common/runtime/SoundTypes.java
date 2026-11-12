@@ -55,9 +55,8 @@ public final class SoundTypes {
      * The sound set {@code name}. A declared set's sound events must already be
      * registered, which they are by the time blocks are created.
      *
-     * @throws IllegalArgumentException
-     *             for an unknown set, or a set naming an unregistered sound
-     *             event
+     * @throws IllegalArgumentException for an unknown set, or a set naming an
+     *             unregistered sound event
      */
     public static SoundType resolve(String name) {
         if (name.indexOf(':') < 0)

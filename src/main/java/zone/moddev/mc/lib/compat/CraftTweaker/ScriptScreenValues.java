@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import com.mojang.logging.LogUtils;
 
@@ -21,11 +22,7 @@ import zone.moddev.mc.lib.gui.value.ValueTypes;
 
 /**
  * Registers script functions as screen value providers, which screen XML reads
- * with {@code value="@mmdlib:<name>"} (or {@code max}):
- *
- * <pre>{@code
- * ScreenValues.whole("height", (machine) => machine.blockPos.y);
- * }</pre>
+ * with {@code value="@mmdlib:<name>"} (or {@code max}).
  *
  * <p>
  * The screen stays XML; the script only supplies a value. Each function gets
@@ -36,6 +33,7 @@ import zone.moddev.mc.lib.gui.value.ValueTypes;
  * function that throws is logged once and shows no value.
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/screens/ScreenValues")
 @ZenCodeType.Name("mods.mmdlib.ScreenValues")
 public final class ScriptScreenValues {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -47,7 +45,11 @@ public final class ScriptScreenValues {
      * Registers a whole-number provider, for gauges, meters, progress bars and
      * labels.
      *
-     * @return its ID, to write in screen XML after {@code @}
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param function reads the value from the screen's block entity
+     * @return the provider's ID, to write in screen XML after {@code @}
+     * @docParam name "height"
+     * @docParam function (machine) => machine.blockPos.y
      */
     @ZenCodeType.Method
     public static String whole(String name, ScriptScreenWholeValue function) {
@@ -58,7 +60,11 @@ public final class ScriptScreenValues {
     /**
      * Registers a decimal provider, for meters and labels.
      *
-     * @return its ID, to write in screen XML after {@code @}
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param function reads the value from the screen's block entity
+     * @return the provider's ID, to write in screen XML after {@code @}
+     * @docParam name "efficiency"
+     * @docParam function (machine) => 0.85
      */
     @ZenCodeType.Method
     public static String decimal(String name,
@@ -69,7 +75,11 @@ public final class ScriptScreenValues {
     /**
      * Registers a true/false provider, for checkboxes and toggles.
      *
-     * @return its ID, to write in screen XML after {@code @}
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param function reads the value from the screen's block entity
+     * @return the provider's ID, to write in screen XML after {@code @}
+     * @docParam name "placed"
+     * @docParam function (machine) => machine.hasLevel
      */
     @ZenCodeType.Method
     public static String flag(String name, ScriptScreenFlagValue function) {
@@ -79,7 +89,11 @@ public final class ScriptScreenValues {
     /**
      * Registers a text provider, for labels; the text is shown as written.
      *
-     * @return its ID, to write in screen XML after {@code @}
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param function reads the text from the screen's block entity
+     * @return the provider's ID, to write in screen XML after {@code @}
+     * @docParam name "where"
+     * @docParam function (machine) => "Ready"
      */
     @ZenCodeType.Method
     public static String text(String name, ScriptScreenTextValue function) {
@@ -87,7 +101,13 @@ public final class ScriptScreenValues {
             entity -> Component.literal(function.read(entity)));
     }
 
-    /** Whether {@code id} is a registered provider, from a script or code. */
+    /**
+     * Whether a screen value provider is registered, from a script or code.
+     *
+     * @param id the provider ID
+     * @return true if registered
+     * @docParam id "mmdlib:height"
+     */
     @ZenCodeType.Method
     public static boolean exists(String id) {
         return ScreenValueProviders.GLOBAL.get(ResourceLocation.parse(id))

@@ -149,9 +149,9 @@ public final class RuntimeContentRegistrar {
      * common setup, once every registry is complete.
      *
      * @return its holder, bound once registries are built
-     * @throws IllegalArgumentException
-     *             if {@code id} is in another namespace, already queued, or
-     *             {@code <namespace>:materials}, the registrar's own tab
+     * @throws IllegalArgumentException if {@code id} is in another namespace,
+     *             already queued, or {@code <namespace>:materials}, the
+     *             registrar's own tab
      */
     public DeferredHolder<CreativeModeTab, CreativeModeTab> queueTab(
         ResourceLocation id, CreativeTabDefinition definition) {
@@ -182,8 +182,8 @@ public final class RuntimeContentRegistrar {
      * registration.
      *
      * @return its holder, bound once registries are built
-     * @throws IllegalArgumentException
-     *             if {@code id} is in another namespace or already queued
+     * @throws IllegalArgumentException if {@code id} is in another namespace or
+     *             already queued
      */
     public DeferredHolder<SoundEvent, SoundEvent> queueSound(
         ResourceLocation id, SoundDefinition definition) {
@@ -249,11 +249,11 @@ public final class RuntimeContentRegistrar {
      * for the mod to register with the same ID as its block. The implementation
      * receives its binding through {@link BlockContext#blockEntity()}.
      *
-     * @throws IllegalArgumentException
-     *             if the material is in another namespace, an ID is already
-     *             queued, a block entity's factory is unknown or its settings
-     *             are invalid, or a block with a block entity is created by an
-     *             implementation whose class is not an {@code EntityBlock}
+     * @throws IllegalArgumentException if the material is in another namespace,
+     *             an ID is already queued, a block entity's factory is unknown
+     *             or its settings are invalid, or a block with a block entity
+     *             is created by an implementation whose class is not an
+     *             {@code EntityBlock}
      */
     public void queue(MaterialFactory.Result result) {
         var material = result.material();

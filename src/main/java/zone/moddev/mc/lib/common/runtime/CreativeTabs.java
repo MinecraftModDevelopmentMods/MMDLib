@@ -80,8 +80,7 @@ final class CreativeTabs {
      * registered, since it may belong to a mod that is not installed. Run once
      * registries are complete.
      *
-     * @throws IllegalArgumentException
-     *             for an unknown item or material
+     * @throws IllegalArgumentException for an unknown item or material
      */
     static void verify(ResourceLocation id, CreativeTabDefinition definition) {
         definition.icon().ifPresent(icon -> requireItem(id, icon));

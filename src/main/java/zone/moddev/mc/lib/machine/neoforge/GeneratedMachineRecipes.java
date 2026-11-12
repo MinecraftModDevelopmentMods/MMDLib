@@ -230,10 +230,9 @@ public final class GeneratedMachineRecipes {
      * as recipe reloads do; for recipes added after a reload, such as by
      * CraftTweaker scripts.
      *
-     * @throws IllegalArgumentException
-     *             naming the machine and group, if a group is unknown, holds
-     *             the wrong kind of resource, or asks more of a ghost group
-     *             than it has slots
+     * @throws IllegalArgumentException naming the machine and group, if a group
+     *             is unknown, holds the wrong kind of resource, or asks more of
+     *             a ghost group than it has slots
      */
     public static void validateGroups(MachineRecipeType type,
         MachineRecipe recipe) {

@@ -53,26 +53,23 @@ public final class MaterialExtensions {
     /**
      * Definitions built in code rather than read from {@code mmdlib/} files.
      *
-     * @param materials
-     *            named materials, planned like {@code mmdlib/material} files
-     * @param standaloneBlocks
-     *            standalone blocks by registry ID, planned like {@code
+     * @param materials named materials, planned like {@code mmdlib/material}
+     *            files
+     * @param standaloneBlocks standalone blocks by registry ID, planned like
+     *            {@code
      *     mmdlib/standalone/block} files
-     * @param standaloneItems
-     *            standalone items by registry ID, planned like {@code
+     * @param standaloneItems standalone items by registry ID, planned like
+     *            {@code
      *     mmdlib/standalone/item} files
-     * @param creativeTabs
-     *            creative tabs by ID, like {@code mmdlib/creative_tab} files;
-     *            one with the ID of a file's tab replaces it (see
+     * @param creativeTabs creative tabs by ID, like {@code mmdlib/creative_tab}
+     *            files; one with the ID of a file's tab replaces it (see
      *            {@link MaterialExtensions#creativeTabFiles()})
-     * @param sounds
-     *            sound events by ID, like {@code mmdlib/sound} files; one with
-     *            the ID of a file's event replaces it
-     * @param soundTypes
-     *            block sound sets by ID, like {@code mmdlib/sound_type} files;
-     *            one with the ID of a file's set replaces it
-     * @param standaloneFluids
-     *            standalone fluids by registry ID, planned like {@code
+     * @param sounds sound events by ID, like {@code mmdlib/sound} files; one
+     *            with the ID of a file's event replaces it
+     * @param soundTypes block sound sets by ID, like {@code mmdlib/sound_type}
+     *            files; one with the ID of a file's set replaces it
+     * @param standaloneFluids standalone fluids by registry ID, planned like
+     *            {@code
      *     mmdlib/standalone/fluid} files
      */
     public record Definitions(java.util.Collection<MMDMaterial> materials,
@@ -150,11 +147,9 @@ public final class MaterialExtensions {
     /**
      * A registered definition source.
      *
-     * @param name
-     *            names the source in loading errors, such as
+     * @param name names the source in loading errors, such as
      *            {@code "CraftTweaker scripts"}
-     * @param source
-     *            the source
+     * @param source the source
      */
     public record NamedSource(String name, DefinitionSource source) {
         /** Checks that both values are present and the name is not blank. */
@@ -223,10 +218,9 @@ public final class MaterialExtensions {
     /**
      * A catalog, optionally empty.
      *
-     * @param includeBundledModules
-     *            whether to install MMDLib's bundled modules and built-in
-     *            implementations; {@code false} gives an empty catalog, mainly
-     *            for tests
+     * @param includeBundledModules whether to install MMDLib's bundled modules
+     *            and built-in implementations; {@code false} gives an empty
+     *            catalog, mainly for tests
      */
     public MaterialExtensions(boolean includeBundledModules) {
         if (includeBundledModules) {
@@ -241,8 +235,7 @@ public final class MaterialExtensions {
     /**
      * Registers the Java code a data module's {@code factory} names for items.
      *
-     * @throws IllegalArgumentException
-     *             if the ID is already registered
+     * @throws IllegalArgumentException if the ID is already registered
      */
     public <I extends Item> void registerItemImplementation(ResourceLocation id,
         ItemImplementation<I> implementation) {
@@ -255,8 +248,7 @@ public final class MaterialExtensions {
     /**
      * Registers the Java code a data module's {@code factory} names for blocks.
      *
-     * @throws IllegalArgumentException
-     *             if the ID is already registered
+     * @throws IllegalArgumentException if the ID is already registered
      */
     public <B extends Block> void registerBlockImplementation(
         ResourceLocation id, BlockImplementation<B> implementation) {
@@ -281,8 +273,7 @@ public final class MaterialExtensions {
     /**
      * The item implementation registered under {@code id}.
      *
-     * @throws IllegalStateException
-     *             if none is installed
+     * @throws IllegalStateException if none is installed
      */
     public ItemImplementation<?> itemImplementation(ResourceLocation id) {
         var implementation = itemImplementations.get(id);
@@ -295,8 +286,7 @@ public final class MaterialExtensions {
     /**
      * The block implementation registered under {@code id}.
      *
-     * @throws IllegalStateException
-     *             if none is installed
+     * @throws IllegalStateException if none is installed
      */
     public BlockImplementation<?> blockImplementation(ResourceLocation id) {
         var implementation = blockImplementations.get(id);
@@ -309,8 +299,7 @@ public final class MaterialExtensions {
     /**
      * Registers an item data module as a selectable item part.
      *
-     * @throws IllegalArgumentException
-     *             if the ID or one of its aliases is taken
+     * @throws IllegalArgumentException if the ID or one of its aliases is taken
      */
     public void registerItemModule(ResourceLocation id,
         zone.moddev.mc.lib.common.modules.DataModules.Item module) {
@@ -321,8 +310,8 @@ public final class MaterialExtensions {
      * Registers an item data module, optionally replacing an existing item
      * module with the same ID (as a later datapack may).
      *
-     * @param replace
-     *            whether an existing item module with this ID may be replaced
+     * @param replace whether an existing item module with this ID may be
+     *            replaced
      */
     public void registerItemModule(ResourceLocation id,
         zone.moddev.mc.lib.common.modules.DataModules.Item module,
@@ -352,8 +341,7 @@ public final class MaterialExtensions {
     /**
      * Registers a block data module as a selectable block part.
      *
-     * @throws IllegalArgumentException
-     *             if the ID or one of its aliases is taken
+     * @throws IllegalArgumentException if the ID or one of its aliases is taken
      */
     public void registerBlockModule(ResourceLocation id,
         zone.moddev.mc.lib.common.modules.DataModules.Block module) {
@@ -364,8 +352,8 @@ public final class MaterialExtensions {
      * Registers a block data module, optionally replacing an existing block
      * module with the same ID.
      *
-     * @param replace
-     *            whether an existing block module with this ID may be replaced
+     * @param replace whether an existing block module with this ID may be
+     *            replaced
      */
     public void registerBlockModule(ResourceLocation id,
         zone.moddev.mc.lib.common.modules.DataModules.Block module,
@@ -398,8 +386,7 @@ public final class MaterialExtensions {
      * Registers a fluid data module, which a material selects with its
      * {@code fluid} setting.
      *
-     * @throws IllegalArgumentException
-     *             if the ID is taken
+     * @throws IllegalArgumentException if the ID is taken
      */
     public void registerFluidModule(ResourceLocation id,
         zone.moddev.mc.lib.common.modules.DataModules.Fluid module) {
@@ -410,8 +397,8 @@ public final class MaterialExtensions {
      * Registers a fluid data module, optionally replacing an existing one with
      * the same ID.
      *
-     * @param replace
-     *            whether an existing fluid module with this ID may be replaced
+     * @param replace whether an existing fluid module with this ID may be
+     *            replaced
      */
     public void registerFluidModule(ResourceLocation id,
         zone.moddev.mc.lib.common.modules.DataModules.Fluid module,
@@ -426,8 +413,7 @@ public final class MaterialExtensions {
     /**
      * The fluid module registered under {@code id}.
      *
-     * @throws IllegalArgumentException
-     *             if there is none
+     * @throws IllegalArgumentException if there is none
      */
     public zone.moddev.mc.lib.common.modules.DataModules.Fluid fluidModule(
         ResourceLocation id) {
@@ -441,8 +427,7 @@ public final class MaterialExtensions {
      * Whether {@code part} can be built: true unless it requires a mod that
      * {@code installed} reports missing.
      *
-     * @param installed
-     *            tests whether a mod ID is loaded
+     * @param installed tests whether a mod ID is loaded
      */
     public boolean available(MaterialPart part, Predicate<String> installed) {
         var id = part.templateId();
@@ -461,9 +446,8 @@ public final class MaterialExtensions {
      * A planner holding the templates for every part {@code material} selects
      * and can build with the installed mods, plus its fluid when it has one.
      *
-     * @throws IllegalArgumentException
-     *             if the material selects an unknown part or a fluid module
-     *             whose mod is missing
+     * @throws IllegalArgumentException if the material selects an unknown part
+     *             or a fluid module whose mod is missing
      */
     public zone.moddev.mc.lib.common.builders.MaterialContentPlanner planner(
         MMDMaterial material, Predicate<String> installed) {
@@ -570,12 +554,10 @@ public final class MaterialExtensions {
      * registered by its own mod's
      * {@link zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar}.
      *
-     * @param name
-     *            names the source in loading errors; unique among sources
-     * @param source
-     *            supplies the definitions
-     * @throws IllegalArgumentException
-     *             if a source with this name is already registered
+     * @param name names the source in loading errors; unique among sources
+     * @param source supplies the definitions
+     * @throws IllegalArgumentException if a source with this name is already
+     *             registered
      */
     public synchronized void registerDefinitionSource(String name,
         DefinitionSource source) {
@@ -640,8 +622,7 @@ public final class MaterialExtensions {
     /**
      * Registers a code-defined item part.
      *
-     * @throws IllegalArgumentException
-     *             if the ID or an alias is taken
+     * @throws IllegalArgumentException if the ID or an alias is taken
      */
     public <I extends Item> void registerItemType(ResourceLocation id,
         ItemTypeFactory<I> factory) {
@@ -667,8 +648,7 @@ public final class MaterialExtensions {
     /**
      * Registers a code-defined block part.
      *
-     * @throws IllegalArgumentException
-     *             if the ID or an alias is taken
+     * @throws IllegalArgumentException if the ID or an alias is taken
      */
     public <B extends Block> void registerBlockType(ResourceLocation id,
         BlockTypeFactory<B> factory) {
@@ -708,8 +688,8 @@ public final class MaterialExtensions {
      * ID. Kept for compatibility: plans are already complete, so nothing new is
      * planned here.
      *
-     * @throws IllegalArgumentException
-     *             if two planned items or blocks share an ID
+     * @throws IllegalArgumentException if two planned items or blocks share an
+     *             ID
      */
     public MaterialContentPlan extend(MMDMaterial material,
         MaterialContentPlan base, Predicate<String> installed) {
@@ -766,16 +746,12 @@ public final class MaterialExtensions {
      * Queues a code-registered item type's item for one material on the mod's
      * own register. Creation is deferred until the registry supplier runs.
      *
-     * @param registry
-     *            a register in the material's namespace, attached to the mod
-     *            bus
-     * @param type
-     *            the item type ID
-     * @param expected
-     *            the item type's class
-     * @throws IllegalArgumentException
-     *             if the type, class, namespace, material or definition do not
-     *             match
+     * @param registry a register in the material's namespace, attached to the
+     *            mod bus
+     * @param type the item type ID
+     * @param expected the item type's class
+     * @throws IllegalArgumentException if the type, class, namespace, material
+     *             or definition do not match
      */
     public <I extends Item> DeferredHolder<Item, I> queueItem(
         DeferredRegister<Item> registry, ResourceLocation type,
@@ -796,16 +772,12 @@ public final class MaterialExtensions {
      * own register. Creation is deferred until the registry supplier runs. The
      * block's item is not registered here.
      *
-     * @param registry
-     *            a register in the material's namespace, attached to the mod
-     *            bus
-     * @param type
-     *            the block type ID
-     * @param expected
-     *            the block type's class
-     * @throws IllegalArgumentException
-     *             if the type, class, namespace, material or definition do not
-     *             match
+     * @param registry a register in the material's namespace, attached to the
+     *            mod bus
+     * @param type the block type ID
+     * @param expected the block type's class
+     * @throws IllegalArgumentException if the type, class, namespace, material
+     *             or definition do not match
      */
     public <B extends Block> DeferredHolder<Block, B> queueBlock(
         DeferredRegister<Block> registry, ResourceLocation type,

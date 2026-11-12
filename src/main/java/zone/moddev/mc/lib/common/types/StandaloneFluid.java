@@ -23,20 +23,13 @@ import zone.moddev.mc.lib.common.modules.DataModules;
  * replaces the module's template; the other fields change single values of the
  * module's (or that) template, as a material's color and stats would.
  *
- * @param module
- *            the fluid module that builds the fluid
- * @param template
- *            replaces the module's template when present
- * @param tint
- *            an ARGB tint over the textures, replacing the template's
- * @param temperature
- *            replaces the template's temperature, in kelvin
- * @param density
- *            replaces the template's density
- * @param viscosity
- *            replaces the template's viscosity
- * @param runtime
- *            the settings a material would supply to the liquid block
+ * @param module the fluid module that builds the fluid
+ * @param template replaces the module's template when present
+ * @param tint an ARGB tint over the textures, replacing the template's
+ * @param temperature replaces the template's temperature, in kelvin
+ * @param density replaces the template's density
+ * @param viscosity replaces the template's viscosity
+ * @param runtime the settings a material would supply to the liquid block
  */
 public record StandaloneFluid(ResourceLocation module,
     Optional<FluidTemplate> template, Optional<Integer> tint,
@@ -76,9 +69,8 @@ public record StandaloneFluid(ResourceLocation module,
      * material named after the fluid, carrying {@code runtime}; the host has no
      * parts or stats and is not a loaded material.
      *
-     * @throws IllegalArgumentException
-     *             if the module's factory is not a fluid implementation, or a
-     *             value is out of range
+     * @throws IllegalArgumentException if the module's factory is not a fluid
+     *             implementation, or a value is out of range
      */
     public MaterialFactory.Result resolve(ResourceLocation id,
         DataModules.Fluid data) {

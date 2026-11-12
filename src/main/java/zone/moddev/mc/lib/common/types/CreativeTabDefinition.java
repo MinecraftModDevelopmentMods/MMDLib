@@ -13,22 +13,15 @@ import net.minecraft.resources.ResourceLocation;
  * A creative tab declared in {@code mmdlib/creative_tab/<path>.json}, or built
  * with {@link #builder()}: its title, icon, contents and placement.
  *
- * @param title
- *            the title's translation key; empty for
+ * @param title the title's translation key; empty for
  *            {@code itemGroup.<namespace>.<path>}, with {@code /} as {@code .}
- * @param titleFallback
- *            the title shown when no language file has the key
- * @param icon
- *            the item shown on the tab; empty for the first item or material
+ * @param titleFallback the title shown when no language file has the key
+ * @param icon the item shown on the tab; empty for the first item or material
  *            entry in {@code contents}
- * @param contents
- *            what the tab shows, in order
- * @param before
- *            tabs this one is placed before
- * @param after
- *            tabs this one is placed after
- * @param searchBar
- *            whether the tab has a search bar
+ * @param contents what the tab shows, in order
+ * @param before tabs this one is placed before
+ * @param after tabs this one is placed after
+ * @param searchBar whether the tab has a search bar
  */
 public record CreativeTabDefinition(Optional<String> title,
     Optional<String> titleFallback, Optional<ResourceLocation> icon,
@@ -97,9 +90,8 @@ public record CreativeTabDefinition(Optional<String> title,
     /**
      * Copies the lists.
      *
-     * @throws IllegalArgumentException
-     *             if there is no {@code icon} and no item or material entry to
-     *             take it from
+     * @throws IllegalArgumentException if there is no {@code icon} and no item
+     *             or material entry to take it from
      */
     public CreativeTabDefinition {
         Objects.requireNonNull(title);
@@ -203,8 +195,8 @@ public record CreativeTabDefinition(Optional<String> title,
         /**
          * The definition.
          *
-         * @throws IllegalArgumentException
-         *             as the {@link CreativeTabDefinition} constructor
+         * @throws IllegalArgumentException as the {@link CreativeTabDefinition}
+         *             constructor
          */
         public CreativeTabDefinition build() {
             return new CreativeTabDefinition(Optional.ofNullable(title),

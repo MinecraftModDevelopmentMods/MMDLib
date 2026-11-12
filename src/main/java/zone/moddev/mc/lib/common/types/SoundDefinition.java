@@ -15,8 +15,7 @@ import net.minecraft.util.ExtraCodecs;
  * the event; what it sounds like comes from the owning mod's, or a resource
  * pack's, {@code sounds.json}, as for any other sound event.
  *
- * @param range
- *            the fixed distance, in blocks, it can be heard from; empty for
+ * @param range the fixed distance, in blocks, it can be heard from; empty for
  *            vanilla's default, which grows with the volume it is played at
  */
 public record SoundDefinition(Optional<Float> range) {

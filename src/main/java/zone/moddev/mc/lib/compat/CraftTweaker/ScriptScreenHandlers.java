@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.compat.CraftTweaker;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import com.mojang.logging.LogUtils;
 
@@ -14,13 +15,7 @@ import zone.moddev.mc.lib.api.MaterialEventTypes;
 
 /**
  * Registers script functions as screen handlers, under IDs that screen XML
- * names in {@code on-click} (and its variants) and {@code on-hover}:
- *
- * <pre>{@code
- * ScreenHandlers.onClick("eject", (click) => {
- *     click.player.addTag("ejected");
- * });
- * }</pre>
+ * names in {@code on-click} (and its variants) and {@code on-hover}.
  *
  * <p>
  * The screen, machine and its XML stay data; the script only supplies what a
@@ -30,6 +25,7 @@ import zone.moddev.mc.lib.api.MaterialEventTypes;
  * throws is logged, and the game carries on.
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/screens/ScreenHandlers")
 @ZenCodeType.Name("mods.mmdlib.ScreenHandlers")
 public final class ScriptScreenHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -39,11 +35,13 @@ public final class ScriptScreenHandlers {
 
     /**
      * Registers {@code handler} as the click handler {@code mmdlib:<name>}; it
-     * runs on the server.
+     * runs on the server. It is an error if the ID is already a handler.
      *
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param handler runs on each click
      * @return the handler's ID, to write in screen XML
-     * @throws IllegalArgumentException
-     *             if the ID is already a handler
+     * @docParam name "eject"
+     * @docParam handler (click) => { click.player.addTag("ejected"); }
      */
     @ZenCodeType.Method
     public static String onClick(String name,
@@ -63,11 +61,14 @@ public final class ScriptScreenHandlers {
 
     /**
      * Registers {@code handler} as the hover handler {@code mmdlib:<name>}; it
-     * runs on the client, for display only.
+     * runs on the client, for display only. It is an error if the ID is already
+     * a handler.
      *
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param handler runs as the mouse enters and leaves
      * @return the handler's ID, to write in screen XML
-     * @throws IllegalArgumentException
-     *             if the ID is already a handler
+     * @docParam name "highlight"
+     * @docParam handler (hover) => { println(hover.entered); }
      */
     @ZenCodeType.Method
     public static String onHover(String name,
@@ -85,7 +86,13 @@ public final class ScriptScreenHandlers {
         return id.toString();
     }
 
-    /** Whether {@code id} is a registered handler, from a script or code. */
+    /**
+     * Whether a screen handler is registered, from a script or code.
+     *
+     * @param id the handler ID
+     * @return true if registered
+     * @docParam id "mmdlib:eject"
+     */
     @ZenCodeType.Method
     public static boolean exists(String id) {
         return ScriptDefinitions.catalog().events().callbacks()

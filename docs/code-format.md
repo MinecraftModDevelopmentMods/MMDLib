@@ -11,6 +11,9 @@ with these overrides:
   `./gradlew lineLimit` (part of `check`) warns with the file and line. It never fails the build:
   some lines read worse split than long.
 - **Wildcard imports are allowed**, static or not; in a mod they usually mean less code.
+- **Javadoc block tags keep their first line together**: `@param name description` on one
+  line, continuing below. CraftTweaker's documentation processor reads a parameter's name up to
+  the line end, so the generated script docs depend on it.
 - **Keep methods short**: aim for 25 to 30 lines. This is a review guideline; no tool enforces it.
 - The other Google conventions (brace style, one statement per line, naming, `@Override` always,
   ...) still apply.

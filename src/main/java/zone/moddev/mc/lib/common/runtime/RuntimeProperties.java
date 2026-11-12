@@ -39,8 +39,7 @@ public final class RuntimeProperties {
      * Fresh block properties from a definition and the material's runtime
      * settings.
      *
-     * @param fluid
-     *            whether this is a liquid block, which keeps its definition's
+     * @param fluid whether this is a liquid block, which keeps its definition's
      *            sound
      */
     public static BlockBehaviour.Properties block(MMDBlock definition,
@@ -82,8 +81,7 @@ public final class RuntimeProperties {
     /**
      * The registry entry {@code id}.
      *
-     * @throws IllegalArgumentException
-     *             if it is missing
+     * @throws IllegalArgumentException if it is missing
      */
     public static <T> T required(net.minecraft.core.Registry<T> registry,
         ResourceLocation id) {

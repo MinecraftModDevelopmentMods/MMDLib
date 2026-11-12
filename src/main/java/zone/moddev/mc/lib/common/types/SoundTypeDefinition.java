@@ -16,22 +16,14 @@ import net.minecraft.util.ExtraCodecs;
  * {@code sound}. Anything left out comes from {@code base}, one of vanilla's
  * sound sets ({@code "stone"}, {@code "metal"}, ...).
  *
- * @param base
- *            the vanilla sound set unset values come from
- * @param breakSound
- *            played when the block is broken
- * @param step
- *            played when an entity walks on it
- * @param place
- *            played when it is placed
- * @param hit
- *            played while it is being mined
- * @param fall
- *            played when an entity lands on it
- * @param volume
- *            the volume all of them play at
- * @param pitch
- *            the pitch all of them play at
+ * @param base the vanilla sound set unset values come from
+ * @param breakSound played when the block is broken
+ * @param step played when an entity walks on it
+ * @param place played when it is placed
+ * @param hit played while it is being mined
+ * @param fall played when an entity lands on it
+ * @param volume the volume all of them play at
+ * @param pitch the pitch all of them play at
  */
 public record SoundTypeDefinition(String base,
     Optional<ResourceLocation> breakSound, Optional<ResourceLocation> step,
@@ -67,8 +59,7 @@ public record SoundTypeDefinition(String base,
      * Requires every value; {@code base} must be a vanilla name, not another
      * sound set's ID.
      *
-     * @throws IllegalArgumentException
-     *             if {@code base} is blank or namespaced
+     * @throws IllegalArgumentException if {@code base} is blank or namespaced
      */
     public SoundTypeDefinition {
         Objects.requireNonNull(base);
