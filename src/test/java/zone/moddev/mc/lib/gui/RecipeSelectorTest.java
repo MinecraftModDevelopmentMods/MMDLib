@@ -1,9 +1,7 @@
 package zone.moddev.mc.lib.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 
@@ -12,21 +10,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.gson.JsonParser;
-
-import com.mojang.serialization.JsonOps;
-
 import net.minecraft.resources.ResourceLocation;
 
 import org.junit.jupiter.api.Test;
 
 import zone.moddev.mc.lib.gui.load.ScreenReader;
 import zone.moddev.mc.lib.gui.model.elements.RecipeSelectorElement;
-import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 
 class RecipeSelectorTest {
     private RecipeSelectorElement read(String attributes) throws Exception {
-        String xml = "<screen xmlns=\"https://moddev.zone/mmdlib/screen\" title=\"test\">"
+        String xml = "<screen xmlns=\"https://moddev.zone/mmdlib/screen\" title=\"test\""
+            + " block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\">"
             + "<recipe-selector " + attributes + "/></screen>";
         return (RecipeSelectorElement) ScreenReader
             .read(ResourceLocation.parse("test:selector"), "selector.xml",
@@ -54,28 +48,4 @@ class RecipeSelectorTest {
                 () -> read(attributes));
     }
 
-    @Test
-    void oldSaveAndExplicitlyClearedSelectionHaveDifferentPersistentStates() {
-        var legacy = RecipeProcessor.State.CODEC
-            .parse(JsonOps.INSTANCE, JsonParser.parseString("{}")).getOrThrow();
-        assertTrue(legacy.selection().isEmpty());
-        var cleared = RecipeProcessor.State.CODEC.parse(JsonOps.INSTANCE,
-            JsonParser.parseString("{\"selection\":{}}")).getOrThrow();
-        assertTrue(cleared.selection().isPresent());
-        assertTrue(cleared.selection().orElseThrow().recipe().isEmpty());
-        var selected = RecipeProcessor.State.CODEC
-            .parse(JsonOps.INSTANCE,
-                JsonParser
-                    .parseString("{\"selection\":{\"recipe\":\"test:stone\"}}"))
-            .getOrThrow();
-        assertEquals(ResourceLocation.parse("test:stone"),
-            selected.selection().orElseThrow().recipe().orElseThrow());
-        assertFalse(selected.equals(cleared));
-        for (var state : java.util.List.of(legacy, cleared, selected)) {
-            var encoded = RecipeProcessor.State.CODEC
-                .encodeStart(JsonOps.INSTANCE, state).getOrThrow();
-            assertEquals(state, RecipeProcessor.State.CODEC
-                .parse(JsonOps.INSTANCE, encoded).getOrThrow());
-        }
-    }
 }

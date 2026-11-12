@@ -24,6 +24,7 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import zone.moddev.mc.lib.gui.Screens;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
 import zone.moddev.mc.lib.machine.neoforge.GeneratedMachineRecipes;
 import zone.moddev.mc.lib.machine.neoforge.MachineRecipeTypes;
@@ -62,6 +63,44 @@ public final class MachineRecipeLoadingTests {
     private static void require(boolean condition, String message) {
         if (!condition)
             throw new AssertionError(message);
+    }
+
+    @GameTest(template = "empty")
+    public static void oldSaveAndExplicitlyClearedSelectionHaveDifferentPersistentStates(
+        GameTestHelper h) {
+        var ops = h.getLevel().registryAccess()
+            .createSerializationContext(JsonOps.INSTANCE);
+        var legacy = RecipeProcessor.State.CODEC
+            .parse(ops, JsonParser.parseString("{}")).getOrThrow();
+        require(legacy.selection().isEmpty(),
+            "Legacy saves have no selection setting");
+        var cleared = RecipeProcessor.State.CODEC
+            .parse(ops, JsonParser.parseString("{\"selection\":{}}"))
+            .getOrThrow();
+        require(cleared.selection().isPresent(),
+            "Explicit clearing retains a selection setting");
+        require(cleared.selection().orElseThrow().recipe().isEmpty(),
+            "Explicit clearing retains no recipe");
+        var selected = RecipeProcessor.State.CODEC
+            .parse(ops,
+                JsonParser
+                    .parseString("{\"selection\":{\"recipe\":\"test:stone\"}}"))
+            .getOrThrow();
+        require(
+            selected.selection().orElseThrow().recipe().orElseThrow()
+                .equals(ResourceLocation.parse("test:stone")),
+            "Selected recipe ID is preserved");
+        require(!selected.equals(cleared),
+            "Selected and cleared states remain distinct");
+        for (var state : List.of(legacy, cleared, selected)) {
+            var encoded = RecipeProcessor.State.CODEC.encodeStart(ops, state)
+                .getOrThrow();
+            require(
+                state.equals(RecipeProcessor.State.CODEC.parse(ops, encoded)
+                    .getOrThrow()),
+                "Selection state survives codec round trips");
+        }
+        h.succeed();
     }
 
     @GameTest(template = "empty")
