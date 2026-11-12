@@ -21,10 +21,16 @@ import zone.moddev.mc.lib.machine.neoforge.BasePoweredMachine;
 import zone.moddev.mc.lib.machine.neoforge.MultiblockMembers;
 import zone.moddev.mc.lib.machine.neoforge.MultiblockResources;
 
-/** Minimal consumer; its counter proves that structure holds also gate custom machine hooks. */
-public final class MultiblockDemoEntity extends BasePoweredMachine implements MultiblockResources {
-    public final ItemStorage items = new ItemStorage(1).onChange(this::setChanged);
-    public final FluidStorage fluids = new FluidStorage().onChange(this::setChanged);
+/**
+ * Minimal consumer; its counter proves that structure holds also gate custom
+ * machine hooks.
+ */
+public final class MultiblockDemoEntity extends BasePoweredMachine
+    implements MultiblockResources {
+    public final ItemStorage items = new ItemStorage(1)
+        .onChange(this::setChanged);
+    public final FluidStorage fluids = new FluidStorage()
+        .onChange(this::setChanged);
     private final MultiblockInstance structure;
     private int operations;
     public MultiblockDemoEntity(BlockPos pos, BlockState state) {
@@ -33,11 +39,11 @@ public final class MultiblockDemoEntity extends BasePoweredMachine implements Mu
 
     public MultiblockDemoEntity(BlockPos pos, BlockState state,
         zone.moddev.mc.lib.machine.multiblock.MultiblockDefinition definition) {
-        super(MultiblockDemo.CONTROLLER_TYPE.get(), pos, state, 10000, 1000, 1000);
+        super(MultiblockDemo.CONTROLLER_TYPE.get(), pos, state, 10000, 1000,
+            1000);
         fluids.addTank(4000, Role.STORAGE, stack -> true);
         structure = new MultiblockInstance(this, definition,
-            MultiblockMembers.INSTANCE,
-            new MultiblockInstance.Listener() {
+            MultiblockMembers.INSTANCE, new MultiblockInstance.Listener() {
                 @Override
                 public void dismantling(MultiblockInstance.Cause cause) {
                     features.reset();
@@ -45,11 +51,13 @@ public final class MultiblockDemoEntity extends BasePoweredMachine implements Mu
                         .dismantling() == zone.moddev.mc.lib.machine.multiblock.MultiblockDefinition.Dismantling.LEAVE_BLOCKS)
                         return;
                     items.dropAll(level, worldPosition,
-                        payload -> recoverResources(level, worldPosition, payload));
+                        payload -> recoverResources(level, worldPosition,
+                            payload));
                     if (cause == MultiblockInstance.Cause.SURVIVAL)
                         net.minecraft.world.Containers.dropItemStack(level,
                             worldPosition.getX() + .5,
-                            worldPosition.getY() + .5, worldPosition.getZ() + .5,
+                            worldPosition.getY() + .5,
+                            worldPosition.getZ() + .5,
                             new ItemStack(MultiblockDemo.ITEM.get()));
                 }
             });
@@ -71,7 +79,8 @@ public final class MultiblockDemoEntity extends BasePoweredMachine implements Mu
         return false;
     }
     public net.minecraft.network.chat.Component getStructureStatus() {
-        return net.minecraft.network.chat.Component.literal(structure.status().name());
+        return net.minecraft.network.chat.Component
+            .literal(structure.status().name());
     }
     public int getOperations() {
         return operations;
@@ -83,21 +92,25 @@ public final class MultiblockDemoEntity extends BasePoweredMachine implements Mu
         setChanged();
     }
     @Override
-    protected void saveMachineData(CompoundTag tag, HolderLookup.Provider registries) {
+    protected void saveMachineData(CompoundTag tag,
+        HolderLookup.Provider registries) {
         tag.put("items", items.serializeNBT(registries));
         tag.put("fluids", fluids.serializeNBT(registries));
         tag.putInt("operations", operations);
     }
     @Override
-    protected void loadMachineData(CompoundTag tag, HolderLookup.Provider registries) {
+    protected void loadMachineData(CompoundTag tag,
+        HolderLookup.Provider registries) {
         items.deserializeNBT(registries, tag.getCompound("items"));
         fluids.deserializeNBT(registries, tag.getCompound("fluids"));
         operations = tag.getInt("operations");
     }
     @Override
-    protected void recoverResources(Level world, BlockPos pos, CompoundTag payload) {
-        net.minecraft.world.Containers.dropItemStack(world, pos.getX() + .5, pos.getY() + .5,
-            pos.getZ() + .5, RecoveryCapsuleItem.create(payload));
+    protected void recoverResources(Level world, BlockPos pos,
+        CompoundTag payload) {
+        net.minecraft.world.Containers.dropItemStack(world, pos.getX() + .5,
+            pos.getY() + .5, pos.getZ() + .5,
+            RecoveryCapsuleItem.create(payload));
     }
     @Override
     public IItemHandler multiblockItems(String resource, Direction side) {

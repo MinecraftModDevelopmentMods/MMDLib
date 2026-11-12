@@ -38,7 +38,8 @@ public final class DisabledFaceTests {
     }
 
     @GameTest(template = "empty")
-    public static void policySurvivesModesLoadingRotationAndCachedViews(GameTestHelper h) {
+    public static void policySurvivesModesLoadingRotationAndCachedViews(
+        GameTestHelper h) {
         var sides = new SideConfig(IoMode.BOTH);
         var items = new ItemStorage(2);
         var energy = new EnergyBuffer(1000, 100);
@@ -49,25 +50,32 @@ public final class DisabledFaceTests {
             var side = RelativeFace.RIGHT.toWorld(facing);
             var itemView = items.view(slot -> sides.mode(facing, side));
             var energyView = energy.view(() -> sides.mode(facing, side));
-            require(itemView.insertItem(0, new ItemStack(Items.WHEAT), false).isEmpty(),
-                "Available item input");
-            require(energyView.extractEnergy(10, true) == 10, "Available energy output");
+            require(itemView.insertItem(0, new ItemStack(Items.WHEAT), false)
+                .isEmpty(), "Available item input");
+            require(energyView.extractEnergy(10, true) == 10,
+                "Available energy output");
             sides.disabledFaces(Set.of(RelativeFace.RIGHT));
             sides.set(RelativeFace.RIGHT, IoMode.BOTH);
-            require(sides.cycle(RelativeFace.RIGHT) == IoMode.DISABLED, "Blocked cycling");
+            require(sides.cycle(RelativeFace.RIGHT) == IoMode.DISABLED,
+                "Blocked cycling");
             sides.copyFrom(new SideConfig(IoMode.BOTH));
             require(sides.get(RelativeFace.RIGHT) == IoMode.DISABLED,
                 "Loading modes preserves policy");
-            require(itemView.getSlots() == 2 && !itemView.getStackInSlot(0).isEmpty(),
+            require(
+                itemView.getSlots() == 2
+                    && !itemView.getStackInSlot(0).isEmpty(),
                 "Stable storage indexes and readable contents");
             for (boolean simulate : List.of(true, false)) {
                 require(
-                    itemView.insertItem(1, new ItemStack(Items.WHEAT), simulate).getCount() == 1,
+                    itemView.insertItem(1, new ItemStack(Items.WHEAT), simulate)
+                        .getCount() == 1,
                     "Cached item input refuses");
                 require(itemView.extractItem(0, 1, simulate).isEmpty(),
                     "Cached item output refuses");
-                require(energyView.receiveEnergy(10, simulate) == 0
-                    && energyView.extractEnergy(10, simulate) == 0, "Cached energy refuses");
+                require(
+                    energyView.receiveEnergy(10, simulate) == 0
+                        && energyView.extractEnergy(10, simulate) == 0,
+                    "Cached energy refuses");
             }
             sides.disabledFaces(Set.of());
             require(sides.get(RelativeFace.RIGHT) == IoMode.DISABLED,
@@ -83,14 +91,17 @@ public final class DisabledFaceTests {
     }
 
     @GameTest(template = "empty")
-    public static void redstonePolicyStopsOutputsInputsAndLegacyOutside(GameTestHelper h) {
+    public static void redstonePolicyStopsOutputsInputsAndLegacyOutside(
+        GameTestHelper h) {
         var level = h.getLevel();
         var pos = h.absolutePos(new BlockPos(2, 2, 2));
         int right = RelativeFace.RIGHT.ordinal();
         for (var facing : Direction.Plane.HORIZONTAL) {
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-            level.setBlock(pos, CompanionMod.CRUSHER.block.get().defaultBlockState()
-                .setValue(BlockStateProperties.HORIZONTAL_FACING, facing), 3);
+            level.setBlock(
+                pos, CompanionMod.CRUSHER.block.get().defaultBlockState()
+                    .setValue(BlockStateProperties.HORIZONTAL_FACING, facing),
+                3);
             var machine = (BaseMachine) level.getBlockEntity(pos);
             var control = machine.screenRedstone();
             var direction = RelativeFace.RIGHT.toWorld(facing);
@@ -98,8 +109,10 @@ public final class DisabledFaceTests {
             control.source(right, 0);
             control.inverted(right, true);
             control.updateOutputs();
-            require(control.signal(direction.getOpposite()) == 15
-                && control.connects(direction.getOpposite()), "Emitting before restriction");
+            require(
+                control.signal(direction.getOpposite()) == 15
+                    && control.connects(direction.getOpposite()),
+                "Emitting before restriction");
             var saved = control.save(level.registryAccess());
             control.disabledFaces(Set.of(RelativeFace.RIGHT));
             require(
@@ -113,49 +126,65 @@ public final class DisabledFaceTests {
                 "Blocked edits rejected");
             control.mode(right, RedstoneControl.Mode.READ);
             control.outside(right, true);
-            level.setBlock(pos.relative(direction), Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+            level.setBlock(pos.relative(direction),
+                Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
             control.readInputs();
-            require(!control.paused() && control.incoming(right) == 0, "Unavailable input ignored");
+            require(!control.paused() && control.incoming(right) == 0,
+                "Unavailable input ignored");
             control.migrate(1);
             control.readInputs();
-            require(control.paused(), "Legacy requires power on an available face");
+            require(control.paused(),
+                "Legacy requires power on an available face");
             control.disabledFaces(Set.of(RelativeFace.values()));
-            require(!control.paused(), "All blocked does not pause via Outside or legacy-any");
+            require(!control.paused(),
+                "All blocked does not pause via Outside or legacy-any");
             var client = new RedstoneControl(machine, List.of());
-            client.loadClient(control.saveClient(level.registryAccess()), level.registryAccess());
-            require(client.disabledFaceMask() == 63, "World updates carry policy");
-            require(!control.save(level.registryAccess()).contains("disabled_faces"),
+            client.loadClient(control.saveClient(level.registryAccess()),
+                level.registryAccess());
+            require(client.disabledFaceMask() == 63,
+                "World updates carry policy");
+            require(
+                !control.save(level.registryAccess())
+                    .contains("disabled_faces"),
                 "Disk saves exclude machine policy");
             control.disabledFaces(Set.of());
             require(control.mode(right) == RedstoneControl.Mode.IGNORE,
                 "Re-enabled redstone starts Ignore");
-            level.setBlock(pos.relative(direction), Blocks.AIR.defaultBlockState(), 3);
+            level.setBlock(pos.relative(direction),
+                Blocks.AIR.defaultBlockState(), 3);
         }
         h.succeed();
     }
 
     @GameTest(template = "empty")
     public static void boundedPolicySnapshotsRoundTrip(GameTestHelper h) {
-        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), h.getLevel().registryAccess());
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(),
+            h.getLevel().registryAccess());
         try {
             int mask = 1 << RelativeFace.RIGHT.ordinal();
-            var automation = new AutomationNetwork.State(1, 2, 3, true, 0, true, -1,
-                new String[]{"food"}, new int[6], new long[4], new long[4], new int[]{mask});
+            var automation = new AutomationNetwork.State(1, 2, 3, true, 0, true,
+                -1, new String[]{"food"}, new int[6], new long[4], new long[4],
+                new int[]{mask});
             AutomationNetwork.State.CODEC.encode(buffer, automation);
-            require(AutomationNetwork.State.CODEC.decode(buffer).disabledFaces()[0] == mask,
+            require(
+                AutomationNetwork.State.CODEC.decode(buffer)
+                    .disabledFaces()[0] == mask,
                 "Automation policy round trip");
-            var redstone = new RedstoneNetwork.State(1, 2, 3, 4, true, 0, false, new int[48], 63);
+            var redstone = new RedstoneNetwork.State(1, 2, 3, 4, true, 0, false,
+                new int[48], 63);
             RedstoneNetwork.State.CODEC.encode(buffer, redstone);
-            require(RedstoneNetwork.State.CODEC.decode(buffer).disabledFaces() == 63,
-                "All-blocked redstone round trip");
+            require(RedstoneNetwork.State.CODEC.decode(buffer)
+                .disabledFaces() == 63, "All-blocked redstone round trip");
             try {
-                new RedstoneNetwork.State(1, 2, 3, 4, true, 0, false, new int[48], 64);
+                new RedstoneNetwork.State(1, 2, 3, 4, true, 0, false,
+                    new int[48], 64);
                 throw new AssertionError("Unbounded redstone mask");
             } catch (IllegalArgumentException expected) {
             }
             try {
-                new AutomationNetwork.State(1, 2, 3, true, 0, true, -1, new String[]{"food"},
-                    new int[6], new long[4], new long[4], new int[]{-1});
+                new AutomationNetwork.State(1, 2, 3, true, 0, true, -1,
+                    new String[]{"food"}, new int[6], new long[4], new long[4],
+                    new int[]{-1});
                 throw new AssertionError("Unbounded automation mask");
             } catch (IllegalArgumentException expected) {
             }

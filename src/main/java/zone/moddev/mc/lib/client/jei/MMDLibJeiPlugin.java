@@ -20,8 +20,8 @@ import zone.moddev.mc.lib.common.runtime.ItemEventBridge;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
 /**
- * Optional JEI integration. Only JEI loads this class (via {@link JeiPlugin}); nothing else in
- * MMDLib references it, so MMDLib runs without JEI installed.
+ * Optional JEI integration. Only JEI loads this class (via {@link JeiPlugin});
+ * nothing else in MMDLib references it, so MMDLib runs without JEI installed.
  */
 @JeiPlugin
 public final class MMDLibJeiPlugin implements IModPlugin {
@@ -62,72 +62,63 @@ public final class MMDLibJeiPlugin implements IModPlugin {
             new CrushingCategory(registration.getJeiHelpers().getGuiHelper()));
         var level = Minecraft.getInstance().level;
         for (var type : machineRecipeTypes())
-            registration.addRecipeCategories(
-                MachineRecipeCategory.create(
-                    type,
-                    level == null
-                        ? List.of()
-                        : MachineRecipeCategory.shown(type.recipes(level.getRecipeManager())),
-                    registration.getJeiHelpers()));
+            registration.addRecipeCategories(MachineRecipeCategory.create(type,
+                level == null
+                    ? List.of()
+                    : MachineRecipeCategory
+                        .shown(type.recipes(level.getRecipeManager())),
+                registration.getJeiHelpers()));
     }
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
         var level = Minecraft.getInstance().level;
-        registration.addRecipes(
-            CrushingCategory.TYPE,
+        registration.addRecipes(CrushingCategory.TYPE,
             level == null
                 ? List.of()
-                : level.getRecipeManager().getAllRecipesFor(CrushingRecipe.TYPE.get()));
+                : level.getRecipeManager()
+                    .getAllRecipesFor(CrushingRecipe.TYPE.get()));
         if (level != null)
             for (var type : machineRecipeTypes())
-                registration.addRecipes(
-                    MachineRecipeCategory.recipeType(type),
-                    MachineRecipeCategory.shown(type.recipes(level.getRecipeManager())));
+                registration.addRecipes(MachineRecipeCategory.recipeType(type),
+                    MachineRecipeCategory
+                        .shown(type.recipes(level.getRecipeManager())));
     }
 
     /** Every registered machine recipe type, whichever mod registered it. */
     private static List<MachineRecipeType> machineRecipeTypes() {
         return BuiltInRegistries.RECIPE_TYPE.stream()
             .filter(MachineRecipeType.class::isInstance)
-            .map(MachineRecipeType.class::cast)
-            .toList();
+            .map(MachineRecipeType.class::cast).toList();
     }
 
     /**
-     * Catalysts are found by binding, not class: any item bound to a crackhammer handler, addon
-     * items included.
+     * Catalysts are found by binding, not class: any item bound to a
+     * crackhammer handler, addon items included.
      */
     @Override
-    public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
+    public void registerRecipeCatalysts(
+        IRecipeCatalystRegistration registration) {
         zone.moddev.mc.lib.machine.neoforge.MachineContent.definitions()
-            .forEach(
-                (id, machine) -> registration.addRecipeCatalyst(
-                    new net.minecraft.world.item.ItemStack(BuiltInRegistries.ITEM.get(id)),
-                    MachineRecipeCategory.recipeType(
-                        zone.moddev.mc.lib.machine.neoforge.MachineContent.recipeType(
-                            machine.recipeType().id()))));
+            .forEach((id, machine) -> registration.addRecipeCatalyst(
+                new net.minecraft.world.item.ItemStack(
+                    BuiltInRegistries.ITEM.get(id)),
+                MachineRecipeCategory.recipeType(
+                    zone.moddev.mc.lib.machine.neoforge.MachineContent
+                        .recipeType(machine.recipeType().id()))));
         var materials = MMDLib.itemMaterials();
-        MMDLib.itemDefinitions()
-            .forEach(
-                (id, definition) -> {
-                    var material = materials.get(id);
-                    boolean crackhammer = CrackhammerEvents.CRUSH.equals(
-                        ItemEventBridge.binding(
-                            definition.events(),
-                            material,
-                            MaterialEventTypes.TOOL_RIGHT_CLICK.name()))
-                        || CrackhammerEvents.HARVEST.equals(
-                            ItemEventBridge.binding(
-                                definition.events(),
-                                material,
-                                MaterialEventTypes.TOOL_HARVEST.name()));
-                    if (crackhammer)
-                        BuiltInRegistries.ITEM
-                            .getOptional(id)
-                            .ifPresent(
-                                item -> registration.addRecipeCatalysts(CrushingCategory.TYPE,
-                                    item));
-                });
+        MMDLib.itemDefinitions().forEach((id, definition) -> {
+            var material = materials.get(id);
+            boolean crackhammer = CrackhammerEvents.CRUSH
+                .equals(ItemEventBridge.binding(definition.events(), material,
+                    MaterialEventTypes.TOOL_RIGHT_CLICK.name()))
+                || CrackhammerEvents.HARVEST
+                    .equals(ItemEventBridge.binding(definition.events(),
+                        material, MaterialEventTypes.TOOL_HARVEST.name()));
+            if (crackhammer)
+                BuiltInRegistries.ITEM.getOptional(id)
+                    .ifPresent(item -> registration
+                        .addRecipeCatalysts(CrushingCategory.TYPE, item));
+        });
     }
 }

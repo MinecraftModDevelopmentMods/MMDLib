@@ -26,44 +26,44 @@ public final class GuiGaugeSmoke {
         float[] color = RenderSystem.getShaderColor().clone();
         try {
             for (String id : new String[]{"energy", "water"}) {
-                var gauge = screen.getMenu().bound.screen().find(id).orElseThrow();
+                var gauge = screen.getMenu().bound.screen().find(id)
+                    .orElseThrow();
                 var draw = ElementRenderers.GLOBAL.require(gauge.getClass());
                 for (boolean enabled : new boolean[]{false, true}) {
-                    graphics.drawManaged(
-                        () -> {
-                            if (enabled)
-                                RenderSystem.enableBlend();
-                            else
-                                RenderSystem.disableBlend();
-                            if (enabled)
-                                RenderSystem.disableDepthTest();
-                            else
-                                RenderSystem.enableDepthTest();
-                            RenderSystem.blendFuncSeparate(
-                                GL11.GL_ONE, GL11.GL_ZERO, GL11.GL_ZERO, GL11.GL_ONE);
-                            float[] expectedColor = {.7f, .8f, .9f, .6f};
-                            RenderSystem.setShaderColor(
-                                expectedColor[0], expectedColor[1], expectedColor[2],
-                                expectedColor[3]);
-                            // Deliberately leave a GUI fill queued before the immediate gauge
-                            // texture draws.
-                            graphics.fill(-100, -100, -90, -90, 0x80ffffff);
-                            draw.accept(new ElementRenderers.Context(
-                                graphics,
-                                gauge,
-                                new Rect(-100, -100, 18, 72),
-                                screen.getMenu().value(gauge, false),
-                                screen.getMenu().value(gauge, true),
-                                0, 0, 0));
-                            if (GL11.glIsEnabled(GL11.GL_BLEND) != enabled
-                                || GL11.glIsEnabled(GL11.GL_DEPTH_TEST) == enabled
-                                || !Arrays.equals(
-                                    factors(),
-                                    new int[]{GL11.GL_ONE, GL11.GL_ZERO, GL11.GL_ZERO, GL11.GL_ONE})
-                                || !Arrays.equals(RenderSystem.getShaderColor(), expectedColor))
-                                throw new AssertionError(
-                                    "Gauge leaked render state: " + id + ", blend=" + enabled);
-                        });
+                    graphics.drawManaged(() -> {
+                        if (enabled)
+                            RenderSystem.enableBlend();
+                        else
+                            RenderSystem.disableBlend();
+                        if (enabled)
+                            RenderSystem.disableDepthTest();
+                        else
+                            RenderSystem.enableDepthTest();
+                        RenderSystem.blendFuncSeparate(GL11.GL_ONE,
+                            GL11.GL_ZERO, GL11.GL_ZERO, GL11.GL_ONE);
+                        float[] expectedColor = {.7f, .8f, .9f, .6f};
+                        RenderSystem.setShaderColor(expectedColor[0],
+                            expectedColor[1], expectedColor[2],
+                            expectedColor[3]);
+                        // Deliberately leave a GUI fill queued before the
+                        // immediate gauge
+                        // texture draws.
+                        graphics.fill(-100, -100, -90, -90, 0x80ffffff);
+                        draw.accept(new ElementRenderers.Context(graphics,
+                            gauge, new Rect(-100, -100, 18, 72),
+                            screen.getMenu().value(gauge, false),
+                            screen.getMenu().value(gauge, true), 0, 0, 0));
+                        if (GL11.glIsEnabled(GL11.GL_BLEND) != enabled
+                            || GL11.glIsEnabled(GL11.GL_DEPTH_TEST) == enabled
+                            || !Arrays.equals(factors(),
+                                new int[]{GL11.GL_ONE, GL11.GL_ZERO,
+                                    GL11.GL_ZERO, GL11.GL_ONE})
+                            || !Arrays.equals(RenderSystem.getShaderColor(),
+                                expectedColor))
+                            throw new AssertionError(
+                                "Gauge leaked render state: " + id + ", blend="
+                                    + enabled);
+                    });
                 }
             }
             MMDLib.LOGGER.info(
@@ -71,7 +71,8 @@ public final class GuiGaugeSmoke {
                     + " enable/factors, depth and shader color restored");
         } finally {
             graphics.flush();
-            RenderSystem.blendFuncSeparate(factors[0], factors[1], factors[2], factors[3]);
+            RenderSystem.blendFuncSeparate(factors[0], factors[1], factors[2],
+                factors[3]);
             if (blend)
                 RenderSystem.enableBlend();
             else
@@ -85,11 +86,9 @@ public final class GuiGaugeSmoke {
     }
 
     private static int[] factors() {
-        return new int[]{
-            GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB),
+        return new int[]{GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB),
             GL11.glGetInteger(GL14.GL_BLEND_DST_RGB),
             GL11.glGetInteger(GL14.GL_BLEND_SRC_ALPHA),
-            GL11.glGetInteger(GL14.GL_BLEND_DST_ALPHA)
-        };
+            GL11.glGetInteger(GL14.GL_BLEND_DST_ALPHA)};
     }
 }

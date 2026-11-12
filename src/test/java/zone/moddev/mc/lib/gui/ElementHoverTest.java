@@ -25,8 +25,10 @@ class ElementHoverTest {
     }
 
     private static class Fixture {
-        final Leaf first = new Leaf(Common.empty()), last = new Leaf(Common.empty());
-        final Set<Element> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
+        final Leaf first = new Leaf(Common.empty()),
+            last = new Leaf(Common.empty());
+        final Set<Element> hidden = Collections
+            .newSetFromMap(new IdentityHashMap<>());
         final Map<Element, Rect> bounds = new IdentityHashMap<>();
         final List<String> events = new ArrayList<>();
         Rect viewport = new Rect(0, 0, 20, 20);
@@ -35,8 +37,7 @@ class ElementHoverTest {
         Fixture() {
             bounds.put(first, new Rect(0, 0, 30, 30));
             bounds.put(last, new Rect(0, 0, 30, 30));
-            input = new ElementInput<>(
-                List.of(first, last),
+            input = new ElementInput<>(List.of(first, last),
                 e -> new ElementBehavior() {
                     public void hoverChanged(boolean entered) {
                         events.add(name(e) + ":" + entered);
@@ -45,9 +46,7 @@ class ElementHoverTest {
                     public void removed() {
                         events.add(name(e) + ":removed");
                     }
-                },
-                e -> !hidden.contains(e),
-                bounds::get,
+                }, e -> !hidden.contains(e), bounds::get,
                 (x, y) -> viewport.contains(x, y),
                 (e, entered) -> events.add(name(e) + ":host:" + entered));
             input.update();
@@ -61,7 +60,8 @@ class ElementHoverTest {
     @Test
     void topmostIdentityReceivesOneTransitionAcrossFramesAndMouseEvents() {
         var f = new Fixture();
-        assertEquals(f.first, f.last); // Distinct instances with equal model data.
+        assertEquals(f.first, f.last); // Distinct instances with equal model
+                                       // data.
         f.input.hover(5, 5);
         f.input.hover(5, 5);
         f.input.mouseMoved(6, 6);
@@ -71,21 +71,15 @@ class ElementHoverTest {
         f.hidden.add(f.last);
         f.input.update();
         assertSame(f.first, f.input.hovered());
-        assertEquals(
-            List.of(
-                "last:true",
-                "last:host:true",
-                "last:false",
-                "last:host:false",
-                "first:true",
-                "first:host:true"),
-            f.events);
+        assertEquals(List.of("last:true", "last:host:true", "last:false",
+            "last:host:false", "first:true", "first:host:true"), f.events);
     }
 
     @Test
     void viewportAndGeometryChangesRetargetAStationaryPointer() {
         var f = new Fixture();
-        f.input.hover(25, 5); // Inside element bounds, outside fragment viewport.
+        f.input.hover(25, 5); // Inside element bounds, outside fragment
+                              // viewport.
         assertNull(f.input.hovered());
         f.viewport = new Rect(0, 0, 30, 30);
         f.input.update();
@@ -105,7 +99,8 @@ class ElementHoverTest {
         f.input.hover(5, 5);
         f.input.removed();
         var events = List.copyOf(f.events);
-        assertTrue(events.indexOf("last:false") < events.indexOf("last:removed"));
+        assertTrue(
+            events.indexOf("last:false") < events.indexOf("last:removed"));
         f.input.removed();
         f.input.hover(5, 5);
         f.input.mouseMoved(5, 5);
@@ -124,14 +119,7 @@ class ElementHoverTest {
         assertNull(f.input.hovered());
         f.input.hover(5, 5);
         assertSame(f.last, f.input.hovered());
-        assertEquals(
-            List.of(
-                "last:true",
-                "last:host:true",
-                "last:false",
-                "last:host:false",
-                "last:true",
-                "last:host:true"),
-            f.events);
+        assertEquals(List.of("last:true", "last:host:true", "last:false",
+            "last:host:false", "last:true", "last:host:true"), f.events);
     }
 }

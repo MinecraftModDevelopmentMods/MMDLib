@@ -13,10 +13,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import zone.moddev.mc.lib.machine.multiblock.LinkedMember;
 import zone.moddev.mc.lib.machine.multiblock.MemberLink;
 
-/** Non-ticking physical part; the consuming mod registers its type and blocks. */
+/**
+ * Non-ticking physical part; the consuming mod registers its type and blocks.
+ */
 public class MultiblockPartEntity extends BlockEntity implements LinkedMember {
     private MemberLink link;
-    public MultiblockPartEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+    public MultiblockPartEntity(BlockEntityType<?> type, BlockPos pos,
+        BlockState state) {
         super(type, pos, state);
     }
     @Override
@@ -29,20 +32,25 @@ public class MultiblockPartEntity extends BlockEntity implements LinkedMember {
         setChanged();
         if (level != null) {
             level.invalidateCapabilities(worldPosition);
-            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 2);
+            level.sendBlockUpdated(worldPosition, getBlockState(),
+                getBlockState(), 2);
         }
     }
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    protected void saveAdditional(CompoundTag tag,
+        HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         if (link != null)
             tag.put("member", link.save());
     }
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    protected void loadAdditional(CompoundTag tag,
+        HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         try {
-            link = tag.contains("member") ? MemberLink.load(tag.getCompound("member")) : null;
+            link = tag.contains("member")
+                ? MemberLink.load(tag.getCompound("member"))
+                : null;
         } catch (RuntimeException malformed) {
             link = null;
         }

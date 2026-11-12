@@ -8,7 +8,8 @@ import net.minecraft.network.chat.Component;
 import zone.moddev.mc.lib.api.automation.FilterControl;
 import zone.moddev.mc.lib.gui.layout.Rect;
 
-final class FilterTextBehavior implements ElementBehavior, FilterControlPresentation {
+final class FilterTextBehavior
+    implements ElementBehavior, FilterControlPresentation {
     private final FilterControl.Text element;
     private final ElementAccess access;
     private final EditBox field;
@@ -16,7 +17,8 @@ final class FilterTextBehavior implements ElementBehavior, FilterControlPresenta
     FilterTextBehavior(FilterControl.Text element, ElementAccess access) {
         this.element = element;
         this.access = access;
-        field = new EditBox(access.presentation().font(), 0, 0, 80, 16, element.tooltip());
+        field = new EditBox(access.presentation().font(), 0, 0, 80, 16,
+            element.tooltip());
         field.setMaxLength(element.maxLength());
         sync();
     }
@@ -27,7 +29,8 @@ final class FilterTextBehavior implements ElementBehavior, FilterControlPresenta
         field.setY(r.y());
         field.setWidth(Math.max(12, r.width() - 12));
         if (!field.isFocused())
-            field.setValue(FilterDrawing.configuration(access.value()).getString(element.id()));
+            field.setValue(FilterDrawing.configuration(access.value())
+                .getString(element.id()));
     }
 
     public boolean focusable() {
@@ -69,7 +72,8 @@ final class FilterTextBehavior implements ElementBehavior, FilterControlPresenta
         return field.charTyped(c, modifiers);
     }
 
-    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    public boolean mouseDragged(double x, double y, int button, double dx,
+        double dy) {
         return field.mouseDragged(x, y, button, dx, dy);
     }
 

@@ -31,39 +31,48 @@ final class JeiGhostRenderer<T> implements IIngredientRenderer<T> {
     private final IIngredientRenderer<T> delegate;
     private final BiConsumer<GuiGraphics, T> draw;
 
-    private JeiGhostRenderer(IIngredientRenderer<T> delegate, BiConsumer<GuiGraphics, T> draw) {
+    private JeiGhostRenderer(IIngredientRenderer<T> delegate,
+        BiConsumer<GuiGraphics, T> draw) {
         this.delegate = delegate;
         this.draw = draw;
     }
 
-    static IIngredientRenderer<ItemStack> items(IIngredientRenderer<ItemStack> delegate) {
+    static IIngredientRenderer<ItemStack> items(
+        IIngredientRenderer<ItemStack> delegate) {
         var ghosts = new GhostItems();
         return new JeiGhostRenderer<>(delegate, (graphics, stack) -> {
             ghosts.render(graphics, stack, 0, 0);
-            graphics.renderItemDecorations(Minecraft.getInstance().font, stack, 0, 0);
+            graphics.renderItemDecorations(Minecraft.getInstance().font, stack,
+                0, 0);
         });
     }
 
-    static IIngredientRenderer<FluidStack> fluids(IIngredientRenderer<FluidStack> delegate,
-        long capacity) {
+    static IIngredientRenderer<FluidStack> fluids(
+        IIngredientRenderer<FluidStack> delegate, long capacity) {
         return new JeiGhostRenderer<>(delegate, (graphics, fluid) -> {
             if (fluid.isEmpty())
                 return;
-            int height = (int) Math.max(1, Math.min(16, 16L * fluid.getAmount() / capacity));
+            int height = (int) Math.max(1,
+                Math.min(16, 16L * fluid.getAmount() / capacity));
             var extensions = IClientFluidTypeExtensions.of(fluid.getFluid());
-            var sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS)
+            var sprite = Minecraft.getInstance()
+                .getTextureAtlas(InventoryMenu.BLOCK_ATLAS)
                 .apply(extensions.getStillTexture(fluid));
             int tint = extensions.getTintColor(fluid);
             graphics.flush();
-            graphics.setColor((tint >> 16 & 255) / 255f, (tint >> 8 & 255) / 255f,
-                (tint & 255) / 255f, (tint >>> 24) / 255f * .5f);
-            // GuiGraphics scissor coordinates are screen-relative, whereas JEI translates the
-            // pose into each slot. Convert both corners before clipping the bottom-filled sprite.
+            graphics.setColor((tint >> 16 & 255) / 255f,
+                (tint >> 8 & 255) / 255f, (tint & 255) / 255f,
+                (tint >>> 24) / 255f * .5f);
+            // GuiGraphics scissor coordinates are screen-relative, whereas JEI
+            // translates the
+            // pose into each slot. Convert both corners before clipping the
+            // bottom-filled sprite.
             var matrix = graphics.pose().last().pose();
             var top = matrix.transformPosition(new Vector3f(0, 16 - height, 0));
             var bottom = matrix.transformPosition(new Vector3f(16, 16, 0));
-            graphics.enableScissor((int) Math.floor(top.x()), (int) Math.floor(top.y()),
-                (int) Math.ceil(bottom.x()), (int) Math.ceil(bottom.y()));
+            graphics.enableScissor((int) Math.floor(top.x()),
+                (int) Math.floor(top.y()), (int) Math.ceil(bottom.x()),
+                (int) Math.ceil(bottom.y()));
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             try {
@@ -95,8 +104,9 @@ final class JeiGhostRenderer<T> implements IIngredientRenderer<T> {
     }
 
     @Override
-    public void getTooltip(ITooltipBuilder tooltip, T ingredient, Item.TooltipContext context,
-        @Nullable Player player, TooltipFlag flag) {
+    public void getTooltip(ITooltipBuilder tooltip, T ingredient,
+        Item.TooltipContext context, @Nullable Player player,
+        TooltipFlag flag) {
         delegate.getTooltip(tooltip, ingredient, context, player, flag);
     }
 }

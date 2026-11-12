@@ -24,25 +24,27 @@ import zone.moddev.mc.lib.machine.multiblock.MultiblockController;
 import zone.moddev.mc.lib.machine.multiblock.MultiblockInstance;
 
 /**
- * Optional block wiring for controllers and physical parts; shapes and item interactions are
- * overridable.
+ * Optional block wiring for controllers and physical parts; shapes and item
+ * interactions are overridable.
  */
 public class MultiblockBlock extends Block implements EntityBlock {
     private final Supplier<? extends BlockEntityType<?>> type;
     private final boolean controller;
-    public MultiblockBlock(Properties properties, Supplier<? extends BlockEntityType<?>> type) {
+    public MultiblockBlock(Properties properties,
+        Supplier<? extends BlockEntityType<?>> type) {
         this(properties, type, true);
     }
-    public MultiblockBlock(Properties properties, Supplier<? extends BlockEntityType<?>> type,
-        boolean controller) {
+    public MultiblockBlock(Properties properties,
+        Supplier<? extends BlockEntityType<?>> type, boolean controller) {
         super(properties);
         this.type = type;
         this.controller = controller;
-        registerDefaultState(stateDefinition.any().setValue(BlockStateProperties.HORIZONTAL_FACING,
-            Direction.NORTH));
+        registerDefaultState(stateDefinition.any()
+            .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
     }
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(
+        StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(BlockStateProperties.HORIZONTAL_FACING);
     }
     @Override
@@ -50,18 +52,20 @@ public class MultiblockBlock extends Block implements EntityBlock {
         return type.get().create(pos, state);
     }
     @Override
-    public BlockState rotate(BlockState state, net.minecraft.world.level.block.Rotation rotation) {
-        return state.setValue(BlockStateProperties.HORIZONTAL_FACING,
-            rotation.rotate(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
+    public BlockState rotate(BlockState state,
+        net.minecraft.world.level.block.Rotation rotation) {
+        return state.setValue(BlockStateProperties.HORIZONTAL_FACING, rotation
+            .rotate(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
     }
     @Override
-    public BlockState mirror(BlockState state, net.minecraft.world.level.block.Mirror mirror) {
-        return rotate(state,
-            mirror.getRotation(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
+    public BlockState mirror(BlockState state,
+        net.minecraft.world.level.block.Mirror mirror) {
+        return rotate(state, mirror.getRotation(
+            state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
     }
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
-        BlockEntityType<T> requested) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level,
+        BlockState state, BlockEntityType<T> requested) {
         if (!controller || level.isClientSide || requested != type.get())
             return null;
         return (world, pos, block, entity) -> {
@@ -70,23 +74,26 @@ public class MultiblockBlock extends Block implements EntityBlock {
         };
     }
     @Override
-    protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+    protected void tick(BlockState state, ServerLevel level, BlockPos pos,
+        RandomSource random) {
         MultiblockMembers.reconcile(level, pos);
     }
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
-        Player player, BlockHitResult hit) {
+    protected InteractionResult useWithoutItem(BlockState state, Level level,
+        BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide)
             return InteractionResult.SUCCESS;
         var instance = MultiblockMembers.resolve(level, pos);
-        var entity = instance == null ? level.getBlockEntity(pos) : instance.owner();
+        var entity = instance == null
+            ? level.getBlockEntity(pos)
+            : instance.owner();
         return ScreenRuntime.open(player, entity, pos)
             ? InteractionResult.CONSUME
             : InteractionResult.PASS;
     }
     @Override
-    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state,
-        Player player) {
+    public BlockState playerWillDestroy(Level level, BlockPos pos,
+        BlockState state, Player player) {
         if (!level.isClientSide) {
             var instance = MultiblockMembers.resolve(level, pos);
             if (instance != null)
@@ -97,8 +104,8 @@ public class MultiblockBlock extends Block implements EntityBlock {
         return super.playerWillDestroy(level, pos, state, player);
     }
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement,
-        boolean moved) {
+    protected void onRemove(BlockState state, Level level, BlockPos pos,
+        BlockState replacement, boolean moved) {
         if (!state.is(replacement.getBlock()) && !level.isClientSide
             && !MultiblockPlacement.writing(level, pos)) {
             var entity = level.getBlockEntity(pos);
@@ -106,9 +113,10 @@ public class MultiblockBlock extends Block implements EntityBlock {
             var instance = entity instanceof MultiblockController controller
                 ? controller.multiblock()
                 : null;
-            if (instance == null && link != null && level.hasChunkAt(link.controller())
-                && level
-                    .getBlockEntity(link.controller()) instanceof MultiblockController controller
+            if (instance == null && link != null
+                && level.hasChunkAt(link.controller())
+                && level.getBlockEntity(link
+                    .controller()) instanceof MultiblockController controller
                 && controller.multiblock() != null
                 && controller.multiblock().contains(pos, link))
                 instance = controller.multiblock();

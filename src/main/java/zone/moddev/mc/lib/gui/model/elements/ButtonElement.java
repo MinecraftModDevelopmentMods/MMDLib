@@ -23,10 +23,12 @@ import zone.moddev.mc.lib.gui.value.ValueTypes;
  * {@code button}: a vanilla-style button. Its tooltip is required.
  *
  * <p>
- * {@code text}: the caption, if any {@code icon}: the icon sprite, if any {@code shows}: the view
- * it switches to, if it is a navigation button {@code icons}: optional icons indexed by its boolean
- * or whole-number value {@code valueLabels}: optional translated names for those states in the
- * tooltip {@code flat}: whether to use a compact icon with a flat border and background
+ * {@code text}: the caption, if any {@code icon}: the icon sprite, if any
+ * {@code shows}: the view it switches to, if it is a navigation button
+ * {@code icons}: optional icons indexed by its boolean or whole-number value
+ * {@code valueLabels}: optional translated names for those states in the
+ * tooltip {@code flat}: whether to use a compact icon with a flat border and
+ * background
  */
 public class ButtonElement implements ButtonControl {
     private final Common common;
@@ -37,14 +39,9 @@ public class ButtonElement implements ButtonControl {
     private final List<Text> valueLabels;
     private final boolean flat;
 
-    public ButtonElement(
-        Common common,
-        Optional<Text> text,
-        Optional<ResourceLocation> icon,
-        Optional<ViewRef> shows,
-        List<ResourceLocation> icons,
-        List<Text> valueLabels,
-        boolean flat) {
+    public ButtonElement(Common common, Optional<Text> text,
+        Optional<ResourceLocation> icon, Optional<ViewRef> shows,
+        List<ResourceLocation> icons, List<Text> valueLabels, boolean flat) {
         icons = List.copyOf(icons);
         valueLabels = List.copyOf(valueLabels);
 
@@ -57,21 +54,14 @@ public class ButtonElement implements ButtonControl {
         this.flat = flat;
     }
 
-    public ButtonElement(
-        Common common,
-        Optional<Text> text,
-        Optional<ResourceLocation> icon,
-        Optional<ViewRef> shows) {
+    public ButtonElement(Common common, Optional<Text> text,
+        Optional<ResourceLocation> icon, Optional<ViewRef> shows) {
         this(common, text, icon, shows, List.of(), List.of(), false);
     }
 
-    public ButtonElement(
-        Common common,
-        Optional<Text> text,
-        Optional<ResourceLocation> icon,
-        Optional<ViewRef> shows,
-        List<ResourceLocation> icons,
-        List<Text> valueLabels) {
+    public ButtonElement(Common common, Optional<Text> text,
+        Optional<ResourceLocation> icon, Optional<ViewRef> shows,
+        List<ResourceLocation> icons, List<Text> valueLabels) {
         this(common, text, icon, shows, icons, valueLabels, false);
     }
 
@@ -83,13 +73,16 @@ public class ButtonElement implements ButtonControl {
     }
 
     public Optional<ResourceLocation> iconFor(Object value) {
-        return icons.isEmpty() ? icon : Optional.of(icons.get(stateIndex(value, icons.size())));
+        return icons.isEmpty()
+            ? icon
+            : Optional.of(icons.get(stateIndex(value, icons.size())));
     }
 
     public Optional<Text> labelFor(Object value) {
         return valueLabels.isEmpty()
             ? Optional.empty()
-            : Optional.of(valueLabels.get(stateIndex(value, valueLabels.size())));
+            : Optional
+                .of(valueLabels.get(stateIndex(value, valueLabels.size())));
     }
 
     public int[] measure(TextMeasure measure) {
@@ -109,14 +102,17 @@ public class ButtonElement implements ButtonControl {
     public void validate() {
         ButtonControl.super.validate();
         if (flat && text.isPresent())
-            throw new IllegalArgumentException("A flat button uses an icon, not a text caption");
+            throw new IllegalArgumentException(
+                "A flat button uses an icon, not a text caption");
         if (common.tooltip().isEmpty())
-            throw new IllegalArgumentException("<button> needs a tooltip saying what it does");
+            throw new IllegalArgumentException(
+                "<button> needs a tooltip saying what it does");
         if (text.isEmpty() && icon.isEmpty() && icons.isEmpty())
             throw new IllegalArgumentException("<button> needs text or icon");
         if (!icons.isEmpty() || !valueLabels.isEmpty())
             ValueContract.require(this, "a stateful <button>", false);
-        if (!icons.isEmpty() && !valueLabels.isEmpty() && icons.size() != valueLabels.size())
+        if (!icons.isEmpty() && !valueLabels.isEmpty()
+            && icons.size() != valueLabels.size())
             throw new IllegalArgumentException(
                 "button icons and value-labels must have equal counts");
         if (shows.isPresent() && common.clicks().any())
@@ -128,7 +124,10 @@ public class ButtonElement implements ButtonControl {
         return shows.map(Navigation::new);
     }
 
-    /** Shared navigation action; custom controls declare {@link #navigation()} too. */
+    /**
+     * Shared navigation action; custom controls declare {@link #navigation()}
+     * too.
+     */
     public static final ElementAction<ElementActions.Click> NAVIGATE = Navigation.NAVIGATE;
 
     public Common common() {
@@ -190,20 +189,8 @@ public class ButtonElement implements ButtonControl {
 
     @Override
     public String toString() {
-        return "ButtonElement[common="
-            + common
-            + ", text="
-            + text
-            + ", icon="
-            + icon
-            + ", shows="
-            + shows
-            + ", icons="
-            + icons
-            + ", valueLabels="
-            + valueLabels
-            + ", flat="
-            + flat
-            + "]";
+        return "ButtonElement[common=" + common + ", text=" + text + ", icon="
+            + icon + ", shows=" + shows + ", icons=" + icons + ", valueLabels="
+            + valueLabels + ", flat=" + flat + "]";
     }
 }

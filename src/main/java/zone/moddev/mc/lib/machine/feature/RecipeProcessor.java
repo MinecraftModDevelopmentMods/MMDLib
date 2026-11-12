@@ -34,20 +34,19 @@ import zone.moddev.mc.lib.machine.recipe.MatchResult;
 import zone.moddev.mc.lib.machine.recipe.RecipeMatcher;
 
 /**
- * Runs the recipes of one type on a machine's inventory, one cycle at a time. A cycle reserves its
- * inputs and the room for its products when it starts, draws its energy evenly as it runs, and
- * takes the inputs and makes the products in one step at the end. Nothing leaves a slot or tank
- * before then, so a cycle that never finishes costs only the energy it used.
+ * Runs the recipes of one type on a machine's inventory, one cycle at a time. A
+ * cycle reserves its inputs and the room for its products when it starts, draws
+ * its energy evenly as it runs, and takes the inputs and makes the products in
+ * one step at the end. Nothing leaves a slot or tank before then, so a cycle
+ * that never finishes costs only the energy it used.
  *
  * <p>
- * Several processors may share an inventory; a processor sees what the others reserved.
+ * Several processors may share an inventory; a processor sees what the others
+ * reserved.
  */
 public final class RecipeProcessor
-    implements
-        MachineFeature<RecipeProcessor.State>,
-        IRedstoneOutput,
-        StatsProvider,
-        VisualVariableProvider {
+    implements MachineFeature<RecipeProcessor.State>, IRedstoneOutput,
+    StatsProvider, VisualVariableProvider {
     private static final int SEARCH_RETRY_INTERVAL = 20;
     private final ChangeSignal activityChanges = new ChangeSignal();
     private final ChangeSignal progressChanges = new ChangeSignal();
@@ -65,32 +64,42 @@ public final class RecipeProcessor
         IDLE,
         /** A cycle is running. */
         RUNNING,
-        /** A cycle is waiting for energy; it keeps its progress and reservations. */
+        /**
+         * A cycle is waiting for energy; it keeps its progress and
+         * reservations.
+         */
         STALLED,
         /**
-         * A cycle has run its time but cannot finish, say an input was taken; retried each tick.
+         * A cycle has run its time but cannot finish, say an input was taken;
+         * retried each tick.
          */
         BLOCKED,
-        /** Held by the host's processing gate; progress and reservations are retained. */
+        /**
+         * Held by the host's processing gate; progress and reservations are
+         * retained.
+         */
         HELD,
         /** Held by an interrupt. */
         PAUSED
     }
 
-    /** A status by name; a name it doesn't know is a decoding error, not an exception. */
-    private static final Codec<Status> STATUS_CODEC = Codec.STRING.comapFlatMap(
-        name -> {
+    /**
+     * A status by name; a name it doesn't know is a decoding error, not an
+     * exception.
+     */
+    private static final Codec<Status> STATUS_CODEC = Codec.STRING
+        .comapFlatMap(name -> {
             try {
                 return DataResult.success(Status.valueOf(name));
             } catch (IllegalArgumentException ex) {
-                return DataResult.error(() -> "Unknown processor status " + name);
+                return DataResult
+                    .error(() -> "Unknown processor status " + name);
             }
-        },
-        Status::name);
+        }, Status::name);
 
     /**
-     * The saved form. A cycle that won't decode, say because an item is gone from the game, is
-     * dropped as a whole while the rest of the state is kept.
+     * The saved form. A cycle that won't decode, say because an item is gone
+     * from the game, is dropped as a whole while the rest of the state is kept.
      *
      * @param paused
      *            whether an interrupt holds the processor
@@ -99,51 +108,56 @@ public final class RecipeProcessor
      * @param resumeRecipe
      *            the recipe a pause or a resume is waiting to reserve again
      * @param resumeTime
-     *            the time that recipe took, so progress is dropped if its time changed
+     *            the time that recipe took, so progress is dropped if its time
+     *            changed
      * @param cycle
      *            the running cycle
      * @param status
-     *            what the processor was doing; loading works it out again, and only a client takes
-     *            it from here. A name this version doesn't know reads as empty, which loses nothing
-     *            else.
+     *            what the processor was doing; loading works it out again, and
+     *            only a client takes it from here. A name this version doesn't
+     *            know reads as empty, which loses nothing else.
      */
-    public record State(
-        boolean paused,
-        int progress,
-        Optional<ResourceLocation> resumeRecipe,
-        int resumeTime,
-        Optional<CyclePlan> cycle,
-        Optional<Status> status,
+    public record State(boolean paused, int progress,
+        Optional<ResourceLocation> resumeRecipe, int resumeTime,
+        Optional<CyclePlan> cycle, Optional<Status> status,
         Optional<Selection> selection) {
-        public State(boolean paused, int progress, Optional<ResourceLocation> resumeRecipe,
-            int resumeTime, Optional<CyclePlan> cycle, Optional<Status> status) {
-            this(paused, progress, resumeRecipe, resumeTime, cycle, status, Optional.empty());
+        public State(boolean paused, int progress,
+            Optional<ResourceLocation> resumeRecipe, int resumeTime,
+            Optional<CyclePlan> cycle, Optional<Status> status) {
+            this(paused, progress, resumeRecipe, resumeTime, cycle, status,
+                Optional.empty());
         }
         /** The save form. */
-        public static final Codec<State> CODEC = RecordCodecBuilder.create(
-            instance -> instance
-                .group(
-                    Codec.BOOL.optionalFieldOf("paused", false).forGetter(State::paused),
-                    Codec.intRange(0, Integer.MAX_VALUE)
-                        .optionalFieldOf("progress", 0)
-                        .forGetter(State::progress),
-                    ResourceLocation.CODEC
-                        .optionalFieldOf("resume_recipe")
-                        .forGetter(State::resumeRecipe),
-                    Codec.intRange(0, Integer.MAX_VALUE)
-                        .optionalFieldOf("resume_time", 0)
-                        .forGetter(State::resumeTime),
-                    CyclePlan.CODEC.lenientOptionalFieldOf("cycle").forGetter(State::cycle),
-                    STATUS_CODEC.lenientOptionalFieldOf("status").forGetter(State::status),
-                    Selection.CODEC.optionalFieldOf("selection").forGetter(State::selection))
+        public static final Codec<State> CODEC = RecordCodecBuilder
+            .create(instance -> instance.group(
+                Codec.BOOL.optionalFieldOf("paused", false)
+                    .forGetter(State::paused),
+                Codec.intRange(0, Integer.MAX_VALUE)
+                    .optionalFieldOf("progress", 0).forGetter(State::progress),
+                ResourceLocation.CODEC.optionalFieldOf("resume_recipe")
+                    .forGetter(State::resumeRecipe),
+                Codec.intRange(0, Integer.MAX_VALUE)
+                    .optionalFieldOf("resume_time", 0)
+                    .forGetter(State::resumeTime),
+                CyclePlan.CODEC.lenientOptionalFieldOf("cycle")
+                    .forGetter(State::cycle),
+                STATUS_CODEC.lenientOptionalFieldOf("status")
+                    .forGetter(State::status),
+                Selection.CODEC.optionalFieldOf("selection")
+                    .forGetter(State::selection))
                 .apply(instance, State::new));
     }
 
-    /** An explicitly empty selection differs from old saves that predate selection. */
+    /**
+     * An explicitly empty selection differs from old saves that predate
+     * selection.
+     */
     public record Selection(Optional<ResourceLocation> recipe) {
-        public static final Codec<Selection> CODEC = RecordCodecBuilder.create(instance -> instance
-            .group(ResourceLocation.CODEC.optionalFieldOf("recipe").forGetter(Selection::recipe))
-            .apply(instance, Selection::new));
+        public static final Codec<Selection> CODEC = RecordCodecBuilder
+            .create(instance -> instance
+                .group(ResourceLocation.CODEC.optionalFieldOf("recipe")
+                    .forGetter(Selection::recipe))
+                .apply(instance, Selection::new));
     }
 
     private boolean selectionEnabled;
@@ -151,11 +165,14 @@ public final class RecipeProcessor
     private ResourceLocation clientActiveRecipe;
     private Object recipeSnapshot;
     private long recipeRevision;
-    private List<RecipeHolder<MachineRecipeEntry>> choices = List
-        .of();
+    private List<RecipeHolder<MachineRecipeEntry>> choices = List.of();
 
-    /** Enable explicit selection before loading saved state. Null means initially stopped. */
-    public RecipeProcessor selectable(@Nullable ResourceLocation defaultRecipe) {
+    /**
+     * Enable explicit selection before loading saved state. Null means
+     * initially stopped.
+     */
+    public RecipeProcessor selectable(
+        @Nullable ResourceLocation defaultRecipe) {
         selectionEnabled = true;
         selectedRecipe = defaultRecipe;
         return this;
@@ -173,7 +190,10 @@ public final class RecipeProcessor
             : resumeRecipe != null ? resumeRecipe : clientActiveRecipe);
     }
 
-    /** Only this processor's recipes can be selected; null explicitly stops new cycles. */
+    /**
+     * Only this processor's recipes can be selected; null explicitly stops new
+     * cycles.
+     */
     public boolean selectRecipe(Level level, @Nullable ResourceLocation id) {
         if (!selectionEnabled || level.isClientSide)
             return false;
@@ -188,8 +208,8 @@ public final class RecipeProcessor
         return true;
     }
 
-    public Optional<RecipeHolder<MachineRecipeEntry>> selectedEntry(
-        Level level, ResourceLocation id) {
+    public Optional<RecipeHolder<MachineRecipeEntry>> selectedEntry(Level level,
+        ResourceLocation id) {
         var holder = level.getRecipeManager().byKey(id).orElse(null);
         if (holder != null && holder.value() instanceof MachineRecipeEntry entry
             && entry.type() == type)
@@ -197,16 +217,17 @@ public final class RecipeProcessor
         return Optional.empty();
     }
 
-    /** Indexed once per recipe-manager snapshot, never rebuilt on ordinary machine ticks. */
-    public List<RecipeHolder<MachineRecipeEntry>> recipeChoices(
-        Level level) {
+    /**
+     * Indexed once per recipe-manager snapshot, never rebuilt on ordinary
+     * machine ticks.
+     */
+    public List<RecipeHolder<MachineRecipeEntry>> recipeChoices(Level level) {
         var snapshot = level.getRecipeManager().getRecipes();
         if (recipeSnapshot != snapshot) {
             recipeSnapshot = snapshot;
             recipeRevision++;
             choices = type.recipes(level.getRecipeManager()).stream()
-                .sorted(java.util.Comparator
-                    .comparing(RecipeHolder::id))
+                .sorted(java.util.Comparator.comparing(RecipeHolder::id))
                 .toList();
         }
         return choices;
@@ -217,8 +238,7 @@ public final class RecipeProcessor
         return recipeRevision;
     }
 
-    public MatchResult recipeAvailability(
-        MachineRecipeEntry entry) {
+    public MatchResult recipeAvailability(MachineRecipeEntry entry) {
         return RecipeMatcher.check(entry.recipe(), inventory);
     }
 
@@ -241,7 +261,10 @@ public final class RecipeProcessor
     private java.math.BigInteger completedCycles = java.math.BigInteger.ZERO;
     private final Component displayName;
 
-    /** Successful recipe completions during this processor instance's lifetime; not saved. */
+    /**
+     * Successful recipe completions during this processor instance's lifetime;
+     * not saved.
+     */
     public java.math.BigInteger completedCycles() {
         return completedCycles;
     }
@@ -255,20 +278,26 @@ public final class RecipeProcessor
     @Nullable
     private CyclePlan justFinished;
     private int syncedTime;
-    // Failed searches retry once per second, including changes in custom groups and recipe reloads.
+    // Failed searches retry once per second, including changes in custom groups
+    // and recipe reloads.
     private int searchDelay;
     private long[] searchedRevisions = new long[0];
 
     /**
-     * A processor saved under {@code key} that runs recipes of {@code type} on {@code inventory}.
+     * A processor saved under {@code key} that runs recipes of {@code type} on
+     * {@code inventory}.
      */
-    public RecipeProcessor(String key, MachineRecipeType type, MachineInventory inventory) {
+    public RecipeProcessor(String key, MachineRecipeType type,
+        MachineInventory inventory) {
         this(key, type, inventory, Component.literal(key));
     }
 
-    /** A processor with a translated display name for its redstone output entries. */
-    public RecipeProcessor(
-        String key, MachineRecipeType type, MachineInventory inventory, Component displayName) {
+    /**
+     * A processor with a translated display name for its redstone output
+     * entries.
+     */
+    public RecipeProcessor(String key, MachineRecipeType type,
+        MachineInventory inventory, Component displayName) {
         this.key = key;
         outputPrefix = outputPrefix(key);
         this.displayName = displayName.copy();
@@ -276,39 +305,37 @@ public final class RecipeProcessor
         this.type = type;
         lookup = type.lookup();
         redstoneOutputs = List.of(
-            output(
-                "processing", displayName, "icon_resume", 0x64d870, () -> redstoneRunning ? 15 : 0),
-            output("inactive", displayName, "icon_pause", 0xf0c646, () -> redstoneRunning ? 0 : 15),
-            output(
-                "progress",
-                displayName,
-                "icon_processor_progress",
-                0x85d2ff,
+            output("processing", displayName, "icon_resume", 0x64d870,
+                () -> redstoneRunning ? 15 : 0),
+            output("inactive", displayName, "icon_pause", 0xf0c646,
+                () -> redstoneRunning ? 0 : 15),
+            output("progress", displayName, "icon_processor_progress", 0x85d2ff,
                 this::redstoneProgress));
     }
 
-    // Persistence keys predate redstone IDs and may contain arbitrary characters. Preserve
-    // existing compatible IDs; use a separate namespace for stable, bounded fallback IDs.
+    // Persistence keys predate redstone IDs and may contain arbitrary
+    // characters. Preserve
+    // existing compatible IDs; use a separate namespace for stable, bounded
+    // fallback IDs.
     private static String outputPrefix(String key) {
         if (key.matches("[a-z0-9_.:/-]{1,107}"))
             return "processor/" + key;
         try {
             var digest = java.security.MessageDigest.getInstance("SHA-256");
-            return "processor-key/"
-                + java.util.HexFormat.of()
-                    .formatHex(
-                        digest.digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            return "processor-key/" + java.util.HexFormat.of().formatHex(digest
+                .digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         } catch (java.security.NoSuchAlgorithmException impossible) {
             throw new AssertionError(impossible);
         }
     }
 
-    private RedstoneOutput output(
-        String kind, Component name, String icon, int colour, IntSupplier value) {
-        return new RedstoneOutput(
-            outputPrefix + "/" + kind,
-            Component.translatable("screen.mmdlib.redstone.source." + kind, name),
-            Component.translatable("screen.mmdlib.redstone.source." + kind + ".info", name),
+    private RedstoneOutput output(String kind, Component name, String icon,
+        int colour, IntSupplier value) {
+        return new RedstoneOutput(outputPrefix + "/" + kind,
+            Component.translatable("screen.mmdlib.redstone.source." + kind,
+                name),
+            Component.translatable(
+                "screen.mmdlib.redstone.source." + kind + ".info", name),
             colour,
             Optional.of(ResourceLocation.fromNamespaceAndPath("mmdlib", icon)),
             value);
@@ -322,8 +349,12 @@ public final class RecipeProcessor
     private int redstoneProgress() {
         if (justFinished != null)
             return 15;
-        int duration = cycle != null ? cycle.time() : resumeRecipe != null ? resumeTime : 0;
-        return duration > 0 ? RedstoneControl.level((double) progress / duration) : 0;
+        int duration = cycle != null
+            ? cycle.time()
+            : resumeRecipe != null ? resumeTime : 0;
+        return duration > 0
+            ? RedstoneControl.level((double) progress / duration)
+            : 0;
     }
 
     @Override
@@ -354,14 +385,11 @@ public final class RecipeProcessor
 
     @Override
     public State state() {
-        return new State(
-            paused,
-            progress,
-            Optional.ofNullable(resumeRecipe),
-            resumeTime,
-            Optional.ofNullable(cycle),
-            Optional.of(status),
-            selectionEnabled ? Optional.of(new Selection(selectedRecipe())) : Optional.empty());
+        return new State(paused, progress, Optional.ofNullable(resumeRecipe),
+            resumeTime, Optional.ofNullable(cycle), Optional.of(status),
+            selectionEnabled
+                ? Optional.of(new Selection(selectedRecipe()))
+                : Optional.empty());
     }
 
     @Override
@@ -370,14 +398,17 @@ public final class RecipeProcessor
     }
 
     /**
-     * Takes on the state a client is sent: the status, whether it is paused, the progress as of the
-     * send and the time of the cycle. The reservations are the server's, so the cycle is not put
-     * back and nothing is reserved. While paused, {@link #time} is 0 and {@link #progress} is the
-     * ticks kept, so a progress bar should not divide by {@code time()} without checking it.
+     * Takes on the state a client is sent: the status, whether it is paused,
+     * the progress as of the send and the time of the cycle. The reservations
+     * are the server's, so the cycle is not put back and nothing is reserved.
+     * While paused, {@link #time} is 0 and {@link #progress} is the ticks kept,
+     * so a progress bar should not divide by {@code time()} without checking
+     * it.
      */
     @Override
     public void restoreOnClient(State state) {
-        state.selection().ifPresent(value -> selectedRecipe = value.recipe().orElse(null));
+        state.selection()
+            .ifPresent(value -> selectedRecipe = value.recipe().orElse(null));
         clientActiveRecipe = state.cycle().map(CyclePlan::recipe)
             .orElse(state.resumeRecipe().orElse(null));
         paused = state.paused();
@@ -387,18 +418,20 @@ public final class RecipeProcessor
     }
 
     /**
-     * Takes on saved state. A running cycle is released first, since the storages keep their plans
-     * when they load their contents. A saved cycle whose plan can't be put back cancels, and the
-     * processor goes back to searching.
+     * Takes on saved state. A running cycle is released first, since the
+     * storages keep their plans when they load their contents. A saved cycle
+     * whose plan can't be put back cancels, and the processor goes back to
+     * searching.
      *
      * <p>
-     * Load the storages before the {@link FeatureHost} loads, so the inputs are in place for the
-     * plan to check.
+     * Load the storages before the {@link FeatureHost} loads, so the inputs are
+     * in place for the plan to check.
      */
     @Override
     public void restore(State state) {
         if (selectionEnabled)
-            state.selection().ifPresent(value -> selectedRecipe = value.recipe().orElse(null));
+            state.selection().ifPresent(
+                value -> selectedRecipe = value.recipe().orElse(null));
         if (cycle != null)
             cycle.release(inventory);
         cycle = null;
@@ -410,17 +443,23 @@ public final class RecipeProcessor
         resumeRecipe = state.resumeRecipe().orElse(null);
         resumeTime = state.resumeTime();
         progress = resumeRecipe == null ? 0 : state.progress();
-        var saved = state.cycle().filter(plan -> !paused && holds(plan)).orElse(null);
+        var saved = state.cycle().filter(plan -> !paused && holds(plan))
+            .orElse(null);
         if (saved != null) {
             cycle = saved;
             progress = Math.min(state.progress(), saved.time());
         }
-        status = paused ? Status.PAUSED : cycle == null ? Status.IDLE : Status.RUNNING;
+        status = paused
+            ? Status.PAUSED
+            : cycle == null ? Status.IDLE : Status.RUNNING;
         activityChanges.changed();
         progressChanges.changed();
     }
 
-    /** Whether the plan's energy groups are there and its reservations can be put back. */
+    /**
+     * Whether the plan's energy groups are there and its reservations can be
+     * put back.
+     */
     private boolean holds(CyclePlan plan) {
         for (var key : plan.energy().keySet())
             if (!(inventory.group(key).orElse(null) instanceof EnergyGroup))
@@ -434,8 +473,8 @@ public final class RecipeProcessor
     }
 
     /**
-     * Actual server-tick activity, including the completion tick; false while the host is
-     * suspended.
+     * Actual server-tick activity, including the completion tick; false while
+     * the host is suspended.
      */
     public boolean processing() {
         return redstoneRunning;
@@ -447,15 +486,19 @@ public final class RecipeProcessor
     }
 
     /**
-     * Pauses the processor: stops drawing energy, releases the running cycle's reservations so its
-     * items can be taken, and starts nothing new until {@link #resume}. Works without power and
-     * whatever the status. The recipe and progress are kept for the resume.
+     * Pauses the processor: stops drawing energy, releases the running cycle's
+     * reservations so its items can be taken, and starts nothing new until
+     * {@link #resume}. Works without power and whatever the status. The recipe
+     * and progress are kept for the resume.
      */
     public void interrupt() {
         pause();
     }
 
-    /** Pauses manually, preserving resumable progress and releasing item/fluid reservations. */
+    /**
+     * Pauses manually, preserving resumable progress and releasing item/fluid
+     * reservations.
+     */
     public void pause() {
         if (paused)
             return;
@@ -475,8 +518,9 @@ public final class RecipeProcessor
     }
 
     /**
-     * Lets a paused processor run again. The next tick reserves the paused recipe again if it still
-     * can, and continues its progress; otherwise progress is lost and the processor searches.
+     * Lets a paused processor run again. The next tick reserves the paused
+     * recipe again if it still can, and continues its progress; otherwise
+     * progress is lost and the processor searches.
      */
     public void resume() {
         if (!paused)
@@ -490,7 +534,10 @@ public final class RecipeProcessor
         progressChanges.changed();
     }
 
-    /** Sets the manual pause independently of redstone and other host processing gates. */
+    /**
+     * Sets the manual pause independently of redstone and other host processing
+     * gates.
+     */
     public void setPaused(boolean value) {
         if (value)
             pause();
@@ -498,7 +545,9 @@ public final class RecipeProcessor
             resume();
     }
 
-    /** Cancels work, releases reservations and forgets progress and pause state. */
+    /**
+     * Cancels work, releases reservations and forgets progress and pause state.
+     */
     public void reset() {
         if (cycle != null)
             cycle.release(inventory);
@@ -522,22 +571,25 @@ public final class RecipeProcessor
         var plan = cycle != null ? cycle : justFinished;
         var maximum = plan == null
             ? new Statistics.Text(Statistics.label("no_recipe"))
-            : (Statistics.Value) new Statistics.Rate(java.math.BigInteger.ONE, plan.time());
+            : (Statistics.Value) new Statistics.Rate(java.math.BigInteger.ONE,
+                plan.time());
         var uses = new java.util.ArrayList<Statistics.EnergyUse>();
         if (plan != null)
             for (var need : plan.energy().entrySet()) {
-                if (inventory.group(need.getKey()).orElse(null) instanceof EnergyGroup group) {
+                if (inventory.group(need.getKey())
+                    .orElse(null) instanceof EnergyGroup group) {
                     long total = need.getValue();
-                    long peak = total / plan.time() + (total % plan.time() == 0 ? 0 : 1);
+                    long peak = total / plan.time()
+                        + (total % plan.time() == 0 ? 0 : 1);
                     uses.add(
-                        new Statistics.EnergyUse(
-                            group.statisticsResource(), java.math.BigInteger.valueOf(peak)));
+                        new Statistics.EnergyUse(group.statisticsResource(),
+                            java.math.BigInteger.valueOf(peak)));
                 }
             }
-        return new Statistics(
-            displayName,
+        return new Statistics(displayName,
             java.util.List.of(
-                Statistics.cycles("cycles", new Statistics.Counter(completedCycles, 1200)),
+                Statistics.cycles("cycles",
+                    new Statistics.Counter(completedCycles, 1200)),
                 Statistics.cycles("cycles_max", maximum)),
             uses);
     }
@@ -553,8 +605,9 @@ public final class RecipeProcessor
     }
 
     /**
-     * Ticks the running cycle takes; 0 when idle, and also 0 when paused, though {@link #progress}
-     * then holds the kept ticks. On a client, {@code status} and this are current, and {@code
+     * Ticks the running cycle takes; 0 when idle, and also 0 when paused,
+     * though {@link #progress} then holds the kept ticks. On a client,
+     * {@code status} and this are current, and {@code
      * progress} is as of the last status change.
      */
     public int time() {
@@ -562,10 +615,10 @@ public final class RecipeProcessor
     }
 
     /**
-     * Runs a tick, then asks for a sync if what clients see differs from the last thing asked for.
-     * On the tick that finishes a cycle the processor is idle only until the next tick starts the
-     * next cycle; clients are shown that tick as the cycle still running, so they never read the
-     * gap.
+     * Runs a tick, then asks for a sync if what clients see differs from the
+     * last thing asked for. On the tick that finishes a cycle the processor is
+     * idle only until the next tick starts the next cycle; clients are shown
+     * that tick as the cycle still running, so they never read the gap.
      */
     @Override
     public void tick(FeatureHost host) {
@@ -573,7 +626,8 @@ public final class RecipeProcessor
             progressChanges.changed();
         justFinished = null;
         run(host);
-        redstoneRunning = !paused && (status == Status.RUNNING || justFinished != null);
+        redstoneRunning = !paused
+            && (status == Status.RUNNING || justFinished != null);
         syncStatus(host);
     }
 
@@ -589,22 +643,20 @@ public final class RecipeProcessor
     }
 
     /**
-     * What clients are sent. It is {@link #state} except on the tick that finishes a cycle, when
-     * the finished cycle still shows as running so the one idle tick before the next cycle starts
-     * is not sent. That tick is never saved: {@link #state} says idle and holds no cycle.
+     * What clients are sent. It is {@link #state} except on the tick that
+     * finishes a cycle, when the finished cycle still shows as running so the
+     * one idle tick before the next cycle starts is not sent. That tick is
+     * never saved: {@link #state} says idle and holds no cycle.
      */
     @Override
     public State clientState() {
         if (justFinished == null)
             return state();
-        return new State(
-            false,
-            justFinished.time(),
-            Optional.empty(),
-            0,
-            Optional.of(justFinished),
-            Optional.of(Status.RUNNING),
-            selectionEnabled ? Optional.of(new Selection(selectedRecipe())) : Optional.empty());
+        return new State(false, justFinished.time(), Optional.empty(), 0,
+            Optional.of(justFinished), Optional.of(Status.RUNNING),
+            selectionEnabled
+                ? Optional.of(new Selection(selectedRecipe()))
+                : Optional.empty());
     }
 
     private void run(FeatureHost host) {
@@ -618,7 +670,8 @@ public final class RecipeProcessor
             return;
         }
         var level = host.level();
-        if (cycle == null && (resumeRecipe == null || !reserveAgain(level, host))) {
+        if (cycle == null
+            && (resumeRecipe == null || !reserveAgain(level, host))) {
             start(level, host);
             return;
         }
@@ -647,8 +700,9 @@ public final class RecipeProcessor
     }
 
     /**
-     * Reserves the paused recipe again if it still exists and fits. Progress is kept only if the
-     * recipe takes as long as it did; if it can't be reserved, the processor searches instead.
+     * Reserves the paused recipe again if it still exists and fits. Progress is
+     * kept only if the recipe takes as long as it did; if it can't be reserved,
+     * the processor searches instead.
      */
     private boolean reserveAgain(Level level, FeatureHost host) {
         var id = resumeRecipe;
@@ -656,12 +710,10 @@ public final class RecipeProcessor
         host.markChanged();
         CyclePlan plan = null;
         var holder = level.getRecipeManager().byKey(id).orElse(null);
-        if (holder != null
-            && holder.value() instanceof MachineRecipeEntry entry
+        if (holder != null && holder.value() instanceof MachineRecipeEntry entry
             && entry.type() == type) {
             plan = CyclePlan.of(id, entry.recipe(), inventory, true)
-                .filter(found -> found.reserve(inventory))
-                .orElse(null);
+                .filter(found -> found.reserve(inventory)).orElse(null);
         }
         if (plan == null) {
             progress = 0;
@@ -675,20 +727,26 @@ public final class RecipeProcessor
         return true;
     }
 
-    /** Reserves a cycle if a recipe can run. The starting tick draws no energy. */
+    /**
+     * Reserves a cycle if a recipe can run. The starting tick draws no energy.
+     */
     private void start(Level level, FeatureHost host) {
         if (searchDelay > 0 && inventory.unchanged(searchedRevisions)) {
             searchDelay--;
             return;
         }
         var found = selectionEnabled
-            ? selectedRecipe == null ? null : selectedEntry(level, selectedRecipe).orElse(null)
+            ? selectedRecipe == null
+                ? null
+                : selectedEntry(level, selectedRecipe).orElse(null)
             : lookup.find(level, inventory).orElse(null);
-        if (selectionEnabled && found != null && !recipeAvailability(found.value()).ok())
+        if (selectionEnabled && found != null
+            && !recipeAvailability(found.value()).ok())
             found = null;
         var plan = found == null
             ? null
-            : CyclePlan.of(found.id(), found.value().recipe(), inventory).orElse(null);
+            : CyclePlan.of(found.id(), found.value().recipe(), inventory)
+                .orElse(null);
         if (plan == null || !plan.reserve(inventory)) {
             searchDelay = SEARCH_RETRY_INTERVAL - 1;
             searchedRevisions = inventory.revisions();
@@ -705,15 +763,19 @@ public final class RecipeProcessor
     /** Draws this tick's energy from every energy group, or none of it. */
     private boolean draw() {
         for (var need : cycle.energy().entrySet()) {
-            long share = EnergySchedule.share(need.getValue(), cycle.time(), progress);
-            if (!(inventory.group(need.getKey()).orElse(null) instanceof EnergyGroup group)
+            long share = EnergySchedule.share(need.getValue(), cycle.time(),
+                progress);
+            if (!(inventory.group(need.getKey())
+                .orElse(null) instanceof EnergyGroup group)
                 || group.stored() < share)
                 return false;
         }
         try (var tx = inventory.begin()) {
             for (var need : cycle.energy().entrySet()) {
-                long share = EnergySchedule.share(need.getValue(), cycle.time(), progress);
-                if (!(inventory.group(need.getKey()).orElse(null) instanceof EnergyGroup group)
+                long share = EnergySchedule.share(need.getValue(), cycle.time(),
+                    progress);
+                if (!(inventory.group(need.getKey())
+                    .orElse(null) instanceof EnergyGroup group)
                     || group.consume(share, tx) < share)
                     return false;
             }

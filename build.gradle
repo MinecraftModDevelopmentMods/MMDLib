@@ -9,6 +9,7 @@ plugins {
 
 // Import-block step for Spotless and its fixture tests (docs/code-format.md).
 apply from: 'gradle/import-blocks.gradle'
+apply from: 'gradle/line-limit.gradle'
 
 def env = System.getenv()
 def tag = providers.environmentVariable('TAG')
@@ -224,12 +225,18 @@ tasks.named('javadoc', Javadoc) {
 }
 
 // Formatting (docs/code-format.md): Eclipse JDT with the shared profile in
-// gradle/java-formatter.xml (VS Code uses the same one), then the import-block step.
+// gradle/java-formatter.xml (VS Code uses the same one), then the import-block step. Lines the
+// formatter can't wrap below 80 may run to 120; `lineLimit` (gradle/line-limit.gradle) warns past
+// that, without failing.
 // Ratcheted: only files changed since the base branch are checked and formatted, so code is
 // brought over to this style as it is next edited. Never reformat unrelated files in a change.
 // spotlessCheck is part of check/build; `./gradlew spotlessApply` (or `format`) fixes files.
+// `-PformatAll` drops the ratchet, so the whole tree is checked or formatted: use it once after
+// changing the style, in its own commit (listed in .git-blame-ignore-revs).
 spotless {
-    ratchetFrom 'origin/master-2.0-1.21.1-neo'
+    if (!providers.gradleProperty('formatAll').isPresent()) {
+        ratchetFrom 'origin/master-2.0-1.21.1-neo'
+    }
     java {
         target 'src/**/*.java'
         eclipse('4.35')

@@ -26,14 +26,14 @@ import zone.moddev.mc.lib.gui.model.Element;
 
 class IngredientDropsTest {
     static final IngredientType<StringBuilder> TYPE = new IngredientType<>(
-        ResourceLocation.parse("test:text"),
-        StringBuilder.class,
+        ResourceLocation.parse("test:text"), StringBuilder.class,
         value -> new StringBuilder(value.toString()));
 
     record Display(Common common) implements Element {
     }
 
-    static final class Provider implements ElementBehavior, IngredientDropHandler {
+    static final class Provider
+        implements ElementBehavior, IngredientDropHandler {
         boolean enabled = true, duplicate;
         int received;
         Rect bounds = new Rect(5, 5, 20, 20);
@@ -42,15 +42,12 @@ class IngredientDropsTest {
             if (!enabled || !type.equals(TYPE))
                 return List.of();
             ((StringBuilder) value).append(" discovery copy");
-            var target = new Target<T>(
-                "primary",
-                bounds,
-                next -> {
-                    assertEquals("hello", next.toString());
-                    ((StringBuilder) next).append(" received copy");
-                    received++;
-                    return true;
-                });
+            var target = new Target<T>("primary", bounds, next -> {
+                assertEquals("hello", next.toString());
+                ((StringBuilder) next).append(" received copy");
+                received++;
+                return true;
+            });
             return duplicate ? List.of(target, target) : List.of(target);
         }
     }
@@ -86,14 +83,16 @@ class IngredientDropsTest {
     }
 
     private List<IngredientDropHandler.Target<StringBuilder>> targets() {
-        return IngredientDrops.targets(access, List.of(element), TYPE, original);
+        return IngredientDrops.targets(access, List.of(element), TYPE,
+            original);
     }
 
     @Test
     void registeredModBehaviorSuppliesNonItemDropsWithoutMutatingViewerValues() {
         var registry = new ElementBehaviors();
         registry.register(Display.class, (e, a) -> provider);
-        access.behavior = registry.create(new ElementBehaviorsTest.Access(element));
+        access.behavior = registry
+            .create(new ElementBehaviorsTest.Access(element));
         var targets = targets();
         assertEquals(1, targets.size());
         assertEquals(new Rect(5, 5, 15, 15), targets.getFirst().bounds());
@@ -121,9 +120,10 @@ class IngredientDropsTest {
 
     @Test
     void differentIngredientIdentitiesAndMissingCapabilitiesProduceNoTargets() {
-        var other = new IngredientType<>(
-            ResourceLocation.parse("test:other"), StringBuilder.class, TYPE.copy());
-        assertTrue(IngredientDrops.targets(access, List.of(element), other, original).isEmpty());
+        var other = new IngredientType<>(ResourceLocation.parse("test:other"),
+            StringBuilder.class, TYPE.copy());
+        assertTrue(IngredientDrops
+            .targets(access, List.of(element), other, original).isEmpty());
         access.behavior = new ElementBehavior() {
         };
         assertTrue(targets().isEmpty());

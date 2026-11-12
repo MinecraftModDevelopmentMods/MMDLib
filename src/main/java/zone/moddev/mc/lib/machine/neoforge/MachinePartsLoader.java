@@ -21,36 +21,41 @@ import zone.moddev.mc.lib.machine.internals.MachineParts;
 import zone.moddev.mc.lib.machine.internals.PartSubject;
 
 /**
- * Loads machine part files from {@code data/<ns>/mmdlib/machine_part/*.json} on every datapack load
- * and installs them as {@link MachineParts#current()}.
+ * Loads machine part files from {@code data/<ns>/mmdlib/machine_part/*.json} on
+ * every datapack load and installs them as {@link MachineParts#current()}.
  */
 public final class MachinePartsLoader extends SimpleJsonResourceReloadListener {
-  private MachinePartsLoader() {
-    super(new Gson(), "mmdlib/machine_part");
-  }
+    private MachinePartsLoader() {
+        super(new Gson(), "mmdlib/machine_part");
+    }
 
-  /** Adds the loader to server datapack reloads; registered on the game bus by MMDLib. */
-  public static void register(AddReloadListenerEvent event) {
-    event.addListener(new MachinePartsLoader());
-  }
+    /**
+     * Adds the loader to server datapack reloads; registered on the game bus by
+     * MMDLib.
+     */
+    public static void register(AddReloadListenerEvent event) {
+        event.addListener(new MachinePartsLoader());
+    }
 
-  /**
-   * What MMDLib knows about {@code item}: its material part (the item template, such as {@code
-   * mmdlib:gear}) and its material's stats. Both are empty for items MMDLib didn't make.
-   */
-  public static Optional<PartSubject> subject(ResourceLocation item) {
-    return Optional.of(
-        new PartSubject(
-            item,
-            Optional.ofNullable(MMDLib.itemDefinitions().get(item)).map(MMDItem::template),
-            Optional.ofNullable(MMDLib.itemMaterials().get(item)).map(MMDMaterial::properties)));
-  }
+    /**
+     * What MMDLib knows about {@code item}: its material part (the item
+     * template, such as {@code
+     * mmdlib:gear}) and its material's stats. Both are empty for items MMDLib
+     * didn't make.
+     */
+    public static Optional<PartSubject> subject(ResourceLocation item) {
+        return Optional.of(new PartSubject(item,
+            Optional.ofNullable(MMDLib.itemDefinitions().get(item))
+                .map(MMDItem::template),
+            Optional.ofNullable(MMDLib.itemMaterials().get(item))
+                .map(MMDMaterial::properties)));
+    }
 
-  @Override
-  protected void apply(
-      Map<ResourceLocation, JsonElement> files, ResourceManager manager, ProfilerFiller profiler) {
-    var parts = MachineParts.parse(files, MachinePartsLoader::subject);
-    parts.check(BuiltInRegistries.ITEM.keySet());
-    MachineParts.install(parts);
-  }
+    @Override
+    protected void apply(Map<ResourceLocation, JsonElement> files,
+        ResourceManager manager, ProfilerFiller profiler) {
+        var parts = MachineParts.parse(files, MachinePartsLoader::subject);
+        parts.check(BuiltInRegistries.ITEM.keySet());
+        MachineParts.install(parts);
+    }
 }

@@ -6,6 +6,8 @@ public enum SlotKind {
     NORMAL,
     /** An upgrade slot: one item, gold tint, ghost outline. */
     UPGRADE,
-    /** A JEI ghost slot: sets the item the slot expects, never holds real items. */
+    /**
+     * A JEI ghost slot: sets the item the slot expects, never holds real items.
+     */
     GHOST
 }

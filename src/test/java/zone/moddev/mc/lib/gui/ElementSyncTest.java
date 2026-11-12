@@ -39,23 +39,19 @@ import zone.moddev.mc.lib.gui.sync.ElementSync;
 import zone.moddev.mc.lib.gui.sync.SynchronizedElement;
 
 class ElementSyncTest {
-    private static final ElementSync<Integer> COUNT = ElementSync.field(
-        ResourceLocation.parse("test:count"),
-        StreamCodec.of(
-            (buffer, value) -> buffer.writeVarInt(value), buffer -> buffer.readVarInt()),
-        5,
-        element -> 0)
-        .validate((element, value) -> value >= 0 && value <= 10)
-        .affectsLayout()
+    private static final ElementSync<Integer> COUNT = ElementSync
+        .field(ResourceLocation.parse("test:count"),
+            StreamCodec.of((buffer, value) -> buffer.writeVarInt(value),
+                buffer -> buffer.readVarInt()),
+            5, element -> 0)
+        .validate((element, value) -> value >= 0 && value <= 10).affectsLayout()
         .build();
-    private static final ElementSync<List<Integer>> LIST = ElementSync.field(
-        ResourceLocation.parse("test:list"),
-        StreamCodec.<RegistryFriendlyByteBuf, List<Integer>>of(
-            (buffer, value) -> {
+    private static final ElementSync<List<Integer>> LIST = ElementSync
+        .field(ResourceLocation.parse("test:list"), StreamCodec
+            .<RegistryFriendlyByteBuf, List<Integer>>of((buffer, value) -> {
                 buffer.writeVarInt(value.size());
                 value.forEach(buffer::writeVarInt);
-            },
-            buffer -> {
+            }, buffer -> {
                 int count = buffer.readVarInt();
                 if (count < 0 || count > 10)
                     throw new IllegalArgumentException("Too many items");
@@ -63,14 +59,11 @@ class ElementSyncTest {
                 for (int i = 0; i < count; i++)
                     values.add(buffer.readVarInt());
                 return values;
-            }),
-        51,
-        element -> new ArrayList<Integer>())
+            }), 51, element -> new ArrayList<Integer>())
         .build();
 
     record ModElement(Common common, List<ElementSync<?>> synchronizedValues)
-        implements
-            SynchronizedElement {
+        implements SynchronizedElement {
         public int[] measure(TextMeasure text) {
             return new int[]{10, 10};
         }
@@ -80,26 +73,30 @@ class ElementSyncTest {
         return new ModElement(Common.empty(), List.of(fields));
     }
 
-    private static ElementStates store(List<Element> elements, Runnable layout) {
+    private static ElementStates store(List<Element> elements,
+        Runnable layout) {
         return new ElementStates(elements, RegistryAccess.EMPTY, layout);
     }
 
     @Test
     void inlineSidePolicyIsBoundedAndDefaultsClosedUntilSnapshot() {
-        var element = new zone.moddev.mc.lib.gui.model.elements.SideConfigElement(Common.empty(),
-            List.of("food", "energy"));
+        var element = new zone.moddev.mc.lib.gui.model.elements.SideConfigElement(
+            Common.empty(), List.of("food", "energy"));
         var field = zone.moddev.mc.lib.gui.model.elements.SideConfigElement.DISABLED_FACES;
         assertEquals(List.of(63, 63), field.initial(element));
-        var policy = List.of(1 << zone.moddev.mc.lib.api.capabilities.RelativeFace.RIGHT.ordinal(),
-            0);
+        var policy = List
+            .of(1 << zone.moddev.mc.lib.api.capabilities.RelativeFace.RIGHT
+                .ordinal(), 0);
         var encoded = field.encode(RegistryAccess.EMPTY, element, policy);
-        assertEquals(policy, field.decode(RegistryAccess.EMPTY, element, encoded));
+        assertEquals(policy,
+            field.decode(RegistryAccess.EMPTY, element, encoded));
         assertThrows(IllegalArgumentException.class,
             () -> field.encode(RegistryAccess.EMPTY, element, List.of(0)));
         assertThrows(IllegalArgumentException.class,
             () -> field.encode(RegistryAccess.EMPTY, element, List.of(0, 64)));
-        assertThrows(IllegalArgumentException.class, () -> field.decode(RegistryAccess.EMPTY,
-            element, new ElementStateValue(new byte[]{2, 0, 64})));
+        assertThrows(IllegalArgumentException.class,
+            () -> field.decode(RegistryAccess.EMPTY, element,
+                new ElementStateValue(new byte[]{2, 0, 64})));
     }
 
     @Test
@@ -147,37 +144,40 @@ class ElementSyncTest {
         var state = store(List.of(first, second), layouts::incrementAndGet);
         var addresses = new ArrayList<>(state.snapshot().keySet());
         var delta = new LinkedHashMap<Integer, Object>();
-        delta.put(addresses.get(0), COUNT.encode(RegistryAccess.EMPTY, first, 4));
+        delta.put(addresses.get(0),
+            COUNT.encode(RegistryAccess.EMPTY, first, 4));
         delta.put(addresses.get(1), new ElementStateValue(new byte[]{11}));
         assertThrows(IllegalArgumentException.class, () -> state.apply(delta));
         assertEquals(0, state.get(first, COUNT));
         assertEquals(0, state.get(second, COUNT));
         assertEquals(0, layouts.get());
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> state
-                .apply(Map.of(addresses.getFirst(), new ElementStateValue(new byte[]{1, 0}))));
-        assertThrows(
-            IllegalArgumentException.class, () -> state.apply(Map.of(addresses.getFirst(), 1)));
-        assertThrows(IllegalArgumentException.class, () -> state.set(first, COUNT, -1));
+        assertThrows(IllegalArgumentException.class,
+            () -> state.apply(Map.of(addresses.getFirst(),
+                new ElementStateValue(new byte[]{1, 0}))));
+        assertThrows(IllegalArgumentException.class,
+            () -> state.apply(Map.of(addresses.getFirst(), 1)));
+        assertThrows(IllegalArgumentException.class,
+            () -> state.set(first, COUNT, -1));
     }
 
     @Test
     void stateDeclarationsAndBudgetsAreChecked() {
-        assertThrows(
-            IllegalArgumentException.class, () -> store(List.of(element(COUNT, COUNT)), () -> {
+        assertThrows(IllegalArgumentException.class,
+            () -> store(List.of(element(COUNT, COUNT)), () -> {
             }));
         var plain = element();
         var state = store(List.of(plain), () -> {
         });
-        assertThrows(IllegalArgumentException.class, () -> state.get(plain, COUNT));
-        assertThrows(
-            IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
+            () -> state.get(plain, COUNT));
+        assertThrows(IllegalArgumentException.class,
             () -> new ElementStateValue(new byte[ElementSync.MAX_BYTES + 1]));
         var values = new HashMap<Integer, ElementStateValue>();
         for (int i = 0; i < 5; i++)
-            values.put(i, new ElementStateValue(new byte[ElementSync.MAX_BYTES]));
-        assertThrows(IllegalArgumentException.class, () -> ElementStates.checkBudget(values));
+            values.put(i,
+                new ElementStateValue(new byte[ElementSync.MAX_BYTES]));
+        assertThrows(IllegalArgumentException.class,
+            () -> ElementStates.checkBudget(values));
     }
 
     @Test
@@ -202,13 +202,15 @@ class ElementSyncTest {
         });
         state.set(element, COUNT, 7);
         state.set(element, LIST, List.of(4, 5));
-        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(),
+            RegistryAccess.EMPTY);
         try {
-            var ack = new ScreenNetwork.WidgetResult(1, 2, 0, 3, false, null, null,
-                state.snapshot());
+            var ack = new ScreenNetwork.WidgetResult(1, 2, 0, 3, false, null,
+                null, state.snapshot());
             ScreenNetwork.WidgetResult.CODEC.encode(buffer, ack);
             assertEquals(ack, ScreenNetwork.WidgetResult.CODEC.decode(buffer));
-            var delta = new ScreenNetwork.Values(1, new HashMap<>(state.snapshot()));
+            var delta = new ScreenNetwork.Values(1,
+                new HashMap<>(state.snapshot()));
             ScreenNetwork.Values.CODEC.encode(buffer, delta);
             assertEquals(delta, ScreenNetwork.Values.CODEC.decode(buffer));
             assertFalse(buffer.isReadable());
@@ -221,17 +223,20 @@ class ElementSyncTest {
     void deltaTransportEnforcesAggregateStateBudget() {
         var oversized = new HashMap<Integer, Object>();
         for (int i = 0; i < 5; i++)
-            oversized.put(i, new ElementStateValue(new byte[ElementSync.MAX_BYTES]));
-        assertThrows(IllegalArgumentException.class, () -> new ScreenNetwork.Values(1, oversized));
-        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
+            oversized.put(i,
+                new ElementStateValue(new byte[ElementSync.MAX_BYTES]));
+        assertThrows(IllegalArgumentException.class,
+            () -> new ScreenNetwork.Values(1, oversized));
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(),
+            RegistryAccess.EMPTY);
         try {
             buffer.writeVarInt(1);
             buffer.writeVarInt(oversized.size());
-            oversized.forEach(
-                (address, value) -> {
-                    buffer.writeInt(address);
-                    zone.moddev.mc.lib.gui.runtime.ScreenValues.write(buffer, value);
-                });
+            oversized.forEach((address, value) -> {
+                buffer.writeInt(address);
+                zone.moddev.mc.lib.gui.runtime.ScreenValues.write(buffer,
+                    value);
+            });
             assertThrows(IllegalArgumentException.class,
                 () -> ScreenNetwork.Values.CODEC.decode(buffer));
         } finally {
@@ -252,12 +257,12 @@ class ElementSyncTest {
                 return BehaviorCapabilities.find(label, type);
             }
         }
-        assertSame(label, BehaviorCapabilities.find(label, ValueLabelProvider.class).orElseThrow());
-        assertSame(
-            label,
-            BehaviorCapabilities.find(new Adapter(), ValueLabelProvider.class).orElseThrow());
-        assertTrue(
-            BehaviorCapabilities.find(new Adapter(), SideConfigPresentation.class).isEmpty());
+        assertSame(label, BehaviorCapabilities
+            .find(label, ValueLabelProvider.class).orElseThrow());
+        assertSame(label, BehaviorCapabilities
+            .find(new Adapter(), ValueLabelProvider.class).orElseThrow());
+        assertTrue(BehaviorCapabilities
+            .find(new Adapter(), SideConfigPresentation.class).isEmpty());
         assertTrue(BehaviorCapabilities.find(new ElementBehavior() {
         }, WidgetRenderer.class).isEmpty());
     }

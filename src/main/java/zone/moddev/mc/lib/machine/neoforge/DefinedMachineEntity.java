@@ -38,11 +38,8 @@ public final class DefinedMachineEntity extends BaseMachine {
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
 
-    public DefinedMachineEntity(
-        BlockEntityType<?> type,
-        BlockPos pos,
-        BlockState state,
-        MachineDefinition definition,
+    public DefinedMachineEntity(BlockEntityType<?> type, BlockPos pos,
+        BlockState state, MachineDefinition definition,
         MachineRecipeType recipes) {
         super(type, pos, state);
         this.definition = definition;
@@ -55,65 +52,55 @@ public final class DefinedMachineEntity extends BaseMachine {
         if (definition.fluids() != null)
             for (var tank : definition.fluids().tanks()) {
                 var filter = tank.fluid();
-                if (filter != null && !BuiltInRegistries.FLUID.containsKey(filter))
-                    throw new IllegalArgumentException("Unknown tank fluid " + filter);
-                int index = fluids.addTank(
-                    tank.capacity(),
-                    tank.role(),
-                    stack -> filter == null
-                        || BuiltInRegistries.FLUID.getKey(stack.getFluid()).equals(filter));
+                if (filter != null
+                    && !BuiltInRegistries.FLUID.containsKey(filter))
+                    throw new IllegalArgumentException(
+                        "Unknown tank fluid " + filter);
+                int index = fluids.addTank(tank.capacity(), tank.role(),
+                    stack -> filter == null || BuiltInRegistries.FLUID
+                        .getKey(stack.getFluid()).equals(filter));
                 fluids.tankId(index, tank.id());
             }
-        items = ItemInventories.partition(definition.inventoryNames()).onChange(this::setChanged);
+        items = ItemInventories.partition(definition.inventoryNames())
+            .onChange(this::setChanged);
         for (int i = 0; i < definition.slots().size(); i++) {
             var slot = definition.slots().get(i);
-            items.slotId(i, slot.id()).role(slot.role(), i).limit(slot.limit(), i);
+            items.slotId(i, slot.id()).role(slot.role(), i).limit(slot.limit(),
+                i);
         }
         resources = new MachineResources(this, this::facing);
         var highlights = MachineContent.screenHighlights(definition.id());
         for (var group : definition.groups()) {
-            resources.items(
-                new ResourceGroup<>(
-                    group.id(),
-                    Component.literal(group.id()),
-                    group.color(),
-                    ResourceType.ITEMS,
-                    group.mode(),
-                    group.members().stream().map(definition.inventorySlots(group.id())::indexOf)
-                        .toList(),
-                    highlights.get(group.id()),
-                    new SideConfig(group.mode())),
-                items.inventory(group.id()));
+            resources
+                .items(
+                    new ResourceGroup<>(group.id(),
+                        Component.literal(group.id()), group.color(),
+                        ResourceType.ITEMS, group.mode(),
+                        group.members().stream()
+                            .map(definition.inventorySlots(group.id())::indexOf)
+                            .toList(),
+                        highlights.get(group.id()),
+                        new SideConfig(group.mode())),
+                    items.inventory(group.id()));
         }
         if (energy != null)
-            resources.energy(
-                new ResourceGroup<>(
-                    "energy",
-                    Component.literal("Energy"),
-                    definition.power().color(),
-                    ResourceType.ENERGY,
-                    IoMode.INPUT,
-                    List.of(0),
-                    highlights.get(definition.power().id()),
-                    new SideConfig(IoMode.INPUT)),
-                energy);
+            resources.energy(new ResourceGroup<>("energy",
+                Component.literal("Energy"), definition.power().color(),
+                ResourceType.ENERGY, IoMode.INPUT, List.of(0),
+                highlights.get(definition.power().id()),
+                new SideConfig(IoMode.INPUT)), energy);
         if (definition.fluids() != null)
             for (var group : definition.fluids().groups()) {
                 if (!group.automation()) {
-                    resources.recipeOnlyGroup(group.id(), StorageGroups.fluids(fluids,
-                        group.members().stream().mapToInt(Integer::intValue).toArray()));
+                    resources.recipeOnlyGroup(group.id(),
+                        StorageGroups.fluids(fluids, group.members().stream()
+                            .mapToInt(Integer::intValue).toArray()));
                     continue;
                 }
-                resources.fluids(
-                    new ResourceGroup<>(
-                        group.id(),
-                        Component.literal(group.id()),
-                        group.color(),
-                        ResourceType.FLUIDS,
-                        group.mode(),
-                        group.members(),
-                        highlights.get(group.id()),
-                        new SideConfig(group.mode())),
+                resources.fluids(new ResourceGroup<>(group.id(),
+                    Component.literal(group.id()), group.color(),
+                    ResourceType.FLUIDS, group.mode(), group.members(),
+                    highlights.get(group.id()), new SideConfig(group.mode())),
                     fluids);
                 if (group.mode() == IoMode.INPUT)
                     resources.recipeInputs(recipes, group.id());
@@ -122,7 +109,8 @@ public final class DefinedMachineEntity extends BaseMachine {
             if (group.mode() == IoMode.INPUT)
                 resources.recipeInputs(recipes, group.id());
         for (var ghost : definition.ghosts()) {
-            var samples = new zone.moddev.mc.lib.machine.inventory.GhostItemGroup(ghost.count());
+            var samples = new zone.moddev.mc.lib.machine.inventory.GhostItemGroup(
+                ghost.count());
             if (ghost.defaultItem() != null) {
                 if (!BuiltInRegistries.ITEM.containsKey(ghost.defaultItem()))
                     throw new IllegalArgumentException(
@@ -135,25 +123,23 @@ public final class DefinedMachineEntity extends BaseMachine {
             resources.recipeOnlyGroup(ghost.id(), samples);
         }
         resources.build();
-        var processor = new RecipeProcessor(
-            definition.processor(),
-            recipes,
-            resources.recipes(),
-            Component.literal(definition.processorName()));
+        var processor = new RecipeProcessor(definition.processor(), recipes,
+            resources.recipes(), Component.literal(definition.processorName()));
         if (definition.recipeSelection() != null)
             processor.selectable(definition.recipeSelection().defaultRecipe());
         features.add(processor);
-        inventory = genericInventory(resources.automation()).items(definition.itemStorageId(),
-            items);
+        inventory = genericInventory(resources.automation())
+            .items(definition.itemStorageId(), items);
         if (definition.fluids() != null)
             inventory.fluids(definition.fluids().id(), fluids);
-        redstone = definition.redstone() ? new RedstoneControl(this, List.of(features)) : null;
-        visuals = new MachineVisualState(
-            !definition.hasConditionalAppearance()
-                ? new VisualVariables.Builder().build()
-                : BuiltinVisualVariables.forMachine(
-                    definition, features.processor(definition.processor()).orElseThrow(), items,
-                    fluids, energy),
+        redstone = definition.redstone()
+            ? new RedstoneControl(this, List.of(features))
+            : null;
+        visuals = new MachineVisualState(!definition.hasConditionalAppearance()
+            ? new VisualVariables.Builder().build()
+            : BuiltinVisualVariables.forMachine(definition,
+                features.processor(definition.processor()).orElseThrow(), items,
+                fluids, energy),
             definition.visualConditions());
     }
 
@@ -166,7 +152,8 @@ public final class DefinedMachineEntity extends BaseMachine {
             setChanged();
         }
         if (level != null && !level.isClientSide)
-            visuals.start(() -> level.scheduleTick(worldPosition, getBlockState().getBlock(), 1));
+            visuals.start(() -> level.scheduleTick(worldPosition,
+                getBlockState().getBlock(), 1));
     }
 
     @Override
@@ -194,29 +181,36 @@ public final class DefinedMachineEntity extends BaseMachine {
     }
 
     @Override
-    public net.minecraft.world.item.ItemStack screenGhost(String inventory, int slot) {
+    public net.minecraft.world.item.ItemStack screenGhost(String inventory,
+        int slot) {
         var group = ghosts.get(inventory);
-        return group == null ? net.minecraft.world.item.ItemStack.EMPTY : group.peek(slot);
+        return group == null
+            ? net.minecraft.world.item.ItemStack.EMPTY
+            : group.peek(slot);
     }
 
     @Override
-    public boolean setScreenGhost(net.minecraft.world.entity.player.Player player, String inventory,
+    public boolean setScreenGhost(
+        net.minecraft.world.entity.player.Player player, String inventory,
         int slot, net.minecraft.world.item.ItemStack sample) {
         var group = ghosts.get(inventory);
-        if (group == null || (level != null && level.isClientSide) || !group.set(slot, sample))
+        if (group == null || (level != null && level.isClientSide)
+            || !group.set(slot, sample))
             return false;
         setChanged();
         features.markSync();
         return true;
     }
 
-    private void saveGhosts(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    private void saveGhosts(CompoundTag tag,
+        net.minecraft.core.HolderLookup.Provider registries) {
         var saved = new CompoundTag();
         ghosts.forEach((id, group) -> saved.put(id, group.save(registries)));
         tag.put("mmdlib_ghost_items", saved);
     }
 
-    private void readGhosts(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    private void readGhosts(CompoundTag tag,
+        net.minecraft.core.HolderLookup.Provider registries) {
         var saved = tag.getCompound("mmdlib_ghost_items");
         ghosts.forEach((id, group) -> {
             if (saved.contains(id))
@@ -243,12 +237,17 @@ public final class DefinedMachineEntity extends BaseMachine {
                 ghosts.get(ghost.id()).set(i, sample);
         }
         readGhosts(tag, registries);
-        // Migrate the earlier output selector, including an explicitly cleared selection.
-        var old = tag.getCompound("features").getCompound(definition.processor());
-        if (!tag.contains("mmdlib_ghost_items") && old.contains("selection") && ghosts.size() == 1
+        // Migrate the earlier output selector, including an explicitly cleared
+        // selection.
+        var old = tag.getCompound("features")
+            .getCompound(definition.processor());
+        if (!tag.contains("mmdlib_ghost_items") && old.contains("selection")
+            && ghosts.size() == 1
             && ghosts.values().iterator().next().size() == 1) {
-            var id = ResourceLocation.tryParse(old.getCompound("selection").getString("recipe"));
-            ghosts.values().iterator().next().set(0, net.minecraft.world.item.ItemStack.EMPTY);
+            var id = ResourceLocation
+                .tryParse(old.getCompound("selection").getString("recipe"));
+            ghosts.values().iterator().next().set(0,
+                net.minecraft.world.item.ItemStack.EMPTY);
             if (id != null) {
                 if (level == null)
                     legacyGhostRecipe = id;
@@ -261,9 +260,10 @@ public final class DefinedMachineEntity extends BaseMachine {
     private void migrateGhostRecipe(ResourceLocation id,
         net.minecraft.core.HolderLookup.Provider registries) {
         var recipe = level.getRecipeManager().byKey(id).orElse(null);
-        if (recipe != null
-            && recipe.value() instanceof zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry entry)
-            ghosts.values().iterator().next().set(0, entry.getResultItem(registries));
+        if (recipe != null && recipe
+            .value() instanceof zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry entry)
+            ghosts.values().iterator().next().set(0,
+                entry.getResultItem(registries));
     }
 
     @Override
@@ -307,18 +307,15 @@ public final class DefinedMachineEntity extends BaseMachine {
             return new int[0];
         return definition.groups().stream()
             .filter(g -> g.mode() == IoMode.INPUT)
-            .flatMap(g -> g.members().stream())
-            .mapToInt(Integer::intValue)
+            .flatMap(g -> g.members().stream()).mapToInt(Integer::intValue)
             .toArray();
     }
 
     @Override
-    protected void recoverResources(Level level, BlockPos pos, CompoundTag payload) {
-        net.minecraft.world.Containers.dropItemStack(
-            level,
-            pos.getX() + .5,
-            pos.getY() + .5,
-            pos.getZ() + .5,
+    protected void recoverResources(Level level, BlockPos pos,
+        CompoundTag payload) {
+        net.minecraft.world.Containers.dropItemStack(level, pos.getX() + .5,
+            pos.getY() + .5, pos.getZ() + .5,
             MachineRecoveryItem.create(payload));
     }
 }

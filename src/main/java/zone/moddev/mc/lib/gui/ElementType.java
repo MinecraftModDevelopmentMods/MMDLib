@@ -15,14 +15,16 @@ import zone.moddev.mc.lib.gui.load.ScreenXml;
 import zone.moddev.mc.lib.gui.model.Element;
 
 /**
- * Common-side element declaration, not a registry. XML is optional; Java-only types may also be
- * abstract classes or interfaces used for inherited client registrations. Contains no client types.
+ * Common-side element declaration, not a registry. XML is optional; Java-only
+ * types may also be abstract classes or interfaces used for inherited client
+ * registrations. Contains no client types.
  */
 public final class ElementType<E extends Element> {
     private final Class<E> type;
     private final Map<QName, ScreenTag<? extends E>> tags;
 
-    private ElementType(Class<E> type, Map<QName, ScreenTag<? extends E>> tags) {
+    private ElementType(Class<E> type,
+        Map<QName, ScreenTag<? extends E>> tags) {
         this.type = Objects.requireNonNull(type);
         this.tags = Collections.unmodifiableMap(new LinkedHashMap<>(tags));
     }
@@ -31,26 +33,35 @@ public final class ElementType<E extends Element> {
         return new ElementType<>(type, Map.of());
     }
 
-    public static <E extends Element> ElementType<E> xml(QName name, ScreenTag<E> tag) {
+    public static <E extends Element> ElementType<E> xml(QName name,
+        ScreenTag<E> tag) {
         return of(tag.resultType()).withXml(name, tag);
     }
 
-    /** Build a namespaced element tag using the existing schema/attribute contract. */
-    public static <E extends Element> Builder<E> xml(
-        Class<E> type, QName name, Function<ScreenXml, E> factory) {
+    /**
+     * Build a namespaced element tag using the existing schema/attribute
+     * contract.
+     */
+    public static <E extends Element> Builder<E> xml(Class<E> type, QName name,
+        Function<ScreenXml, E> factory) {
         return new Builder<>(name, ScreenTag.element(type, factory));
     }
 
-    /** Returns a new declaration with another XML spelling; the original remains unchanged. */
+    /**
+     * Returns a new declaration with another XML spelling; the original remains
+     * unchanged.
+     */
     public ElementType<E> withXml(QName name, ScreenTag<? extends E> tag) {
         Objects.requireNonNull(name);
         Objects.requireNonNull(tag);
-        if (tag.role() != ScreenTag.Role.ELEMENT || !type.isAssignableFrom(tag.resultType()))
+        if (tag.role() != ScreenTag.Role.ELEMENT
+            || !type.isAssignableFrom(tag.resultType()))
             throw new IllegalArgumentException(
                 "Not an element tag for " + type.getName() + ": " + name);
         var copy = new LinkedHashMap<>(tags);
         if (copy.putIfAbsent(name, tag) != null)
-            throw new IllegalArgumentException("Duplicate element tag: " + name);
+            throw new IllegalArgumentException(
+                "Duplicate element tag: " + name);
         return new ElementType<>(type, copy);
     }
 
@@ -63,7 +74,10 @@ public final class ElementType<E extends Element> {
         register(ScreenTags.GLOBAL);
     }
 
-    /** Isolated loaders use the same declaration without modifying global registrations. */
+    /**
+     * Isolated loaders use the same declaration without modifying global
+     * registrations.
+     */
     public void register(ScreenTags registry) {
         Objects.requireNonNull(registry);
         tags.forEach(registry::register);

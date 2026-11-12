@@ -16,7 +16,8 @@ final class FilterDrawing {
     static void arrow(GuiGraphics g, Rect r, boolean forward) {
         for (int i = 0; i < 3; i++) {
             int d = forward ? i : 2 - i;
-            g.fill(r.x() + d, r.y() + i, r.x() + d + 1, r.bottom() - i, 0xffeeeeee);
+            g.fill(r.x() + d, r.y() + i, r.x() + d + 1, r.bottom() - i,
+                0xffeeeeee);
         }
     }
 

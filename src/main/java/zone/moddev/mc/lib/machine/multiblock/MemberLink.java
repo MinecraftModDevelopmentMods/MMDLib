@@ -7,8 +7,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 
 /** Persisted reciprocal ownership, never a live controller reference. */
-public record MemberLink(ResourceLocation dimension, BlockPos controller, UUID formation,
-    String member) {
+public record MemberLink(ResourceLocation dimension, BlockPos controller,
+    UUID formation, String member) {
     public MemberLink {
         java.util.Objects.requireNonNull(dimension);
         java.util.Objects.requireNonNull(formation);
@@ -25,7 +25,8 @@ public record MemberLink(ResourceLocation dimension, BlockPos controller, UUID f
         return tag;
     }
     public static MemberLink load(CompoundTag tag) {
-        return new MemberLink(ResourceLocation.parse(tag.getString("dimension")),
+        return new MemberLink(
+            ResourceLocation.parse(tag.getString("dimension")),
             BlockPos.of(tag.getLong("controller")), tag.getUUID("formation"),
             tag.getString("member"));
     }

@@ -29,7 +29,10 @@ import zone.moddev.mc.lib.gui.model.containers.ViewElement;
 import zone.moddev.mc.lib.gui.sync.ElementStateView;
 import zone.moddev.mc.lib.gui.sync.ElementStates;
 
-/** Stateful fragments use the same navigation, selection and input rules as machine screens. */
+/**
+ * Stateful fragments use the same navigation, selection and input rules as
+ * machine screens.
+ */
 final class FragmentNavigationClientSmoke {
     private record Control(Common common) implements Element {
         public Optional<Navigation> navigation() {
@@ -46,26 +49,17 @@ final class FragmentNavigationClientSmoke {
             return new int[]{100, height};
         }
 
-        public void appendTooltip(TooltipContext context, List<Component> rows) {
+        public void appendTooltip(TooltipContext context,
+            List<Component> rows) {
             rows.add(Component.literal(common.id().orElseThrow()));
         }
     }
 
     private static Common named(String id) {
         var c = Common.empty();
-        return new Common(
-            Optional.of(id),
-            c.value(),
-            c.max(),
-            c.tooltip(),
-            c.tooltipShift(),
-            c.clicks(),
-            c.onHover(),
-            c.hoverShows(),
-            c.jeiRecipes(),
-            0,
-            0,
-            0);
+        return new Common(Optional.of(id), c.value(), c.max(), c.tooltip(),
+            c.tooltipShift(), c.clicks(), c.onHover(), c.hoverShows(),
+            c.jeiRecipes(), 0, 0, 0);
     }
 
     private static final Control control = new Control(named("navigate"));
@@ -73,41 +67,36 @@ final class FragmentNavigationClientSmoke {
         details = new Probe(named("details_probe"), 36);
     private static final ContextElement pages = new ContextElement(
         named("pages"),
-        List.of(
-            new ViewElement(named("home"), Optional.empty(), List.of(home)),
-            new ViewElement(named("details"), Optional.empty(), List.of(details))));
+        List.of(new ViewElement(named("home"), Optional.empty(), List.of(home)),
+            new ViewElement(named("details"), Optional.empty(),
+                List.of(details))));
     private static ElementFragment fragment;
     private static ElementStates state;
-    private static int phase, submissions, cancellations, results, homeDraws, detailDraws, resizes;
+    private static int phase, submissions, cancellations, results, homeDraws,
+        detailDraws, resizes;
     private static boolean focused, hidden;
 
     static void install() {
-        ElementRenderers.GLOBAL.register(
-            Control.class,
-            (e, c) -> {
-                var r = c.bounds();
-                c.graphics().fill(r.x(), r.y(), r.right(), r.bottom(), 0xff406080);
-                c.graphics().drawString(c.access().font(), "Switch view", r.x() + 2, r.y() + 4,
-                    0xffffff);
-            });
-        ElementRenderers.GLOBAL.register(
-            Probe.class,
-            (e, c) -> {
-                require(c.access().state() == state, "Renderer receives host state");
-                if (e == home)
-                    homeDraws++;
-                else
-                    detailDraws++;
-                var r = c.bounds();
-                c.graphics()
-                    .fill(r.x(), r.y(), r.right(), r.bottom(), e == home ? 0xff408060 : 0xff805040);
-                c.graphics()
-                    .drawString(
-                        c.access().font(), e.common().id().orElseThrow(), r.x() + 2, r.y() + 4,
-                        0xffffff);
-            });
-        ElementBehaviors.GLOBAL.register(
-            Probe.class,
+        ElementRenderers.GLOBAL.register(Control.class, (e, c) -> {
+            var r = c.bounds();
+            c.graphics().fill(r.x(), r.y(), r.right(), r.bottom(), 0xff406080);
+            c.graphics().drawString(c.access().font(), "Switch view", r.x() + 2,
+                r.y() + 4, 0xffffff);
+        });
+        ElementRenderers.GLOBAL.register(Probe.class, (e, c) -> {
+            require(c.access().state() == state,
+                "Renderer receives host state");
+            if (e == home)
+                homeDraws++;
+            else
+                detailDraws++;
+            var r = c.bounds();
+            c.graphics().fill(r.x(), r.y(), r.right(), r.bottom(),
+                e == home ? 0xff408060 : 0xff805040);
+            c.graphics().drawString(c.access().font(),
+                e.common().id().orElseThrow(), r.x() + 2, r.y() + 4, 0xffffff);
+        });
+        ElementBehaviors.GLOBAL.register(Probe.class,
             (e, access) -> new ElementBehavior() {
                 public boolean focusable() {
                     return true;
@@ -130,8 +119,7 @@ final class FragmentNavigationClientSmoke {
                 }
 
                 public void actionResult(boolean accepted) {
-                    require(
-                        !accepted && pages.selected(state).equals("home"),
+                    require(!accepted && pages.selected(state).equals("home"),
                         "State applied before result");
                     results++;
                 }
@@ -148,16 +136,15 @@ final class FragmentNavigationClientSmoke {
             var root = new BoxElement(Common.empty(), true, 0, 4, Align.START,
                 List.of(control, pages));
             state = new ElementStates(
-                ElementFragmentLayout.of(root, 100, TextMeasure.NONE).elements(),
-                Minecraft.getInstance().level.registryAccess(),
-                () -> {
+                ElementFragmentLayout.of(root, 100, TextMeasure.NONE)
+                    .elements(),
+                Minecraft.getInstance().level.registryAccess(), () -> {
                 });
-            fragment = new ElementFragment(
-                root,
-                100,
+            fragment = new ElementFragment(root, 100,
                 new ElementFragment.Host() {
                     public ResourceLocation screenId() {
-                        return ResourceLocation.parse("mmdlib_companion:fragment_navigation");
+                        return ResourceLocation
+                            .parse("mmdlib_companion:fragment_navigation");
                     }
 
                     public ElementStateView state() {
@@ -169,13 +156,14 @@ final class FragmentNavigationClientSmoke {
                     }
 
                     public void navigate(String target, String selection) {
-                        require(target.equals("pages"), "Host receives navigation target");
+                        require(target.equals("pages"),
+                            "Host receives navigation target");
                         pages.select(state, selection);
                     }
 
-                    public <T> boolean submit(Element e, ElementAction<T> action, T value) {
-                        require(
-                            e == control && action == Navigation.NAVIGATE,
+                    public <T> boolean submit(Element e,
+                        ElementAction<T> action, T value) {
+                        require(e == control && action == Navigation.NAVIGATE,
                             "Typed fragment navigation");
                         submissions++;
                         return true;
@@ -188,7 +176,8 @@ final class FragmentNavigationClientSmoke {
         if (phase == 1) {
             if (homeDraws == 0 && detailDraws == 0)
                 return false;
-            require(homeDraws > 0 && detailDraws == 0, "Only selected view renders");
+            require(homeDraws > 0 && detailDraws == 0,
+                "Only selected view renders");
             int initialHeight = fragment.height();
             var r = fragment.bounds(home);
             fragment.click(r.x() + 2, r.y() + 2, 0);
@@ -201,12 +190,11 @@ final class FragmentNavigationClientSmoke {
                 "Unchanged layout preserves capture and focus");
             pages.select(state, "details");
             fragment.refresh();
-            require(
-                cancellations > before && !focused,
+            require(cancellations > before && !focused,
                 "Hiding captured view cancels interaction and focus");
-            require(fragment.height() > initialHeight, "Selection remeasures fragment");
-            require(
-                fragment.bounds(details).y() > fragment.bounds(pages).y(),
+            require(fragment.height() > initialHeight,
+                "Selection remeasures fragment");
+            require(fragment.bounds(details).y() > fragment.bounds(pages).y(),
                 "Layout preparation reserves context header");
             r = fragment.bounds(details);
             require(
@@ -225,8 +213,7 @@ final class FragmentNavigationClientSmoke {
             r = fragment.bounds(control);
             fragment.click(r.x() + 2, r.y() + 2, 0);
             fragment.refresh();
-            require(
-                submissions == 1 && pages.selected(state).equals("details"),
+            require(submissions == 1 && pages.selected(state).equals("details"),
                 "Generic control predicts via host navigation");
             homeDraws = detailDraws = 0;
             phase++;
@@ -235,14 +222,16 @@ final class FragmentNavigationClientSmoke {
         if (phase == 2) {
             if (homeDraws == 0 && detailDraws == 0)
                 return false;
-            require(homeDraws == 0 && detailDraws > 0, "Navigation changes rendered selection");
+            require(homeDraws == 0 && detailDraws > 0,
+                "Navigation changes rendered selection");
             var mc = Minecraft.getInstance();
-            Screenshot.grab(
-                mc.gameDirectory, "fragment-navigation.png", mc.getMainRenderTarget(), message -> {
+            Screenshot.grab(mc.gameDirectory, "fragment-navigation.png",
+                mc.getMainRenderTarget(), message -> {
                 });
             pages.select(state, "home");
             fragment.actionResult(control, false);
-            require(fragment.height() < 70, "Authoritative correction remeasures layout");
+            require(fragment.height() < 70,
+                "Authoritative correction remeasures layout");
             fragment.removed();
             fragment = null;
             phase++;

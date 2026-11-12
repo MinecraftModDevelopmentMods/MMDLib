@@ -21,13 +21,17 @@ import zone.moddev.mc.lib.gui.sync.ElementStateView;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /**
- * Hosts an ordinary element tree in a clipped viewport using the shared rendering/input registries.
+ * Hosts an ordinary element tree in a clipped viewport using the shared
+ * rendering/input registries.
  */
 public final class ElementFragment {
     public interface Host {
         ResourceLocation screenId();
 
-        /** Original XML source when available; Java-built fragments default to the host ID. */
+        /**
+         * Original XML source when available; Java-built fragments default to
+         * the host ID.
+         */
         default String source(Element element) {
             return screenId().toString();
         }
@@ -37,27 +41,39 @@ public final class ElementFragment {
         }
 
         /**
-         * Current synchronized or local state, also used for layout and selective child visibility.
+         * Current synchronized or local state, also used for layout and
+         * selective child visibility.
          */
         default ElementStateView state() {
             return ElementStateView.DEFAULTS;
         }
 
-        /** Host-owned navigation/prediction; the fragment does not mutate server storage. */
+        /**
+         * Host-owned navigation/prediction; the fragment does not mutate server
+         * storage.
+         */
         default void navigate(String context, String selection) {
         }
 
-        /** Additional host policy, composed with every ancestor's visibility. */
+        /**
+         * Additional host policy, composed with every ancestor's visibility.
+         */
         default boolean visible(Element element) {
             return true;
         }
 
-        /** Interaction geometry independent of layout/render bounds, in screen coordinates. */
+        /**
+         * Interaction geometry independent of layout/render bounds, in screen
+         * coordinates.
+         */
         default Rect hitBounds(Element element, Rect frame) {
             return frame;
         }
 
-        /** Host-level input lock, independent of display visibility and tooltip composition. */
+        /**
+         * Host-level input lock, independent of display visibility and tooltip
+         * composition.
+         */
         default boolean inputEnabled() {
             return true;
         }
@@ -66,7 +82,8 @@ public final class ElementFragment {
             return false;
         }
 
-        default <T> boolean submit(Element element, ElementAction<T> action, T value) {
+        default <T> boolean submit(Element element, ElementAction<T> action,
+            T value) {
             return false;
         }
 
@@ -74,7 +91,10 @@ public final class ElementFragment {
             return Optional.empty();
         }
 
-        /** Optional host-side notification, also used to bridge declarative callbacks. */
+        /**
+         * Optional host-side notification, also used to bridge declarative
+         * callbacks.
+         */
         default void hoverChanged(Element element, boolean entered) {
         }
 
@@ -144,10 +164,8 @@ public final class ElementFragment {
         }
 
         public List<Component> serverTooltip(Element element) {
-            return host.serverTooltip(element).stream()
-                .map(Component::copy)
-                .map(Component.class::cast)
-                .toList();
+            return host.serverTooltip(element).stream().map(Component::copy)
+                .map(Component.class::cast).toList();
         }
 
         public Optional<Element> find(String id) {
@@ -174,24 +192,23 @@ public final class ElementFragment {
         layout = measure();
         shown = layout.visibility(host.state(), host::visible);
         ElementRenderers.GLOBAL.validate(layout.elements(), host::source);
-        input = new ElementInput<>(
-            layout.elements(),
-            e -> ElementBehaviors.GLOBAL.create(access(e)),
-            this::visible,
+        input = new ElementInput<>(layout.elements(),
+            e -> ElementBehaviors.GLOBAL.create(access(e)), this::visible,
             e -> host.hitBounds(e, bounds(e)),
-            (px, py) -> viewport.contains(px, py),
-            host::hoverChanged);
+            (px, py) -> viewport.contains(px, py), host::hoverChanged);
     }
 
     private ElementFragmentLayout measure() {
-        return ElementFragmentLayout.of(
-            root,
-            width,
-            text -> Minecraft.getInstance().font.width(ScreenText.component(text)),
+        return ElementFragmentLayout.of(root, width,
+            text -> Minecraft.getInstance().font
+                .width(ScreenText.component(text)),
             host.state());
     }
 
-    /** Reconcile host state with layout and visibility without recreating element behaviors. */
+    /**
+     * Reconcile host state with layout and visibility without recreating
+     * element behaviors.
+     */
     public void refresh() {
         if (refreshing)
             return;
@@ -205,9 +222,8 @@ public final class ElementFragment {
                 if (next.elements().get(i) != layout.elements().get(i))
                     throw new IllegalStateException(
                         "Replace the fragment when its element tree changes");
-            boolean resized = next.elements().stream()
-                .anyMatch(
-                    element -> !next.bounds().get(element).equals(layout.bounds().get(element)));
+            boolean resized = next.elements().stream().anyMatch(element -> !next
+                .bounds().get(element).equals(layout.bounds().get(element)));
             layout = next;
             shown = layout.visibility(host.state(), host::visible);
             input.update();
@@ -220,12 +236,15 @@ public final class ElementFragment {
         }
     }
 
-    /** Deliver completion after the host has applied authoritative values/state. */
+    /**
+     * Deliver completion after the host has applied authoritative values/state.
+     */
     public void actionResult(Element element, boolean accepted) {
         refresh();
         var behavior = input.instance(element);
         if (behavior == null)
-            throw new IllegalArgumentException("Element is not in this fragment");
+            throw new IllegalArgumentException(
+                "Element is not in this fragment");
         behavior.actionResult(accepted);
     }
 
@@ -263,11 +282,11 @@ public final class ElementFragment {
                 return host.pending(e);
             }
 
-            public <T> boolean submit(Element e, ElementAction<T> action, T value) {
+            public <T> boolean submit(Element e, ElementAction<T> action,
+                T value) {
                 return visible(e)
                     && e.action(action.id()).orElse(null) == action
-                    && !host.pending(e)
-                    && host.submit(e, action, value);
+                    && !host.pending(e) && host.submit(e, action, value);
             }
 
             public <T> Optional<T> service(Class<T> type) {
@@ -305,12 +324,9 @@ public final class ElementFragment {
         if (!Boolean.TRUE.equals(shown.get(element)))
             return false;
         var r = bounds(element);
-        return viewport.width() > 0
-            && viewport.height() > 0
-            && r.right() > viewport.x()
-            && r.x() < viewport.right()
-            && r.bottom() > viewport.y()
-            && r.y() < viewport.bottom();
+        return viewport.width() > 0 && viewport.height() > 0
+            && r.right() > viewport.x() && r.x() < viewport.right()
+            && r.bottom() > viewport.y() && r.y() < viewport.bottom();
     }
 
     public void place(int x, int y, Rect viewport) {
@@ -330,27 +346,25 @@ public final class ElementFragment {
     public void render(GuiGraphics graphics, int mouseX, int mouseY) {
         refresh();
         input.hover(mouseX, mouseY);
-        graphics.enableScissor(viewport.x(), viewport.y(), viewport.right(), viewport.bottom());
+        graphics.enableScissor(viewport.x(), viewport.y(), viewport.right(),
+            viewport.bottom());
         try {
             for (var pass : ElementRenderers.Pass.values()) {
                 if (pass == ElementRenderers.Pass.FOREGROUND)
-                    ElementHover.preview(
-                        input.hovered(), presentation,
+                    ElementHover.preview(input.hovered(), presentation,
                         e -> renderPreview(graphics, e, mouseX, mouseY));
                 for (var e : layout.elements())
                     if (visible(e)) {
-                        ElementRenderers.GLOBAL.render(
-                            pass,
-                            new ElementRenderers.Context(
-                                graphics,
-                                e,
-                                bounds(e),
-                                host.value(e, false),
-                                host.value(e, true),
-                                viewport.contains(mouseX, mouseY) ? mouseX : Integer.MIN_VALUE,
-                                viewport.contains(mouseX, mouseY) ? mouseY : Integer.MIN_VALUE,
-                                0,
-                                (System.nanoTime() - started) / 50000000d,
+                        ElementRenderers.GLOBAL.render(pass,
+                            new ElementRenderers.Context(graphics, e, bounds(e),
+                                host.value(e, false), host.value(e, true),
+                                viewport.contains(mouseX, mouseY)
+                                    ? mouseX
+                                    : Integer.MIN_VALUE,
+                                viewport.contains(mouseX, mouseY)
+                                    ? mouseY
+                                    : Integer.MIN_VALUE,
+                                0, (System.nanoTime() - started) / 50000000d,
                                 presentation));
                     }
             }
@@ -359,19 +373,12 @@ public final class ElementFragment {
         }
     }
 
-    private void renderPreview(GuiGraphics graphics, Element element, int mouseX, int mouseY) {
-        ElementRenderers.GLOBAL.render(
-            new ElementRenderers.Context(
-                graphics,
-                element,
-                bounds(element),
-                host.value(element, false),
-                host.value(element, true),
-                mouseX,
-                mouseY,
-                0,
-                (System.nanoTime() - started) / 50000000d,
-                presentation));
+    private void renderPreview(GuiGraphics graphics, Element element,
+        int mouseX, int mouseY) {
+        ElementRenderers.GLOBAL.render(new ElementRenderers.Context(graphics,
+            element, bounds(element), host.value(element, false),
+            host.value(element, true), mouseX, mouseY, 0,
+            (System.nanoTime() - started) / 50000000d, presentation));
     }
 
     public void mouseMoved(double x, double y) {
@@ -401,18 +408,16 @@ public final class ElementFragment {
         return hovered == null ? List.of() : tooltip(hovered, x, y);
     }
 
-    /** Compose a registered fragment element selected by an external native hit-test. */
+    /**
+     * Compose a registered fragment element selected by an external native
+     * hit-test.
+     */
     public List<Component> tooltip(Element element, int x, int y) {
         refresh();
         if (!layout.bounds().containsKey(element) || !viewport.contains(x, y))
             return List.of();
-        return ElementTooltips.collect(
-            element,
-            presentation,
-            input::instance,
-            x,
-            y,
-            net.minecraft.client.gui.screens.Screen.hasShiftDown(),
+        return ElementTooltips.collect(element, presentation, input::instance,
+            x, y, net.minecraft.client.gui.screens.Screen.hasShiftDown(),
             net.minecraft.client.gui.screens.Screen.hasControlDown(),
             net.minecraft.client.gui.screens.Screen.hasAltDown());
     }

@@ -1,18 +1,25 @@
 package zone.moddev.mc.lib.gui.runtime;
 
-/** Request bookkeeping only; hosts own authorization, payloads, revisions and recovery policy. */
+/**
+ * Request bookkeeping only; hosts own authorization, payloads, revisions and
+ * recovery policy.
+ */
 public final class MenuRequests {
     private MenuRequests() {
     }
 
-    /** One outstanding client request, with a monotonically increasing positive ID. */
+    /**
+     * One outstanding client request, with a monotonically increasing positive
+     * ID.
+     */
     public static final class Client {
         private final int timeoutTicks;
         private int sequence, pending, ticks;
 
         public Client(int timeoutTicks) {
             if (timeoutTicks < 1)
-                throw new IllegalArgumentException("Request timeout must be positive");
+                throw new IllegalArgumentException(
+                    "Request timeout must be positive");
             this.timeoutTicks = timeoutTicks;
         }
 
@@ -20,7 +27,10 @@ public final class MenuRequests {
             return pending != 0;
         }
 
-        /** Returns zero when busy or exhausted. IDs never wrap or get reused after a timeout. */
+        /**
+         * Returns zero when busy or exhausted. IDs never wrap or get reused
+         * after a timeout.
+         */
         public int begin() {
             if (pending() || sequence == Integer.MAX_VALUE)
                 return 0;
@@ -38,7 +48,8 @@ public final class MenuRequests {
         }
 
         /**
-         * Cumulative snapshots may advance the sequence, including before the first local request.
+         * Cumulative snapshots may advance the sequence, including before the
+         * first local request.
          */
         public boolean acknowledgeThrough(int request) {
             sequence = Math.max(sequence, request);
@@ -48,7 +59,10 @@ public final class MenuRequests {
             return true;
         }
 
-        /** Releases the pending request once; the host decides whether/how to recover. */
+        /**
+         * Releases the pending request once; the host decides whether/how to
+         * recover.
+         */
         public boolean tick() {
             if (!pending() || ++ticks < timeoutTicks)
                 return false;
@@ -62,7 +76,10 @@ public final class MenuRequests {
         }
     }
 
-    /** Monotonic replay protection and a bounded per-tick allowance, after host authorization. */
+    /**
+     * Monotonic replay protection and a bounded per-tick allowance, after host
+     * authorization.
+     */
     public static final class Server {
         private final int perTick;
         private int lastRequest, actions;
@@ -71,13 +88,14 @@ public final class MenuRequests {
 
         public Server(int perTick) {
             if (perTick < 1)
-                throw new IllegalArgumentException("Request allowance must be positive");
+                throw new IllegalArgumentException(
+                    "Request allowance must be positive");
             this.perTick = perTick;
         }
 
         /**
-         * Consume fresh IDs even when later feature validation or the rate check rejects the
-         * action.
+         * Consume fresh IDs even when later feature validation or the rate
+         * check rejects the action.
          */
         public boolean receive(int request) {
             if (request <= lastRequest)
@@ -90,7 +108,9 @@ public final class MenuRequests {
             return lastRequest;
         }
 
-        /** Call once per fresh request. Replays must not consume this allowance. */
+        /**
+         * Call once per fresh request. Replays must not consume this allowance.
+         */
         public boolean allow(long currentTick) {
             if (!hasTick || tick != currentTick) {
                 hasTick = true;

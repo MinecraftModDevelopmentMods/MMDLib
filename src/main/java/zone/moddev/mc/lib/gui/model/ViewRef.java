@@ -13,7 +13,8 @@ public record ViewRef(String context, String view) {
     public static ViewRef parse(String text) {
         int colon = text.indexOf(':');
         if (colon <= 0 || colon == text.length() - 1)
-            throw new IllegalArgumentException("Expected context:view: " + text);
+            throw new IllegalArgumentException(
+                "Expected context:view: " + text);
         return new ViewRef(text.substring(0, colon), text.substring(colon + 1));
     }
 

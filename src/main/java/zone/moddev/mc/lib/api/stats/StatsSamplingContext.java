@@ -5,7 +5,10 @@ import java.math.BigInteger;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-/** One server sample's game time and combined resource demands, matched by identity. */
+/**
+ * One server sample's game time and combined resource demands, matched by
+ * identity.
+ */
 public final class StatsSamplingContext {
     private final long tick;
     private final Map<Object, BigInteger> demands;

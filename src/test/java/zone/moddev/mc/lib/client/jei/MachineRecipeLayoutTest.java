@@ -43,7 +43,8 @@ class MachineRecipeLayoutTest {
         assertFalse(cobblestone.separator());
         assertTrue(stone.separator());
 
-        // Different recipes may supply the widest section on each side of the arrow.
+        // Different recipes may supply the widest section on each side of the
+        // arrow.
         var mixed = new MachineRecipeLayout(3, 0, 1)
             .merge(new MachineRecipeLayout(0, 3, 5));
         assertEquals(new MachineRecipeLayout(3, 3, 5), mixed);
@@ -68,6 +69,7 @@ class MachineRecipeLayoutTest {
         for (int amount : new int[]{1001, 1250, 2000})
             assertEquals(2000, MachineRecipeLayout.fluidCapacity(amount));
         assertEquals(3000, MachineRecipeLayout.fluidCapacity(2001));
-        assertEquals(2147484000L, MachineRecipeLayout.fluidCapacity(Integer.MAX_VALUE));
+        assertEquals(2147484000L,
+            MachineRecipeLayout.fluidCapacity(Integer.MAX_VALUE));
     }
 }

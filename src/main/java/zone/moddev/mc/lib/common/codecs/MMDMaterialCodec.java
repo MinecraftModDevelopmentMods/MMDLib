@@ -13,60 +13,65 @@ import zone.moddev.mc.lib.common.types.*;
 
 /** Codecs for material JSON. */
 public final class MMDMaterialCodec {
-  private MMDMaterialCodec() {}
+    private MMDMaterialCodec() {
+    }
 
-  /** A material codec on {@link MaterialExtensions#GLOBAL}. */
-  public static final Codec<MMDMaterial> MMD_MATERIAL_CODEC =
-      forExtensions(MaterialExtensions.GLOBAL);
+    /** A material codec on {@link MaterialExtensions#GLOBAL}. */
+    public static final Codec<MMDMaterial> MMD_MATERIAL_CODEC = forExtensions(
+        MaterialExtensions.GLOBAL);
 
-  /**
-   * A material codec that resolves part names, selections and event bindings against {@code
-   * extensions}. Each decode uses the catalog as it is at that moment.
-   */
-  public static Codec<MMDMaterial> forExtensions(MaterialExtensions extensions) {
-    // Capture a consistent type catalog for each operation, rather than caching an early snapshot.
-    return new Codec<>() {
-      private Codec<MMDMaterial> schema() {
-        Codec<MMDMaterial> fields =
-            RecordCodecBuilder.create(
-                i ->
-                    i.group(
-                            ResourceLocation.CODEC
-                                .optionalFieldOf("name")
-                                .forGetter(MMDMaterial::name),
-                            ResourceLocation.CODEC
-                                .optionalFieldOf("parent")
-                                .forGetter(MMDMaterial::parent),
-                            MaterialProperties.MAP_CODEC.forGetter(MMDMaterial::properties),
-                            MaterialSelection.mapCodec(extensions.snapshot())
-                                .forGetter(MMDMaterial::selection),
-                            EventBindings.MAP_CODEC.forGetter(MMDMaterial::events),
-                            MaterialRuntimeSettings.CODEC
-                                .optionalFieldOf("runtime", MaterialRuntimeSettings.DEFAULT)
-                                .forGetter(MMDMaterial::runtime))
-                        .apply(i, MMDMaterial::new));
-        return fields.validate(
-            material -> {
-              try {
-                extensions.events().validate(material.events());
-                if (material.selection().hasFluid())
-                  extensions.fluidModule(material.selection().fluidModule());
-                return DataResult.success(material);
-              } catch (IllegalArgumentException ex) {
-                return DataResult.error(ex::getMessage);
-              }
-            });
-      }
+    /**
+     * A material codec that resolves part names, selections and event bindings
+     * against {@code
+     * extensions}. Each decode uses the catalog as it is at that moment.
+     */
+    public static Codec<MMDMaterial> forExtensions(
+        MaterialExtensions extensions) {
+        // Capture a consistent type catalog for each operation, rather than
+        // caching an early
+        // snapshot.
+        return new Codec<>() {
+            private Codec<MMDMaterial> schema() {
+                Codec<MMDMaterial> fields = RecordCodecBuilder.create(i -> i
+                    .group(
+                        ResourceLocation.CODEC.optionalFieldOf("name")
+                            .forGetter(MMDMaterial::name),
+                        ResourceLocation.CODEC.optionalFieldOf("parent")
+                            .forGetter(MMDMaterial::parent),
+                        MaterialProperties.MAP_CODEC
+                            .forGetter(MMDMaterial::properties),
+                        MaterialSelection.mapCodec(extensions.snapshot())
+                            .forGetter(MMDMaterial::selection),
+                        EventBindings.MAP_CODEC.forGetter(MMDMaterial::events),
+                        MaterialRuntimeSettings.CODEC
+                            .optionalFieldOf("runtime",
+                                MaterialRuntimeSettings.DEFAULT)
+                            .forGetter(MMDMaterial::runtime))
+                    .apply(i, MMDMaterial::new));
+                return fields.validate(material -> {
+                    try {
+                        extensions.events().validate(material.events());
+                        if (material.selection().hasFluid())
+                            extensions.fluidModule(
+                                material.selection().fluidModule());
+                        return DataResult.success(material);
+                    } catch (IllegalArgumentException ex) {
+                        return DataResult.error(ex::getMessage);
+                    }
+                });
+            }
 
-      @Override
-      public <T> DataResult<Pair<MMDMaterial, T>> decode(DynamicOps<T> ops, T input) {
-        return schema().decode(ops, input);
-      }
+            @Override
+            public <T> DataResult<Pair<MMDMaterial, T>> decode(
+                DynamicOps<T> ops, T input) {
+                return schema().decode(ops, input);
+            }
 
-      @Override
-      public <T> DataResult<T> encode(MMDMaterial material, DynamicOps<T> ops, T prefix) {
-        return schema().encode(material, ops, prefix);
-      }
-    };
-  }
+            @Override
+            public <T> DataResult<T> encode(MMDMaterial material,
+                DynamicOps<T> ops, T prefix) {
+                return schema().encode(material, ops, prefix);
+            }
+        };
+    }
 }

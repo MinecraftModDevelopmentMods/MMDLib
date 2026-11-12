@@ -24,19 +24,24 @@ import zone.moddev.mc.lib.machine.inventory.TankPlan;
 import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 
 /**
- * A machine's tanks as one {@link IFluidHandler}, each tank with a {@link Role}, capacity and
- * filter, and a change callback. The owning block entity works on {@link #tank} directly, which
- * ignores roles; players' buckets and automation use the handler or a {@link #view}.
+ * A machine's tanks as one {@link IFluidHandler}, each tank with a
+ * {@link Role}, capacity and filter, and a change callback. The owning block
+ * entity works on {@link #tank} directly, which ignores roles; players' buckets
+ * and automation use the handler or a {@link #view}.
  *
  * <p>
- * Filling picks the first tank that already holds the fluid, then the first empty tank that accepts
- * it. Draining picks the first tank holding the requested fluid, or for an amount, the first tank
- * that is not empty.
+ * Filling picks the first tank that already holds the fluid, then the first
+ * empty tank that accepts it. Draining picks the first tank holding the
+ * requested fluid, or for an amount, the first tank that is not empty.
  */
-public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag> {
+public class FluidStorage
+    implements IFluidHandler, INBTSerializable<CompoundTag> {
     private final ChangeSignal changes = new ChangeSignal();
 
-    /** Observe content/capacity changes without replacing the persistence callback. */
+    /**
+     * Observe content/capacity changes without replacing the persistence
+     * callback.
+     */
     public ChangeSignal changes() {
         return changes;
     }
@@ -46,13 +51,11 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     private final List<String> tankIds = new ArrayList<>();
     private final List<Predicate<FluidStack>> insertionRules = new ArrayList<>();
     private final ListTag recovery = new ListTag();
-    private final ReservationPlans<TankPlan> plans = new ReservationPlans<>(
-        0,
-        TankPlan.NONE,
-        TankPlan::plus,
-        TankPlan::minus,
+    private final ReservationPlans<TankPlan> plans = new ReservationPlans<>(0,
+        TankPlan.NONE, TankPlan::plus, TankPlan::minus,
         (tank, plan) -> plan.legal(
-            FluidStacks.amount(tanks.get(tank).getFluid()), tanks.get(tank).getCapacity()));
+            FluidStacks.amount(tanks.get(tank).getFluid()),
+            tanks.get(tank).getCapacity()));
     private Runnable onChange = () -> {
     };
     private long revision;
@@ -66,7 +69,9 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     public FluidStorage() {
     }
 
-    /** Runs after every change, typically the block entity's {@code setChanged}. */
+    /**
+     * Runs after every change, typically the block entity's {@code setChanged}.
+     */
     public FluidStorage onChange(Runnable onChange) {
         this.onChange = onChange;
         return this;
@@ -75,60 +80,58 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     /** Adds a tank and returns its index. */
     public int addTank(int capacity, Role role, Predicate<FluidStack> filter) {
         int index = tanks.size();
-        tanks.add(
-            new FluidTank(capacity, filter) {
-                @Override
-                public void setFluid(FluidStack stack) {
-                    super.setFluid(stack);
-                    onContentsChanged();
-                }
+        tanks.add(new FluidTank(capacity, filter) {
+            @Override
+            public void setFluid(FluidStack stack) {
+                super.setFluid(stack);
+                onContentsChanged();
+            }
 
-                @Override
-                public FluidTank setCapacity(int capacity) {
-                    revision++;
-                    var result = super.setCapacity(capacity);
-                    changes.changed();
-                    return result;
-                }
+            @Override
+            public FluidTank setCapacity(int capacity) {
+                revision++;
+                var result = super.setCapacity(capacity);
+                changes.changed();
+                return result;
+            }
 
-                @Override
-                public FluidTank setValidator(Predicate<FluidStack> validator) {
-                    revision++;
-                    return super.setValidator(validator);
-                }
+            @Override
+            public FluidTank setValidator(Predicate<FluidStack> validator) {
+                revision++;
+                return super.setValidator(validator);
+            }
 
-                @Override
-                protected void onContentsChanged() {
-                    revision++;
-                    changes.changed();
-                    onChange.run();
-                }
+            @Override
+            protected void onContentsChanged() {
+                revision++;
+                changes.changed();
+                onChange.run();
+            }
 
-                @Override
-                public int fill(FluidStack resource, FluidAction action) {
-                    var plan = plans.get(index);
-                    if (plan.isNone())
-                        return super.fill(resource, action);
-                    int room = plan.room(
-                        FluidStacks.amount(getFluid()), FluidStacks.amount(resource),
-                        getCapacity());
-                    if (room <= 0)
-                        return 0;
-                    int amount = Math.min(resource.getAmount(), room);
-                    return super.fill(resource.copyWithAmount(amount), action);
-                }
+            @Override
+            public int fill(FluidStack resource, FluidAction action) {
+                var plan = plans.get(index);
+                if (plan.isNone())
+                    return super.fill(resource, action);
+                int room = plan.room(FluidStacks.amount(getFluid()),
+                    FluidStacks.amount(resource), getCapacity());
+                if (room <= 0)
+                    return 0;
+                int amount = Math.min(resource.getAmount(), room);
+                return super.fill(resource.copyWithAmount(amount), action);
+            }
 
-                @Override
-                public FluidStack drain(int maxDrain, FluidAction action) {
-                    var plan = plans.get(index);
-                    if (plan.isNone())
-                        return super.drain(maxDrain, action);
-                    int free = plan.free(FluidStacks.amount(getFluid()));
-                    return free <= 0
-                        ? FluidStack.EMPTY
-                        : super.drain(Math.min(maxDrain, free), action);
-                }
-            });
+            @Override
+            public FluidStack drain(int maxDrain, FluidAction action) {
+                var plan = plans.get(index);
+                if (plan.isNone())
+                    return super.drain(maxDrain, action);
+                int free = plan.free(FluidStacks.amount(getFluid()));
+                return free <= 0
+                    ? FluidStack.EMPTY
+                    : super.drain(Math.min(maxDrain, free), action);
+            }
+        });
         roles.add(role);
         tankIds.add(null);
         insertionRules.add(fluid -> true);
@@ -143,14 +146,16 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     }
 
     /**
-     * The tank itself, for the machine's own work; it ignores roles but keeps its filter and obeys
-     * its plan.
+     * The tank itself, for the machine's own work; it ignores roles but keeps
+     * its filter and obeys its plan.
      */
     public FluidTank tank(int index) {
         return tanks.get(index);
     }
 
-    /** Stable save identity; saves without identities continue to load by index. */
+    /**
+     * Stable save identity; saves without identities continue to load by index.
+     */
     public FluidStorage tankId(int tank, String id) {
         if (!inRange(tank) || id == null || id.isBlank())
             throw new IllegalArgumentException("Invalid tank ID: " + id);
@@ -161,7 +166,10 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
         return this;
     }
 
-    /** Additional external insertion rule; machine products use fillResult and bypass this rule. */
+    /**
+     * Additional external insertion rule; machine products use fillResult and
+     * bypass this rule.
+     */
     public FluidStorage restrict(Predicate<FluidStack> rule, int... indexes) {
         for (int tank : indexes)
             if (!inRange(tank))
@@ -173,7 +181,10 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
         return this;
     }
 
-    /** Machine product insertion, retaining the tank's structural filter and reservation. */
+    /**
+     * Machine product insertion, retaining the tank's structural filter and
+     * reservation.
+     */
     public int fillResult(int tank, FluidStack fluid, FluidAction action) {
         return tank(tank).fill(fluid, action);
     }
@@ -187,7 +198,10 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
         return recovery.copy();
     }
 
-    /** Explicitly discards contents, displaced fluids and plans. Stop owning processors first. */
+    /**
+     * Explicitly discards contents, displaced fluids and plans. Stop owning
+     * processors first.
+     */
     public void clear() {
         recovery.clear();
         for (int tank = 0; tank < getTanks(); tank++) {
@@ -206,7 +220,10 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
         onChange.run();
     }
 
-    /** Shared plan table, including transaction tracking for groups over this storage. */
+    /**
+     * Shared plan table, including transaction tracking for groups over this
+     * storage.
+     */
     public ReservationPlans<TankPlan> reservationPlans() {
         return plans;
     }
@@ -217,21 +234,26 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
     }
 
     /**
-     * Replaces the plan with no checks, for undoing and loading; use {@link #reserve} otherwise.
+     * Replaces the plan with no checks, for undoing and loading; use
+     * {@link #reserve} otherwise.
      */
     public void setPlan(int tank, TankPlan plan) {
         plans.set(tank, plan);
     }
 
     /**
-     * Adds {@code plan} to what is planned for the tank. Returns false and changes nothing if the
-     * plans cannot be merged or the result is not legal for what the tank holds now.
+     * Adds {@code plan} to what is planned for the tank. Returns false and
+     * changes nothing if the plans cannot be merged or the result is not legal
+     * for what the tank holds now.
      */
     public boolean reserve(int tank, TankPlan plan) {
         return plans.reserve(tank, plan);
     }
 
-    /** Takes {@code plan}, which must have been reserved, out of the tank's plan. */
+    /**
+     * Takes {@code plan}, which must have been reserved, out of the tank's
+     * plan.
+     */
     public void release(int tank, TankPlan plan) {
         plans.release(tank, plan);
     }
@@ -258,8 +280,7 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
 
     @Override
     public boolean isFluidValid(int tank, FluidStack stack) {
-        return inRange(tank)
-            && roles.get(tank) != Role.OUTPUT
+        return inRange(tank) && roles.get(tank) != Role.OUTPUT
             && insertionRules.get(tank).test(stack)
             && tanks.get(tank).isFluidValid(stack);
     }
@@ -279,21 +300,27 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
         return drain(maxDrain, action, role -> true);
     }
 
-    /** An automation view with a fixed mode, e.g. {@link IoMode#BOTH} for unsided access. */
+    /**
+     * An automation view with a fixed mode, e.g. {@link IoMode#BOTH} for
+     * unsided access.
+     */
     public IFluidHandler view(IoMode mode) {
         return view(() -> mode);
     }
 
     /**
-     * An automation view whose mode is read on every call, so it follows side-configuration changes
-     * and rotation without invalidating capabilities. Every view shows all tanks with the same
-     * numbering.
+     * An automation view whose mode is read on every call, so it follows
+     * side-configuration changes and rotation without invalidating
+     * capabilities. Every view shows all tanks with the same numbering.
      */
     public IFluidHandler view(Supplier<IoMode> mode) {
         return view(tank -> mode.get());
     }
 
-    /** Per-tank permissions; filling/draining searches only eligible tanks without renumbering. */
+    /**
+     * Per-tank permissions; filling/draining searches only eligible tanks
+     * without renumbering.
+     */
     public IFluidHandler view(IntFunction<IoMode> mode) {
         return new IFluidHandler() {
             @Override
@@ -313,70 +340,72 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
 
             @Override
             public boolean isFluidValid(int tank, FluidStack stack) {
-                return inRange(tank)
-                    && mode.apply(tank).canInsert()
+                return inRange(tank) && mode.apply(tank).canInsert()
                     && roles.get(tank).canInsert()
                     && FluidStorage.this.isFluidValid(tank, stack);
             }
 
             @Override
             public int fill(FluidStack resource, FluidAction action) {
-                return FluidStorage.this.fill(
-                    resource, action,
-                    tank -> roles.get(tank).canInsert() && mode.apply(tank).canInsert());
+                return FluidStorage.this.fill(resource, action,
+                    tank -> roles.get(tank).canInsert()
+                        && mode.apply(tank).canInsert());
             }
 
             @Override
             public FluidStack drain(FluidStack resource, FluidAction action) {
-                return FluidStorage.this.drain(
-                    resource,
-                    action,
-                    tank -> roles.get(tank).canExtract() && mode.apply(tank).canExtract());
+                return FluidStorage.this.drain(resource, action,
+                    tank -> roles.get(tank).canExtract()
+                        && mode.apply(tank).canExtract());
             }
 
             @Override
             public FluidStack drain(int maxDrain, FluidAction action) {
-                return FluidStorage.this.drain(
-                    maxDrain,
-                    action,
-                    tank -> roles.get(tank).canExtract() && mode.apply(tank).canExtract());
+                return FluidStorage.this.drain(maxDrain, action,
+                    tank -> roles.get(tank).canExtract()
+                        && mode.apply(tank).canExtract());
             }
         };
     }
 
-    private int fill(FluidStack resource, FluidAction action, IntPredicate allowed) {
+    private int fill(FluidStack resource, FluidAction action,
+        IntPredicate allowed) {
         if (resource.isEmpty())
             return 0;
         int target = -1;
         for (int i = 0; i < tanks.size() && target < 0; i++)
-            if (allowed.test(i)
-                && insertionRules.get(i).test(resource)
-                && FluidStack.isSameFluidSameComponents(tanks.get(i).getFluid(), resource)
+            if (allowed.test(i) && insertionRules.get(i).test(resource)
+                && FluidStack.isSameFluidSameComponents(tanks.get(i).getFluid(),
+                    resource)
                 && tanks.get(i).fill(resource, FluidAction.SIMULATE) > 0)
                 target = i;
         for (int i = 0; i < tanks.size() && target < 0; i++)
-            if (allowed.test(i)
-                && insertionRules.get(i).test(resource)
+            if (allowed.test(i) && insertionRules.get(i).test(resource)
                 && tanks.get(i).isEmpty()
                 && tanks.get(i).fill(resource, FluidAction.SIMULATE) > 0)
                 target = i;
         return target < 0 ? 0 : tanks.get(target).fill(resource, action);
     }
 
-    private FluidStack drain(FluidStack resource, FluidAction action, IntPredicate allowed) {
+    private FluidStack drain(FluidStack resource, FluidAction action,
+        IntPredicate allowed) {
         if (resource.isEmpty())
             return FluidStack.EMPTY;
         for (int i = 0; i < tanks.size(); i++)
             if (allowed.test(i)
-                && FluidStack.isSameFluidSameComponents(tanks.get(i).getFluid(), resource)
-                && !tanks.get(i).drain(resource, FluidAction.SIMULATE).isEmpty())
+                && FluidStack.isSameFluidSameComponents(tanks.get(i).getFluid(),
+                    resource)
+                && !tanks.get(i).drain(resource, FluidAction.SIMULATE)
+                    .isEmpty())
                 return tanks.get(i).drain(resource, action);
         return FluidStack.EMPTY;
     }
 
-    private FluidStack drain(int maxDrain, FluidAction action, IntPredicate allowed) {
+    private FluidStack drain(int maxDrain, FluidAction action,
+        IntPredicate allowed) {
         for (int i = 0; i < tanks.size(); i++)
-            if (allowed.test(i) && !tanks.get(i).drain(maxDrain, FluidAction.SIMULATE).isEmpty())
+            if (allowed.test(i) && !tanks.get(i)
+                .drain(maxDrain, FluidAction.SIMULATE).isEmpty())
                 return tanks.get(i).drain(maxDrain, action);
         return FluidStack.EMPTY;
     }
@@ -400,18 +429,22 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
         return tag;
     }
 
-    /** Loads by stable identity or legacy index, preserving removed tanks and capacity overflow. */
+    /**
+     * Loads by stable identity or legacy index, preserving removed tanks and
+     * capacity overflow.
+     */
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-        deserializeNBT(provider, tag, java.util.function.IntUnaryOperator.identity());
+    public void deserializeNBT(HolderLookup.Provider provider,
+        CompoundTag tag) {
+        deserializeNBT(provider, tag,
+            java.util.function.IntUnaryOperator.identity());
     }
 
     /**
-     * Explicit index migration for pre-identity saves. The host selects this by its save version.
+     * Explicit index migration for pre-identity saves. The host selects this by
+     * its save version.
      */
-    public void deserializeNBT(
-        HolderLookup.Provider provider,
-        CompoundTag tag,
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag,
         java.util.function.IntUnaryOperator legacyTanks) {
         var saved = tag.getList("Tanks", Tag.TAG_COMPOUND);
         var list = new ListTag();
@@ -445,10 +478,10 @@ public class FluidStorage implements IFluidHandler, INBTSerializable<CompoundTag
                     recovery.add(entry.copy());
                 continue;
             }
-            if (!inRange(index)
-                || !tanks.get(index).isFluidValid(fluid)
+            if (!inRange(index) || !tanks.get(index).isFluidValid(fluid)
                 || (!tanks.get(index).isEmpty()
-                    && !FluidStack.isSameFluidSameComponents(tanks.get(index).getFluid(), fluid))) {
+                    && !FluidStack.isSameFluidSameComponents(
+                        tanks.get(index).getFluid(), fluid))) {
                 recovery.add(entry.copy());
                 continue;
             }

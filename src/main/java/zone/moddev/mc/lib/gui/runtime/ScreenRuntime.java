@@ -22,20 +22,24 @@ public final class ScreenRuntime {
         .create(Registries.MENU, "mmdlib");
     public static final DeferredHolder<MenuType<?>, MenuType<MachineMenu>> MENUS = REGISTER
         .register("machine", () -> IMenuTypeExtension.create(MachineMenu::new));
-    public static zone.moddev.mc.lib.gui.layout.TextMeasure textMeasure = text -> text.key()
-        .length() * 6;
+    public static zone.moddev.mc.lib.gui.layout.TextMeasure textMeasure = text -> text
+        .key().length() * 6;
 
     private ScreenRuntime() {
     }
 
     public static void register(IEventBus bus) {
         REGISTER.register(bus);
-        bus.addListener(zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry.GLOBAL::install);
+        bus.addListener(
+            zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry.GLOBAL::install);
     }
 
-    /** Checks extension contracts and limits before any screen can be opened. */
+    /**
+     * Checks extension contracts and limits before any screen can be opened.
+     */
     public static void validate() {
-        var callbacks = zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.events().callbacks();
+        var callbacks = zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL
+            .events().callbacks();
         for (var bound : Screens.all().values()) {
             var screen = bound.screen();
             if (screen.elements().size() > 4096)
@@ -44,24 +48,17 @@ public final class ScreenRuntime {
             for (var e : screen.elements()) {
                 var c = e.common();
                 var clicks = c.clicks();
-                for (var id : java.util.stream.Stream.of(
-                    clicks.click(),
-                    clicks.rightClick(),
-                    clicks.shiftClick(),
-                    clicks.shiftRightClick())
-                    .flatMap(java.util.Optional::stream)
-                    .toList())
-                    requireCallback(
-                        callbacks, id, zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK, screen,
-                        e);
+                for (var id : java.util.stream.Stream
+                    .of(clicks.click(), clicks.rightClick(),
+                        clicks.shiftClick(), clicks.shiftRightClick())
+                    .flatMap(java.util.Optional::stream).toList())
+                    requireCallback(callbacks, id,
+                        zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK,
+                        screen, e);
                 c.onHover()
-                    .ifPresent(
-                        id -> requireCallback(
-                            callbacks,
-                            id,
-                            zone.moddev.mc.lib.api.MaterialEventTypes.GUI_HOVER,
-                            screen,
-                            e));
+                    .ifPresent(id -> requireCallback(callbacks, id,
+                        zone.moddev.mc.lib.api.MaterialEventTypes.GUI_HOVER,
+                        screen, e));
             }
         }
     }
@@ -79,36 +76,34 @@ public final class ScreenRuntime {
                 id + " must be a " + event.name() + " handler");
     }
 
-    public static String fingerprint(zone.moddev.mc.lib.gui.model.Screen screen) {
-        return screen.fingerprint()
-            + "|"
-            + zone.moddev.mc.lib.gui.value.ValueTypeRegistry.GLOBAL.fingerprint();
+    public static String fingerprint(
+        zone.moddev.mc.lib.gui.model.Screen screen) {
+        return screen.fingerprint() + "|"
+            + zone.moddev.mc.lib.gui.value.ValueTypeRegistry.GLOBAL
+                .fingerprint();
     }
 
-    /** Includes host storage/group configuration even when it produces an identical screen. */
+    /**
+     * Includes host storage/group configuration even when it produces an
+     * identical screen.
+     */
     public static String fingerprint(zone.moddev.mc.lib.gui.model.Screen screen,
         BlockEntity entity) {
         var definition = entity instanceof ScreenHost host
             ? host.screenDefinitionFingerprint()
             : "";
-        var drawers = zone.moddev.mc.lib.gui.drawer.DrawerRegistry.GLOBAL.resolve(
-            new zone.moddev.mc.lib.gui.drawer.DrawerRegistry.Context(
-                screen,
-                zone.moddev.mc.lib.gui.layout.TextMeasure.NONE,
+        var drawers = zone.moddev.mc.lib.gui.drawer.DrawerRegistry.GLOBAL
+            .resolve(new zone.moddev.mc.lib.gui.drawer.DrawerRegistry.Context(
+                screen, zone.moddev.mc.lib.gui.layout.TextMeasure.NONE,
                 entity instanceof ScreenHost host ? host : null));
         definition += "|drawers:" + drawers;
         try {
             return java.util.HexFormat.of()
-                .formatHex(
-                    java.security.MessageDigest.getInstance("SHA-256")
-                        .digest(
-                            (fingerprint(screen)
-                                + "|"
-                                + definition
-                                + "|"
-                                + zone.moddev.mc.lib.gui.runtime.component.MenuComponentRegistry.GLOBAL
-                                    .fingerprint())
-                                .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                .formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest((fingerprint(screen) + "|" + definition + "|"
+                        + zone.moddev.mc.lib.gui.runtime.component.MenuComponentRegistry.GLOBAL
+                            .fingerprint())
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         } catch (java.security.NoSuchAlgorithmException impossible) {
             throw new AssertionError(impossible);
         }
@@ -118,7 +113,10 @@ public final class ScreenRuntime {
         return entity != null && open(player, entity, entity.getBlockPos());
     }
 
-    /** Opens at a host-authorized physical member without weakening controller identity checks. */
+    /**
+     * Opens at a host-authorized physical member without weakening controller
+     * identity checks.
+     */
     public static boolean open(Player player, BlockEntity entity,
         net.minecraft.core.BlockPos anchor) {
         if (entity == null)
@@ -127,24 +125,27 @@ public final class ScreenRuntime {
             && (entity.isRemoved() || entity.getLevel() != player.level()
                 || !player.level().hasChunkAt(entity.getBlockPos())
                 || player.level().getBlockEntity(entity.getBlockPos()) != entity
-                || !player.level().hasChunkAt(anchor) || !player.canInteractWithBlock(anchor, 4.0)
+                || !player.level().hasChunkAt(anchor)
+                || !player.canInteractWithBlock(anchor, 4.0)
                 || !(entity instanceof ScreenHost host
                     ? host.screenInteractionAnchor(anchor)
                     : anchor.equals(entity.getBlockPos()))))
             return false;
-        var bound = Screens.get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()));
-        if (bound.isEmpty() || !bound.get().blockEntityClass().isInstance(entity))
+        var bound = Screens
+            .get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()));
+        if (bound.isEmpty()
+            || !bound.get().blockEntityClass().isInstance(entity))
             return false;
         if (player instanceof ServerPlayer server) {
-            long session = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+            long session = java.util.concurrent.ThreadLocalRandom.current()
+                .nextLong();
             var text = bound.get().screen().title();
             Component title = text.fallback()
                 .map(f -> Component.translatableWithFallback(text.key(), f))
                 .orElseGet(() -> Component.translatable(text.key()));
             server.openMenu(
-                new SimpleMenuProvider(
-                    (id, inventory, p) -> new MachineMenu(id, inventory, entity, session, anchor),
-                    title),
+                new SimpleMenuProvider((id, inventory, p) -> new MachineMenu(id,
+                    inventory, entity, session, anchor), title),
                 buf -> {
                     buf.writeBlockPos(entity.getBlockPos());
                     buf.writeUtf(fingerprint(bound.get().screen(), entity));

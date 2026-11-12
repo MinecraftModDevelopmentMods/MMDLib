@@ -2,7 +2,10 @@ package zone.moddev.mc.lib.api.capabilities;
 
 import java.util.Set;
 
-/** Bounded face-policy encoding shared by runtime configuration and UI snapshots. */
+/**
+ * Bounded face-policy encoding shared by runtime configuration and UI
+ * snapshots.
+ */
 public final class FaceMask {
     public static final int ALL = 63;
     private FaceMask() {

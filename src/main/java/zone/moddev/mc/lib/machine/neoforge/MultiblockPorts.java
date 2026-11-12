@@ -19,30 +19,40 @@ import zone.moddev.mc.lib.machine.multiblock.MemberLink;
 import zone.moddev.mc.lib.machine.multiblock.MultiblockInstance;
 import zone.moddev.mc.lib.machine.multiblock.StructurePort;
 
-/** Formation-bound capability adapters. Retained wrappers become inert after unlink/reformation. */
+/**
+ * Formation-bound capability adapters. Retained wrappers become inert after
+ * unlink/reformation.
+ */
 public final class MultiblockPorts {
     private MultiblockPorts() {
     }
-    public static void register(RegisterCapabilitiesEvent event, BlockEntityType<?>... types) {
+    public static void register(RegisterCapabilitiesEvent event,
+        BlockEntityType<?>... types) {
         for (var type : types) {
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type, MultiblockPorts::items);
+            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type,
+                MultiblockPorts::items);
             event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, type,
                 MultiblockPorts::fluids);
             event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, type,
                 MultiblockPorts::energy);
         }
     }
-    private record Binding(MultiblockInstance instance, MemberLink link, BlockPos position,
-        Direction side, StructurePort port, UUID formation, long revision) {
+    private record Binding(MultiblockInstance instance, MemberLink link,
+        BlockPos position, Direction side, StructurePort port, UUID formation,
+        long revision) {
         MultiblockResources resources() {
             var level = instance.owner().getLevel();
             if (level == null || level.isClientSide
                 || !level.hasChunkAt(instance.owner().getBlockPos())
-                || level.getBlockEntity(instance.owner().getBlockPos()) != instance.owner()
-                || !formation.equals(instance.formation()) || revision != instance.revision()
+                || level.getBlockEntity(
+                    instance.owner().getBlockPos()) != instance.owner()
+                || !formation.equals(instance.formation())
+                || revision != instance.revision()
                 || !instance.owns(position, link) || !instance.ready())
                 return null;
-            return instance.owner() instanceof MultiblockResources resources ? resources : null;
+            return instance.owner() instanceof MultiblockResources resources
+                ? resources
+                : null;
         }
         IItemHandler items() {
             var r = resources();
@@ -57,7 +67,8 @@ public final class MultiblockPorts {
             return r == null ? null : r.multiblockEnergy(port.resource(), side);
         }
     }
-    private static Binding binding(BlockEntity entity, Direction side, StructurePort.Kind kind) {
+    private static Binding binding(BlockEntity entity, Direction side,
+        StructurePort.Kind kind) {
         var level = entity.getLevel();
         if (level == null || level.isClientSide)
             return null;
@@ -67,9 +78,10 @@ public final class MultiblockPorts {
         var link = MultiblockMembers.INSTANCE.link(level, entity.getBlockPos());
         for (var port : instance.definition().ports())
             if (port.kind() == kind && port.member().equals(link.member())
-                && port.exposes(side == null ? null : instance.transform().local(side)))
-                return new Binding(instance, link, entity.getBlockPos(), side, port,
-                    instance.formation(), instance.revision());
+                && port.exposes(
+                    side == null ? null : instance.transform().local(side)))
+                return new Binding(instance, link, entity.getBlockPos(), side,
+                    port, instance.formation(), instance.revision());
         return null;
     }
     public static IItemHandler items(BlockEntity entity, Direction side) {
@@ -78,7 +90,8 @@ public final class MultiblockPorts {
             return null;
         return new IItemHandler() {
             private boolean slot(IItemHandler handler, int slot) {
-                return handler != null && slot >= 0 && slot < handler.getSlots();
+                return handler != null && slot >= 0
+                    && slot < handler.getSlots();
             }
             @Override
             public int getSlots() {
@@ -88,17 +101,21 @@ public final class MultiblockPorts {
             @Override
             public ItemStack getStackInSlot(int slot) {
                 var h = binding.items();
-                return slot(h, slot) ? h.getStackInSlot(slot).copy() : ItemStack.EMPTY;
+                return slot(h, slot)
+                    ? h.getStackInSlot(slot).copy()
+                    : ItemStack.EMPTY;
             }
             @Override
-            public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            public ItemStack insertItem(int slot, ItemStack stack,
+                boolean simulate) {
                 var h = binding.items();
                 return binding.port.input() && slot(h, slot)
                     ? h.insertItem(slot, stack, simulate)
                     : stack;
             }
             @Override
-            public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            public ItemStack extractItem(int slot, int amount,
+                boolean simulate) {
                 var h = binding.items();
                 return binding.port.output() && slot(h, slot) && amount > 0
                     ? h.extractItem(slot, amount, simulate)
@@ -112,7 +129,8 @@ public final class MultiblockPorts {
             @Override
             public boolean isItemValid(int slot, ItemStack stack) {
                 var h = binding.items();
-                return binding.port.input() && slot(h, slot) && h.isItemValid(slot, stack);
+                return binding.port.input() && slot(h, slot)
+                    && h.isItemValid(slot, stack);
             }
         };
     }
@@ -132,7 +150,9 @@ public final class MultiblockPorts {
             @Override
             public FluidStack getFluidInTank(int tank) {
                 var h = binding.fluids();
-                return tank(h, tank) ? h.getFluidInTank(tank).copy() : FluidStack.EMPTY;
+                return tank(h, tank)
+                    ? h.getFluidInTank(tank).copy()
+                    : FluidStack.EMPTY;
             }
             @Override
             public int getTankCapacity(int tank) {
@@ -142,12 +162,15 @@ public final class MultiblockPorts {
             @Override
             public boolean isFluidValid(int tank, FluidStack stack) {
                 var h = binding.fluids();
-                return binding.port.input() && tank(h, tank) && h.isFluidValid(tank, stack);
+                return binding.port.input() && tank(h, tank)
+                    && h.isFluidValid(tank, stack);
             }
             @Override
             public int fill(FluidStack stack, FluidAction action) {
                 var h = binding.fluids();
-                return h != null && binding.port.input() ? h.fill(stack, action) : 0;
+                return h != null && binding.port.input()
+                    ? h.fill(stack, action)
+                    : 0;
             }
             @Override
             public FluidStack drain(FluidStack stack, FluidAction action) {

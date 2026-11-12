@@ -19,12 +19,16 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
-/** Common-side network contributors. Register during mod construction, before payload setup. */
+/**
+ * Common-side network contributors. Register during mod construction, before
+ * payload setup.
+ */
 public final class NetworkRegistry {
     public static final NetworkRegistry GLOBAL = builtins();
 
     /**
-     * A feature declares typed payloads; their codecs and handlers remain owned by that feature.
+     * A feature declares typed payloads; their codecs and handlers remain owned
+     * by that feature.
      */
     public interface Registrar {
         <T extends CustomPacketPayload> void playToServer(
@@ -45,8 +49,7 @@ public final class NetworkRegistry {
     public record Payload<T extends CustomPacketPayload>(
         CustomPacketPayload.Type<T> type,
         StreamCodec<? super RegistryFriendlyByteBuf, T> codec,
-        IPayloadHandler<T> handler,
-        Direction direction) {
+        IPayloadHandler<T> handler, Direction direction) {
         public Payload {
             Objects.requireNonNull(type);
             Objects.requireNonNull(codec);
@@ -62,7 +65,8 @@ public final class NetworkRegistry {
         }
     }
 
-    public record Contributor(ResourceLocation id, String version, List<Payload<?>> payloads) {
+    public record Contributor(ResourceLocation id, String version,
+        List<Payload<?>> payloads) {
         public Contributor {
             payloads = List.copyOf(payloads);
         }
@@ -75,10 +79,10 @@ public final class NetworkRegistry {
         private <T extends CustomPacketPayload> void add(
             CustomPacketPayload.Type<T> type,
             StreamCodec<? super RegistryFriendlyByteBuf, T> codec,
-            IPayloadHandler<T> handler,
-            Direction direction) {
+            IPayloadHandler<T> handler, Direction direction) {
             if (closed)
-                throw new IllegalStateException("Network declaration is closed");
+                throw new IllegalStateException(
+                    "Network declaration is closed");
             payloads.add(new Payload<>(type, codec, handler, direction));
         }
 
@@ -108,18 +112,23 @@ public final class NetworkRegistry {
         return registry;
     }
 
-    /** Declarations run immediately; a failed or conflicting declaration registers nothing. */
-    public synchronized void register(
-        ResourceLocation id, String version, Consumer<Registrar> declare) {
+    /**
+     * Declarations run immediately; a failed or conflicting declaration
+     * registers nothing.
+     */
+    public synchronized void register(ResourceLocation id, String version,
+        Consumer<Registrar> declare) {
         if (frozen != null)
             throw new IllegalStateException("Network registry is frozen");
         Objects.requireNonNull(id);
         Objects.requireNonNull(version);
         Objects.requireNonNull(declare);
         if (version.isBlank())
-            throw new IllegalArgumentException("Network version must not be blank");
+            throw new IllegalArgumentException(
+                "Network version must not be blank");
         if (contributors.containsKey(id))
-            throw new IllegalArgumentException("Duplicate network contributor: " + id);
+            throw new IllegalArgumentException(
+                "Duplicate network contributor: " + id);
         var collector = new Collector();
         try {
             declare.accept(collector);
@@ -130,20 +139,27 @@ public final class NetworkRegistry {
         for (var payload : collector.payloads) {
             var name = payload.type().id();
             if (!ids.add(name) || payloadIds.contains(name))
-                throw new IllegalArgumentException("Duplicate network payload: " + name);
+                throw new IllegalArgumentException(
+                    "Duplicate network payload: " + name);
         }
         contributors.put(id, new Contributor(id, version, collector.payloads));
         payloadIds.addAll(ids);
     }
 
-    /** Immutable startup declarations in contributor-ID order; later registration is rejected. */
+    /**
+     * Immutable startup declarations in contributor-ID order; later
+     * registration is rejected.
+     */
     public synchronized List<Contributor> freeze() {
         if (frozen == null)
             frozen = List.copyOf(contributors.values());
         return frozen;
     }
 
-    /** NeoForge owns negotiation and transport; this registry only assembles the declarations. */
+    /**
+     * NeoForge owns negotiation and transport; this registry only assembles the
+     * declarations.
+     */
     public void install(RegisterPayloadHandlersEvent event) {
         for (var contributor : freeze()) {
             var registrar = event.registrar(contributor.version());

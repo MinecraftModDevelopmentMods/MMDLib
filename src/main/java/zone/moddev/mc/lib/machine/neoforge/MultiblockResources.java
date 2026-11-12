@@ -7,16 +7,19 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
 /**
- * Controller resource lookup. Return role/filter/reservation-aware views, never bypass handlers.
+ * Controller resource lookup. Return role/filter/reservation-aware views, never
+ * bypass handlers.
  */
 public interface MultiblockResources {
     default IItemHandler multiblockItems(String resource, Direction worldFace) {
         return null;
     }
-    default IFluidHandler multiblockFluids(String resource, Direction worldFace) {
+    default IFluidHandler multiblockFluids(String resource,
+        Direction worldFace) {
         return null;
     }
-    default IEnergyStorage multiblockEnergy(String resource, Direction worldFace) {
+    default IEnergyStorage multiblockEnergy(String resource,
+        Direction worldFace) {
         return null;
     }
 }

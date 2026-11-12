@@ -25,7 +25,8 @@ final class FilterSamplesBehavior implements ElementBehavior {
         int index = index(x, y);
         if (index < 0 || button < 0 || button > 1)
             return Click.PASS;
-        FilterEdits.submit(access, element, index, button == 1 ? "clear" : "sample");
+        FilterEdits.submit(access, element, index,
+            button == 1 ? "clear" : "sample");
         return Click.CONSUME;
     }
 
@@ -33,17 +34,17 @@ final class FilterSamplesBehavior implements ElementBehavior {
         int index = index(x, y);
         if (index < 0)
             return List.of();
-        return element.sampleTooltip(FilterDrawing.configuration(access.value()), index);
+        return element
+            .sampleTooltip(FilterDrawing.configuration(access.value()), index);
     }
 
-    static void render(FilterControl.Samples element, ElementRenderers.Context c) {
+    static void render(FilterControl.Samples element,
+        ElementRenderers.Context c) {
         var r = c.bounds();
         for (int i = 0; i < element.count(); i++)
-            RENDERER.draw(
-                c.graphics(),
-                element.sampleBounds(r, i),
-                element.sampleSlot(i),
-                element.sampleDisplay(FilterDrawing.configuration(c.value()), i),
+            RENDERER.draw(c.graphics(), element.sampleBounds(r, i),
+                element.sampleSlot(i), element
+                    .sampleDisplay(FilterDrawing.configuration(c.value()), i),
                 ItemStack.EMPTY);
     }
 }

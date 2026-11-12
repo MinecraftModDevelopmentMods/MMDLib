@@ -15,67 +15,73 @@ import net.minecraft.world.level.Level;
 import zone.moddev.mc.lib.machine.ingredient.MachineIngredient;
 
 /**
- * A {@link MachineRecipe} as a vanilla recipe of a {@link MachineRecipeType}. It matches when
- * {@link RecipeMatcher#check} passes: every input present and room for every product.
+ * A {@link MachineRecipe} as a vanilla recipe of a {@link MachineRecipeType}.
+ * It matches when {@link RecipeMatcher#check} passes: every input present and
+ * room for every product.
  */
 public record MachineRecipeEntry(MachineRecipeType type, MachineRecipe recipe)
     implements Recipe<MachineRecipeInput> {
-  public MachineRecipeEntry {
-    Objects.requireNonNull(type, "type");
-    Objects.requireNonNull(recipe, "recipe");
-  }
+    public MachineRecipeEntry {
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(recipe, "recipe");
+    }
 
-  @Override
-  public boolean matches(MachineRecipeInput input, Level level) {
-    return RecipeMatcher.check(recipe, input.inventory()).ok();
-  }
+    @Override
+    public boolean matches(MachineRecipeInput input, Level level) {
+        return RecipeMatcher.check(recipe, input.inventory()).ok();
+    }
 
-  /** The first item product; machines make their products through {@link RecipeMatcher}. */
-  @Override
-  public ItemStack assemble(MachineRecipeInput input, HolderLookup.Provider registries) {
-    return getResultItem(registries);
-  }
+    /**
+     * The first item product; machines make their products through
+     * {@link RecipeMatcher}.
+     */
+    @Override
+    public ItemStack assemble(MachineRecipeInput input,
+        HolderLookup.Provider registries) {
+        return getResultItem(registries);
+    }
 
-  @Override
-  public boolean canCraftInDimensions(int width, int height) {
-    return true;
-  }
+    @Override
+    public boolean canCraftInDimensions(int width, int height) {
+        return true;
+    }
 
-  /** A copy of the first item product, or empty if the recipe makes only fluids. */
-  @Override
-  public ItemStack getResultItem(HolderLookup.Provider registries) {
-    return recipe.outputs().values().stream()
-        .flatMap(List::stream)
-        .filter(MachineProduct.ItemProduct.class::isInstance)
-        .map(product -> ((MachineProduct.ItemProduct) product).stack())
-        .findFirst()
-        .orElse(ItemStack.EMPTY);
-  }
+    /**
+     * A copy of the first item product, or empty if the recipe makes only
+     * fluids.
+     */
+    @Override
+    public ItemStack getResultItem(HolderLookup.Provider registries) {
+        return recipe.outputs().values().stream().flatMap(List::stream)
+            .filter(MachineProduct.ItemProduct.class::isInstance)
+            .map(product -> ((MachineProduct.ItemProduct) product).stack())
+            .findFirst().orElse(ItemStack.EMPTY);
+    }
 
-  /** The item inputs, in group order. */
-  @Override
-  public NonNullList<Ingredient> getIngredients() {
-    var result = NonNullList.<Ingredient>create();
-    recipe.inputs().values().stream()
-        .flatMap(List::stream)
-        .filter(MachineIngredient.ItemPart.class::isInstance)
-        .forEach(part -> result.add(((MachineIngredient.ItemPart) part).items()));
-    return result;
-  }
+    /** The item inputs, in group order. */
+    @Override
+    public NonNullList<Ingredient> getIngredients() {
+        var result = NonNullList.<Ingredient>create();
+        recipe.inputs().values().stream().flatMap(List::stream)
+            .filter(MachineIngredient.ItemPart.class::isInstance)
+            .forEach(part -> result
+                .add(((MachineIngredient.ItemPart) part).items()));
+        return result;
+    }
 
-  /** Machine recipes stay out of the recipe book. */
-  @Override
-  public boolean isSpecial() {
-    return true;
-  }
+    /** Machine recipes stay out of the recipe book. */
+    @Override
+    public boolean isSpecial() {
+        return true;
+    }
 
-  @Override
-  public RecipeSerializer<?> getSerializer() {
-    return type.serializer();
-  }
+    @Override
+    public RecipeSerializer<?> getSerializer() {
+        return type.serializer();
+    }
 
-  @Override
-  public RecipeType<?> getType() {
-    return type;
-  }
+    @Override
+    public RecipeType<?> getType() {
+        return type;
+    }
 }

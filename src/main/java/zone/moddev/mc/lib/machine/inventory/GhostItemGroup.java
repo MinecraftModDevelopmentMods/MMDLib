@@ -13,7 +13,8 @@ public final class GhostItemGroup implements ItemGroup {
 
     public GhostItemGroup(int size) {
         if (size < 1 || size > 54)
-            throw new IllegalArgumentException("Ghost group size must be 1..54");
+            throw new IllegalArgumentException(
+                "Ghost group size must be 1..54");
         samples = new ItemStack[size];
         java.util.Arrays.fill(samples, ItemStack.EMPTY);
     }
@@ -33,13 +34,16 @@ public final class GhostItemGroup implements ItemGroup {
         var tag = new CompoundTag();
         for (int i = 0; i < samples.length; i++)
             tag.put(Integer.toString(i),
-                samples[i].isEmpty() ? new CompoundTag() : samples[i].save(registries));
+                samples[i].isEmpty()
+                    ? new CompoundTag()
+                    : samples[i].save(registries));
         return tag;
     }
 
     public void load(CompoundTag tag, HolderLookup.Provider registries) {
         for (int i = 0; i < samples.length; i++)
-            set(i, ItemStack.parseOptional(registries, tag.getCompound(Integer.toString(i))));
+            set(i, ItemStack.parseOptional(registries,
+                tag.getCompound(Integer.toString(i))));
     }
 
     public boolean ghost() {
@@ -52,7 +56,9 @@ public final class GhostItemGroup implements ItemGroup {
         return samples.length;
     }
     public ItemStack peek(int slot) {
-        return slot < 0 || slot >= size() ? ItemStack.EMPTY : samples[slot].copy();
+        return slot < 0 || slot >= size()
+            ? ItemStack.EMPTY
+            : samples[slot].copy();
     }
     public int free(int slot) {
         return peek(slot).getCount();

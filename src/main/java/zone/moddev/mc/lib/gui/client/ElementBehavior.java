@@ -3,18 +3,25 @@ package zone.moddev.mc.lib.gui.client;
 import java.util.List;
 
 /**
- * One element's state for one open screen. Factories must return fresh instances. Coordinates are
- * absolute GUI pixels. Only a captured press receives dragging and release, even outside its
- * bounds. Hidden widgets lose focus and capture; resize preserves the instance and focus but
- * cancels capture without committing.
+ * One element's state for one open screen. Factories must return fresh
+ * instances. Coordinates are absolute GUI pixels. Only a captured press
+ * receives dragging and release, even outside its bounds. Hidden widgets lose
+ * focus and capture; resize preserves the instance and focus but cancels
+ * capture without committing.
  */
 public interface ElementBehavior {
-    /** Optional transient chooser drawn above normal elements, outside the owner's layout box. */
+    /**
+     * Optional transient chooser drawn above normal elements, outside the
+     * owner's layout box.
+     */
     default java.util.Optional<zone.moddev.mc.lib.gui.layout.Rect> overlayBounds() {
         return java.util.Optional.empty();
     }
 
-    /** Outside clicks dismiss a transient chooser without reaching inventory slots underneath. */
+    /**
+     * Outside clicks dismiss a transient chooser without reaching inventory
+     * slots underneath.
+     */
     default void dismissOverlay() {
     }
 
@@ -33,7 +40,8 @@ public interface ElementBehavior {
         return Click.PASS;
     }
 
-    default boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    default boolean mouseDragged(double x, double y, int button, double dx,
+        double dy) {
         return false;
     }
 
@@ -69,7 +77,10 @@ public interface ElementBehavior {
     default void cancelInteraction() {
     }
 
-    /** Values have already been updated. False also covers an unconfirmed edit after timeout. */
+    /**
+     * Values have already been updated. False also covers an unconfirmed edit
+     * after timeout.
+     */
     default void actionResult(boolean accepted) {
     }
 
@@ -87,7 +98,10 @@ public interface ElementBehavior {
     default void mouseMoved(double x, double y) {
     }
 
-    /** Enter/leave transitions for the topmost visible hit target; leave precedes removal. */
+    /**
+     * Enter/leave transitions for the topmost visible hit target; leave
+     * precedes removal.
+     */
     default void hoverChanged(boolean hovered) {
     }
 
@@ -100,7 +114,10 @@ public interface ElementBehavior {
         return List.of();
     }
 
-    /** Client-local additions after the element's own rows. Retains existing tooltip overrides. */
+    /**
+     * Client-local additions after the element's own rows. Retains existing
+     * tooltip overrides.
+     */
     default void appendTooltip(
         zone.moddev.mc.lib.gui.model.TooltipContext context,
         List<net.minecraft.network.chat.Component> rows) {

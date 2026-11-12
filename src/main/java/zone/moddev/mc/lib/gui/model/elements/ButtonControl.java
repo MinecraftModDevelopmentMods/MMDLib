@@ -8,7 +8,10 @@ import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Text;
 
-/** Shared button presentation; implementations own the meaning of their actions and values. */
+/**
+ * Shared button presentation; implementations own the meaning of their actions
+ * and values.
+ */
 public interface ButtonControl extends Element {
     boolean flat();
 

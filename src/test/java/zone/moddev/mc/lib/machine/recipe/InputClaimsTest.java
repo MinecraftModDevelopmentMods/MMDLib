@@ -68,14 +68,10 @@ class InputClaimsTest {
     @Test
     void emptyEntriesAreNotAskedAbout() {
         var claims = new InputClaims(new long[]{0, 2});
-        assertEquals(
-            0,
-            claims.claim(
-                1,
-                entry -> {
-                    assertEquals(1, entry);
-                    return true;
-                }));
+        assertEquals(0, claims.claim(1, entry -> {
+            assertEquals(1, entry);
+            return true;
+        }));
     }
 
     // Energy amounts don't fit an int.

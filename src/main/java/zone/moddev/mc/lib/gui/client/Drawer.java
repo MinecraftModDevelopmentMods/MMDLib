@@ -9,8 +9,9 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Edge;
 
 /**
- * Client-owned drawer behavior. Subclasses supply their appearance, geometry, content, input and
- * preference restoration. The screen dispatches these hooks without knowing the drawer's type.
+ * Client-owned drawer behavior. Subclasses supply their appearance, geometry,
+ * content, input and preference restoration. The screen dispatches these hooks
+ * without knowing the drawer's type.
  */
 public abstract class Drawer {
     protected final MachineScreen screen;
@@ -20,28 +21,30 @@ public abstract class Drawer {
     private final int colour;
     private zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition;
 
-    protected Drawer(
-        MachineScreen screen,
+    protected Drawer(MachineScreen screen,
         zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition,
-        IconSprite iconSprite,
-        int colour) {
-        this(screen, definition.id(), definition.placement().edge(), iconSprite, colour);
+        IconSprite iconSprite, int colour) {
+        this(screen, definition.id(), definition.placement().edge(), iconSprite,
+            colour);
     }
 
-    final void attach(zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition) {
-        if (this.definition != null
-            || !id.equals(definition.id())
+    final void attach(
+        zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition) {
+        if (this.definition != null || !id.equals(definition.id())
             || edge != definition.placement().edge())
             throw new IllegalArgumentException(
-                "Drawer instance does not match its registered identity: " + definition.id());
+                "Drawer instance does not match its registered identity: "
+                    + definition.id());
         this.definition = definition;
     }
 
     public final zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition() {
-        return Objects.requireNonNull(definition, "Drawer was not created by a registered factory");
+        return Objects.requireNonNull(definition,
+            "Drawer was not created by a registered factory");
     }
 
-    private Drawer(MachineScreen screen, String id, Edge edge, IconSprite iconSprite, int colour) {
+    private Drawer(MachineScreen screen, String id, Edge edge,
+        IconSprite iconSprite, int colour) {
         this.screen = Objects.requireNonNull(screen);
         this.id = Objects.requireNonNull(id);
         this.edge = Objects.requireNonNull(edge);
@@ -65,7 +68,10 @@ public abstract class Drawer {
         return colour;
     }
 
-    /** Stable, drawer-defined preference data; never a server authority or inventory snapshot. */
+    /**
+     * Stable, drawer-defined preference data; never a server authority or
+     * inventory snapshot.
+     */
     public record Selection(String key, int offset) {
         public Selection {
             Objects.requireNonNull(key);
@@ -90,7 +96,10 @@ public abstract class Drawer {
         return screen.drawers().tabBounds(this);
     }
 
-    /** Optional read-only presentation for an element renderer associated with this drawer. */
+    /**
+     * Optional read-only presentation for an element renderer associated with
+     * this drawer.
+     */
     public <T> java.util.Optional<T> presentation(Class<T> type) {
         return java.util.Optional.empty();
     }
@@ -130,7 +139,8 @@ public abstract class Drawer {
         return available() && tabBounds().contains(x, y);
     }
 
-    protected final void drawFrame(GuiGraphics graphics, Rect tab, Rect body, boolean expanded) {
+    protected final void drawFrame(GuiGraphics graphics, Rect tab, Rect body,
+        boolean expanded) {
         if (expanded)
             SideDrawerRenderer.open(graphics, tab, body, edge, colour());
         else
@@ -157,12 +167,12 @@ public abstract class Drawer {
     }
 
     /**
-     * Optional native tooltip ownership for this drawer; empty leaves the screen bridge in charge.
+     * Optional native tooltip ownership for this drawer; empty leaves the
+     * screen bridge in charge.
      */
     public java.util.Optional<List<net.minecraft.network.chat.Component>> nativeTooltip(
         net.minecraft.world.inventory.Slot slot,
-        List<net.minecraft.network.chat.Component> vanilla,
-        int mouseX,
+        List<net.minecraft.network.chat.Component> vanilla, int mouseX,
         int mouseY) {
         return java.util.Optional.empty();
     }

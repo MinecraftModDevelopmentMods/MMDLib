@@ -5,8 +5,8 @@ import java.util.Set;
 import net.minecraft.core.Direction;
 
 /** Port permissions narrow an already-filtered controller resource view. */
-public record StructurePort(String member, String resource, Kind kind, Set<Direction> faces,
-    boolean unsided, boolean input, boolean output) {
+public record StructurePort(String member, String resource, Kind kind,
+    Set<Direction> faces, boolean unsided, boolean input, boolean output) {
     public enum Kind {
         ITEMS, FLUIDS, ENERGY
     }

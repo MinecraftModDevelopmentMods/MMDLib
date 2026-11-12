@@ -34,7 +34,10 @@ import zone.moddev.mc.lib.gui.client.MachineScreen;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 import zone.moddev.mc.lib.machine.multiblock.MultiblockInstance;
 
-/** Focused real-client coverage of member sync, remote menu opening and world teardown. */
+/**
+ * Focused real-client coverage of member sync, remote menu opening and world
+ * teardown.
+ */
 @EventBusSubscriber(modid = "mmdlib_companion", value = Dist.CLIENT)
 public final class MultiblockClientSmoke {
     private static final BlockPos POS = new BlockPos(0, 100, 0);
@@ -54,13 +57,16 @@ public final class MultiblockClientSmoke {
                 throw new AssertionError("Timed out: " + mc.screen);
             if (!started && mc.screen instanceof TitleScreen) {
                 started = true;
-                var settings = new LevelSettings("Multiblock smoke", GameType.CREATIVE, false,
-                    Difficulty.PEACEFUL, true, new GameRules(), WorldDataConfiguration.DEFAULT);
+                var settings = new LevelSettings("Multiblock smoke",
+                    GameType.CREATIVE, false, Difficulty.PEACEFUL, true,
+                    new GameRules(), WorldDataConfiguration.DEFAULT);
                 mc.createWorldOpenFlows().createFreshLevel(
                     "multiblock-" + System.currentTimeMillis(), settings,
                     new WorldOptions(1, false, false),
-                    registries -> registries.registryOrThrow(Registries.WORLD_PRESET)
-                        .getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),
+                    registries -> registries
+                        .registryOrThrow(Registries.WORLD_PRESET)
+                        .getHolderOrThrow(WorldPresets.FLAT).value()
+                        .createWorldDimensions(),
                     mc.screen);
             }
             if (mc.player == null || mc.level == null)
@@ -80,7 +86,8 @@ public final class MultiblockClientSmoke {
                 placed = true;
                 server.execute(() -> {
                     try {
-                        var player = server.getPlayerList().getPlayers().getFirst();
+                        var player = server.getPlayerList().getPlayers()
+                            .getFirst();
                         var level = player.serverLevel();
                         level.getChunkAt(POS);
                         for (int x = -5; x <= 12; x++)
@@ -92,15 +99,19 @@ public final class MultiblockClientSmoke {
                         player.setGameMode(GameType.SURVIVAL);
                         player.setItemInHand(InteractionHand.MAIN_HAND,
                             new ItemStack(MultiblockDemo.ITEM.get(), 2));
-                        var use = new UseOnContext(player, InteractionHand.MAIN_HAND,
-                            new BlockHitResult(Vec3.atCenterOf(POS), Direction.UP, POS, false));
-                        if (!net.neoforged.neoforge.common.CommonHooks.onPlaceItemIntoWorld(use)
-                            .consumesAction()
+                        var use = new UseOnContext(player,
+                            InteractionHand.MAIN_HAND,
+                            new BlockHitResult(Vec3.atCenterOf(POS),
+                                Direction.UP, POS, false));
+                        if (!net.neoforged.neoforge.common.CommonHooks
+                            .onPlaceItemIntoWorld(use).consumesAction()
                             || player.getMainHandItem().getCount() != 1)
                             throw new AssertionError(
                                 "Real survival placement did not consume exactly one item");
-                        var entity = (MultiblockDemoEntity) level.getBlockEntity(POS);
-                        entity.items.insertItem(0, new ItemStack(Items.IRON_INGOT, 3), false);
+                        var entity = (MultiblockDemoEntity) level
+                            .getBlockEntity(POS);
+                        entity.items.insertItem(0,
+                            new ItemStack(Items.IRON_INGOT, 3), false);
                         entity.energy.insert(7000, false);
                         MMDLib.LOGGER.info("MULTIBLOCK_CLIENT_PLACED: {}",
                             entity.multiblock().formation());
@@ -109,22 +120,28 @@ public final class MultiblockClientSmoke {
                     }
                 });
             }
-            if (!requested && mc.level.getBlockEntity(POS) instanceof MultiblockDemoEntity entity
+            if (!requested
+                && mc.level
+                    .getBlockEntity(POS) instanceof MultiblockDemoEntity entity
                 && entity.multiblock().formation() != null
                 && mc.level.getBlockEntity(POS.east(2)) != null) {
                 requested = true;
                 server.execute(() -> {
                     try {
-                        var player = server.getPlayerList().getPlayers().getFirst();
+                        var player = server.getPlayerList().getPlayers()
+                            .getFirst();
                         player.teleportTo(10, 100, .5);
-                        var machine = (MultiblockDemoEntity) player.serverLevel()
-                            .getBlockEntity(POS);
+                        var machine = (MultiblockDemoEntity) player
+                            .serverLevel().getBlockEntity(POS);
                         if (machine.items.getStackInSlot(0).getCount() != 3)
-                            throw new AssertionError("Server fixture inventory was lost: "
-                                + machine.items.getStackInSlot(0));
+                            throw new AssertionError(
+                                "Server fixture inventory was lost: "
+                                    + machine.items.getStackInSlot(0));
                         if (player.canInteractWithBlock(POS, 4.0))
-                            throw new AssertionError("Player still reaches controller");
-                        if (!ScreenRuntime.open(player, player.serverLevel().getBlockEntity(POS),
+                            throw new AssertionError(
+                                "Player still reaches controller");
+                        if (!ScreenRuntime.open(player,
+                            player.serverLevel().getBlockEntity(POS),
                             POS.east(2)))
                             throw new AssertionError("Remote menu refused");
                     } catch (Throwable failure) {
@@ -146,17 +163,20 @@ public final class MultiblockClientSmoke {
 
     @SubscribeEvent
     public static void rendered(RenderFrameEvent.Post event) {
-        if (!Boolean.getBoolean("mmdlib.multiblockSmoke") || finished || removed)
+        if (!Boolean.getBoolean("mmdlib.multiblockSmoke") || finished
+            || removed)
             return;
         var mc = Minecraft.getInstance();
         if (!(mc.screen instanceof MachineScreen screen)
-            || !screen.getMenu().bound.screen().id().equals(MultiblockDemo.definition().id()))
+            || !screen.getMenu().bound.screen().id()
+                .equals(MultiblockDemo.definition().id()))
             return;
         try {
             if (++frames < 30)
                 return;
             if (!screen.getMenu().stillValid(mc.player))
-                throw new AssertionError("Client member anchor not synchronized");
+                throw new AssertionError(
+                    "Client member anchor not synchronized");
             var entity = (MultiblockDemoEntity) mc.level.getBlockEntity(POS);
             if (entity.multiblock().status() != MultiblockInstance.Status.READY)
                 throw new AssertionError("Client structure state missing");
@@ -169,17 +189,19 @@ public final class MultiblockClientSmoke {
                 || storage.slot().getItem().getCount() != 3) {
                 if (frames < 300)
                     return;
-                throw new AssertionError("Controller inventory not synchronized: "
-                    + storage.slot().getItem());
+                throw new AssertionError(
+                    "Controller inventory not synchronized: "
+                        + storage.slot().getItem());
             }
-            Screenshot.grab(mc.gameDirectory, "multiblock-menu.png", mc.getMainRenderTarget(),
-                message -> {
+            Screenshot.grab(mc.gameDirectory, "multiblock-menu.png",
+                mc.getMainRenderTarget(), message -> {
                 });
             removed = true;
             mc.player.closeContainer();
             mc.getSingleplayerServer().execute(() -> {
                 try {
-                    mc.getSingleplayerServer().overworld().removeBlock(POS.east(2), false);
+                    mc.getSingleplayerServer().overworld()
+                        .removeBlock(POS.east(2), false);
                 } catch (Throwable failure) {
                     fail(failure);
                 }

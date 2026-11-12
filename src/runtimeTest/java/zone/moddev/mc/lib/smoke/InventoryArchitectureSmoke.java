@@ -48,12 +48,10 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipe;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
 
 final class InventoryArchitectureSmoke {
-    private record ModSlot(
-        zone.moddev.mc.lib.gui.model.Common common,
+    private record ModSlot(zone.moddev.mc.lib.gui.model.Common common,
         int index,
         zone.moddev.mc.lib.gui.model.elements.SlotElement.Appearance appearance)
-        implements
-            zone.moddev.mc.lib.gui.model.elements.SlotElement {
+        implements zone.moddev.mc.lib.gui.model.elements.SlotElement {
         public SlotKind kind() {
             return SlotKind.NORMAL;
         }
@@ -67,26 +65,31 @@ final class InventoryArchitectureSmoke {
     static void itemMigration(ServerLevel level) {
         namedInventories(level);
         var provider = level.registryAccess();
-        var original = new ItemStorage(3).slotId(0, "ore").slotId(1, "result").slotId(2, "removed");
+        var original = new ItemStorage(3).slotId(0, "ore").slotId(1, "result")
+            .slotId(2, "removed");
         original.restoreStack(0, new ItemStack(Items.IRON_ORE, 40));
         original.restoreStack(1, new ItemStack(Items.GOLD_INGOT, 12));
         original.restoreStack(2, new ItemStack(Items.DIAMOND, 7));
-        var smaller = new ItemStorage(2).slotId(0, "result").slotId(1, "ore").limit(16, 1);
+        var smaller = new ItemStorage(2).slotId(0, "result").slotId(1, "ore")
+            .limit(16, 1);
         smaller.deserializeNBT(provider, original.serializeNBT(provider));
-        require(
-            smaller.getStackInSlot(0).is(Items.GOLD_INGOT),
+        require(smaller.getStackInSlot(0).is(Items.GOLD_INGOT),
             "stable item identity survives reordering");
-        require(smaller.getStackInSlot(1).getCount() == 16, "reduced limit respected");
-        require(smaller.recoveryContents().size() == 2, "removed slot and excess count recovered");
+        require(smaller.getStackInSlot(1).getCount() == 16,
+            "reduced limit respected");
+        require(smaller.recoveryContents().size() == 2,
+            "removed slot and excess count recovered");
         for (int i = 0; i < 3; i++)
             smaller.deserializeNBT(provider, smaller.serializeNBT(provider));
         require(smaller.recoveryContents().size() == 2,
             "repeated loading never duplicates recovery");
-        int recovered = smaller.recoveryContents().stream()
-            .mapToInt(t -> ItemStack.parseOptional(provider, (CompoundTag) t).getCount())
+        int recovered = smaller.recoveryContents().stream().mapToInt(
+            t -> ItemStack.parseOptional(provider, (CompoundTag) t).getCount())
             .sum();
-        require(recovered == 31, "all 24 displaced iron and 7 diamonds preserved");
-        var expanded = new ItemStorage(3).slotId(0, "ore").slotId(1, "result").slotId(2, "removed");
+        require(recovered == 31,
+            "all 24 displaced iron and 7 diamonds preserved");
+        var expanded = new ItemStorage(3).slotId(0, "ore").slotId(1, "result")
+            .slotId(2, "removed");
         expanded.deserializeNBT(provider, smaller.serializeNBT(provider));
         require(
             expanded.getStackInSlot(0).getCount() == 40
@@ -94,10 +97,9 @@ final class InventoryArchitectureSmoke {
                 && expanded.recoveryContents().isEmpty(),
             "restored slots and limits recover all displaced items");
         try {
-            smaller.recover(
-                payload -> {
-                    throw new IllegalStateException("recovery refused");
-                });
+            smaller.recover(payload -> {
+                throw new IllegalStateException("recovery refused");
+            });
         } catch (IllegalStateException expected) {
         }
         require(smaller.recoveryContents().size() == 2,
@@ -105,29 +107,33 @@ final class InventoryArchitectureSmoke {
         var payloads = new ArrayList<CompoundTag>();
         smaller.recover(payloads::add);
         smaller.recover(payloads::add);
-        require(
-            payloads.size() == 1 && smaller.recoveryContents().isEmpty(),
+        require(payloads.size() == 1 && smaller.recoveryContents().isEmpty(),
             "successful handoff exactly once");
 
         var legacy = new ItemStorage(2);
         legacy.restoreStack(1, new ItemStack(Items.EMERALD, 3));
         var shrunk = new ItemStorage(1);
         shrunk.deserializeNBT(provider, legacy.serializeNBT(provider));
-        require(shrunk.recoveryContents().size() == 1, "legacy out-of-range slot preserved");
+        require(shrunk.recoveryContents().size() == 1,
+            "legacy out-of-range slot preserved");
         var restored = new ItemStorage(2);
         restored.deserializeNBT(provider, shrunk.serializeNBT(provider));
         require(
-            restored.getStackInSlot(1).getCount() == 3 && restored.recoveryContents().isEmpty(),
+            restored.getStackInSlot(1).getCount() == 3
+                && restored.recoveryContents().isEmpty(),
             "restored legacy slot recovers saved stack");
-        var remapped = new ItemStorage(2).slotId(0, "emeralds").slotId(1, "unused").limit(1, 0);
-        remapped.deserializeNBT(provider, legacy.serializeNBT(provider), slot -> 1 - slot);
-        require(
-            remapped.getStackInSlot(0).is(Items.EMERALD),
+        var remapped = new ItemStorage(2).slotId(0, "emeralds")
+            .slotId(1, "unused").limit(1, 0);
+        remapped.deserializeNBT(provider, legacy.serializeNBT(provider),
+            slot -> 1 - slot);
+        require(remapped.getStackInSlot(0).is(Items.EMERALD),
             "explicit legacy index migration applied");
-        var movedAgain = new ItemStorage(2).slotId(0, "unused").slotId(1, "emeralds");
+        var movedAgain = new ItemStorage(2).slotId(0, "unused").slotId(1,
+            "emeralds");
         movedAgain.deserializeNBT(provider, remapped.serializeNBT(provider));
         require(
-            movedAgain.getStackInSlot(1).getCount() == 3 && movedAgain.recoveryContents().isEmpty(),
+            movedAgain.getStackInSlot(1).getCount() == 3
+                && movedAgain.recoveryContents().isEmpty(),
             "legacy capacity overflow acquires stable identity before another migration");
 
         var unknown = new CompoundTag();
@@ -139,8 +145,7 @@ final class InventoryArchitectureSmoke {
         var tag = new CompoundTag();
         tag.put("Items", list);
         restored.deserializeNBT(provider, tag);
-        require(
-            restored.recoveryContents().getCompound(0).equals(unknown),
+        require(restored.recoveryContents().getCompound(0).equals(unknown),
             "unknown item NBT retained verbatim");
     }
 
@@ -151,47 +156,53 @@ final class InventoryArchitectureSmoke {
         numeric.restoreStack(0, new ItemStack(Items.DIAMOND, 3));
         numeric.restoreStack(1, new ItemStack(Items.EMERALD, 5));
         var numericSave = numeric.serializeNBT(registries);
-        for (var value : numericSave.getCompound("Inventories").getCompound("items")
+        for (var value : numericSave.getCompound("Inventories")
+            .getCompound("items")
             .getList("Items", net.minecraft.nbt.Tag.TAG_COMPOUND))
             require(!((CompoundTag) value).contains("LegacySlot"),
                 "Named inventories do not write unused LegacySlot metadata");
-        var numericRestored = ItemInventories.partition(List.of("items", "items"))
-            .slotId(0, "2").slotId(1, "1");
+        var numericRestored = ItemInventories
+            .partition(List.of("items", "items")).slotId(0, "2").slotId(1, "1");
         numericRestored.deserializeNBT(registries, numericSave);
-        require(numericRestored.getStackInSlot(0).is(Items.EMERALD)
-            && numericRestored.getStackInSlot(1).getCount() == 3,
+        require(
+            numericRestored.getStackInSlot(0).is(Items.EMERALD)
+                && numericRestored.getStackInSlot(1).getCount() == 3,
             "Explicit numeric IDs are assigned before defaults and survive reordering");
-        var mixed = ItemInventories.partition(List.of("items", "items")).slotId(0, "1");
+        var mixed = ItemInventories.partition(List.of("items", "items"))
+            .slotId(0, "1");
         mixed.restoreStack(1, new ItemStack(Items.GOLD_INGOT, 7));
         var mixedSave = mixed.serializeNBT(registries);
-        var mixedRestored = ItemInventories.partition(List.of("items", "items")).slotId(0, "1");
+        var mixedRestored = ItemInventories.partition(List.of("items", "items"))
+            .slotId(0, "1");
         mixedRestored.deserializeNBT(registries, mixedSave);
-        require(mixedRestored.getStackInSlot(1).getCount() == 7
-            && mixedRestored.getStackInSlot(0).isEmpty(),
+        require(
+            mixedRestored.getStackInSlot(1).getCount() == 7
+                && mixedRestored.getStackInSlot(0).isEmpty(),
             "Anonymous fallback IDs cannot collide with explicit numeric IDs");
         var old = new ItemStorage(2).slotId(0, "ore").slotId(1, "result");
         old.restoreStack(0, new ItemStack(Items.IRON_ORE, 7));
         old.restoreStack(1, new ItemStack(Items.GOLD_INGOT, 3));
-        var split = ItemInventories.partition(List.of("input", "output")).slotId(0, "ore").slotId(1,
-            "result");
+        var split = ItemInventories.partition(List.of("input", "output"))
+            .slotId(0, "ore").slotId(1, "result");
         split.deserializeNBT(registries, old.serializeNBT(registries));
         require(
-            split.inventory("input").getStackInSlot(0).getCount() == 7
-                && split.inventory("output").getStackInSlot(0).is(Items.GOLD_INGOT),
+            split.inventory("input").getStackInSlot(0).getCount() == 7 && split
+                .inventory("output").getStackInSlot(0).is(Items.GOLD_INGOT),
             "flat saves migrate into independent inventories");
-        var reordered = ItemInventories.partition(List.of("output", "input")).slotId(0, "result")
-            .slotId(1, "ore");
+        var reordered = ItemInventories.partition(List.of("output", "input"))
+            .slotId(0, "result").slotId(1, "ore");
         reordered.deserializeNBT(registries, split.serializeNBT(registries));
         require(
             reordered.getStackInSlot(0).is(Items.GOLD_INGOT)
                 && reordered.getStackInSlot(1).getCount() == 7,
             "named save survives inventory order changes");
-        var removed = ItemInventories.partition(List.of("input")).slotId(0, "ore");
+        var removed = ItemInventories.partition(List.of("input")).slotId(0,
+            "ore");
         removed.deserializeNBT(registries, reordered.serializeNBT(registries));
         for (int i = 0; i < 3; i++)
-            removed.deserializeNBT(registries, removed.serializeNBT(registries));
-        require(
-            removed.recoveryContents().size() == 1,
+            removed.deserializeNBT(registries,
+                removed.serializeNBT(registries));
+        require(removed.recoveryContents().size() == 1,
             "removed inventory has one durable recovery entry");
         reordered.deserializeNBT(registries, removed.serializeNBT(registries));
         require(
@@ -207,33 +218,37 @@ final class InventoryArchitectureSmoke {
             swapped.getStackInSlot(0).is(Items.EMERALD)
                 && swapped.getStackInSlot(1).is(Items.DIAMOND),
             "identical local stable IDs stay scoped to each inventory");
-        var resources = new MachineResources(owner(level), () -> Direction.NORTH)
+        var resources = new MachineResources(owner(level),
+            () -> Direction.NORTH)
             .items(items("a", IoMode.BOTH, 0), sameIds.inventory("a"))
             .items(items("b", IoMode.BOTH, 0), sameIds.inventory("b"))
-            .recipeGroup("both", "a", "b")
-            .build();
+            .recipeGroup("both", "a", "b").build();
         var both = (ItemGroup) resources.recipes().group("both").orElseThrow();
         var single = (ItemGroup) resources.recipes().group("a").orElseThrow();
         try (var tx = resources.recipes().begin()) {
             require(
-                both.extract(0, 1, tx) == 1
-                    && single.extract(0, 1, tx) == 1
+                both.extract(0, 1, tx) == 1 && single.extract(0, 1, tx) == 1
                     && both.extract(1, 2, tx) == 2,
                 "combined recipe addresses independent inventories");
         }
         require(
-            sameIds.getStackInSlot(0).getCount() == 2 && sameIds.getStackInSlot(1).getCount() == 4,
+            sameIds.getStackInSlot(0).getCount() == 2
+                && sameIds.getStackInSlot(1).getCount() == 4,
             "rollback tracks physical slots once across aliases");
-        var plan = new zone.moddev.mc.lib.machine.inventory.SlotPlan(1, ItemStack.EMPTY);
+        var plan = new zone.moddev.mc.lib.machine.inventory.SlotPlan(1,
+            ItemStack.EMPTY);
         try (var tx = resources.recipes().begin()) {
-            require(both.reserve(1, plan, tx), "reserve second inventory's local slot zero");
+            require(both.reserve(1, plan, tx),
+                "reserve second inventory's local slot zero");
             tx.commit();
         }
         require(
-            !sameIds.inventory("a").hasPlan(0) && sameIds.inventory("b").plan(0).take() == 1,
+            !sameIds.inventory("a").hasPlan(0)
+                && sameIds.inventory("b").plan(0).take() == 1,
             "reservations belong to physical inventories");
-        var appearance = zone.moddev.mc.lib.gui.model.elements.SlotElement.Appearance.standard(
-            zone.moddev.mc.lib.gui.model.SlotSize.NORMAL, Optional.empty(), Optional.empty());
+        var appearance = zone.moddev.mc.lib.gui.model.elements.SlotElement.Appearance
+            .standard(zone.moddev.mc.lib.gui.model.SlotSize.NORMAL,
+                Optional.empty(), Optional.empty());
         var ghost = new zone.moddev.mc.lib.gui.model.elements.GhostSlotElement(
             zone.moddev.mc.lib.gui.model.Common.empty(), 0, appearance);
         var carried = new ItemStack(Items.DIAMOND, 12);
@@ -266,15 +281,18 @@ final class InventoryArchitectureSmoke {
         smaller.addTank(500, Role.INPUT);
         smaller.tankId(0, "water");
         smaller.deserializeNBT(provider, original.serializeNBT(provider));
-        require(smaller.getFluidInTank(0).getAmount() == 500, "reduced capacity respected");
+        require(smaller.getFluidInTank(0).getAmount() == 500,
+            "reduced capacity respected");
         require(smaller.recoveryContents().size() == 2,
             "removed tank and capacity excess preserved");
         for (int i = 0; i < 3; i++)
             smaller.deserializeNBT(provider, smaller.serializeNBT(provider));
         int recovered = smaller.recoveryContents().stream()
-            .mapToInt(t -> FluidStack.parseOptional(provider, (CompoundTag) t).getAmount())
+            .mapToInt(t -> FluidStack.parseOptional(provider, (CompoundTag) t)
+                .getAmount())
             .sum();
-        require(recovered == 1700, "repeated fluid loading conserves displaced contents");
+        require(recovered == 1700,
+            "repeated fluid loading conserves displaced contents");
         original.deserializeNBT(provider, smaller.serializeNBT(provider));
         require(
             original.getFluidInTank(0).getAmount() == 1500
@@ -302,9 +320,9 @@ final class InventoryArchitectureSmoke {
         migrated.addTank(100, Role.INPUT);
         migrated.addTank(2000, Role.INPUT);
         migrated.tankId(0, "water").tankId(1, "unused");
-        migrated.deserializeNBT(provider, legacy.serializeNBT(provider), tank -> 1 - tank);
-        require(
-            migrated.getFluidInTank(0).getAmount() == 100,
+        migrated.deserializeNBT(provider, legacy.serializeNBT(provider),
+            tank -> 1 - tank);
+        require(migrated.getFluidInTank(0).getAmount() == 100,
             "explicit legacy tank migration applied");
         var expanded = new FluidStorage();
         expanded.addTank(2000, Role.INPUT);
@@ -312,24 +330,21 @@ final class InventoryArchitectureSmoke {
         expanded.tankId(0, "unused").tankId(1, "water");
         expanded.deserializeNBT(provider, migrated.serializeNBT(provider));
         require(
-            expanded.getFluidInTank(1).getAmount() == 1000 && expanded.recoveryContents().isEmpty(),
+            expanded.getFluidInTank(1).getAmount() == 1000
+                && expanded.recoveryContents().isEmpty(),
             "legacy fluid overflow follows acquired stable identity");
     }
 
-    private static ResourceGroup<IItemHandler> items(String id, IoMode mode, Integer... members) {
-        return new ResourceGroup<>(
-            id,
-            Component.literal(id),
-            0x123456,
-            ResourceType.ITEMS,
-            mode,
-            List.of(members),
-            List.of(),
+    private static ResourceGroup<IItemHandler> items(String id, IoMode mode,
+        Integer... members) {
+        return new ResourceGroup<>(id, Component.literal(id), 0x123456,
+            ResourceType.ITEMS, mode, List.of(members), List.of(),
             new SideConfig(mode));
     }
 
     private static ChestBlockEntity owner(ServerLevel level) {
-        var owner = new ChestBlockEntity(BlockPos.ZERO, Blocks.CHEST.defaultBlockState());
+        var owner = new ChestBlockEntity(BlockPos.ZERO,
+            Blocks.CHEST.defaultBlockState());
         owner.setLevel(level);
         return owner;
     }
@@ -338,8 +353,7 @@ final class InventoryArchitectureSmoke {
         try {
             action.run();
         } catch (IllegalArgumentException e) {
-            require(
-                e.getMessage().contains(text),
+            require(e.getMessage().contains(text),
                 "diagnostic names the invalid member/group: " + e.getMessage());
             return;
         }
@@ -348,64 +362,58 @@ final class InventoryArchitectureSmoke {
 
     static void bindings(ServerLevel level) {
         var owner = owner(level);
-        var storage = new ItemStorage(3).role(Role.INPUT, 0, 1).role(Role.OUTPUT, 2);
-        rejected(
-            () -> new MachineResources(owner, () -> Direction.NORTH)
-                .items(items("bad", IoMode.INPUT, 4), storage),
-            "member 4");
-        rejected(
-            () -> new MachineResources(owner, () -> Direction.NORTH)
-                .items(items("bad", IoMode.BOTH, 0), storage),
-            "role INPUT");
+        var storage = new ItemStorage(3).role(Role.INPUT, 0, 1)
+            .role(Role.OUTPUT, 2);
+        rejected(() -> new MachineResources(owner, () -> Direction.NORTH)
+            .items(items("bad", IoMode.INPUT, 4), storage), "member 4");
+        rejected(() -> new MachineResources(owner, () -> Direction.NORTH)
+            .items(items("bad", IoMode.BOTH, 0), storage), "role INPUT");
         var left = items("left", IoMode.INPUT, 0);
         var right = items("right", IoMode.INPUT, 1);
         var resources = new MachineResources(owner, () -> Direction.NORTH)
-            .items(left, storage)
-            .items(right, storage)
+            .items(left, storage).items(right, storage)
             .items(items("result", IoMode.OUTPUT, 2), storage)
             .recipeGroup("ingredients", "left", "right");
         rejected(() -> resources.recipeGroup("left", "left", "result"), "left");
-        rejected(() -> resources.recipeGroup("ingredients", "result"), "ingredients");
-        rejected(() -> resources.items(items("ingredients", IoMode.INPUT, 0), storage),
+        rejected(() -> resources.recipeGroup("ingredients", "result"),
             "ingredients");
+        rejected(() -> resources.items(items("ingredients", IoMode.INPUT, 0),
+            storage), "ingredients");
         resources.build();
         require(
-            ((ItemGroup) resources.recipes().group("left").orElseThrow()).size() == 1,
+            ((ItemGroup) resources.recipes().group("left").orElseThrow())
+                .size() == 1,
             "Rejected alias must preserve the original group");
         var port = left.port(Direction.NORTH);
-        require(port.getSlots() == 3, "group ports keep physical slot numbering");
+        require(port.getSlots() == 3,
+            "group ports keep physical slot numbering");
         require(
-            port.insertItem(1, new ItemStack(Items.IRON_ORE), false).getCount() == 1,
+            port.insertItem(1, new ItemStack(Items.IRON_ORE), false)
+                .getCount() == 1,
             "group port cannot touch another input group");
         require(
             port.insertItem(0, new ItemStack(Items.IRON_ORE), false).isEmpty(),
             "group port accepts its own member");
         require(
-            ((ItemGroup) resources.recipes().group("ingredients").orElseThrow()).size() == 2,
+            ((ItemGroup) resources.recipes().group("ingredients").orElseThrow())
+                .size() == 2,
             "recipe group combines shared definitions");
         left.sides().set(RelativeFace.FRONT, IoMode.DISABLED);
-        require(
-            port.insertItem(0, new ItemStack(Items.IRON_ORE), true).getCount() == 1,
-            "existing port follows side edits");
-        require(
-            left.port(null).insertItem(2, new ItemStack(Items.IRON_ORE), true).getCount() == 1,
+        require(port.insertItem(0, new ItemStack(Items.IRON_ORE), true)
+            .getCount() == 1, "existing port follows side edits");
+        require(left.port(null)
+            .insertItem(2, new ItemStack(Items.IRON_ORE), true).getCount() == 1,
             "unsided port remains isolated");
     }
 
     static void screenValidation(ServerLevel level) throws Exception {
         inventoryElements();
         var storage = new ItemStorage(1);
-        var group = new ResourceGroup<>(
-            "input",
-            Component.literal("Input"),
-            0x123456,
-            ResourceType.ITEMS,
-            IoMode.BOTH,
-            List.of(0),
-            List.of("input"),
-            new SideConfig(IoMode.BOTH));
-        var resources = new MachineResources(owner(level), () -> Direction.NORTH)
-            .items(group, storage).build();
+        var group = new ResourceGroup<>("input", Component.literal("Input"),
+            0x123456, ResourceType.ITEMS, IoMode.BOTH, List.of(0),
+            List.of("input"), new SideConfig(IoMode.BOTH));
+        var resources = new MachineResources(owner(level),
+            () -> Direction.NORTH).items(group, storage).build();
         var host = new zone.moddev.mc.lib.gui.runtime.ScreenHost() {
             public ItemStorage screenItems() {
                 return storage;
@@ -418,22 +426,19 @@ final class InventoryArchitectureSmoke {
         for (int variant = 0; variant < 3; variant++) {
             String xml = "<screen xmlns=\"https://moddev.zone/mmdlib/screen\" title=\"test\""
                 + " block-entity=\"net.minecraft.world.level.block.entity.ChestBlockEntity\"><slot"
-                + " id=\""
-                + (variant == 1 ? "wrong" : "input")
-                + "\" index=\""
-                + (variant == 2 ? 2 : 0)
-                + "\"/></screen>";
+                + " id=\"" + (variant == 1 ? "wrong" : "input") + "\" index=\""
+                + (variant == 2 ? 2 : 0) + "\"/></screen>";
             var screen = zone.moddev.mc.lib.gui.load.ScreenReader.read(
                 ResourceLocation.parse("mmdlib_smoke:validation"),
-                "validation.xml",
-                new java.io.ByteArrayInputStream(
+                "validation.xml", new java.io.ByteArrayInputStream(
                     xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
             if (variant != 2)
-                zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(screen, host);
+                zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation
+                    .validate(screen, host);
             else
                 rejected(
-                    () -> zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(screen,
-                        host),
+                    () -> zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation
+                        .validate(screen, host),
                     "index 2");
         }
     }
@@ -448,14 +453,13 @@ final class InventoryArchitectureSmoke {
             }
 
             public Map<String, ItemStorage> screenInventories() {
-                return Map.of("items", backing.inventory("items"), "extra", extra);
+                return Map.of("items", backing.inventory("items"), "extra",
+                    extra);
             }
 
             public boolean setScreenGhost(
                 net.minecraft.world.entity.player.Player player,
-                String inventory,
-                int slot,
-                ItemStack stack) {
+                String inventory, int slot, ItemStack stack) {
                 ghostValues.put(inventory + "/" + slot, stack);
                 return true;
             }
@@ -467,42 +471,37 @@ final class InventoryArchitectureSmoke {
             </screen>
             """;
         var screen = zone.moddev.mc.lib.gui.load.ScreenReader.read(
-            ResourceLocation.parse("test:named"),
-            "named.xml",
+            ResourceLocation.parse("test:named"), "named.xml",
             new java.io.ByteArrayInputStream(
                 xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         var body = new ArrayList<zone.moddev.mc.lib.gui.model.Element>();
         for (var element : screen.body()) {
             var view = (zone.moddev.mc.lib.gui.model.containers.InventoryElement) element;
-            var children = view.children().stream()
-                .map(
-                    child -> child instanceof zone.moddev.mc.lib.gui.model.elements.ItemSlotElement item
-                        ? (zone.moddev.mc.lib.gui.model.Element) new ModSlot(item.common(),
-                            item.index(), item.appearance())
-                        : child)
+            var children = view.children().stream().map(
+                child -> child instanceof zone.moddev.mc.lib.gui.model.elements.ItemSlotElement item
+                    ? (zone.moddev.mc.lib.gui.model.Element) new ModSlot(
+                        item.common(), item.index(), item.appearance())
+                    : child)
                 .toList();
             body.add(
                 new zone.moddev.mc.lib.gui.model.containers.InventoryElement(
-                    view.common(), view.inventory(), view.columns(), view.spacing(), children));
+                    view.common(), view.inventory(), view.columns(),
+                    view.spacing(), children));
         }
-        screen = new zone.moddev.mc.lib.gui.model.Screen(
-            screen.id(),
-            screen.source(),
-            screen.title(),
-            screen.blockEntity(),
-            screen.playerInventory(),
-            body,
-            screen.tabs());
-        zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation.validate(screen, host);
-        var layout = zone.moddev.mc.lib.gui.layout.ScreenLayout.of(
-            screen, zone.moddev.mc.lib.gui.layout.TextMeasure.NONE);
+        screen = new zone.moddev.mc.lib.gui.model.Screen(screen.id(),
+            screen.source(), screen.title(), screen.blockEntity(),
+            screen.playerInventory(), body, screen.tabs());
+        zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation
+            .validate(screen, host);
+        var layout = zone.moddev.mc.lib.gui.layout.ScreenLayout.of(screen,
+            zone.moddev.mc.lib.gui.layout.TextMeasure.NONE);
         var session = new zone.moddev.mc.lib.gui.model.containers.InventoryElement.Session(
             screen, host, layout, false, e -> true, () -> false, () -> {
             });
-        var named = (zone.moddev.mc.lib.gui.model.elements.SlotElement) screen.find("named")
-            .orElseThrow();
-        var addon = (zone.moddev.mc.lib.gui.model.elements.SlotElement) screen.find("extra")
-            .orElseThrow();
+        var named = (zone.moddev.mc.lib.gui.model.elements.SlotElement) screen
+            .find("named").orElseThrow();
+        var addon = (zone.moddev.mc.lib.gui.model.elements.SlotElement) screen
+            .find("extra").orElseThrow();
         session.slot(named).set(new ItemStack(Items.DIAMOND, 4));
         session.slot(addon).set(new ItemStack(Items.EMERALD, 2));
         require(
@@ -511,12 +510,13 @@ final class InventoryArchitectureSmoke {
                 && extra.getStackInSlot(0).getCount() == 2,
             "named local zero resolves actual storage, including inventory named items and external"
                 + " addon");
-        require(
-            session.index(new ItemInventories.Address("items", 0)) == session.index(named)
-                && session.index(new ItemInventories.Address("extra", 0)) == session.index(addon),
+        require(session.index(
+            new ItemInventories.Address("items", 0)) == session.index(named)
+            && session.index(new ItemInventories.Address("extra", 0)) == session
+                .index(addon),
             "named routing resolves menu indexes");
-        var ghost = (zone.moddev.mc.lib.gui.model.elements.GhostSlotElement) screen.find("ghost")
-            .orElseThrow();
+        var ghost = (zone.moddev.mc.lib.gui.model.elements.GhostSlotElement) screen
+            .find("ghost").orElseThrow();
         var selection = new ItemStack(Items.DIAMOND, 64);
         require(
             session.ghost(ghost, null, selection)
@@ -525,18 +525,14 @@ final class InventoryArchitectureSmoke {
             "Ghost edit uses its named inventory without consuming real items");
         require(!session.ghost(named, null, selection),
             "Ordinary inventory slot accepted ghost edit");
-        require(
-            !session.ghost(
-                new zone.moddev.mc.lib.gui.model.elements.GhostSlotElement(
-                    ghost.common(), ghost.index(), ghost.appearance()),
-                null,
-                selection),
-            "Unregistered ghost element accepted edit");
+        require(!session.ghost(
+            new zone.moddev.mc.lib.gui.model.elements.GhostSlotElement(
+                ghost.common(), ghost.index(), ghost.appearance()),
+            null, selection), "Unregistered ghost element accepted edit");
         var hiddenSession = new zone.moddev.mc.lib.gui.model.containers.InventoryElement.Session(
             screen, host, layout, false, e -> false, () -> false, () -> {
             });
-        require(
-            !hiddenSession.ghost(ghost, null, ItemStack.EMPTY),
+        require(!hiddenSession.ghost(ghost, null, ItemStack.EMPTY),
             "Hidden inventory ghost accepted edit");
         var events = new ArrayList<String>();
         var painter = new zone.moddev.mc.lib.gui.model.elements.SlotElement.Painter() {
@@ -544,7 +540,8 @@ final class InventoryArchitectureSmoke {
                 events.add("background");
             }
 
-            public void icon(ResourceLocation sprite, Optional<ResourceLocation> atlas) {
+            public void icon(ResourceLocation sprite,
+                Optional<ResourceLocation> atlas) {
                 events.add("icon");
             }
 
@@ -553,12 +550,13 @@ final class InventoryArchitectureSmoke {
             }
         };
         named.render(painter, ItemStack.EMPTY, new ItemStack(Items.DIAMOND));
-        require(
-            events.equals(List.of("background", "ghost:1")),
+        require(events.equals(List.of("background", "ghost:1")),
             "empty real slot renders remembered ghost");
         events.clear();
-        named.render(painter, new ItemStack(Items.EMERALD), new ItemStack(Items.DIAMOND));
-        require(events.equals(List.of("background")), "real item suppresses remembered ghost");
+        named.render(painter, new ItemStack(Items.EMERALD),
+            new ItemStack(Items.DIAMOND));
+        require(events.equals(List.of("background")),
+            "real item suppresses remembered ghost");
         events.clear();
         ghost.render(painter, new ItemStack(Items.DIAMOND), ItemStack.EMPTY);
         require(
@@ -569,94 +567,76 @@ final class InventoryArchitectureSmoke {
 
     static void recipeFilters(ServerLevel level) {
         var owner = owner(level);
-        var storage = new ItemStorage(3)
-            .role(Role.INPUT, 0)
+        var storage = new ItemStorage(3).role(Role.INPUT, 0)
             .role(Role.OUTPUT, 1, 2)
             .filter(stack -> !stack.is(Items.DEEPSLATE_COPPER_ORE), 0);
         var fluids = new FluidStorage();
         fluids.addTank(4000, Role.STORAGE);
-        var water = new ResourceGroup<>(
-            "water",
-            Component.literal("Water"),
-            0x334455,
-            ResourceType.FLUIDS,
-            IoMode.BOTH,
-            List.of(0),
-            List.of(),
+        var water = new ResourceGroup<>("water", Component.literal("Water"),
+            0x334455, ResourceType.FLUIDS, IoMode.BOTH, List.of(0), List.of(),
             new SideConfig(IoMode.BOTH));
         var energy = new EnergyBuffer(10000, 1000);
-        var power = new ResourceGroup<>(
-            "energy",
-            Component.literal("Energy"),
-            0x334455,
-            ResourceType.ENERGY,
-            IoMode.INPUT,
-            List.of(0),
-            List.of(),
+        var power = new ResourceGroup<>("energy", Component.literal("Energy"),
+            0x334455, ResourceType.ENERGY, IoMode.INPUT, List.of(0), List.of(),
             new SideConfig(IoMode.INPUT));
         var resources = new MachineResources(owner, () -> Direction.NORTH)
             .items(items("input", IoMode.INPUT, 0), storage)
             .items(items("output", IoMode.OUTPUT, 1), storage)
             .items(items("byproduct", IoMode.OUTPUT, 2), storage)
-            .fluids(water, fluids)
-            .energy(power, energy)
+            .fluids(water, fluids).energy(power, energy)
             .recipeInputs(MachineRecipeTypeSmoke.GRINDING, "input", "water")
             .build();
-        require(
-            storage.isItemValid(0, new ItemStack(Items.COPPER_ORE)),
+        require(storage.isItemValid(0, new ItemStack(Items.COPPER_ORE)),
             "tag recipe admits input before other ingredients arrive");
-        require(
-            storage.isItemValid(0, new ItemStack(Items.IRON_ORE)),
+        require(storage.isItemValid(0, new ItemStack(Items.IRON_ORE)),
             "union of recipes admits alternative input");
-        require(!storage.isItemValid(0, new ItemStack(Items.DIAMOND)), "unrelated item refused");
+        require(!storage.isItemValid(0, new ItemStack(Items.DIAMOND)),
+            "unrelated item refused");
         require(
             !storage.isItemValid(0, new ItemStack(Items.DEEPSLATE_COPPER_ORE)),
             "explicit storage filter still applies");
         storage.filter(stack -> true, 0);
-        require(
-            !storage.isItemValid(0, new ItemStack(Items.DIAMOND)),
+        require(!storage.isItemValid(0, new ItemStack(Items.DIAMOND)),
             "changing the base filter cannot erase linked recipe rules");
-        require(
-            storage.view(IoMode.INPUT).insertItem(0, new ItemStack(Items.DIAMOND), true)
-                .getCount() == 1,
+        require(storage.view(IoMode.INPUT)
+            .insertItem(0, new ItemStack(Items.DIAMOND), true).getCount() == 1,
             "automation obeys recipe filter");
+        require(fluids.fill(new FluidStack(Fluids.LAVA, 100),
+            FluidAction.EXECUTE) == 0, "unrelated fluid refused");
         require(
-            fluids.fill(new FluidStack(Fluids.LAVA, 100), FluidAction.EXECUTE) == 0,
-            "unrelated fluid refused");
-        require(
-            fluids.fill(new FluidStack(Fluids.WATER, 1), FluidAction.EXECUTE) == 1,
+            fluids.fill(new FluidStack(Fluids.WATER, 1),
+                FluidAction.EXECUTE) == 1,
             "input amount need not satisfy recipe yet");
         fluids.restoreFluid(0, FluidStack.EMPTY);
         require(
-            fluids.fillResult(0, new FluidStack(Fluids.LAVA, 10), FluidAction.EXECUTE) == 10,
+            fluids.fillResult(0, new FluidStack(Fluids.LAVA, 10),
+                FluidAction.EXECUTE) == 10,
             "machine products bypass input-only rule");
-        require(
-            storage.insertResult(1, new ItemStack(Items.RAW_COPPER), false).isEmpty(),
-            "recipe products remain insertable");
-        var client = new zone.moddev.mc.lib.gui.runtime.ClientMenuItems(3, storage);
-        require(
-            !client.isItemValid(0, new ItemStack(Items.DIAMOND)),
+        require(storage.insertResult(1, new ItemStack(Items.RAW_COPPER), false)
+            .isEmpty(), "recipe products remain insertable");
+        var client = new zone.moddev.mc.lib.gui.runtime.ClientMenuItems(3,
+            storage);
+        require(!client.isItemValid(0, new ItemStack(Items.DIAMOND)),
             "menu prediction uses input rules");
 
         var manager = level.getRecipeManager();
         var original = new ArrayList<>(manager.getRecipes());
         try {
-            var recipe = new MachineRecipe(
-                Map.of(
-                    "input",
-                    List.of(new MachineIngredient.ItemPart(Ingredient.of(Items.DIAMOND), 32)),
-                    "water",
-                    List.of(
-                        new MachineIngredient.FluidPart(
-                            HolderSet.direct(Fluids.LAVA.builtInRegistryHolder()), 500))),
-                Map.of(),
-                20);
+            var recipe = new MachineRecipe(Map.of("input",
+                List.of(new MachineIngredient.ItemPart(
+                    Ingredient.of(Items.DIAMOND), 32)),
+                "water",
+                List.of(new MachineIngredient.FluidPart(
+                    HolderSet.direct(Fluids.LAVA.builtInRegistryHolder()),
+                    500))),
+                Map.of(), 20);
             var changed = new ArrayList<RecipeHolder<?>>(original);
-            changed.removeIf(holder -> holder.value().getType() == MachineRecipeTypeSmoke.GRINDING);
-            changed.add(
-                new RecipeHolder<>(
-                    ResourceLocation.parse("mmdlib_smoke:admission"),
-                    new MachineRecipeEntry(MachineRecipeTypeSmoke.GRINDING, recipe)));
+            changed.removeIf(holder -> holder.value()
+                .getType() == MachineRecipeTypeSmoke.GRINDING);
+            changed.add(new RecipeHolder<>(
+                ResourceLocation.parse("mmdlib_smoke:admission"),
+                new MachineRecipeEntry(MachineRecipeTypeSmoke.GRINDING,
+                    recipe)));
             manager.replaceRecipes(changed);
             require(
                 storage.isItemValid(0, new ItemStack(Items.DIAMOND))
@@ -670,7 +650,8 @@ final class InventoryArchitectureSmoke {
             var namedIngredient = new DataComponentIngredient(
                 HolderSet.direct(Items.DIAMOND.builtInRegistryHolder()),
                 DataComponentPredicate.builder()
-                    .expect(DataComponents.CUSTOM_NAME, Component.literal("Accepted"))
+                    .expect(DataComponents.CUSTOM_NAME,
+                        Component.literal("Accepted"))
                     .build(),
                 false) {
                 @Override
@@ -679,33 +660,34 @@ final class InventoryArchitectureSmoke {
                     return false;
                 }
             }.toVanilla();
-            changed.set(
-                changed.size() - 1,
-                new RecipeHolder<>(
-                    ResourceLocation.parse("mmdlib_smoke:admission"),
-                    new MachineRecipeEntry(
-                        MachineRecipeTypeSmoke.GRINDING,
-                        new MachineRecipe(
-                            Map.of("input",
-                                List.of(new MachineIngredient.ItemPart(namedIngredient, 1))),
-                            Map.of(),
-                            20))));
+            changed
+                .set(
+                    changed
+                        .size() - 1,
+                    new RecipeHolder<>(
+                        ResourceLocation.parse("mmdlib_smoke:admission"),
+                        new MachineRecipeEntry(MachineRecipeTypeSmoke.GRINDING,
+                            new MachineRecipe(Map.of("input",
+                                List.of(new MachineIngredient.ItemPart(
+                                    namedIngredient, 1))),
+                                Map.of(), 20))));
             manager.replaceRecipes(changed);
             var named = new ItemStack(Items.DIAMOND);
             for (int check = 0; check < 100; check++) {
-                named.set(DataComponents.CUSTOM_NAME, Component.literal("Accepted"));
+                named.set(DataComponents.CUSTOM_NAME,
+                    Component.literal("Accepted"));
                 require(storage.isItemValid(0, named),
                     "Custom ingredient accepts matching components");
                 named.remove(DataComponents.CUSTOM_NAME);
-                require(
-                    !storage.isItemValid(0, named),
+                require(!storage.isItemValid(0, named),
                     "Same-ID, same-count reload invalidates cache; custom predicates inspect each stack");
             }
-            require(indexed[0] == 1, "Repeated insertion probes reuse the ingredient index");
-            changed.removeIf(holder -> holder.value().getType() == MachineRecipeTypeSmoke.GRINDING);
+            require(indexed[0] == 1,
+                "Repeated insertion probes reuse the ingredient index");
+            changed.removeIf(holder -> holder.value()
+                .getType() == MachineRecipeTypeSmoke.GRINDING);
             manager.replaceRecipes(changed);
-            require(
-                !storage.isItemValid(0, new ItemStack(Items.DIAMOND)),
+            require(!storage.isItemValid(0, new ItemStack(Items.DIAMOND)),
                 "no recipes admits no linked inputs");
         } finally {
             manager.replaceRecipes(original);

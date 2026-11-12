@@ -15,7 +15,10 @@ import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.sync.ElementStateValue;
 import zone.moddev.mc.lib.gui.sync.ElementStates;
 
-/** Per-menu typed action lifecycle. The menu supplies authorization and authoritative snapshots. */
+/**
+ * Per-menu typed action lifecycle. The menu supplies authorization and
+ * authoritative snapshots.
+ */
 final class ElementActionSession {
     private static final int TIMEOUT_TICKS = 100, MAX_ACTIONS_PER_TICK = 8;
     private final MachineMenu menu;
@@ -33,11 +36,8 @@ final class ElementActionSession {
     private long clientTicks;
     private boolean closed;
 
-    ElementActionSession(
-        MachineMenu menu,
-        long sessionId,
-        RegistryAccess registries,
-        Map<Integer, Object> values,
+    ElementActionSession(MachineMenu menu, long sessionId,
+        RegistryAccess registries, Map<Integer, Object> values,
         ElementStates elementStates) {
         this.menu = menu;
         this.sessionId = sessionId;
@@ -50,17 +50,15 @@ final class ElementActionSession {
         return sessionId;
     }
 
-    record Snapshot(Map<Integer, Object> values, Map<Integer, ElementStateValue> states) {
+    record Snapshot(Map<Integer, Object> values,
+        Map<Integer, ElementStateValue> states) {
     }
 
-    public <T> Optional<ScreenNetwork.Widget> prepare(
-        Element element, ElementAction<T> action, T value) {
+    public <T> Optional<ScreenNetwork.Widget> prepare(Element element,
+        ElementAction<T> action, T value) {
         int index = menu.findIndex(element);
-        if (closed
-            || index < 0
-            || !menu.visible(element)
-            || pending.containsKey(index)
-            || results.containsKey(index)
+        if (closed || index < 0 || !menu.visible(element)
+            || pending.containsKey(index) || results.containsKey(index)
             || nextRequest == Integer.MAX_VALUE)
             return Optional.empty();
         if (element.action(action.id()).orElse(null) != action)
@@ -77,9 +75,8 @@ final class ElementActionSession {
         int request = ++nextRequest;
         pending.put(index, request);
         sentAt.put(index, clientTicks);
-        return Optional.of(
-            new ScreenNetwork.Widget(menu.containerId, sessionId, index, request, action.id(),
-                data));
+        return Optional.of(new ScreenNetwork.Widget(menu.containerId, sessionId,
+            index, request, action.id(), data));
     }
 
     public boolean pending(Element element) {
@@ -87,8 +84,7 @@ final class ElementActionSession {
     }
 
     public void receive(ScreenNetwork.WidgetResult result) {
-        if (closed
-            || result.menu() != menu.containerId
+        if (closed || result.menu() != menu.containerId
             || result.session() != sessionId
             || !Objects.equals(pending.get(result.element()), result.request()))
             return;
@@ -104,7 +100,10 @@ final class ElementActionSession {
         return results.remove(menu.findIndex(element));
     }
 
-    /** Client-side timeout prevents an unconfirmed edit from permanently disabling a control. */
+    /**
+     * Client-side timeout prevents an unconfirmed edit from permanently
+     * disabling a control.
+     */
     public void tickClient() {
         if (closed)
             return;
@@ -113,24 +112,17 @@ final class ElementActionSession {
             if (clientTicks - entry.getValue() >= TIMEOUT_TICKS) {
                 int index = entry.getKey();
                 receive(
-                    new ScreenNetwork.WidgetResult(
-                        menu.containerId,
-                        sessionId,
-                        index,
-                        pending.get(index),
-                        false,
-                        values.get(index * 2),
-                        values.get(index * 2 + 1),
-                        elementStates.sent(values)));
+                    new ScreenNetwork.WidgetResult(menu.containerId, sessionId,
+                        index, pending.get(index), false, values.get(index * 2),
+                        values.get(index * 2 + 1), elementStates.sent(values)));
             }
     }
 
-    public ScreenNetwork.WidgetResult handle(ServerPlayer player, ScreenNetwork.Widget packet) {
-        if (closed
-            || !menu.authorizesElementAction(player)
+    public ScreenNetwork.WidgetResult handle(ServerPlayer player,
+        ScreenNetwork.Widget packet) {
+        if (closed || !menu.authorizesElementAction(player)
             || packet.menu() != menu.containerId
-            || packet.session() != sessionId
-            || packet.request() <= lastRequest
+            || packet.session() != sessionId || packet.request() <= lastRequest
             || packet.element() >= menu.elements.size())
             return null;
         long tick = player.level().getGameTime();
@@ -141,13 +133,15 @@ final class ElementActionSession {
         lastRequest = packet.request();
         var element = menu.elements.get(packet.element());
         if (++actionsThisTick > MAX_ACTIONS_PER_TICK)
-            // Use the last sent snapshot: rate-limited requests must not invoke codecs or getters.
+            // Use the last sent snapshot: rate-limited requests must not invoke
+            // codecs or getters.
             return result(packet, false, values, elementStates.snapshot());
         boolean accepted = false;
         var action = element.action(packet.action());
         if (menu.visible(element) && action.isPresent()) {
             try {
-                accepted = action.get().dispatch(new ElementAction.Context(player, menu, element),
+                accepted = action.get().dispatch(
+                    new ElementAction.Context(player, menu, element),
                     packet.data());
             } catch (RuntimeException failure) {
                 zone.moddev.mc.lib.MMDLib.LOGGER.error(
@@ -158,26 +152,23 @@ final class ElementActionSession {
         return result(packet, accepted, snapshot.values(), snapshot.states());
     }
 
-    private ScreenNetwork.WidgetResult result(
-        ScreenNetwork.Widget packet,
-        boolean accepted,
-        Map<Integer, Object> snapshot,
+    private ScreenNetwork.WidgetResult result(ScreenNetwork.Widget packet,
+        boolean accepted, Map<Integer, Object> snapshot,
         Map<Integer, ElementStateValue> state) {
-        var result = new ScreenNetwork.WidgetResult(
-            menu.containerId,
-            sessionId,
-            packet.element(),
-            packet.request(),
-            accepted,
+        var result = new ScreenNetwork.WidgetResult(menu.containerId, sessionId,
+            packet.element(), packet.request(), accepted,
             snapshot.get(packet.element() * 2),
-            snapshot.get(packet.element() * 2 + 1),
-            state);
-        // The acknowledgment changes the client's values too. Include it in the delta baseline so
-        // a later return to the pre-action value is sent even if no regular broadcast saw the edit.
+            snapshot.get(packet.element() * 2 + 1), state);
+        // The acknowledgment changes the client's values too. Include it in the
+        // delta baseline so
+        // a later return to the pre-action value is sent even if no regular
+        // broadcast saw the edit.
         values.put(packet.element() * 2, result.value());
         values.put(packet.element() * 2 + 1, result.maximum());
-        // A client may already have timed out and ignored this response. Also send the next normal
-        // snapshot for these keys so its confirmed values converge independently of
+        // A client may already have timed out and ignored this response. Also
+        // send the next normal
+        // snapshot for these keys so its confirmed values converge
+        // independently of
         // acknowledgments.
         refreshKeys.add(packet.element() * 2);
         refreshKeys.add(packet.element() * 2 + 1);
@@ -187,9 +178,11 @@ final class ElementActionSession {
     }
 
     /**
-     * Force the next broadcast to repair clients that timed out before an acknowledgment arrived.
+     * Force the next broadcast to repair clients that timed out before an
+     * acknowledgment arrived.
      */
-    void appendCorrections(Map<Integer, Object> snapshot, Map<Integer, Object> delta) {
+    void appendCorrections(Map<Integer, Object> snapshot,
+        Map<Integer, Object> delta) {
         for (int key : refreshKeys)
             delta.put(key, snapshot.get(key));
         refreshKeys.clear();

@@ -26,47 +26,41 @@ import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 import zone.moddev.mc.lib.gui.runtime.component.MenuComponentRegistry;
 
 /**
- * A host-provided custom type and fourth timescale, through the production sampler and wire field.
+ * A host-provided custom type and fourth timescale, through the production
+ * sampler and wire field.
  */
 final class StatsExtensionClientSmoke {
     private static final StatsTimescale HOUR = new StatsTimescale(
-        ResourceLocation.parse("test:hour"),
-        72000,
-        Component.literal("Per hour"),
-        Component.literal("h"));
+        ResourceLocation.parse("test:hour"), 72000,
+        Component.literal("Per hour"), Component.literal("h"));
     private static final List<StatsTimescale> ALL = List.of(StatsTimescale.TICK,
         StatsTimescale.SECOND, StatsTimescale.MINUTE, HOUR);
     private static volatile List<StatsTimescale> timescales = ALL;
     private static int step, attempts;
 
     private record CustomValue(int amount) implements Statistics.Value {
-        public Statistics.Sample sample(StatsSamplingContext context, Statistics.Sample previous) {
+        public Statistics.Sample sample(StatsSamplingContext context,
+            Statistics.Sample previous) {
             var squared = BigInteger.valueOf(amount).pow(2);
             return format -> format
-                .number(StatsNumbers.rate(squared, 1, format.ticks(), format.decimals()))
-                .copy()
-                .withStyle(ChatFormatting.DARK_PURPLE);
+                .number(StatsNumbers.rate(squared, 1, format.ticks(),
+                    format.decimals()))
+                .copy().withStyle(ChatFormatting.DARK_PURPLE);
         }
     }
 
     private static final StatsProvider CUSTOM = () -> new Statistics(
         Component.literal("Custom sensor"),
-        List.of(
-            new Statistics.Row(
-                "square",
-                Component.literal("Squared load"),
-                new CustomValue(7),
-                Component.literal("units"),
-                0,
-                true)));
+        List.of(new Statistics.Row("square", Component.literal("Squared load"),
+            new CustomValue(7), Component.literal("units"), 0, true)));
 
     static void install() {
-        // Inject only the test host through the existing component factory. Statistic types and
-        // timescales themselves have no registration, exactly as in a real ScreenHost
+        // Inject only the test host through the existing component factory.
+        // Statistic types and
+        // timescales themselves have no registration, exactly as in a real
+        // ScreenHost
         // implementation.
-        MenuComponentRegistry.GLOBAL.replace(
-            BuiltinMenuComponents.STATS,
-            20,
+        MenuComponentRegistry.GLOBAL.replace(BuiltinMenuComponents.STATS, 20,
             c -> {
                 var host = new ScreenHost() {
                     public net.neoforged.neoforge.items.IItemHandlerModifiable screenItems() {
@@ -74,7 +68,8 @@ final class StatsExtensionClientSmoke {
                     }
 
                     public List<? extends StatsProvider> screenStats() {
-                        var providers = new ArrayList<StatsProvider>(c.host().screenStats());
+                        var providers = new ArrayList<StatsProvider>(
+                            c.host().screenStats());
                         providers.add(CUSTOM);
                         return providers;
                     }
@@ -83,26 +78,25 @@ final class StatsExtensionClientSmoke {
                         return timescales;
                     }
                 };
-                return new StatsMenuComponent(
-                    new MenuComponentRegistry.Context(c.menu(), c.inventory(), host, c.client()));
-            },
-            StatsMenuComponent.PAGES);
+                return new StatsMenuComponent(new MenuComponentRegistry.Context(
+                    c.menu(), c.inventory(), host, c.client()));
+            }, StatsMenuComponent.PAGES);
     }
 
     static boolean run(MachineScreen screen) {
         if (++attempts > 240)
             throw new AssertionError("Statistics extension stuck at " + step);
-        var pages = screen.getMenu().components().require(BuiltinMenuComponents.STATS).pages();
+        var pages = screen.getMenu().components()
+            .require(BuiltinMenuComponents.STATS).pages();
         var drawer = (StatsDrawer) screen.drawers().entries().stream()
-            .filter(StatsDrawer.class::isInstance)
-            .findFirst()
-            .orElseThrow();
+            .filter(StatsDrawer.class::isInstance).findFirst().orElseThrow();
         if (step == 0) {
             if (pages.size() != 4 || screen.drawers().pending())
                 return false;
-            if (pages.get(3).lines().stream()
-                .noneMatch(row -> row.getString().equals("Squared load: 3,528,000 units/h")))
-                throw new AssertionError("Custom statistic was not sampled and synchronized");
+            if (pages.get(3).lines().stream().noneMatch(row -> row.getString()
+                .equals("Squared load: 3,528,000 units/h")))
+                throw new AssertionError(
+                    "Custom statistic was not sampled and synchronized");
             drawer.close();
             var tab = drawer.tabBounds();
             click(screen, tab, 0);
@@ -116,8 +110,8 @@ final class StatsExtensionClientSmoke {
             requireSelected(drawer, HOUR.id());
         } else if (step == 2) {
             capture("statistics-custom-hour.png");
-            timescales = List.of(HOUR, StatsTimescale.MINUTE, StatsTimescale.TICK,
-                StatsTimescale.SECOND);
+            timescales = List.of(HOUR, StatsTimescale.MINUTE,
+                StatsTimescale.TICK, StatsTimescale.SECOND);
         } else if (step == 3) {
             if (pages.isEmpty() || !pages.getFirst().id().equals(HOUR.id()))
                 return false;
@@ -150,19 +144,23 @@ final class StatsExtensionClientSmoke {
             requireSelected(drawer, StatsTimescale.TICK.id());
             screen.keyPressed(256, 0, 0);
             if (drawer.open() || Minecraft.getInstance().screen != screen)
-                throw new AssertionError("Escape failed to close only statistics");
+                throw new AssertionError(
+                    "Escape failed to close only statistics");
             return true;
         }
         step++;
         return false;
     }
 
-    private static void requireSelected(StatsDrawer drawer, ResourceLocation id) {
+    private static void requireSelected(StatsDrawer drawer,
+        ResourceLocation id) {
         if (!drawer.selectedPage().equals(Optional.of(id)))
-            throw new AssertionError("Wrong page: " + drawer.selectedPage() + ", expected " + id);
+            throw new AssertionError(
+                "Wrong page: " + drawer.selectedPage() + ", expected " + id);
     }
 
-    private static void clickUnit(MachineScreen screen, StatsDrawer drawer, int button) {
+    private static void clickUnit(MachineScreen screen, StatsDrawer drawer,
+        int button) {
         drawer.selectedPage(); // refresh geometry and selection
         try {
             var method = StatsDrawer.class.getDeclaredMethod("unitBounds");
@@ -174,7 +172,8 @@ final class StatsExtensionClientSmoke {
     }
 
     private static void click(MachineScreen screen, Rect bounds, int button) {
-        int x = bounds.x() + bounds.width() / 2, y = bounds.y() + bounds.height() / 2;
+        int x = bounds.x() + bounds.width() / 2,
+            y = bounds.y() + bounds.height() / 2;
         if (!screen.mouseClicked(x, y, button))
             throw new AssertionError("Statistics click was ignored");
         screen.mouseReleased(x, y, button);
@@ -182,7 +181,8 @@ final class StatsExtensionClientSmoke {
 
     private static void capture(String name) {
         var mc = Minecraft.getInstance();
-        Screenshot.grab(mc.gameDirectory, name, mc.getMainRenderTarget(), message -> {
-        });
+        Screenshot.grab(mc.gameDirectory, name, mc.getMainRenderTarget(),
+            message -> {
+            });
     }
 }

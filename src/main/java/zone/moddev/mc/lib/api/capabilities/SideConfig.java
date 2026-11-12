@@ -10,9 +10,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * The per-face {@link IoMode}s of one resource on one machine, stored relative to its front so they
- * follow the machine when it is rotated. Changing a mode never renumbers slots or tanks: every face
- * sees the same storage, and the mode only allows or refuses operations.
+ * The per-face {@link IoMode}s of one resource on one machine, stored relative
+ * to its front so they follow the machine when it is rotated. Changing a mode
+ * never renumbers slots or tanks: every face sees the same storage, and the
+ * mode only allows or refuses operations.
  */
 public final class SideConfig {
     /**
@@ -23,7 +24,8 @@ public final class SideConfig {
         .unboundedMap(RelativeFace.CODEC, IoMode.CODEC)
         .xmap(SideConfig::new, config -> config.modes);
 
-    private final EnumMap<RelativeFace, IoMode> modes = new EnumMap<>(RelativeFace.class);
+    private final EnumMap<RelativeFace, IoMode> modes = new EnumMap<>(
+        RelativeFace.class);
     private int disabledFaces;
     private Runnable onChange = () -> {
     };
@@ -40,13 +42,18 @@ public final class SideConfig {
         this.modes.putAll(modes);
     }
 
-    /** Runs after every change, typically the block entity's {@code setChanged}. */
+    /**
+     * Runs after every change, typically the block entity's {@code setChanged}.
+     */
     public SideConfig onChange(Runnable onChange) {
         this.onChange = onChange;
         return this;
     }
 
-    /** Machine policy, independent of saved player modes. Re-enabled faces stay disabled. */
+    /**
+     * Machine policy, independent of saved player modes. Re-enabled faces stay
+     * disabled.
+     */
     public SideConfig disabledFaces(Set<RelativeFace> faces) {
         int next = FaceMask.of(faces);
         if (next != disabledFaces) {
@@ -72,7 +79,9 @@ public final class SideConfig {
         return faceAvailable(face) ? modes.get(face) : IoMode.DISABLED;
     }
 
-    /** Sets the mode of {@code face}, running the change callback if it changed. */
+    /**
+     * Sets the mode of {@code face}, running the change callback if it changed.
+     */
     public SideConfig set(RelativeFace face, IoMode mode) {
         if (!faceAvailable(face))
             return this;
@@ -81,7 +90,9 @@ public final class SideConfig {
         return this;
     }
 
-    /** Advances one face to its next mode, as a side-configuration button does. */
+    /**
+     * Advances one face to its next mode, as a side-configuration button does.
+     */
     public IoMode cycle(RelativeFace face) {
         if (!faceAvailable(face))
             return IoMode.DISABLED;
@@ -91,20 +102,28 @@ public final class SideConfig {
     }
 
     /**
-     * The mode on world side {@code side}; a null side (internal access) is {@link IoMode#BOTH}.
+     * The mode on world side {@code side}; a null side (internal access) is
+     * {@link IoMode#BOTH}.
      */
     public IoMode mode(Direction facing, Direction side) {
         return side == null ? IoMode.BOTH : get(RelativeFace.of(facing, side));
     }
 
-    /** As {@link #mode(Direction, Direction)}, taking the front from the block state. */
+    /**
+     * As {@link #mode(Direction, Direction)}, taking the front from the block
+     * state.
+     */
     public IoMode mode(BlockState state, Direction side) {
         return mode(RelativeFace.facing(state), side);
     }
 
-    /** Replaces every mode with {@code other}'s, e.g. when loading; does not run the callback. */
+    /**
+     * Replaces every mode with {@code other}'s, e.g. when loading; does not run
+     * the callback.
+     */
     public void copyFrom(SideConfig other) {
         for (var face : RelativeFace.values())
-            modes.put(face, faceAvailable(face) ? other.get(face) : IoMode.DISABLED);
+            modes.put(face,
+                faceAvailable(face) ? other.get(face) : IoMode.DISABLED);
     }
 }

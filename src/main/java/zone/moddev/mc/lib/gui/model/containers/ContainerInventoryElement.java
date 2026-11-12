@@ -16,22 +16,20 @@ import zone.moddev.mc.lib.gui.model.elements.ContainerSlotElement;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.runtime.EquippedContainers;
 
-/** Element-owned page presentation. Indexes retain their absolute addresses in the container. */
+/**
+ * Element-owned page presentation. Indexes retain their absolute addresses in
+ * the container.
+ */
 public class ContainerInventoryElement extends InventoryElement {
-    public record Page(
-        int offset,
-        int width,
-        int height,
-        List<Rect> cells,
+    public record Page(int offset, int width, int height, List<Rect> cells,
         List<EquippedContainers.SlotInfo> descriptions,
         EquippedContainers.Presentation presentation) {
         public Page {
             cells = List.copyOf(cells);
             descriptions = List.copyOf(descriptions);
-            if (offset < 0
-                || width < 0
-                || height < 0
-                || (!descriptions.isEmpty() && descriptions.size() != cells.size()))
+            if (offset < 0 || width < 0 || height < 0
+                || (!descriptions.isEmpty()
+                    && descriptions.size() != cells.size()))
                 throw new IllegalArgumentException("Invalid container page");
         }
 
@@ -46,19 +44,23 @@ public class ContainerInventoryElement extends InventoryElement {
     private final Page page;
 
     public ContainerInventoryElement(Page page) {
-        this(page, index -> new ContainerSlotElement(index, page.description(index)));
+        this(page,
+            index -> new ContainerSlotElement(index, page.description(index)));
     }
 
-    public ContainerInventoryElement(Page page, IntFunction<? extends SlotElement> factory) {
+    public ContainerInventoryElement(Page page,
+        IntFunction<? extends SlotElement> factory) {
         super(Common.empty(), "container", 1, 0, slots(page, factory));
         this.page = page;
     }
 
-    private static List<Element> slots(Page page, IntFunction<? extends SlotElement> factory) {
+    private static List<Element> slots(Page page,
+        IntFunction<? extends SlotElement> factory) {
         var slots = new ArrayList<Element>();
         for (int i = 0; i < page.cells().size(); i++) {
             var slot = Objects.requireNonNull(factory.apply(page.offset() + i));
-            if (slot.index() != page.offset() + i || slot.playerInventory() || slot.ghost())
+            if (slot.index() != page.offset() + i || slot.playerInventory()
+                || slot.ghost())
                 throw new IllegalArgumentException(
                     "Container cells must retain their real storage indexes");
             slots.add(slot);
@@ -66,12 +68,12 @@ public class ContainerInventoryElement extends InventoryElement {
         return List.copyOf(slots);
     }
 
-    /** Values for registered cell renderers and tooltip hooks; pending locks remain in the host. */
-    public Object drawerValue(
-        Element element,
-        boolean maximum,
-        net.minecraft.world.item.ItemStack contents,
-        boolean selected) {
+    /**
+     * Values for registered cell renderers and tooltip hooks; pending locks
+     * remain in the host.
+     */
+    public Object drawerValue(Element element, boolean maximum,
+        net.minecraft.world.item.ItemStack contents, boolean selected) {
         if (maximum)
             return null;
         return element instanceof SlotElement
@@ -97,16 +99,20 @@ public class ContainerInventoryElement extends InventoryElement {
 
     public Rect labelBounds(SlotElement slot) {
         var cell = cellBounds(slot);
-        return new Rect(
-            6, cell.y() + 5, Math.max(0, page.presentation().policy().layout().cellX() - 10), 9);
+        return new Rect(6, cell.y() + 5,
+            Math.max(0, page.presentation().policy().layout().cellX() - 10), 9);
     }
 
     public Rect headingBounds(int index) {
         var layout = page.presentation().policy().layout();
         return new Rect(
-            index == 0 ? 6 : layout.cellX() + (index - 1) * layout.strideX() + 4,
+            index == 0
+                ? 6
+                : layout.cellX() + (index - 1) * layout.strideX() + 4,
             layout.cellY() - 12,
-            index == 0 ? Math.max(0, layout.cellX() - 10) : layout.strideX() - 2,
+            index == 0
+                ? Math.max(0, layout.cellX() - 10)
+                : layout.strideX() - 2,
             9);
     }
 

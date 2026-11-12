@@ -23,16 +23,16 @@ import zone.moddev.mc.lib.machine.recipe.MachineProduct.FluidProduct;
 import zone.moddev.mc.lib.machine.recipe.MachineProduct.ItemProduct;
 
 /**
- * Matches {@link MachineRecipe}s against a {@link MachineInventory}, and runs their inputs and
- * outputs all or nothing. Groups are joined by key.
+ * Matches {@link MachineRecipe}s against a {@link MachineInventory}, and runs
+ * their inputs and outputs all or nothing. Groups are joined by key.
  *
  * <ul>
- * <li>Item and fluid parts in one group share its slots and tanks through {@link InputClaims}:
- * nothing counts twice, and a recipe matches whenever some sharing meets every part, whatever order
- * they're listed in.
+ * <li>Item and fluid parts in one group share its slots and tanks through
+ * {@link InputClaims}: nothing counts twice, and a recipe matches whenever some
+ * sharing meets every part, whatever order they're listed in.
  * <li>Fluids are totalled across the group's tanks of fluids in the part's set.
- * <li>Energy only needs one tick's share to start, {@code ceil(amount / time)}, because it is drawn
- * while the recipe runs.
+ * <li>Energy only needs one tick's share to start, {@code ceil(amount / time)},
+ * because it is drawn while the recipe runs.
  * </ul>
  */
 public final class RecipeMatcher {
@@ -40,18 +40,21 @@ public final class RecipeMatcher {
     }
 
     /**
-     * Whether {@code recipe} can start: every input present and room for every product once the
-     * consumed inputs are gone, counting chance products as certain. A product may land in the slot
-     * or tank its own input empties. Changes nothing, and no storage's change callback runs.
+     * Whether {@code recipe} can start: every input present and room for every
+     * product once the consumed inputs are gone, counting chance products as
+     * certain. A product may land in the slot or tank its own input empties.
+     * Changes nothing, and no storage's change callback runs.
      */
-    public static MatchResult check(MachineRecipe recipe, MachineInventory inventory) {
+    public static MatchResult check(MachineRecipe recipe,
+        MachineInventory inventory) {
         var taken = new HashMap<String, long[]>();
         for (var entry : recipe.inputs().entrySet()) {
             var key = entry.getKey();
             var group = inventory.group(key).orElse(null);
             if (group == null)
                 return new MatchResult(MatchResult.Reason.NO_GROUP, key, -1);
-            var result = checkInputs(key, group, entry.getValue(), recipe.time(), taken);
+            var result = checkInputs(key, group, entry.getValue(),
+                recipe.time(), taken);
             if (!result.ok())
                 return result;
         }
@@ -60,7 +63,8 @@ public final class RecipeMatcher {
             var group = inventory.group(key).orElse(null);
             if (group == null)
                 return new MatchResult(MatchResult.Reason.NO_GROUP, key, -1);
-            var result = checkOutputs(key, group, entry.getValue(), taken.get(key));
+            var result = checkOutputs(key, group, entry.getValue(),
+                taken.get(key));
             if (!result.ok())
                 return result;
         }
@@ -68,12 +72,14 @@ public final class RecipeMatcher {
     }
 
     /**
-     * Whether the machine holds at least some of one of {@code recipe}'s item or fluid inputs,
-     * which is what makes a missing input worth reporting. Stored energy doesn't count, because a
-     * powered machine with nothing in it hasn't begun on any recipe. A recipe that needs only
-     * energy always passes. Changes nothing.
+     * Whether the machine holds at least some of one of {@code recipe}'s item
+     * or fluid inputs, which is what makes a missing input worth reporting.
+     * Stored energy doesn't count, because a powered machine with nothing in it
+     * hasn't begun on any recipe. A recipe that needs only energy always
+     * passes. Changes nothing.
      */
-    public static boolean holdsSomeInput(MachineRecipe recipe, MachineInventory inventory) {
+    public static boolean holdsSomeInput(MachineRecipe recipe,
+        MachineInventory inventory) {
         boolean energyOnly = true;
         for (var entry : recipe.inputs().entrySet()) {
             var group = inventory.group(entry.getKey()).orElse(null);
@@ -83,7 +89,8 @@ public final class RecipeMatcher {
                 energyOnly = false;
                 if (group == null)
                     continue;
-                long need = claim(new InputClaims(available(group)), group, part, recipe.time());
+                long need = claim(new InputClaims(available(group)), group,
+                    part, recipe.time());
                 if (need >= 0 && need < part.amount())
                     return true;
             }
@@ -92,12 +99,15 @@ public final class RecipeMatcher {
     }
 
     /**
-     * Checks all inputs and takes only consumed item and fluid inputs in one transaction, all or
-     * nothing. Energy is not taken; it is drawn per tick while the recipe runs.
+     * Checks all inputs and takes only consumed item and fluid inputs in one
+     * transaction, all or nothing. Energy is not taken; it is drawn per tick
+     * while the recipe runs.
      *
-     * @return whether every input was present and every consumed input was taken
+     * @return whether every input was present and every consumed input was
+     *         taken
      */
-    public static boolean consume(MachineRecipe recipe, MachineInventory inventory) {
+    public static boolean consume(MachineRecipe recipe,
+        MachineInventory inventory) {
         try (var tx = inventory.begin()) {
             for (var entry : recipe.inputs().entrySet()) {
                 var group = inventory.group(entry.getKey()).orElse(null);
@@ -112,19 +122,21 @@ public final class RecipeMatcher {
     }
 
     /**
-     * Rolls each product's chance and inserts the hits in one transaction, all or nothing.
+     * Rolls each product's chance and inserts the hits in one transaction, all
+     * or nothing.
      *
      * @return whether everything rolled fitted; if not, nothing was inserted
      */
-    public static boolean produce(
-        MachineRecipe recipe, MachineInventory inventory, RandomSource random) {
+    public static boolean produce(MachineRecipe recipe,
+        MachineInventory inventory, RandomSource random) {
         try (var tx = inventory.begin()) {
             for (var entry : recipe.outputs().entrySet()) {
                 var group = inventory.group(entry.getKey()).orElse(null);
                 if (group == null)
                     return false;
                 for (var product : entry.getValue()) {
-                    if (product.chance() < 1 && random.nextFloat() >= product.chance())
+                    if (product.chance() < 1
+                        && random.nextFloat() >= product.chance())
                         continue;
                     if (!put(group, product, tx))
                         return false;
@@ -135,12 +147,12 @@ public final class RecipeMatcher {
         }
     }
 
-    /** Checks one group's inputs, and records what {@link #take} would take from it. */
-    private static MatchResult checkInputs(
-        String key,
-        SlotGroup group,
-        List<MachineIngredient> ingredients,
-        int time,
+    /**
+     * Checks one group's inputs, and records what {@link #take} would take from
+     * it.
+     */
+    private static MatchResult checkInputs(String key, SlotGroup group,
+        List<MachineIngredient> ingredients, int time,
         Map<String, long[]> taken) {
         long[] held = available(group);
         var claims = new InputClaims(held);
@@ -149,7 +161,8 @@ public final class RecipeMatcher {
             if (need < 0)
                 return new MatchResult(MatchResult.Reason.WRONG_KIND, key, i);
             if (need > 0)
-                return new MatchResult(MatchResult.Reason.MISSING_INPUT, key, i);
+                return new MatchResult(MatchResult.Reason.MISSING_INPUT, key,
+                    i);
         }
         var claimed = new long[held.length];
         for (int entry = 0; entry < held.length; entry++)
@@ -160,20 +173,28 @@ public final class RecipeMatcher {
         return MatchResult.OK;
     }
 
-    /** Checks one group's products; {@code taken} is what its inputs use, null when it has none. */
-    private static MatchResult checkOutputs(
-        String key, SlotGroup group, List<MachineProduct> products, long[] taken) {
+    /**
+     * Checks one group's products; {@code taken} is what its inputs use, null
+     * when it has none.
+     */
+    private static MatchResult checkOutputs(String key, SlotGroup group,
+        List<MachineProduct> products, long[] taken) {
         var stacks = new ArrayList<ItemStack>();
         var fluids = new ArrayList<FluidAmount>();
         for (int i = 0; i < products.size(); i++) {
             boolean fits;
-            if (products.get(i) instanceof ItemProduct item && group instanceof ItemGroup items) {
+            if (products.get(i) instanceof ItemProduct item
+                && group instanceof ItemGroup items) {
                 stacks.add(item.stack());
-                fits = taken == null ? items.fits(stacks) : items.fits(stacks, taken);
+                fits = taken == null
+                    ? items.fits(stacks)
+                    : items.fits(stacks, taken);
             } else if (products.get(i) instanceof FluidProduct fluid
                 && group instanceof FluidGroup tanks) {
                 fluids.add(fluid.fluid());
-                fits = taken == null ? tanks.fits(fluids) : tanks.fits(fluids, taken);
+                fits = taken == null
+                    ? tanks.fits(fluids)
+                    : tanks.fits(fluids, taken);
             } else
                 return new MatchResult(MatchResult.Reason.WRONG_KIND, key, i);
             if (!fits)
@@ -182,7 +203,10 @@ public final class RecipeMatcher {
         return MatchResult.OK;
     }
 
-    /** What each slot or tank of {@code group} has free, or the stored energy as one entry. */
+    /**
+     * What each slot or tank of {@code group} has free, or the stored energy as
+     * one entry.
+     */
     static long[] available(SlotGroup group) {
         return switch (group) {
             case ItemGroup items -> {
@@ -201,24 +225,31 @@ public final class RecipeMatcher {
         };
     }
 
-    /** Adds {@code ingredient} to {@code claims}; returns what's still needed, -1 if wrong kind. */
-    static long claim(
-        InputClaims claims, SlotGroup group, MachineIngredient ingredient, int time) {
+    /**
+     * Adds {@code ingredient} to {@code claims}; returns what's still needed,
+     * -1 if wrong kind.
+     */
+    static long claim(InputClaims claims, SlotGroup group,
+        MachineIngredient ingredient, int time) {
         return switch (ingredient) {
             case ItemPart part when group instanceof ItemGroup items ->
-                claims.claim(part.count(), slot -> part.items().test(items.peek(slot)));
+                claims.claim(part.count(),
+                    slot -> part.items().test(items.peek(slot)));
             case FluidPart part when group instanceof FluidGroup fluids ->
-                claims.claim(
-                    part.millibuckets(), tank -> part.fluids().contains(fluids.peek(tank).fluid()));
+                claims.claim(part.millibuckets(),
+                    tank -> part.fluids().contains(fluids.peek(tank).fluid()));
             case EnergyPart part when group instanceof EnergyGroup ->
                 claims.claim(Math.ceilDiv(part.amount(), time), any -> true);
             default -> -1;
         };
     }
 
-    /** Takes what {@code ingredients} claim from {@code group}. Energy groups give nothing here. */
-    private static boolean take(SlotGroup group, List<MachineIngredient> ingredients,
-        MachineTx tx) {
+    /**
+     * Takes what {@code ingredients} claim from {@code group}. Energy groups
+     * give nothing here.
+     */
+    private static boolean take(SlotGroup group,
+        List<MachineIngredient> ingredients, MachineTx tx) {
         if (group instanceof EnergyGroup)
             return ingredients.stream().allMatch(EnergyPart.class::isInstance);
         long[] held = available(group);
@@ -243,8 +274,12 @@ public final class RecipeMatcher {
         return true;
     }
 
-    /** Only consumed claims free capacity; retained inputs stay in their original slots/tanks. */
-    static long consumed(InputClaims claims, List<MachineIngredient> ingredients, int entry) {
+    /**
+     * Only consumed claims free capacity; retained inputs stay in their
+     * original slots/tanks.
+     */
+    static long consumed(InputClaims claims,
+        List<MachineIngredient> ingredients, int entry) {
         long amount = 0;
         for (int part = 0; part < ingredients.size(); part++)
             if (ingredients.get(part).consumed())
@@ -252,7 +287,8 @@ public final class RecipeMatcher {
         return amount;
     }
 
-    private static boolean put(SlotGroup group, MachineProduct product, MachineTx tx) {
+    private static boolean put(SlotGroup group, MachineProduct product,
+        MachineTx tx) {
         return switch (product) {
             case ItemProduct item when group instanceof ItemGroup items -> {
                 var stack = item.stack();

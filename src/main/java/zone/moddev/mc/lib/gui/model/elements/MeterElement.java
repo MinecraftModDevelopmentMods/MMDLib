@@ -18,10 +18,11 @@ import zone.moddev.mc.lib.gui.value.ValueType;
  * {@code meter}: the compact segmented gauge.
  *
  * <p>
- * {@code orientation}: which way it runs {@code thickness}: 5 or 10 GUI pixels {@code length}: its
- * length in GUI pixels, or {@link Element#FILL} {@code color}: the ARGB segment color {@code
- * segment}: segment size in pixels {@code gap}: gap between segments in pixels {@code gapColor}: an
- * optional ARGB gap color; the panel background otherwise
+ * {@code orientation}: which way it runs {@code thickness}: 5 or 10 GUI pixels
+ * {@code length}: its length in GUI pixels, or {@link Element#FILL}
+ * {@code color}: the ARGB segment color {@code
+ * segment}: segment size in pixels {@code gap}: gap between segments in pixels
+ * {@code gapColor}: an optional ARGB gap color; the panel background otherwise
  */
 public class MeterElement implements Element {
     private final Common common;
@@ -33,14 +34,8 @@ public class MeterElement implements Element {
     private final int gap;
     private final Optional<Integer> gapColor;
 
-    public MeterElement(
-        Common common,
-        Orientation orientation,
-        int thickness,
-        int length,
-        int color,
-        int segment,
-        int gap,
+    public MeterElement(Common common, Orientation orientation, int thickness,
+        int length, int color, int segment, int gap,
         Optional<Integer> gapColor) {
         this.common = common;
         this.orientation = orientation;
@@ -58,7 +53,8 @@ public class MeterElement implements Element {
     }
 
     public int[] measure(TextMeasure text) {
-        return ElementLayouts.oriented(orientation, thickness, fills() ? 4 : length);
+        return ElementLayouts.oriented(orientation, thickness,
+            fills() ? 4 : length);
     }
 
     public boolean stretchX() {
@@ -147,22 +143,9 @@ public class MeterElement implements Element {
 
     @Override
     public String toString() {
-        return "MeterElement[common="
-            + common
-            + ", orientation="
-            + orientation
-            + ", thickness="
-            + thickness
-            + ", length="
-            + length
-            + ", color="
-            + color
-            + ", segment="
-            + segment
-            + ", gap="
-            + gap
-            + ", gapColor="
-            + gapColor
-            + "]";
+        return "MeterElement[common=" + common + ", orientation=" + orientation
+            + ", thickness=" + thickness + ", length=" + length + ", color="
+            + color + ", segment=" + segment + ", gap=" + gap + ", gapColor="
+            + gapColor + "]";
     }
 }

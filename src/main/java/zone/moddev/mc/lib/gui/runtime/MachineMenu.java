@@ -39,7 +39,8 @@ import zone.moddev.mc.lib.gui.sync.ElementStates;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /**
- * Shared menu transport and vanilla coordination; inventory elements assemble their native slots.
+ * Shared menu transport and vanilla coordination; inventory elements assemble
+ * their native slots.
  */
 public class MachineMenu extends AbstractContainerMenu {
     public ItemStack slotHint(SlotElement slot) {
@@ -77,17 +78,22 @@ public class MachineMenu extends AbstractContainerMenu {
 
     private final ElementActionSession elementActions;
 
-    public MachineMenu(int id, Inventory inventory, RegistryFriendlyByteBuf data) {
-        this(id, inventory, readEntity(inventory, data), data.readLong(), data.readBlockPos());
+    public MachineMenu(int id, Inventory inventory,
+        RegistryFriendlyByteBuf data) {
+        this(id, inventory, readEntity(inventory, data), data.readLong(),
+            data.readBlockPos());
     }
 
-    public MachineMenu(int id, Inventory inventory, BlockEntity entity, long session,
-        net.minecraft.core.BlockPos anchor) {
-        this(id, inventory, entity, inventory.player.level().isClientSide, session, anchor);
+    public MachineMenu(int id, Inventory inventory, BlockEntity entity,
+        long session, net.minecraft.core.BlockPos anchor) {
+        this(id, inventory, entity, inventory.player.level().isClientSide,
+            session, anchor);
     }
 
-    public MachineMenu(int id, Inventory inventory, BlockEntity entity, long session) {
-        this(id, inventory, entity, inventory.player.level().isClientSide, session);
+    public MachineMenu(int id, Inventory inventory, BlockEntity entity,
+        long session) {
+        this(id, inventory, entity, inventory.player.level().isClientSide,
+            session);
     }
 
     /** Identity shared by this menu's action and feature sessions. */
@@ -112,7 +118,10 @@ public class MachineMenu extends AbstractContainerMenu {
         return elementActions.takeResult(element);
     }
 
-    /** Advance pending requests even while another screen temporarily covers this menu. */
+    /**
+     * Advance pending requests even while another screen temporarily covers
+     * this menu.
+     */
     public void tickClientActions() {
         tickElementActions();
         components.tickClient();
@@ -123,12 +132,15 @@ public class MachineMenu extends AbstractContainerMenu {
     }
 
     public ScreenNetwork.WidgetResult elementAction(
-        net.minecraft.server.level.ServerPlayer player, ScreenNetwork.Widget packet) {
+        net.minecraft.server.level.ServerPlayer player,
+        ScreenNetwork.Widget packet) {
         return elementActions.handle(player, packet);
     }
 
-    boolean authorizesElementAction(net.minecraft.server.level.ServerPlayer player) {
-        return player == owner && player.containerMenu == this && stillValid(player);
+    boolean authorizesElementAction(
+        net.minecraft.server.level.ServerPlayer player) {
+        return player == owner && player.containerMenu == this
+            && stillValid(player);
     }
 
     ElementActionSession.Snapshot snapshotAfterElementAction(boolean accepted) {
@@ -136,7 +148,8 @@ public class MachineMenu extends AbstractContainerMenu {
             blockEntity.setChanged();
         ScreenSnapshots.invalidate(blockEntity);
         return new ElementActionSession.Snapshot(
-            ScreenSnapshots.read(blockEntity, bound), elementStates.sample(blockEntity, owner));
+            ScreenSnapshots.read(blockEntity, bound),
+            elementStates.sample(blockEntity, owner));
     }
 
     /** Compatibility alias; all element actions share the same menu session. */
@@ -147,8 +160,7 @@ public class MachineMenu extends AbstractContainerMenu {
     /** Compatibility alias for the generic element-action path. */
     public <T> Optional<ScreenNetwork.Widget> prepareWidgetAction(
         zone.moddev.mc.lib.gui.model.elements.CustomElement element,
-        WidgetAction<T> action,
-        T value) {
+        WidgetAction<T> action, T value) {
         return prepareElementAction(element, action, value);
     }
 
@@ -174,20 +186,25 @@ public class MachineMenu extends AbstractContainerMenu {
 
     /** Compatibility alias for the generic element-action path. */
     public ScreenNetwork.WidgetResult widgetAction(
-        net.minecraft.server.level.ServerPlayer player, ScreenNetwork.Widget packet) {
+        net.minecraft.server.level.ServerPlayer player,
+        ScreenNetwork.Widget packet) {
         return elementAction(player, packet);
     }
 
-    private static BlockEntity readEntity(Inventory inventory, RegistryFriendlyByteBuf data) {
+    private static BlockEntity readEntity(Inventory inventory,
+        RegistryFriendlyByteBuf data) {
         var entity = Objects.requireNonNull(
             inventory.player.level().getBlockEntity(data.readBlockPos()),
             "Screen block entity missing");
         String expected = data.readUtf(64);
-        var screen = Screens.get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()))
+        var screen = Screens
+            .get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()))
             .orElseThrow();
-        if (!ScreenRuntime.fingerprint(screen.screen(), entity).equals(expected))
+        if (!ScreenRuntime.fingerprint(screen.screen(), entity)
+            .equals(expected))
             throw new IllegalStateException(
-                "Client/server screen or machine definitions differ: " + screen.screen().id());
+                "Client/server screen or machine definitions differ: "
+                    + screen.screen().id());
         return entity;
     }
 
@@ -199,28 +216,28 @@ public class MachineMenu extends AbstractContainerMenu {
      * For tests only.
      *
      * @param client
-     *            whether the slots are the client's copy, as on a client; the menu still reads the
-     *            level's side for layout, so this is only meaningful for running both against one
-     *            server
+     *            whether the slots are the client's copy, as on a client; the
+     *            menu still reads the level's side for layout, so this is only
+     *            meaningful for running both against one server
      */
-    protected MachineMenu(int id, Inventory inventory, BlockEntity entity, boolean client) {
-        this(
-            id, inventory, entity, client,
+    protected MachineMenu(int id, Inventory inventory, BlockEntity entity,
+        boolean client) {
+        this(id, inventory, entity, client,
             java.util.concurrent.ThreadLocalRandom.current().nextLong());
     }
 
-    private MachineMenu(
-        int id, Inventory inventory, BlockEntity entity, boolean client, long session) {
+    private MachineMenu(int id, Inventory inventory, BlockEntity entity,
+        boolean client, long session) {
         this(id, inventory, entity, client, session, entity.getBlockPos());
     }
 
-    private MachineMenu(int id, Inventory inventory, BlockEntity entity, boolean client,
-        long session,
-        net.minecraft.core.BlockPos anchor) {
+    private MachineMenu(int id, Inventory inventory, BlockEntity entity,
+        boolean client, long session, net.minecraft.core.BlockPos anchor) {
         super(ScreenRuntime.MENUS.get(), id);
         owner = inventory.player;
         blockEntity = entity;
-        bound = Screens.get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()))
+        bound = Screens
+            .get(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(entity.getType()))
             .orElseThrow();
         if (!bound.blockEntityClass().isInstance(entity))
             throw new IllegalArgumentException("Wrong screen block entity");
@@ -228,21 +245,24 @@ public class MachineMenu extends AbstractContainerMenu {
         for (int i = 0; i < elements.size(); i++)
             elementIndexes.put(elements.get(i), i);
         if (elements.size() > 4096)
-            throw new IllegalArgumentException("A screen may have at most 4096 elements");
+            throw new IllegalArgumentException(
+                "A screen may have at most 4096 elements");
         host = entity instanceof ScreenHost h ? h : null;
         interactionAnchor = anchor.immutable();
-        interactionIdentity = host == null ? "" : host.screenInteractionIdentity(anchor);
+        interactionIdentity = host == null
+            ? ""
+            : host.screenInteractionIdentity(anchor);
         elementStates = new ElementStates(elements, owner.registryAccess(),
             this::stateLayoutChanged);
-        elementActions = new ElementActionSession(this, session, owner.registryAccess(), values,
-            elementStates);
+        elementActions = new ElementActionSession(this, session,
+            owner.registryAccess(), values, elementStates);
         if (host != null)
             ScreenInventoryValidation.validate(bound.screen(), host);
-        layout = ScreenLayout.of(
-            bound.screen(),
-            owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
-            host,
-            elementStates);
+        layout = ScreenLayout.of(bound.screen(),
+            owner.level().isClientSide
+                ? ScreenRuntime.textMeasure
+                : TextMeasure.NONE,
+            host, elementStates);
         components = MenuComponentRegistry.GLOBAL.create(
             new MenuComponentRegistry.Context(this, inventory, host, client));
         components.installSlots(nativeSlots.registrar(this::addSlot), layout);
@@ -252,15 +272,16 @@ public class MachineMenu extends AbstractContainerMenu {
         return elementStates;
     }
 
-    /** Compatibility view of elements with named navigation; synchronization is fully typed. */
+    /**
+     * Compatibility view of elements with named navigation; synchronization is
+     * fully typed.
+     */
     public Map<String, String> views() {
         var selections = new HashMap<String, String>();
         for (var element : elements)
             if (element instanceof NavigableElement navigation)
-                element
-                    .common()
-                    .id()
-                    .ifPresent(id -> selections.put(id, navigation.selected(elementStates)));
+                element.common().id().ifPresent(id -> selections.put(id,
+                    navigation.selected(elementStates)));
         return Map.copyOf(selections);
     }
 
@@ -278,19 +299,17 @@ public class MachineMenu extends AbstractContainerMenu {
     }
 
     private void relayout() {
-        layout = ScreenLayout.of(
-            bound.screen(),
-            owner.level().isClientSide ? ScreenRuntime.textMeasure : TextMeasure.NONE,
-            host,
-            elementStates);
+        layout = ScreenLayout.of(bound.screen(),
+            owner.level().isClientSide
+                ? ScreenRuntime.textMeasure
+                : TextMeasure.NONE,
+            host, elementStates);
         components.position(layout);
     }
 
     public List<SlotElement> playerSlotElements() {
-        return nativeSlots.entries().stream()
-            .map(MenuSlots.Entry::element)
-            .filter(Objects::nonNull)
-            .filter(SlotElement::playerInventory)
+        return nativeSlots.entries().stream().map(MenuSlots.Entry::element)
+            .filter(Objects::nonNull).filter(SlotElement::playerInventory)
             .toList();
     }
 
@@ -307,11 +326,13 @@ public class MachineMenu extends AbstractContainerMenu {
     }
 
     public int menuSlot(int index) {
-        return components.requireCapability(InventoryAccess.class).menuSlot(index);
+        return components.requireCapability(InventoryAccess.class)
+            .menuSlot(index);
     }
 
     public int menuSlot(ItemInventories.Address address) {
-        return components.requireCapability(InventoryAccess.class).menuSlot(address);
+        return components.requireCapability(InventoryAccess.class)
+            .menuSlot(address);
     }
 
     public int index(Element element) {
@@ -321,7 +342,10 @@ public class MachineMenu extends AbstractContainerMenu {
         return index;
     }
 
-    /** Optional identity lookup for externally supplied or stale element references. */
+    /**
+     * Optional identity lookup for externally supplied or stale element
+     * references.
+     */
     int findIndex(Element element) {
         return elementIndexes.getOrDefault(element, -1);
     }
@@ -347,10 +371,9 @@ public class MachineMenu extends AbstractContainerMenu {
             for (var root : bound.screen().tabs())
                 cacheVisibility(root, true);
             for (var root : bound.screen().implicitElements())
-                cacheVisibility(
-                    root,
-                    root.visibilityAnchor(bound.screen())
-                        .map(anchor -> Boolean.TRUE.equals(visibility.get(anchor)))
+                cacheVisibility(root,
+                    root.visibilityAnchor(bound.screen()).map(
+                        anchor -> Boolean.TRUE.equals(visibility.get(anchor)))
                         .orElse(true));
         }
         return Boolean.TRUE.equals(visibility.get(element));
@@ -367,7 +390,8 @@ public class MachineMenu extends AbstractContainerMenu {
     }
 
     public void navigate(String context, String view) {
-        if (bound.screen().find(context).orElse(null) instanceof NavigableElement navigation)
+        if (bound.screen().find(context)
+            .orElse(null) instanceof NavigableElement navigation)
             navigation.select(elementStates, view);
     }
 
@@ -376,13 +400,14 @@ public class MachineMenu extends AbstractContainerMenu {
         return !blockEntity.isRemoved()
             && player.level() == blockEntity.getLevel()
             && player.level().hasChunkAt(blockEntity.getBlockPos())
-            && player.level().getBlockEntity(blockEntity.getBlockPos()) == blockEntity
+            && player.level()
+                .getBlockEntity(blockEntity.getBlockPos()) == blockEntity
             && player.level().hasChunkAt(interactionAnchor)
             && (host == null
                 ? interactionAnchor.equals(blockEntity.getBlockPos())
                 : host.screenInteractionAnchor(interactionAnchor)
-                    && interactionIdentity
-                        .equals(host.screenInteractionIdentity(interactionAnchor)))
+                    && interactionIdentity.equals(
+                        host.screenInteractionIdentity(interactionAnchor)))
             && player.canInteractWithBlock(interactionAnchor, 4.0);
     }
 
@@ -416,8 +441,8 @@ public class MachineMenu extends AbstractContainerMenu {
             components.beforeInteraction();
         interacting = true;
         try {
-            return nativeSlots.quickMove(player, index, components::destinations,
-                this::moveItemStackTo);
+            return nativeSlots.quickMove(player, index,
+                components::destinations, this::moveItemStackTo);
         } finally {
             endInteraction(previous);
         }
@@ -433,8 +458,10 @@ public class MachineMenu extends AbstractContainerMenu {
 
     @Override
     public void removed(Player player) {
-        // Vanilla also calls this when a recipe browser covers the client screen. The player's
-        // active menu survives that transition; server removal always means actual closure.
+        // Vanilla also calls this when a recipe browser covers the client
+        // screen. The player's
+        // active menu survives that transition; server removal always means
+        // actual closure.
         if (!player.level().isClientSide || player.containerMenu != this)
             elementActions.close();
         try {
@@ -451,7 +478,8 @@ public class MachineMenu extends AbstractContainerMenu {
 
     @Override
     public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
-        return slot.isActive() && slot.mayPickup(owner) && super.canTakeItemForPickAll(stack, slot);
+        return slot.isActive() && slot.mayPickup(owner)
+            && super.canTakeItemForPickAll(stack, slot);
     }
 
     @Override
@@ -466,20 +494,18 @@ public class MachineMenu extends AbstractContainerMenu {
         var snapshot = new HashMap<>(ScreenSnapshots.read(blockEntity, bound));
         snapshot.putAll(elementStates.sample(blockEntity, owner));
 
-        components
-            .snapshot()
-            .forEach(
-                (key, value) -> {
-                    if (snapshot.containsKey(key))
-                        throw new IllegalArgumentException(
-                            "Component snapshot collides with menu value: " + key);
-                    snapshot.put(key, value);
-                });
+        components.snapshot().forEach((key, value) -> {
+            if (snapshot.containsKey(key))
+                throw new IllegalArgumentException(
+                    "Component snapshot collides with menu value: " + key);
+            snapshot.put(key, value);
+        });
         var delta = ScreenValues.changed(values, snapshot, initial);
         elementActions.appendCorrections(snapshot, delta);
         if (!delta.isEmpty()) {
             values.putAll(delta);
-            PacketDistributor.sendToPlayer(player, new ScreenNetwork.Values(containerId, delta));
+            PacketDistributor.sendToPlayer(player,
+                new ScreenNetwork.Values(containerId, delta));
         }
         initial = false;
     }
@@ -493,31 +519,29 @@ public class MachineMenu extends AbstractContainerMenu {
     }
 
     public void action(Player player, ScreenNetwork.Action action) {
-        if (action.menu() != containerId
-            || player != owner
-            || player.containerMenu != this
-            || !stillValid(player)
-            || action.element() < 0
-            || action.element() >= elements.size())
+        if (action.menu() != containerId || player != owner
+            || player.containerMenu != this || !stillValid(player)
+            || action.element() < 0 || action.element() >= elements.size())
             return;
         var element = elements.get(action.element());
-        if (!visible(element)
-            || action.button() < 0
-            || action.button() > 1
+        if (!visible(element) || action.button() < 0 || action.button() > 1
             || (action.modifiers() & ~7) != 0)
             return;
         if (!(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer))
             return;
         var handler = element.legacyAction(action.kind());
-        if (handler.isEmpty() || element.action(handler.get().id()).orElse(null) != handler.get())
+        if (handler.isEmpty()
+            || element.action(handler.get().id()).orElse(null) != handler.get())
             return;
         ElementActions.Click click;
         try {
-            click = new ElementActions.Click(action.button(), action.modifiers(), action.option());
+            click = new ElementActions.Click(action.button(),
+                action.modifiers(), action.option());
         } catch (IllegalArgumentException malformed) {
             return;
         }
-        if (handler.get().execute(new ElementAction.Context(serverPlayer, this, element), click)) {
+        if (handler.get().execute(
+            new ElementAction.Context(serverPlayer, this, element), click)) {
             blockEntity.setChanged();
             ScreenSnapshots.invalidate(blockEntity);
             broadcastChanges();

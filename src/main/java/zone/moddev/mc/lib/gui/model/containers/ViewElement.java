@@ -23,7 +23,8 @@ public class ViewElement implements Element {
     private final List<Element> children;
 
     /** Copies the children. */
-    public ViewElement(Common common, Optional<Text> title, List<Element> children) {
+    public ViewElement(Common common, Optional<Text> title,
+        List<Element> children) {
         children = List.copyOf(children);
 
         this.common = common;
@@ -32,22 +33,24 @@ public class ViewElement implements Element {
     }
 
     private int header(TextMeasure text) {
-        return title.isPresent() || text instanceof LayoutContext context && context.hasHeader(this)
-            ? TextMeasure.LINE_HEIGHT + 4
-            : 0;
+        return title.isPresent()
+            || text instanceof LayoutContext context && context.hasHeader(this)
+                ? TextMeasure.LINE_HEIGHT + 4
+                : 0;
     }
 
     public int[] measure(TextMeasure text) {
         var inner = ElementLayouts.stack(children, 4, text);
         return new int[]{
-            Math.max(inner[0], title.map(text::width).orElse(0) + 12), inner[1] + header(text)
-        };
+            Math.max(inner[0], title.map(text::width).orElse(0) + 12),
+            inner[1] + header(text)};
     }
 
-    public java.util.Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
+    public java.util.Map<Element, Rect> childLayout(Rect bounds,
+        TextMeasure text) {
         int top = header(text);
-        return ElementLayouts.stackPositions(
-            children, new Rect(0, top, bounds.width(), bounds.height() - top), 4, text);
+        return ElementLayouts.stackPositions(children,
+            new Rect(0, top, bounds.width(), bounds.height() - top), 4, text);
     }
 
     public Common common() {
@@ -85,6 +88,7 @@ public class ViewElement implements Element {
 
     @Override
     public String toString() {
-        return "ViewElement[common=" + common + ", title=" + title + ", children=" + children + "]";
+        return "ViewElement[common=" + common + ", title=" + title
+            + ", children=" + children + "]";
     }
 }

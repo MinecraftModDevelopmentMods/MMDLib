@@ -31,25 +31,18 @@ import zone.moddev.mc.lib.gui.model.TooltipContext;
 class TooltipCompositionTest {
     static Common authored(String text) {
         var c = Common.empty();
-        return new Common(
-            c.id(),
-            c.value(),
-            c.max(),
+        return new Common(c.id(), c.value(), c.max(),
             Optional.of(new Text("test.tip", Optional.of(text))),
-            Optional.of(new Text("test.shift", Optional.of("Detailed {value}/{max}"))),
-            c.clicks(),
-            c.onHover(),
-            c.hoverShows(),
-            c.jeiRecipes(),
-            0,
-            0,
-            0);
+            Optional.of(
+                new Text("test.shift", Optional.of("Detailed {value}/{max}"))),
+            c.clicks(), c.onHover(), c.hoverShows(), c.jeiRecipes(), 0, 0, 0);
     }
 
     record Leaf(Common common) implements Element {
     }
 
-    record Parent(Common common, Element child, String name) implements Element {
+    record Parent(Common common, Element child, String name)
+        implements Element {
         public List<Element> children() {
             return List.of(child);
         }
@@ -66,7 +59,8 @@ class TooltipCompositionTest {
 
     static class Access implements ElementRenderAccess {
         final Map<Element, Element> parents = new IdentityHashMap<>();
-        final Set<Element> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
+        final Set<Element> hidden = Collections
+            .newSetFromMap(new IdentityHashMap<>());
 
         public Font font() {
             return null;
@@ -101,33 +95,21 @@ class TooltipCompositionTest {
         var access = new Access();
         access.parents.put(leaf, parent);
         access.parents.put(parent, root);
-        var rows = ElementTooltips.collect(
-            leaf,
-            access,
+        var rows = ElementTooltips.collect(leaf, access,
             e -> new ElementBehavior() {
                 public List<Component> tooltip(int x, int y) {
                     return List.of(Component.literal("behavior"));
                 }
 
-                public void appendChildTooltip(TooltipContext c, List<Component> rows) {
+                public void appendChildTooltip(TooltipContext c,
+                    List<Component> rows) {
                     assertSame(leaf, c.target());
                     rows.add(Component.literal("parent behavior"));
                 }
-            },
-            12,
-            34,
-            true,
-            true,
-            false);
+            }, 12, 34, true, true, false);
         assertEquals(
-            List.of(
-                "server",
-                "Detailed 7/9",
-                "behavior",
-                "parent",
-                "parent behavior",
-                "root",
-                "parent behavior"),
+            List.of("server", "Detailed 7/9", "behavior", "parent",
+                "parent behavior", "root", "parent behavior"),
             rows.stream().map(Component::getString).toList());
     }
 
@@ -146,10 +128,11 @@ class TooltipCompositionTest {
         var parent = new Leaf(authored("not inherited"));
         var access = new Access();
         access.parents.put(leaf, parent);
-        var rows = ElementTooltips.collect(
-            leaf, access, e -> new ElementBehavior() {
+        var rows = ElementTooltips.collect(leaf, access,
+            e -> new ElementBehavior() {
             }, 0, 0, false, false, false);
-        assertEquals(List.of("owned"), rows.stream().map(Component::getString).toList());
+        assertEquals(List.of("owned"),
+            rows.stream().map(Component::getString).toList());
     }
 
     @Test
@@ -160,23 +143,21 @@ class TooltipCompositionTest {
             }
 
             public List<Component> valueTooltip(Object value, Object maximum) {
-                return List.of(Component.literal("one\ntwo").withStyle(ChatFormatting.RED));
+                return List.of(Component.literal("one\ntwo")
+                    .withStyle(ChatFormatting.RED));
             }
         };
-        var rows = ElementTooltips.collect(
-            leaf, new Access(), e -> new ElementBehavior() {
+        var rows = ElementTooltips.collect(leaf, new Access(),
+            e -> new ElementBehavior() {
             }, 0, 0, false, false, false);
         assertEquals(List.of("server", "one", "two"),
             rows.stream().map(Component::getString).toList());
         var colors = new ArrayList<Integer>();
-        rows.getLast()
-            .visit(
-                (style, text) -> {
-                    if (!text.isEmpty())
-                        colors.add(style.getColor().getValue());
-                    return Optional.empty();
-                },
-                net.minecraft.network.chat.Style.EMPTY);
+        rows.getLast().visit((style, text) -> {
+            if (!text.isEmpty())
+                colors.add(style.getColor().getValue());
+            return Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY);
         assertEquals(List.of(ChatFormatting.RED.getColor()), colors);
     }
 
@@ -185,25 +166,13 @@ class TooltipCompositionTest {
         var leaf = new Leaf(Common.empty());
         var access = new Access();
         access.hidden.add(leaf);
-        assertTrue(
-            ElementTooltips.collect(
-                leaf,
-                access,
-                e -> {
-                    throw new AssertionError();
-                },
-                0,
-                0,
-                false,
-                false,
-                false)
-                .isEmpty());
+        assertTrue(ElementTooltips.collect(leaf, access, e -> {
+            throw new AssertionError();
+        }, 0, 0, false, false, false).isEmpty());
         access.hidden.clear();
         access.parents.put(leaf, leaf);
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> ElementTooltips.collect(
-                leaf, access, e -> new ElementBehavior() {
-                }, 0, 0, false, false, false));
+        assertThrows(IllegalArgumentException.class, () -> ElementTooltips
+            .collect(leaf, access, e -> new ElementBehavior() {
+            }, 0, 0, false, false, false));
     }
 }

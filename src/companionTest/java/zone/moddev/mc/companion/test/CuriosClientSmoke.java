@@ -16,7 +16,10 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.runtime.ContainerDrawerMenu;
 import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 
-/** Networked functional/cosmetic equipment, optional absence, paging and dynamic-slot checks. */
+/**
+ * Networked functional/cosmetic equipment, optional absence, paging and
+ * dynamic-slot checks.
+ */
 final class CuriosClientSmoke {
     private static int step, originalSize;
     private static int reportedStep = -1;
@@ -28,31 +31,37 @@ final class CuriosClientSmoke {
         var drawer = menu.components().get(BuiltinMenuComponents.CURIOS);
         if (reportedStep != step) {
             reportedStep = step;
-            zone.moddev.mc.lib.MMDLib.LOGGER.info("CURIOS_DRAWER_STEP {}", step);
+            zone.moddev.mc.lib.MMDLib.LOGGER.info("CURIOS_DRAWER_STEP {}",
+                step);
         }
         if (!ModList.get().isLoaded("curios")) {
-            require(drawer.state().icons().isEmpty(), "Curios is optional on the client");
+            require(drawer.state().icons().isEmpty(),
+                "Curios is optional on the client");
             return true;
         }
         if (step == 20)
             return !drawer.state().open();
-        if (drawer.pending() || menu.components().get(BuiltinMenuComponents.BACKPACK).pending())
+        if (drawer.pending()
+            || menu.components().get(BuiltinMenuComponents.BACKPACK).pending())
             return false;
         var state = drawer.state();
         if (state.icons().isEmpty())
             return false;
         var layout = DrawerExtensionClientSmoke.containerLayout(screen, true);
         require(
-            layout.pageSize() > 0 && layout.body().height() == screen.panelBounds().height() - 8,
+            layout.pageSize() > 0
+                && layout.body().height() == screen.panelBounds().height() - 8,
             "Full-height equipment drawer fits");
         switch (step) {
             case 0 -> {
-                var bag = DrawerExtensionClientSmoke.containerLayout(screen, false);
+                var bag = DrawerExtensionClientSmoke.containerLayout(screen,
+                    false);
                 click(screen, bag.tab(), 0);
                 step++;
             }
             case 1 -> {
-                if (!menu.components().get(BuiltinMenuComponents.BACKPACK).state().open())
+                if (!menu.components().get(BuiltinMenuComponents.BACKPACK)
+                    .state().open())
                     return false;
                 click(screen, layout.tab(), 0);
                 step++;
@@ -61,7 +70,8 @@ final class CuriosClientSmoke {
                 if (!state.open() || state.pageSize() != layout.pageSize())
                     return false;
                 require(
-                    !menu.components().get(BuiltinMenuComponents.BACKPACK).state().open(),
+                    !menu.components().get(BuiltinMenuComponents.BACKPACK)
+                        .state().open(),
                     "Opening Curios closes backpack storage");
                 require(
                     state.descriptions().getFirst().identifier().equals("ring")
@@ -75,15 +85,14 @@ final class CuriosClientSmoke {
                     !state.descriptions().get(4).available()
                         && !state.descriptions().get(5).available(),
                     "Inactive functional/cosmetic pair is disabled on client");
-                require(
-                    !state.descriptions().get(7).available(),
+                require(!state.descriptions().get(7).available(),
                     "Missing cosmetic counterpart is disabled");
                 require(
                     screen.exclusions().contains(layout.body())
                         && screen.exclusions().contains(layout.rail()),
                     "Equipment body and rail are excluded from JEI");
-                Screenshot.grab(
-                    mc.gameDirectory, "curios-drawer.png", mc.getMainRenderTarget(), message -> {
+                Screenshot.grab(mc.gameDirectory, "curios-drawer.png",
+                    mc.getMainRenderTarget(), message -> {
                     });
                 click(screen, layout.cell(0), 0);
                 originalSize = state.sizes().getFirst();
@@ -92,7 +101,8 @@ final class CuriosClientSmoke {
             case 3 -> {
                 if (!menu.getCarried().is(Items.DIAMOND))
                     return false;
-                require(state.contents().get(0).isEmpty(), "Unequip functional item");
+                require(state.contents().get(0).isEmpty(),
+                    "Unequip functional item");
                 click(screen, layout.cell(1), 0);
                 step++;
             }
@@ -107,23 +117,27 @@ final class CuriosClientSmoke {
             case 5 -> {
                 if (!menu.getCarried().isEmpty())
                     return false;
-                require(state.contents().get(0).is(Items.DIAMOND), "Re-equip functional item");
+                require(state.contents().get(0).is(Items.DIAMOND),
+                    "Re-equip functional item");
                 click(screen, layout.cell(1), 0);
                 step++;
             }
             case 6 -> {
                 if (!menu.getCarried().is(Items.EMERALD))
                     return false;
-                require(state.contents().get(1).isEmpty(), "Unequip cosmetic item");
+                require(state.contents().get(1).isEmpty(),
+                    "Unequip cosmetic item");
                 click(screen, layout.cell(1), 0);
                 step++;
             }
             case 7 -> {
                 if (!menu.getCarried().isEmpty())
                     return false;
-                require(state.contents().get(1).is(Items.EMERALD), "Re-equip cosmetic item");
+                require(state.contents().get(1).is(Items.EMERALD),
+                    "Re-equip cosmetic item");
                 drawer
-                    .request(ContainerDrawerMenu.QUICK_TAKE, 0, state.pageSize())
+                    .request(ContainerDrawerMenu.QUICK_TAKE, 0,
+                        state.pageSize())
                     .ifPresent(PacketDistributor::sendToServer);
                 step++;
             }
@@ -138,18 +152,18 @@ final class CuriosClientSmoke {
                     }
                 require(index >= 0, "Shift unequip reaches player inventory");
                 drawer
-                    .request(ContainerDrawerMenu.QUICK_STORE, index, state.pageSize())
+                    .request(ContainerDrawerMenu.QUICK_STORE, index,
+                        state.pageSize())
                     .ifPresent(PacketDistributor::sendToServer);
                 step++;
             }
             case 9 -> {
                 if (!state.contents().get(0).is(Items.DIAMOND))
                     return false;
-                server(
-                    player -> {
-                        player.containerMenu.setCarried(new ItemStack(Items.STONE));
-                        player.containerMenu.broadcastChanges();
-                    });
+                server(player -> {
+                    player.containerMenu.setCarried(new ItemStack(Items.STONE));
+                    player.containerMenu.broadcastChanges();
+                });
                 step++;
             }
             case 10 -> {
@@ -160,13 +174,13 @@ final class CuriosClientSmoke {
             }
             case 11 -> {
                 require(
-                    menu.getCarried().is(Items.STONE) && state.contents().get(4).isEmpty(),
+                    menu.getCarried().is(Items.STONE)
+                        && state.contents().get(4).isEmpty(),
                     "Curios slot validation rejects wrong items");
-                server(
-                    player -> {
-                        player.containerMenu.setCarried(ItemStack.EMPTY);
-                        player.containerMenu.broadcastChanges();
-                    });
+                server(player -> {
+                    player.containerMenu.setCarried(ItemStack.EMPTY);
+                    player.containerMenu.broadcastChanges();
+                });
                 step++;
             }
             case 12 -> {
@@ -177,7 +191,8 @@ final class CuriosClientSmoke {
             }
             case 13 -> {
                 require(
-                    menu.getCarried().isEmpty() && state.contents().get(2).is(Items.DIAMOND),
+                    menu.getCarried().isEmpty()
+                        && state.contents().get(2).is(Items.DIAMOND),
                     "Curios unequip events can forbid removal");
                 click(screen, layout.next(), 0);
                 step++;
@@ -185,15 +200,17 @@ final class CuriosClientSmoke {
             case 14 -> {
                 if (state.offset() == 0)
                     return false;
-                if (state.contents().stream().noneMatch(stack -> stack.is(Items.AMETHYST_SHARD))) {
+                if (state.contents().stream()
+                    .noneMatch(stack -> stack.is(Items.AMETHYST_SHARD))) {
                     require(
-                        state.offset() + state.pageSize() < state.sizes().getFirst(),
+                        state.offset() + state.pageSize() < state.sizes()
+                            .getFirst(),
                         "Later equipment page contains its actual items");
                     click(screen, layout.next(), 0);
                     return false;
                 }
-                Screenshot.grab(
-                    mc.gameDirectory, "curios-page-two.png", mc.getMainRenderTarget(), message -> {
+                Screenshot.grab(mc.gameDirectory, "curios-page-two.png",
+                    mc.getMainRenderTarget(), message -> {
                     });
                 click(screen, layout.previous(), 0);
                 step++;
@@ -209,12 +226,12 @@ final class CuriosClientSmoke {
             case 16 -> {
                 if (state.sizes().getFirst() != originalSize + 2)
                     return false;
-                require(!state.open(), "Changing slot count closes the old equipment view");
-                server(
-                    player -> {
-                        CuriosFixture.checkStale(player);
-                        staleChecked = true;
-                    });
+                require(!state.open(),
+                    "Changing slot count closes the old equipment view");
+                server(player -> {
+                    CuriosFixture.checkStale(player);
+                    staleChecked = true;
+                });
                 step++;
             }
             case 17 -> {
@@ -230,13 +247,15 @@ final class CuriosClientSmoke {
                     state.descriptions().get(6).identifier().equals("ring")
                         && state.descriptions().get(6).index() == 3,
                     "New equipment slots appear");
-                require(screen.keyPressed(256, 0, 0), "Escape closes equipment drawer");
+                require(screen.keyPressed(256, 0, 0),
+                    "Escape closes equipment drawer");
                 step++;
             }
             case 19 -> {
                 if (state.open())
                     return false;
-                require(mc.screen == screen, "Closing drawer retains machine screen");
+                require(mc.screen == screen,
+                    "Closing drawer retains machine screen");
                 step++;
             }
             default -> throw new AssertionError("Unexpected Curios smoke step");
@@ -246,18 +265,18 @@ final class CuriosClientSmoke {
 
     private static void server(Consumer<ServerPlayer> action) {
         var server = Minecraft.getInstance().getSingleplayerServer();
-        server.execute(
-            () -> {
-                try {
-                    action.accept(server.getPlayerList().getPlayers().getFirst());
-                } catch (Throwable error) {
-                    CompanionClientSmoke.fail(error);
-                }
-            });
+        server.execute(() -> {
+            try {
+                action.accept(server.getPlayerList().getPlayers().getFirst());
+            } catch (Throwable error) {
+                CompanionClientSmoke.fail(error);
+            }
+        });
     }
 
     private static void click(MachineScreen screen, Rect rect, int button) {
-        require(screen.mouseClicked(rect.x() + 5, rect.y() + 5, button), "Curios click handled");
+        require(screen.mouseClicked(rect.x() + 5, rect.y() + 5, button),
+            "Curios click handled");
         screen.mouseReleased(rect.x() + 5, rect.y() + 5, button);
     }
 

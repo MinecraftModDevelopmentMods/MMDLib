@@ -7,7 +7,8 @@ import java.util.Map;
 import java.util.function.IntBinaryOperator;
 
 /**
- * Immutable partition of a binary mask, built once at resource load rather than while rendering.
+ * Immutable partition of a binary mask, built once at resource load rather than
+ * while rendering.
  */
 public final class EmissiveMask {
     public record Region(int x0, int y0, int x1, int y1, boolean emissive) {
@@ -35,11 +36,14 @@ public final class EmissiveMask {
     }
 
     /**
-     * Nonzero pixels are emissive. Adjacent equal runs merge vertically; both classes are retained.
+     * Nonzero pixels are emissive. Adjacent equal runs merge vertically; both
+     * classes are retained.
      */
-    public static EmissiveMask read(int width, int height, IntBinaryOperator pixel) {
+    public static EmissiveMask read(int width, int height,
+        IntBinaryOperator pixel) {
         if (width < 1 || height < 1 || width > 256 || height > 256)
-            throw new IllegalArgumentException("Emissive mask dimensions must be 1..256 pixels");
+            throw new IllegalArgumentException(
+                "Emissive mask dimensions must be 1..256 pixels");
         var result = new ArrayList<Region>();
         Map<Run, Region> previous = Map.of();
         for (int y = 0; y < height; y++) {
@@ -52,7 +56,8 @@ public final class EmissiveMask {
                     x++;
                 var run = new Run(start, x, lit);
                 var above = previous.get(run);
-                current.put(run, new Region(start, above == null ? y : above.y0(), x, y + 1, lit));
+                current.put(run, new Region(start,
+                    above == null ? y : above.y0(), x, y + 1, lit));
             }
             for (var entry : previous.entrySet())
                 if (!current.containsKey(entry.getKey()))

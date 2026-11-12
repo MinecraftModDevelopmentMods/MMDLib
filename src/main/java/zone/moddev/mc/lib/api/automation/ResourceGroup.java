@@ -12,7 +12,10 @@ import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.capabilities.SideConfig;
 
-/** One independently configurable item inventory, tank, buffer or mod-defined resource. */
+/**
+ * One independently configurable item inventory, tank, buffer or mod-defined
+ * resource.
+ */
 public final class ResourceGroup<T> {
     private final String id;
     private final Component name;
@@ -27,22 +30,17 @@ public final class ResourceGroup<T> {
     private Function<Direction, T> port;
     private Supplier<Direction> facing = () -> Direction.NORTH;
 
-    public ResourceGroup(
-        String id,
-        Component name,
-        int colour,
-        ResourceType<T> type,
-        IoMode supported,
-        List<Integer> members,
-        List<String> highlights,
-        SideConfig sides) {
+    public ResourceGroup(String id, Component name, int colour,
+        ResourceType<T> type, IoMode supported, List<Integer> members,
+        List<String> highlights, SideConfig sides) {
         if (!id.matches("[a-z0-9_.-]{1,64}"))
             throw new IllegalArgumentException("Invalid group ID: " + id);
         if ((colour & 0xff000000) != 0)
             throw new IllegalArgumentException("Group colour must be RGB");
         if (members.stream().anyMatch(i -> i < 0)
             || members.stream().distinct().count() != members.size())
-            throw new IllegalArgumentException("Invalid or duplicate group members");
+            throw new IllegalArgumentException(
+                "Invalid or duplicate group members");
         this.id = id;
         this.name = Objects.requireNonNull(name).copy();
         this.colour = colour;
@@ -51,11 +49,9 @@ public final class ResourceGroup<T> {
         this.members = List.copyOf(members);
         this.highlights = List.copyOf(highlights);
         this.sides = Objects.requireNonNull(sides);
-        definitionKey = id
-            + "/"
-            + Integer.toHexString(
-                Objects.hash(
-                    type.id().toString(), supported.name(), colour, this.members, this.highlights));
+        definitionKey = id + "/"
+            + Integer.toHexString(Objects.hash(type.id().toString(),
+                supported.name(), colour, this.members, this.highlights));
         for (var face : RelativeFace.values())
             sides.set(face, intersect(sides.get(face), supported));
     }
@@ -64,14 +60,18 @@ public final class ResourceGroup<T> {
         return id;
     }
 
-    /** Identity of the backing inventory; member indexes are local to this inventory. */
+    /**
+     * Identity of the backing inventory; member indexes are local to this
+     * inventory.
+     */
     public String inventory() {
         return inventory;
     }
 
     public ResourceGroup<T> inventory(String name) {
         if (port != null)
-            throw new IllegalStateException("Inventory identity must be set before binding");
+            throw new IllegalStateException(
+                "Inventory identity must be set before binding");
         if (name == null || !name.matches("[a-z0-9_.-]{1,64}"))
             throw new IllegalArgumentException("Invalid inventory identity");
         inventory = name;
@@ -114,7 +114,8 @@ public final class ResourceGroup<T> {
         return members.contains(index);
     }
 
-    public ResourceGroup<T> bind(Supplier<Direction> facing, Function<Direction, T> port) {
+    public ResourceGroup<T> bind(Supplier<Direction> facing,
+        Function<Direction, T> port) {
         this.facing = Objects.requireNonNull(facing);
         this.port = Objects.requireNonNull(port);
         return this;
@@ -130,9 +131,13 @@ public final class ResourceGroup<T> {
         return face.toWorld(facing.get());
     }
 
-    /** Null-side access keeps the declared role; configured directions follow machine rotation. */
+    /**
+     * Null-side access keeps the declared role; configured directions follow
+     * machine rotation.
+     */
     public IoMode mode(Direction side) {
-        return intersect(supported, side == null ? IoMode.BOTH : sides.mode(facing.get(), side));
+        return intersect(supported,
+            side == null ? IoMode.BOTH : sides.mode(facing.get(), side));
     }
 
     public boolean supports(IoMode mode) {
@@ -149,7 +154,10 @@ public final class ResourceGroup<T> {
         return modes[index];
     }
 
-    /** Checked compare-and-set: concurrent viewers cannot cycle a newer value accidentally. */
+    /**
+     * Checked compare-and-set: concurrent viewers cannot cycle a newer value
+     * accidentally.
+     */
     public boolean cycle(RelativeFace face, IoMode expected, boolean reverse) {
         if (!sides.faceAvailable(face) || sides.get(face) != expected)
             return false;
@@ -158,7 +166,10 @@ public final class ResourceGroup<T> {
     }
 
     public static IoMode intersect(IoMode a, IoMode b) {
-        boolean in = a.canInsert() && b.canInsert(), out = a.canExtract() && b.canExtract();
-        return in ? (out ? IoMode.BOTH : IoMode.INPUT) : (out ? IoMode.OUTPUT : IoMode.DISABLED);
+        boolean in = a.canInsert() && b.canInsert(),
+            out = a.canExtract() && b.canExtract();
+        return in
+            ? (out ? IoMode.BOTH : IoMode.INPUT)
+            : (out ? IoMode.OUTPUT : IoMode.DISABLED);
     }
 }

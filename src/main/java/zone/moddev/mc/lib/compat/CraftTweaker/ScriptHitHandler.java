@@ -9,6 +9,6 @@ import org.openzen.zencode.java.ZenCodeType;
 @ZenCodeType.Name("mods.mmdlib.HitHandler")
 @FunctionalInterface
 public interface ScriptHitHandler {
-  @ZenCodeType.Method
-  void handle(ScriptHitContext context);
+    @ZenCodeType.Method
+    void handle(ScriptHitContext context);
 }

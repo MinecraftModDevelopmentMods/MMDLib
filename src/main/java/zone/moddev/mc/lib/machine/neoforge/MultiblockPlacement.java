@@ -19,7 +19,10 @@ import zone.moddev.mc.lib.machine.multiblock.MultiblockInstance;
 import zone.moddev.mc.lib.machine.multiblock.StructureResolver;
 import zone.moddev.mc.lib.machine.multiblock.StructureTransform;
 
-/** Server placement transaction. It does not consume items or own gameplay resources. */
+/**
+ * Server placement transaction. It does not consume items or own gameplay
+ * resources.
+ */
 public final class MultiblockPlacement {
     private record Attempt(net.minecraft.world.level.Level level,
         java.util.Set<BlockPos> positions) {
@@ -30,9 +33,11 @@ public final class MultiblockPlacement {
     public static boolean writing() {
         return WRITING.get() != null;
     }
-    public static boolean writing(net.minecraft.world.level.Level level, BlockPos pos) {
+    public static boolean writing(net.minecraft.world.level.Level level,
+        BlockPos pos) {
         var attempt = WRITING.get();
-        return attempt != null && attempt.level() == level && attempt.positions().contains(pos);
+        return attempt != null && attempt.level() == level
+            && attempt.positions().contains(pos);
     }
     public record Result(boolean success, String diagnostic) {
         static Result refused(String reason) {
@@ -40,25 +45,28 @@ public final class MultiblockPlacement {
         }
     }
 
-    public static Result place(BlockPlaceContext context, MultiblockDefinition definition) {
+    public static Result place(BlockPlaceContext context,
+        MultiblockDefinition definition) {
         var level = context.getLevel();
         var player = context.getPlayer();
         if (level.isClientSide || writing() || player == null)
             return Result.refused("server_player_required");
         var transform = new StructureTransform(context.getClickedPos(),
             context.getHorizontalDirection().getOpposite());
-        var result = definition.resolver().resolve(new StructureResolver.WorldView() {
-            @Override
-            public boolean loaded(BlockPos pos) {
-                return level.hasChunkAt(pos);
-            }
-            @Override
-            public BlockState state(BlockPos pos) {
-                if (!loaded(pos))
-                    throw new IllegalStateException("Resolver read an unloaded chunk");
-                return level.getBlockState(pos);
-            }
-        }, transform);
+        var result = definition.resolver()
+            .resolve(new StructureResolver.WorldView() {
+                @Override
+                public boolean loaded(BlockPos pos) {
+                    return level.hasChunkAt(pos);
+                }
+                @Override
+                public BlockState state(BlockPos pos) {
+                    if (!loaded(pos))
+                        throw new IllegalStateException(
+                            "Resolver read an unloaded chunk");
+                    return level.getBlockState(pos);
+                }
+            }, transform);
         if (result.structure() == null)
             return Result.refused(result.diagnostic());
         var candidate = result.structure();
@@ -74,9 +82,11 @@ public final class MultiblockPlacement {
             var state = member.state().rotate(transform.rotation());
             if (level.getBlockEntity(pos) != null
                 || MultiblockMembers.INSTANCE.link(level, pos) != null
-                || !old.canBeReplaced(BlockPlaceContext.at(context, pos, context.getClickedFace()))
+                || !old.canBeReplaced(BlockPlaceContext.at(context, pos,
+                    context.getClickedFace()))
                 || !level.mayInteract(player, pos)
-                || !player.mayUseItemAt(pos, context.getClickedFace(), context.getItemInHand())
+                || !player.mayUseItemAt(pos, context.getClickedFace(),
+                    context.getItemInHand())
                 || !level.isUnobstructed(state, pos,
                     net.minecraft.world.phys.shapes.CollisionContext.empty()))
                 return Result.refused("blocked_position:" + member.key());
@@ -91,7 +101,8 @@ public final class MultiblockPlacement {
                 return Result.refused("requirement:" + requirement.rule());
         }
         var ordered = new ArrayList<>(candidate.members());
-        ordered.sort(java.util.Comparator.comparing(member -> !member.role().equals("controller")));
+        ordered.sort(java.util.Comparator
+            .comparing(member -> !member.role().equals("controller")));
         var snapshots = new ArrayList<BlockSnapshot>();
         var written = new LinkedHashMap<BlockPos, BlockEntity>();
         MultiblockInstance instance = null;
@@ -104,7 +115,8 @@ public final class MultiblockPlacement {
                 var pos = transform.position(member.offset());
                 if (!level.getBlockState(pos).equals(previous.get(pos)))
                     return Result.refused("world_changed");
-                snapshots.add(BlockSnapshot.create(level.dimension(), level, pos));
+                snapshots
+                    .add(BlockSnapshot.create(level.dimension(), level, pos));
                 if (!level.setBlock(pos, placed.get(pos), 2))
                     return Result.refused("write_failed");
                 var entity = level.getBlockEntity(pos);
@@ -115,7 +127,8 @@ public final class MultiblockPlacement {
                         return Result.refused("controller_missing");
                     instance = controller.multiblock();
                     if (!instance.definition().id().equals(definition.id())
-                        || instance.definition().version() != definition.version()
+                        || instance.definition().version() != definition
+                            .version()
                         || !instance.stage(candidate, transform.facing()))
                         return Result.refused("controller_definition_mismatch");
                 } else {
@@ -124,21 +137,27 @@ public final class MultiblockPlacement {
                     part.memberLink(instance.memberLink(member.key()));
                 }
             }
-            if (EventHooks.onMultiBlockPlace(player, snapshots, context.getClickedFace()))
+            if (EventHooks.onMultiBlockPlace(player, snapshots,
+                context.getClickedFace()))
                 return Result.refused("placement_denied");
             for (var entry : placed.entrySet()) {
-                if (level.getBlockEntity(entry.getKey()) != written.get(entry.getKey())
-                    || !level.getBlockState(entry.getKey()).equals(entry.getValue())
+                if (level.getBlockEntity(entry.getKey()) != written
+                    .get(entry.getKey())
+                    || !level.getBlockState(entry.getKey())
+                        .equals(entry.getValue())
                     || !entry.getValue().canSurvive(level, entry.getKey()))
                     return Result.refused("world_changed");
             }
             if (instance == null || !instance.commit())
                 return Result.refused("formation_failed");
             success = true;
-            // Keep all notifications inside our capture boundary; the outer ItemStack use hook
-            // must not post a second placement event for changes caused by these notifications.
+            // Keep all notifications inside our capture boundary; the outer
+            // ItemStack use hook
+            // must not post a second placement event for changes caused by
+            // these notifications.
             for (var entry : placed.entrySet())
-                level.updateNeighborsAt(entry.getKey(), entry.getValue().getBlock());
+                level.updateNeighborsAt(entry.getKey(),
+                    entry.getValue().getBlock());
         } finally {
             if (!success) {
                 if (instance != null && !instance.committed())

@@ -5,7 +5,10 @@ import java.util.Objects;
 import zone.moddev.mc.lib.gui.ElementActions;
 import zone.moddev.mc.lib.gui.model.Navigation;
 
-/** Common click bindings and recipe links, reusable by mod behavior implementations. */
+/**
+ * Common click bindings and recipe links, reusable by mod behavior
+ * implementations.
+ */
 public class DefaultElementBehavior implements ElementBehavior {
     protected final ElementAccess access;
     private Navigation pendingNavigation;
@@ -22,15 +25,15 @@ public class DefaultElementBehavior implements ElementBehavior {
         var binding = access.element().navigation().orElse(null);
         if (binding == null)
             return Click.PASS;
-        var destination = binding.resolve(access.presentation()::find).orElse(null);
+        var destination = binding.resolve(access.presentation()::find)
+            .orElse(null);
         if (destination == null)
             return Click.PASS;
         if (access.click(Navigation.NAVIGATE, button, 0)) {
             pendingNavigation = binding;
-            NavigationMemory.navigate(
-                access,
-                binding.target().context(),
-                binding.destination(destination, access.presentation().state()));
+            NavigationMemory.navigate(access, binding.target().context(),
+                binding.destination(destination,
+                    access.presentation().state()));
         }
         return Click.CONSUME;
     }
@@ -40,9 +43,8 @@ public class DefaultElementBehavior implements ElementBehavior {
             ? pendingNavigation
             : access.element().navigation().orElse(null);
         if (binding != null) {
-            binding
-                .resolve(access.presentation()::find)
-                .ifPresent(destination -> NavigationMemory.remember(access, destination));
+            binding.resolve(access.presentation()::find).ifPresent(
+                destination -> NavigationMemory.remember(access, destination));
         }
         pendingNavigation = null;
     }
@@ -57,7 +59,8 @@ public class DefaultElementBehavior implements ElementBehavior {
         var result = click(x, y, button);
         if (result != Click.PASS)
             return result;
-        if (!access.element().common().jeiRecipes().isEmpty() && access.showRecipes())
+        if (!access.element().common().jeiRecipes().isEmpty()
+            && access.showRecipes())
             return Click.CONSUME;
         if (access.element().common().clicks().any()) {
             access.click(ElementActions.CLICK, button, 0);

@@ -15,7 +15,10 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-/** One controller's committed formation. Placement is deliberately outside this lifecycle. */
+/**
+ * One controller's committed formation. Placement is deliberately outside this
+ * lifecycle.
+ */
 public final class MultiblockInstance {
     public enum Status {
         UNFORMED, READY, SUSPENDED, DISASSEMBLING
@@ -26,7 +29,10 @@ public final class MultiblockInstance {
     public interface Listener {
         default void changed(Status previous, Status current, String reason) {
         }
-        /** Runs once, before owned blocks are removed; the consumer settles contents and loot. */
+        /**
+         * Runs once, before owned blocks are removed; the consumer settles
+         * contents and loot.
+         */
         default void dismantling(Cause cause) {
         }
     }
@@ -36,7 +42,8 @@ public final class MultiblockInstance {
     private final StructureMembership membership;
     private final Listener listener;
     private ResolvedStructure structure;
-    private java.util.Map<String, StructureMember> memberIndex = java.util.Map.of();
+    private java.util.Map<String, StructureMember> memberIndex = java.util.Map
+        .of();
     private StructureTransform transform;
     private UUID formation;
     private Status status = Status.UNFORMED;
@@ -46,8 +53,9 @@ public final class MultiblockInstance {
     private long revision;
     private CompoundTag incompatible;
 
-    public MultiblockInstance(BlockEntity owner, MultiblockDefinition definition,
-        StructureMembership membership, Listener listener) {
+    public MultiblockInstance(BlockEntity owner,
+        MultiblockDefinition definition, StructureMembership membership,
+        Listener listener) {
         this.owner = Objects.requireNonNull(owner);
         this.definition = Objects.requireNonNull(definition);
         this.membership = Objects.requireNonNull(membership);
@@ -84,7 +92,10 @@ public final class MultiblockInstance {
         return committed;
     }
 
-    /** Prepares an inactive manifest before a placement attempt writes its remaining members. */
+    /**
+     * Prepares an inactive manifest before a placement attempt writes its
+     * remaining members.
+     */
     public boolean stage(ResolvedStructure candidate, Direction facing) {
         var level = owner.getLevel();
         if (level == null || level.isClientSide || changing || formation != null
@@ -92,8 +103,9 @@ public final class MultiblockInstance {
             return false;
         definition.validate(candidate);
         structure = candidate;
-        memberIndex = candidate.members().stream().collect(
-            java.util.stream.Collectors.toUnmodifiableMap(StructureMember::key, member -> member));
+        memberIndex = candidate.members().stream()
+            .collect(java.util.stream.Collectors
+                .toUnmodifiableMap(StructureMember::key, member -> member));
         transform = new StructureTransform(owner.getBlockPos(), facing);
         formation = UUID.randomUUID();
         revision++;
@@ -101,7 +113,10 @@ public final class MultiblockInstance {
         return true;
     }
 
-    /** Formation of existing members: no placement writes and no item consumption. */
+    /**
+     * Formation of existing members: no placement writes and no item
+     * consumption.
+     */
     public boolean form(ResolvedStructure candidate, Direction facing) {
         if (!stage(candidate, facing))
             return false;
@@ -111,10 +126,14 @@ public final class MultiblockInstance {
         return false;
     }
 
-    /** Claims an existing candidate and activates only after all reciprocal checks succeed. */
+    /**
+     * Claims an existing candidate and activates only after all reciprocal
+     * checks succeed.
+     */
     public boolean commit() {
         var level = owner.getLevel();
-        if (level == null || level.isClientSide || changing || structure == null || committed)
+        if (level == null || level.isClientSide || changing || structure == null
+            || committed)
             return false;
         changing = true;
         var claimed = new ArrayList<StructureMember>();
@@ -133,7 +152,8 @@ public final class MultiblockInstance {
             }
             for (var rule : structure.requirements()) {
                 var pos = transform.position(rule.offset());
-                if (!level.hasChunkAt(pos) || !definition.rules().get(rule.rule()).test(level, pos))
+                if (!level.hasChunkAt(pos)
+                    || !definition.rules().get(rule.rule()).test(level, pos))
                     return false;
             }
             if (!matchesAll())
@@ -143,7 +163,8 @@ public final class MultiblockInstance {
         } finally {
             if (!committed)
                 for (var member : claimed)
-                    membership.release(level, transform.position(member.offset()), link(member));
+                    membership.release(level,
+                        transform.position(member.offset()), link(member));
             changing = false;
         }
         transition(Status.READY, "formed");
@@ -153,7 +174,8 @@ public final class MultiblockInstance {
     /** Abandons an uncommitted attempt without machine loot or world writes. */
     public void discard() {
         if (committed)
-            throw new IllegalStateException("Cannot discard a committed machine");
+            throw new IllegalStateException(
+                "Cannot discard a committed machine");
         structure = null;
         transform = null;
         formation = null;
@@ -167,16 +189,20 @@ public final class MultiblockInstance {
     public MemberLink controllerLink() {
         if (structure == null || formation == null || owner.getLevel() == null)
             return null;
-        return link(structure.members().stream().filter(m -> m.role().equals("controller"))
-            .findFirst().orElseThrow());
+        return link(structure.members().stream()
+            .filter(m -> m.role().equals("controller")).findFirst()
+            .orElseThrow());
     }
 
     private MemberLink link(StructureMember member) {
-        return new MemberLink(owner.getLevel().dimension().location(), owner.getBlockPos(),
-            formation, member.key());
+        return new MemberLink(owner.getLevel().dimension().location(),
+            owner.getBlockPos(), formation, member.key());
     }
 
-    /** Reciprocal check also used by stale cached handlers and remote menu anchors. */
+    /**
+     * Reciprocal check also used by stale cached handlers and remote menu
+     * anchors.
+     */
     public boolean owns(BlockPos pos, MemberLink expected) {
         if (!contains(pos, expected))
             return false;
@@ -186,17 +212,22 @@ public final class MultiblockInstance {
             && expected.equals(membership.link(owner.getLevel(), pos));
     }
 
-    /** Checks the manifest identity/position even while a block removal is changing its state. */
+    /**
+     * Checks the manifest identity/position even while a block removal is
+     * changing its state.
+     */
     public boolean contains(BlockPos pos, MemberLink expected) {
         var level = owner.getLevel();
-        if (level == null || owner.isRemoved() || structure == null || formation == null
-            || expected == null
+        if (level == null || owner.isRemoved() || structure == null
+            || formation == null || expected == null
             || !formation.equals(expected.formation())
             || !expected.controller().equals(owner.getBlockPos())
-            || !expected.dimension().equals(level.dimension().location()) || !level.hasChunkAt(pos))
+            || !expected.dimension().equals(level.dimension().location())
+            || !level.hasChunkAt(pos))
             return false;
         var member = memberIndex.get(expected.member());
-        return member != null && transform.position(member.offset()).equals(pos);
+        return member != null
+            && transform.position(member.offset()).equals(pos);
     }
 
     private boolean matchesAll() {
@@ -206,10 +237,14 @@ public final class MultiblockInstance {
         return true;
     }
 
-    /** Bounded fixed-layout validation. No discovery or forced chunk loading occurs here. */
+    /**
+     * Bounded fixed-layout validation. No discovery or forced chunk loading
+     * occurs here.
+     */
     public void tick() {
         var level = owner.getLevel();
-        if (level == null || level.isClientSide || changing || structure == null)
+        if (level == null || level.isClientSide || changing
+            || structure == null)
             return;
         if (!committed) {
             dismantle(Cause.RECOVERY);
@@ -222,8 +257,10 @@ public final class MultiblockInstance {
             }
         }
         for (var rule : structure.requirements()) {
-            if (rule.continuous() && !level.hasChunkAt(transform.position(rule.offset()))) {
-                transition(Status.SUSPENDED, "unloaded_requirement:" + rule.rule());
+            if (rule.continuous()
+                && !level.hasChunkAt(transform.position(rule.offset()))) {
+                transition(Status.SUSPENDED,
+                    "unloaded_requirement:" + rule.rule());
                 return;
             }
         }
@@ -232,8 +269,8 @@ public final class MultiblockInstance {
             return;
         }
         for (var rule : structure.requirements()) {
-            if (rule.continuous() && !definition.rules().get(rule.rule()).test(level,
-                transform.position(rule.offset()))) {
+            if (rule.continuous() && !definition.rules().get(rule.rule())
+                .test(level, transform.position(rule.offset()))) {
                 transition(Status.SUSPENDED, "obstructed:" + rule.rule());
                 return;
             }
@@ -243,31 +280,36 @@ public final class MultiblockInstance {
 
     public boolean ready() {
         tick();
-        return committed && !changing && status == Status.READY && !owner.isRemoved();
+        return committed && !changing && status == Status.READY
+            && !owner.isRemoved();
     }
 
     public void dismantle(Cause cause) {
         var level = owner.getLevel();
-        if (level == null || level.isClientSide || changing || structure == null)
+        if (level == null || level.isClientSide || changing
+            || structure == null)
             return;
         changing = true;
         boolean wasCommitted = committed;
         committed = false;
         revision++;
         try {
-            transition(Status.DISASSEMBLING, cause.name().toLowerCase(java.util.Locale.ROOT));
+            transition(Status.DISASSEMBLING,
+                cause.name().toLowerCase(java.util.Locale.ROOT));
             if (wasCommitted)
                 listener.dismantling(cause);
-            // Controller last: keep the owner available while linked parts are removed.
+            // Controller last: keep the owner available while linked parts are
+            // removed.
             var ordered = new ArrayList<>(structure.members());
-            ordered
-                .sort(java.util.Comparator.comparing(member -> member.role().equals("controller")));
+            ordered.sort(java.util.Comparator
+                .comparing(member -> member.role().equals("controller")));
             for (var member : ordered) {
                 var pos = transform.position(member.offset());
                 if (!level.hasChunkAt(pos) || !owns(pos, link(member)))
                     continue;
                 membership.release(level, pos, link(member));
-                if (definition.dismantling() == MultiblockDefinition.Dismantling.REMOVE_OWNED)
+                if (definition
+                    .dismantling() == MultiblockDefinition.Dismantling.REMOVE_OWNED)
                     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
             }
             structure = null;
@@ -291,9 +333,10 @@ public final class MultiblockInstance {
             if (level != null) {
                 if (structure != null)
                     for (var member : structure.members())
-                        membership.availabilityChanged(level, transform.position(member.offset()));
-                level.sendBlockUpdated(owner.getBlockPos(), owner.getBlockState(),
-                    owner.getBlockState(), 2);
+                        membership.availabilityChanged(level,
+                            transform.position(member.offset()));
+                level.sendBlockUpdated(owner.getBlockPos(),
+                    owner.getBlockState(), owner.getBlockState(), 2);
             }
         }
         if (previous != next)
@@ -339,8 +382,12 @@ public final class MultiblockInstance {
         return tag;
     }
 
-    /** World-save restoration only. Malformed/incompatible manifests are preserved but inactive. */
-    public void load(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    /**
+     * World-save restoration only. Malformed/incompatible manifests are
+     * preserved but inactive.
+     */
+    public void load(CompoundTag tag,
+        net.minecraft.core.HolderLookup.Provider registries) {
         structure = null;
         transform = null;
         formation = null;
@@ -357,24 +404,30 @@ public final class MultiblockInstance {
                 return;
             if (!tag.getString("definition").equals(definition.id().toString())
                 || tag.getInt("version") != definition.version()
-                || !tag.getString("policy").equals(definition.dismantling().name()))
+                || !tag.getString("policy")
+                    .equals(definition.dismantling().name()))
                 throw new IllegalArgumentException("Definition changed");
             var entries = tag.getList("members", Tag.TAG_COMPOUND);
             var requirements = tag.getList("requirements", Tag.TAG_COMPOUND);
-            if (entries.size() > definition.maxMembers() || requirements.size() > 4096)
+            if (entries.size() > definition.maxMembers()
+                || requirements.size() > 4096)
                 throw new IllegalArgumentException("Manifest too large");
             var members = new ArrayList<StructureMember>();
             for (var entry : entries) {
                 var value = (CompoundTag) entry;
-                members.add(new StructureMember(value.getString("key"), value.getString("role"),
-                    BlockPos.of(value.getLong("offset")), NbtUtils.readBlockState(
-                        registries.lookupOrThrow(Registries.BLOCK), value.getCompound("state"))));
+                members.add(new StructureMember(value.getString("key"),
+                    value.getString("role"),
+                    BlockPos.of(value.getLong("offset")),
+                    NbtUtils.readBlockState(
+                        registries.lookupOrThrow(Registries.BLOCK),
+                        value.getCompound("state"))));
             }
             var rules = new ArrayList<StructureRequirement>();
             for (var entry : requirements) {
                 var value = (CompoundTag) entry;
                 rules.add(new StructureRequirement(value.getString("rule"),
-                    BlockPos.of(value.getLong("offset")), value.getBoolean("continuous")));
+                    BlockPos.of(value.getLong("offset")),
+                    value.getBoolean("continuous")));
             }
             var measurements = new LinkedHashMap<String, Integer>();
             var values = tag.getCompound("measurements");
@@ -385,13 +438,15 @@ public final class MultiblockInstance {
             var candidate = new ResolvedStructure(members, rules, measurements);
             definition.validate(candidate);
             var facing = Direction.byName(tag.getString("facing"));
-            transform = new StructureTransform(owner.getBlockPos(), Objects.requireNonNull(facing));
+            transform = new StructureTransform(owner.getBlockPos(),
+                Objects.requireNonNull(facing));
             formation = tag.getUUID("formation");
             revision = tag.getLong("revision");
             committed = tag.getBoolean("committed");
             structure = candidate;
-            memberIndex = candidate.members().stream().collect(java.util.stream.Collectors
-                .toUnmodifiableMap(StructureMember::key, member -> member));
+            memberIndex = candidate.members().stream()
+                .collect(java.util.stream.Collectors
+                    .toUnmodifiableMap(StructureMember::key, member -> member));
             status = Status.SUSPENDED;
             diagnostic = "awaiting_validation";
         } catch (RuntimeException failure) {

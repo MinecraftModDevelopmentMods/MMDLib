@@ -37,7 +37,8 @@ import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.capabilities.SideConfig;
 
 /**
- * Persistent group side modes and four addon/filter pairs per group. Selection belongs to menus.
+ * Persistent group side modes and four addon/filter pairs per group. Selection
+ * belongs to menus.
  */
 public final class AutomationInventory {
     public static final int COLUMNS = 4;
@@ -59,7 +60,8 @@ public final class AutomationInventory {
     private boolean loading;
     private final ItemInventories slots;
 
-    public AutomationInventory(BlockEntity owner, List<ResourceGroup<?>> groups) {
+    public AutomationInventory(BlockEntity owner,
+        List<ResourceGroup<?>> groups) {
         if (groups.isEmpty() || groups.size() > MAX_GROUPS)
             throw new IllegalArgumentException("Group count");
         this.owner = Objects.requireNonNull(owner);
@@ -73,7 +75,8 @@ public final class AutomationInventory {
             if (ids.putIfAbsent(group.id(), i) != null)
                 throw new IllegalArgumentException("Duplicate group ID");
             for (int member : group.members())
-                if (!membership.add(group.type().id() + "/" + group.inventory() + "/" + member))
+                if (!membership.add(
+                    group.type().id() + "/" + group.inventory() + "/" + member))
                     throw new IllegalArgumentException(
                         "Overlapping resource membership: " + group.id());
             var indexed = members.computeIfAbsent(group.type(),
@@ -89,14 +92,14 @@ public final class AutomationInventory {
             group.sides().onChange(() -> {
                 viewChanged();
                 if (owner.getLevel() != null)
-                    owner.getLevel().invalidateCapabilities(owner.getBlockPos());
+                    owner.getLevel()
+                        .invalidateCapabilities(owner.getBlockPos());
             });
         }
         var inventories = new LinkedHashMap<String, ItemStorage>();
         for (int g = 0; g < groups.size(); g++) {
             final int groupIndex = g;
-            inventories.put(
-                groups.get(g).id(),
+            inventories.put(groups.get(g).id(),
                 new ItemStorage(SLOTS_PER_GROUP) {
                     @Override
                     public int getSlotLimit(int slot) {
@@ -105,19 +108,22 @@ public final class AutomationInventory {
 
                     @Override
                     public boolean isItemValid(int slot, ItemStack stack) {
-                        return accepts(groupIndex * SLOTS_PER_GROUP + slot, stack);
+                        return accepts(groupIndex * SLOTS_PER_GROUP + slot,
+                            stack);
                     }
 
                     @Override
                     public void setStackInSlot(int slot, ItemStack stack) {
                         if (stack.getCount() > 1)
-                            throw new IllegalArgumentException("One addon/filter per slot");
-                        if (!loading
-                            && !stack.isEmpty()
-                            && !accepts(groupIndex * SLOTS_PER_GROUP + slot, stack))
+                            throw new IllegalArgumentException(
+                                "One addon/filter per slot");
+                        if (!loading && !stack.isEmpty()
+                            && !accepts(groupIndex * SLOTS_PER_GROUP + slot,
+                                stack))
                             throw new IllegalArgumentException(
                                 "Incompatible or duplicate addon/filter role");
-                        // Even replacing an identical stack is a new attachment generation.
+                        // Even replacing an identical stack is a new attachment
+                        // generation.
                         if (!loading && slot % SLOTS_PER_GROUP < COLUMNS)
                             detach(groupIndex, slot % COLUMNS);
                         super.setStackInSlot(slot, stack);
@@ -132,9 +138,11 @@ public final class AutomationInventory {
                         int key = group * COLUMNS + column;
                         if (slot % SLOTS_PER_GROUP < COLUMNS) {
                             generation[key]++;
-                            // extractItem mutates without calling setStackInSlot.
+                            // extractItem mutates without calling
+                            // setStackInSlot.
                             var addon = addon(group, column);
-                            var filter = AutomationInventory.this.filter(group, column);
+                            var filter = AutomationInventory.this.filter(group,
+                                column);
                             if (!filter.isEmpty() && addon.isEmpty())
                                 detach(group, column);
                         } else {
@@ -178,7 +186,8 @@ public final class AutomationInventory {
     }
 
     /**
-     * Call after external capability/definition changes; normal slot edits invalidate themselves.
+     * Call after external capability/definition changes; normal slot edits
+     * invalidate themselves.
      */
     public void invalidateAddons() {
         dirtyGroups.set(0, groups.size());
@@ -186,13 +195,17 @@ public final class AutomationInventory {
         viewChanged();
     }
 
-    /** Persist any refund that cannot currently fit; retry before the next transfer. */
+    /**
+     * Persist any refund that cannot currently fit; retry before the next
+     * transfer.
+     */
     public void refund(EnergyBuffer power, long amount) {
         if (amount < 0)
             throw new IllegalArgumentException("Negative refund");
         if (amount == 0)
             return;
-        refund = Math.addExact(refund, amount - (power == null ? 0 : power.refund(amount)));
+        refund = Math.addExact(refund,
+            amount - (power == null ? 0 : power.refund(amount)));
         owner.setChanged();
     }
 
@@ -209,10 +222,15 @@ public final class AutomationInventory {
             owner.setChanged();
     }
 
-    /** Per-owner caches follow neighbour removal, capability invalidation and chunk reloads. */
+    /**
+     * Per-owner caches follow neighbour removal, capability invalidation and
+     * chunk reloads.
+     */
     @SuppressWarnings("unchecked")
-    public <T> T neighbour(BlockCapability<T, Direction> capability, Direction side) {
-        if (!(owner.getLevel() instanceof ServerLevel level) || owner.isRemoved())
+    public <T> T neighbour(BlockCapability<T, Direction> capability,
+        Direction side) {
+        if (!(owner.getLevel() instanceof ServerLevel level)
+            || owner.isRemoved())
             return null;
         if (cacheLevel != level) {
             neighbours.clear();
@@ -222,20 +240,19 @@ public final class AutomationInventory {
             ignored -> new EnumMap<>(Direction.class));
         var cache = (BlockCapabilityCache<T, Direction>) bySide.computeIfAbsent(
             side,
-            direction -> BlockCapabilityCache.create(
-                capability,
-                level,
+            direction -> BlockCapabilityCache.create(capability, level,
                 owner.getBlockPos().relative(direction),
                 direction.getOpposite(),
-                () -> !owner.isRemoved() && owner.getLevel() == level,
-                () -> {
+                () -> !owner.isRemoved() && owner.getLevel() == level, () -> {
                 }));
         return cache.getCapability();
     }
 
     public CompoundTag existingTransferState(String group, int column) {
         String key = group + "/" + column;
-        return transfers.contains(key, Tag.TAG_COMPOUND) ? transfers.getCompound(key) : null;
+        return transfers.contains(key, Tag.TAG_COMPOUND)
+            ? transfers.getCompound(key)
+            : null;
     }
 
     public CompoundTag transferState(String group, int column) {
@@ -244,7 +261,8 @@ public final class AutomationInventory {
             var state = new CompoundTag();
             int index = index(group);
             if (index >= 0)
-                state.putString("resource", group(index).type().id().toString());
+                state.putString("resource",
+                    group(index).type().id().toString());
             transfers.put(key, state);
         }
         return transfers.getCompound(key);
@@ -283,7 +301,8 @@ public final class AutomationInventory {
     }
 
     public boolean accepts(int slot, ItemStack stack) {
-        if (slot < 0 || slot >= groups.size() * SLOTS_PER_GROUP || stack.isEmpty())
+        if (slot < 0 || slot >= groups.size() * SLOTS_PER_GROUP
+            || stack.isEmpty())
             return false;
         int group = slot / SLOTS_PER_GROUP, sub = slot % SLOTS_PER_GROUP;
         if (sub < COLUMNS)
@@ -292,13 +311,14 @@ public final class AutomationInventory {
             && acceptsFilter(addon(group, sub - COLUMNS), stack);
     }
 
-    /** Shared by authoritative storage and the menu's separate client-side slot snapshot. */
-    public static boolean acceptsAddon(
-        ResourceGroup<?> group, IItemHandler contents, int slot, ItemStack stack) {
-        if (slot < 0
-            || slot >= contents.getSlots()
-            || slot % SLOTS_PER_GROUP >= COLUMNS
-            || stack.isEmpty())
+    /**
+     * Shared by authoritative storage and the menu's separate client-side slot
+     * snapshot.
+     */
+    public static boolean acceptsAddon(ResourceGroup<?> group,
+        IItemHandler contents, int slot, ItemStack stack) {
+        if (slot < 0 || slot >= contents.getSlots()
+            || slot % SLOTS_PER_GROUP >= COLUMNS || stack.isEmpty())
             return false;
         var capability = stack.getCapability(AddonCapabilities.ADDON);
         if (capability == null)
@@ -312,7 +332,8 @@ public final class AutomationInventory {
                 continue;
             var other = contents.getStackInSlot(base + c);
             var provider = other.getCapability(AddonCapabilities.ADDON);
-            if (provider != null && spec.conflictsWith(provider.specification(other)))
+            if (provider != null
+                && spec.conflictsWith(provider.specification(other)))
                 return false;
         }
         return true;
@@ -332,33 +353,38 @@ public final class AutomationInventory {
         generation[group * COLUMNS + column]++;
     }
 
-    /** At the end of the authoritative menu interaction, after the source slot has been freed. */
+    /**
+     * At the end of the authoritative menu interaction, after the source slot
+     * has been freed.
+     */
     public void recover(Player player) {
         if (owner.getLevel() == null || owner.getLevel().isClientSide)
             return;
         for (var stack : recovery) {
             if (player != null)
-                stack = net.neoforged.neoforge.items.ItemHandlerHelper.insertItemStacked(
-                    new net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper(
-                        player.getInventory()),
-                    stack,
-                    false);
+                stack = net.neoforged.neoforge.items.ItemHandlerHelper
+                    .insertItemStacked(
+                        new net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper(
+                            player.getInventory()),
+                        stack, false);
             if (!stack.isEmpty())
-                Containers.dropItemStack(
-                    owner.getLevel(),
+                Containers.dropItemStack(owner.getLevel(),
                     owner.getBlockPos().getX() + .5,
                     owner.getBlockPos().getY() + .5,
-                    owner.getBlockPos().getZ() + .5,
-                    stack);
+                    owner.getBlockPos().getZ() + .5, stack);
         }
         if (!recovery.isEmpty())
             owner.setChanged();
         recovery.clear();
     }
 
-    /** Preserve incompatible items; recover duplicate roles and orphaned filters without loss. */
+    /**
+     * Preserve incompatible items; recover duplicate roles and orphaned filters
+     * without loss.
+     */
     public void revalidate() {
-        for (int g = dirtyGroups.nextSetBit(0); g >= 0; g = dirtyGroups.nextSetBit(g + 1)) {
+        for (int g = dirtyGroups.nextSetBit(0); g >= 0; g = dirtyGroups
+            .nextSetBit(g + 1)) {
             var claimed = new ArrayList<AddonSpec>();
             for (int c = 0; c < COLUMNS; c++) {
                 var stack = addon(g, c);
@@ -366,7 +392,8 @@ public final class AutomationInventory {
                 if (provider != null) {
                     var spec = provider.specification(stack);
                     if (claimed.stream().anyMatch(spec::conflictsWith)) {
-                        // Keep the first role after reload; recover duplicates and their attached
+                        // Keep the first role after reload; recover duplicates
+                        // and their attached
                         // filters.
                         recovery.add(stack.copy());
                         slots.setStackInSlot(addonSlot(g, c), ItemStack.EMPTY);
@@ -380,19 +407,10 @@ public final class AutomationInventory {
         }
     }
 
-    public boolean edit(
-        int group,
-        int column,
-        long expectedGeneration,
-        long expectedRevision,
-        String control,
-        int entry,
-        String value,
-        ItemStack cursor,
-        HolderLookup.Provider registries) {
-        if (group < 0
-            || group >= groups.size()
-            || column < 0
+    public boolean edit(int group, int column, long expectedGeneration,
+        long expectedRevision, String control, int entry, String value,
+        ItemStack cursor, HolderLookup.Provider registries) {
+        if (group < 0 || group >= groups.size() || column < 0
             || column >= COLUMNS
             || generation(group, column) != expectedGeneration
             || revision(group, column) != expectedRevision
@@ -400,10 +418,12 @@ public final class AutomationInventory {
             return false;
         var original = filter(group, column);
         var capability = original.getCapability(AddonCapabilities.FILTER);
-        if (capability == null || !acceptsFilter(addon(group, column), original))
+        if (capability == null
+            || !acceptsFilter(addon(group, column), original))
             return false;
         var candidate = original.copy();
-        if (!capability.edit(candidate, control, entry, value, cursor.copy(), registries))
+        if (!capability.edit(candidate, control, entry, value, cursor.copy(),
+            registries))
             return false;
         // A config edit is not an identity replacement.
         loading = true;
@@ -418,23 +438,24 @@ public final class AutomationInventory {
         return true;
     }
 
-    public IoMode mode(ResourceType<?> type, int member, net.minecraft.core.Direction side) {
+    public IoMode mode(ResourceType<?> type, int member,
+        net.minecraft.core.Direction side) {
         var indexed = members.get(type);
         var group = indexed == null ? null : indexed.get(member);
         return group == null ? IoMode.DISABLED : group.mode(side);
     }
 
-    /** Use a named inventory when several handlers have the same local slot numbers. */
-    public IoMode mode(
-        ResourceType<?> type, String inventory, int member, net.minecraft.core.Direction side) {
+    /**
+     * Use a named inventory when several handlers have the same local slot
+     * numbers.
+     */
+    public IoMode mode(ResourceType<?> type, String inventory, int member,
+        net.minecraft.core.Direction side) {
         return groups.stream()
-            .filter(
-                group -> group.type() == type
-                    && group.inventory().equals(inventory)
-                    && group.contains(member))
-            .findFirst()
-            .map(group -> group.mode(side))
-            .orElse(IoMode.DISABLED);
+            .filter(group -> group.type() == type
+                && group.inventory().equals(inventory)
+                && group.contains(member))
+            .findFirst().map(group -> group.mode(side)).orElse(IoMode.DISABLED);
     }
 
     public CompoundTag save(HolderLookup.Provider registries) {
@@ -449,8 +470,8 @@ public final class AutomationInventory {
             saved.put("sides", modes);
             var contents = new ListTag();
             for (int s = 0; s < SLOTS_PER_GROUP; s++)
-                contents
-                    .add(slots.getStackInSlot(i * SLOTS_PER_GROUP + s).saveOptional(registries));
+                contents.add(slots.getStackInSlot(i * SLOTS_PER_GROUP + s)
+                    .saveOptional(registries));
             saved.put("contents", contents);
             data.put(group.id(), saved);
         }
@@ -481,19 +502,22 @@ public final class AutomationInventory {
                     continue;
                 var saved = unknown.getCompound(group.id());
                 var modes = saved.getCompound("sides");
-                var loaded = new EnumMap<RelativeFace, IoMode>(RelativeFace.class);
+                var loaded = new EnumMap<RelativeFace, IoMode>(
+                    RelativeFace.class);
                 for (var face : RelativeFace.values()) {
                     IoMode mode = group.sides().get(face);
                     for (var candidate : IoMode.values())
                         if (candidate.getSerializedName()
                             .equals(modes.getString(face.getSerializedName())))
                             mode = candidate;
-                    loaded.put(face, ResourceGroup.intersect(mode, group.supported()));
+                    loaded.put(face,
+                        ResourceGroup.intersect(mode, group.supported()));
                 }
                 group.sides().copyFrom(new SideConfig(loaded));
                 var contents = saved.getList("contents", Tag.TAG_COMPOUND);
                 for (int s = 0; s < SLOTS_PER_GROUP; s++) {
-                    var stack = ItemStack.parseOptional(registries, contents.getCompound(s));
+                    var stack = ItemStack.parseOptional(registries,
+                        contents.getCompound(s));
                     if (stack.getCount() > 1) {
                         recovery.add(stack.copyWithCount(stack.getCount() - 1));
                         stack.setCount(1);
@@ -503,7 +527,8 @@ public final class AutomationInventory {
                 unknown.remove(group.id());
             }
             for (var tag : data.getList("recovery", Tag.TAG_COMPOUND))
-                recovery.add(ItemStack.parseOptional(registries, (CompoundTag) tag));
+                recovery.add(
+                    ItemStack.parseOptional(registries, (CompoundTag) tag));
         } finally {
             loading = false;
         }
@@ -529,7 +554,8 @@ public final class AutomationInventory {
     }
 
     /**
-     * The host must preserve non-item payloads in a dropped container before this clears storage.
+     * The host must preserve non-item payloads in a dropped container before
+     * this clears storage.
      */
     public void dropAll(Consumer<CompoundTag> recoverResources) {
         if (owner.getLevel() == null || owner.getLevel().isClientSide)
@@ -554,15 +580,17 @@ public final class AutomationInventory {
             payload.put("resources", resources);
         if (refund > 0)
             payload.putLong("refund", refund);
-        // The host must take ownership before anything is cleared or ordinary item drops begin.
+        // The host must take ownership before anything is cleared or ordinary
+        // item drops begin.
         if (!payload.isEmpty())
             recoverResources.accept(payload);
         loading = true;
         try {
             for (String id : unknown.getAllKeys())
-                for (var tag : unknown.getCompound(id).getList("contents", Tag.TAG_COMPOUND)) {
-                    var item = ItemStack.parseOptional(owner.getLevel().registryAccess(),
-                        (CompoundTag) tag);
+                for (var tag : unknown.getCompound(id).getList("contents",
+                    Tag.TAG_COMPOUND)) {
+                    var item = ItemStack.parseOptional(
+                        owner.getLevel().registryAccess(), (CompoundTag) tag);
                     if (!item.isEmpty())
                         recovery.add(item);
                 }

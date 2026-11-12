@@ -6,8 +6,12 @@ import java.util.Optional;
 
 import net.minecraft.resources.ResourceLocation;
 
-/** Read-only group association metadata, without storage, side configuration or transfer access. */
-public record ElementGroup(String id, List<String> anchors, Optional<Members> members) {
+/**
+ * Read-only group association metadata, without storage, side configuration or
+ * transfer access.
+ */
+public record ElementGroup(String id, List<String> anchors,
+    Optional<Members> members) {
     public ElementGroup {
         Objects.requireNonNull(id);
         anchors = List.copyOf(anchors);
@@ -18,11 +22,14 @@ public record ElementGroup(String id, List<String> anchors, Optional<Members> me
         this(id, anchors, Optional.empty());
     }
 
-    /** Resource type and local member addresses; interpretation belongs to the element. */
-    public record Members(
-        ResourceLocation type, String inventory, List<Integer> indices,
-        List<Integer> legacyIndices) {
-        public Members(ResourceLocation type, String inventory, List<Integer> indices) {
+    /**
+     * Resource type and local member addresses; interpretation belongs to the
+     * element.
+     */
+    public record Members(ResourceLocation type, String inventory,
+        List<Integer> indices, List<Integer> legacyIndices) {
+        public Members(ResourceLocation type, String inventory,
+            List<Integer> indices) {
             this(type, inventory, indices, indices);
         }
 

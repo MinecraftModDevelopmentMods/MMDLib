@@ -35,9 +35,11 @@ import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 import zone.moddev.mc.lib.gui.runtime.ScreenInventoryValidation;
 
 class ElementValidationTest {
-    private record ClaimElement(Common common, String domain, String key) implements Element {
+    private record ClaimElement(Common common, String domain, String key)
+        implements Element {
         public void validateScreen(ScreenValidationContext context) {
-            context.unique(ResourceLocation.parse(domain), key, "Duplicate custom binding: " + key);
+            context.unique(ResourceLocation.parse(domain), key,
+                "Duplicate custom binding: " + key);
         }
     }
 
@@ -47,30 +49,22 @@ class ElementValidationTest {
         }
 
         public Appearance appearance() {
-            return Appearance.standard(SlotSize.NORMAL, Optional.empty(), Optional.empty());
+            return Appearance.standard(SlotSize.NORMAL, Optional.empty(),
+                Optional.empty());
         }
     }
 
     private static Screen screen(boolean playerInventory, Element... elements) {
-        var screen = new Screen(
-            ResourceLocation.parse("test:validation"),
-            "validation.java",
-            new Text("test", Optional.empty()),
+        var screen = new Screen(ResourceLocation.parse("test:validation"),
+            "validation.java", new Text("test", Optional.empty()),
             "net.minecraft.world.level.block.entity.BlockEntity",
-            playerInventory,
-            List.of(elements),
-            List.of());
+            playerInventory, List.of(elements), List.of());
         var origins = new IdentityHashMap<Common, String>();
-        screen.forEach(element -> origins.put(element.common(), "inherited.xml"));
-        return new Screen(
-            screen.id(),
-            screen.source(),
-            screen.title(),
-            screen.blockEntity(),
-            screen.playerInventory(),
-            screen.body(),
-            screen.tabs(),
-            origins);
+        screen
+            .forEach(element -> origins.put(element.common(), "inherited.xml"));
+        return new Screen(screen.id(), screen.source(), screen.title(),
+            screen.blockEntity(), screen.playerInventory(), screen.body(),
+            screen.tabs(), origins);
     }
 
     private static void validate(Screen screen) {
@@ -80,46 +74,49 @@ class ElementValidationTest {
     @Test
     void customClaimsAreNamespacedAndIsolatedPerPass() {
         var first = new ClaimElement(Common.empty(), "example:binding", "one");
-        var otherDomain = new ClaimElement(Common.empty(), "another:binding", "one");
-        var otherKey = new ClaimElement(Common.empty(), "example:binding", "two");
+        var otherDomain = new ClaimElement(Common.empty(), "another:binding",
+            "one");
+        var otherKey = new ClaimElement(Common.empty(), "example:binding",
+            "two");
         var valid = screen(false, first, otherDomain, otherKey);
         assertDoesNotThrow(() -> validate(valid));
         assertDoesNotThrow(() -> validate(valid));
-        var duplicate = new ClaimElement(Common.empty(), "example:binding", "one");
+        var duplicate = new ClaimElement(Common.empty(), "example:binding",
+            "one");
         var failure = assertThrows(ScreenException.class,
             () -> validate(screen(false, first, duplicate)));
         assertTrue(failure.getMessage().contains("inherited.xml"));
-        assertTrue(failure.getMessage().contains("Duplicate custom binding: one"));
+        assertTrue(
+            failure.getMessage().contains("Duplicate custom binding: one"));
     }
 
     @Test
     void slotClaimsUseNamedInventoryAndApplyToModSlots() {
         var first = new ModSlot(Common.empty(), 0);
         var second = new ModSlot(Common.empty(), 0);
-        var input = new InventoryElement(Common.empty(), "input", 1, 0, List.of(first));
-        var output = new InventoryElement(Common.empty(), "output", 1, 0, List.of(second));
+        var input = new InventoryElement(Common.empty(), "input", 1, 0,
+            List.of(first));
+        var output = new InventoryElement(Common.empty(), "output", 1, 0,
+            List.of(second));
         assertDoesNotThrow(() -> validate(screen(false, input, output)));
-        var repeated = new InventoryElement(Common.empty(), "input", 1, 0, List.of(second));
-        assertTrue(
-            assertThrows(ScreenException.class, () -> validate(screen(false, input, repeated)))
-                .getMessage()
-                .contains("Slot 0 is placed twice"));
+        var repeated = new InventoryElement(Common.empty(), "input", 1, 0,
+            List.of(second));
+        assertTrue(assertThrows(ScreenException.class,
+            () -> validate(screen(false, input, repeated))).getMessage()
+            .contains("Slot 0 is placed twice"));
     }
 
     @Test
     void playerInventoryOwnsUniquenessAndScreenCompatibility() {
         var inventory = new PlayerInventoryElement(Common.empty());
         assertDoesNotThrow(() -> validate(screen(true, inventory)));
-        assertTrue(
-            assertThrows(
-                ScreenException.class,
-                () -> validate(screen(true, inventory, new PlayerInventoryElement(Common.empty()))))
-                .getMessage()
-                .contains("may appear only once"));
-        assertTrue(
-            assertThrows(ScreenException.class, () -> validate(screen(false, inventory)))
-                .getMessage()
-                .contains("inventory=\"none\""));
+        assertTrue(assertThrows(ScreenException.class,
+            () -> validate(screen(true, inventory,
+                new PlayerInventoryElement(Common.empty()))))
+            .getMessage().contains("may appear only once"));
+        assertTrue(assertThrows(ScreenException.class,
+            () -> validate(screen(false, inventory))).getMessage()
+            .contains("inventory=\"none\""));
     }
 
     private static ScreenHost host() {
@@ -129,7 +126,8 @@ class ElementValidationTest {
             (proxy, method, args) -> {
                 if (method.getName().equals("getSlots"))
                     return 1;
-                throw new AssertionError("Validation must not access items: " + method.getName());
+                throw new AssertionError(
+                    "Validation must not access items: " + method.getName());
             });
         return new ScreenHost() {
             public IItemHandlerModifiable screenItems() {
@@ -145,12 +143,14 @@ class ElementValidationTest {
     @Test
     void hostValidationUsesScreenContextAndRetainsSourceErrors() {
         var slot = new ModSlot(Common.empty(), 1);
-        var inventory = new InventoryElement(Common.empty(), "input", 1, 0, List.of(slot));
-        var failure = assertThrows(
-            ScreenException.class,
-            () -> ScreenInventoryValidation.validate(screen(false, inventory), host()));
+        var inventory = new InventoryElement(Common.empty(), "input", 1, 0,
+            List.of(slot));
+        var failure = assertThrows(ScreenException.class,
+            () -> ScreenInventoryValidation.validate(screen(false, inventory),
+                host()));
         assertTrue(failure.getMessage().contains("inherited.xml"));
-        assertTrue(failure.getMessage().contains("inventory input outside storage of size 1"));
+        assertTrue(failure.getMessage()
+            .contains("inventory input outside storage of size 1"));
     }
 
     @Test
@@ -185,21 +185,20 @@ class ElementValidationTest {
                 return common;
             }
 
-            public void validateHost(ScreenValidationContext context, ScreenHost host) {
+            public void validateHost(ScreenValidationContext context,
+                ScreenHost host) {
                 visited.add(context.screen());
-                context.unique(
-                    ResourceLocation.parse("example:host_binding"), "one", "Repeated host binding");
+                context.unique(ResourceLocation.parse("example:host_binding"),
+                    "one", "Repeated host binding");
             }
         };
         var single = screen(false, element);
         ScreenInventoryValidation.validate(single, host());
         ScreenInventoryValidation.validate(single, host());
         assertEquals(List.of(single, single), visited);
-        assertTrue(
-            assertThrows(
-                ScreenException.class,
-                () -> ScreenInventoryValidation.validate(screen(false, element, element), host()))
-                .getMessage()
-                .contains("Repeated host binding"));
+        assertTrue(assertThrows(ScreenException.class,
+            () -> ScreenInventoryValidation
+                .validate(screen(false, element, element), host()))
+            .getMessage().contains("Repeated host binding"));
     }
 }

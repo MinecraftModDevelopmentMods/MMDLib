@@ -35,8 +35,9 @@ import zone.moddev.mc.lib.gui.runtime.ScreenClick;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 
 /**
- * A complete tank UI component: binding, values, tooltip and cursor-container interaction. All
- * storage access runs on the server. The client draws its snapshots with the glass gauge renderer.
+ * A complete tank UI component: binding, values, tooltip and cursor-container
+ * interaction. All storage access runs on the server. The client draws its
+ * snapshots with the glass gauge renderer.
  */
 public class FluidTankElement implements Element {
     private final Common common;
@@ -47,13 +48,16 @@ public class FluidTankElement implements Element {
     public static final ResourceLocation INTERACTION_ID = ResourceLocation
         .fromNamespaceAndPath("mmdlib", "fluid-container");
 
-    public FluidTankElement(Common common, int tank, Orientation orientation, int length) {
+    public FluidTankElement(Common common, int tank, Orientation orientation,
+        int length) {
         Objects.requireNonNull(common);
         Objects.requireNonNull(orientation);
         if (tank < 0)
-            throw new IllegalArgumentException("Tank index must be nonnegative");
+            throw new IllegalArgumentException(
+                "Tank index must be nonnegative");
         if (length != FILL && length < 8)
-            throw new IllegalArgumentException("Tank length must be at least 8");
+            throw new IllegalArgumentException(
+                "Tank length must be at least 8");
 
         this.common = common;
         this.tank = tank;
@@ -66,8 +70,8 @@ public class FluidTankElement implements Element {
     }
 
     /**
-     * Selects visual contents independently of display values and fill ratio; subclasses may
-     * override.
+     * Selects visual contents independently of display values and fill ratio;
+     * subclasses may override.
      */
     public GaugeFill fill(Object value) {
         return value instanceof FluidStack fluid
@@ -101,8 +105,8 @@ public class FluidTankElement implements Element {
     @Override
     public Optional<ElementSnapshot> snapshot(ScreenHost host) {
         var storage = storage(host, tank);
-        return Optional.of(
-            new ElementSnapshot(storage.getFluidInTank(tank).copy(),
+        return Optional
+            .of(new ElementSnapshot(storage.getFluidInTank(tank).copy(),
                 storage.getTankCapacity(tank)));
     }
 
@@ -111,12 +115,18 @@ public class FluidTankElement implements Element {
         return transfer(click, tank);
     }
 
-    /** The same transfer behavior can be attached to a label, button or another element. */
+    /**
+     * The same transfer behavior can be attached to a label, button or another
+     * element.
+     */
     public static Interaction containerInteraction(int tank) {
-        return new Interaction(INTERACTION_ID, Integer.toString(binding(tank).index()));
+        return new Interaction(INTERACTION_ID,
+            Integer.toString(binding(tank).index()));
     }
 
-    /** Registration adapter only; the behavior remains owned by this component. */
+    /**
+     * Registration adapter only; the behavior remains owned by this component.
+     */
     public static ElementInteractions.Type containerInteractionType() {
         return new ElementInteractions.Type() {
             public void validate(String target) {
@@ -151,20 +161,24 @@ public class FluidTankElement implements Element {
         if (carried.isEmpty() || FluidUtil.getFluidHandler(carried).isEmpty())
             return false;
         var tank = playerView(storage(host, index), index);
-        var inventory = click.player().getCapability(Capabilities.ItemHandler.ENTITY);
+        var inventory = click.player()
+            .getCapability(Capabilities.ItemHandler.ENTITY);
         if (inventory == null)
             return true;
         var result = click.button() == 0
-            ? FluidUtil.tryEmptyContainerAndStow(
-                carried, tank, inventory, Integer.MAX_VALUE, click.player(), true)
-            : FluidUtil.tryFillContainerAndStow(
-                carried, tank, inventory, Integer.MAX_VALUE, click.player(), true);
+            ? FluidUtil.tryEmptyContainerAndStow(carried, tank, inventory,
+                Integer.MAX_VALUE, click.player(), true)
+            : FluidUtil.tryFillContainerAndStow(carried, tank, inventory,
+                Integer.MAX_VALUE, click.player(), true);
         if (result.isSuccess())
             click.menu().setCarried(result.getResult());
         return true;
     }
 
-    /** Single-tank player access; storage still enforces its filters and reservation plans. */
+    /**
+     * Single-tank player access; storage still enforces its filters and
+     * reservation plans.
+     */
     private static IFluidHandler playerView(FluidStorage storage, int index) {
         return new IFluidHandler() {
             public int getTanks() {
@@ -172,7 +186,9 @@ public class FluidTankElement implements Element {
             }
 
             public FluidStack getFluidInTank(int tank) {
-                return tank == 0 ? storage.getFluidInTank(index) : FluidStack.EMPTY;
+                return tank == 0
+                    ? storage.getFluidInTank(index)
+                    : FluidStack.EMPTY;
             }
 
             public int getTankCapacity(int tank) {
@@ -184,7 +200,9 @@ public class FluidTankElement implements Element {
             }
 
             public int fill(FluidStack stack, FluidAction action) {
-                return isFluidValid(0, stack) ? storage.tank(index).fill(stack, action) : 0;
+                return isFluidValid(0, stack)
+                    ? storage.tank(index).fill(stack, action)
+                    : 0;
             }
 
             public FluidStack drain(FluidStack stack, FluidAction action) {
@@ -205,67 +223,64 @@ public class FluidTankElement implements Element {
         Component name = automation == null
             ? Component.translatable("screen.mmdlib.tank.name", tank + 1)
             : automation.groups().stream()
-                .filter(
-                    group -> group.type() == ResourceType.FLUIDS && group.members().contains(tank))
-                .map(group -> group.name())
-                .findFirst()
-                .orElseGet(() -> Component.translatable("screen.mmdlib.tank.name", tank + 1));
+                .filter(group -> group.type() == ResourceType.FLUIDS
+                    && group.members().contains(tank))
+                .map(group -> group.name()).findFirst()
+                .orElseGet(() -> Component
+                    .translatable("screen.mmdlib.tank.name", tank + 1));
         var accepted = BuiltInRegistries.FLUID.stream()
-            .filter(fluid -> fluid != Fluids.EMPTY && fluid.isSource(fluid.defaultFluidState()))
+            .filter(fluid -> fluid != Fluids.EMPTY
+                && fluid.isSource(fluid.defaultFluidState()))
             .map(fluid -> new FluidStack(fluid, 1))
             .filter(fluid -> storage.isFluidValid(tank, fluid))
-            .map(FluidStack::getHoverName)
-            .toList();
+            .map(FluidStack::getHoverName).toList();
         var lines = new ArrayList<Component>();
         lines.add(name.copy().withStyle(ChatFormatting.GOLD));
-        lines.add(
-            current.isEmpty()
-                ? Component.translatable("screen.mmdlib.tank.empty").withStyle(ChatFormatting.GRAY)
-                : Component.translatable(
-                    "screen.mmdlib.tank.contents", current.getAmount(), current.getHoverName()));
+        lines.add(current.isEmpty()
+            ? Component.translatable("screen.mmdlib.tank.empty")
+                .withStyle(ChatFormatting.GRAY)
+            : Component.translatable("screen.mmdlib.tank.contents",
+                current.getAmount(), current.getHoverName()));
         var names = Component.empty();
         for (var acceptedName : accepted) {
             if (!names.getSiblings().isEmpty())
                 names.append(", ");
             names.append(acceptedName.copy());
         }
-        lines.add(
-            Component.translatable(
-                "screen.mmdlib.tank.accepts",
-                accepted.isEmpty() ? Component.translatable("screen.mmdlib.tank.none") : names)
-                .withStyle(ChatFormatting.BLUE));
+        lines.add(Component.translatable("screen.mmdlib.tank.accepts",
+            accepted.isEmpty()
+                ? Component.translatable("screen.mmdlib.tank.none")
+                : names)
+            .withStyle(ChatFormatting.BLUE));
         if (!carried.isEmpty())
-            FluidUtil.getFluidHandler(carried.copy())
-                .ifPresent(
-                    handler -> {
-                        Component container = carried.getItem() instanceof BucketItem
-                            ? Component.translatable(Items.BUCKET.getDescriptionId())
-                            : carried.getHoverName();
-                        var seen = new ArrayList<FluidStack>();
-                        for (int i = 0; i < handler.getTanks(); i++) {
-                            var fluid = handler.getFluidInTank(i);
-                            if (fluid.isEmpty()
-                                || seen.stream()
-                                    .anyMatch(
-                                        old -> FluidStack.isSameFluidSameComponents(old, fluid)))
-                                continue;
-                            seen.add(fluid.copy());
-                            boolean allowed = storage.isFluidValid(tank, fluid)
-                                && (current.isEmpty()
-                                    || FluidStack.isSameFluidSameComponents(current, fluid))
-                                && !handler
-                                    .drain(fluid.copy(), IFluidHandler.FluidAction.SIMULATE)
-                                    .isEmpty();
-                            lines.add(
-                                Component.translatable(
-                                    allowed
-                                        ? "screen.mmdlib.tank.container_accepts"
-                                        : "screen.mmdlib.tank.container_rejects",
-                                    fluid.getHoverName(),
-                                    container)
-                                    .withStyle(allowed ? ChatFormatting.BLUE : ChatFormatting.RED));
-                        }
-                    });
+            FluidUtil.getFluidHandler(carried.copy()).ifPresent(handler -> {
+                Component container = carried.getItem() instanceof BucketItem
+                    ? Component.translatable(Items.BUCKET.getDescriptionId())
+                    : carried.getHoverName();
+                var seen = new ArrayList<FluidStack>();
+                for (int i = 0; i < handler.getTanks(); i++) {
+                    var fluid = handler.getFluidInTank(i);
+                    if (fluid.isEmpty()
+                        || seen.stream().anyMatch(old -> FluidStack
+                            .isSameFluidSameComponents(old, fluid)))
+                        continue;
+                    seen.add(fluid.copy());
+                    boolean allowed = storage.isFluidValid(tank, fluid)
+                        && (current.isEmpty() || FluidStack
+                            .isSameFluidSameComponents(current, fluid))
+                        && !handler.drain(fluid.copy(),
+                            IFluidHandler.FluidAction.SIMULATE).isEmpty();
+                    lines.add(Component
+                        .translatable(
+                            allowed
+                                ? "screen.mmdlib.tank.container_accepts"
+                                : "screen.mmdlib.tank.container_rejects",
+                            fluid.getHoverName(), container)
+                        .withStyle(allowed
+                            ? ChatFormatting.BLUE
+                            : ChatFormatting.RED));
+                }
+            });
         return List.copyOf(lines);
     }
 
@@ -326,14 +341,7 @@ public class FluidTankElement implements Element {
 
     @Override
     public String toString() {
-        return "FluidTankElement[common="
-            + common
-            + ", tank="
-            + tank
-            + ", orientation="
-            + orientation
-            + ", length="
-            + length
-            + "]";
+        return "FluidTankElement[common=" + common + ", tank=" + tank
+            + ", orientation=" + orientation + ", length=" + length + "]";
     }
 }

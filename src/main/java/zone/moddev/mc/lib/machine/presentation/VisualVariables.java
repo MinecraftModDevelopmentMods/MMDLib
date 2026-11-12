@@ -10,7 +10,10 @@ import java.util.function.Supplier;
 
 import zone.moddev.mc.lib.api.util.ChangeSignal;
 
-/** Typed declarations and immutable snapshots, independent of networking and rendering. */
+/**
+ * Typed declarations and immutable snapshots, independent of networking and
+ * rendering.
+ */
 public final class VisualVariables {
     public enum Kind {
         BOOLEAN, NUMBER, TEXT;
@@ -18,33 +21,42 @@ public final class VisualVariables {
         public static Kind of(Object value) {
             if (value instanceof Boolean)
                 return BOOLEAN;
-            if (value instanceof Number number && Double.isFinite(number.doubleValue()))
+            if (value instanceof Number number
+                && Double.isFinite(number.doubleValue()))
                 return NUMBER;
             if (value instanceof String text && text.length() <= 256)
                 return TEXT;
-            throw new IllegalArgumentException("Invalid visual value: " + value);
+            throw new IllegalArgumentException(
+                "Invalid visual value: " + value);
         }
     }
 
-    private record Entry(Object fallback, Supplier<?> value, List<ChangeSignal> sources,
-        ChangeSignal manual) {
+    private record Entry(Object fallback, Supplier<?> value,
+        List<ChangeSignal> sources, ChangeSignal manual) {
     }
 
-    /** Explicit invalidation for declarations without a component change signal. */
+    /**
+     * Explicit invalidation for declarations without a component change signal.
+     */
     public void changed(String name) {
         var entry = entries.get(name);
         if (entry == null)
-            throw new IllegalArgumentException("Unknown visual variable " + name);
+            throw new IllegalArgumentException(
+                "Unknown visual variable " + name);
         entry.manual().changed();
     }
 
-    /** Observe only referenced declarations; the returned action removes every subscription. */
+    /**
+     * Observe only referenced declarations; the returned action removes every
+     * subscription.
+     */
     public Runnable subscribe(Set<String> names, Consumer<String> changed) {
         var removers = new ArrayList<Runnable>();
         for (String name : names) {
             var entry = entries.get(name);
             if (entry == null)
-                throw new IllegalArgumentException("Unknown visual variable " + name);
+                throw new IllegalArgumentException(
+                    "Unknown visual variable " + name);
             removers.add(entry.manual().subscribe(() -> changed.accept(name)));
             for (var source : entry.sources())
                 removers.add(source.subscribe(() -> changed.accept(name)));
@@ -70,10 +82,12 @@ public final class VisualVariables {
         for (String name : names) {
             var entry = entries.get(name);
             if (entry == null)
-                throw new IllegalArgumentException("Unknown visual variable " + name);
+                throw new IllegalArgumentException(
+                    "Unknown visual variable " + name);
             Object value = normalize(entry.value().get());
             if (Kind.of(value) != Kind.of(entry.fallback()))
-                throw new IllegalArgumentException("Visual variable changed type: " + name);
+                throw new IllegalArgumentException(
+                    "Visual variable changed type: " + name);
             result.put(name, value);
         }
         return Map.copyOf(result);
@@ -93,32 +107,41 @@ public final class VisualVariables {
             this(new LinkedHashMap<>(), "", List.of());
         }
 
-        private Builder(Map<String, Entry> entries, String prefix, List<ChangeSignal> sources) {
+        private Builder(Map<String, Entry> entries, String prefix,
+            List<ChangeSignal> sources) {
             this.entries = entries;
             this.prefix = prefix;
             this.sources = sources;
         }
 
-        /** Change sources for subsequent declarations in this scope; getters are not polled. */
+        /**
+         * Change sources for subsequent declarations in this scope; getters are
+         * not polled.
+         */
         public Builder observedBy(ChangeSignal... sources) {
             return new Builder(entries, prefix, List.of(sources));
         }
 
         public Builder add(String name, Object fallback, Supplier<?> value) {
             String key = prefix + name;
-            if (key.isBlank() || key.length() > 256 || !key.matches("[a-zA-Z0-9_.:/-]+"))
-                throw new IllegalArgumentException("Invalid visual variable name " + key);
+            if (key.isBlank() || key.length() > 256
+                || !key.matches("[a-zA-Z0-9_.:/-]+"))
+                throw new IllegalArgumentException(
+                    "Invalid visual variable name " + key);
             if (entries.size() >= 256)
                 throw new IllegalArgumentException("Too many visual variables");
             if (entries.putIfAbsent(key,
-                new Entry(normalize(fallback), java.util.Objects.requireNonNull(value), sources,
+                new Entry(normalize(fallback),
+                    java.util.Objects.requireNonNull(value), sources,
                     new ChangeSignal())) != null)
-                throw new IllegalArgumentException("Duplicate visual variable " + key);
+                throw new IllegalArgumentException(
+                    "Duplicate visual variable " + key);
             return this;
         }
 
         public Builder component(String name, VisualVariableProvider provider) {
-            provider.defineVisualVariables(new Builder(entries, prefix + name + ".", sources));
+            provider.defineVisualVariables(
+                new Builder(entries, prefix + name + ".", sources));
             return this;
         }
 

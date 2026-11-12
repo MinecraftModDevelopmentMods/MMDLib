@@ -5,9 +5,10 @@ import java.util.List;
 import java.util.function.IntPredicate;
 
 /**
- * Shares what a group's slots or tanks hold between a recipe's ingredients. Each new claim may move
- * an earlier claim onto another entry it also accepts, so a claim only falls short when no way of
- * sharing could meet every claim so far, and the order of the ingredients doesn't matter.
+ * Shares what a group's slots or tanks hold between a recipe's ingredients.
+ * Each new claim may move an earlier claim onto another entry it also accepts,
+ * so a claim only falls short when no way of sharing could meet every claim so
+ * far, and the order of the ingredients doesn't matter.
  */
 public final class InputClaims {
     private final long[] held;
@@ -50,14 +51,17 @@ public final class InputClaims {
         return held[entry] - free[entry];
     }
 
-    /** The final allocation of one claim, after later claims may have moved it. */
+    /**
+     * The final allocation of one claim, after later claims may have moved it.
+     */
     public long claimed(int part, int entry) {
         return claims.get(part)[entry];
     }
 
     /**
-     * Finds up to {@code amount} for {@code part} on one entry, from what's free there and by
-     * moving other parts' claims elsewhere; returns how much it found.
+     * Finds up to {@code amount} for {@code part} on one entry, from what's
+     * free there and by moving other parts' claims elsewhere; returns how much
+     * it found.
      */
     private long find(int part, long amount, boolean[] visited) {
         for (int entry = 0; entry < held.length; entry++) {
@@ -66,11 +70,13 @@ public final class InputClaims {
             visited[entry] = true;
             long found = Math.min(free[entry], amount);
             free[entry] -= found;
-            for (int other = 0; other < claims.size() && found < amount; other++) {
+            for (int other = 0; other < claims.size()
+                && found < amount; other++) {
                 long claimed = claims.get(other)[entry];
                 if (other == part || claimed == 0)
                     continue;
-                long moved = find(other, Math.min(amount - found, claimed), visited);
+                long moved = find(other, Math.min(amount - found, claimed),
+                    visited);
                 claims.get(other)[entry] -= moved;
                 found += moved;
             }

@@ -32,16 +32,13 @@ public final class StatsDrawer extends Drawer {
     private static final int COLOUR = 0xa7cdd6;
     private static final float SCALE = .75f;
 
-    public StatsDrawer(
-        MachineScreen screen, zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition) {
-        super(
-            screen,
-            definition,
-            (g, x, y) -> {
-                for (int i = 0; i < 3; i++)
-                    g.fill(x + 2 + i * 5, y + 10 - i * 4, x + 5 + i * 5, y + 15, 0xff30545e);
-            },
-            COLOUR);
+    public StatsDrawer(MachineScreen screen,
+        zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition) {
+        super(screen, definition, (g, x, y) -> {
+            for (int i = 0; i < 3; i++)
+                g.fill(x + 2 + i * 5, y + 10 - i * 4, x + 5 + i * 5, y + 15,
+                    0xff30545e);
+        }, COLOUR);
     }
 
     public boolean open() {
@@ -73,21 +70,23 @@ public final class StatsDrawer extends Drawer {
         return Component.translatable("screen.mmdlib.stats." + key);
     }
 
-    /** Stable selected page identity, retained when the host reorders its timescales. */
+    /**
+     * Stable selected page identity, retained when the host reorders its
+     * timescales.
+     */
     public Optional<ResourceLocation> selectedPage() {
         layout();
         return Optional.ofNullable(selected);
     }
 
     private List<StatsPage> pages() {
-        return screen.getMenu().components().require(BuiltinMenuComponents.STATS).pages();
+        return screen.getMenu().components()
+            .require(BuiltinMenuComponents.STATS).pages();
     }
 
     private void updatePage() {
         var pages = pages();
-        page = pages.stream()
-            .filter(p -> p.id().equals(selected))
-            .findFirst()
+        page = pages.stream().filter(p -> p.id().equals(selected)).findFirst()
             .orElse(pages.isEmpty() ? null : pages.getFirst());
         var next = page == null ? null : page.id();
         if (!Objects.equals(selected, next))
@@ -101,29 +100,26 @@ public final class StatsDrawer extends Drawer {
         tab = super.tabBounds();
         if (!open)
             return;
-        int width = Math.max(0, Math.min(160, SideDrawerLayout.room(edge(), tab, screen.width)));
+        int width = Math.max(0,
+            Math.min(160, SideDrawerLayout.room(edge(), tab, screen.width)));
         var font = Minecraft.getInstance().font;
         var text = page == null ? List.of(text("empty")) : page.lines();
         var language = net.minecraft.locale.Language.getInstance();
-        if (!text.equals(cachedText)
-            || width != cachedWidth
-            || font != cachedFont
-            || language != cachedLanguage) {
+        if (!text.equals(cachedText) || width != cachedWidth
+            || font != cachedFont || language != cachedLanguage) {
             cachedText = text;
             cachedWidth = width;
             cachedFont = font;
             cachedLanguage = language;
             lines = text.stream()
-                .flatMap(c -> font.split(c, Math.max(1, (int) ((width - 12) / SCALE))).stream())
+                .flatMap(c -> font
+                    .split(c, Math.max(1, (int) ((width - 12) / SCALE)))
+                    .stream())
                 .toList();
         }
-        body = SideDrawerLayout.body(
-            panel,
-            screen.drawerBottom(),
+        body = SideDrawerLayout.body(panel, screen.drawerBottom(),
             SideDrawerLayout.bodyX(edge(), tab, width),
-            panel.y() + AutomationLayout.TOP,
-            width,
-            28 + lines.size() * 9,
+            panel.y() + AutomationLayout.TOP, width, 28 + lines.size() * 9,
             SideDrawerLayout.HeightLimit.SCREEN);
         scroll = Math.clamp(scroll, 0,
             Math.max(0, lines.size() * 9 - Math.max(0, body.height() - 28)));
@@ -143,14 +139,14 @@ public final class StatsDrawer extends Drawer {
         if (!open || body.width() < 12 || body.height() < 12)
             return;
         var font = Minecraft.getInstance().font;
-        g.enableScissor(body.x() + 5, body.y() + 4, body.right() - 5, body.bottom() - 4);
+        g.enableScissor(body.x() + 5, body.y() + 4, body.right() - 5,
+            body.bottom() - 4);
         var r = unitBounds();
-        g.enableScissor(
-            body.x() + 5,
-            body.y() + 4,
+        g.enableScissor(body.x() + 5, body.y() + 4,
             Math.max(body.x() + 5, page == null ? body.right() - 5 : r.x() - 4),
             body.y() + 19);
-        g.drawString(font, text("title"), body.x() + 6, body.y() + 6, 0xff263e45, false);
+        g.drawString(font, text("title"), body.x() + 6, body.y() + 6,
+            0xff263e45, false);
         g.disableScissor();
         if (page != null) {
             boolean hover = r.contains(mx, my);
@@ -160,10 +156,10 @@ public final class StatsDrawer extends Drawer {
             g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.y() + 2, 0xffd6edf1);
             var label = page == null ? Component.empty() : page.label();
             g.pose().pushPose();
-            g.pose()
-                .translate(
-                    r.x() + Math.max(3, (r.width() - 10 - font.width(label) * SCALE) / 2),
-                    r.y() + 4, 0);
+            g.pose().translate(
+                r.x() + Math.max(3,
+                    (r.width() - 10 - font.width(label) * SCALE) / 2),
+                r.y() + 4, 0);
             g.pose().scale(SCALE, SCALE, 1);
             g.drawString(font, label, 0, 0, 0xff263e45, false);
             g.pose().popPose();
@@ -172,10 +168,8 @@ public final class StatsDrawer extends Drawer {
             g.fill(arrowX, arrowY - 1, arrowX + 1, arrowY + 2, 0xff41616b);
             g.fill(arrowX + 1, arrowY, arrowX + 2, arrowY + 1, 0xff41616b);
         }
-        g.enableScissor(
-            body.x() + 5,
-            Math.min(body.bottom() - 4, body.y() + 24),
-            body.right() - 5,
+        g.enableScissor(body.x() + 5,
+            Math.min(body.bottom() - 4, body.y() + 24), body.right() - 5,
             body.bottom() - 4);
         g.pose().pushPose();
         g.pose().translate(body.x() + 6, body.y() + 24 - scroll, 0);
@@ -190,8 +184,10 @@ public final class StatsDrawer extends Drawer {
     private Rect unitBounds() {
         int labelWidth = page == null
             ? 0
-            : (int) Math.ceil(Minecraft.getInstance().font.width(page.label()) * SCALE);
-        int width = Math.min(Math.max(64, labelWidth + 14), Math.max(0, body.width() - 12));
+            : (int) Math
+                .ceil(Minecraft.getInstance().font.width(page.label()) * SCALE);
+        int width = Math.min(Math.max(64, labelWidth + 14),
+            Math.max(0, body.width() - 12));
         return new Rect(body.right() - 6 - width, body.y() + 4, width, 14);
     }
 
@@ -201,20 +197,17 @@ public final class StatsDrawer extends Drawer {
     }
 
     public void tooltip(GuiGraphics g, int x, int y) {
-        if (tab.contains(x, y) || open && page != null && unitBounds().contains(x, y))
-            g.renderComponentTooltip(
-                Minecraft.getInstance().font,
-                List.of(text("title"), text("cycle_tip"), text("tip")),
-                x,
-                y);
+        if (tab.contains(x, y)
+            || open && page != null && unitBounds().contains(x, y))
+            g.renderComponentTooltip(Minecraft.getInstance().font,
+                List.of(text("title"), text("cycle_tip"), text("tip")), x, y);
     }
 
     public boolean contains(double x, double y) {
         layout();
-        return tab.contains(x, y)
-            || open
-                && (body.contains(x, y)
-                    || SideDrawerLayout.rail(tab, body).contains(x, y) && !otherTab(x, y));
+        return tab.contains(x, y) || open && (body.contains(x, y)
+            || SideDrawerLayout.rail(tab, body).contains(x, y)
+                && !otherTab(x, y));
     }
 
     public boolean click(double x, double y, int button) {
@@ -240,7 +233,10 @@ public final class StatsDrawer extends Drawer {
             for (int i = 0; i < pages.size(); i++)
                 if (pages.get(i).id().equals(selected))
                     index = i;
-            selected = pages.get(Math.floorMod(index + (button == 0 ? 1 : -1), pages.size())).id();
+            selected = pages
+                .get(
+                    Math.floorMod(index + (button == 0 ? 1 : -1), pages.size()))
+                .id();
             updatePage();
             scroll = 0;
         }
@@ -274,6 +270,8 @@ public final class StatsDrawer extends Drawer {
 
     public List<Rect> exclusions() {
         layout();
-        return open ? List.of(tab, body, SideDrawerLayout.rail(tab, body)) : List.of(tab);
+        return open
+            ? List.of(tab, body, SideDrawerLayout.rail(tab, body))
+            : List.of(tab);
     }
 }

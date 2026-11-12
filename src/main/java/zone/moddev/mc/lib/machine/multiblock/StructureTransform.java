@@ -5,7 +5,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.phys.AABB;
 
-/** Coordinates are authored facing north; the controller occupies the origin. */
+/**
+ * Coordinates are authored facing north; the controller occupies the origin.
+ */
 public record StructureTransform(BlockPos origin, Direction facing) {
     public StructureTransform {
         origin = origin.immutable();

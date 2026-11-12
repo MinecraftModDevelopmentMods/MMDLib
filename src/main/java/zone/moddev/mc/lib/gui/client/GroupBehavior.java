@@ -6,7 +6,8 @@ import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.model.containers.GroupElement;
 
 /** A panel supplies its caption to any UI that presents it as a group. */
-public class GroupBehavior extends DefaultElementBehavior implements GroupLabelProvider {
+public class GroupBehavior extends DefaultElementBehavior
+    implements GroupLabelProvider {
     private final GroupElement group;
 
     public GroupBehavior(GroupElement group, ElementAccess access) {

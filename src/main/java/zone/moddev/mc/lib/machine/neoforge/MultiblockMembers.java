@@ -18,9 +18,12 @@ public enum MultiblockMembers implements StructureMembership {
         if (!level.hasChunkAt(pos))
             return null;
         var entity = level.getBlockEntity(pos);
-        if (entity instanceof MultiblockController controller && controller.multiblock() != null)
+        if (entity instanceof MultiblockController controller
+            && controller.multiblock() != null)
             return controller.multiblock().controllerLink();
-        return entity instanceof LinkedMember member ? member.memberLink() : null;
+        return entity instanceof LinkedMember member
+            ? member.memberLink()
+            : null;
     }
 
     @Override
@@ -47,11 +50,13 @@ public enum MultiblockMembers implements StructureMembership {
 
     public static MultiblockInstance resolve(Level level, BlockPos pos) {
         var link = INSTANCE.link(level, pos);
-        if (link == null || !link.dimension().equals(level.dimension().location())
+        if (link == null
+            || !link.dimension().equals(level.dimension().location())
             || !level.hasChunkAt(link.controller()))
             return null;
         var entity = level.getBlockEntity(link.controller());
-        if (!(entity instanceof MultiblockController controller) || controller.multiblock() == null)
+        if (!(entity instanceof MultiblockController controller)
+            || controller.multiblock() == null)
             return null;
         var instance = controller.multiblock();
         return instance.owns(pos, link) ? instance : null;
@@ -63,9 +68,13 @@ public enum MultiblockMembers implements StructureMembership {
             level.invalidateCapabilities(pos);
     }
 
-    /** Reconciles orphaned parts on load; unavailable or incompatible owners are left intact. */
+    /**
+     * Reconciles orphaned parts on load; unavailable or incompatible owners are
+     * left intact.
+     */
     public static void reconcile(Level level, BlockPos pos) {
-        if (level.isClientSide || !(level.getBlockEntity(pos) instanceof LinkedMember part))
+        if (level.isClientSide
+            || !(level.getBlockEntity(pos) instanceof LinkedMember part))
             return;
         var link = part.memberLink();
         if (link == null)
@@ -77,14 +86,16 @@ public enum MultiblockMembers implements StructureMembership {
             return;
         }
         var entity = level.getBlockEntity(link.controller());
-        if (entity instanceof MultiblockController controller && controller.multiblock() != null) {
+        if (entity instanceof MultiblockController controller
+            && controller.multiblock() != null) {
             var owner = controller.multiblock();
             if (owner.formation() == null || owner.changing())
                 return;
             if (owner.owns(pos, link))
                 return;
         }
-        // Only the still-linked part can remove itself; no machine item is awarded here.
+        // Only the still-linked part can remove itself; no machine item is
+        // awarded here.
         if (link.equals(INSTANCE.link(level, pos)))
             level.removeBlock(pos, false);
     }

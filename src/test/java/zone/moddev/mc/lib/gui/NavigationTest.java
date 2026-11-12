@@ -46,16 +46,15 @@ import zone.moddev.mc.lib.gui.sync.SynchronizedElement;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 class NavigationTest {
-    private static final ElementSync<Integer> SELECTION = ElementSync.field(
-        ResourceLocation.parse("test:navigation"),
-        StreamCodec.of(
-            (buffer, value) -> buffer.writeVarInt(value), buffer -> buffer.readVarInt()),
-        5,
-        element -> 0)
-        .validate((element, value) -> value == 0 || value == 1)
-        .build();
+    private static final ElementSync<Integer> SELECTION = ElementSync
+        .field(ResourceLocation.parse("test:navigation"),
+            StreamCodec.of((buffer, value) -> buffer.writeVarInt(value),
+                buffer -> buffer.readVarInt()),
+            5, element -> 0)
+        .validate((element, value) -> value == 0 || value == 1).build();
 
-    private record Destination(Common common) implements NavigableElement, SynchronizedElement {
+    private record Destination(Common common)
+        implements NavigableElement, SynchronizedElement {
         public List<ElementSync<?>> synchronizedValues() {
             return List.of(SELECTION);
         }
@@ -86,19 +85,9 @@ class NavigationTest {
 
     private static Common common(String id) {
         var empty = Common.empty();
-        return new Common(
-            Optional.of(id),
-            empty.value(),
-            empty.max(),
-            empty.tooltip(),
-            empty.tooltipShift(),
-            empty.clicks(),
-            empty.onHover(),
-            empty.hoverShows(),
-            empty.jeiRecipes(),
-            0,
-            0,
-            7);
+        return new Common(Optional.of(id), empty.value(), empty.max(),
+            empty.tooltip(), empty.tooltipShift(), empty.clicks(),
+            empty.onHover(), empty.hoverShows(), empty.jeiRecipes(), 0, 0, 7);
     }
 
     private static class Fixture {
@@ -108,21 +97,18 @@ class NavigationTest {
         final Screen screen;
         final ElementStates state;
         final List<Element> sent = new ArrayList<>();
-        final Set<Element> hidden = Collections.newSetFromMap(new IdentityHashMap<>());
+        final Set<Element> hidden = Collections
+            .newSetFromMap(new IdentityHashMap<>());
         boolean accept = true;
 
         Fixture(String name, Element... extra) {
             var elements = new ArrayList<Element>(List.of(destination));
             elements.addAll(List.of(extra));
             elements.add(control);
-            screen = new Screen(
-                ResourceLocation.parse("test:" + name),
-                "navigation.xml",
-                new Text("test", Optional.empty()),
-                "net.minecraft.world.level.block.entity.BlockEntity",
-                false,
-                elements,
-                List.of());
+            screen = new Screen(ResourceLocation.parse("test:" + name),
+                "navigation.xml", new Text("test", Optional.empty()),
+                "net.minecraft.world.level.block.entity.BlockEntity", false,
+                elements, List.of());
             state = new ElementStates(elements, RegistryAccess.EMPTY, () -> {
             });
         }
@@ -161,9 +147,11 @@ class NavigationTest {
                     return 0;
                 }
 
-                public <T> boolean submit(Element target, ElementAction<T> action, T value) {
+                public <T> boolean submit(Element target,
+                    ElementAction<T> action, T value) {
                     assertSame(Navigation.NAVIGATE, action);
-                    assertSame(action, target.action(action.id()).orElseThrow());
+                    assertSame(action,
+                        target.action(action.id()).orElseThrow());
                     if (!accept)
                         return false;
                     sent.add(target);
@@ -171,7 +159,8 @@ class NavigationTest {
                 }
 
                 public void navigate(String id, String selection) {
-                    ((NavigableElement) screen.find(id).orElseThrow()).select(state, selection);
+                    ((NavigableElement) screen.find(id).orElseThrow())
+                        .select(state, selection);
                 }
 
                 public ItemStack carried() {
@@ -217,17 +206,20 @@ class NavigationTest {
     void plainControlsValidateAndToggleCustomDestinations() {
         var f = new Fixture("navigation_contract");
         ScreenValidation.check(f.screen, new WidgetTypes());
-        assertSame(Navigation.NAVIGATE, f.control.action(Navigation.NAVIGATE.id()).orElseThrow());
+        assertSame(Navigation.NAVIGATE,
+            f.control.action(Navigation.NAVIGATE.id()).orElseThrow());
         var binding = f.control.navigation().orElseThrow();
         assertTrue(binding.select(f.screen::find, f.state));
         assertEquals("details", f.destination.selected(f.state));
         assertTrue(binding.select(f.screen::find, f.state));
         assertEquals("home", f.destination.selected(f.state));
         var missing = new Navigation(new ViewRef("missing", "details"));
-        assertThrows(IllegalArgumentException.class, () -> missing.validate(f.screen));
+        assertThrows(IllegalArgumentException.class,
+            () -> missing.validate(f.screen));
         assertFalse(missing.select(f.screen::find, f.state));
         var badView = new Navigation(new ViewRef("destination", "unknown"));
-        assertThrows(IllegalArgumentException.class, () -> badView.validate(f.screen));
+        assertThrows(IllegalArgumentException.class,
+            () -> badView.validate(f.screen));
         assertFalse(badView.select(f.screen::find, f.state));
         assertEquals("home", f.destination.selected(f.state));
     }
@@ -241,14 +233,17 @@ class NavigationTest {
         assertEquals("home", f.destination.selected(f.state));
         f.accept = true;
         var authoritative = new HashMap<Integer, Object>(f.state.snapshot());
-        assertEquals(ElementBehavior.Click.CONSUME, behavior.mouseClicked(1, 1, 0));
+        assertEquals(ElementBehavior.Click.CONSUME,
+            behavior.mouseClicked(1, 1, 0));
         assertEquals("details", f.destination.selected(f.state));
         assertEquals(List.of(f.control), f.sent);
         f.state.apply(authoritative);
         behavior.actionResult(false);
         var reopened = new Fixture("navigation_prediction");
-        ElementBehaviors.builtins().create(reopened.access(reopened.destination)).initialized();
-        assertTrue(reopened.sent.isEmpty(), "Rejected prediction must not be restored");
+        ElementBehaviors.builtins()
+            .create(reopened.access(reopened.destination)).initialized();
+        assertTrue(reopened.sent.isEmpty(),
+            "Rejected prediction must not be restored");
     }
 
     @Test
@@ -257,7 +252,8 @@ class NavigationTest {
         var behavior = ElementBehaviors.builtins().create(f.access(f.control));
         behavior.mouseClicked(1, 1, 0);
         behavior.actionResult(true);
-        var hidden = new Control(common("hidden"), new ViewRef("destination", "details"));
+        var hidden = new Control(common("hidden"),
+            new ViewRef("destination", "details"));
         var reopened = new Fixture("navigation_restore", hidden);
         reopened.hidden.add(hidden);
         var destinationBehavior = ElementBehaviors.builtins()
@@ -269,7 +265,9 @@ class NavigationTest {
         assertEquals("home", reopened.destination.selected(reopened.state));
         reopened.hidden.add(reopened.control);
         reopened.sent.clear();
-        NavigationMemory.restore(reopened.access(reopened.destination), reopened.destination);
-        assertTrue(reopened.sent.isEmpty(), "Hidden controls cannot restore a view");
+        NavigationMemory.restore(reopened.access(reopened.destination),
+            reopened.destination);
+        assertTrue(reopened.sent.isEmpty(),
+            "Hidden controls cannot restore a view");
     }
 }

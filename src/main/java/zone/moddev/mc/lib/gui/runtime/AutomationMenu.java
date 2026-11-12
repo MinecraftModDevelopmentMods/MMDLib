@@ -30,13 +30,12 @@ import zone.moddev.mc.lib.gui.model.containers.AutomationInventoryElement;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 
 /**
- * Per-viewer selection/editor state. Every group keeps fixed real slot indices for the menu
- * lifetime.
+ * Per-viewer selection/editor state. Every group keeps fixed real slot indices
+ * for the menu lifetime.
  */
 public final class AutomationMenu
-    implements
-        zone.moddev.mc.lib.gui.runtime.component.MenuSlotContributor,
-        zone.moddev.mc.lib.gui.runtime.component.DrawerSession {
+    implements zone.moddev.mc.lib.gui.runtime.component.MenuSlotContributor,
+    zone.moddev.mc.lib.gui.runtime.component.DrawerSession {
     public net.minecraft.resources.ResourceLocation drawerType() {
         return zone.moddev.mc.lib.gui.drawer.BuiltinDrawers.SIDES;
     }
@@ -50,23 +49,19 @@ public final class AutomationMenu
     }
 
     public List<Slot> destinations(ItemStack stack) {
-        return slots.stream().filter(slot -> slot.isActive() && slot.mayPlace(stack)).toList();
+        return slots.stream()
+            .filter(slot -> slot.isActive() && slot.mayPlace(stack)).toList();
     }
 
     public void addSlots(
         zone.moddev.mc.lib.gui.runtime.slot.MenuSlots.Registrar target,
         zone.moddev.mc.lib.gui.layout.ScreenLayout layout) {
-        addSlots(
-            slot -> {
-                var element = slotElement(target.nextIndex());
-                target.add(
-                    slot,
-                    element,
-                    element.role(),
-                    inventoryView((target.nextIndex() - start) / SLOTS_PER_GROUP).inventory());
-            },
-            target.nextIndex(),
-            layout);
+        addSlots(slot -> {
+            var element = slotElement(target.nextIndex());
+            target.add(slot, element, element.role(),
+                inventoryView((target.nextIndex() - start) / SLOTS_PER_GROUP)
+                    .inventory());
+        }, target.nextIndex(), layout);
     }
 
     public final AutomationInventory inventory;
@@ -90,34 +85,28 @@ public final class AutomationMenu
     private int lastSelected = -1, lastEditor = -2;
     private boolean lastOpen;
 
-    public AutomationMenu(
-        MachineMenu menu, AutomationInventory inventory, Player owner, boolean client) {
-        this(
-            menu,
-            inventory,
-            owner,
-            client,
+    public AutomationMenu(MachineMenu menu, AutomationInventory inventory,
+        Player owner, boolean client) {
+        this(menu, inventory, owner, client,
             group -> menu.blockEntity instanceof ScreenHost host
                 ? host.screenAutomationInventory(group)
                 : new AutomationInventoryElement(group.id()));
     }
 
     /**
-     * Alternate presentation factory for custom menu contributors, with unchanged storage
-     * semantics.
+     * Alternate presentation factory for custom menu contributors, with
+     * unchanged storage semantics.
      */
-    public AutomationMenu(
-        MachineMenu menu,
-        AutomationInventory inventory,
-        Player owner,
-        boolean client,
+    public AutomationMenu(MachineMenu menu, AutomationInventory inventory,
+        Player owner, boolean client,
         java.util.function.Function<ResourceGroup<?>, ? extends AutomationInventoryElement> inventoryFactory) {
         this.inventoryFactory = Objects.requireNonNull(inventoryFactory);
         this.menu = menu;
         this.inventory = inventory;
         this.owner = owner;
         this.client = client;
-        addons = !(menu.blockEntity instanceof ScreenHost host) || host.screenAutomationAddons();
+        addons = !(menu.blockEntity instanceof ScreenHost host)
+            || host.screenAutomationAddons();
         modes = new int[inventory.groups().size() * 6];
         disabledFaces = new int[inventory.groups().size()];
         java.util.Arrays.fill(disabledFaces, 63);
@@ -127,8 +116,7 @@ public final class AutomationMenu
             var handlers = new LinkedHashMap<String, ItemStorage>();
             for (int group = 0; group < inventory.groups().size(); group++) {
                 final int g = group;
-                handlers.put(
-                    inventory.group(g).id(),
+                handlers.put(inventory.group(g).id(),
                     new ItemStorage(SLOTS_PER_GROUP) {
                         public int getSlotLimit(int slot) {
                             return 1;
@@ -137,12 +125,14 @@ public final class AutomationMenu
                         public boolean isItemValid(int slot, ItemStack stack) {
                             int index = g * SLOTS_PER_GROUP + slot;
                             if (slot < COLUMNS)
-                                return AutomationInventory.acceptsAddon(inventory.group(g), items,
-                                    index, stack);
+                                return AutomationInventory.acceptsAddon(
+                                    inventory.group(g), items, index, stack);
                             var parent = items.getStackInSlot(index - COLUMNS);
-                            var addon = parent.getCapability(AddonCapabilities.ADDON);
+                            var addon = parent
+                                .getCapability(AddonCapabilities.ADDON);
                             return addon != null
-                                && addon.specification(parent).accepts(inventory.group(g))
+                                && addon.specification(parent)
+                                    .accepts(inventory.group(g))
                                 && addon.acceptsFilter(parent, stack);
                         }
                     });
@@ -156,7 +146,8 @@ public final class AutomationMenu
         int index = menuIndex - start;
         return index < 0 || index >= slots.size()
             ? null
-            : inventoryViews.get(index / SLOTS_PER_GROUP).slots().get(index % SLOTS_PER_GROUP);
+            : inventoryViews.get(index / SLOTS_PER_GROUP).slots()
+                .get(index % SLOTS_PER_GROUP);
     }
 
     public AutomationInventoryElement inventoryView(int group) {
@@ -171,9 +162,11 @@ public final class AutomationMenu
 
             public ItemStack contents(int localSlot) {
                 if (localSlot < 0 || localSlot >= SLOTS_PER_GROUP)
-                    throw new IllegalArgumentException("Invalid automation slot");
+                    throw new IllegalArgumentException(
+                        "Invalid automation slot");
                 return addons
-                    ? items.getStackInSlot(group * SLOTS_PER_GROUP + localSlot).copy()
+                    ? items.getStackInSlot(group * SLOTS_PER_GROUP + localSlot)
+                        .copy()
                     : ItemStack.EMPTY;
             }
 
@@ -183,27 +176,35 @@ public final class AutomationMenu
         };
     }
 
-    /** Local display policy, independent of the current selection or pending request. */
+    /**
+     * Local display policy, independent of the current selection or pending
+     * request.
+     */
     public boolean slotVisible(int group, int localSlot) {
         if (!addons)
             return false;
         var view = inventoryView(group);
-        return view.slotVisible(view.slots().get(localSlot), presentation(group));
+        return view.slotVisible(view.slots().get(localSlot),
+            presentation(group));
     }
 
-    /** Drawer visibility shared with native activation. Pending state only affects interaction. */
+    /**
+     * Drawer visibility shared with native activation. Pending state only
+     * affects interaction.
+     */
     public boolean visible(int group, Element element) {
         if (!addons || !open || group != selected)
             return false;
         var view = inventoryView(group);
         if (element == view)
             return true;
-        return view.slots().stream()
-            .anyMatch(slot -> slot == element && slotVisible(group, slot.index()));
+        return view.slots().stream().anyMatch(
+            slot -> slot == element && slotVisible(group, slot.index()));
     }
 
     public Object drawerValue(int group, Element element, boolean maximum) {
-        return inventoryView(group).drawerValue(element, maximum, presentation(group));
+        return inventoryView(group).drawerValue(element, maximum,
+            presentation(group));
     }
 
     @Override
@@ -245,15 +246,21 @@ public final class AutomationMenu
     }
 
     public ItemStack addon(int g, int c) {
-        return addons ? items.getStackInSlot(g * SLOTS_PER_GROUP + c) : ItemStack.EMPTY;
+        return addons
+            ? items.getStackInSlot(g * SLOTS_PER_GROUP + c)
+            : ItemStack.EMPTY;
     }
 
     public ItemStack filter(int g, int c) {
-        return addons ? items.getStackInSlot(g * SLOTS_PER_GROUP + COLUMNS + c) : ItemStack.EMPTY;
+        return addons
+            ? items.getStackInSlot(g * SLOTS_PER_GROUP + COLUMNS + c)
+            : ItemStack.EMPTY;
     }
 
     public long generation(int g, int c) {
-        return client ? generations[g * COLUMNS + c] : inventory.generation(g, c);
+        return client
+            ? generations[g * COLUMNS + c]
+            : inventory.generation(g, c);
     }
 
     public long revision(int g, int c) {
@@ -262,8 +269,10 @@ public final class AutomationMenu
 
     public boolean faceAvailable(int group, int face) {
         return client
-            ? zone.moddev.mc.lib.api.capabilities.FaceMask.available(disabledFaces[group], face)
-            : inventory.group(group).sides().faceAvailable(RelativeFace.values()[face]);
+            ? zone.moddev.mc.lib.api.capabilities.FaceMask
+                .available(disabledFaces[group], face)
+            : inventory.group(group).sides()
+                .faceAvailable(RelativeFace.values()[face]);
     }
 
     public IoMode mode(int g, int face) {
@@ -280,8 +289,8 @@ public final class AutomationMenu
             && provider.specification(parent).filters();
     }
 
-    public void addSlots(
-        Consumer<Slot> add, int start, zone.moddev.mc.lib.gui.layout.ScreenLayout layout) {
+    public void addSlots(Consumer<Slot> add, int start,
+        zone.moddev.mc.lib.gui.layout.ScreenLayout layout) {
         addSlots(add, start, 0);
         position(layout);
     }
@@ -289,34 +298,32 @@ public final class AutomationMenu
     /** Slot coordinates follow the registered side drawer's geometry. */
     public void position(zone.moddev.mc.lib.gui.layout.ScreenLayout layout) {
         var definition = layout.drawers().stream()
-            .filter(d -> d.type().equals(zone.moddev.mc.lib.gui.drawer.BuiltinDrawers.SIDES))
+            .filter(d -> d.type()
+                .equals(zone.moddev.mc.lib.gui.drawer.BuiltinDrawers.SIDES))
             .findFirst();
         var tab = definition
-            .map(
-                d -> zone.moddev.mc.lib.gui.layout.DrawerTabs.place(
-                    layout.drawers(),
-                    layout.panel(),
-                    layout.panel().bottom(),
-                    entry -> true)
-                    .get(d))
-            .orElse(new zone.moddev.mc.lib.gui.layout.Rect(-10000, -10000, 0, 0));
-        position(
-            SideDrawerLayout.bodyX(
-                definition
-                    .map(d -> d.placement().edge())
-                    .orElse(zone.moddev.mc.lib.gui.model.Edge.RIGHT),
-                tab,
-                AutomationLayout.WIDTH),
-            tab.y());
+            .map(d -> zone.moddev.mc.lib.gui.layout.DrawerTabs
+                .place(layout.drawers(), layout.panel(),
+                    layout.panel().bottom(), entry -> true)
+                .get(d))
+            .orElse(
+                new zone.moddev.mc.lib.gui.layout.Rect(-10000, -10000, 0, 0));
+        position(SideDrawerLayout.bodyX(
+            definition.map(d -> d.placement().edge())
+                .orElse(zone.moddev.mc.lib.gui.model.Edge.RIGHT),
+            tab, AutomationLayout.WIDTH), tab.y());
     }
 
-    /** Client drawer supplies its final clipped body origin, relative to the main panel. */
+    /**
+     * Client drawer supplies its final clipped body origin, relative to the
+     * main panel.
+     */
     public void position(int x, int y) {
         for (int i = 0; i < slots.size(); i++) {
             var view = inventoryView(i / SLOTS_PER_GROUP);
             var element = view.slots().get(i % SLOTS_PER_GROUP);
-            var position = element
-                .itemPosition(view.drawerSlotBounds(i % SLOTS_PER_GROUP).offset(x, y));
+            var position = element.itemPosition(
+                view.drawerSlotBounds(i % SLOTS_PER_GROUP).offset(x, y));
             slots.get(i).x = position[0];
             slots.get(i).y = position[1];
         }
@@ -328,33 +335,28 @@ public final class AutomationMenu
             final int index = i;
             int group = index / SLOTS_PER_GROUP;
             if (index % SLOTS_PER_GROUP == 0)
-                inventoryViews
-                    .add(Objects.requireNonNull(inventoryFactory.apply(inventory.group(group))));
+                inventoryViews.add(Objects.requireNonNull(
+                    inventoryFactory.apply(inventory.group(group))));
             var view = inventoryView(group);
             if (view.slots().size() != SLOTS_PER_GROUP)
                 throw new IllegalArgumentException(
                     "Automation inventory must preserve its slot count");
             var element = view.slots().get(index % SLOTS_PER_GROUP);
-            if (element.index() != index % SLOTS_PER_GROUP
-                || element.ghost()
+            if (element.index() != index % SLOTS_PER_GROUP || element.ghost()
                 || element.playerInventory())
                 throw new IllegalArgumentException(
                     "Automation slots must retain real local storage indexes");
-            var bounds = view.drawerSlotBounds(index % SLOTS_PER_GROUP).offset(bodyX,
-                AutomationLayout.TOP);
+            var bounds = view.drawerSlotBounds(index % SLOTS_PER_GROUP)
+                .offset(bodyX, AutomationLayout.TOP);
             IItemHandlerModifiable handler = items;
             int local = index;
             if (items instanceof ItemInventories combined) {
                 handler = combined.storage(index);
                 local = combined.localSlot(index);
             }
-            var slot = element.createSlot(
-                handler,
-                local,
-                bounds,
+            var slot = element.createSlot(handler, local, bounds,
                 () -> visible(group, element) && (!client || !pending()),
-                menu::interacting,
-                () -> {
+                menu::interacting, () -> {
                     if (!client)
                         inventory.owner().setChanged();
                 });
@@ -363,7 +365,10 @@ public final class AutomationMenu
         }
     }
 
-    /** Flush unattributed recoveries before this player's synchronous inventory operation. */
+    /**
+     * Flush unattributed recoveries before this player's synchronous inventory
+     * operation.
+     */
     public void beforeInteraction() {
         if (!client) {
             inventory.revalidate();
@@ -382,15 +387,15 @@ public final class AutomationMenu
         if (client)
             return;
         inventory.revalidate();
-        if (editor >= 0
-            && (!supportsFilter(selected, editor)
-                || filter(selected, editor).isEmpty()
-                || inventory.generation(selected, editor) != editorGeneration))
+        if (editor >= 0 && (!supportsFilter(selected, editor)
+            || filter(selected, editor).isEmpty()
+            || inventory.generation(selected, editor) != editorGeneration))
             editor = -1;
         if (editor >= 0) {
             var filter = filter(selected, editor);
             var provider = filter.getCapability(AddonCapabilities.FILTER);
-            if (provider == null || !provider.editorType(filter).equals(editorType))
+            if (provider == null
+                || !provider.editorType(filter).equals(editorType))
                 editor = -1;
         }
     }
@@ -399,37 +404,28 @@ public final class AutomationMenu
         requests.tick();
     }
 
-    public boolean send(String kind, int group, int column, String control, int entry,
-        String value) {
+    public boolean send(String kind, int group, int column, String control,
+        int entry, String value) {
         if (!client || pending())
             return false;
-        long generation = column >= 0 && column < COLUMNS ? generation(group, column) : 0;
-        long revision = column >= 0 && column < COLUMNS ? revision(group, column) : 0;
+        long generation = column >= 0 && column < COLUMNS
+            ? generation(group, column)
+            : 0;
+        long revision = column >= 0 && column < COLUMNS
+            ? revision(group, column)
+            : 0;
         int request = requests.begin();
         if (request == 0)
             return false;
-        PacketDistributor.sendToServer(
-            new AutomationNetwork.Action(
-                menu.containerId,
-                menu.sessionId(),
-                request,
-                kind,
-                group,
-                column,
-                generation,
-                revision,
-                control,
-                entry,
-                value));
+        PacketDistributor.sendToServer(new AutomationNetwork.Action(
+            menu.containerId, menu.sessionId(), request, kind, group, column,
+            generation, revision, control, entry, value));
         return true;
     }
 
     public void action(Player player, AutomationNetwork.Action action) {
-        if (client
-            || player != owner
-            || player.containerMenu != menu
-            || !menu.stillValid(player)
-            || action.menu() != menu.containerId
+        if (client || player != owner || player.containerMenu != menu
+            || !menu.stillValid(player) || action.menu() != menu.containerId
             || action.session() != menu.sessionId()
             || !received.receive(action.request()))
             return;
@@ -455,26 +451,21 @@ public final class AutomationMenu
                     if (open && g == selected && face >= 0 && face < 6) {
                         try {
                             var expected = IoMode.valueOf(action.control());
-                            accepted = inventory
-                                .group(g)
-                                .cycle(
-                                    RelativeFace.values()[face], expected,
-                                    action.value().equals("reverse"));
+                            accepted = inventory.group(g).cycle(
+                                RelativeFace.values()[face], expected,
+                                action.value().equals("reverse"));
                         } catch (IllegalArgumentException invalid) {
                             /* Invalid request. */
                         }
                     }
                 }
                 case "editor" -> {
-                    if (open
-                        && g == selected
-                        && c >= 0
-                        && c < COLUMNS
-                        && supportsFilter(g, c)
-                        && !filter(g, c).isEmpty()
+                    if (open && g == selected && c >= 0 && c < COLUMNS
+                        && supportsFilter(g, c) && !filter(g, c).isEmpty()
                         && inventory.generation(g, c) == action.generation()) {
                         var filter = filter(g, c);
-                        var provider = filter.getCapability(AddonCapabilities.FILTER);
+                        var provider = filter
+                            .getCapability(AddonCapabilities.FILTER);
                         if (provider != null) {
                             editor = editor == c ? -1 : c;
                             editorGeneration = action.generation();
@@ -488,21 +479,12 @@ public final class AutomationMenu
                     accepted = true;
                 }
                 case "edit" -> {
-                    if (open
-                        && g == selected
-                        && c >= 0
-                        && c < COLUMNS
+                    if (open && g == selected && c >= 0 && c < COLUMNS
                         && editor == c
                         && action.generation() == editorGeneration)
-                        accepted = inventory.edit(
-                            g,
-                            c,
-                            action.generation(),
-                            action.revision(),
-                            action.control(),
-                            action.entry(),
-                            action.value(),
-                            menu.getCarried(),
+                        accepted = inventory.edit(g, c, action.generation(),
+                            action.revision(), action.control(), action.entry(),
+                            action.value(), menu.getCarried(),
                             owner.registryAccess());
                 }
                 default -> {
@@ -529,26 +511,16 @@ public final class AutomationMenu
             ids[g] = inventory.group(g).definitionKey();
             masks[g] = inventory.group(g).sides().disabledFaceMask();
             for (int f = 0; f < 6; f++)
-                modes[g * 6 + f] = inventory.group(g).sides().get(RelativeFace.values()[f])
-                    .ordinal();
+                modes[g * 6 + f] = inventory.group(g).sides()
+                    .get(RelativeFace.values()[f]).ordinal();
             for (int c = 0; c < COLUMNS; c++) {
                 gens[g * COLUMNS + c] = inventory.generation(g, c);
                 revs[g * COLUMNS + c] = inventory.revision(g, c);
             }
         }
-        return new AutomationNetwork.State(
-            menu.containerId,
-            menu.sessionId(),
-            received.acknowledged(),
-            accepted,
-            selected,
-            open,
-            editor,
-            ids,
-            modes,
-            gens,
-            revs,
-            masks);
+        return new AutomationNetwork.State(menu.containerId, menu.sessionId(),
+            received.acknowledged(), accepted, selected, open, editor, ids,
+            modes, gens, revs, masks);
     }
 
     private void transmit(boolean accepted) {
@@ -565,22 +537,22 @@ public final class AutomationMenu
         if (client || processingAction)
             return;
         long revision = inventory.viewRevision();
-        if (revision != lastInventoryRevision
-            || selected != lastSelected
-            || open != lastOpen
-            || editor != lastEditor) {
+        if (revision != lastInventoryRevision || selected != lastSelected
+            || open != lastOpen || editor != lastEditor) {
             transmit(true);
         }
     }
 
     public void receive(AutomationNetwork.State state) {
-        if (!client || state.menu() != menu.containerId || state.session() != menu.sessionId())
+        if (!client || state.menu() != menu.containerId
+            || state.session() != menu.sessionId())
             return;
         if (state.groups().length != inventory.groups().size())
             throw new IllegalStateException("Resource groups differ");
         for (int g = 0; g < state.groups().length; g++)
             if (!state.groups()[g].equals(inventory.group(g).definitionKey()))
-                throw new IllegalStateException("Resource group definitions differ");
+                throw new IllegalStateException(
+                    "Resource group definitions differ");
         selected = state.selected();
         open = state.open();
         editor = state.editor();

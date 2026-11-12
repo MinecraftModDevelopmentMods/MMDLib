@@ -15,15 +15,20 @@ import zone.moddev.mc.lib.api.stats.StatsProvider;
 import zone.moddev.mc.lib.api.util.ChangeSignal;
 
 /**
- * A machine's energy, counted as a {@code long} so large buffers do not overflow. Automation sees
- * it through {@link IEnergyStorage}, whose {@code int} values are clamped, and is limited to the
- * transfer rates. The owning block entity uses {@link #insert} and {@link #extract}, which ignore
+ * A machine's energy, counted as a {@code long} so large buffers do not
+ * overflow. Automation sees it through {@link IEnergyStorage}, whose
+ * {@code int} values are clamped, and is limited to the transfer rates. The
+ * owning block entity uses {@link #insert} and {@link #extract}, which ignore
  * the rates.
  */
-public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, StatsProvider {
+public class EnergyBuffer
+    implements IEnergyStorage, INBTSerializable<Tag>, StatsProvider {
     private final ChangeSignal changes = new ChangeSignal();
 
-    /** Observe content/capacity changes without replacing the persistence callback. */
+    /**
+     * Observe content/capacity changes without replacing the persistence
+     * callback.
+     */
     public ChangeSignal changes() {
         return changes;
     }
@@ -42,17 +47,23 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         if (canReceive())
             rows.add(Statistics.rf("in", new Statistics.Counter(inserted, 20)));
         if (canExtract())
-            rows.add(Statistics.rf("out", new Statistics.Counter(extracted, 20)));
+            rows.add(
+                Statistics.rf("out", new Statistics.Counter(extracted, 20)));
         if (canReceive())
             rows.add(Statistics.transfer("in_max", maxInsert));
         if (canExtract())
             rows.add(Statistics.transfer("out_max", maxExtract));
-        rows.add(Statistics.rf("used", new Statistics.Counter(used, 20)).whenUsed(this));
-        rows.add(Statistics.rf("used_max", new Statistics.MaximumUse(this)).whenUsed(this));
+        rows.add(Statistics.rf("used", new Statistics.Counter(used, 20))
+            .whenUsed(this));
+        rows.add(Statistics.rf("used_max", new Statistics.MaximumUse(this))
+            .whenUsed(this));
         return new Statistics(Statistics.label("energy"), rows);
     }
 
-    /** Runtime transfer counters. Loading, resizing and direct assignments are not transfers. */
+    /**
+     * Runtime transfer counters. Loading, resizing and direct assignments are
+     * not transfers.
+     */
     public java.math.BigInteger inserted() {
         return inserted;
     }
@@ -61,7 +72,10 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         return extracted;
     }
 
-    /** Captures stored energy and transfer counters for a synchronous transaction rollback. */
+    /**
+     * Captures stored energy and transfer counters for a synchronous
+     * transaction rollback.
+     */
     public Runnable checkpoint() {
         long before = stored;
         var beforeIn = inserted;
@@ -103,7 +117,9 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         this(capacity, maxTransfer, maxTransfer);
     }
 
-    /** Runs after every change, typically the block entity's {@code setChanged}. */
+    /**
+     * Runs after every change, typically the block entity's {@code setChanged}.
+     */
     public EnergyBuffer onChange(Runnable onChange) {
         this.onChange = onChange;
         return this;
@@ -134,7 +150,9 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         }
     }
 
-    /** Sets the capacity, e.g. after an upgrade; stored energy above it is lost. */
+    /**
+     * Sets the capacity, e.g. after an upgrade; stored energy above it is lost.
+     */
     public void setCapacity(long capacity) {
         long next = Math.max(0, capacity);
         if (this.capacity == next)
@@ -145,15 +163,18 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
     }
 
     /**
-     * Sets the per-call limits for automation; the owner's {@link #insert} and {@link #extract}
-     * ignore them.
+     * Sets the per-call limits for automation; the owner's {@link #insert} and
+     * {@link #extract} ignore them.
      */
     public void setRates(long maxInsert, long maxExtract) {
         this.maxInsert = Math.max(0, maxInsert);
         this.maxExtract = Math.max(0, maxExtract);
     }
 
-    /** Adds up to {@code amount}, ignoring the transfer rate. Returns the amount added. */
+    /**
+     * Adds up to {@code amount}, ignoring the transfer rate. Returns the amount
+     * added.
+     */
     public long insert(long amount, boolean simulate) {
         long accepted = Math.clamp(amount, 0, space());
         if (!simulate && accepted > 0) {
@@ -163,7 +184,10 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         return accepted;
     }
 
-    /** Removes up to {@code amount}, ignoring the transfer rate. Returns the amount removed. */
+    /**
+     * Removes up to {@code amount}, ignoring the transfer rate. Returns the
+     * amount removed.
+     */
     public long extract(long amount, boolean simulate) {
         long removed = Math.clamp(amount, 0, stored);
         if (!simulate && removed > 0) {
@@ -173,7 +197,10 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         return removed;
     }
 
-    /** Removes exactly {@code amount} if that much is stored, e.g. to run one tick of work. */
+    /**
+     * Removes exactly {@code amount} if that much is stored, e.g. to run one
+     * tick of work.
+     */
     public boolean consume(long amount) {
         if (amount < 0 || amount > stored)
             return false;
@@ -182,7 +209,10 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         return true;
     }
 
-    /** Escrows a transfer charge without counting it as processor use or external output. */
+    /**
+     * Escrows a transfer charge without counting it as processor use or
+     * external output.
+     */
     public boolean reserve(long amount) {
         if (amount < 0 || amount > stored)
             return false;
@@ -227,14 +257,18 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
         return maxExtract > 0;
     }
 
-    /** An automation view with a fixed mode, e.g. {@link IoMode#BOTH} for unsided access. */
+    /**
+     * An automation view with a fixed mode, e.g. {@link IoMode#BOTH} for
+     * unsided access.
+     */
     public IEnergyStorage view(IoMode mode) {
         return view(() -> mode);
     }
 
     /**
-     * An automation view whose mode is read on every call, so it follows side-configuration changes
-     * and rotation without invalidating capabilities.
+     * An automation view whose mode is read on every call, so it follows
+     * side-configuration changes and rotation without invalidating
+     * capabilities.
      */
     public IEnergyStorage view(Supplier<IoMode> mode) {
         return new IEnergyStorage() {
@@ -269,7 +303,8 @@ public class EnergyBuffer implements IEnergyStorage, INBTSerializable<Tag>, Stat
 
             @Override
             public boolean canExtract() {
-                return mode.get().canExtract() && EnergyBuffer.this.canExtract();
+                return mode.get().canExtract()
+                    && EnergyBuffer.this.canExtract();
             }
         };
     }

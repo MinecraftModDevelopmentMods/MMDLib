@@ -34,46 +34,45 @@ import zone.moddev.mc.lib.common.runtime.DropsContents;
 public final class DefinedMachineBlock extends Block implements EntityBlock {
     private final Supplier<BlockEntityType<DefinedMachineEntity>> type;
 
-    public DefinedMachineBlock(
-        Properties properties, Supplier<BlockEntityType<DefinedMachineEntity>> type) {
+    public DefinedMachineBlock(Properties properties,
+        Supplier<BlockEntityType<DefinedMachineEntity>> type) {
         super(properties);
         this.type = type;
-        registerDefaultState(
-            stateDefinition.any().setValue(BlockStateProperties.HORIZONTAL_FACING,
-                Direction.NORTH));
+        registerDefaultState(stateDefinition.any()
+            .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(
+        StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(BlockStateProperties.HORIZONTAL_FACING);
     }
 
     @Override
-    protected void tick(BlockState state, net.minecraft.server.level.ServerLevel level,
-        BlockPos pos, net.minecraft.util.RandomSource random) {
+    protected void tick(BlockState state,
+        net.minecraft.server.level.ServerLevel level, BlockPos pos,
+        net.minecraft.util.RandomSource random) {
         if (level.getBlockEntity(pos) instanceof DefinedMachineEntity machine)
             machine.flushVisuals();
     }
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState()
-            .setValue(
-                BlockStateProperties.HORIZONTAL_FACING,
-                context.getHorizontalDirection().getOpposite());
+        return defaultBlockState().setValue(
+            BlockStateProperties.HORIZONTAL_FACING,
+            context.getHorizontalDirection().getOpposite());
     }
 
     @Override
     public BlockState rotate(BlockState state, Rotation rotation) {
-        return state.setValue(
-            BlockStateProperties.HORIZONTAL_FACING,
-            rotation.rotate(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
+        return state.setValue(BlockStateProperties.HORIZONTAL_FACING, rotation
+            .rotate(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
     }
 
     @Override
     public BlockState mirror(BlockState state, Mirror mirror) {
-        return rotate(
-            state, mirror.getRotation(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
+        return rotate(state, mirror.getRotation(
+            state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
     }
 
     @Override
@@ -82,16 +81,17 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-        Level level, BlockState state, BlockEntityType<T> requested) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level,
+        BlockState state, BlockEntityType<T> requested) {
         return level.isClientSide() || requested != type.get()
             ? null
-            : (world, pos, s, entity) -> ((DefinedMachineEntity) entity).serverTick();
+            : (world, pos, s, entity) -> ((DefinedMachineEntity) entity)
+                .serverTick();
     }
 
     @Override
-    protected InteractionResult useWithoutItem(
-        BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    protected InteractionResult useWithoutItem(BlockState state, Level level,
+        BlockPos pos, Player player, BlockHitResult hit) {
         return level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
             && machine.openScreen(player)
                 ? InteractionResult.sidedSuccess(level.isClientSide())
@@ -99,16 +99,11 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(
-        ItemStack stack,
-        BlockState state,
-        Level level,
-        BlockPos pos,
-        Player player,
-        InteractionHand hand,
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state,
+        Level level, BlockPos pos, Player player, InteractionHand hand,
         BlockHitResult hit) {
-        if (stack.is(MachineContent.recoveryItem())
-            && level.getBlockEntity(pos) instanceof DefinedMachineEntity machine) {
+        if (stack.is(MachineContent.recoveryItem()) && level
+            .getBlockEntity(pos) instanceof DefinedMachineEntity machine) {
             if (level.isClientSide())
                 return ItemInteractionResult.SUCCESS;
             return MachineRecoveryItem.restore(stack, machine)
@@ -120,16 +115,17 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
             && FluidUtil.getFluidHandler(stack).isPresent()) {
             if (level.isClientSide())
                 return ItemInteractionResult.SUCCESS;
-            return FluidUtil.interactWithFluidHandler(player, hand, machine.fluids)
-                ? ItemInteractionResult.CONSUME
-                : ItemInteractionResult.FAIL;
+            return FluidUtil.interactWithFluidHandler(player, hand,
+                machine.fluids)
+                    ? ItemInteractionResult.CONSUME
+                    : ItemInteractionResult.FAIL;
         }
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     @Override
-    protected void onRemove(
-        BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
+    protected void onRemove(BlockState state, Level level, BlockPos pos,
+        BlockState replacement, boolean moved) {
         DropsContents.onRemove(state, level, pos, replacement);
         super.onRemove(state, level, pos, replacement, moved);
     }
@@ -140,15 +136,16 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public boolean canConnectRedstone(
-        BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction side) {
+    public boolean canConnectRedstone(BlockState state, BlockGetter level,
+        BlockPos pos, @Nullable Direction side) {
         return level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
             && machine.screenRedstone() != null
             && machine.screenRedstone().connects(side);
     }
 
     @Override
-    protected int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction side) {
+    protected int getSignal(BlockState state, BlockGetter level, BlockPos pos,
+        Direction side) {
         return level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
             && machine.screenRedstone() != null
                 ? machine.screenRedstone().signal(side)

@@ -5,9 +5,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-/** Small typed expressions for model selection. No reflection, calls, or mutable state. */
+/**
+ * Small typed expressions for model selection. No reflection, calls, or mutable
+ * state.
+ */
 public final class VisualCondition {
-    private record Term(VisualVariables.Kind kind, Function<Map<String, Object>, Object> evaluate) {
+    private record Term(VisualVariables.Kind kind,
+        Function<Map<String, Object>, Object> evaluate) {
     }
 
     private final String source;
@@ -20,7 +24,8 @@ public final class VisualCondition {
         this.variables = Set.copyOf(variables);
     }
 
-    public static VisualCondition compile(String source, Map<String, Object> defaults) {
+    public static VisualCondition compile(String source,
+        Map<String, Object> defaults) {
         if (source.length() > 2048)
             throw new IllegalArgumentException("Visual condition is too long");
         var parser = new Parser(source, defaults);
@@ -58,11 +63,13 @@ public final class VisualCondition {
         }
 
         private IllegalArgumentException error(String message) {
-            return new IllegalArgumentException(message + " at " + pos + " in " + text);
+            return new IllegalArgumentException(
+                message + " at " + pos + " in " + text);
         }
 
         private void space() {
-            while (pos < text.length() && Character.isWhitespace(text.charAt(pos)))
+            while (pos < text.length()
+                && Character.isWhitespace(text.charAt(pos)))
                 pos++;
         }
 
@@ -86,8 +93,8 @@ public final class VisualCondition {
             while (true) {
                 space();
                 String op = null;
-                for (String candidate : new String[]{"||", "&&", "==", "!=", "<=", ">=", "<", ">",
-                    "+", "-", "*", "/"}) {
+                for (String candidate : new String[]{"||", "&&", "==", "!=",
+                    "<=", ">=", "<", ">", "+", "-", "*", "/"}) {
                     if (text.startsWith(candidate, pos)) {
                         op = candidate;
                         break;
@@ -120,7 +127,8 @@ public final class VisualCondition {
             if (take("-")) {
                 Term value = expression(6);
                 expect(value, VisualVariables.Kind.NUMBER);
-                return new Term(VisualVariables.Kind.NUMBER, vars -> -number(value, vars));
+                return new Term(VisualVariables.Kind.NUMBER,
+                    vars -> -number(value, vars));
             }
             if (take("(")) {
                 Term value = expression(0);
@@ -138,8 +146,10 @@ public final class VisualCondition {
                     pos = end + 1;
                 } else {
                     int start = pos;
-                    while (pos < text.length() && (Character.isLetterOrDigit(text.charAt(pos))
-                        || text.charAt(pos) == '_' || text.charAt(pos) == '.'))
+                    while (pos < text.length()
+                        && (Character.isLetterOrDigit(text.charAt(pos))
+                            || text.charAt(pos) == '_'
+                            || text.charAt(pos) == '.'))
                         pos++;
                     name = text.substring(start, pos);
                 }
@@ -151,7 +161,8 @@ public final class VisualCondition {
                     vars -> vars.getOrDefault(name, fallback));
             }
             space();
-            if (pos < text.length() && (text.charAt(pos) == '\'' || text.charAt(pos) == '"')) {
+            if (pos < text.length()
+                && (text.charAt(pos) == '\'' || text.charAt(pos) == '"')) {
                 char quote = text.charAt(pos++);
                 int start = pos;
                 while (pos < text.length() && text.charAt(pos) != quote)
@@ -167,8 +178,8 @@ public final class VisualCondition {
                 return new Term(VisualVariables.Kind.BOOLEAN, vars -> false);
             space();
             int start = pos;
-            while (pos < text.length()
-                && (Character.isDigit(text.charAt(pos)) || text.charAt(pos) == '.'))
+            while (pos < text.length() && (Character.isDigit(text.charAt(pos))
+                || text.charAt(pos) == '.'))
                 pos++;
             if (start == pos)
                 throw error("Expected value");
@@ -190,30 +201,33 @@ public final class VisualCondition {
             if (op.equals("&&") || op.equals("||")) {
                 expect(left, VisualVariables.Kind.BOOLEAN);
                 expect(right, VisualVariables.Kind.BOOLEAN);
-                return new Term(VisualVariables.Kind.BOOLEAN, vars -> op.equals("&&")
-                    ? (Boolean) left.evaluate().apply(vars)
-                        && (Boolean) right.evaluate().apply(vars)
-                    : (Boolean) left.evaluate().apply(vars)
-                        || (Boolean) right.evaluate().apply(vars));
+                return new Term(VisualVariables.Kind.BOOLEAN,
+                    vars -> op.equals("&&")
+                        ? (Boolean) left.evaluate().apply(vars)
+                            && (Boolean) right.evaluate().apply(vars)
+                        : (Boolean) left.evaluate().apply(vars)
+                            || (Boolean) right.evaluate().apply(vars));
             }
             if (op.equals("==") || op.equals("!=")) {
                 expect(right, left.kind());
                 return new Term(VisualVariables.Kind.BOOLEAN, vars -> {
                     boolean equal = left.kind() == VisualVariables.Kind.NUMBER
                         ? number(left, vars) == number(right, vars)
-                        : left.evaluate().apply(vars).equals(right.evaluate().apply(vars));
+                        : left.evaluate().apply(vars)
+                            .equals(right.evaluate().apply(vars));
                     return op.equals("==") == equal;
                 });
             }
             expect(left, VisualVariables.Kind.NUMBER);
             expect(right, VisualVariables.Kind.NUMBER);
             if (Set.of("<", "<=", ">", ">=").contains(op))
-                return new Term(VisualVariables.Kind.BOOLEAN, vars -> switch (op) {
-                    case "<" -> number(left, vars) < number(right, vars);
-                    case "<=" -> number(left, vars) <= number(right, vars);
-                    case ">" -> number(left, vars) > number(right, vars);
-                    default -> number(left, vars) >= number(right, vars);
-                });
+                return new Term(VisualVariables.Kind.BOOLEAN,
+                    vars -> switch (op) {
+                        case "<" -> number(left, vars) < number(right, vars);
+                        case "<=" -> number(left, vars) <= number(right, vars);
+                        case ">" -> number(left, vars) > number(right, vars);
+                        default -> number(left, vars) >= number(right, vars);
+                    });
             return new Term(VisualVariables.Kind.NUMBER, vars -> {
                 double a = number(left, vars), b = number(right, vars);
                 return switch (op) {

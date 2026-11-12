@@ -17,41 +17,46 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import zone.moddev.mc.lib.gui.layout.Rect;
 
-/** Shared neighbour model, tint and direction badges for face configuration drawers. */
+/**
+ * Shared neighbour model, tint and direction badges for face configuration
+ * drawers.
+ */
 final class FaceConfigRenderer {
     private final Minecraft mc = Minecraft.getInstance();
     private final Map<RenderType, RenderType> fadedNeighbours = new IdentityHashMap<>();
 
-    /** A fixed cross distinguishes machine restrictions from player-selected Disabled. */
+    /**
+     * A fixed cross distinguishes machine restrictions from player-selected
+     * Disabled.
+     */
     static void unavailable(GuiGraphics g, Rect r) {
         g.pose().pushPose();
         g.pose().translate(0, 0, 220);
         g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1, 0xff8b8b8b);
         g.renderOutline(r.x(), r.y(), r.width(), r.height(), 0xff777777);
         int size = Math.max(1, Math.min(r.width(), r.height()) / 2);
-        int x = r.x() + (r.width() - size) / 2, y = r.y() + (r.height() - size) / 2;
+        int x = r.x() + (r.width() - size) / 2,
+            y = r.y() + (r.height() - size) / 2;
         for (int i = 0; i < size; i++) {
             g.fill(x + i, y + i, x + i + 1, y + i + 1, 0xff686868);
-            g.fill(x + size - 1 - i, y + i, x + size - i, y + i + 1, 0xff686868);
+            g.fill(x + size - 1 - i, y + i, x + size - i, y + i + 1,
+                0xff686868);
         }
         g.pose().popPose();
     }
 
-    Component render(
-        GuiGraphics g,
-        Rect r,
-        BlockEntity entity,
-        Direction direction,
-        boolean input,
-        boolean output) {
+    Component render(GuiGraphics g, Rect r, BlockEntity entity,
+        Direction direction, boolean input, boolean output) {
         boolean disabled = !input && !output;
         g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1,
             disabled ? 0xbf8b8b8b : 0xff8b8b8b);
-        // Tint the background before drawing the neighbour so its model keeps its own colours.
+        // Tint the background before drawing the neighbour so its model keeps
+        // its own colours.
         int green = 0xff30e050, orange = 0xffff8a00;
         int greenWash = 0x3830e050, orangeWash = 0x38ff8a00;
         if (input && output) {
-            // Pixel-aligned diagonal from top-right to bottom-left, with no overlapping tint seam.
+            // Pixel-aligned diagonal from top-right to bottom-left, with no
+            // overlapping tint seam.
             for (int row = 0; row < r.height() - 2; row++) {
                 int split = r.right() - 1 - row;
                 int y = r.y() + 1 + row;
@@ -66,13 +71,13 @@ final class FaceConfigRenderer {
             if (!disabled)
                 g.fill(r.x() + 1, r.y() + 1, r.right() - 1, r.bottom() - 1,
                     input ? greenWash : orangeWash);
-            g.renderOutline(
-                r.x(), r.y(), r.width(), r.height(),
+            g.renderOutline(r.x(), r.y(), r.width(), r.height(),
                 disabled ? 0xbf555555 : input ? green : orange);
         }
         var level = entity.getLevel();
         var pos = entity.getBlockPos().relative(direction);
-        Component neighbour = Component.translatable("screen.mmdlib.automation.unloaded");
+        Component neighbour = Component
+            .translatable("screen.mmdlib.automation.unloaded");
         if (level != null && level.hasChunkAt(pos)) {
             var state = level.getBlockState(pos);
             neighbour = state.isAir()
@@ -87,21 +92,18 @@ final class FaceConfigRenderer {
                     g.pose().mulPose(Axis.XP.rotationDegrees(30));
                     g.pose().mulPose(Axis.YP.rotationDegrees(225));
                     g.pose().translate(-.5, -.5, -.5);
-                    mc.getBlockRenderer()
-                        .renderSingleBlock(
-                            state,
-                            g.pose(),
-                            disabled
-                                ? type -> g.bufferSource()
-                                    .getBuffer(
-                                        fadedNeighbours.computeIfAbsent(
-                                            type, original -> GhostItems.fade(original, .75f)))
-                                : g.bufferSource(),
-                            LightTexture.FULL_BRIGHT,
-                            OverlayTexture.NO_OVERLAY);
+                    mc.getBlockRenderer().renderSingleBlock(state, g.pose(),
+                        disabled
+                            ? type -> g.bufferSource()
+                                .getBuffer(fadedNeighbours.computeIfAbsent(type,
+                                    original -> GhostItems.fade(original,
+                                        .75f)))
+                            : g.bufferSource(),
+                        LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
                     g.flush();
                 } catch (RuntimeException unsupported) {
-                    // A missing special renderer must not break inventory interaction.
+                    // A missing special renderer must not break inventory
+                    // interaction.
                 } finally {
                     g.pose().popPose();
                 }
@@ -111,12 +113,11 @@ final class FaceConfigRenderer {
         g.pose().pushPose();
         g.pose().translate(0, 0, 200);
         if (input)
-            g.blitSprite(ResourceLocation.parse("mmdlib:side_mode_input"), r.x() + 1, r.y() + 1, 7,
-                7);
+            g.blitSprite(ResourceLocation.parse("mmdlib:side_mode_input"),
+                r.x() + 1, r.y() + 1, 7, 7);
         if (output)
-            g.blitSprite(
-                ResourceLocation.parse("mmdlib:side_mode_output"), r.right() - 8, r.bottom() - 8, 7,
-                7);
+            g.blitSprite(ResourceLocation.parse("mmdlib:side_mode_output"),
+                r.right() - 8, r.bottom() - 8, 7, 7);
         g.pose().popPose();
         return neighbour;
     }

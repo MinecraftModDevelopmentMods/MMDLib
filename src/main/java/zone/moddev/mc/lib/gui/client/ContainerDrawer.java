@@ -36,7 +36,8 @@ public class ContainerDrawer extends Drawer {
     private final LinkedHashSet<Integer> dragSlots = new LinkedHashSet<>();
     private int dragButton = -1, firstSlot = -1, lastClickSlot = -1;
     private long dragRevision, lastClickTime;
-    private ItemStack dragStack = ItemStack.EMPTY, lastClickStack = ItemStack.EMPTY;
+    private ItemStack dragStack = ItemStack.EMPTY,
+        lastClickStack = ItemStack.EMPTY;
     private Rect dragBody;
     private boolean collectQueued;
     private String lastSource = "";
@@ -84,9 +85,10 @@ public class ContainerDrawer extends Drawer {
     }
 
     private boolean inventoryTarget(double x, double y) {
-        // Outside clicks can drop the carried stack. Settings inside the panel remain usable.
-        return !screen.drawers().tabContains(x, y)
-            && screen.hasClickedOutside(x, y, screen.guiLeft(), screen.guiTop(), 0)
+        // Outside clicks can drop the carried stack. Settings inside the panel
+        // remain usable.
+        return !screen.drawers().tabContains(x, y) && screen
+            .hasClickedOutside(x, y, screen.guiLeft(), screen.guiTop(), 0)
             || screen.nativeSlotAt(x, y, false) != null;
     }
 
@@ -103,18 +105,19 @@ public class ContainerDrawer extends Drawer {
     }
 
     private boolean gestureValid() {
-        return bodyVisible()
-            && !inputLocked()
+        return bodyVisible() && !inputLocked()
             && menu.state().revision() == dragRevision
             && layout.body().equals(dragBody)
             && ItemStack.matches(screen.getMenu().getCarried(), dragStack);
     }
 
     private void addDragSlot(int slot) {
-        if (!menu.targets().contains(slot) || dragSlots.size() >= menu.targets().maxTargets())
+        if (!menu.targets().contains(slot)
+            || dragSlots.size() >= menu.targets().maxTargets())
             return;
         var stored = menu.targets().contents(slot);
-        if ((stored.isEmpty() || ItemStack.isSameItemSameComponents(stored, dragStack))
+        if ((stored.isEmpty()
+            || ItemStack.isSameItemSameComponents(stored, dragStack))
             && stored.getCount() < dragStack.getMaxStackSize()
             && dragSlots.size() < dragStack.getCount())
             dragSlots.add(slot);
@@ -139,14 +142,14 @@ public class ContainerDrawer extends Drawer {
                 && state.keys().get(state.selected()).equals(lastSource)
                 && lastClickSlot >= state.offset()
                 && lastClickSlot < state.offset() + state.contents().size()
-                && ItemStack.isSameItemSameComponents(screen.getMenu().getCarried(),
-                    lastClickStack))
-                send(ContainerDrawerMenu.COLLECT, lastClickSlot, state.pageSize());
+                && ItemStack.isSameItemSameComponents(
+                    screen.getMenu().getCarried(), lastClickStack))
+                send(ContainerDrawerMenu.COLLECT, lastClickSlot,
+                    state.pageSize());
         }
     }
 
-    public ContainerDrawer(
-        MachineScreen screen,
+    public ContainerDrawer(MachineScreen screen,
         zone.moddev.mc.lib.gui.drawer.DrawerDefinition definition,
         boolean equipment) {
         super(screen, definition, (graphics, x, y) -> {
@@ -161,15 +164,12 @@ public class ContainerDrawer extends Drawer {
     }
 
     private void layout() {
-        int slots = available() ? menu.state().sizes().get(menu.state().selected()) : 0;
-        layout = ContainerDrawerLayout.of(
-            screen.panelBounds(),
-            screen.drawerBottom(),
-            slots,
-            super.tabBounds(),
-            menu.policy().layout(),
-            edge(),
-            screen.width);
+        int slots = available()
+            ? menu.state().sizes().get(menu.state().selected())
+            : 0;
+        layout = ContainerDrawerLayout.of(screen.panelBounds(),
+            screen.drawerBottom(), slots, super.tabBounds(),
+            menu.policy().layout(), edge(), screen.width);
     }
 
     public ContainerDrawerLayout contentLayout() {
@@ -184,28 +184,26 @@ public class ContainerDrawer extends Drawer {
     private void send(int kind, int argument, int size) {
         if (!menu.allows(kind))
             return;
-        menu.request(kind, argument, size)
-            .ifPresent(
-                request -> {
-                    var state = menu.state();
-                    if (!state.keys().isEmpty()) {
-                        if (kind == ContainerDrawerMenu.TOGGLE && state.open())
-                            remember(false, selection());
-                        else if (kind == ContainerDrawerMenu.TOGGLE
-                            || kind == ContainerDrawerMenu.SELECT
-                            || kind == ContainerDrawerMenu.PAGE) {
-                            int index = kind == ContainerDrawerMenu.SELECT
+        menu.request(kind, argument, size).ifPresent(request -> {
+            var state = menu.state();
+            if (!state.keys().isEmpty()) {
+                if (kind == ContainerDrawerMenu.TOGGLE && state.open())
+                    remember(false, selection());
+                else if (kind == ContainerDrawerMenu.TOGGLE
+                    || kind == ContainerDrawerMenu.SELECT
+                    || kind == ContainerDrawerMenu.PAGE) {
+                    int index = kind == ContainerDrawerMenu.SELECT
+                        ? argument
+                        : state.selected();
+                    remember(true,
+                        new Selection(state.keys().get(index),
+                            kind == ContainerDrawerMenu.PAGE
                                 ? argument
-                                : state.selected();
-                            remember(
-                                true,
-                                new Selection(
-                                    state.keys().get(index),
-                                    kind == ContainerDrawerMenu.PAGE ? argument : state.offset()));
-                        }
-                    }
-                    PacketDistributor.sendToServer(request);
-                });
+                                : state.offset()));
+                }
+            }
+            PacketDistributor.sendToServer(request);
+        });
     }
 
     public void close() {
@@ -221,14 +219,15 @@ public class ContainerDrawer extends Drawer {
         layout();
         if (!available())
             return List.of();
-        return bodyVisible() ? List.of(layout.rail(), layout.body()) : List.of(layout.tab());
+        return bodyVisible()
+            ? List.of(layout.rail(), layout.body())
+            : List.of(layout.tab());
     }
 
     public boolean contains(double x, double y) {
         layout();
-        return available()
-            && (layout.tab().contains(x, y)
-                || bodyVisible() && (layout.body().contains(x, y) || layout.rail().contains(x, y)));
+        return available() && (layout.tab().contains(x, y) || bodyVisible()
+            && (layout.body().contains(x, y) || layout.rail().contains(x, y)));
     }
 
     public boolean tabContains(double x, double y) {
@@ -258,19 +257,17 @@ public class ContainerDrawer extends Drawer {
     public IconSprite iconSprite() {
         if (!available())
             return super.iconSprite();
-        return presentation()
-            .icon()
-            .map(IconSprite::atlas)
-            .orElseGet(
-                () -> IconSprite
-                    .item(() -> menu.state().icons().get(menu.state().selected()).copy()));
+        return presentation().icon().map(IconSprite::atlas)
+            .orElseGet(() -> IconSprite.item(() -> menu.state().icons()
+                .get(menu.state().selected()).copy()));
     }
 
     /**
-     * Called when source, page metadata or geometry changes. Override or supply custom slot
-     * factories.
+     * Called when source, page metadata or geometry changes. Override or supply
+     * custom slot factories.
      */
-    protected ContainerInventoryElement createInventory(ContainerInventoryElement.Page page) {
+    protected ContainerInventoryElement createInventory(
+        ContainerInventoryElement.Page page) {
         return new ContainerInventoryElement(page);
     }
 
@@ -279,16 +276,13 @@ public class ContainerDrawer extends Drawer {
         int count = Math.min(state.contents().size(), layout.pageSize());
         var bounds = new java.util.ArrayList<Rect>();
         for (int i = 0; i < count; i++)
-            bounds.add(layout.cell(i).offset(-layout.body().x(), -layout.body().y()));
+            bounds.add(
+                layout.cell(i).offset(-layout.body().x(), -layout.body().y()));
         var descriptions = state.descriptions().isEmpty()
             ? List.<EquippedContainers.SlotInfo>of()
             : state.descriptions().subList(0, count);
-        var page = new ContainerInventoryElement.Page(
-            state.offset(),
-            layout.body().width(),
-            layout.body().height(),
-            bounds,
-            descriptions,
+        var page = new ContainerInventoryElement.Page(state.offset(),
+            layout.body().width(), layout.body().height(), bounds, descriptions,
             presentation());
         String source = state.keys().get(state.selected());
         if (!page.equals(cellPage) || !source.equals(cellSource)) {
@@ -297,26 +291,26 @@ public class ContainerDrawer extends Drawer {
             cellPage = page;
             cellSource = source;
             inventory = java.util.Objects.requireNonNull(createInventory(page));
-            cells = new ElementFragment(
-                inventory,
-                page.width(),
+            cells = new ElementFragment(inventory, page.width(),
                 new ElementFragment.Host() {
                     public ResourceLocation screenId() {
-                        return ResourceLocation.parse("mmdlib:container_drawer");
+                        return ResourceLocation
+                            .parse("mmdlib:container_drawer");
                     }
 
                     public ItemStack contents(SlotElement element) {
                         int local = element.index() - menu.state().offset();
-                        return local >= 0 && local < menu.state().contents().size()
-                            ? menu.state().contents().get(local).copy()
-                            : ItemStack.EMPTY;
+                        return local >= 0
+                            && local < menu.state().contents().size()
+                                ? menu.state().contents().get(local).copy()
+                                : ItemStack.EMPTY;
                     }
 
                     public Object value(Element element, boolean maximum) {
-                        return inventory.drawerValue(
-                            element,
-                            maximum,
-                            element instanceof SlotElement slot ? contents(slot) : ItemStack.EMPTY,
+                        return inventory.drawerValue(element, maximum,
+                            element instanceof SlotElement slot
+                                ? contents(slot)
+                                : ItemStack.EMPTY,
                             element instanceof SlotElement slot
                                 && dragButton >= 0
                                 && dragSlots.contains(slot.index()));
@@ -352,20 +346,25 @@ public class ContainerDrawer extends Drawer {
         cells.place(layout.body().x(), layout.body().y(), layout.body());
     }
 
-    /** Composed virtual-cell tooltip, including all parent rows after the native item hook. */
+    /**
+     * Composed virtual-cell tooltip, including all parent rows after the native
+     * item hook.
+     */
     public List<Component> cellTooltip(int x, int y) {
         layout();
         int index = slotAt(x, y);
         if (index < 0)
             return List.of();
-        var slot = inventory.slots().stream().filter(s -> s.index() == index).findFirst()
-            .orElseThrow();
-        var stack = menu.state().contents().get(index - menu.state().offset()).copy();
+        var slot = inventory.slots().stream().filter(s -> s.index() == index)
+            .findFirst().orElseThrow();
+        var stack = menu.state().contents().get(index - menu.state().offset())
+            .copy();
         var rows = cells.tooltip(slot, x, y);
         return stack.isEmpty()
             ? rows
-            : NativeSlotRenderer.itemTooltip(
-                slot, stack, Screen.getTooltipFromItem(Minecraft.getInstance(), stack), rows);
+            : NativeSlotRenderer.itemTooltip(slot, stack,
+                Screen.getTooltipFromItem(Minecraft.getInstance(), stack),
+                rows);
     }
 
     @Override
@@ -423,7 +422,8 @@ public class ContainerDrawer extends Drawer {
             menu.request(ContainerDrawerMenu.SELECT, index, state.pageSize())
                 .ifPresent(PacketDistributor::sendToServer);
         else {
-            int offset = Math.min(selection.offset(), Math.max(0, state.sizes().get(index) - 1));
+            int offset = Math.min(selection.offset(),
+                Math.max(0, state.sizes().get(index) - 1));
             offset = offset / state.pageSize() * state.pageSize();
             if (state.offset() != offset)
                 menu.request(ContainerDrawerMenu.PAGE, offset, state.pageSize())
@@ -458,44 +458,26 @@ public class ContainerDrawer extends Drawer {
         var body = layout.body();
         iconSprite().draw(g, body.x() + 4, body.y() + 3);
         if (body.width() > 45)
-            g.drawString(
-                font,
+            g.drawString(font,
                 font.plainSubstrByWidth(title().getString(), body.width() - 28),
-                body.x() + 24,
-                body.y() + 7,
-                0xff404040,
-                false);
+                body.x() + 24, body.y() + 7, 0xff404040, false);
         prepareCells();
         cells.render(g, mx, my);
         var previous = layout.previous();
         var next = layout.next();
-        g.drawString(
-            font,
-            "<",
-            previous.x() + 3,
-            previous.y() + 3,
-            state.offset() > 0 ? 0xff404040 : 0xff999999,
-            false);
-        g.drawString(
-            font,
-            ">",
-            next.x() + 3,
-            next.y() + 3,
-            state.offset() + state.pageSize() < state.sizes().get(state.selected())
-                ? 0xff404040
-                : 0xff999999,
+        g.drawString(font, "<", previous.x() + 3, previous.y() + 3,
+            state.offset() > 0 ? 0xff404040 : 0xff999999, false);
+        g.drawString(font, ">", next.x() + 3, next.y() + 3,
+            state.offset() + state.pageSize() < state.sizes()
+                .get(state.selected()) ? 0xff404040 : 0xff999999,
             false);
         if (body.width() >= 70) {
-            String page = (state.offset() / state.pageSize() + 1)
-                + "/"
-                + ((state.sizes().get(state.selected()) + state.pageSize() - 1) / state.pageSize());
-            g.drawString(
-                font,
-                page,
+            String page = (state.offset() / state.pageSize() + 1) + "/"
+                + ((state.sizes().get(state.selected()) + state.pageSize() - 1)
+                    / state.pageSize());
+            g.drawString(font, page,
                 body.x() + (body.width() - font.width(page)) / 2,
-                previous.y() + 3,
-                0xff404040,
-                false);
+                previous.y() + 3, 0xff404040, false);
         }
     }
 
@@ -512,7 +494,8 @@ public class ContainerDrawer extends Drawer {
                 lines.addAll(presentation().openRows());
             lines.addAll(gestureInstructions());
             if (layout.pageSize() == 0)
-                lines.add(Component.translatable("screen.mmdlib.container.room"));
+                lines.add(
+                    Component.translatable("screen.mmdlib.container.room"));
             g.renderComponentTooltip(font, lines, mx, my);
         } else if (bodyVisible()) {
             int hit = slotAt(mx, my);
@@ -520,7 +503,8 @@ public class ContainerDrawer extends Drawer {
                 var rows = cellTooltip(mx, my);
                 var stack = state.contents().get(hit - state.offset()).copy();
                 if (!rows.isEmpty())
-                    g.renderTooltip(font, rows, stack.getTooltipImage(), stack, mx, my);
+                    g.renderTooltip(font, rows, stack.getTooltipImage(), stack,
+                        mx, my);
                 return;
             }
             if (!presentation().headerRows().isEmpty()
@@ -532,16 +516,12 @@ public class ContainerDrawer extends Drawer {
                 return;
             }
             if (layout.selection().contains(mx, my))
-                g.renderComponentTooltip(
-                    font,
-                    List.of(
-                        state.icons().get(state.selected()).getHoverName(),
-                        Component.translatable(
-                            state.icons().size() > 1
-                                ? "screen.mmdlib.container.select"
-                                : "screen.mmdlib.container.store")),
-                    mx,
-                    my);
+                g.renderComponentTooltip(font,
+                    List.of(state.icons().get(state.selected()).getHoverName(),
+                        Component.translatable(state.icons().size() > 1
+                            ? "screen.mmdlib.container.select"
+                            : "screen.mmdlib.container.store")),
+                    mx, my);
         }
     }
 
@@ -563,11 +543,8 @@ public class ContainerDrawer extends Drawer {
             } else
                 cells.cancelInteraction();
         }
-        if (menu.allows(ContainerDrawerMenu.COLLECT)
-            && button == 0
-            && hit >= 0
-            && hit == lastClickSlot
-            && now - lastClickTime < 250
+        if (menu.allows(ContainerDrawerMenu.COLLECT) && button == 0 && hit >= 0
+            && hit == lastClickSlot && now - lastClickTime < 250
             && !Screen.hasShiftDown()) {
             collectQueued = true;
             handledPress = true;
@@ -576,9 +553,11 @@ public class ContainerDrawer extends Drawer {
             return true;
         }
         if (inputLocked()) {
-            // Configuration requests do not touch vanilla slots. Only serialize item-changing
+            // Configuration requests do not touch vanilla slots. Only serialize
+            // item-changing
             // gestures.
-            boolean blocked = contains(x, y) || inventoryPending() && inventoryTarget(x, y);
+            boolean blocked = contains(x, y)
+                || inventoryPending() && inventoryTarget(x, y);
             handledPress = blocked;
             return blocked;
         }
@@ -596,19 +575,20 @@ public class ContainerDrawer extends Drawer {
         }
         if (!bodyVisible())
             return false;
-        if (menu.allows(ContainerDrawerMenu.DISTRIBUTE)
-            && button >= 0
-            && button <= 1
-            && !Screen.hasShiftDown()
+        if (menu.allows(ContainerDrawerMenu.DISTRIBUTE) && button >= 0
+            && button <= 1 && !Screen.hasShiftDown()
             && !screen.getMenu().getCarried().isEmpty()) {
-            // Let AbstractContainerScreen own complete gestures that start in the normal inventory.
-            // Intercepting just their press breaks vanilla quick-craft and double-click tracking.
+            // Let AbstractContainerScreen own complete gestures that start in
+            // the normal inventory.
+            // Intercepting just their press breaks vanilla quick-craft and
+            // double-click tracking.
             if (hit >= 0) {
                 beginDrag(hit, button);
                 return true;
             }
         }
-        if (layout.rail().contains(x, y) && !screen.drawers().tabContains(x, y)) {
+        if (layout.rail().contains(x, y)
+            && !screen.drawers().tabContains(x, y)) {
             handledPress = true;
             return true;
         }
@@ -620,8 +600,7 @@ public class ContainerDrawer extends Drawer {
                 return true;
             if (layout.selection().contains(x, y)) {
                 if (state.icons().size() > 1)
-                    send(
-                        ContainerDrawerMenu.SELECT,
+                    send(ContainerDrawerMenu.SELECT,
                         (state.selected() + 1) % state.icons().size(),
                         state.pageSize());
             } else if (layout.previous().contains(x, y))
@@ -629,10 +608,11 @@ public class ContainerDrawer extends Drawer {
             else if (layout.next().contains(x, y))
                 page(1);
             else
-                for (int i = 0; i < Math.min(state.contents().size(), layout.pageSize()); i++)
+                for (int i = 0; i < Math.min(state.contents().size(),
+                    layout.pageSize()); i++)
                     if (state.offset() + i == hit) {
-                        if (menu.allows(ContainerDrawerMenu.COLLECT) && button == 0
-                            && !Screen.hasShiftDown()) {
+                        if (menu.allows(ContainerDrawerMenu.COLLECT)
+                            && button == 0 && !Screen.hasShiftDown()) {
                             lastClickSlot = state.offset() + i;
                             lastClickTime = now;
                             lastClickStack = state.contents().get(i).copy();
@@ -649,11 +629,12 @@ public class ContainerDrawer extends Drawer {
                     }
             return true;
         }
-        if (button == 0 && Screen.hasShiftDown() && menu.allows(ContainerDrawerMenu.QUICK_STORE)) {
+        if (button == 0 && Screen.hasShiftDown()
+            && menu.allows(ContainerDrawerMenu.QUICK_STORE)) {
             int slot = playerSlotAt(x, y);
             if (slot >= 0) {
-                send(ContainerDrawerMenu.QUICK_STORE, menu.targets().playerIndex(slot),
-                    state.pageSize());
+                send(ContainerDrawerMenu.QUICK_STORE,
+                    menu.targets().playerIndex(slot), state.pageSize());
                 handledPress = true;
                 return true;
             }
@@ -664,14 +645,16 @@ public class ContainerDrawer extends Drawer {
     private void page(int direction) {
         var state = menu.state();
         int offset = Math.max(0, state.offset() + direction * state.pageSize());
-        if (offset < state.sizes().get(state.selected()) && offset != state.offset())
+        if (offset < state.sizes().get(state.selected())
+            && offset != state.offset())
             send(ContainerDrawerMenu.PAGE, offset, state.pageSize());
     }
 
     public boolean scroll(double x, double y, double amount) {
         if (!contains(x, y) || !menu.state().open())
             return false;
-        if (readyCells() && !inputLocked() && dragButton < 0 && cells.scroll(x, y, amount))
+        if (readyCells() && !inputLocked() && dragButton < 0
+            && cells.scroll(x, y, amount))
             return true;
         if (!inputLocked() && amount != 0)
             page(amount < 0 ? 1 : -1);
@@ -684,17 +667,20 @@ public class ContainerDrawer extends Drawer {
             cancelGesture();
             return true;
         }
-        if (readyCells() && !inputLocked() && dragButton < 0 && cells.key(key, scan, modifiers))
+        if (readyCells() && !inputLocked() && dragButton < 0
+            && cells.key(key, scan, modifiers))
             return true;
-        if (menu.allows(ContainerDrawerMenu.SWAP) && bodyVisible() && !inputLocked()) {
+        if (menu.allows(ContainerDrawerMenu.SWAP) && bodyVisible()
+            && !inputLocked()) {
             int slot = slotAt(mouseX, mouseY);
             if (slot >= 0) {
                 for (int hotbar = 0; hotbar < Minecraft
                     .getInstance().options.keyHotbarSlots.length; hotbar++)
-                    if (Minecraft.getInstance().options.keyHotbarSlots[hotbar].matches(key, scan)) {
+                    if (Minecraft.getInstance().options.keyHotbarSlots[hotbar]
+                        .matches(key, scan)) {
                         cancelGesture();
-                        menu.request(ContainerDrawerMenu.SWAP, hotbar, menu.state().pageSize(),
-                            List.of(slot))
+                        menu.request(ContainerDrawerMenu.SWAP, hotbar,
+                            menu.state().pageSize(), List.of(slot))
                             .ifPresent(PacketDistributor::sendToServer);
                         return true;
                     }
@@ -708,7 +694,8 @@ public class ContainerDrawer extends Drawer {
             return false;
         if (inventoryPending()
             && (Minecraft.getInstance().options.keyDrop.matches(key, scan)
-                || java.util.Arrays.stream(Minecraft.getInstance().options.keyHotbarSlots)
+                || java.util.Arrays
+                    .stream(Minecraft.getInstance().options.keyHotbarSlots)
                     .anyMatch(binding -> binding.matches(key, scan))))
             return true;
         return contains(mouseX, mouseY)
@@ -717,17 +704,13 @@ public class ContainerDrawer extends Drawer {
 
     @Override
     public boolean character(char character, int modifiers) {
-        return readyCells()
-            && !inputLocked()
-            && dragButton < 0
+        return readyCells() && !inputLocked() && dragButton < 0
             && cells.character(character, modifiers);
     }
 
     @Override
     public boolean keyReleased(int key, int scan, int modifiers) {
-        return readyCells()
-            && !inputLocked()
-            && dragButton < 0
+        return readyCells() && !inputLocked() && dragButton < 0
             && cells.keyReleased(key, scan, modifiers);
     }
 
@@ -773,11 +756,8 @@ public class ContainerDrawer extends Drawer {
         if (dragButton >= 0) {
             if (gestureValid() && button == dragButton) {
                 if (dragSlots.size() > 1) {
-                    menu.request(
-                        ContainerDrawerMenu.DISTRIBUTE,
-                        button,
-                        menu.state().pageSize(),
-                        List.copyOf(dragSlots))
+                    menu.request(ContainerDrawerMenu.DISTRIBUTE, button,
+                        menu.state().pageSize(), List.copyOf(dragSlots))
                         .ifPresent(PacketDistributor::sendToServer);
                 } else if (slotAt(x, y) == firstSlot)
                     send(ContainerDrawerMenu.PICKUP, firstSlot * 2 + button,

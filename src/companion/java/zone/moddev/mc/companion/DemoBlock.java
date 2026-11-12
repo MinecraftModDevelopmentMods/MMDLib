@@ -38,20 +38,24 @@ public final class DemoBlock extends Block implements EntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     private final Supplier<BlockEntityType<BasePoweredMachine>> type;
 
-    public DemoBlock(Properties properties, Supplier<BlockEntityType<BasePoweredMachine>> type) {
+    public DemoBlock(Properties properties,
+        Supplier<BlockEntityType<BasePoweredMachine>> type) {
         super(properties);
         this.type = type;
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+        registerDefaultState(
+            stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(
+        StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        return defaultBlockState().setValue(FACING,
+            context.getHorizontalDirection().getOpposite());
     }
 
     @Override
@@ -70,17 +74,15 @@ public final class DemoBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public boolean canConnectRedstone(
-        BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction side) {
+    public boolean canConnectRedstone(BlockState state, BlockGetter level,
+        BlockPos pos, @Nullable Direction side) {
         return level.getBlockEntity(pos) instanceof ProcessorEntity entity
             && entity.redstone.connects(side);
     }
 
     @Override
-    protected int getSignal(
-        BlockState state,
-        net.minecraft.world.level.BlockGetter level,
-        BlockPos pos,
+    protected int getSignal(BlockState state,
+        net.minecraft.world.level.BlockGetter level, BlockPos pos,
         net.minecraft.core.Direction side) {
         return level.getBlockEntity(pos) instanceof ProcessorEntity entity
             ? entity.redstone.signal(side)
@@ -93,21 +95,17 @@ public final class DemoBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-        Level level, BlockState state, BlockEntityType<T> requested) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level,
+        BlockState state, BlockEntityType<T> requested) {
         if (level.isClientSide() || requested != type.get())
             return null;
-        return (world, pos, blockState, entity) -> ((BasePoweredMachine) entity).serverTick();
+        return (world, pos, blockState, entity) -> ((BasePoweredMachine) entity)
+            .serverTick();
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(
-        ItemStack stack,
-        BlockState state,
-        Level level,
-        BlockPos pos,
-        Player player,
-        InteractionHand hand,
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state,
+        Level level, BlockPos pos, Player player, InteractionHand hand,
         BlockHitResult hit) {
         if (stack.is(CompanionAddons.RECOVERY_CAPSULE.get())
             && level.getBlockEntity(pos) instanceof ProcessorEntity machine) {
@@ -122,19 +120,22 @@ public final class DemoBlock extends Block implements EntityBlock {
             && FluidUtil.getFluidHandler(stack).isPresent()) {
             if (level.isClientSide())
                 return ItemInteractionResult.SUCCESS;
-            if (FluidUtil.interactWithFluidHandler(player, hand, machine.fluids))
+            if (FluidUtil.interactWithFluidHandler(player, hand,
+                machine.fluids))
                 return ItemInteractionResult.CONSUME;
             player.displayClientMessage(
-                Component.translatable("screen.mmdlib_companion.tank.refused"), true);
-            // Do not let a rejected bucket spill its contents beside the machine.
+                Component.translatable("screen.mmdlib_companion.tank.refused"),
+                true);
+            // Do not let a rejected bucket spill its contents beside the
+            // machine.
             return ItemInteractionResult.FAIL;
         }
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     @Override
-    protected InteractionResult useWithoutItem(
-        BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    protected InteractionResult useWithoutItem(BlockState state, Level level,
+        BlockPos pos, Player player, BlockHitResult hit) {
         return level.getBlockEntity(pos) instanceof BasePoweredMachine machine
             && machine.openScreen(player)
                 ? InteractionResult.sidedSuccess(level.isClientSide())
@@ -142,8 +143,8 @@ public final class DemoBlock extends Block implements EntityBlock {
     }
 
     @Override
-    protected void onRemove(
-        BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
+    protected void onRemove(BlockState state, Level level, BlockPos pos,
+        BlockState replacement, boolean moved) {
         DropsContents.onRemove(state, level, pos, replacement);
         super.onRemove(state, level, pos, replacement, moved);
     }

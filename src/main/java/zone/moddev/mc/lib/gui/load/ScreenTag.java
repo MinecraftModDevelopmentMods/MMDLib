@@ -13,7 +13,10 @@ import org.w3c.dom.Document;
 
 import zone.moddev.mc.lib.gui.model.Element;
 
-/** A registered XML tag's factory, schema and placement groups. Immutable after construction. */
+/**
+ * A registered XML tag's factory, schema and placement groups. Immutable after
+ * construction.
+ */
 public final class ScreenTag<T> {
     public enum Role {
         ELEMENT, DATA, DOCUMENT, FILL, PLACEHOLDER
@@ -21,7 +24,8 @@ public final class ScreenTag<T> {
 
     @FunctionalInterface
     interface Declaration {
-        org.w3c.dom.Element create(Document document, Map<String, String> prefixes);
+        org.w3c.dom.Element create(Document document,
+            Map<String, String> prefixes);
     }
 
     final Declaration declaration;
@@ -30,12 +34,8 @@ public final class ScreenTag<T> {
     private final Set<String> groups;
     private final Role role;
 
-    ScreenTag(
-        Class<T> resultType,
-        Function<ScreenXml, T> factory,
-        Set<String> groups,
-        Role role,
-        Declaration declaration) {
+    ScreenTag(Class<T> resultType, Function<ScreenXml, T> factory,
+        Set<String> groups, Role role, Declaration declaration) {
         this.resultType = Objects.requireNonNull(resultType);
         this.factory = Objects.requireNonNull(factory);
         this.groups = Set.copyOf(groups);
@@ -56,17 +56,22 @@ public final class ScreenTag<T> {
     }
 
     T create(ScreenXml xml) {
-        return resultType
-            .cast(Objects.requireNonNull(factory.apply(xml), "Tag factory returned null"));
+        return resultType.cast(Objects.requireNonNull(factory.apply(xml),
+            "Tag factory returned null"));
     }
 
-    public static <E extends Element> Builder<E> element(
-        Class<E> type, Function<ScreenXml, E> factory) {
-        return new Builder<>(type, factory).common().group("widget").role(Role.ELEMENT);
+    public static <E extends Element> Builder<E> element(Class<E> type,
+        Function<ScreenXml, E> factory) {
+        return new Builder<>(type, factory).common().group("widget")
+            .role(Role.ELEMENT);
     }
 
-    /** Data children or document roots can return values other than model elements. */
-    public static <T> Builder<T> data(Class<T> type, Function<ScreenXml, T> factory) {
+    /**
+     * Data children or document roots can return values other than model
+     * elements.
+     */
+    public static <T> Builder<T> data(Class<T> type,
+        Function<ScreenXml, T> factory) {
         return new Builder<>(type, factory);
     }
 
@@ -92,15 +97,18 @@ public final class ScreenTag<T> {
         }
 
         /**
-         * Group membership controls where a tag is legal; built-ins use widget, slots, buttons,
-         * views, radios and dock.
+         * Group membership controls where a tag is legal; built-ins use widget,
+         * slots, buttons, views, radios and dock.
          */
         public Builder<T> group(String name) {
             groups.add(ScreenSchemas.name(name));
             return this;
         }
 
-        /** Replace default memberships, for tags restricted to a particular container or dock. */
+        /**
+         * Replace default memberships, for tags restricted to a particular
+         * container or dock.
+         */
         public Builder<T> groups(String... names) {
             groups.clear();
             for (var name : names)
@@ -116,7 +124,8 @@ public final class ScreenTag<T> {
         public Builder<T> attribute(String name, ScreenAttribute attribute) {
             if (attributes.putIfAbsent(ScreenSchemas.name(name),
                 Objects.requireNonNull(attribute)) != null)
-                throw new IllegalArgumentException("Duplicate attribute: " + name);
+                throw new IllegalArgumentException(
+                    "Duplicate attribute: " + name);
             return this;
         }
 
@@ -128,7 +137,10 @@ public final class ScreenTag<T> {
             return this;
         }
 
-        /** Accept one exact registered child tag, including a mod-owned data tag. */
+        /**
+         * Accept one exact registered child tag, including a mod-owned data
+         * tag.
+         */
         public Builder<T> children(QName tag, int minimum, int maximum) {
             bounds(minimum, maximum);
             childTag = Objects.requireNonNull(tag);
@@ -149,11 +161,7 @@ public final class ScreenTag<T> {
             var tag = childTag;
             int min = minimum, max = maximum;
             boolean shared = common;
-            return new ScreenTag<>(
-                type,
-                factory,
-                groups,
-                role,
+            return new ScreenTag<>(type, factory, groups, role,
                 (doc, prefixes) -> {
                     var element = ScreenSchemas.xs(doc, "element");
                     var complex = ScreenSchemas.xs(doc, "complexType");
@@ -161,10 +169,12 @@ public final class ScreenTag<T> {
                     if (group != null || tag != null) {
                         var sequence = ScreenSchemas.xs(doc, "sequence");
                         complex.appendChild(sequence);
-                        var child = ScreenSchemas.xs(doc, group != null ? "group" : "element");
-                        child.setAttribute(
-                            "ref",
-                            group != null ? "ui:" + group : ScreenSchemas.reference(tag, prefixes));
+                        var child = ScreenSchemas.xs(doc,
+                            group != null ? "group" : "element");
+                        child.setAttribute("ref",
+                            group != null
+                                ? "ui:" + group
+                                : ScreenSchemas.reference(tag, prefixes));
                         child.setAttribute("minOccurs", Integer.toString(min));
                         child.setAttribute("maxOccurs",
                             max == -1 ? "unbounded" : Integer.toString(max));
@@ -175,33 +185,35 @@ public final class ScreenTag<T> {
                         ref.setAttribute("ref", "ui:common");
                         complex.appendChild(ref);
                     }
-                    attrs.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .forEach(
-                            entry -> {
-                                var attribute = ScreenSchemas.xs(doc, "attribute");
-                                attribute.setAttribute("name", entry.getKey());
-                                var spec = entry.getValue();
-                                if (spec.required())
-                                    attribute.setAttribute("use", "required");
-                                if (spec.defaultValue() != null)
-                                    attribute.setAttribute("default", spec.defaultValue());
-                                if (spec.choices().isEmpty())
-                                    attribute.setAttribute("type", spec.type());
-                                else {
-                                    var simple = ScreenSchemas.xs(doc, "simpleType");
-                                    var restriction = ScreenSchemas.xs(doc, "restriction");
-                                    restriction.setAttribute("base", spec.type());
-                                    simple.appendChild(restriction);
-                                    attribute.appendChild(simple);
-                                    for (var choice : spec.choices()) {
-                                        var value = ScreenSchemas.xs(doc, "enumeration");
-                                        value.setAttribute("value", choice);
-                                        restriction.appendChild(value);
-                                    }
+                    attrs.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                        .forEach(entry -> {
+                            var attribute = ScreenSchemas.xs(doc, "attribute");
+                            attribute.setAttribute("name", entry.getKey());
+                            var spec = entry.getValue();
+                            if (spec.required())
+                                attribute.setAttribute("use", "required");
+                            if (spec.defaultValue() != null)
+                                attribute.setAttribute("default",
+                                    spec.defaultValue());
+                            if (spec.choices().isEmpty())
+                                attribute.setAttribute("type", spec.type());
+                            else {
+                                var simple = ScreenSchemas.xs(doc,
+                                    "simpleType");
+                                var restriction = ScreenSchemas.xs(doc,
+                                    "restriction");
+                                restriction.setAttribute("base", spec.type());
+                                simple.appendChild(restriction);
+                                attribute.appendChild(simple);
+                                for (var choice : spec.choices()) {
+                                    var value = ScreenSchemas.xs(doc,
+                                        "enumeration");
+                                    value.setAttribute("value", choice);
+                                    restriction.appendChild(value);
                                 }
-                                complex.appendChild(attribute);
-                            });
+                            }
+                            complex.appendChild(attribute);
+                        });
                     return element;
                 });
         }

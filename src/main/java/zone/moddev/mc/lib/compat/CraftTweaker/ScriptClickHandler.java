@@ -9,6 +9,6 @@ import org.openzen.zencode.java.ZenCodeType;
 @ZenCodeType.Name("mods.mmdlib.ClickHandler")
 @FunctionalInterface
 public interface ScriptClickHandler {
-  @ZenCodeType.Method
-  void handle(ScriptClickContext context);
+    @ZenCodeType.Method
+    void handle(ScriptClickContext context);
 }

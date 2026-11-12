@@ -22,17 +22,17 @@ import zone.moddev.mc.lib.gui.model.Screen;
 /** {@code player-inventory}: places the player inventory explicitly. */
 public class PlayerInventoryElement extends PlayerSlotsElement {
     public PlayerInventoryElement(Common common) {
-        this(common, zone.moddev.mc.lib.gui.model.elements.PlayerSlotElement::player);
+        this(common,
+            zone.moddev.mc.lib.gui.model.elements.PlayerSlotElement::player);
     }
 
-    /** Use custom slot children while retaining this section's standard layout. */
-    public PlayerInventoryElement(
-        Common common,
+    /**
+     * Use custom slot children while retaining this section's standard layout.
+     */
+    public PlayerInventoryElement(Common common,
         java.util.function.IntFunction<? extends zone.moddev.mc.lib.gui.model.elements.SlotElement> factory) {
-        super(
-            common,
-            java.util.stream.IntStream.range(0, 36).map(i -> (i + 9) % 36).boxed().toList(),
-            factory);
+        super(common, java.util.stream.IntStream.range(0, 36)
+            .map(i -> (i + 9) % 36).boxed().toList(), factory);
     }
 
     public String part() {
@@ -42,9 +42,9 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
     public static final int WIDTH = 184, HEIGHT = 94;
 
     public int[] measure(TextMeasure text) {
-        return new int[]{
-            text instanceof LayoutContext context ? context.minimumWidth(this, 162) : 162, HEIGHT
-        };
+        return new int[]{text instanceof LayoutContext context
+            ? context.minimumWidth(this, 162)
+            : 162, HEIGHT};
     }
 
     public Rect defaultBounds(Rect inventory) {
@@ -52,11 +52,16 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
     }
 
     protected Rect position(int index) {
-        return new Rect(index % 9 * 18, index < 9 ? 76 : 18 + (index / 9 - 1) * 18, 18, 18);
+        return new Rect(index % 9 * 18,
+            index < 9 ? 76 : 18 + (index / 9 - 1) * 18, 18, 18);
     }
 
-    /** Default sections absent from the declared tree; these are ordinary model elements. */
-    public static List<Element> defaults(List<Element> body, List<Element> tabs) {
+    /**
+     * Default sections absent from the declared tree; these are ordinary model
+     * elements.
+     */
+    public static List<Element> defaults(List<Element> body,
+        List<Element> tabs) {
         var parts = new HashSet<String>();
         java.util.function.Consumer<Element> collect = new java.util.function.Consumer<>() {
             public void accept(Element element) {
@@ -77,7 +82,10 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
         return List.copyOf(defaults);
     }
 
-    /** Vanilla storage, hotbar and equipment coordinates belong to this container. */
+    /**
+     * Vanilla storage, hotbar and equipment coordinates belong to this
+     * container.
+     */
     public static Rect slot(Rect bounds, int index) {
         if (index < 0 || index > 40)
             throw new IllegalArgumentException("Player slot: " + index);
@@ -94,11 +102,15 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
         .parse("mmdlib:inventory_toolbar");
 
     @Override
-    public Optional<LayoutContribution> layoutContribution(LayoutContribution.Context context) {
+    public Optional<LayoutContribution> layoutContribution(
+        LayoutContribution.Context context) {
         return Optional.of(new Placement(this, context));
     }
 
-    /** Inventory composition and toolbar policy; ScreenLayout only places the measured regions. */
+    /**
+     * Inventory composition and toolbar policy; ScreenLayout only places the
+     * measured regions.
+     */
     public static class Placement implements LayoutContribution {
         private final PlayerInventoryElement explicit;
         private final InventoryControlsElement controls;
@@ -108,21 +120,20 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
         private final Screen screen;
         private Rect inventory, toolbar, originalAnchor;
 
-        public Placement(PlayerInventoryElement element, LayoutContribution.Context context) {
+        public Placement(PlayerInventoryElement element,
+            LayoutContribution.Context context) {
             this.screen = context.screen();
             this.text = context.text();
-            this.toolbarWidth = context.drawers().stream()
-                .mapToInt(zone.moddev.mc.lib.gui.drawer.DrawerDefinition::toolbarWidth)
-                .max()
-                .orElse(0);
+            this.toolbarWidth = context.drawers().stream().mapToInt(
+                zone.moddev.mc.lib.gui.drawer.DrawerDefinition::toolbarWidth)
+                .max().orElse(0);
             explicit = element;
             controls = screen.body().stream()
                 .filter(InventoryControlsElement.class::isInstance)
-                .map(InventoryControlsElement.class::cast)
-                .findFirst()
+                .map(InventoryControlsElement.class::cast).findFirst()
                 .orElse(null);
-            implicit = explicit != null
-                && screen.implicitElements().stream().anyMatch(e -> e == explicit);
+            implicit = explicit != null && screen.implicitElements().stream()
+                .anyMatch(e -> e == explicit);
             context.text().reserveWidth(explicit, footerWidth());
         }
 
@@ -134,14 +145,15 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
             return screen.implicitElements().stream()
                 .filter(PlayerSlotsElement.class::isInstance)
                 .map(PlayerSlotsElement.class::cast)
-                .mapToInt(part -> part.defaultBounds(new Rect(0, 0, 162, HEIGHT)).right())
-                .max()
-                .orElse(162);
+                .mapToInt(part -> part
+                    .defaultBounds(new Rect(0, 0, 162, HEIGHT)).right())
+                .max().orElse(162);
         }
 
         public Optional<LayoutContribution.Size> footerSize() {
             return implicit
-                ? Optional.of(new LayoutContribution.Size(Math.max(162, footerWidth()), HEIGHT))
+                ? Optional.of(new LayoutContribution.Size(
+                    Math.max(162, footerWidth()), HEIGHT))
                 : Optional.empty();
         }
 
@@ -162,8 +174,11 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
                 return;
             }
             int start = inventory.y();
-            int[] size = controls == null ? new int[]{0, 0} : ElementLayouts.size(controls, text);
-            int rowHeight = Math.max(18, controls == null ? 0 : size[1] + ScreenLayout.GAP);
+            int[] size = controls == null
+                ? new int[]{0, 0}
+                : ElementLayouts.size(controls, text);
+            int rowHeight = Math.max(18,
+                controls == null ? 0 : size[1] + ScreenLayout.GAP);
             int storageRight = slot(inventory, 17).right();
             int colourWidth = storageRight - inventory.x()
                 - (size[0] == 0 ? 0 : size[0] + ScreenLayout.GAP);
@@ -172,11 +187,11 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
                     "Inventory controls leave too little room for colour selectors");
             int extra = Math.max(0, rowHeight - 18);
             panel.shiftBelow(start, extra);
-            toolbar = new Rect(inventory.x(), start, colourWidth, rowHeight - ScreenLayout.GAP);
+            toolbar = new Rect(inventory.x(), start, colourWidth,
+                rowHeight - ScreenLayout.GAP);
             if (controls != null)
-                panel.place(
-                    controls,
-                    new Rect(storageRight - size[0], start, size[0], rowHeight - ScreenLayout.GAP));
+                panel.place(controls, new Rect(storageRight - size[0], start,
+                    size[0], rowHeight - ScreenLayout.GAP));
             inventory = inventory.offset(0, extra);
             panel.grow(extra);
             placeImplicit(panel);
@@ -184,10 +199,12 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
         }
 
         public void beforeOffsets(Panel panel) {
-            // Other plans may have shifted all sections already; only authored offsets need
+            // Other plans may have shifted all sections already; only authored
+            // offsets need
             // propagation.
             var placed = panel.bounds(explicit);
-            int dx = placed.x() - originalAnchor.x(), dy = placed.y() - originalAnchor.y();
+            int dx = placed.x() - originalAnchor.x(),
+                dy = placed.y() - originalAnchor.y();
             inventory = inventory.offset(dx, dy);
             if (toolbar != null)
                 toolbar = toolbar.offset(dx, dy);
@@ -195,21 +212,23 @@ public class PlayerInventoryElement extends PlayerSlotsElement {
         }
 
         /**
-         * Called after generic element offsets, so native slots follow an explicit container's
-         * offsets.
+         * Called after generic element offsets, so native slots follow an
+         * explicit container's offsets.
          */
         public void resolveOffsets(Panel panel) {
             if (inventory == null)
                 return;
             var placed = panel.bounds(explicit);
-            int dx = placed.x() - originalAnchor.x(), dy = placed.y() - originalAnchor.y();
+            int dx = placed.x() - originalAnchor.x(),
+                dy = placed.y() - originalAnchor.y();
             inventory = inventory.offset(dx, dy);
             if (toolbar != null)
                 toolbar = toolbar.offset(dx, dy);
             if (controls != null)
                 panel.shift(controls, dx, dy);
             for (var element : screen.implicitElements())
-                if (element instanceof PlayerSlotsElement && element != explicit)
+                if (element instanceof PlayerSlotsElement
+                    && element != explicit)
                     panel.shift(element, dx, dy);
         }
 

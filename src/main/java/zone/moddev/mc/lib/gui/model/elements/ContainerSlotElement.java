@@ -15,9 +15,15 @@ import zone.moddev.mc.lib.gui.model.SlotSize;
 import zone.moddev.mc.lib.gui.model.TooltipContext;
 import zone.moddev.mc.lib.gui.runtime.EquippedContainers;
 
-/** A virtual paged cell. The drawer transport remains responsible for storage interaction. */
+/**
+ * A virtual paged cell. The drawer transport remains responsible for storage
+ * interaction.
+ */
 public class ContainerSlotElement extends ItemSlotElement {
-    /** Detached frame values; selection is visual only and never authorizes a request. */
+    /**
+     * Detached frame values; selection is visual only and never authorizes a
+     * request.
+     */
     public record Display(ItemStack contents, boolean selected) {
         public Display {
             contents = contents.copy();
@@ -30,36 +36,33 @@ public class ContainerSlotElement extends ItemSlotElement {
 
     @Override
     public Object displayValue(Object value) {
-        return value instanceof Display display ? display.contents() : super.displayValue(value);
+        return value instanceof Display display
+            ? display.contents()
+            : super.displayValue(value);
     }
 
     private final Optional<EquippedContainers.SlotInfo> description;
     private final boolean describedIcon;
 
-    public ContainerSlotElement(int index, Optional<EquippedContainers.SlotInfo> description) {
-        this(
-            index,
-            description,
-            new Appearance(
-                SlotSize.NORMAL,
-                Optional.empty(),
+    public ContainerSlotElement(int index,
+        Optional<EquippedContainers.SlotInfo> description) {
+        this(index, description,
+            new Appearance(SlotSize.NORMAL, Optional.empty(),
                 description.map(EquippedContainers.SlotInfo::icon),
-                ResourceLocation.parse("mmdlib:slot"),
-                .42f,
+                ResourceLocation.parse("mmdlib:slot"), .42f,
                 Optional.of(InventoryMenu.BLOCK_ATLAS)),
             true);
     }
 
-    public ContainerSlotElement(
-        int index, Optional<EquippedContainers.SlotInfo> description, Appearance appearance) {
+    public ContainerSlotElement(int index,
+        Optional<EquippedContainers.SlotInfo> description,
+        Appearance appearance) {
         this(index, description, appearance, false);
     }
 
-    private ContainerSlotElement(
-        int index,
+    private ContainerSlotElement(int index,
         Optional<EquippedContainers.SlotInfo> description,
-        Appearance appearance,
-        boolean describedIcon) {
+        Appearance appearance, boolean describedIcon) {
         super(Common.empty(), index, SlotKind.NORMAL, appearance);
         this.description = Objects.requireNonNull(description);
         this.describedIcon = describedIcon;
@@ -71,16 +74,20 @@ public class ContainerSlotElement extends ItemSlotElement {
 
     @Override
     public Component cellLabel() {
-        return description().map(EquippedContainers.SlotInfo::label).orElseGet(Component::empty);
+        return description().map(EquippedContainers.SlotInfo::label)
+            .orElseGet(Component::empty);
     }
 
     @Override
     public Optional<ResourceLocation> icon() {
-        return describedIcon ? description().map(EquippedContainers.SlotInfo::icon) : super.icon();
+        return describedIcon
+            ? description().map(EquippedContainers.SlotInfo::icon)
+            : super.icon();
     }
 
     public boolean available() {
-        return description().map(EquippedContainers.SlotInfo::available).orElse(true);
+        return description().map(EquippedContainers.SlotInfo::available)
+            .orElse(true);
     }
 
     public Component placeholder() {

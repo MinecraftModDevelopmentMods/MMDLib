@@ -21,7 +21,8 @@ import zone.moddev.mc.lib.gui.value.ValueTypes;
  * {@code radio-group}: radio buttons; its value is the selected index.
  *
  * <p>
- * {@code label}: an optional caption {@code options}: the radio buttons, in order
+ * {@code label}: an optional caption {@code options}: the radio buttons, in
+ * order
  */
 public class RadioGroupElement implements Element {
     private final Common common;
@@ -29,7 +30,8 @@ public class RadioGroupElement implements Element {
     private final List<RadioElement> options;
 
     /** Copies the options. */
-    public RadioGroupElement(Common common, Optional<Text> label, List<RadioElement> options) {
+    public RadioGroupElement(Common common, Optional<Text> label,
+        List<RadioElement> options) {
         options = List.copyOf(options);
 
         this.common = common;
@@ -44,16 +46,15 @@ public class RadioGroupElement implements Element {
 
     public int[] measure(TextMeasure text) {
         var inner = ElementLayouts.stack(children(), 2, text);
-        return new int[]{
-            Math.max(inner[0], label.map(text::width).orElse(0)),
-            inner[1] + (label.isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0)
-        };
+        return new int[]{Math.max(inner[0], label.map(text::width).orElse(0)),
+            inner[1] + (label.isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0)};
     }
 
     public Map<Element, Rect> childLayout(Rect bounds, TextMeasure text) {
         int header = label.isPresent() ? TextMeasure.LINE_HEIGHT + 2 : 0;
-        return ElementLayouts.stackPositions(
-            children(), new Rect(0, header, bounds.width(), bounds.height() - header), 2, text);
+        return ElementLayouts.stackPositions(children(),
+            new Rect(0, header, bounds.width(), bounds.height() - header), 2,
+            text);
     }
 
     public Set<ValueType<?>> valueKinds(WidgetTypes widgets) {
@@ -104,7 +105,7 @@ public class RadioGroupElement implements Element {
 
     @Override
     public String toString() {
-        return "RadioGroupElement[common=" + common + ", label=" + label + ", options=" + options
-            + "]";
+        return "RadioGroupElement[common=" + common + ", label=" + label
+            + ", options=" + options + "]";
     }
 }

@@ -30,13 +30,15 @@ import zone.moddev.mc.lib.machine.recipe.MachineProduct.FluidProduct;
 import zone.moddev.mc.lib.machine.recipe.MachineProduct.ItemProduct;
 
 /**
- * One running recipe cycle: what it takes from which slots and tanks, where its products will go,
- * and the energy it needs. It holds everything it needs to finish, so a reload that changes or
- * removes the recipe can't change a cycle that has begun. Groups are named by key and slots and
- * tanks by index within the group, as in {@link RecipeMatcher}.
+ * One running recipe cycle: what it takes from which slots and tanks, where its
+ * products will go, and the energy it needs. It holds everything it needs to
+ * finish, so a reload that changes or removes the recipe can't change a cycle
+ * that has begun. Groups are named by key and slots and tanks by index within
+ * the group, as in {@link RecipeMatcher}.
  *
  * <p>
- * Reserving and restoring work from these fields alone, so a plan may be built by hand.
+ * Reserving and restoring work from these fields alone, so a plan may be built
+ * by hand.
  *
  * @param recipe
  *            the recipe it was made from
@@ -47,56 +49,48 @@ import zone.moddev.mc.lib.machine.recipe.MachineProduct.ItemProduct;
  * @param fluids
  *            fluid inputs, by tank
  * @param products
- *            each product with where it lands; chance products are placed as if certain
+ *            each product with where it lands; chance products are placed as if
+ *            certain
  * @param energy
  *            the energy each energy group must supply over the cycle
  */
-public record CyclePlan(
-    ResourceLocation recipe,
-    int time,
-    List<ItemTake> items,
-    List<FluidTake> fluids,
-    List<Placed> products,
-    Map<String, Long> energy) {
+public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
+    List<FluidTake> fluids, List<Placed> products, Map<String, Long> energy) {
     /** The save form. */
-    public static final Codec<CyclePlan> CODEC = RecordCodecBuilder.create(
-        instance -> instance
-            .group(
-                ResourceLocation.CODEC.fieldOf("recipe").forGetter(CyclePlan::recipe),
-                Codec.intRange(1, Integer.MAX_VALUE)
-                    .fieldOf("time")
-                    .forGetter(CyclePlan::time),
-                ItemTake.CODEC
-                    .listOf()
-                    .optionalFieldOf("items", List.of())
-                    .forGetter(CyclePlan::items),
-                FluidTake.CODEC
-                    .listOf()
-                    .optionalFieldOf("fluids", List.of())
-                    .forGetter(CyclePlan::fluids),
-                Placed.CODEC
-                    .listOf()
-                    .optionalFieldOf("products", List.of())
-                    .forGetter(CyclePlan::products),
-                Codec.unboundedMap(Codec.STRING, Codec.LONG)
-                    .optionalFieldOf("energy", Map.of())
-                    .forGetter(CyclePlan::energy))
+    public static final Codec<CyclePlan> CODEC = RecordCodecBuilder
+        .create(instance -> instance.group(
+            ResourceLocation.CODEC.fieldOf("recipe")
+                .forGetter(CyclePlan::recipe),
+            Codec.intRange(1, Integer.MAX_VALUE).fieldOf("time")
+                .forGetter(CyclePlan::time),
+            ItemTake.CODEC.listOf().optionalFieldOf("items", List.of())
+                .forGetter(CyclePlan::items),
+            FluidTake.CODEC.listOf().optionalFieldOf("fluids", List.of())
+                .forGetter(CyclePlan::fluids),
+            Placed.CODEC.listOf().optionalFieldOf("products", List.of())
+                .forGetter(CyclePlan::products),
+            Codec.unboundedMap(Codec.STRING, Codec.LONG)
+                .optionalFieldOf("energy", Map.of())
+                .forGetter(CyclePlan::energy))
             .apply(instance, CyclePlan::new));
 
-    /** What the cycle reserves from one item slot, including the count retained on completion. */
-    public record ItemTake(String group, int slot, ItemStack stack, int retained) {
+    /**
+     * What the cycle reserves from one item slot, including the count retained
+     * on completion.
+     */
+    public record ItemTake(String group, int slot, ItemStack stack,
+        int retained) {
         public ItemTake(String group, int slot, ItemStack stack) {
             this(group, slot, stack, 0);
         }
-        static final Codec<ItemTake> CODEC = RecordCodecBuilder.create(
-            instance -> instance
-                .group(
-                    Codec.STRING.fieldOf("group").forGetter(ItemTake::group),
-                    Codec.intRange(0, Integer.MAX_VALUE)
-                        .fieldOf("slot")
+        static final Codec<ItemTake> CODEC = RecordCodecBuilder
+            .create(instance -> instance
+                .group(Codec.STRING.fieldOf("group").forGetter(ItemTake::group),
+                    Codec.intRange(0, Integer.MAX_VALUE).fieldOf("slot")
                         .forGetter(ItemTake::slot),
                     ItemStack.CODEC.fieldOf("stack").forGetter(ItemTake::stack),
-                    Codec.intRange(0, Integer.MAX_VALUE).optionalFieldOf("retained", 0)
+                    Codec.intRange(0, Integer.MAX_VALUE)
+                        .optionalFieldOf("retained", 0)
                         .forGetter(ItemTake::retained))
                 .apply(instance, ItemTake::new));
 
@@ -112,31 +106,37 @@ public record CyclePlan(
         }
     }
 
-    /** What the cycle reserves from one tank, including the mB retained on completion. */
-    public record FluidTake(String group, int tank, FluidAmount fluid, int retained) {
+    /**
+     * What the cycle reserves from one tank, including the mB retained on
+     * completion.
+     */
+    public record FluidTake(String group, int tank, FluidAmount fluid,
+        int retained) {
         public FluidTake(String group, int tank, FluidAmount fluid) {
             this(group, tank, fluid, 0);
         }
-        static final Codec<FluidTake> CODEC = RecordCodecBuilder.create(
-            instance -> instance
-                .group(
-                    Codec.STRING.fieldOf("group").forGetter(FluidTake::group),
-                    Codec.intRange(0, Integer.MAX_VALUE)
-                        .fieldOf("tank")
-                        .forGetter(FluidTake::tank),
-                    FluidAmount.CODEC.fieldOf("fluid").forGetter(FluidTake::fluid),
-                    Codec.intRange(0, Integer.MAX_VALUE).optionalFieldOf("retained", 0)
-                        .forGetter(FluidTake::retained))
+        static final Codec<FluidTake> CODEC = RecordCodecBuilder
+            .create(instance -> instance.group(
+                Codec.STRING.fieldOf("group").forGetter(FluidTake::group),
+                Codec.intRange(0, Integer.MAX_VALUE).fieldOf("tank")
+                    .forGetter(FluidTake::tank),
+                FluidAmount.CODEC.fieldOf("fluid").forGetter(FluidTake::fluid),
+                Codec.intRange(0, Integer.MAX_VALUE)
+                    .optionalFieldOf("retained", 0)
+                    .forGetter(FluidTake::retained))
                 .apply(instance, FluidTake::new));
     }
 
-    /** A product and where it goes: how much into each slot or tank of the group. */
+    /**
+     * A product and where it goes: how much into each slot or tank of the
+     * group.
+     */
     public record Placed(String group, MachineProduct product, List<At> at) {
-        static final Codec<Placed> CODEC = RecordCodecBuilder.create(
-            instance -> instance
-                .group(
-                    Codec.STRING.fieldOf("group").forGetter(Placed::group),
-                    MachineProduct.CODEC.fieldOf("product").forGetter(Placed::product),
+        static final Codec<Placed> CODEC = RecordCodecBuilder
+            .create(instance -> instance
+                .group(Codec.STRING.fieldOf("group").forGetter(Placed::group),
+                    MachineProduct.CODEC.fieldOf("product")
+                        .forGetter(Placed::product),
                     At.CODEC.listOf().fieldOf("at").forGetter(Placed::at))
                 .apply(instance, Placed::new));
 
@@ -146,17 +146,16 @@ public record CyclePlan(
         }
     }
 
-    /** {@code amount} items or mB into slot or tank {@code index} of a group. */
+    /**
+     * {@code amount} items or mB into slot or tank {@code index} of a group.
+     */
     public record At(int index, int amount) {
-        static final Codec<At> CODEC = RecordCodecBuilder.create(
-            instance -> instance
-                .group(
-                    Codec.intRange(0, Integer.MAX_VALUE)
-                        .fieldOf("index")
-                        .forGetter(At::index),
-                    Codec.intRange(1, Integer.MAX_VALUE)
-                        .fieldOf("amount")
-                        .forGetter(At::amount))
+        static final Codec<At> CODEC = RecordCodecBuilder
+            .create(instance -> instance.group(
+                Codec.intRange(0, Integer.MAX_VALUE).fieldOf("index")
+                    .forGetter(At::index),
+                Codec.intRange(1, Integer.MAX_VALUE).fieldOf("amount")
+                    .forGetter(At::amount))
                 .apply(instance, At::new));
     }
 
@@ -172,22 +171,28 @@ public record CyclePlan(
     private record Spot(String group, int index) {
     }
 
-    /** This cycle's plan for each slot and tank it touches, items and fluids combined per spot. */
+    /**
+     * This cycle's plan for each slot and tank it touches, items and fluids
+     * combined per spot.
+     */
     private record Plans(Map<Spot, SlotPlan> items, Map<Spot, TankPlan> tanks) {
     }
 
     /**
-     * What running {@code recipe} would reserve now, ignoring energy; empty if it can't. Changes
-     * nothing. Chance products are placed as if certain.
+     * What running {@code recipe} would reserve now, ignoring energy; empty if
+     * it can't. Changes nothing. Chance products are placed as if certain.
      */
-    public static Optional<CyclePlan> of(
-        ResourceLocation id, MachineRecipe recipe, MachineInventory inventory) {
+    public static Optional<CyclePlan> of(ResourceLocation id,
+        MachineRecipe recipe, MachineInventory inventory) {
         return of(id, recipe, inventory, false);
     }
 
-    /** Resuming paid work keeps its recipe even if the user changed a ghost sample meanwhile. */
-    public static Optional<CyclePlan> of(
-        ResourceLocation id, MachineRecipe recipe, MachineInventory inventory, boolean resuming) {
+    /**
+     * Resuming paid work keeps its recipe even if the user changed a ghost
+     * sample meanwhile.
+     */
+    public static Optional<CyclePlan> of(ResourceLocation id,
+        MachineRecipe recipe, MachineInventory inventory, boolean resuming) {
         var items = new ArrayList<ItemTake>();
         var fluids = new ArrayList<FluidTake>();
         var energy = new LinkedHashMap<String, Long>();
@@ -216,22 +221,25 @@ public record CyclePlan(
             var held = RecipeMatcher.available(group);
             var claims = new InputClaims(held);
             for (var ingredient : entry.getValue())
-                if (RecipeMatcher.claim(claims, group, ingredient, recipe.time()) != 0)
+                if (RecipeMatcher.claim(claims, group, ingredient,
+                    recipe.time()) != 0)
                     return Optional.empty();
             if (group instanceof ItemGroup ghost && ghost.ghost())
                 continue;
             var claimed = new long[held.length];
             for (int at = 0; at < held.length; at++) {
-                claimed[at] = RecipeMatcher.consumed(claims, entry.getValue(), at);
+                claimed[at] = RecipeMatcher.consumed(claims, entry.getValue(),
+                    at);
                 int amount = (int) claims.claimed(at);
                 int retained = amount - (int) claimed[at];
                 if (amount == 0)
                     continue;
                 if (group instanceof ItemGroup slots)
-                    items
-                        .add(new ItemTake(key, at, slots.peek(at).copyWithCount(amount), retained));
+                    items.add(new ItemTake(key, at,
+                        slots.peek(at).copyWithCount(amount), retained));
                 else if (group instanceof FluidGroup tanks)
-                    fluids.add(new FluidTake(key, at, tanks.peek(at).withAmount(amount), retained));
+                    fluids.add(new FluidTake(key, at,
+                        tanks.peek(at).withAmount(amount), retained));
             }
             taken.put(key, claimed);
         }
@@ -242,7 +250,8 @@ public record CyclePlan(
             if (group == null)
                 return Optional.empty();
             var list = entry.getValue();
-            var placed = place(group, list, taken.getOrDefault(key, new long[size(group)]));
+            var placed = place(group, list,
+                taken.getOrDefault(key, new long[size(group)]));
             if (placed == null)
                 return Optional.empty();
             for (int i = 0; i < list.size(); i++) {
@@ -253,13 +262,15 @@ public record CyclePlan(
                 products.add(new Placed(key, list.get(i), at));
             }
         }
-        return Optional.of(new CyclePlan(id, recipe.time(), items, fluids, products, energy));
+        return Optional.of(
+            new CyclePlan(id, recipe.time(), items, fluids, products, energy));
     }
 
     /**
-     * Reserves the inputs and the space for the products, all or nothing: if any slot or tank
-     * refuses, nothing is reserved. Call it on the inventory {@link #of} looked at, before another
-     * cycle reserves, or it may be refused.
+     * Reserves the inputs and the space for the products, all or nothing: if
+     * any slot or tank refuses, nothing is reserved. Call it on the inventory
+     * {@link #of} looked at, before another cycle reserves, or it may be
+     * refused.
      *
      * @return whether everything was reserved
      */
@@ -271,13 +282,15 @@ public record CyclePlan(
             for (var entry : plans.items.entrySet()) {
                 var spot = entry.getKey();
                 var group = items(inventory, spot.group);
-                if (group == null || !group.reserve(spot.index, entry.getValue(), tx))
+                if (group == null
+                    || !group.reserve(spot.index, entry.getValue(), tx))
                     return false;
             }
             for (var entry : plans.tanks.entrySet()) {
                 var spot = entry.getKey();
                 var group = fluids(inventory, spot.group);
-                if (group == null || !group.reserve(spot.index, entry.getValue(), tx))
+                if (group == null
+                    || !group.reserve(spot.index, entry.getValue(), tx))
                     return false;
             }
             tx.commit();
@@ -286,12 +299,12 @@ public record CyclePlan(
     }
 
     /**
-     * Puts this plan back on storages that already hold what it reserved, for loading a saved
-     * cycle. Nothing is checked beyond that the inputs are still there; the room was reserved when
-     * it was saved. All or nothing.
+     * Puts this plan back on storages that already hold what it reserved, for
+     * loading a saved cycle. Nothing is checked beyond that the inputs are
+     * still there; the room was reserved when it was saved. All or nothing.
      *
-     * @return false, with no plan left behind, if a group, slot or tank is gone or no longer holds
-     *         the reserved inputs
+     * @return false, with no plan left behind, if a group, slot or tank is gone
+     *         or no longer holds the reserved inputs
      */
     public boolean restore(MachineInventory inventory) {
         var plans = plans();
@@ -300,20 +313,23 @@ public record CyclePlan(
         for (var entry : plans.items.entrySet()) {
             var spot = entry.getKey();
             var group = items(inventory, spot.group);
-            if (group == null || group.free(spot.index) < entry.getValue().take())
+            if (group == null
+                || group.free(spot.index) < entry.getValue().take())
                 return false;
         }
         for (var entry : plans.tanks.entrySet()) {
             var spot = entry.getKey();
             var group = fluids(inventory, spot.group);
-            if (group == null || group.free(spot.index) < entry.getValue().take())
+            if (group == null
+                || group.free(spot.index) < entry.getValue().take())
                 return false;
         }
         for (var take : items) {
             var group = items(inventory, take.group);
             if (group == null)
                 return false;
-            if (!ItemStack.isSameItemSameComponents(group.peek(take.slot), take.stack))
+            if (!ItemStack.isSameItemSameComponents(group.peek(take.slot),
+                take.stack))
                 return false;
         }
         for (var take : fluids) {
@@ -324,12 +340,14 @@ public record CyclePlan(
         try (var tx = inventory.begin()) {
             for (var entry : plans.items.entrySet()) {
                 var spot = entry.getKey();
-                if (!items(inventory, spot.group).restore(spot.index, entry.getValue(), tx))
+                if (!items(inventory, spot.group).restore(spot.index,
+                    entry.getValue(), tx))
                     return false;
             }
             for (var entry : plans.tanks.entrySet()) {
                 var spot = entry.getKey();
-                if (!fluids(inventory, spot.group).restore(spot.index, entry.getValue(), tx))
+                if (!fluids(inventory, spot.group).restore(spot.index,
+                    entry.getValue(), tx))
                     return false;
             }
             tx.commit();
@@ -346,19 +364,21 @@ public record CyclePlan(
     }
 
     /**
-     * Rolls each product's chance, then in one transaction releases this plan, takes the consumed
-     * inputs and inserts the hits where they were placed. Retained inputs stay untouched. A product
-     * that misses leaves its space free, and nothing is kept of the roll, so a retry rolls again.
+     * Rolls each product's chance, then in one transaction releases this plan,
+     * takes the consumed inputs and inserts the hits where they were placed.
+     * Retained inputs stay untouched. A product that misses leaves its space
+     * free, and nothing is kept of the roll, so a retry rolls again.
      *
-     * @return false, with the plan still in place and nothing changed, if an input is gone or a
-     *         product no longer fits where it was placed
+     * @return false, with the plan still in place and nothing changed, if an
+     *         input is gone or a product no longer fits where it was placed
      */
     public boolean finish(MachineInventory inventory, RandomSource random) {
         if (plans() == null)
             return false;
         var hits = new ArrayList<Placed>();
         for (var placed : products)
-            if (placed.product.chance() >= 1 || random.nextFloat() < placed.product.chance())
+            if (placed.product.chance() >= 1
+                || random.nextFloat() < placed.product.chance())
                 hits.add(placed);
         if (!canFinish(inventory, hits))
             return false;
@@ -374,7 +394,8 @@ public record CyclePlan(
                     || held.getCount() < count)
                     return false;
                 int consumed = count - take.retained;
-                if (consumed > 0 && group.extract(take.slot, consumed, tx) != consumed)
+                if (consumed > 0
+                    && group.extract(take.slot, consumed, tx) != consumed)
                     return false;
             }
             for (var take : fluids) {
@@ -382,10 +403,12 @@ public record CyclePlan(
                 if (group == null)
                     return false;
                 var held = group.peek(take.tank);
-                if (!held.sameFluid(take.fluid) || held.amount() < take.fluid.amount())
+                if (!held.sameFluid(take.fluid)
+                    || held.amount() < take.fluid.amount())
                     return false;
                 int consumed = take.fluid.amount() - take.retained;
-                if (consumed > 0 && group.extract(take.tank, consumed, tx) != consumed)
+                if (consumed > 0
+                    && group.extract(take.tank, consumed, tx) != consumed)
                     return false;
             }
             for (var placed : hits)
@@ -398,10 +421,11 @@ public record CyclePlan(
     }
 
     /**
-     * Whether the inputs are still there and the rolled {@code hits} could still go where they were
-     * placed, looking only at what the slots and tanks hold, with this cycle's takes gone. Changes
-     * nothing and fires nothing, so a cycle that can't finish costs no transaction. A tank's
-     * capacity and a slot's limit are left to the transaction.
+     * Whether the inputs are still there and the rolled {@code hits} could
+     * still go where they were placed, looking only at what the slots and tanks
+     * hold, with this cycle's takes gone. Changes nothing and fires nothing, so
+     * a cycle that can't finish costs no transaction. A tank's capacity and a
+     * slot's limit are left to the transaction.
      */
     private boolean canFinish(MachineInventory inventory, List<Placed> hits) {
         var left = new HashMap<Spot, Integer>();
@@ -412,10 +436,12 @@ public record CyclePlan(
                 return false;
             var held = group.peek(take.slot);
             var spot = new Spot(take.group, take.slot);
-            int total = required.merge(spot, take.stack.getCount(), Integer::sum);
-            int rest = left.getOrDefault(spot, held.getCount()) - take.stack.getCount()
-                + take.retained;
-            if (!ItemStack.isSameItemSameComponents(held, take.stack) || held.getCount() < total)
+            int total = required.merge(spot, take.stack.getCount(),
+                Integer::sum);
+            int rest = left.getOrDefault(spot, held.getCount())
+                - take.stack.getCount() + take.retained;
+            if (!ItemStack.isSameItemSameComponents(held, take.stack)
+                || held.getCount() < total)
                 return false;
             left.put(spot, rest);
         }
@@ -426,7 +452,8 @@ public record CyclePlan(
             var held = group.peek(take.tank);
             var spot = new Spot(take.group, take.tank);
             int total = required.merge(spot, take.fluid.amount(), Integer::sum);
-            int rest = left.getOrDefault(spot, held.amount()) - take.fluid.amount() + take.retained;
+            int rest = left.getOrDefault(spot, held.amount())
+                - take.fluid.amount() + take.retained;
             if (!held.sameFluid(take.fluid) || held.amount() < total)
                 return false;
             left.put(spot, rest);
@@ -442,9 +469,11 @@ public record CyclePlan(
                         if (group == null)
                             return false;
                         var held = group.peek(at.index);
-                        int remaining = left.getOrDefault(spot, held.getCount());
+                        int remaining = left.getOrDefault(spot,
+                            held.getCount());
                         var stack = item.stack();
-                        if (remaining > 0 && !ItemStack.isSameItemSameComponents(held, stack))
+                        if (remaining > 0
+                            && !ItemStack.isSameItemSameComponents(held, stack))
                             return false;
                         if (remaining + total > stack.getMaxStackSize())
                             return false;
@@ -463,18 +492,18 @@ public record CyclePlan(
         return true;
     }
 
-    private boolean insert(MachineInventory inventory, Placed placed, At at, MachineTx tx) {
+    private boolean insert(MachineInventory inventory, Placed placed, At at,
+        MachineTx tx) {
         return switch (placed.product) {
             case ItemProduct item -> {
                 var group = items(inventory, placed.group);
-                yield group != null
-                    && group.insert(at.index, item.stack().copyWithCount(at.amount),
-                        tx) == at.amount;
+                yield group != null && group.insert(at.index,
+                    item.stack().copyWithCount(at.amount), tx) == at.amount;
             }
             case FluidProduct fluid -> {
                 var group = fluids(inventory, placed.group);
-                yield group != null
-                    && group.insert(at.index, fluid.fluid().withAmount(at.amount), tx) == at.amount;
+                yield group != null && group.insert(at.index,
+                    fluid.fluid().withAmount(at.amount), tx) == at.amount;
             }
         };
     }
@@ -483,21 +512,22 @@ public record CyclePlan(
         var plans = plans();
         if (plans == null)
             return;
-        plans.items.forEach(
-            (spot, plan) -> {
-                var group = items(inventory, spot.group);
-                if (group != null)
-                    group.release(spot.index, plan, tx);
-            });
-        plans.tanks.forEach(
-            (spot, plan) -> {
-                var group = fluids(inventory, spot.group);
-                if (group != null)
-                    group.release(spot.index, plan, tx);
-            });
+        plans.items.forEach((spot, plan) -> {
+            var group = items(inventory, spot.group);
+            if (group != null)
+                group.release(spot.index, plan, tx);
+        });
+        plans.tanks.forEach((spot, plan) -> {
+            var group = fluids(inventory, spot.group);
+            if (group != null)
+                group.release(spot.index, plan, tx);
+        });
     }
 
-    /** The takes and placements summed per slot and tank, or null if two of them clash. */
+    /**
+     * The takes and placements summed per slot and tank, or null if two of them
+     * clash.
+     */
     @Nullable
     private Plans plans() {
         var itemPlans = new LinkedHashMap<Spot, SlotPlan>();
@@ -505,14 +535,16 @@ public record CyclePlan(
         for (var take : items) {
             if (take.retained < 0 || take.retained > take.stack.getCount())
                 return null;
-            var plan = new SlotPlan(take.stack.getCount(), take.stack.copyWithCount(take.retained));
+            var plan = new SlotPlan(take.stack.getCount(),
+                take.stack.copyWithCount(take.retained));
             if (!add(itemPlans, new Spot(take.group, take.slot), plan))
                 return null;
         }
         for (var take : fluids) {
             if (take.retained < 0 || take.retained > take.fluid.amount())
                 return null;
-            var plan = new TankPlan(take.fluid.amount(), take.fluid.withAmount(take.retained));
+            var plan = new TankPlan(take.fluid.amount(),
+                take.fluid.withAmount(take.retained));
             if (!add(tankPlans, new Spot(take.group, take.tank), plan))
                 return null;
         }
@@ -520,11 +552,10 @@ public record CyclePlan(
             for (var at : placed.at) {
                 var spot = new Spot(placed.group, at.index);
                 boolean merged = switch (placed.product) {
-                    case ItemProduct item ->
-                        add(itemPlans, spot,
-                            new SlotPlan(0, item.stack().copyWithCount(at.amount)));
-                    case FluidProduct fluid ->
-                        add(tankPlans, spot, new TankPlan(0, fluid.fluid().withAmount(at.amount)));
+                    case ItemProduct item -> add(itemPlans, spot,
+                        new SlotPlan(0, item.stack().copyWithCount(at.amount)));
+                    case FluidProduct fluid -> add(tankPlans, spot,
+                        new TankPlan(0, fluid.fluid().withAmount(at.amount)));
                 };
                 if (!merged)
                     return null;
@@ -532,7 +563,8 @@ public record CyclePlan(
         return new Plans(itemPlans, tankPlans);
     }
 
-    private static boolean add(Map<Spot, SlotPlan> plans, Spot spot, SlotPlan plan) {
+    private static boolean add(Map<Spot, SlotPlan> plans, Spot spot,
+        SlotPlan plan) {
         var sum = plans.containsKey(spot) ? plans.get(spot).plus(plan) : plan;
         if (sum == null)
             return false;
@@ -540,7 +572,8 @@ public record CyclePlan(
         return true;
     }
 
-    private static boolean add(Map<Spot, TankPlan> plans, Spot spot, TankPlan plan) {
+    private static boolean add(Map<Spot, TankPlan> plans, Spot spot,
+        TankPlan plan) {
         var sum = plans.containsKey(spot) ? plans.get(spot).plus(plan) : plan;
         if (sum == null)
             return false;
@@ -549,10 +582,12 @@ public record CyclePlan(
     }
 
     /**
-     * Where {@code products} land in {@code group}; null if they don't fit or are the wrong kind.
+     * Where {@code products} land in {@code group}; null if they don't fit or
+     * are the wrong kind.
      */
     @Nullable
-    private static int[][] place(SlotGroup group, List<MachineProduct> products, long[] taken) {
+    private static int[][] place(SlotGroup group, List<MachineProduct> products,
+        long[] taken) {
         if (group instanceof ItemGroup slots) {
             var stacks = new ArrayList<ItemStack>();
             for (var product : products) {
@@ -584,11 +619,15 @@ public record CyclePlan(
 
     @Nullable
     private static ItemGroup items(MachineInventory inventory, String key) {
-        return inventory.group(key).orElse(null) instanceof ItemGroup group ? group : null;
+        return inventory.group(key).orElse(null) instanceof ItemGroup group
+            ? group
+            : null;
     }
 
     @Nullable
     private static FluidGroup fluids(MachineInventory inventory, String key) {
-        return inventory.group(key).orElse(null) instanceof FluidGroup group ? group : null;
+        return inventory.group(key).orElse(null) instanceof FluidGroup group
+            ? group
+            : null;
     }
 }

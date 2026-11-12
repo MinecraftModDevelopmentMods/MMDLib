@@ -15,39 +15,30 @@ import zone.moddev.mc.lib.machine.presentation.BuiltinVisualVariables;
 import zone.moddev.mc.lib.machine.presentation.ConditionalFaceTexture;
 import zone.moddev.mc.lib.machine.presentation.ConditionalModelPart;
 
-/** Immutable, resolved startup configuration for a powered item-processing machine. */
-public record MachineDefinition(
-    ResourceLocation id,
-    String checksum,
-    String name,
-    float hardness,
-    ResourceLocation mineable,
-    boolean requiresTool,
-    Map<String, String> textures,
-    ResourceLocation baseModel,
-    List<ConditionalModelPart> modelParts,
-    List<ConditionalFaceTexture> faceTextures,
-    Power power,
-    Fluids fluids,
-    String itemStorageId,
-    List<Slot> slots,
-    List<Group> groups,
-    RecipeType recipeType,
-    String processor,
-    String processorName,
-    boolean redstone,
-    Node screen,
-    RecipeSelection recipeSelection,
+/**
+ * Immutable, resolved startup configuration for a powered item-processing
+ * machine.
+ */
+public record MachineDefinition(ResourceLocation id, String checksum,
+    String name, float hardness, ResourceLocation mineable,
+    boolean requiresTool, Map<String, String> textures,
+    ResourceLocation baseModel, List<ConditionalModelPart> modelParts,
+    List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+    String itemStorageId, List<Slot> slots, List<Group> groups,
+    RecipeType recipeType, String processor, String processorName,
+    boolean redstone, Node screen, RecipeSelection recipeSelection,
     List<Ghost> ghosts) {
     public record Ghost(String id, int count, ResourceLocation defaultItem) {
     }
 
     /**
-     * Inputs that are ghost samples on every XML machine using this recipe type. Shared recipe
-     * displays must not label a real input as a sample when machines disagree about its storage.
+     * Inputs that are ghost samples on every XML machine using this recipe
+     * type. Shared recipe displays must not label a real input as a sample when
+     * machines disagree about its storage.
      */
     public static Set<String> ghostInputsFor(
-        Collection<MachineDefinition> definitions, ResourceLocation recipeType) {
+        Collection<MachineDefinition> definitions,
+        ResourceLocation recipeType) {
         Set<String> result = null;
         for (var machine : definitions) {
             if (!machine.recipeType().id().equals(recipeType))
@@ -62,39 +53,46 @@ public record MachineDefinition(
         return result == null ? Set.of() : Set.copyOf(result);
     }
 
-    public MachineDefinition(ResourceLocation id, String checksum, String name, float hardness,
-        ResourceLocation mineable, boolean requiresTool, Map<String, String> textures,
-        ResourceLocation baseModel, List<ConditionalModelPart> modelParts,
-        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids, String itemStorageId,
-        List<Slot> slots, List<Group> groups, RecipeType recipeType, String processor,
-        String processorName, boolean redstone, Node screen, RecipeSelection recipeSelection) {
-        this(id, checksum, name, hardness, mineable, requiresTool, textures, baseModel, modelParts,
-            faceTextures, power, fluids, itemStorageId, slots, groups, recipeType, processor,
-            processorName, redstone, screen, recipeSelection, List.of());
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, List.of());
     }
     public record RecipeSelection(ResourceLocation defaultRecipe) {
     }
 
-    public MachineDefinition(ResourceLocation id, String checksum, String name, float hardness,
-        ResourceLocation mineable, boolean requiresTool, Map<String, String> textures,
-        ResourceLocation baseModel, List<ConditionalModelPart> modelParts,
-        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids, String itemStorageId,
-        List<Slot> slots, List<Group> groups, RecipeType recipeType, String processor,
-        String processorName, boolean redstone, Node screen) {
-        this(id, checksum, name, hardness, mineable, requiresTool, textures, baseModel, modelParts,
-            faceTextures, power, fluids, itemStorageId, slots, groups, recipeType, processor,
-            processorName, redstone, screen, null);
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, null);
     }
     /** Cube-front configuration retained for existing Java callers. */
-    public MachineDefinition(ResourceLocation id, String checksum, String name, float hardness,
-        ResourceLocation mineable, boolean requiresTool, Map<String, String> textures,
-        List<ConditionalModelPart> modelParts, List<ConditionalFaceTexture> faceTextures,
-        Power power, Fluids fluids, String itemStorageId, List<Slot> slots, List<Group> groups,
-        RecipeType recipeType, String processor, String processorName, boolean redstone,
-        Node screen) {
-        this(id, checksum, name, hardness, mineable, requiresTool, textures, null, modelParts,
-            faceTextures, power, fluids, itemStorageId, slots, groups, recipeType, processor,
-            processorName, redstone, screen);
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            null, modelParts, faceTextures, power, fluids, itemStorageId, slots,
+            groups, recipeType, processor, processorName, redstone, screen);
     }
 
     public MachineDefinition {
@@ -107,8 +105,8 @@ public record MachineDefinition(
     }
 
     public Map<String, Object> visualDefaults() {
-        return BuiltinVisualVariables
-            .forMachine(this, null, null, null, null).defaults();
+        return BuiltinVisualVariables.forMachine(this, null, null, null, null)
+            .defaults();
     }
 
     public boolean hasConditionalAppearance() {
@@ -116,16 +114,23 @@ public record MachineDefinition(
     }
 
     public List<String> visualConditions() {
-        return java.util.stream.Stream.concat(modelParts.stream().map(ConditionalModelPart::when),
-            faceTextures.stream().map(ConditionalFaceTexture::when)).toList();
+        return java.util.stream.Stream
+            .concat(modelParts.stream().map(ConditionalModelPart::when),
+                faceTextures.stream().map(ConditionalFaceTexture::when))
+            .toList();
     }
 
-    public record Power(String id, long capacity, long input, long output, int color) {
+    public record Power(String id, long capacity, long input, long output,
+        int color) {
     }
 
-    /** Stable names of the independent inventories, in legacy capability slot order. */
+    /**
+     * Stable names of the independent inventories, in legacy capability slot
+     * order.
+     */
     public List<String> inventoryNames() {
-        var names = new java.util.ArrayList<>(java.util.Collections.nCopies(slots.size(), "items"));
+        var names = new java.util.ArrayList<>(
+            java.util.Collections.nCopies(slots.size(), "items"));
         for (var group : groups)
             for (int member : group.members())
                 names.set(member, group.id());
@@ -135,15 +140,14 @@ public record MachineDefinition(
     public List<Integer> inventorySlots(String name) {
         var names = inventoryNames();
         return java.util.stream.IntStream.range(0, names.size())
-            .filter(i -> names.get(i).equals(name))
-            .boxed()
-            .toList();
+            .filter(i -> names.get(i).equals(name)).boxed().toList();
     }
 
     public record Slot(String id, Role role, int limit) {
     }
 
-    public record Tank(String id, Role role, int capacity, ResourceLocation fluid) {
+    public record Tank(String id, Role role, int capacity,
+        ResourceLocation fluid) {
     }
 
     public record Fluids(String id, List<Tank> tanks, List<Group> groups) {
@@ -153,8 +157,8 @@ public record MachineDefinition(
         }
     }
 
-    public record Group(String id, List<Integer> members, IoMode mode, int color,
-        boolean automation) {
+    public record Group(String id, List<Integer> members, IoMode mode,
+        int color, boolean automation) {
         public Group(String id, List<Integer> members, IoMode mode, int color) {
             this(id, members, mode, color, true);
         }
@@ -163,16 +167,12 @@ public record MachineDefinition(
         }
     }
 
-    public record RecipeType(
-        ResourceLocation id, boolean declare, String name, Generator generator) {
+    public record RecipeType(ResourceLocation id, boolean declare, String name,
+        Generator generator) {
     }
 
-    public record Generator(
-        String className,
-        Map<String, String> properties,
-        String source,
-        int line,
-        ClassLoader loader) {
+    public record Generator(String className, Map<String, String> properties,
+        String source, int line, ClassLoader loader) {
         public Generator {
             properties = Map.copyOf(properties);
         }
