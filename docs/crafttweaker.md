@@ -767,15 +767,18 @@ groups the machine declares, as in recipe JSON:
 
 | Method | Adds |
 | --- | --- |
-| `inputItems(group, ingredient, count = 1)` | takes `count` items matching `ingredient` |
-| `inputFluid(group, fluid)` | takes the fluid stack's amount, such as `<fluid:minecraft:water> * 500` |
+| `inputItems(group, ingredient, count = 1, consumed = true)` | takes `count` items matching `ingredient`; with `consumed` false, only requires and reserves them |
+| `inputFluid(group, fluid, consumed = true)` | takes the fluid stack's amount, such as `<fluid:minecraft:water> * 500`; `consumed` as for items |
 | `inputEnergy(group, energy)` | draws `energy` over the cycle |
 | `outputItem(group, stack, chance = 1)` | places `stack`, with `chance` from 0 to 1 |
 | `outputFluid(group, fluid, chance = 1)` | places the fluid stack |
 | `time(ticks)` | the cycle's length; required |
 
 `build(name)` adds the recipe like any CraftTweaker recipe; it needs at least one
-input and a time. Removing recipes, and adding them as JSON in the recipe file
+input and a time. It first checks the groups against every machine using the type,
+as a recipe reload does: an unknown group, a group holding another kind of
+resource, or a ghost group asked for more samples than it has slots is an error, and
+the recipe is not added. Recipes added with `addJsonRecipe` skip this check. Removing recipes, and adding them as JSON in the recipe file
 format, use the type's `<recipetype:...>` manager: `removeByName`, `addJsonRecipe`
 and the rest of CraftTweaker's recipe manager methods. A machine's input slots only
 accept items some recipe uses, so removing every recipe for an item also stops the

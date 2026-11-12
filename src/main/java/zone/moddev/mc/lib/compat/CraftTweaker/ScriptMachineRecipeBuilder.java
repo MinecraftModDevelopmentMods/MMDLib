@@ -8,11 +8,14 @@ import com.blamejared.crafttweaker.api.fluid.IFluidStack;
 import com.blamejared.crafttweaker.api.ingredient.IIngredient;
 import com.blamejared.crafttweaker.api.item.IItemStack;
 
+import net.minecraft.core.HolderSet;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
 
 import org.openzen.zencode.java.ZenCodeType;
 
+import zone.moddev.mc.lib.machine.ingredient.MachineIngredient;
+import zone.moddev.mc.lib.machine.neoforge.GeneratedMachineRecipes;
 import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeBuilder;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
@@ -54,19 +57,32 @@ public final class ScriptMachineRecipeBuilder {
         builder = MachineRecipeBuilder.recipe(type);
     }
 
-    /** Takes {@code count} of {@code ingredient} from the item group. */
+    /**
+     * Takes {@code count} of {@code ingredient} from the item group; with
+     * {@code consumed} false, only requires and reserves them, as a reusable
+     * input.
+     */
     @ZenCodeType.Method
     public ScriptMachineRecipeBuilder inputItems(String group,
-        IIngredient ingredient, @ZenCodeType.OptionalInt(1) int count) {
-        builder.inputItems(group, ingredient.asVanillaIngredient(), count);
+        IIngredient ingredient, @ZenCodeType.OptionalInt(1) int count,
+        @ZenCodeType.OptionalBoolean(true) boolean consumed) {
+        builder.input(group, new MachineIngredient.ItemPart(
+            ingredient.asVanillaIngredient(), count, consumed));
         return this;
     }
 
-    /** Takes {@code fluid}'s amount, in millibuckets, from the fluid group. */
+    /**
+     * Takes {@code fluid}'s amount, in millibuckets, from the fluid group; with
+     * {@code consumed} false, only requires and reserves it.
+     */
     @ZenCodeType.Method
     public ScriptMachineRecipeBuilder inputFluid(String group,
-        IFluidStack fluid) {
-        builder.inputFluid(group, fluid.getFluid(), amount(fluid));
+        IFluidStack fluid,
+        @ZenCodeType.OptionalBoolean(true) boolean consumed) {
+        builder.input(group,
+            new MachineIngredient.FluidPart(
+                HolderSet.direct(fluid.getFluid().builtInRegistryHolder()),
+                amount(fluid), consumed));
         return this;
     }
 
@@ -109,11 +125,21 @@ public final class ScriptMachineRecipeBuilder {
      *
      * @throws IllegalStateException
      *             if it has no input or no time
+     * @throws IllegalArgumentException
+     *             if a machine using the type has no such group, or a group
+     *             holds another kind of resource, as for datapack recipes
      */
     @ZenCodeType.Method
     public void build(String name) {
         var manager = RecipeTypeBracketHandler.getOrDefault(type);
-        Recipe<?> entry = new MachineRecipeEntry(type, builder.build());
+        var recipe = builder.build();
+        try {
+            GeneratedMachineRecipes.validateGroups(type, recipe);
+        } catch (IllegalArgumentException error) {
+            throw new IllegalArgumentException(
+                "Machine recipe " + name + ": " + error.getMessage(), error);
+        }
+        Recipe<?> entry = new MachineRecipeEntry(type, recipe);
         CraftTweakerAPI.apply(new ActionAddRecipe<>(manager,
             manager.createHolder(manager.fixRecipeId(name), entry)));
     }

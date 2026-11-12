@@ -392,8 +392,8 @@ Source: [ScriptMachineHandlers](../src/main/java/zone/moddev/mc/lib/compat/Craft
 Source: [ScriptMachineRecipeBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineRecipeBuilder.java). Registered for the default `crafttweaker` loader (recipe scripts).
 
 - constructor `MachineRecipeBuilder(String recipeType)`
-- method `MachineRecipeBuilder inputItems(String group, IIngredient ingredient, int count = 1)`
-- method `MachineRecipeBuilder inputFluid(String group, IFluidStack fluid)`
+- method `MachineRecipeBuilder inputItems(String group, IIngredient ingredient, int count = 1, boolean consumed = true)`
+- method `MachineRecipeBuilder inputFluid(String group, IFluidStack fluid, boolean consumed = true)`
 - method `MachineRecipeBuilder inputEnergy(String group, long energy)`
 - method `MachineRecipeBuilder outputItem(String group, IItemStack stack, float chance = 1)`
 - method `MachineRecipeBuilder outputFluid(String group, IFluidStack fluid, float chance = 1)`
@@ -665,7 +665,8 @@ from script callback execution are logged by the binding wrapper.
 | Runtime-supported through an existing generic script map | Tool stat overrides and generic tool settings; basic-item burn time | `MaterialStats`, `StandardItems.ToolSettings`, `StandardImplementations`; addSpecial/factoryData already reach them. Named stat methods and ToolSettings now wrap these existing paths; per-tool durability scaling is limited by TieredItem overriding durability. |
 | Schema-only in current standard runtime | food reference, lore, declared toolActions, general attributeModifiers, delayed-use onComplete/useFinishMode, creativeStacks | Stored in ItemTemplate/MMDItem; no standard runtime consumer found. Native tool attributes and generic tool abilities are separate implemented paths. |
 | Unavailable as a configurable definition capability | Item rarity/feature flags; advanced block predicates, piston reaction, instrument, offsets, solidity flags | Current definition/runtime property path does not represent and apply them. |
-| Unavailable as a public script registration path | Custom sound events/types, independent tool tiers, user-defined creative tabs | Existing material tab/armor/tier machinery is not a general script builder API. |
+| Unavailable as a public script registration path | Independent tool tiers, standalone fluids and fluid modules | Existing material armor/tier and fluid-module machinery is not a general script builder API. |
+| Script-exposed in 2.0.2 | Sound events and sound sets, creative tabs, screen handlers and value providers, machine cycle handlers, machine recipes | `SoundBuilder`, `SoundTypeBuilder`, `CreativeTabBuilder`, `ScreenHandlers`, `ScreenValues`, `MachineHandlers`, `MachineRecipeBuilder`; each feeds the same definition or registry path as data files. |
 | Script-exposed in phase 3 | Typed ID references and module snapshot copies | New wrappers unwrap into existing consumers; copy rebinds locally owned callbacks with separate handler maps. |
 | Script-exposed in phase 4 | Fluent builder aliases, displayName, default/self/empty/referenced loot | Aliases use existing setters. Immutable ScriptResourceOptions metadata feeds the generated pack; external resources keep priority. |
 | Unavailable script conveniences | Arbitrary game-object property cloning | Module configuration copying does not clone registered game objects. |

@@ -17,3 +17,10 @@ new MachineRecipeBuilder("mmdlib:test/script_machine")
     .outputItem("output", <item:minecraft:gravel> * 3, 1.0)
     .time(2)
     .build("cobble_to_gravel");
+
+// A reusable input: the bone stays, and each cycle makes bone meal.
+new MachineRecipeBuilder("mmdlib:test/script_machine")
+    .inputItems("input", <item:minecraft:bone>, 1, false)
+    .outputItem("output", <item:minecraft:bone_meal>, 1.0)
+    .time(2)
+    .build("bone_to_bone_meal");
