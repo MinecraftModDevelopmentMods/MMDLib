@@ -79,6 +79,27 @@ final class MachineScriptSmoke {
         require(machine.items.getStackInSlot(1).isEmpty(),
             "the removed recipe did not run: "
                 + machine.items.getStackInSlot(1));
+        reusableAndInvalid(level, machine);
+    }
+
+    /**
+     * The typed builder's reusable input keeps the bone, and its recipe with an
+     * unknown group was refused.
+     */
+    private static void reusableAndInvalid(ServerLevel level,
+        DefinedMachineEntity machine) {
+        machine.items.insertItem(0, new ItemStack(Items.BONE), false);
+        for (int i = 0; i < 5; i++)
+            machine.serverTick();
+        require(
+            machine.items.getStackInSlot(1).is(Items.BONE_MEAL)
+                && machine.items.getStackInSlot(0).is(Items.BONE),
+            "the reusable bone stayed and made bone meal: "
+                + machine.items.getStackInSlot(0) + " -> "
+                + machine.items.getStackInSlot(1));
+        require(level.getRecipeManager()
+            .byKey(ResourceLocation.parse("crafttweaker:unknown_group"))
+            .isEmpty(), "the recipe with an unknown group was refused");
     }
 
     private static DefinedMachineEntity place(ServerLevel level, BlockPos pos) {

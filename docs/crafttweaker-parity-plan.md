@@ -33,7 +33,7 @@ Do not claim parity merely because a value can be stored in a definition.
 | Gameplay callbacks | Retain current hooks and improve discovery/examples | No additional core event contracts |
 | Generated resources and drops | Expose names and simple loot options through the existing generated pack | Generated resources only; no change to block runtime loot-source properties |
 | Food, rarity, arbitrary attributes | Defer | RuntimeProperties does not apply these as configurable definition properties |
-| Creative tabs and sound registration | Defer | No existing matching MMDLib public definition/registration path |
+| Creative tabs and sound registration | Done in 2.0.2 | Script builders over the data-driven definitions; scripts can also edit file definitions |
 | Advanced block predicates/properties | Defer | Current block schema and runtime do not represent/apply them |
 
 ## Phase 1: establish the supported surface
@@ -160,8 +160,9 @@ integration classes and excludes smoke classes/scripts/resources. See the
   currently applies only stack size, durability, fire resistance, and remainder.
 - Rarity, feature flags, general attribute configuration, lore, and new item actions:
   lack a complete applicable runtime path for this integration scope.
-- Full CreativeTabBuilder, SoundEventBuilder, and custom SoundTypeFactory: would
-  require a new registration capability or a parallel integration-owned system.
+- Creative tabs, sound events and sound sets: no longer deferred. 2.0.2 added
+  data-driven registration for each, and `CreativeTabBuilder`, `SoundBuilder` and
+  `SoundTypeBuilder` build on it.
 - State-dependent light/map color, spawning/suffocation/view/emissive predicates,
   piston reaction, instrument, offsets, and solidity flags: need new core property
   representation/application. `factoryData` alone cannot make these work.
