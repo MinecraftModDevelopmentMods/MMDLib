@@ -69,5 +69,12 @@
   "screen.mmdlib_companion.filter.blacklist": "Blacklist: block matching entries (click for whitelist)",
   "screen.mmdlib_companion.filter.tag": "Item tag (namespace:path); Enter to apply",
   "item.mmdlib_companion.recovery_capsule": "Recovery Capsule",
-  "item.mmdlib_companion.recovery_capsule.help": "Use on a companion machine to restore pending fluids and energy. Any remainder stays in the capsule."
+  "item.mmdlib_companion.recovery_capsule.help": "Use on a companion machine to restore pending fluids and energy. Any remainder stays in the capsule.",
+  "block.mmdlib_companion.multiblock_demo": "Multiblock Test Bench",
+  "item.mmdlib_companion.multiblock_demo": "Multiblock Test Bench",
+  "block.mmdlib_companion.multiblock_part": "Multiblock Test Bench Part",
+  "screen.mmdlib_companion.structure": "Status in Info tab",
+  "screen.mmdlib_companion.operations": "Active ticks",
+  "screen.mmdlib_companion.operations.tip": "Active ticks: {value}",
+  "screen.mmdlib_companion.multiblock.info": "Keep the block above the middle part clear. Breaking any part dismantles this machine."
 }

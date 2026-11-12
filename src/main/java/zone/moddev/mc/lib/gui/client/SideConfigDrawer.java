@@ -479,18 +479,29 @@ public final class SideConfigDrawer extends Drawer {
         var r = face(index);
         var mode = model.mode(model.selected(), index);
         var relative = RelativeFace.values()[index];
+        boolean available = model.faceAvailable(model.selected(), index);
+        if (!available) {
+            FaceConfigRenderer.unavailable(g, r);
+            if (r.contains(mx, my))
+                faceTooltip = List.of(
+                    Component.translatable("screen.mmdlib.face." + relative.getSerializedName()),
+                    Component.translatable("screen.mmdlib.face.unavailable"));
+            return;
+        }
         var neighbour = faces.render(
             g,
             r,
             screen.getMenu().blockEntity,
             model.inventory.group(model.selected()).world(relative),
-            mode.canInsert(),
-            mode.canExtract());
+            available && mode.canInsert(),
+            available && mode.canExtract());
         if (r.contains(mx, my))
             faceTooltip = List.of(
                 Component.translatable("screen.mmdlib.face." + relative.getSerializedName()),
                 neighbour,
-                Component.translatable("screen.mmdlib.mode." + mode.getSerializedName()));
+                Component.translatable(available
+                    ? "screen.mmdlib.mode." + mode.getSerializedName()
+                    : "screen.mmdlib.face.unavailable"));
     }
 
     public Rect tabBounds() {
@@ -680,6 +691,8 @@ public final class SideConfigDrawer extends Drawer {
         }
         for (int f = 0; f < 6; f++)
             if (face(f).contains(x, y)) {
+                if (!model.faceAvailable(model.selected(), f))
+                    return true;
                 send(
                     "face",
                     model.selected(),

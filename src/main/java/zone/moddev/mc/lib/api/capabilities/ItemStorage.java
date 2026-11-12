@@ -19,6 +19,8 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
+import zone.moddev.mc.lib.api.util.ChangeSignal;
+
 /**
  * A machine inventory: an {@link ItemStackHandler} with a {@link Role}, filter and limit per slot,
  * and a change callback. The owning block entity and its screen use it directly; automation gets a
@@ -30,6 +32,13 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * {@link #insertResult}.
  */
 public class ItemStorage extends PlannedItemHandler implements ItemStore {
+    private final ChangeSignal changes = new ChangeSignal();
+
+    /** Observe content/capacity changes without replacing the persistence callback. */
+    public ChangeSignal changes() {
+        return changes;
+    }
+
     @Override
     public ItemStorage storage(int slot) {
         checked(slot);
@@ -183,6 +192,7 @@ public class ItemStorage extends PlannedItemHandler implements ItemStore {
     /** Reports an in-place change made by a menu, including persistence and recipe invalidation. */
     public void markChanged() {
         revision++;
+        changes.changed();
         onChange.run();
     }
 
@@ -236,6 +246,7 @@ public class ItemStorage extends PlannedItemHandler implements ItemStore {
         revision++;
         for (int slot : slots)
             limits[checked(slot)] = limit;
+        changes.changed();
         return this;
     }
 

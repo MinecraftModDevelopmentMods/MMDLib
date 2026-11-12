@@ -14,14 +14,14 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 
 /** Translucent samples retain their item's model, texture and lighting, including opaque blocks. */
-final class GhostItems {
+public final class GhostItems {
     private final Map<Float, Map<RenderType, RenderType>> translucent = new java.util.HashMap<>();
 
-    void render(GuiGraphics graphics, ItemStack stack, int x, int y) {
+    public void render(GuiGraphics graphics, ItemStack stack, int x, int y) {
         render(graphics, stack, x, y, .50f);
     }
 
-    void render(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha) {
+    public void render(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha) {
         var minecraft = Minecraft.getInstance();
         var renderer = minecraft.getItemRenderer();
         var model = renderer.getModel(stack, minecraft.level, minecraft.player, 0);

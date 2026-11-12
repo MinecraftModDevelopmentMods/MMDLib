@@ -13,7 +13,7 @@ import zone.moddev.mc.lib.gui.runtime.network.NetworkRegistry;
 
 /** Dedicated menu-bound protocol for the opt-in drawer and item-provided editor. */
 public final class AutomationNetwork {
-    public static final String VERSION = "16";
+    public static final String VERSION = "17";
 
     private AutomationNetwork() {
     }
@@ -77,9 +77,23 @@ public final class AutomationNetwork {
         String[] groups,
         int[] modes,
         long[] generations,
-        long[] revisions)
+        long[] revisions,
+        int[] disabledFaces)
         implements
             CustomPacketPayload {
+        public State {
+            if (disabledFaces.length != groups.length)
+                throw new IllegalArgumentException("Face policy count");
+            disabledFaces = disabledFaces.clone();
+            for (int mask : disabledFaces)
+                zone.moddev.mc.lib.api.capabilities.FaceMask.checked(mask);
+        }
+        public State(int menu, long session, int request, boolean accepted, int selected,
+            boolean open, int editor, String[] groups, int[] modes, long[] generations,
+            long[] revisions) {
+            this(menu, session, request, accepted, selected, open, editor, groups, modes,
+                generations, revisions, new int[groups.length]);
+        }
         public static final Type<State> TYPE = new Type<>(
             ResourceLocation.parse("mmdlib:automation_state"));
         public static final StreamCodec<RegistryFriendlyByteBuf, State> CODEC = StreamCodec.of(
@@ -95,6 +109,7 @@ public final class AutomationNetwork {
                 for (String id : p.groups)
                     b.writeUtf(id, 128);
                 b.writeVarIntArray(p.modes);
+                b.writeVarIntArray(p.disabledFaces);
                 for (long v : p.generations)
                     b.writeLong(v);
                 for (long v : p.revisions)
@@ -119,6 +134,7 @@ public final class AutomationNetwork {
                 for (int mode : modes)
                     if (mode < 0 || mode > 3)
                         throw new IllegalArgumentException("Face mode");
+                int[] disabledFaces = b.readVarIntArray(count);
                 long[] generations = new long[count * COLUMNS],
                     revisions = new long[count * COLUMNS];
                 for (int i = 0; i < generations.length; i++)
@@ -138,7 +154,8 @@ public final class AutomationNetwork {
                     groups,
                     modes,
                     generations,
-                    revisions);
+                    revisions,
+                    disabledFaces);
             });
 
         public Type<State> type() {

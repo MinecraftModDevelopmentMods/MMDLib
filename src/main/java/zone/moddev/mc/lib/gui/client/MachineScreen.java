@@ -331,7 +331,11 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     }
 
     public List<Rect> exclusions() {
-        return drawers.exclusions();
+        var regions = new java.util.ArrayList<>(drawers.exclusions());
+        var overlay = elementInput.overlayOwner();
+        if (overlay != null)
+            elementInput.instance(overlay).overlayBounds().ifPresent(regions::add);
+        return List.copyOf(regions);
     }
 
     @Override
@@ -347,10 +351,12 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         renderElements(ElementRenderers.Pass.FOREGROUND, g, partial, mx, my);
         drawers.renderTabs(g);
         renderElements(ElementRenderers.Pass.TOP, g, partial, mx, my);
-        renderTooltip(g, mx, my);
+        if (elementInput.overlayOwner() == null)
+            renderTooltip(g, mx, my);
         if (elementInput.hovered() != null)
             tooltip(g, elementInput.hovered(), mx, my);
-        drawers.tooltip(g, mx, my);
+        if (elementInput.overlayOwner() == null)
+            drawers.tooltip(g, mx, my);
     }
 
     private void tooltip(GuiGraphics g, Element e, int mx, int my) {
@@ -393,6 +399,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
         updateLayout();
+        updateBehaviors();
+        if (elementInput.overlayOwner() != null)
+            return elementInput.click(mx, my, button);
         if (drawers.click(mx, my, button)) {
             elementInput.clearFocus();
             return true;
@@ -430,6 +439,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double dx, double dy) {
+        updateBehaviors();
+        if (elementInput.overlayOwner() != null)
+            return elementInput.scroll(mx, my, dx, dy);
         if (drawers.scroll(mx, my, dy))
             return true;
         updateBehaviors();

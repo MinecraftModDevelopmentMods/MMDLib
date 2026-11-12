@@ -1,6 +1,6 @@
 # Machine companion
 
-The optional `mmdlib_companion` mod contains six playable machine examples.
+The optional `mmdlib_companion` mod contains playable machine examples, including a multiblock fixture.
 It uses Minecraft 1.21.1, NeoForge 21.1.247 and this branch's MMDLib. Its classes and resources live
 in `src/companion` and are packaged separately from the library.
 
@@ -39,6 +39,13 @@ those mods' login payloads; real client smoke runs include them.
 | `logistics` | Seven independent resource groups for testing automation, filters and side configuration; no recipe processing |
 | `creative_power` | Refills its buffer and supplies up to 1,000 FE per enabled adjacent face per tick |
 | `simple_crusher` | XML-only definition with inherited power, generated screen contents, and tag-generated ore-to-ingot recipes; in the **Data-defined Machines** tab |
+| `multiblock_demo` | One item places a controller and two linked parts; the far part exposes item/fluid/energy ports; breaking a member dismantles the machine |
+
+The **Multiblock Test Bench** is in the Machines tab. It occupies the controller position and two
+positions east of it when facing north, and rotates with placement. Keep the block above the middle
+part clear; obstructing it suspends its active-tick counter and resource ports. Clicking any part
+opens the controller screen. Ordinary survival breaking drops one machine item and its item
+contents. See [multiblocks](multiblocks.md) for the reusable API and registration example.
 
 The crusher recipes take 100 ticks and 2,000 FE per cycle: cobblestone becomes gravel, gravel becomes
 sand, and copper/iron/gold ore becomes two of the corresponding raw material. The converter takes

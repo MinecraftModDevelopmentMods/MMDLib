@@ -58,6 +58,7 @@ import zone.moddev.mc.lib.gui.model.elements.ProcessorButtonElement;
 import zone.moddev.mc.lib.gui.model.elements.ProgressElement;
 import zone.moddev.mc.lib.gui.model.elements.ProgressSpriteElement;
 import zone.moddev.mc.lib.gui.model.elements.RadioElement;
+import zone.moddev.mc.lib.gui.model.elements.RecipeSelectorElement;
 import zone.moddev.mc.lib.gui.model.elements.SideConfigElement;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.model.elements.SpriteElement;
@@ -134,6 +135,11 @@ public final class BuiltinElements {
         BuiltinElements::processorButton,
         "widget",
         "buttons");
+    public static final ElementType<RecipeSelectorElement> RECIPE_SELECTOR = builtin(
+        "recipe-selector",
+        RecipeSelectorElement.class,
+        x -> new RecipeSelectorElement(x.common(), x.node().attributes().get("processor-key")),
+        "widget");
     public static final ElementType<ButtonElement> BUTTON = builtin("button", ButtonElement.class,
         BuiltinElements::button, "widget", "buttons");
     public static final ElementType<CheckboxElement> CHECKBOX = builtin("checkbox",
@@ -224,6 +230,7 @@ public final class BuiltinElements {
             PROGRESS,
             LABEL,
             PROCESSOR_BUTTON,
+            RECIPE_SELECTOR,
             BUTTON,
             CHECKBOX,
             RADIO_GROUP,

@@ -1,4 +1,5 @@
 {
+  "screen.mmdlib.face.unavailable": "Unavailable on this machine",
   "screen.mmdlib.tank.name": "Tank %s",
   "screen.mmdlib.tank.empty": "Empty",
   "screen.mmdlib.tank.contents": "%s mB of %s",
@@ -244,6 +245,8 @@
   "jei.mmdlib.crushing": "Crackhammer",
   "jei.mmdlib.crushing.mined": "Also crushes drops when mining",
   "jei.mmdlib.machine.chance": "%s%% chance",
+  "jei.mmdlib.machine.not_consumed": "Not consumed",
+  "jei.mmdlib.machine.required_fluid": "Requires %s mB",
   "jei.mmdlib.machine.energy": "%s FE",
   "jei.mmdlib.machine.time": "%s s",
   "item.mmdlib.copper_arrow": "Copper Arrow",
@@ -389,5 +392,21 @@
   "screen.mmdlib.stats.empty": "No statistics available.",
   "screen.mmdlib.stats.tip": "Statistics and available timescales are supplied by the machine.",
   "item.mmdlib.fluid_bottle": "Fluid Bottle",
-  "item.mmdlib.fluid_bottle.filled": "Bottle of %s"
+  "item.mmdlib.fluid_bottle.filled": "Bottle of %s",
+  "screen.mmdlib.recipe_selector.choose": "Choose output",
+  "screen.mmdlib.recipe_selector.produce": "Produce",
+  "screen.mmdlib.recipe_selector.none": "No recipe selected",
+  "screen.mmdlib.recipe_selector.missing": "Recipe unavailable",
+  "screen.mmdlib.recipe_selector.choose_hint": "Click to choose a recipe",
+  "screen.mmdlib.recipe_selector.help": "Click to choose; right-click to clear. Items are not consumed.",
+  "screen.mmdlib.recipe_selector.no_matches": "No matching recipes",
+  "screen.mmdlib.recipe_selector.cost": "%s FE / %s ticks",
+  "screen.mmdlib.recipe_selector.working": "Producing %s",
+  "screen.mmdlib.recipe_selector.finishing": "Finishing %s first",
+  "screen.mmdlib.recipe_selector.queued_help": "The selected recipe starts after the current cycle finishes.",
+  "screen.mmdlib.recipe_selector.reason.ok": "Ready",
+  "screen.mmdlib.recipe_selector.reason.missing_input": "Needs %s (or currently reserved)",
+  "screen.mmdlib.recipe_selector.reason.no_room": "No room in %s",
+  "screen.mmdlib.recipe_selector.reason.no_group": "Missing resource group: %s",
+  "screen.mmdlib.recipe_selector.reason.wrong_kind": "Incompatible resource group: %s"
 }

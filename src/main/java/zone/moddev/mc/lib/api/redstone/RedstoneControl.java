@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.ToDoubleFunction;
 
 import net.minecraft.core.Direction;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 import zone.moddev.mc.lib.api.automation.ResourceGroup;
+import zone.moddev.mc.lib.api.capabilities.FaceMask;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 
 /** Persistent per-face signal intervals and outputs discovered from machine parts. */
@@ -40,6 +42,7 @@ public final class RedstoneControl {
     private final int[] sourceIndexes = new int[6];
     private final int[] sampledLevels = new int[6];
     private long revision;
+    private int disabledFaces;
     // The first tick repairs only adjacent dust, without notifying unrelated neighbours.
     private int connections = -1;
     private boolean paused, legacyAny;
@@ -75,6 +78,50 @@ public final class RedstoneControl {
         Arrays.fill(sourceIndexes, -1);
     }
 
+    /** Machine policy; not restored from player configuration saves. */
+    public RedstoneControl disabledFaces(Set<RelativeFace> faces) {
+        int next = FaceMask.of(faces);
+        if (next != disabledFaces) {
+            disabledFaces = next;
+            normalizeFaces();
+            revision++;
+            owner.setChanged();
+            readInputs();
+            updateOutputs();
+            var level = owner.getLevel();
+            if (level != null && !level.isClientSide)
+                level.sendBlockUpdated(owner.getBlockPos(), owner.getBlockState(),
+                    owner.getBlockState(), Block.UPDATE_CLIENTS);
+        }
+        return this;
+    }
+    public int disabledFaceMask() {
+        return disabledFaces;
+    }
+    public boolean faceAvailable(RelativeFace face) {
+        return faceAvailable(face.ordinal());
+    }
+    public boolean faceAvailable(int face) {
+        return FaceMask.available(disabledFaces, face);
+    }
+    private void normalizeFaces() {
+        for (int face = 0; face < 6; face++)
+            if (!faceAvailable(face)) {
+                modes[face] = Mode.IGNORE.ordinal();
+                incoming[face] = 0;
+            }
+    }
+    /** World updates include policy; disk saves deliberately do not. */
+    public CompoundTag saveClient(HolderLookup.Provider registries) {
+        var tag = save(registries);
+        tag.putInt("disabled_faces", disabledFaces);
+        return tag;
+    }
+    public void loadClient(CompoundTag tag, HolderLookup.Provider registries) {
+        disabledFaces = FaceMask.checked(tag.getInt("disabled_faces"));
+        load(tag, registries);
+    }
+
     public List<RedstoneOutput> outputs() {
         return outputs;
     }
@@ -84,7 +131,7 @@ public final class RedstoneControl {
     }
 
     public Mode mode(int face) {
-        return MODES[modes[face]];
+        return faceAvailable(face) ? MODES[modes[face]] : Mode.IGNORE;
     }
 
     public boolean outside(int face) {
@@ -96,6 +143,8 @@ public final class RedstoneControl {
     }
 
     public void inverted(int face, boolean value) {
+        if (!faceAvailable(face))
+            return;
         inverted[face] = value;
         changed();
     }
@@ -109,11 +158,11 @@ public final class RedstoneControl {
     }
 
     public int incoming(int face) {
-        return incoming[face];
+        return faceAvailable(face) ? incoming[face] : 0;
     }
 
     public int outgoing(int face) {
-        return outgoing[face];
+        return faceAvailable(face) ? outgoing[face] : 0;
     }
 
     public boolean paused() {
@@ -136,17 +185,21 @@ public final class RedstoneControl {
     }
 
     public void mode(int face, Mode mode) {
+        if (!faceAvailable(face))
+            return;
         modes[face] = mode.ordinal();
         changed();
     }
 
     public void outside(int face, boolean value) {
+        if (!faceAvailable(face))
+            return;
         outside[face] = value;
         changed();
     }
 
     public boolean range(int face, int low, int high) {
-        if (low < 0 || high > 15 || low > high)
+        if (!faceAvailable(face) || low < 0 || high > 15 || low > high)
             return false;
         lower[face] = low;
         upper[face] = high;
@@ -155,7 +208,7 @@ public final class RedstoneControl {
     }
 
     public boolean source(int face, int index) {
-        if (index < 0 || index >= outputs.size())
+        if (!faceAvailable(face) || index < 0 || index >= outputs.size())
             return false;
         sourceIds[face] = outputs.get(index).id();
         sourceIndexes[face] = index;
@@ -188,6 +241,10 @@ public final class RedstoneControl {
         paused = false;
         boolean powered = false;
         for (int face = 0; face < 6; face++) {
+            if (!faceAvailable(face)) {
+                incoming[face] = 0;
+                continue;
+            }
             var direction = world(face);
             var neighbour = owner.getBlockPos().relative(direction);
             incoming[face] = level.hasChunkAt(neighbour)
@@ -198,7 +255,7 @@ public final class RedstoneControl {
                 paused |= matches(incoming[face], lower[face], upper[face], outside[face]);
         }
         if (legacyAny)
-            paused = !powered;
+            paused = disabledFaces != FaceMask.ALL && !powered;
     }
 
     /**
@@ -264,9 +321,9 @@ public final class RedstoneControl {
 
     /** Block getSignal receives the direction from the receiver toward this block. */
     public int signal(Direction queryDirection) {
-        return outgoing[RelativeFace
+        return outgoing(RelativeFace
             .of(RelativeFace.facing(owner.getBlockState()), queryDirection.getOpposite())
-            .ordinal()];
+            .ordinal());
     }
 
     /**
@@ -319,6 +376,7 @@ public final class RedstoneControl {
                 .getString(tag.contains("source_" + i) ? "source_" + i : "group_" + i);
             sourceIndexes[i] = findSource(sourceIds[i]);
         }
+        normalizeFaces();
         legacyAny = tag.getBoolean("legacy_any");
         revision++;
     }
@@ -332,6 +390,7 @@ public final class RedstoneControl {
         Arrays.fill(inverted, false);
         Arrays.fill(sourceIds, "");
         Arrays.fill(sourceIndexes, -1);
+        normalizeFaces();
         changed();
         legacyAny = oldMode == 1;
     }

@@ -151,6 +151,7 @@
       <xs:element ref="label"/>
       <xs:element ref="button"/>
       <xs:element ref="processor-button"/>
+      <xs:element ref="recipe-selector"/>
       <xs:element ref="checkbox"/>
       <xs:element ref="radio-group"/>
       <xs:element ref="context"/>
@@ -468,6 +469,16 @@
           <xs:attribute name="text" type="translationKey"/>
           <xs:attribute name="text-fallback" type="xs:string"/>
           <xs:attribute name="flat" type="xs:boolean" default="true"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="recipe-selector">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="processor-key" type="xs:string" use="required"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>

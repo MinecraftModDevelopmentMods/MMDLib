@@ -4,5 +4,9 @@ package zone.moddev.mc.lib.gui.client;
 public interface SideConfigPresentation {
     int selection();
 
+    default boolean faceAvailable(int group, int face) {
+        return true;
+    }
+
     int sideMode(int group, int face);
 }

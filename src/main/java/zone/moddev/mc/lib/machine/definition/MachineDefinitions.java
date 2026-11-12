@@ -21,6 +21,7 @@ import java.util.TreeMap;
 import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.api.capabilities.IoMode;
+import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.capabilities.Role;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot;
 import zone.moddev.mc.lib.gui.load.ScreenException;
@@ -34,6 +35,9 @@ import zone.moddev.mc.lib.machine.definition.MachineDefinition.RecipeType;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition.Slot;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition.Tank;
 import zone.moddev.mc.lib.machine.inventory.MachineStorageKeys;
+import zone.moddev.mc.lib.machine.presentation.ConditionalFaceTexture;
+import zone.moddev.mc.lib.machine.presentation.ConditionalModelPart;
+import zone.moddev.mc.lib.machine.presentation.VisualCondition;
 
 /**
  * Discovers machine XML, composes inheritance, then validates concrete plans before registration.
@@ -120,6 +124,11 @@ public final class MachineDefinitions {
         if (child.name().equals("generator") || child.name().equals("fill"))
             return child;
         var attrs = new LinkedHashMap<>(base.attributes());
+        // A new preset replaces the previous preset's base configuration, but retains parts.
+        if (child.name().equals("appearance") && child.attributes().containsKey("preset")
+            && !child.attributes().get("preset").equals(base.attributes().get("preset")))
+            for (var attribute : List.of("front", "side", "top", "bottom", "model"))
+                attrs.remove(attribute);
         attrs.putAll(child.attributes());
         var children = new ArrayList<>(base.children());
         var indexes = new HashMap<String, Integer>();
@@ -154,19 +163,23 @@ public final class MachineDefinitions {
     private static final Map<String, Set<String>> ATTRIBUTES = Map.ofEntries(
         Map.entry("machine", Set.of("version", "abstract", "extends", "name")),
         Map.entry("block", Set.of("hardness", "facing", "drop", "mineable", "requires-tool")),
-        Map.entry("appearance", Set.of("preset", "front", "side", "top", "bottom")),
+        Map.entry("appearance", Set.of("preset", "front", "side", "top", "bottom", "model")),
+        Map.entry("part", Set.of("id", "model", "when")),
+        Map.entry("face-texture", Set.of("id", "face", "texture", "when", "emissive-mask")),
         Map.entry("storage", Set.of()),
         Map.entry("items", Set.of("id")),
         Map.entry("fluids", Set.of("id")),
-        Map.entry("tank", Set.of("id", "capacity", "role", "fluid")),
-        Map.entry("tanks", Set.of("id", "count", "capacity", "role", "fluid")),
-        Map.entry("energy", Set.of("id", "capacity", "input-rate", "output-rate")),
-        Map.entry("slots", Set.of("id", "count", "role", "limit")),
-        Map.entry("slot", Set.of("id", "role", "limit")),
+        Map.entry("tank", Set.of("id", "capacity", "role", "fluid", "color", "automation")),
+        Map.entry("tanks",
+            Set.of("id", "count", "capacity", "role", "fluid", "color", "automation")),
+        Map.entry("energy", Set.of("id", "capacity", "input-rate", "output-rate", "color")),
+        Map.entry("slots", Set.of("id", "count", "role", "limit", "color", "type", "default-item")),
+        Map.entry("slot", Set.of("id", "count", "role", "limit", "type", "default-item")),
         Map.entry("groups", Set.of()),
         Map.entry("group", Set.of("id", "storage", "members", "mode", "color")),
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
-        Map.entry("processor", Set.of("id", "name", "recipe-type", "filter-inputs")),
+        Map.entry("processor",
+            Set.of("id", "name", "recipe-type", "filter-inputs", "selectable", "default-recipe")),
         Map.entry("redstone", Set.of("enabled", "pause")),
         Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of(
@@ -189,6 +202,8 @@ public final class MachineDefinitions {
         Set.of("slot", "slots"),
         "groups",
         Set.of("group"),
+        "appearance",
+        Set.of("part", "face-texture"),
         "recipe-type",
         Set.of("generator"));
 
@@ -210,10 +225,13 @@ public final class MachineDefinitions {
         var resources = switch (node.name()) {
             case "machine" -> List.of("extends");
             case "block" -> List.of("mineable");
-            case "appearance" -> List.of("front", "side", "top", "bottom");
+            case "appearance" -> List.of("front", "side", "top", "bottom", "model");
+            case "part" -> List.of("model");
+            case "face-texture" -> List.of("texture", "emissive-mask");
             case "recipe-type" -> List.of("id");
-            case "processor" -> List.of("recipe-type");
+            case "processor" -> List.of("recipe-type", "default-recipe");
             case "tank", "tanks" -> List.of("fluid");
+            case "slot", "slots" -> List.of("default-item");
             default -> List.<String>of();
         };
         for (var attribute : resources)
@@ -221,6 +239,8 @@ public final class MachineDefinitions {
                 resource(node, attribute);
         if (node.name().equals("block") && node.attributes().containsKey("hardness"))
             hardness(node);
+        if (Set.of("slots", "tank", "tanks", "energy", "group").contains(node.name()))
+            color(node, 0);
         var seen = new HashSet<String>();
         for (var child : node.children()) {
             if (!CHILDREN.getOrDefault(node.name(), Set.of()).contains(child.name()))
@@ -240,15 +260,29 @@ public final class MachineDefinitions {
         requireChoice(block, "facing", "horizontal");
         requireChoice(block, "drop", "self");
         var appearance = one(root, "appearance");
-        requireChoice(appearance, "preset", "cube-front");
+        requireChoice(appearance, "preset", "cube-front", "model");
         var textures = new HashMap<String, String>();
-        for (var face : List.of("front", "side", "top"))
-            textures.put(face, resource(appearance, face).toString());
-        textures.put(
-            "bottom",
-            appearance.attributes().containsKey("bottom")
-                ? resource(appearance, "bottom").toString()
-                : textures.get("side"));
+        ResourceLocation baseModel = null;
+        if (required(appearance, "preset").equals("model")) {
+            baseModel = resource(appearance, "model");
+            if (baseModel.equals(id.withPrefix("block/"))
+                || baseModel.equals(id.withPrefix("block/").withSuffix("_base")))
+                throw error(appearance,
+                    "The base model cannot reference this machine's generated models");
+            for (var face : List.of("front", "side", "top", "bottom"))
+                if (appearance.attributes().containsKey(face))
+                    throw error(appearance, "The model preset does not support attribute " + face);
+        } else {
+            if (appearance.attributes().containsKey("model"))
+                throw error(appearance, "The cube-front preset does not support attribute model");
+            for (var face : List.of("front", "side", "top"))
+                textures.put(face, resource(appearance, face).toString());
+            textures.put(
+                "bottom",
+                appearance.attributes().containsKey("bottom")
+                    ? resource(appearance, "bottom").toString()
+                    : textures.get("side"));
+        }
         var storage = one(root, "storage");
         var power = optional(storage, "energy");
         var items = one(storage, "items");
@@ -259,7 +293,9 @@ public final class MachineDefinitions {
         // BasePoweredMachine owns this stable save key.
         if (powerId != null && !powerId.equals("energy"))
             throw error(power, "Powered machines require energy id='energy'");
-        int energyColor = 0xd85b5b;
+        int energyColor = power == null
+            ? MachineColors.parse("energy")
+            : color(power, MachineColors.parse("energy"));
         var fluidNode = optional(storage, "fluids");
         var tanks = new ArrayList<Tank>();
         var fluidGroups = new LinkedHashMap<String, Group>();
@@ -273,6 +309,9 @@ public final class MachineDefinitions {
             for (var node : fluidNode.children()) {
                 String tankId = required(node, "id");
                 Role role = role(node);
+                boolean automation = bool(node, "automation", true);
+                if (!automation && role != Role.MANUAL)
+                    throw error(node, "Tanks without automation must use role=manual");
                 int count = node.name().equals("tanks") ? (int) number(node, "count", 1, 16) : 1;
                 int capacity = (int) number(node, "capacity", 1, Integer.MAX_VALUE);
                 var filter = node.attributes().containsKey("fluid")
@@ -287,13 +326,15 @@ public final class MachineDefinitions {
                     tanks.add(new Tank(member, role, capacity, filter));
                 }
                 if (fluidGroups.putIfAbsent(tankId,
-                    new Group(tankId, members, mode(role), 0xf0a13b)) != null)
+                    new Group(tankId, members, mode(role),
+                        color(node, MachineColors.fluid(fluidGroups.size())), automation)) != null)
                     throw error(node, "Duplicate fluid group " + tankId);
             }
             if (tanks.isEmpty() || tanks.size() > 16)
                 throw error(fluidNode, "Expected 1..16 tanks");
         }
         var slots = new ArrayList<Slot>();
+        var ghosts = new ArrayList<MachineDefinition.Ghost>();
         var groups = new LinkedHashMap<String, Group>();
         var ids = new HashMap<String, Integer>();
         for (var node : items.children()) {
@@ -304,7 +345,25 @@ public final class MachineDefinitions {
             } catch (IllegalArgumentException ex) {
                 throw error(node, "Invalid slot role");
             }
-            int count = node.name().equals("slots") ? (int) number(node, "count", 1, 54) : 1;
+            int count = node.name().equals("slots")
+                ? (int) number(node, "count", 1, 54)
+                : node.attributes().containsKey("count") ? (int) number(node, "count", 1, 1) : 1;
+            String slotType = node.attributes().getOrDefault("type", "item");
+            if (!Set.of("item", "ghost").contains(slotType))
+                throw error(node, "Slot type must be item or ghost");
+            if (slotType.equals("ghost")) {
+                if (role != Role.INPUT || node.attributes().containsKey("limit"))
+                    throw error(node, "Ghost slots require role=input and always hold one sample");
+                if (ghosts.stream().anyMatch(ghost -> ghost.id().equals(slotId)))
+                    throw error(node, "Duplicate ghost inventory " + slotId);
+                ghosts.add(new MachineDefinition.Ghost(slotId, count,
+                    node.attributes().containsKey("default-item")
+                        ? resource(node, "default-item")
+                        : null));
+                continue;
+            }
+            if (node.attributes().containsKey("default-item"))
+                throw error(node, "default-item is only supported for ghost slots");
             int limit = node.attributes().containsKey("limit")
                 ? (int) number(node, "limit", 1, 64)
                 : 64;
@@ -325,11 +384,13 @@ public final class MachineDefinitions {
                 };
                 if (groups.putIfAbsent(
                     slotId, new Group(slotId, members, mode,
-                        role == Role.INPUT ? 0x568bd8 : 0xe48f45)) != null)
+                        color(node, defaultItemColor(groups, mode)))) != null)
                     throw error(node, "Duplicate group " + slotId);
             }
         }
-        if (slots.isEmpty() || slots.size() > 54)
+        int totalSlots = slots.size()
+            + ghosts.stream().mapToInt(MachineDefinition.Ghost::count).sum();
+        if (totalSlots == 0 || totalSlots > 54)
             throw error(items, "Expected 1..54 item slots");
         var groupsNode = optional(root, "groups");
         if (groupsNode != null)
@@ -366,7 +427,8 @@ public final class MachineDefinitions {
                     }
                     fluidGroups.put(
                         groupId,
-                        new Group(groupId, prior.members(), mode, color(node, prior.color())));
+                        new Group(groupId, prior.members(), mode, color(node, prior.color()),
+                            prior.automation()));
                     continue;
                 }
                 if (!required(node, "storage").equals(required(items, "id")))
@@ -395,7 +457,8 @@ public final class MachineDefinitions {
                     groupId,
                     new Group(
                         groupId, members, mode,
-                        color(node, prior == null ? 0x568bd8 : prior.color())));
+                        color(node,
+                            prior == null ? defaultItemColor(groups, mode) : prior.color())));
             }
         var covered = new HashSet<Integer>();
         for (var group : groups.values())
@@ -411,6 +474,13 @@ public final class MachineDefinitions {
             throw error(items, "Every slot must belong to a group");
         if (groups.containsKey(powerId))
             throw error(items, "Item group conflicts with energy");
+        for (var ghost : ghosts)
+            if (groups.containsKey(ghost.id()) || ids.containsKey(ghost.id())
+                || fluidGroups.containsKey(ghost.id())
+                || ghost.id().equals(powerId) || ghost.id().equals(required(items, "id"))
+                || MachineStorageKeys.RESERVED.contains(ghost.id()))
+                throw error(items,
+                    "Ghost inventory conflicts with another resource: " + ghost.id());
         for (var group : fluidGroups.values()) {
             if (groups.containsKey(group.id()) || group.id().equals(powerId))
                 throw error(fluidNode, "Duplicate resource group " + group.id());
@@ -466,7 +536,40 @@ public final class MachineDefinitions {
         attrs.put("title-fallback", required(root, "name"));
         attrs.put("block-entity", "zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity");
         float hardness = hardness(block);
-        return new MachineDefinition(
+        var modelParts = new ArrayList<ConditionalModelPart>();
+        var faceTextures = new ArrayList<ConditionalFaceTexture>();
+        if (appearance.children().size() > 64)
+            throw error(appearance,
+                "At most 64 conditional parts and face-texture rules are supported");
+        for (var part : appearance.children()) {
+            if (part.name().equals("face-texture")) {
+                if (baseModel != null)
+                    throw error(part,
+                        "The model preset only supports part children, not face-texture");
+                RelativeFace face;
+                try {
+                    face = RelativeFace.valueOf(required(part, "face").toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException ex) {
+                    throw error(part, "Expected face front, back, left, right, top or bottom");
+                }
+                faceTextures.add(new ConditionalFaceTexture(
+                    required(part, "id"), face, resource(part, "texture"), required(part, "when"),
+                    part.attributes().containsKey("emissive-mask")
+                        ? resource(part, "emissive-mask")
+                        : null));
+                continue;
+            }
+            if (required(part, "id").equals("base"))
+                throw error(part, "The model part ID 'base' is reserved");
+            if (resource(part, "model").equals(id.withPrefix("block/")))
+                throw error(part, "A conditional model cannot include itself");
+            modelParts.add(new ConditionalModelPart(
+                required(part, "id"), resource(part, "model"), required(part, "when")));
+        }
+        boolean selectable = bool(processor, "selectable", false);
+        if (!selectable && processor.attributes().containsKey("default-recipe"))
+            throw error(processor, "default-recipe requires selectable='true'");
+        var definition = new MachineDefinition(
             id,
             checksum(root),
             required(root, "name"),
@@ -474,6 +577,9 @@ public final class MachineDefinitions {
             resource(block, "mineable"),
             bool(block, "requires-tool", false),
             textures,
+            baseModel,
+            modelParts,
+            faceTextures,
             power == null
                 ? null
                 : new Power(
@@ -492,7 +598,25 @@ public final class MachineDefinitions {
             required(processor, "id"),
             processor.attributes().getOrDefault("name", required(root, "name")),
             redstone != null && bool(redstone, "enabled", false),
-            new Node("screen", attrs, screen.children(), screen.source(), screen.line()));
+            new Node("screen", attrs, screen.children(), screen.source(), screen.line()),
+            selectable
+                ? new MachineDefinition.RecipeSelection(
+                    processor.attributes().containsKey("default-recipe")
+                        ? resource(processor, "default-recipe")
+                        : null)
+                : null,
+            ghosts);
+        var defaults = definition.hasConditionalAppearance()
+            ? definition.visualDefaults()
+            : Map.<String, Object>of();
+        for (var part : appearance.children()) {
+            try {
+                VisualCondition.compile(required(part, "when"), defaults);
+            } catch (IllegalArgumentException ex) {
+                throw error(part, ex.getMessage());
+            }
+        }
+        return definition;
     }
 
     public static String required(Node node, String key) {
@@ -591,9 +715,9 @@ public final class MachineDefinitions {
         return result;
     }
 
-    private static void requireChoice(Node node, String name, String value) {
-        if (!required(node, name).equals(value))
-            throw error(node, "Supported " + name + ": " + value);
+    private static void requireChoice(Node node, String name, String... values) {
+        if (!List.of(values).contains(required(node, name)))
+            throw error(node, "Supported " + name + ": " + String.join(", ", values));
     }
 
     private static boolean bool(Node node, String key, boolean fallback) {
@@ -616,13 +740,20 @@ public final class MachineDefinitions {
         throw error(node, key + " must be in " + min + ".." + max);
     }
 
+    private static int defaultItemColor(Map<String, Group> groups, IoMode mode) {
+        int ordinal = (int) groups.values().stream().filter(group -> group.mode() == mode).count();
+        return MachineColors.item(mode, ordinal);
+    }
+
     private static int color(Node node, int fallback) {
         var value = node.attributes().get("color");
         if (value == null)
             return fallback;
-        if (!value.matches("#[0-9a-fA-F]{6}"))
-            throw error(node, "color must be #RRGGBB");
-        return Integer.parseInt(value.substring(1), 16);
+        try {
+            return MachineColors.parse(value);
+        } catch (IllegalArgumentException ex) {
+            throw error(node, ex.getMessage());
+        }
     }
 
     public static ScreenException error(Node node, String message) {

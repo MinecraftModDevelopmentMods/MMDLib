@@ -28,6 +28,7 @@ import static zone.moddev.mc.lib.gui.load.BuiltinElements.POPOUT;
 import static zone.moddev.mc.lib.gui.load.BuiltinElements.PROGRESS;
 import static zone.moddev.mc.lib.gui.load.BuiltinElements.RADIO;
 import static zone.moddev.mc.lib.gui.load.BuiltinElements.RADIO_GROUP;
+import static zone.moddev.mc.lib.gui.load.BuiltinElements.RECIPE_SELECTOR;
 import static zone.moddev.mc.lib.gui.load.BuiltinElements.SIDE_CONFIG;
 import static zone.moddev.mc.lib.gui.load.BuiltinElements.SIDE_TAB;
 import static zone.moddev.mc.lib.gui.load.BuiltinElements.SLOT;
@@ -113,6 +114,10 @@ final class BuiltinElementClients {
                 .renderer(ButtonRenderer::draw)
                 .behavior(ButtonBehavior::new),
             ElementClient.of(LABEL).renderer(TextControlRenderer::label),
+            ElementClient.of(RECIPE_SELECTOR).renderer(RecipeSelectorBehavior::render)
+                .renderer(ElementRenderers.Pass.TOP, ElementRenderers.Clip.VIEWPORT,
+                    RecipeSelectorBehavior::renderChooser)
+                .behavior(RecipeSelectorBehavior::new),
             ElementClient.of(CHECKBOX).renderer(TextControlRenderer::checkbox),
             ElementClient.of(RADIO).renderer(TextControlRenderer::radio)
                 .behavior(RadioBehavior::new),

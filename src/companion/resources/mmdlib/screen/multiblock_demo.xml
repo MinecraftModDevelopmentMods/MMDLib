@@ -1,0 +1,20 @@
+<screen xmlns="https://moddev.zone/mmdlib/screen" title="block.mmdlib_companion.multiblock_demo" title-fallback="Multiblock Test Bench"
+        block-entity="zone.moddev.mc.companion.MultiblockDemoEntity" extends="mmdlib:base_powered_machine">
+  <fill name="machine">
+    <hbox spacing="4" align="center">
+      <inventory storage="items"><item-slot id="storage" index="0"/></inventory>
+      <fluid-tank id="fluid" tank="0" length="3s"/>
+      <vbox spacing="4">
+        <label text="screen.mmdlib_companion.structure" text-fallback="Status in Info tab"/>
+        <label text="screen.mmdlib_companion.operations" text-fallback="Active ticks" value="#getOperations"
+               tooltip="screen.mmdlib_companion.operations.tip" tooltip-fallback="Active ticks: {value}"/>
+      </vbox>
+    </hbox>
+  </fill>
+  <fill name="inventory_controls"/>
+  <fill name="info">
+    <popout id="info" kind="info" edge="left" text="screen.mmdlib_companion.multiblock.info"
+            text-fallback="Keep the block above the middle part clear. Breaking any part dismantles this machine."
+            value="#getStructureStatus"/>
+  </fill>
+</screen>

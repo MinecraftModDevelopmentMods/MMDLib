@@ -151,7 +151,7 @@ public final class ResourceGroup<T> {
 
     /** Checked compare-and-set: concurrent viewers cannot cycle a newer value accidentally. */
     public boolean cycle(RelativeFace face, IoMode expected, boolean reverse) {
-        if (sides.get(face) != expected)
+        if (!sides.faceAvailable(face) || sides.get(face) != expected)
             return false;
         sides.set(face, next(expected, reverse));
         return true;

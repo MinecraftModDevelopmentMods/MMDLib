@@ -12,7 +12,14 @@ apply from: 'gradle/import-blocks.gradle'
 
 def env = System.getenv()
 def tag = providers.environmentVariable('TAG')
-version = tag.orElse("${mod_version}-development").get()
+def localMavenRepo = providers.gradleProperty('mmdlibLocalRepo').filter { !it.isBlank() }
+def useLocalMaven = providers.gradleProperty('mmdlibUseLocal').map { it.toBoolean() }
+        .getOrElse(true) && localMavenRepo.isPresent()
+def developmentVersion = useLocalMaven
+        ? providers.gradleProperty('mmdlibLocalVersion').getOrElse("${mod_version}-development")
+        : "${mod_version}-development"
+// Release tags always win over machine-local development settings.
+version = tag.orElse(developmentVersion).get()
 group = mod_group
 
 base {
@@ -172,10 +179,11 @@ publishing {
                 }
             }
         }
-        // Local inspection: `./gradlew publishAllPublicationsToLocalRepository` writes to mcmodsrepo/.
+        // Shared dev repository from ~/.gradle/gradle.properties; defaults to mcmodsrepo/.
+        // Publish only locally with: ./gradlew publishAllPublicationsToLocalRepository
         maven {
             name = 'local'
-            url = layout.projectDirectory.dir('mcmodsrepo')
+            url = useLocalMaven ? uri(localMavenRepo.get()) : layout.projectDirectory.dir('mcmodsrepo')
         }
     }
 }

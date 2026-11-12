@@ -42,6 +42,7 @@ public final class MachineResources {
     private final Map<String, Binding> bindings = new LinkedHashMap<>();
     private final Map<String, List<Binding>> recipeBindings = new LinkedHashMap<>();
     private final Map<String, Set<MachineRecipeType>> inputTypes = new LinkedHashMap<>();
+    private final Map<String, SlotGroup> recipeOnly = new LinkedHashMap<>();
     private MachineInventory recipes;
     private AutomationInventory automation;
 
@@ -162,6 +163,15 @@ public final class MachineResources {
         return this;
     }
 
+    /** Adds an internal recipe group without exposing physical automation slots. */
+    public MachineResources recipeOnlyGroup(String key, SlotGroup group) {
+        ensureOpen();
+        if (key == null || key.isBlank() || recipeBindings.containsKey(key)
+            || recipeOnly.putIfAbsent(key, Objects.requireNonNull(group)) != null)
+            throw invalid(key, "duplicate or empty recipe-only group");
+        return this;
+    }
+
     /** Freezes the definitions and installs reload-aware recipe input filters. */
     public MachineResources build() {
         ensureOpen();
@@ -180,6 +190,7 @@ public final class MachineResources {
                         : StorageGroups.energy((EnergyBuffer) storage);
                 builder.group(key, group);
             });
+        recipeOnly.forEach(builder::group);
         recipes = builder.build();
         automation = new AutomationInventory(owner,
             bindings.values().stream().map(Binding::group).toList());

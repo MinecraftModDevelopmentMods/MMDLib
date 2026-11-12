@@ -339,6 +339,13 @@ public final class StorageGroups {
 
     private record EnergyStore(EnergyBuffer buffer) implements EnergyGroup {
         @Override
+        public long revision() {
+            // Stored FE is the energy group's only recipe-matching input. Returning to the same
+            // amount leaves a failed match unchanged; a refill must bypass the idle retry delay.
+            return buffer.stored();
+        }
+
+        @Override
         public Object statisticsResource() {
             return buffer;
         }

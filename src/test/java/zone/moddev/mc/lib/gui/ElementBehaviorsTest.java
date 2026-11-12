@@ -43,6 +43,48 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 
 /** Mod types outside the implementation package exercise the public contracts. */
 class ElementBehaviorsTest {
+    @Test
+    void transientChooserOwnsHitsOutsideItsSlotAndConsumesDismissal() {
+        var slot = new ModElement(Common.empty());
+        var underlying = new ModElement(Common.empty());
+        int[] clicks = {0, 0};
+        boolean[] open = {true};
+        var chooser = new ElementBehavior() {
+            public Optional<Rect> overlayBounds() {
+                return open[0] ? Optional.of(new Rect(0, 20, 58, 22)) : Optional.empty();
+            }
+            public void dismissOverlay() {
+                open[0] = false;
+            }
+            public Click mouseClicked(double x, double y, int button) {
+                clicks[0]++;
+                return Click.CONSUME;
+            }
+        };
+        var other = new ElementBehavior() {
+            public Click mouseClicked(double x, double y, int button) {
+                clicks[1]++;
+                return Click.CONSUME;
+            }
+        };
+        var input = new ElementInput<>(List.of(slot, underlying),
+            e -> e == slot ? chooser : other, e -> true,
+            e -> e == slot ? new Rect(0, 0, 18, 18) : new Rect(0, 20, 100, 40));
+        input.update();
+        assertEquals(slot, input.hit(30, 25));
+        assertTrue(input.click(30, 25, 0));
+        assertEquals(1, clicks[0]);
+        assertEquals(0, clicks[1]);
+        assertTrue(input.click(90, 25, 0));
+        assertEquals(0, clicks[1]);
+        assertNull(input.overlayOwner());
+        assertTrue(input.click(90, 25, 0));
+        assertEquals(1, clicks[1]);
+        open[0] = true;
+        assertTrue(input.keyPressed(256, 0, 0));
+        assertNull(input.overlayOwner());
+    }
+
     interface Family extends Element {
     }
 

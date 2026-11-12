@@ -96,6 +96,14 @@ neoForge {
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
             systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib_companion'
         }
+        multiblockClientSmoke {
+            client()
+            gameDirectory = layout.buildDirectory.dir('multiblock-client-smoke')
+            sourceSet = sourceSets.companionTest
+            loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
+            systemProperty 'mmdlib.multiblockSmoke', 'true'
+            programArguments.addAll '--width', '1280', '--height', '960'
+        }
         simpleCrusherClientSmoke {
             client()
             gameDirectory = layout.buildDirectory.dir('simple-crusher-client-smoke')
@@ -158,6 +166,19 @@ companionTests.configureEach {
     }
 }
 tasks.named('check') { dependsOn companionTests, companionJar }
+
+tasks.matching { it.name == 'runMultiblockClientSmoke' }.configureEach {
+    doFirst {
+        def smokeDir = layout.buildDirectory.dir('multiblock-client-smoke').get().asFile
+        smokeDir.mkdirs()
+        new File(smokeDir, 'options.txt').text = 'guiScale:2\nmaxFps:30\nonboardAccessibility:false\npauseOnLostFocus:false\n'
+    }
+    doLast {
+        def log = layout.buildDirectory.file('multiblock-client-smoke/logs/latest.log').get().asFile
+        if (!log.exists() || !log.text.contains('MULTIBLOCK_CLIENT_PASS') || log.text.contains('MULTIBLOCK_CLIENT_FAIL'))
+            throw new GradleException('Multiblock client smoke failed; inspect ' + log)
+    }
+}
 
 tasks.matching { it.name == 'runCompanionClientSmoke' }.configureEach {
     doFirst {

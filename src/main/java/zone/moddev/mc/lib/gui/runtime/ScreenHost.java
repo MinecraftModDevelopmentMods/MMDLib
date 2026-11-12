@@ -11,6 +11,17 @@ import zone.moddev.mc.lib.api.capabilities.SideConfig;
 
 /** Implement on a block entity to expose its inventory and side groups to a data-defined menu. */
 public interface ScreenHost {
+    /** Validated physical interaction anchor; single-block hosts keep their existing position. */
+    default boolean screenInteractionAnchor(net.minecraft.core.BlockPos anchor) {
+        return this instanceof net.minecraft.world.level.block.entity.BlockEntity entity
+            && entity.getBlockPos().equals(anchor);
+    }
+
+    /** A changing formation identity invalidates previously opened member-anchored sessions. */
+    default String screenInteractionIdentity(net.minecraft.core.BlockPos anchor) {
+        return "";
+    }
+
     /**
      * The inventory behind the screen's {@code <slot index>} elements, numbered as in the XML;
      * returning an {@code ItemStorage} keeps its output restrictions and filters for players. It

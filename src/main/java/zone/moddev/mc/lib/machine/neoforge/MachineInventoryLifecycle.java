@@ -142,13 +142,19 @@ public final class MachineInventoryLifecycle {
     }
 
     public void tick(boolean processingAllowed, boolean paused, PausePolicy policy) {
+        tick(processingAllowed, paused, policy, true);
+    }
+
+    /** Structure availability gates transfers separately from redstone's pause policy. */
+    public void tick(boolean processingAllowed, boolean paused, PausePolicy policy,
+        boolean structureReady) {
         var level = owner.getLevel();
         if (level == null || level.isClientSide)
             return;
         features.tick(level, processingAllowed && policy.processingEnabled(paused));
         // Refunds are already owed; a pause must not prevent their return.
         automation.settleRefund(power);
-        if (policy.transfersEnabled(paused))
+        if (structureReady && policy.transfersEnabled(paused))
             AutomationTransfers.tick(automation, power);
     }
 

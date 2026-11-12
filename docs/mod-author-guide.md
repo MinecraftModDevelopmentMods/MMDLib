@@ -3,6 +3,9 @@
 This guide targets this checkout of MMDLib on **NeoForge 1.21.1 / Java 21**.
 The example material is `example:orichalcum`. Substitute your mod ID for `example`.
 
+For building a consuming mod against your working checkout without waiting for CI,
+see [local Maven development](local-development.md).
+
 ## What “all features” currently means
 
 A material JSON file describes item, block, projectile, block-entity, and fluid
@@ -19,6 +22,9 @@ forms. Powered item-processing machines can use [XML definitions](xml-machines.m
 including inherited storage, generated screens and dynamic recipes. More specialized
 machines and custom world entities use their dedicated typed factory APIs.
 The manual wiring below remains an alternative; do not queue objects twice.
+
+Java machines spanning several blocks can use [multiblock placement and lifecycle](multiblocks.md),
+with one controller, linked physical parts and guarded resource ports.
 
 ## 1. Lay out the data
 
