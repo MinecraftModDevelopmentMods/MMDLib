@@ -53,7 +53,8 @@ public final class MultiblockDemoEntity extends BasePoweredMachine
                     items.dropAll(level, worldPosition,
                         payload -> recoverResources(level, worldPosition,
                             payload));
-                    if (cause == MultiblockInstance.Cause.SURVIVAL)
+                    if (cause == MultiblockInstance.Cause.SURVIVAL
+                        || cause == MultiblockInstance.Cause.EXPLOSION)
                         net.minecraft.world.Containers.dropItemStack(level,
                             worldPosition.getX() + .5,
                             worldPosition.getY() + .5,
@@ -105,6 +106,14 @@ public final class MultiblockDemoEntity extends BasePoweredMachine
         fluids.deserializeNBT(registries, tag.getCompound("fluids"));
         operations = tag.getInt("operations");
     }
+    @Override
+    public void dropContents(Level world, BlockPos pos) {
+        features.reset();
+        items.dropAll(world, pos,
+            payload -> recoverResources(world, pos, payload));
+        super.dropContents(world, pos);
+    }
+
     @Override
     protected void recoverResources(Level world, BlockPos pos,
         CompoundTag payload) {

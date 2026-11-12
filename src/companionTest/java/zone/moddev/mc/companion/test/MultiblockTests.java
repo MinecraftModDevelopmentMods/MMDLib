@@ -39,6 +39,93 @@ import zone.moddev.mc.lib.machine.neoforge.MultiblockPorts;
 @GameTestHolder("mmdlib_companion")
 @PrefixGameTestTemplate(false)
 public final class MultiblockTests {
+    @GameTest(template = "empty")
+    public static void capabilityQueriesDoNotValidateOrDismantle(
+        GameTestHelper helper) {
+        var base = MultiblockDemo.definition();
+        int[] validations = {0};
+        var definition = new zone.moddev.mc.lib.machine.multiblock.MultiblockDefinition(
+            base.id(), base.version(), base.resolver(), base.maxMembers(),
+            base.maxExtent(), base.dismantling(),
+            Map.of("clearance", (world, position) -> {
+                validations[0]++;
+                return world.getBlockState(position).isAir();
+            }), base.ports());
+        var level = helper.getLevel();
+        var pos = origin(helper);
+        var candidate = ((zone.moddev.mc.lib.machine.multiblock.FixedLayout) base
+            .resolver()).structure();
+        for (var member : candidate.members())
+            level.setBlock(pos.offset(member.offset()), member.state(), 3);
+        var entity = new MultiblockDemoEntity(pos, level.getBlockState(pos),
+            definition);
+        level.setBlockEntity(entity);
+        require(entity.multiblock().form(candidate, Direction.NORTH),
+            "Fixture forms");
+        validations[0] = 0;
+        entity.serverTick();
+        require(validations[0] == 1, "Controller validates once per tick");
+        var socket = level.getBlockEntity(socket(entity));
+        var items = MultiblockPorts.items(socket, Direction.NORTH);
+        var fluid = MultiblockPorts.fluids(socket, Direction.NORTH);
+        var energy = MultiblockPorts.energy(socket, Direction.NORTH);
+        for (int i = 0; i < 10; i++) {
+            require(entity.multiblock().ready(),
+                "Ready snapshot remains readable");
+            items.getSlots();
+            items.getStackInSlot(0);
+            items.insertItem(0, new ItemStack(Items.IRON_INGOT), true);
+            fluid.fill(new FluidStack(Fluids.WATER, 10),
+                IFluidHandler.FluidAction.SIMULATE);
+            energy.receiveEnergy(10, true);
+        }
+        require(validations[0] == 1,
+            "Capability reads/transfers never revalidate");
+        // A broken reciprocal link is discovered by the lifecycle, not a
+        // neighboring handler.
+        ((zone.moddev.mc.lib.machine.multiblock.LinkedMember) level
+            .getBlockEntity(pos.east())).memberLink(null);
+        items.getSlots();
+        items.getStackInSlot(0);
+        require(level.getBlockEntity(pos) == entity,
+            "Capability query cannot dismantle the owner");
+        entity.serverTick();
+        require(level.getBlockState(pos).isAir(),
+            "Lifecycle detects invalid membership");
+        require(items.getSlots() == 0 && energy.receiveEnergy(10, false) == 0,
+            "Retained handlers become inert after teardown");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void explosionDropsOnePackagedMachineAndItsContents(
+        GameTestHelper helper) {
+        var entity = place(helper, Direction.NORTH);
+        var level = helper.getLevel();
+        entity.items.insertItem(0, new ItemStack(Items.DIAMOND, 3), false);
+        var pos = socket(entity);
+        var state = level.getBlockState(pos);
+        var explosion = new net.minecraft.world.level.Explosion(level, null,
+            pos.getX(), pos.getY(), pos.getZ(), 1, false,
+            net.minecraft.world.level.Explosion.BlockInteraction.DESTROY);
+        state.getBlock().onBlockExploded(state, level, pos, explosion);
+        var drops = level.getEntitiesOfClass(
+            net.minecraft.world.entity.item.ItemEntity.class,
+            new net.minecraft.world.phys.AABB(origin(helper)).inflate(3));
+        require(
+            drops.stream()
+                .filter(e -> e.getItem().is(MultiblockDemo.ITEM.get()))
+                .mapToInt(e -> e.getItem().getCount()).sum() == 1,
+            "Explosion awards one machine item");
+        require(
+            drops.stream().filter(e -> e.getItem().is(Items.DIAMOND))
+                .mapToInt(e -> e.getItem().getCount()).sum() == 3,
+            "Explosion drops contents once");
+        require(level.getBlockState(origin(helper)).isAir(),
+            "Explosion dismantles the structure");
+        helper.succeed();
+    }
+
     @GameTest(template = "empty", timeoutTicks = 200)
     public static void unavailableChunkSuspendsWithoutLoadingAndResumesSameIdentity(
         GameTestHelper helper) {
@@ -140,6 +227,22 @@ public final class MultiblockTests {
             "Explicit reformation succeeds");
         require(!oldIdentity.equals(entity.multiblock().formation()),
             "Reformation has a new identity");
+        var player = helper
+            .makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+        var state = level.getBlockState(pos);
+        state.getBlock().playerWillDestroy(level, pos, state, player);
+        level.removeBlock(pos, false);
+        var drops = level.getEntitiesOfClass(
+            net.minecraft.world.entity.item.ItemEntity.class,
+            new net.minecraft.world.phys.AABB(pos).inflate(3));
+        require(
+            drops.stream().filter(e -> e.getItem().is(Items.GOLD_INGOT))
+                .mapToInt(e -> e.getItem().getCount()).sum() == 4,
+            "Breaking a leave-blocks controller drops its retained contents exactly once");
+        require(
+            drops.stream()
+                .noneMatch(e -> e.getItem().is(MultiblockDemo.ITEM.get())),
+            "A player-built structure does not award a packaged machine");
         helper.succeed();
     }
 
@@ -373,7 +476,8 @@ public final class MultiblockTests {
             restored.multiblock().ready()
                 && formation.equals(restored.multiblock().formation()),
             "Reload verifies existing identity");
-        saved.getCompound("multiblock").putInt("version", 999);
+        saved.getCompound("mmdlib_machine").getCompound("multiblock")
+            .putInt("version", 999);
         var incompatible = (MultiblockDemoEntity) BlockEntity.loadStatic(
             entity.getBlockPos(), entity.getBlockState(), saved,
             level.registryAccess());
@@ -383,10 +487,9 @@ public final class MultiblockTests {
             "Changed definition is inactive");
         require(incompatible.items.getStackInSlot(0).getCount() == 7
             && incompatible.energy.stored() == 700, "Resources retained");
-        require(
-            incompatible.saveWithFullMetadata(level.registryAccess())
-                .getCompound("multiblock").getInt("version") == 999,
-            "Unknown manifest preserved");
+        require(incompatible.saveWithFullMetadata(level.registryAccess())
+            .getCompound("mmdlib_machine").getCompound("multiblock")
+            .getInt("version") == 999, "Unknown manifest preserved");
         helper.succeed();
     }
 

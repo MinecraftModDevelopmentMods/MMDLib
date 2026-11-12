@@ -49,6 +49,38 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void originalConstructorRetainsAutomaticCubeDefaults() throws Exception {
+        write(crusher());
+        var d = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        var compatible = new MachineDefinition(d.id(), d.checksum(), d.name(),
+            d.hardness(), d.mineable(), d.requiresTool(), d.textures(),
+            d.power(), d.fluids(), d.itemStorageId(), d.slots(), d.groups(),
+            d.recipeType(), d.processor(), d.processorName(), d.redstone(),
+            d.screen());
+        assertEquals(d, compatible);
+        assertNull(compatible.baseModel());
+        assertNull(compatible.recipeSelection());
+        assertTrue(compatible.ghosts().isEmpty());
+    }
+
+    @Test
+    void newMetadataDoesNotReserveExistingStorageNames() throws Exception {
+        for (var key : List.of("multiblock", "multiblock_view",
+            "mmdlib_ghost_items")) {
+            write(crusher().replace("<items id=\"items\">",
+                "<items id=\"" + key + "\">"));
+            assertEquals(key, MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher")).itemStorageId());
+            write(crusher().replace("<items id=\"items\">", "<fluids id=\""
+                + key
+                + "\"><tank id=\"water\" role=\"input\" capacity=\"1000\"/></fluids><items id=\"items\">"));
+            assertEquals(key, MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher")).fluids().id());
+        }
+    }
+
+    @Test
     void recipePresentationOnlyMarksGhostInputsSharedByItsMachines()
         throws Exception {
         write(crusher());

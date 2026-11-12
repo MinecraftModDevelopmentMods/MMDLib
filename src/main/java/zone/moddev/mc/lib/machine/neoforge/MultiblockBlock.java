@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
+import zone.moddev.mc.lib.common.runtime.DropsContents;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 import zone.moddev.mc.lib.machine.multiblock.MultiblockController;
 import zone.moddev.mc.lib.machine.multiblock.MultiblockInstance;
@@ -104,6 +106,18 @@ public class MultiblockBlock extends Block implements EntityBlock {
         return super.playerWillDestroy(level, pos, state, player);
     }
     @Override
+    public void onBlockExploded(BlockState state, Level level, BlockPos pos,
+        Explosion explosion) {
+        if (!level.isClientSide) {
+            var instance = MultiblockMembers.resolve(level, pos);
+            if (instance != null)
+                instance.dismantle(MultiblockInstance.Cause.EXPLOSION);
+        }
+        if (level.getBlockState(pos).is(state.getBlock()))
+            super.onBlockExploded(state, level, pos, explosion);
+    }
+
+    @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos,
         BlockState replacement, boolean moved) {
         if (!state.is(replacement.getBlock()) && !level.isClientSide
@@ -121,7 +135,8 @@ public class MultiblockBlock extends Block implements EntityBlock {
                 && controller.multiblock().contains(pos, link))
                 instance = controller.multiblock();
             if (instance != null)
-                instance.dismantle(MultiblockInstance.Cause.RECOVERY);
+                instance.dismantle(MultiblockInstance.Cause.INVALIDATED);
+            DropsContents.onRemove(state, level, pos, replacement);
         }
         super.onRemove(state, level, pos, replacement, moved);
     }

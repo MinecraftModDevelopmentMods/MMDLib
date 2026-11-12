@@ -76,7 +76,7 @@ Declare a sample-only inventory alongside ordinary item storage:
 `<slot id="input" count="1" role="input" type="ghost"/>` also works; `count`
 is optional on the singular form. Ghost inventories require `role="input"`, have
 one-item samples rather than stack limits, and are included in the 54-slot limit.
-`default-item` is optional; without it the initial sample is empty. Ordinary slots
+`default-item` is optional; without it the initial sample is empty. Unknown items and `minecraft:air` are rejected during startup after item registration, with the machine and ghost group identified. Ordinary slots
 retain their default `type="item"` behavior.
 
 Recipes use normal item ingredients; the storage type supplies the non-consuming
@@ -100,12 +100,12 @@ An explicit screen can use `<inventory storage="input"><ghost-slot index="0"/></
 No picker, recipe ID selection or special output rule is required. `filter-inputs`
 continues to list physical admission-filter groups, excluding ghost inventories.
 
-Ghost samples are persisted and synchronized separately from real items. They do
+Ghost samples are persisted under `mmdlib_machine.mmdlib_ghost_items` and synchronized separately from real items. Existing item/fluid storage names remain available; earlier flat ghost saves migrate when that key is not a real storage ID. They do
 not allocate physical capability slots or automation groups, and never enter drops
 or recovery capsules. Recipes may match them but cannot produce into them. Samples
 are checked when starting a cycle and excluded from its reservations and consumption.
 Changing or clearing a sample affects the next cycle, including when the old cycle
-is paused and later resumes. Counts and tags use the usual item ingredient matcher.
+is paused and later resumes. Counts and tags use the usual item ingredient matcher. Total requested item counts in a ghost group cannot exceed its number of sample slots; impossible counts fail recipe loading. Several matching samples can jointly satisfy a count greater than one.
 As with other input recipes, overlapping matches follow normal recipe lookup rules.
 
 ## Explicit recipe selection

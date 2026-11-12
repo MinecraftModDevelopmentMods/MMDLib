@@ -265,7 +265,7 @@ public final class MultiblockInstance {
             }
         }
         if (!matchesAll()) {
-            dismantle(Cause.RECOVERY);
+            dismantle(Cause.INVALIDATED);
             return;
         }
         for (var rule : structure.requirements()) {
@@ -278,8 +278,11 @@ public final class MultiblockInstance {
         transition(Status.READY, "ready");
     }
 
+    /**
+     * Last lifecycle validation result; capability queries never tick or
+     * dismantle.
+     */
     public boolean ready() {
-        tick();
         return committed && !changing && status == Status.READY
             && !owner.isRemoved();
     }

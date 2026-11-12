@@ -310,8 +310,11 @@ public abstract class BaseMachine extends BlockEntity
         if (redstone != null)
             tag.put("redstone_control", redstone.save(registries));
         saveMachineData(tag, registries);
-        if (multiblock() != null)
-            tag.put("multiblock", multiblock().save());
+        if (multiblock() != null) {
+            var metadata = tag.getCompound(CLIENT_DATA);
+            metadata.put("multiblock", multiblock().save());
+            tag.put(CLIENT_DATA, metadata);
+        }
     }
 
     @Override
@@ -319,8 +322,8 @@ public abstract class BaseMachine extends BlockEntity
         HolderLookup.Provider registries) {
         if (FeatureSync.read(features, tag, registries)) {
             if (multiblock() != null && (level == null || level.isClientSide))
-                multiblock()
-                    .readClientState(tag.getCompound("multiblock_view"));
+                multiblock().readClientState(tag.getCompound(CLIENT_DATA)
+                    .getCompound("multiblock_view"));
             var redstone = screenRedstone();
             if (redstone != null
                 && tag.contains("redstone_control", Tag.TAG_COMPOUND))
@@ -353,8 +356,12 @@ public abstract class BaseMachine extends BlockEntity
             }
         }
         loadMachineData(tag, registries);
-        if (multiblock() != null)
-            multiblock().load(tag.getCompound("multiblock"), registries);
+        if (multiblock() != null) {
+            var metadata = tag.getCompound(CLIENT_DATA);
+            multiblock().load(metadata.contains("multiblock")
+                ? metadata.getCompound("multiblock")
+                : tag.getCompound("multiblock"), registries);
+        }
     }
 
     @Override
@@ -367,7 +374,7 @@ public abstract class BaseMachine extends BlockEntity
         saveClientData(clientData, registries);
         tag.put(CLIENT_DATA, clientData);
         if (multiblock() != null)
-            tag.put("multiblock_view", multiblock().clientState());
+            clientData.put("multiblock_view", multiblock().clientState());
         return tag;
     }
 

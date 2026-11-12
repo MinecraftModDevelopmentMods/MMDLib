@@ -244,13 +244,31 @@ public class RecipeSelectorElement implements SynchronizedElement {
         result.putString("reason", match.reason().name());
         result.putString("group", match.group() == null ? "" : match.group());
         result.putInt("time", recipe.time());
+        long energy = recipe.inputs().values().stream().flatMap(List::stream)
+            .filter(MachineIngredient.EnergyPart.class::isInstance)
+            .mapToLong(MachineIngredient::amount).sum();
+        var costs = costs(recipe);
+        result.putLong("energy", energy);
+        var details = new ListTag();
+        costs.stream().limit(32)
+            .forEach(cost -> details.add(StringTag.valueOf(cost)));
+        result.put("costs", details);
+        return result;
+    }
+
+    static List<String> costs(
+        zone.moddev.mc.lib.machine.recipe.MachineRecipe recipe) {
         var costs = new ArrayList<String>();
-        long energy = 0;
         for (var group : recipe.inputs().entrySet()) {
             for (var input : group.getValue()) {
-                if (input instanceof MachineIngredient.EnergyPart power) {
-                    energy += power.amount();
+                if (input instanceof MachineIngredient.EnergyPart) {
+                    continue;
                 } else if (input instanceof MachineIngredient.FluidPart fluid) {
+                    if (!fluid.consumed()) {
+                        costs.add(group.getKey() + ": " + fluid.amount()
+                            + " mB required, 0 mB consumed");
+                        continue;
+                    }
                     // A return cannot be subtracted separately from several
                     // input claims.
                     // Describe complex recipes literally instead of inventing a
@@ -283,12 +301,7 @@ public class RecipeSelectorElement implements SynchronizedElement {
                 }
             }
         }
-        result.putLong("energy", energy);
-        var details = new ListTag();
-        costs.stream().limit(32)
-            .forEach(cost -> details.add(StringTag.valueOf(cost)));
-        result.put("costs", details);
-        return result;
+        return List.copyOf(costs);
     }
 
     @Override

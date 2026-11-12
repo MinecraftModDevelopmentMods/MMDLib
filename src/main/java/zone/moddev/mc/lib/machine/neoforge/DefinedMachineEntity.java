@@ -43,6 +43,9 @@ public final class DefinedMachineEntity extends BaseMachine {
         MachineRecipeType recipes) {
         super(type, pos, state);
         this.definition = definition;
+        // Startup validates registered XML; keep direct Java construction
+        // equally strict.
+        MachineContent.validateResources(definition);
         var power = definition.power();
         energy = power == null
             ? null
@@ -112,9 +115,6 @@ public final class DefinedMachineEntity extends BaseMachine {
             var samples = new zone.moddev.mc.lib.machine.inventory.GhostItemGroup(
                 ghost.count());
             if (ghost.defaultItem() != null) {
-                if (!BuiltInRegistries.ITEM.containsKey(ghost.defaultItem()))
-                    throw new IllegalArgumentException(
-                        "Unknown ghost default item " + ghost.defaultItem());
                 for (int i = 0; i < ghost.count(); i++)
                     samples.set(i, new net.minecraft.world.item.ItemStack(
                         BuiltInRegistries.ITEM.get(ghost.defaultItem())));
@@ -221,7 +221,9 @@ public final class DefinedMachineEntity extends BaseMachine {
     @Override
     protected void saveMachineData(CompoundTag tag,
         net.minecraft.core.HolderLookup.Provider registries) {
-        saveGhosts(tag, registries);
+        var metadata = tag.getCompound("mmdlib_machine");
+        saveGhosts(metadata, registries);
+        tag.put("mmdlib_machine", metadata);
     }
 
     @Override
@@ -236,13 +238,21 @@ public final class DefinedMachineEntity extends BaseMachine {
             for (int i = 0; i < ghost.count(); i++)
                 ghosts.get(ghost.id()).set(i, sample);
         }
-        readGhosts(tag, registries);
+        var metadata = tag.getCompound("mmdlib_machine");
+        // Pre-release ghost saves used a top-level key which could also be a
+        // consumer storage ID.
+        if (!metadata.contains("mmdlib_ghost_items")
+            && !definition.itemStorageId().equals("mmdlib_ghost_items")
+            && (definition.fluids() == null
+                || !definition.fluids().id().equals("mmdlib_ghost_items")))
+            metadata = tag;
+        readGhosts(metadata, registries);
         // Migrate the earlier output selector, including an explicitly cleared
         // selection.
         var old = tag.getCompound("features")
             .getCompound(definition.processor());
-        if (!tag.contains("mmdlib_ghost_items") && old.contains("selection")
-            && ghosts.size() == 1
+        if (!metadata.contains("mmdlib_ghost_items")
+            && old.contains("selection") && ghosts.size() == 1
             && ghosts.values().iterator().next().size() == 1) {
             var id = ResourceLocation
                 .tryParse(old.getCompound("selection").getString("recipe"));

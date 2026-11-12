@@ -82,7 +82,23 @@ public record MachineDefinition(ResourceLocation id, String checksum,
             slots, groups, recipeType, processor, processorName, redstone,
             screen, null);
     }
-    /** Cube-front configuration retained for existing Java callers. */
+    /**
+     * Original 2.0.x constructor, with automatic recipes and no optional
+     * visuals or ghosts.
+     */
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            null, List.of(), List.of(), power, fluids, itemStorageId, slots,
+            groups, recipeType, processor, processorName, redstone, screen,
+            null, List.of());
+    }
+
+    /** Cube-front configuration with conditional parts and textures. */
     public MachineDefinition(ResourceLocation id, String checksum, String name,
         float hardness, ResourceLocation mineable, boolean requiresTool,
         Map<String, String> textures, List<ConditionalModelPart> modelParts,

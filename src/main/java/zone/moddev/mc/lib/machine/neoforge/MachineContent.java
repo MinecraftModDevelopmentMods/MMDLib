@@ -177,15 +177,7 @@ public final class MachineContent {
         // Capabilities register after fluids, including fluids supplied by
         // other installed mods.
         for (var definition : definitions.values())
-            if (definition.fluids() != null)
-                for (var tank : definition.fluids().tanks())
-                    if (tank.fluid() != null
-                        && (!BuiltInRegistries.FLUID.containsKey(tank.fluid())
-                            || BuiltInRegistries.FLUID
-                                .get(tank.fluid()) == Fluids.EMPTY))
-                        throw new IllegalArgumentException(
-                            definition.id() + ": unknown or empty fluid "
-                                + tank.fluid() + " in tank " + tank.id());
+            validateResources(definition);
         for (var type : entities.values()) {
             event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type,
                 (entity,
@@ -207,4 +199,24 @@ public final class MachineContent {
                             .mode(ResourceType.ENERGY, 0, side)));
         }
     }
+    static void validateResources(MachineDefinition definition) {
+        for (var ghost : definition.ghosts())
+            if (ghost.defaultItem() != null && (!BuiltInRegistries.ITEM
+                .containsKey(ghost.defaultItem())
+                || BuiltInRegistries.ITEM.get(
+                    ghost.defaultItem()) == net.minecraft.world.item.Items.AIR))
+                throw new IllegalArgumentException(definition.id()
+                    + ": unknown or empty default item " + ghost.defaultItem()
+                    + " in ghost group " + ghost.id());
+        if (definition.fluids() != null)
+            for (var tank : definition.fluids().tanks())
+                if (tank.fluid() != null
+                    && (!BuiltInRegistries.FLUID.containsKey(tank.fluid())
+                        || BuiltInRegistries.FLUID
+                            .get(tank.fluid()) == Fluids.EMPTY))
+                    throw new IllegalArgumentException(
+                        definition.id() + ": unknown or empty fluid "
+                            + tank.fluid() + " in tank " + tank.id());
+    }
+
 }

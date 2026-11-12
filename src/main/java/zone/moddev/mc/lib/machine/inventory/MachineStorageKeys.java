@@ -6,8 +6,7 @@ import java.util.Set;
 public final class MachineStorageKeys {
     public static final Set<String> RESERVED = Set.of("automation", "features",
         "redstone_control", "redstone_mode", "id", "components",
-        "mmdlib_features", "mmdlib_machine", "mmdlib_ghost_items", "multiblock",
-        "multiblock_view");
+        "mmdlib_features", "mmdlib_machine");
 
     private MachineStorageKeys() {
     }
