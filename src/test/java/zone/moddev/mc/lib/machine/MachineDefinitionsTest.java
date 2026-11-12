@@ -74,7 +74,7 @@ class MachineDefinitionsTest {
                 .get(ResourceLocation.parse("test:crusher")).itemStorageId());
             write(crusher().replace("<items id=\"items\">", "<fluids id=\""
                 + key
-                + "\"><tank id=\"water\" role=\"input\" capacity=\"1000\"/></fluids><items id=\"items\">"));
+                + "\"><tank id=\"water\" role=\"output\" capacity=\"1000\"/></fluids><items id=\"items\">"));
             assertEquals(key, MachineDefinitions.load(sources())
                 .get(ResourceLocation.parse("test:crusher")).fluids().id());
         }
