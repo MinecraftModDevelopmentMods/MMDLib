@@ -42,14 +42,10 @@ public final class ScreenBinder {
     /**
      * A screen with its getters resolved.
      *
-     * @param screen
-     *            the screen
-     * @param blockEntityClass
-     *            the class every getter accepts
-     * @param values
-     *            each element's {@code value} getter, by element identity
-     * @param maxima
-     *            each element's {@code max} getter, by element identity
+     * @param screen the screen
+     * @param blockEntityClass the class every getter accepts
+     * @param values each element's {@code value} getter, by element identity
+     * @param maxima each element's {@code max} getter, by element identity
      */
     public record Bound(Screen screen, Class<?> blockEntityClass,
         Map<Element, BoundValue> values, Map<Element, BoundValue> maxima) {
@@ -58,12 +54,10 @@ public final class ScreenBinder {
     /**
      * Resolves every getter of {@code screen}.
      *
-     * @param loader
-     *            the class loader of the mod that owns the screen file
-     * @throws ScreenException
-     *             naming the file and line, if a class or method is missing, is
-     *             not public, has the wrong shape, or returns a kind the
-     *             element cannot show
+     * @param loader the class loader of the mod that owns the screen file
+     * @throws ScreenException naming the file and line, if a class or method is
+     *             missing, is not public, has the wrong shape, or returns a
+     *             kind the element cannot show
      */
     public static Bound bind(Screen screen, ClassLoader loader) {
         return bind(screen, loader, WidgetTypes.GLOBAL);

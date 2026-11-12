@@ -83,6 +83,17 @@ dependencies {
     }
 }
 
+// CraftTweaker script API docs: the annotation processor writes pages for every
+// @Document-annotated script type to build/crafttweaker-docs, in the CraftTweaker
+// docs wiki's format (see docs/crafttweaker.md, "Generated API docs").
+def craftTweakerDocs = layout.buildDirectory.dir('crafttweaker-docs')
+tasks.named('compileJava', JavaCompile) {
+    options.compilerArgs.add(craftTweakerDocs.map {
+        "-Acrafttweaker.processor.document.output_directory=${it.asFile}"
+    }.get())
+    outputs.dir(craftTweakerDocs).withPropertyName('craftTweakerDocs')
+}
+
 neoForge {
     version = neoforge_version
 
@@ -216,6 +227,9 @@ apply from: 'scripts/companion.gradle'
 tasks.named('javadoc', Javadoc) {
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:all,-missing', '-quiet')
+    // The CraftTweaker script API is documented for CraftTweaker's wiki instead (its Javadoc
+    // holds script examples, such as <item:...> brackets); see docs/crafttweaker.md.
+    exclude 'zone/moddev/mc/lib/compat/CraftTweaker/**'
     options.links('https://docs.oracle.com/en/java/javase/21/docs/api/')
 }
 

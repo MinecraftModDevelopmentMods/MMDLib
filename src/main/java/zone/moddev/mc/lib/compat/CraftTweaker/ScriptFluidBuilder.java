@@ -3,6 +3,7 @@ package zone.moddev.mc.lib.compat.CraftTweaker;
 import java.util.Optional;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -18,17 +19,6 @@ import zone.moddev.mc.lib.common.types.StandaloneFluid;
  * {@code mmdlib/standalone/fluid} file: the fluid, its flowing form, a liquid
  * block and a bucket.
  *
- * <pre>{@code
- * #loader mmdlib
- * import mods.mmdlib.FluidBuilder;
- *
- * var chocolate = new FluidBuilder("chocolate");
- * chocolate.tint = 0xFF5C3A21;
- * chocolate.viscosity = 3000;
- * chocolate.canSwim = false;
- * chocolate.build();
- * }</pre>
- *
  * <p>
  * Values start from the module's template: {@code mmdlib:fluid} (the default),
  * a plain water-like liquid with water's textures, or another fluid module such
@@ -36,8 +26,11 @@ import zone.moddev.mc.lib.common.types.StandaloneFluid;
  * {@code mmdlib:<name>_bucket}; MMDLib generates the bucket model, the liquid
  * block's blockstate and English names. Textures are block-atlas textures, as
  * in fluid module files.
+ *
+ * @docParam this new FluidBuilder("chocolate")
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/fluids/FluidBuilder")
 @ZenCodeType.Name("mods.mmdlib.FluidBuilder")
 public final class ScriptFluidBuilder {
     private final ResourceLocation id;
@@ -50,7 +43,12 @@ public final class ScriptFluidBuilder {
     private boolean hasBucket;
     private String displayName = "";
 
-    /** Starts a plain fluid named {@code name}, a path such as "chocolate". */
+    /**
+     * Starts a plain fluid named {@code name}, a path such as "chocolate".
+     *
+     * @param name the fluid's path; its ID is {@code mmdlib:<name>}
+     * @docParam name "chocolate"
+     */
     @ZenCodeType.Constructor
     public ScriptFluidBuilder(String name) {
         this(name, "mmdlib:fluid");
@@ -58,10 +56,13 @@ public final class ScriptFluidBuilder {
 
     /**
      * Starts a fluid named {@code name} from the fluid module {@code module},
-     * such as {@code mmdlib:molten}.
+     * such as {@code mmdlib:molten}. It is an error if no fluid module {@code
+     * module} is registered.
      *
-     * @throws IllegalArgumentException
-     *             if no fluid module {@code module} is registered
+     * @param name the fluid's path; its ID is {@code mmdlib:<name>}
+     * @param module the fluid module's ID
+     * @docParam name "plasma"
+     * @docParam module "mmdlib:molten"
      */
     @ZenCodeType.Constructor
     public ScriptFluidBuilder(String name, String module) {
@@ -75,13 +76,22 @@ public final class ScriptFluidBuilder {
         hasBucket = base.hasBucket();
     }
 
-    /** The fluid's ID, such as {@code mmdlib:chocolate}. */
+    /**
+     * The fluid's ID, such as {@code mmdlib:chocolate}.
+     *
+     * @return the ID
+     */
     @ZenCodeType.Getter("name")
     public String getName() {
         return id.toString();
     }
 
-    /** Density; negative for a gas-like fluid that rises. */
+    /**
+     * Density; negative for a gas-like fluid that rises.
+     *
+     * @param value the density
+     * @docParam value 1400
+     */
     @ZenCodeType.Setter("density")
     public void setDensity(int value) {
         var t = type;
@@ -91,7 +101,12 @@ public final class ScriptFluidBuilder {
             t.canHydrate());
     }
 
-    /** Viscosity: how slowly it flows and entities move in it. */
+    /**
+     * Viscosity: how slowly it flows and entities move in it.
+     *
+     * @param value the viscosity
+     * @docParam value 3000
+     */
     @ZenCodeType.Setter("viscosity")
     public void setViscosity(int value) {
         var t = type;
@@ -100,7 +115,12 @@ public final class ScriptFluidBuilder {
             t.canExtinguish(), t.supportsBoating(), t.canHydrate());
     }
 
-    /** Temperature, in kelvin; water is 300, lava 1300. */
+    /**
+     * Temperature, in kelvin; water is 300, lava 1300.
+     *
+     * @param value the temperature, in kelvin
+     * @docParam value 320
+     */
     @ZenCodeType.Setter("temperature")
     public void setTemperature(int value) {
         var t = type;
@@ -109,7 +129,12 @@ public final class ScriptFluidBuilder {
             t.canExtinguish(), t.supportsBoating(), t.canHydrate());
     }
 
-    /** The light its block gives off, 0 to 15. */
+    /**
+     * The light its block gives off, 0 to 15.
+     *
+     * @param value the light level, 0 to 15
+     * @docParam value 15
+     */
     @ZenCodeType.Setter("lightLevel")
     public void setLightLevel(int value) {
         var t = type;
@@ -118,7 +143,12 @@ public final class ScriptFluidBuilder {
             t.canExtinguish(), t.supportsBoating(), t.canHydrate());
     }
 
-    /** How strongly its current pushes entities; water is 0.014. */
+    /**
+     * How strongly its current pushes entities; water is 0.014.
+     *
+     * @param value the scale
+     * @docParam value 0.007
+     */
     @ZenCodeType.Setter("motionScale")
     public void setMotionScale(double value) {
         var t = type;
@@ -127,7 +157,12 @@ public final class ScriptFluidBuilder {
             t.canExtinguish(), t.supportsBoating(), t.canHydrate());
     }
 
-    /** Whether entities can swim in it. */
+    /**
+     * Whether entities can swim in it.
+     *
+     * @param value true if they can
+     * @docParam value false
+     */
     @ZenCodeType.Setter("canSwim")
     public void setCanSwim(boolean value) {
         var t = type;
@@ -137,7 +172,12 @@ public final class ScriptFluidBuilder {
             t.canHydrate());
     }
 
-    /** Whether entities can drown in it. */
+    /**
+     * Whether entities can drown in it.
+     *
+     * @param value true if they can
+     * @docParam value true
+     */
     @ZenCodeType.Setter("canDrown")
     public void setCanDrown(boolean value) {
         var t = type;
@@ -146,7 +186,12 @@ public final class ScriptFluidBuilder {
             value, t.canExtinguish(), t.supportsBoating(), t.canHydrate());
     }
 
-    /** Whether it puts out burning entities. */
+    /**
+     * Whether it puts out burning entities.
+     *
+     * @param value true if it does
+     * @docParam value true
+     */
     @ZenCodeType.Setter("canExtinguish")
     public void setCanExtinguish(boolean value) {
         var t = type;
@@ -155,7 +200,12 @@ public final class ScriptFluidBuilder {
             t.canDrown(), value, t.supportsBoating(), t.canHydrate());
     }
 
-    /** Whether boats float on it. */
+    /**
+     * Whether boats float on it.
+     *
+     * @param value true if they do
+     * @docParam value false
+     */
     @ZenCodeType.Setter("supportsBoating")
     public void setSupportsBoating(boolean value) {
         var t = type;
@@ -164,7 +214,12 @@ public final class ScriptFluidBuilder {
             t.canDrown(), t.canExtinguish(), value, t.canHydrate());
     }
 
-    /** Whether it hydrates farmland and similar blocks, as water does. */
+    /**
+     * Whether it hydrates farmland and similar blocks, as water does.
+     *
+     * @param value true if it does
+     * @docParam value false
+     */
     @ZenCodeType.Setter("canHydrate")
     public void setCanHydrate(boolean value) {
         var t = type;
@@ -173,7 +228,12 @@ public final class ScriptFluidBuilder {
             t.canDrown(), t.canExtinguish(), t.supportsBoating(), value);
     }
 
-    /** How many blocks it looks ahead for a downward slope; 1 to 8. */
+    /**
+     * How many blocks it looks ahead for a downward slope; 1 to 8.
+     *
+     * @param value the distance, 1 to 8
+     * @docParam value 4
+     */
     @ZenCodeType.Setter("slopeFindDistance")
     public void setSlopeFindDistance(int value) {
         var f = flow;
@@ -181,7 +241,12 @@ public final class ScriptFluidBuilder {
             f.tickRate(), f.explosionResistance(), f.canConvertToSource());
     }
 
-    /** How much its level drops per block it spreads; 1 to 8. */
+    /**
+     * How much its level drops per block it spreads; 1 to 8.
+     *
+     * @param value the decrease, 1 to 8
+     * @docParam value 2
+     */
     @ZenCodeType.Setter("levelDecreasePerBlock")
     public void setLevelDecreasePerBlock(int value) {
         var f = flow;
@@ -189,7 +254,12 @@ public final class ScriptFluidBuilder {
             f.tickRate(), f.explosionResistance(), f.canConvertToSource());
     }
 
-    /** Ticks between spreads; water is 5, lava 30. */
+    /**
+     * Ticks between spreads; water is 5, lava 30.
+     *
+     * @param value the ticks
+     * @docParam value 15
+     */
     @ZenCodeType.Setter("tickRate")
     public void setTickRate(int value) {
         var f = flow;
@@ -198,7 +268,12 @@ public final class ScriptFluidBuilder {
             f.canConvertToSource());
     }
 
-    /** Its block's explosion resistance. */
+    /**
+     * Its block's explosion resistance.
+     *
+     * @param value the resistance
+     * @docParam value 100
+     */
     @ZenCodeType.Setter("explosionResistance")
     public void setExplosionResistance(float value) {
         var f = flow;
@@ -207,7 +282,12 @@ public final class ScriptFluidBuilder {
             f.canConvertToSource());
     }
 
-    /** Whether two sources make a new one between them, as water does. */
+    /**
+     * Whether two sources make a new one between them, as water does.
+     *
+     * @param value true if they do
+     * @docParam value false
+     */
     @ZenCodeType.Setter("canConvertToSource")
     public void setCanConvertToSource(boolean value) {
         var f = flow;
@@ -216,21 +296,36 @@ public final class ScriptFluidBuilder {
             value);
     }
 
-    /** The still texture, such as {@code "minecraft:block/water_still"}. */
+    /**
+     * The still texture, such as {@code "minecraft:block/water_still"}.
+     *
+     * @param texture the texture's ID
+     * @docParam texture "minecraft:block/water_still"
+     */
     @ZenCodeType.Setter("still")
     public void setStill(String texture) {
         look = new MMDFluid.Appearance(ResourceLocation.parse(texture),
             look.flowing(), look.overlay(), look.tint());
     }
 
-    /** The flowing texture. */
+    /**
+     * The flowing texture.
+     *
+     * @param texture the texture's ID
+     * @docParam texture "minecraft:block/water_flow"
+     */
     @ZenCodeType.Setter("flowing")
     public void setFlowing(String texture) {
         look = new MMDFluid.Appearance(look.still(),
             ResourceLocation.parse(texture), look.overlay(), look.tint());
     }
 
-    /** The texture seen through glass and beside it; empty for none. */
+    /**
+     * The texture seen through glass and beside it; empty for none.
+     *
+     * @param texture the texture's ID, or an empty string
+     * @docParam texture "minecraft:block/water_overlay"
+     */
     @ZenCodeType.Setter("overlay")
     public void setOverlay(String texture) {
         look = new MMDFluid.Appearance(look.still(), look.flowing(),
@@ -242,6 +337,9 @@ public final class ScriptFluidBuilder {
 
     /**
      * An ARGB tint over the textures, such as {@code 0xFF5C3A21}; -1 for none.
+     *
+     * @param argb the tint, as ARGB
+     * @docParam argb 0xFF5C3A21
      */
     @ZenCodeType.Setter("tint")
     public void setTint(int argb) {
@@ -249,13 +347,23 @@ public final class ScriptFluidBuilder {
             look.overlay(), argb);
     }
 
-    /** Whether it has a liquid block, so it can be placed in the world. */
+    /**
+     * Whether it has a liquid block, so it can be placed in the world.
+     *
+     * @param value true for a block
+     * @docParam value false
+     */
     @ZenCodeType.Setter("hasBlock")
     public void setHasBlock(boolean value) {
         hasBlock = value;
     }
 
-    /** Whether it has a bucket. */
+    /**
+     * Whether it has a bucket.
+     *
+     * @param value true for a bucket
+     * @docParam value true
+     */
     @ZenCodeType.Setter("hasBucket")
     public void setHasBucket(boolean value) {
         hasBucket = value;
@@ -264,6 +372,9 @@ public final class ScriptFluidBuilder {
     /**
      * Its English name, instead of one made from its ID; the bucket is named
      * "{@code <name>} Bucket".
+     *
+     * @param value the name
+     * @docParam value "Liquid Chocolate"
      */
     @ZenCodeType.Setter("displayName")
     public void setDisplayName(String value) {
@@ -271,12 +382,8 @@ public final class ScriptFluidBuilder {
     }
 
     /**
-     * Finishes the fluid and queues it for registration.
-     *
-     * @throws IllegalArgumentException
-     *             if a value is out of range
-     * @throws IllegalStateException
-     *             if a script already built it
+     * Finishes the fluid and queues it for registration. It is an error if a
+     * value is out of range, or if a script already built it.
      */
     @ZenCodeType.Method
     public void build() {

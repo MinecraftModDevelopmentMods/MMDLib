@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.compat.CraftTweaker;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import com.mojang.logging.LogUtils;
 
@@ -16,14 +17,8 @@ import zone.moddev.mc.lib.api.MaterialEventTypes;
 
 /**
  * Registers script functions as XML machine cycle handlers, under IDs that a
- * machine's {@code <processor>} names in {@code on-start} and
- * {@code on-finish}:
- *
- * <pre>{@code
- * MachineHandlers.onFinish("crusher_done", (cycle) => {
- *     println("Finished " + cycle.recipe);
- * });
- * }</pre>
+ * machine's {@code <processor>} names in {@code on-start} and {@code
+ * on-finish}.
  *
  * <p>
  * The machine stays XML; the script only supplies what a handler ID does. IDs
@@ -33,6 +28,7 @@ import zone.moddev.mc.lib.api.MaterialEventTypes;
  * that throws is logged, and the machine carries on.
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/machines/MachineHandlers")
 @ZenCodeType.Name("mods.mmdlib.MachineHandlers")
 public final class ScriptMachineHandlers {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -41,13 +37,15 @@ public final class ScriptMachineHandlers {
     }
 
     /**
-     * Registers {@code handler} as the cycle-start handler
-     * {@code mmdlib:<name>}, run when a machine starts a new cycle (not when a
-     * paused one resumes).
+     * Registers {@code handler} as the cycle-start handler {@code
+     * mmdlib:<name>}, run when a machine starts a new cycle (not when a paused
+     * one resumes). It is an error if the ID is already a handler.
      *
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param handler runs as each cycle starts
      * @return the handler's ID, to write in machine XML
-     * @throws IllegalArgumentException
-     *             if the ID is already a handler
+     * @docParam name "crusher_start"
+     * @docParam handler (cycle) => { println(cycle.recipe); }
      */
     @ZenCodeType.Method
     public static String onStart(String name,
@@ -56,13 +54,15 @@ public final class ScriptMachineHandlers {
     }
 
     /**
-     * Registers {@code handler} as the cycle-finish handler
-     * {@code mmdlib:<name>}, run when a machine finishes a cycle and has placed
-     * its outputs.
+     * Registers {@code handler} as the cycle-finish handler {@code
+     * mmdlib:<name>}, run when a machine finishes a cycle and has placed its
+     * outputs. It is an error if the ID is already a handler.
      *
+     * @param name the name; the ID is {@code mmdlib:<name>}
+     * @param handler runs as each cycle finishes
      * @return the handler's ID, to write in machine XML
-     * @throws IllegalArgumentException
-     *             if the ID is already a handler
+     * @docParam name "crusher_done"
+     * @docParam handler (cycle) => { println(cycle.recipe); }
      */
     @ZenCodeType.Method
     public static String onFinish(String name,
@@ -70,7 +70,13 @@ public final class ScriptMachineHandlers {
         return register(name, MaterialEventTypes.MACHINE_CYCLE_FINISH, handler);
     }
 
-    /** Whether {@code id} is a registered handler, from a script or code. */
+    /**
+     * Whether a handler is registered, from a script or code.
+     *
+     * @param id the handler ID
+     * @return true if registered
+     * @docParam id "mmdlib:crusher_done"
+     */
     @ZenCodeType.Method
     public static boolean exists(String id) {
         return ScriptDefinitions.catalog().events().callbacks()

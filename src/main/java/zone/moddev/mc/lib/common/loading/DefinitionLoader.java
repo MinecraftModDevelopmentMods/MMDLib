@@ -59,8 +59,8 @@ public final class DefinitionLoader {
         /**
          * Requires a valid namespace, a root and a class loader.
          *
-         * @throws net.minecraft.ResourceLocationException
-         *             if {@code namespace} is not a valid namespace
+         * @throws net.minecraft.ResourceLocationException if {@code namespace}
+         *             is not a valid namespace
          */
         public SourceRoot {
             ResourceLocation.fromNamespaceAndPath(namespace, "validate");
@@ -72,24 +72,15 @@ public final class DefinitionLoader {
     /**
      * Everything loaded from all sources, each map sorted by ID.
      *
-     * @param modules
-     *            the modules found
-     * @param extensions
-     *            the extension files found, by file ID
-     * @param materials
-     *            the planned materials
-     * @param standalone
-     *            the planned standalone blocks
-     * @param standaloneItems
-     *            the planned standalone items
-     * @param sounds
-     *            the sound events declared
-     * @param soundTypes
-     *            the block sound sets declared
-     * @param creativeTabs
-     *            the creative tabs declared
-     * @param standaloneFluids
-     *            the planned standalone fluids
+     * @param modules the modules found
+     * @param extensions the extension files found, by file ID
+     * @param materials the planned materials
+     * @param standalone the planned standalone blocks
+     * @param standaloneItems the planned standalone items
+     * @param sounds the sound events declared
+     * @param soundTypes the block sound sets declared
+     * @param creativeTabs the creative tabs declared
+     * @param standaloneFluids the planned standalone fluids
      */
     public record Loaded(ModuleCatalog modules,
         Map<ResourceLocation, EventExtension> extensions,
@@ -180,13 +171,11 @@ public final class DefinitionLoader {
      * plans materials, standalone blocks and standalone items. A standalone
      * definition whose module needs a missing mod is skipped.
      *
-     * @param sources
-     *            the {@code mmdlib/} roots to read; order does not matter
-     * @param installed
-     *            tests whether a mod is loaded
-     * @throws IllegalArgumentException
-     *             naming the file, for invalid data, duplicate IDs or two
-     *             definitions producing the same registry ID
+     * @param sources the {@code mmdlib/} roots to read; order does not matter
+     * @param installed tests whether a mod is loaded
+     * @throws IllegalArgumentException naming the file, for invalid data,
+     *             duplicate IDs or two definitions producing the same registry
+     *             ID
      */
     public static Loaded load(List<SourceRoot> sources, MaterialExtensions api,
         Predicate<String> installed) {
@@ -402,8 +391,7 @@ public final class DefinitionLoader {
      * The file definitions, with each source's added; a source's definition
      * with a file's ID replaces it.
      *
-     * @throws IllegalArgumentException
-     *             if two sources supply the same ID
+     * @throws IllegalArgumentException if two sources supply the same ID
      */
     private static <T> Map<ResourceLocation, T> merge(
         Map<ResourceLocation, T> files,

@@ -55,8 +55,8 @@ final class ScriptMaterialResources {
      * block textures are not generated, and any the {@code userFolder} pack
      * does not supply are logged.
      *
-     * @throws IllegalStateException
-     *             if a template references a template that does not exist
+     * @throws IllegalStateException if a template references a template that
+     *             does not exist
      */
     static SortedMap<String, byte[]> assets(
         Collection<MaterialFactory.Result> materials,

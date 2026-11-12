@@ -28,10 +28,8 @@ public final class ScreenValueProviders {
     /**
      * A provider.
      *
-     * @param kind
-     *            the type of value it returns
-     * @param reader
-     *            reads the value from the screen's block entity; may return
+     * @param kind the type of value it returns
+     * @param reader reads the value from the screen's block entity; may return
      *            null for no value
      */
     public record Provider(ValueType<?> kind, Function<BlockEntity, ?> reader) {
@@ -55,10 +53,8 @@ public final class ScreenValueProviders {
     /**
      * Registers the provider {@code id}.
      *
-     * @throws IllegalArgumentException
-     *             if {@code id} is already registered
-     * @throws IllegalStateException
-     *             once screens have loaded
+     * @throws IllegalArgumentException if {@code id} is already registered
+     * @throws IllegalStateException once screens have loaded
      */
     public synchronized <T> void register(ResourceLocation id,
         ValueType<T> kind, Function<BlockEntity, ? extends T> reader) {

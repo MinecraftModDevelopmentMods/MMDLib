@@ -8,6 +8,7 @@ import java.util.Set;
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 import com.blamejared.crafttweaker.api.data.IData;
 import com.blamejared.crafttweaker.api.data.converter.JSONConverter;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import com.google.gson.JsonObject;
 
@@ -21,18 +22,33 @@ import zone.moddev.mc.lib.common.types.FactoryData;
  * What every script block, item and module shares: tags, event bindings, and
  * {@code factory_data} for its Java implementation. Collections have an add and
  * a remove function; remove accepts {@code "all"}.
+ *
+ * @docParam this new BlockBuilder("marble")
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/definitions/DefinitionProperties")
 @ZenCodeType.Name("mods.mmdlib.DefinitionProperties")
 public abstract class ScriptDefinitionProperties {
     static final String ALL = "all";
     ScriptResourceOptions resourceOptions = ScriptResourceOptions.DEFAULT;
 
+    /**
+     * The English name MMDLib generates for it; empty for one made from its ID.
+     *
+     * @return the name, or an empty string
+     */
     @ZenCodeType.Getter("displayName")
     public String getDisplayName() {
         return resourceOptions.displayName();
     }
 
+    /**
+     * Sets the English name MMDLib generates for it, instead of one made from
+     * its ID. It must not be blank.
+     *
+     * @param name the name
+     * @docParam name "Polished Marble"
+     */
     @ZenCodeType.Setter("displayName")
     public void setDisplayName(String name) {
         resourceOptions = resourceOptions.named(name);
@@ -56,7 +72,9 @@ public abstract class ScriptDefinitionProperties {
             : new JsonObject();
     }
 
-    /** Finishes the definition. Call it once. */
+    /**
+     * Finishes the definition. Call it once.
+     */
     @ZenCodeType.Method
     public abstract void build();
 
@@ -114,12 +132,20 @@ public abstract class ScriptDefinitionProperties {
     /**
      * Settings for the Java implementation, such as {@code {detects:
      * "players"}}.
+     *
+     * @return the settings
      */
     @ZenCodeType.Getter("factoryData")
     public IData getFactoryData() {
         return JSONConverter.convert(factoryData);
     }
 
+    /**
+     * Replaces the settings for the Java implementation.
+     *
+     * @param data the settings
+     * @docParam data {detects: "players"}
+     */
     @ZenCodeType.Setter("factoryData")
     public void setFactoryData(IData data) {
         var json = ScriptData.json(data);
@@ -129,14 +155,24 @@ public abstract class ScriptDefinitionProperties {
         factoryData = json.getAsJsonObject();
     }
 
-    /** The tags, such as {@code minecraft:mineable/pickaxe} for a block. */
+    /**
+     * The tags, such as {@code minecraft:mineable/pickaxe} for a block.
+     *
+     * @return the tag IDs
+     */
     @ZenCodeType.Getter("tags")
     public String[] getTags() {
         return tags.stream().map(ResourceLocation::toString).sorted()
             .toArray(String[]::new);
     }
 
-    /** Adds tags. */
+    /**
+     * Adds tags.
+     *
+     * @param tags the tag IDs
+     * @return this builder
+     * @docParam tags "minecraft:mineable/pickaxe"
+     */
     @ZenCodeType.Method
     public ScriptDefinitionProperties addTags(String... tags) {
         for (var tag : tags) {
@@ -148,7 +184,13 @@ public abstract class ScriptDefinitionProperties {
         return this;
     }
 
-    /** Removes tags; {@code "all"} removes every tag. */
+    /**
+     * Removes tags; {@code "all"} removes every tag.
+     *
+     * @param tags the tag IDs, or {@code "all"}
+     * @return this builder
+     * @docParam tags "all"
+     */
     @ZenCodeType.Method
     public ScriptDefinitionProperties removeTags(String... tags) {
         for (var tag : tags)
@@ -159,7 +201,11 @@ public abstract class ScriptDefinitionProperties {
         return this;
     }
 
-    /** The event bindings, as {@code event=callback}. */
+    /**
+     * The event bindings, as {@code event=callback}.
+     *
+     * @return the bindings
+     */
     @ZenCodeType.Getter("events")
     public String[] getEvents() {
         return events.entrySet().stream()
@@ -168,9 +214,15 @@ public abstract class ScriptDefinitionProperties {
     }
 
     /**
-     * Binds a callback to an event, such as
-     * {@code addEvent("block-right-click",
-     * "mmdlib:open_menu")}; an existing binding for the event is replaced.
+     * Binds a callback to an event, such as {@code
+     * addEvent("block-right-click", "mmdlib:open_menu")}; an existing binding
+     * for the event is replaced.
+     *
+     * @param event the event's name
+     * @param callback the callback's ID
+     * @return this builder
+     * @docParam event "block-right-click"
+     * @docParam callback "mmdlib:open_menu"
      */
     @ZenCodeType.Method
     public ScriptDefinitionProperties addEvent(String event, String callback) {
@@ -183,6 +235,10 @@ public abstract class ScriptDefinitionProperties {
     /**
      * Removes event bindings by event name; {@code "all"} removes every
      * binding.
+     *
+     * @param events the event names, or {@code "all"}
+     * @return this builder
+     * @docParam events "all"
      */
     @ZenCodeType.Method
     public ScriptDefinitionProperties removeEvents(String... events) {
@@ -213,8 +269,7 @@ public abstract class ScriptDefinitionProperties {
      * {@code name} as an ID in MMDLib's namespace: {@code "marble"} or
      * {@code "mmdlib:marble"}.
      *
-     * @throws IllegalArgumentException
-     *             for another namespace
+     * @throws IllegalArgumentException for another namespace
      */
     static ResourceLocation mmdlibId(String name, String what) {
         var id = ResourceLocation

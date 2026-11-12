@@ -190,11 +190,9 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     /**
      * The processor's event handlers, as callback IDs.
      *
-     * @param start
-     *            run when a cycle starts ({@code on-start}), a
+     * @param start run when a cycle starts ({@code on-start}), a
      *            {@code machine-cycle-start} handler
-     * @param finish
-     *            run when a cycle finishes ({@code on-finish}), a
+     * @param finish run when a cycle finishes ({@code on-finish}), a
      *            {@code machine-cycle-finish} handler
      */
     public record Events(Optional<ResourceLocation> start,
@@ -207,11 +205,9 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     /**
      * The processor's sounds, as sound event IDs.
      *
-     * @param running
-     *            looped at the machine while a cycle runs
+     * @param running looped at the machine while a cycle runs
      *            ({@code running-sound})
-     * @param finish
-     *            played at the machine when a cycle completes
+     * @param finish played at the machine when a cycle completes
      *            ({@code finish-sound})
      */
     public record Sounds(Optional<ResourceLocation> running,

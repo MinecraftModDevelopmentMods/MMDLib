@@ -12,6 +12,9 @@
         <setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="1"/>
         <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="80"/>
         <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="80"/>
+        <!-- "@param name description" on one line: CraftTweaker's docs processor
+             reads the parameter name up to the line end. -->
+        <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_for_parameter" value="do_not_insert"/>
         <!-- Rejoin earlier breaks that fit (such as one parameter per line), up to lineSplit. -->
         <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="true"/>
         <!-- 16 = wrap where necessary: lists are packed to the line limit, never one per line. -->

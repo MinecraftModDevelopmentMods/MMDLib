@@ -136,8 +136,7 @@ final class ScriptDefinitions {
     /**
      * The catalog being loaded.
      *
-     * @throws IllegalStateException
-     *             outside the startup run
+     * @throws IllegalStateException outside the startup run
      */
     static synchronized MaterialExtensions catalog() {
         if (catalog == null)
@@ -150,8 +149,8 @@ final class ScriptDefinitions {
     /**
      * Records a built material.
      *
-     * @throws IllegalStateException
-     *             outside the startup run, or if the name was already built
+     * @throws IllegalStateException outside the startup run, or if the name was
+     *             already built
      */
     static synchronized void add(MMDMaterial material) {
         catalog();
@@ -164,14 +163,13 @@ final class ScriptDefinitions {
     /**
      * Records a built standalone block.
      *
-     * @throws IllegalStateException
-     *             outside the startup run, or if the ID was already built
+     * @throws IllegalStateException outside the startup run, or if the ID was
+     *             already built
      */
     /**
      * Queues a built creative tab; a tab declared in a file is replaced by it.
      *
-     * @throws IllegalStateException
-     *             if a script already built {@code id}
+     * @throws IllegalStateException if a script already built {@code id}
      */
     static synchronized void add(ResourceLocation id,
         CreativeTabDefinition tab) {
@@ -184,8 +182,7 @@ final class ScriptDefinitions {
     /**
      * Queues a built sound event; one declared in a file is replaced by it.
      *
-     * @throws IllegalStateException
-     *             if a script already built {@code id}
+     * @throws IllegalStateException if a script already built {@code id}
      */
     static synchronized void add(ResourceLocation id, SoundDefinition sound) {
         catalog();
@@ -197,8 +194,7 @@ final class ScriptDefinitions {
     /**
      * Queues a built block sound set; one declared in a file is replaced by it.
      *
-     * @throws IllegalStateException
-     *             if a script already built {@code id}
+     * @throws IllegalStateException if a script already built {@code id}
      */
     static synchronized void add(ResourceLocation id, SoundTypeDefinition set) {
         catalog();
@@ -232,8 +228,8 @@ final class ScriptDefinitions {
     /**
      * Records a built standalone fluid.
      *
-     * @throws IllegalStateException
-     *             outside the startup run, or if the ID was already built
+     * @throws IllegalStateException outside the startup run, or if the ID was
+     *             already built
      */
     static synchronized void add(ResourceLocation id, StandaloneFluid fluid) {
         catalog();
@@ -245,8 +241,8 @@ final class ScriptDefinitions {
     /**
      * Records a built standalone item and its item tags.
      *
-     * @throws IllegalStateException
-     *             outside the startup run, or if the ID was already built
+     * @throws IllegalStateException outside the startup run, or if the ID was
+     *             already built
      */
     static synchronized void add(ResourceLocation id, StandaloneItem item,
         Set<ResourceLocation> tags) {

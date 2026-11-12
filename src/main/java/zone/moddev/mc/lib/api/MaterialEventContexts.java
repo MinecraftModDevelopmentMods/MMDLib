@@ -119,8 +119,8 @@ public final class MaterialEventContexts {
          * Requires every object component; stores an immutable copy of
          * {@code position}.
          *
-         * @throws IllegalArgumentException
-         *             if either power level is outside 0-15
+         * @throws IllegalArgumentException if either power level is outside
+         *             0-15
          */
         public RedstoneChange {
             Objects.requireNonNull(level);
@@ -326,11 +326,9 @@ public final class MaterialEventContexts {
         private boolean cancelled;
 
         /**
-         * @param duration
-         *            ticks of use: the total at {@link UsePhase#START}, the
-         *            ticks left otherwise
-         * @param result
-         *            the stack left in hand at {@link UsePhase#FINISH}, else
+         * @param duration ticks of use: the total at {@link UsePhase#START},
+         *            the ticks left otherwise
+         * @param result the stack left in hand at {@link UsePhase#FINISH}, else
          *            the used stack
          */
         public ItemUse(UsePhase phase, LivingEntity entity, ItemStack stack,
@@ -362,8 +360,7 @@ public final class MaterialEventContexts {
         /**
          * Changes the total ticks of use.
          *
-         * @throws IllegalStateException
-         *             outside {@link UsePhase#START}
+         * @throws IllegalStateException outside {@link UsePhase#START}
          */
         public void setDuration(int duration) {
             if (phase != UsePhase.START)
@@ -380,8 +377,7 @@ public final class MaterialEventContexts {
         /**
          * Replaces the stack left in hand.
          *
-         * @throws IllegalStateException
-         *             outside {@link UsePhase#FINISH}
+         * @throws IllegalStateException outside {@link UsePhase#FINISH}
          */
         public void setResult(ItemStack result) {
             if (phase != UsePhase.FINISH)
@@ -393,8 +389,8 @@ public final class MaterialEventContexts {
         /**
          * Stops the use.
          *
-         * @throws IllegalStateException
-         *             outside {@link UsePhase#START} and {@link UsePhase#TICK}
+         * @throws IllegalStateException outside {@link UsePhase#START} and
+         *             {@link UsePhase#TICK}
          */
         public void cancel() {
             if (phase != UsePhase.START && phase != UsePhase.TICK)
@@ -445,8 +441,7 @@ public final class MaterialEventContexts {
         private boolean cancelled;
 
         /**
-         * @param face
-         *            the face being mined, or null when it is not known
+         * @param face the face being mined, or null when it is not known
          */
         public BlockBreak(Player player, ServerLevel level, BlockPos position,
             BlockState state, ItemStack tool, Direction face) {
@@ -549,18 +544,12 @@ public final class MaterialEventContexts {
      * Context of {@code machine-cycle-start} and {@code machine-cycle-finish}:
      * an XML machine's processor started or finished a cycle, on the server.
      *
-     * @param machine
-     *            the machine's block entity
-     * @param level
-     *            its level
-     * @param position
-     *            its position
-     * @param machineId
-     *            the machine definition's ID
-     * @param recipe
-     *            the cycle's recipe
-     * @param time
-     *            the cycle's length, in ticks
+     * @param machine the machine's block entity
+     * @param level its level
+     * @param position its position
+     * @param machineId the machine definition's ID
+     * @param recipe the cycle's recipe
+     * @param time the cycle's length, in ticks
      */
     public record MachineCycle(
         net.minecraft.world.level.block.entity.BlockEntity machine,

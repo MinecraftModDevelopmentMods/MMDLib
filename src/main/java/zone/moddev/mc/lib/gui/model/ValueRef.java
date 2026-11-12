@@ -50,8 +50,7 @@ public sealed interface ValueRef {
      * {@code #method}: a public no-argument instance method of the screen's
      * block-entity class (or a superclass or interface of it).
      *
-     * @param method
-     *            the method name
+     * @param method the method name
      */
     /**
      * A named value provider, from
@@ -87,10 +86,8 @@ public sealed interface ValueRef {
      * {@code Class#method}: a public static method taking the block entity (or
      * a supertype) as its only parameter.
      *
-     * @param owner
-     *            the fully qualified class name
-     * @param method
-     *            the method name
+     * @param owner the fully qualified class name
+     * @param method the method name
      */
     record Static(String owner, String method) implements ValueRef {
         @Override

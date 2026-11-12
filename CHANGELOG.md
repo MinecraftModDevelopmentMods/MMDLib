@@ -133,6 +133,15 @@
   it is craftable when another mod (such as BaseMetals) adds gears.
 - MMDLib's creative tab is now titled "MMDLib" (it was "MMDLib: Vanilla
   Extensions"); it holds MMDLib's standalone and script-defined items.
+- CraftTweaker API docs: every script type is documented for CraftTweaker's docs
+  wiki. Compiling writes the pages (`docs.json` and one page per type, under Mods ›
+  MMDLib) to `build/crafttweaker-docs`, with descriptions, parameters, return values
+  and example values for each member. See "Generated API docs" in
+  [CraftTweaker definitions](docs/crafttweaker.md).
+- Build: the Java API Javadoc leaves out the CraftTweaker script classes, which the
+  wiki pages document instead. The formatter keeps `@param name description` on one
+  line, which the CraftTweaker docs need; files reformatted under it change only in
+  their Javadoc.
 - For mods built on MMDLib:
   - `MachineDefinition` has new components: `baseModel`, `modelParts`,
     `faceTextures`, `recipeSelection` and `ghosts` (#105), then `sounds` and

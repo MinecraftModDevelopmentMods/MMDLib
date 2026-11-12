@@ -100,21 +100,16 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      * The saved form. A cycle that won't decode, say because an item is gone
      * from the game, is dropped as a whole while the rest of the state is kept.
      *
-     * @param paused
-     *            whether an interrupt holds the processor
-     * @param progress
-     *            ticks done of {@code cycle}, or of the recipe to resume
-     * @param resumeRecipe
-     *            the recipe a pause or a resume is waiting to reserve again
-     * @param resumeTime
-     *            the time that recipe took, so progress is dropped if its time
-     *            changed
-     * @param cycle
-     *            the running cycle
-     * @param status
-     *            what the processor was doing; loading works it out again, and
-     *            only a client takes it from here. A name this version doesn't
-     *            know reads as empty, which loses nothing else.
+     * @param paused whether an interrupt holds the processor
+     * @param progress ticks done of {@code cycle}, or of the recipe to resume
+     * @param resumeRecipe the recipe a pause or a resume is waiting to reserve
+     *            again
+     * @param resumeTime the time that recipe took, so progress is dropped if
+     *            its time changed
+     * @param cycle the running cycle
+     * @param status what the processor was doing; loading works it out again,
+     *            and only a client takes it from here. A name this version
+     *            doesn't know reads as empty, which loses nothing else.
      */
     public record State(boolean paused, int progress,
         Optional<ResourceLocation> resumeRecipe, int resumeTime,

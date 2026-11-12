@@ -23,8 +23,7 @@ final class ScriptRecipeGenerators {
     /**
      * Registers {@code generator} as {@code id}.
      *
-     * @throws IllegalArgumentException
-     *             if {@code id} is already registered
+     * @throws IllegalArgumentException if {@code id} is already registered
      */
     static void register(ResourceLocation id,
         MachineRecipeGenerator generator) {
