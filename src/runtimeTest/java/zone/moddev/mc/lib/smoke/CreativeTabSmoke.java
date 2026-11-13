@@ -16,9 +16,10 @@ import zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar;
 
 /**
  * The test resources' {@code mmdlib/creative_tab/test/workshop.json}: the iron
- * material, a stick, the {@code #c:gears} tag (holding the iron gear, already
- * in) and the stick again, to which the test script {@code mmdlib_tabs.zs} adds
- * an apple; and that script's own {@code mmdlib:script_tab}.
+ * material, a stick, the {@code #mmdlib:test/workshop_gear} tag (holding the
+ * iron gear, already in) and the stick again, to which the test script
+ * {@code mmdlib_tabs.zs} adds an apple; and that script's own
+ * {@code mmdlib:script_tab}.
  */
 final class CreativeTabSmoke {
     private CreativeTabSmoke() {

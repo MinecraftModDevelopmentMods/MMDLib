@@ -267,6 +267,34 @@ keep it open until `load` returns. The loader closes every traversal/reader it
 opens, but never closes its caller's filesystem. All schema choice and ordering
 live in the same testable loader used by `MMDLib.java`.
 
+## Material item tags
+
+MMDLib adds each loaded material's items to the tags their part implies, whatever
+mod or script defined the material. It does this with an always-enabled data
+pack, `mmdlib_material_tags`, at the bottom of the pack list:
+
+| Part | Tags |
+| --- | --- |
+| `sword` | `minecraft:swords`, `minecraft:enchantable/sword` |
+| `pickaxe`, `axe`, `shovel`, `hoe` | `minecraft:<part>s` |
+| tools (`pickaxe`, `axe`, `shovel`, `hoe`, `crackhammer`, `scythe`) | `minecraft:enchantable/mining`, `minecraft:enchantable/mining_loot` |
+| weapons (`sword`, `axe`, `scythe`, `crackhammer`) | `minecraft:enchantable/weapon`, `minecraft:enchantable/sharp_weapon` |
+| `helmet`, `chestplate`, `leggings`, `boots` | `minecraft:enchantable/armor` and the slot's `minecraft:enchantable/*_armor` |
+| `bow`, `crossbow`, `fishing_rod` | `minecraft:enchantable/bow`, `/crossbow`, `/fishing` |
+| tools, weapons, armor, `bow`, `crossbow`, `fishing_rod`, `shears`, `shield` | `minecraft:enchantable/durability` |
+| `arrow`, `bolt` | `minecraft:arrows`, `c:arrows` |
+| `ingot`, `dust`, `nugget`, `rod`, `gear` | `c:<form>s/<material>`, which `c:<form>s` includes |
+
+The parts are MMDLib's own (`mmdlib:sword` and so on); other mods' parts get no
+tags here. Parts that are blocks are left to the block's own data. Every file adds
+to its tag (`"replace": false`), and every entry is optional, so an item that was
+loaded but never registered does not break the tag. Tags merge entries, so a mod
+that also lists its items in these tags (as a fallback) changes nothing, and a
+datapack can still replace a tag outright.
+
+`MaterialItemTags.forPart` gives the same mapping to code, and
+`MaterialItemTags.data` builds the tag files for a set of material results.
+
 ## Runtime scope
 
 The published declaration tables are **MMDLib definition registries**.

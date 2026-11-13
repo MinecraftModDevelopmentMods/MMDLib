@@ -1075,8 +1075,9 @@ client resources and for world data:
    * block loot tables;
    * block tags: the module's tags, `minecraft:mineable/pickaxe`, the harvest tags,
      and a `needs_*_tool` tag from hardness (5 stone, 8 iron, 10 diamond);
-   * item tags: tool, armor and enchantability tags, `minecraft:arrows`, and
-     `c:ingots/<name>`, `c:dusts/<name>` and the like;
+   * item tags a script item module declares (each part's standard tool, armor,
+     arrow and `c:` tags come from MMDLib's material tag pack, as for every
+     material; see [material tags](definition-loading.md#material-item-tags));
    * the fluid's `c:molten_<name>` tag.
 2. `mmdlib/mmdlibdata` is the `scripts/mmdlibdata` folder, if it exists. It is a
    normal pack root (`assets/`, `data/`, an optional `pack.mcmeta`) placed above the

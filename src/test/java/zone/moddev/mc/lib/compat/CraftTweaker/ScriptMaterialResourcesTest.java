@@ -205,10 +205,9 @@ final class ScriptMaterialResourcesTest {
             .contains("mmdlib:cold_iron_ore"), "harvest tags");
         require(text(files, "data/minecraft/tags/block/walls.json")
             .contains("mmdlib:cold_iron_wall"), "template tags");
-        require(text(files, "data/minecraft/tags/item/arrows.json")
-            .contains("mmdlib:cold_iron_arrow"), "arrows");
-        require(text(files, "data/c/tags/item/ingots/cold_iron.json")
-            .contains("mmdlib:cold_iron_ingot"), "c:ingots");
+        // Part item tags come from MaterialTagPack for every material.
+        require(!files.containsKey("data/minecraft/tags/item/arrows.json"),
+            "no duplicate part tags");
         require(text(files, "data/c/tags/fluid/molten_cold_iron.json")
             .contains("mmdlib:flowing_cold_iron_molten"), "fluid tag");
     }

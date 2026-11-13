@@ -3,7 +3,7 @@
   "contents": [
     { "material": "mmdlib:iron" },
     "minecraft:stick",
-    "#c:gears",
+    "#mmdlib:test/workshop_gear",
     "minecraft:stick"
   ],
   "after": ["minecraft:tools_and_utilities"],

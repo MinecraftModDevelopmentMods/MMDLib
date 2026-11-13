@@ -393,8 +393,11 @@ assets are not inferred automatically from a material definition.
 * **Loot tables:** regular self-drops, ores, doubled slab counts, and other special
   drops. Use `data/<modid>/loot_table/blocks/...` on 1.21.1.
 * **Tags:** emit every declared harvest membership, repair ingredient tags, ores,
-  ingots, storage blocks, and native connection/enchanting tags where needed.
-  A definition's tags are declarations, not edits to Minecraft's tag registry.
+  storage blocks, and native connection tags where needed. A definition's tags
+  are declarations, not edits to Minecraft's tag registry. MMDLib already adds
+  each material item's tool, armor, enchantability, arrow and `c:` form tags
+  (see [material item tags](definition-loading.md#material-item-tags)); listing
+  them again in your own data is harmless and works as a fallback.
 * **Recipes:** crafting, smelting, processing, and conversions desired by the mod.
   On 1.21.1 the folder is `data/<modid>/recipe/`.
 * **Client color handlers:** install item/block/fluid tint handling and models

@@ -131,6 +131,16 @@
   them. CraftTweaker: `#loader mmdlib` scripts build them with
   `mods.mmdlib.FluidBuilder` (type, flow and appearance values, block and bucket
   switches, display name), with generated bucket models, blockstates and names.
+- Material item tags: every loaded material's items now join the tags their part
+  implies, whichever mod or script defined the material: `minecraft:swords` and
+  the other tool tags, the `minecraft:enchantable/*` tags (so the items can be
+  enchanted), `minecraft:arrows` and `c:arrows`, and `c:ingots/<material>` and
+  the other `c:` form tags. They come from a new always-enabled data pack,
+  `mmdlib_material_tags`, which adds to each tag with optional entries; a
+  datapack can still replace them. Before, only CraftTweaker script materials
+  got these tags, so data-defined materials (such as BaseMetals' vanilla
+  materials) were left out. See
+  [material item tags](docs/definition-loading.md#material-item-tags).
 - Remove the vanilla extensions: the fifteen bundled materials (wood, stone, iron,
   gold, copper, diamond, coal, charcoal, emerald, ender, quartz, obsidian, lapis,
   prismarine, redstone) with their tools, armor, decorative blocks, ammunition,
@@ -172,6 +182,7 @@
     `ScreenValueProviders` registry, whose constructor is now public for
     isolated binding and tests. `GeneratedMachineRecipes.validateGroups` is
     public, for checking recipes added after a reload.
+    `MaterialItemTags` gives the part-to-tag mapping and builds the tag files.
 - Known issues, to be fixed by #105's author before release:
   - Multiblock members must keep exactly their authored block state, so a member
     whose state changes (connections, waterlogging, `lit`) breaks the structure,

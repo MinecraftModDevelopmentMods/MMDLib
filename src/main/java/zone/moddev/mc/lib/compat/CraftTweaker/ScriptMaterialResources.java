@@ -398,14 +398,13 @@ final class ScriptMaterialResources {
             var name = name(material);
             var plan = result.content();
             var properties = material.properties();
-            plan.items().forEach((part, item) -> {
-                if (!plan.blocks().containsKey(part))
-                    itemTags(part.id(), name, item.name().toString(), tags);
-                // Tags a script item module gives its parts.
-                itemTags.getOrDefault(part.templateId(), Set.of())
+            // Each part's standard tags come from MaterialTagPack, as for
+            // every material; these are the tags a script item module adds.
+            plan.items()
+                .forEach((part, item) -> itemTags
+                    .getOrDefault(part.templateId(), Set.of())
                     .forEach(tag -> tag(tags, "item", tag.toString(),
-                        item.name().toString()));
-            });
+                        item.name().toString())));
             var hardness = properties.hardness();
             var level = hardness >= 10
                 ? "diamond"
@@ -554,61 +553,6 @@ final class ScriptMaterialResources {
             default ->
                 display + " " + display(part.substring(part.indexOf(':') + 1));
         };
-    }
-
-    private static void itemTags(String part, String name, String id,
-        Map<String, TreeSet<String>> tags) {
-        switch (part) {
-            case "bow" -> tag(tags, "item", "minecraft:enchantable/bow", id);
-            case "crossbow" ->
-                tag(tags, "item", "minecraft:enchantable/crossbow", id);
-            case "fishing_rod" ->
-                tag(tags, "item", "minecraft:enchantable/fishing", id);
-            default -> {
-            }
-        }
-        if (Set.of("bow", "crossbow", "fishing_rod", "shears", "shield", "axe",
-            "pickaxe", "shovel", "hoe", "sword", "crackhammer", "scythe",
-            "helmet", "chestplate", "leggings", "boots").contains(part))
-            tag(tags, "item", "minecraft:enchantable/durability", id);
-        if (Set.of("axe", "pickaxe", "shovel", "hoe", "crackhammer", "scythe")
-            .contains(part)) {
-            tag(tags, "item", "minecraft:enchantable/mining", id);
-            tag(tags, "item", "minecraft:enchantable/mining_loot", id);
-        }
-        if (Set.of("sword", "axe", "scythe", "crackhammer").contains(part)) {
-            tag(tags, "item", "minecraft:enchantable/weapon", id);
-            tag(tags, "item", "minecraft:enchantable/sharp_weapon", id);
-        }
-        if (part.equals("sword"))
-            tag(tags, "item", "minecraft:enchantable/sword", id);
-        if (part.equals("arrow") || part.equals("bolt")) {
-            tag(tags, "item", "minecraft:arrows", id);
-            tag(tags, "item", "c:arrows", id);
-        }
-        if (Set.of("pickaxe", "axe", "shovel", "hoe", "sword").contains(part))
-            tag(tags, "item", "minecraft:" + part + "s", id);
-        if (ARMOR.contains(part)) {
-            tag(tags, "item", "minecraft:enchantable/armor", id);
-            tag(tags, "item", "minecraft:enchantable/" + switch (part) {
-                case "helmet" -> "head_armor";
-                case "chestplate" -> "chest_armor";
-                case "leggings" -> "leg_armor";
-                default -> "foot_armor";
-            }, id);
-        }
-        var common = switch (part) {
-            case "dust" -> "dusts";
-            case "ingot" -> "ingots";
-            case "nugget" -> "nuggets";
-            case "rod" -> "rods";
-            case "gear" -> "gears";
-            default -> null;
-        };
-        if (common != null) {
-            tag(tags, "item", "c:" + common + "/" + name, id);
-            tag(tags, "item", "c:" + common, "#c:" + common + "/" + name);
-        }
     }
 
     /**

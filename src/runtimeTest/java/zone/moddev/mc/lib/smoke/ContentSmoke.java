@@ -1,5 +1,7 @@
 package zone.moddev.mc.lib.smoke;
 
+import java.util.List;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -8,6 +10,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -223,6 +226,30 @@ final class ContentSmoke {
         var horse = (AnimalArmorItem) item("mmdlib:emerald_horse_armor");
         if (!horse.getTexture().getNamespace().equals("mmdlib"))
             throw new AssertionError("Missing custom horse armor texture");
+        materialTags();
+    }
+
+    /** MaterialTagPack tags each material item by its part. */
+    private static void materialTags() {
+        var expected = java.util.Map.of("mmdlib:emerald_sword",
+            List.of(ItemTags.SWORDS, ItemTags.SWORD_ENCHANTABLE,
+                ItemTags.SHARP_WEAPON_ENCHANTABLE),
+            "mmdlib:quartz_pickaxe",
+            List.of(ItemTags.PICKAXES, ItemTags.MINING_ENCHANTABLE),
+            "mmdlib:emerald_boots",
+            List.of(ItemTags.FOOT_ARMOR_ENCHANTABLE,
+                ItemTags.ARMOR_ENCHANTABLE),
+            "mmdlib:gold_bow", List.of(ItemTags.BOW_ENCHANTABLE),
+            "mmdlib:iron_scythe", List.of(ItemTags.WEAPON_ENCHANTABLE),
+            "mmdlib:copper_arrow", List.of(ItemTags.ARROWS,
+                ItemTags.create(ResourceLocation.parse("c:arrows"))));
+        expected.forEach((id, tags) -> {
+            var stack = new ItemStack(item(id));
+            for (var tag : tags)
+                if (!stack.is(tag))
+                    throw new AssertionError(
+                        id + " is not in #" + tag.location());
+        });
     }
 
     /** MMDLib's own registrar; the machine smoke registrar is skipped. */
