@@ -1088,6 +1088,9 @@ NBT copies, `capture(entity)`, optional capture customization, type/UUID access,
 and `createDetached(level, expectedClass)`. Reconstruction never spawns or ticks
 entities and returns empty for unknown types, malformed data or passenger trees.
 Capture/release eligibility and extra mod-specific state remain consumer policy.
+`customName()` decodes the saved name as an optional `Component`, preserving
+translation and styling without reconstructing an entity. Missing or malformed
+names return empty, so tooltips can fall back to the species description.
 
 `EntitySnapshotPolicy<T>` pairs a typed eligibility predicate with capture and
 restore hooks. Capture hooks edit the serialized copy; restore hooks apply extra

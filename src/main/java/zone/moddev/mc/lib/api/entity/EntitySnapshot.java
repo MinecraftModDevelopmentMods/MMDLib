@@ -70,6 +70,24 @@ public final class EntitySnapshot {
     }
 
     /**
+     * Saved custom name as a translatable component; malformed names are
+     * ignored.
+     */
+    public Optional<net.minecraft.network.chat.Component> customName() {
+        if (!data.contains("CustomName"))
+            return Optional.empty();
+        try {
+            return net.minecraft.network.chat.ComponentSerialization.CODEC
+                .parse(com.mojang.serialization.JsonOps.INSTANCE,
+                    com.google.gson.JsonParser
+                        .parseString(data.getString("CustomName")))
+                .result();
+        } catch (RuntimeException malformed) {
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Reconstruct one entity without spawning or ticking it. Passenger trees
      * are not supported.
      */

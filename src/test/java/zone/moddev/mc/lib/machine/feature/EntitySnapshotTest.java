@@ -15,6 +15,18 @@ import zone.moddev.mc.lib.api.entity.EntitySnapshot;
 
 class EntitySnapshotTest {
     @Test
+    void customNamesRemainComponentsAndMalformedNamesAreIgnored() {
+        var data = new CompoundTag();
+        data.putString("CustomName",
+            "{\"translate\":\"test.pet\",\"with\":[\"Bessie\"]}");
+        var name = new EntitySnapshot(data).customName().orElseThrow();
+        assertEquals(net.minecraft.network.chat.Component
+            .translatable("test.pet", "Bessie"), name);
+        data.putString("CustomName", "{");
+        assertTrue(new EntitySnapshot(data).customName().isEmpty());
+        assertTrue(EntitySnapshot.EMPTY.customName().isEmpty());
+    }
+    @Test
     void snapshotAndCodecKeepIndependentDataAndIdentity() {
         var id = UUID.randomUUID();
         var data = new CompoundTag();
