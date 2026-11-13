@@ -29,6 +29,13 @@ public final class BoundButtonElement extends ButtonElement
     private final Optional<String> processor;
     private final Optional<String> enabledWhen;
 
+    public BoundButtonElement(ButtonElement source, Optional<String> processor,
+        Optional<String> enabledWhen) {
+        super(source);
+        this.processor = processor;
+        this.enabledWhen = enabledWhen;
+    }
+
     public static final ElementSync<Boolean> ENABLED = ElementSync
         .field(ResourceLocation.parse("mmdlib:button_enabled"),
             StreamCodec.<RegistryFriendlyByteBuf, Boolean>of(
@@ -51,6 +58,10 @@ public final class BoundButtonElement extends ButtonElement
 
     public Optional<String> processor() {
         return processor;
+    }
+    @Override
+    public List<ResourceLocation> clickCallbacks() {
+        return processor.isPresent() ? List.of() : super.clickCallbacks();
     }
     public Optional<String> enabledWhen() {
         return enabledWhen;

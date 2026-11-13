@@ -4,5 +4,6 @@
   <appearance preset="cube-front" front="minecraft:block/stone"
               side="minecraft:block/stone" top="minecraft:block/stone"/>
   <storage><items id="items"><slots id="storage" count="1" role="manual"/></items></storage>
+  <shapes><shape id="plate" bounds="0 0 0 16 3 16" when="true"/></shapes>
   <processor id="portable" class="zone.moddev.mc.companion.test.PortableMachineTests$Payload"/>
 </machine>

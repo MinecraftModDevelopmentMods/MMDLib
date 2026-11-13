@@ -160,6 +160,35 @@ public interface Element {
         });
     }
 
+    /** Validate processor bindings against a machine's declared schema. */
+    default void validateDefinition(
+        Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> processors) {
+    }
+
+    /** Includes visual defaults for elements with conditional bindings. */
+    default void validateDefinition(
+        Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> processors,
+        Map<String, Object> defaults) {
+        validateDefinition(processors);
+    }
+
+    /** The host is null for screens bound to ordinary block entities. */
+    default boolean serverEnabled(
+        @org.jetbrains.annotations.Nullable ScreenHost host,
+        net.minecraft.world.entity.player.Player player) {
+        return true;
+    }
+
+    /**
+     * Click handlers that require registration in the material event system.
+     */
+    default java.util.List<net.minecraft.resources.ResourceLocation> clickCallbacks() {
+        var clicks = common().clicks();
+        return java.util.stream.Stream.of(clicks.click(), clicks.rightClick(),
+            clicks.shiftClick(), clicks.shiftRightClick())
+            .flatMap(Optional::stream).toList();
+    }
+
     /** Resource identity used by generic validation and highlighting. */
     default Optional<ResourceBinding> resourceBinding() {
         return interaction().flatMap(binding -> ElementInteractions

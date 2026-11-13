@@ -18,13 +18,6 @@ public interface ButtonControl extends Element {
         return true;
     }
 
-    /** The host is null for screens bound to ordinary block entities. */
-    default boolean serverEnabled(
-        @org.jetbrains.annotations.Nullable zone.moddev.mc.lib.gui.runtime.ScreenHost host,
-        net.minecraft.world.entity.player.Player player) {
-        return true;
-    }
-
     boolean flat();
 
     Optional<Text> text();

@@ -175,7 +175,7 @@ public final class MachineContent {
                     properties.pushReaction(
                         net.minecraft.world.level.material.PushReaction.BLOCK);
                 if (!definition.behavior().shapes().isEmpty())
-                    properties.dynamicShape();
+                    properties.dynamicShape().noOcclusion();
                 var block = new DefinedMachineBlock(properties,
                     () -> entities.get(id));
                 helper.register(id, block);

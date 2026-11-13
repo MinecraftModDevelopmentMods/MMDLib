@@ -36,6 +36,8 @@ public abstract class PortableStoredProcessor extends StoredProcessor
         var actions = new LinkedHashMap<>(customActions());
         if (actions.putIfAbsent(PICKUP, new ProcessorAction(
             (state, context) -> !taken(), (state, context) -> {
+                if (!context.machine().authorizePickup(context.player()))
+                    return ProcessorAction.Result.unavailable();
                 var stack = take();
                 if (stack.isEmpty())
                     return ProcessorAction.Result.unavailable();

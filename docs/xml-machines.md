@@ -1029,6 +1029,8 @@ geometry for chunk rendering. Omit `<shapes>` for the
 normal full cube. Conditions use processor variables and authoritative server
 state; model visibility alone never changes collision. Shape-bearing machines
 send synchronized state immediately after mutations so client bounds follow it.
+They also disable face occlusion automatically: blockstate-based occlusion caches
+cannot represent different shapes for machines with the same blockstate.
 
 A portable machine's processor must also implement `PortableProcessor`: transfer
 its payload through `take()` and `placed(ItemStack)`, with optional interaction,
@@ -1043,6 +1045,12 @@ add their wrench or other pickup tool in
 invoke `mmdlib:pickup`. Occupied creative placement consumes the carried item.
 Custom loot overrides must preserve the single-owner rule. No legacy state
 migration is implied by this interface.
+Pickup retains block-entity components such as custom names and honors player
+build permissions, world interaction protection, and cancellable block-break
+events. Custom `ProcessorMachine` hosts must implement `authorizePickup` with
+their platform's permission checks; the default denies pickup.
+Malformed portable fields use their declared defaults when placed, matching
+item-side reads; valid fields in the same payload are still restored.
 Consumer client code can register a renderer for `MachineContent.entityType(id)`
 to draw live previews on the generic block entity.
 
@@ -1200,6 +1208,8 @@ returns an empty optional for missing, incompatible or unsupported hosts.
 `variables.timer("cooldown", 40, ProcessorTimer.Policy.IDLE)` creates a private,
 persisted countdown. Use `start(ticks)`, `ready()`, `remaining()` and `clear()`;
 the `StoredProcessor` lifecycle decrements it automatically before processing.
+`start` rejects values outside `0..maximum` with an `IllegalArgumentException`
+that names the timer and bounds, before changing state.
 Policies are `IDLE`, `ACTIVE` (including stalled/blocked active work), `UNPAUSED`
 (idle or active, excluding holds), and `ALWAYS` (including paused/held loaded ticks).
 Timers clamp at zero, never advance while unloaded, and are not portable unless

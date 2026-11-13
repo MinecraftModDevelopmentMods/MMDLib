@@ -121,23 +121,12 @@ public final class MachineScreenGenerators {
                 ? Map.of()
                 : Map.of(machine.processor(), machine.behavior().processor()
                     .create(machine.processor(), null));
-        Map<String, Object> defaults = null;
+        var defaults = machine.visualDefaults(
+            machine.hasProcessor() ? declared.get(machine.processor()) : null);
         for (var element : screen.elements()) {
             try {
                 element.validateResources(context);
-                if (element instanceof zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement portrait) {
-                    portrait.validateDefinition(declared);
-                }
-                if (element instanceof zone.moddev.mc.lib.gui.model.elements.LabelElement label
-                    && label.variable().isPresent()) {
-                    label.validateDefinition(declared);
-                }
-                if (element instanceof zone.moddev.mc.lib.gui.model.elements.BoundButtonElement button) {
-                    if (defaults == null)
-                        defaults = machine
-                            .visualDefaults(declared.get(machine.processor()));
-                    button.validateDefinition(declared, defaults);
-                }
+                element.validateDefinition(declared, defaults);
             } catch (IllegalArgumentException failure) {
                 throw new ScreenException(screen.source(element.common()),
                     element.common().line(), failure.getMessage());

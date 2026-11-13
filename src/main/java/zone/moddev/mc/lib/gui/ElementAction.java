@@ -58,13 +58,11 @@ public class ElementAction<T> {
      * the context first.
      */
     public boolean execute(Context context, T value) {
-        if (context
-            .element() instanceof zone.moddev.mc.lib.gui.model.elements.ButtonControl button
-            && !button.serverEnabled(context
-                .menu().blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host
-                    ? host
-                    : null,
-                context.player()))
+        if (!context.element().serverEnabled(context
+            .menu().blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host
+                ? host
+                : null,
+            context.player()))
             return false;
         return handler.test(context, value);
     }

@@ -39,6 +39,11 @@ public class ButtonElement implements ButtonControl {
     private final List<Text> valueLabels;
     private final boolean flat;
 
+    protected ButtonElement(ButtonElement source) {
+        this(source.common, source.text, source.icon, source.shows,
+            source.icons, source.valueLabels, source.flat);
+    }
+
     public ButtonElement(Common common, Optional<Text> text,
         Optional<ResourceLocation> icon, Optional<ViewRef> shows,
         List<ResourceLocation> icons, List<Text> valueLabels, boolean flat) {

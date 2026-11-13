@@ -579,6 +579,10 @@ class MachineDefinitionsTest {
             "Water Catalyst", "buffer", "Fluid Buffer", "pattern",
             "Rock Selection", "input", "input", "output", "Products");
         assertEquals(expected, machine.groupNames());
+        org.junit.jupiter.api.Assertions.assertSame(machine.groupNames(),
+            machine.groupNames());
+        assertThrows(UnsupportedOperationException.class,
+            () -> machine.groupNames().put("injected", "Invalid"));
         assertFalse(machine.fluids().groups().getFirst().automation());
         var assets = zone.moddev.mc.lib.machine.neoforge.MachineResourcePack
             .build(net.minecraft.server.packs.PackType.CLIENT_RESOURCES,

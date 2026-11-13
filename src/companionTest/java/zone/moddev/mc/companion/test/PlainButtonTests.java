@@ -57,6 +57,32 @@ public final class PlainButtonTests {
             var menu = new MachineMenu(70, player.getInventory(),
                 h.getLevel().getBlockEntity(pos));
             player.containerMenu = menu;
+            var denied = new zone.moddev.mc.lib.gui.model.Element() {
+                public zone.moddev.mc.lib.gui.model.Common common() {
+                    return zone.moddev.mc.lib.gui.model.Common.empty();
+                }
+                public boolean serverEnabled(
+                    zone.moddev.mc.lib.gui.runtime.ScreenHost host,
+                    net.minecraft.world.entity.player.Player viewer) {
+                    return false;
+                }
+            };
+            var invoked = new java.util.concurrent.atomic.AtomicBoolean();
+            var guarded = new zone.moddev.mc.lib.gui.ElementAction<>(
+                ResourceLocation.parse("test:guarded"),
+                ElementActions.Click.CODEC, 8, (context, click) -> {
+                    invoked.set(true);
+                    return true;
+                });
+            var context = new zone.moddev.mc.lib.gui.ElementAction.Context(
+                player, menu, denied);
+            var click = new ElementActions.Click(0, 0, 0);
+            h.assertTrue(
+                !guarded.execute(context, click)
+                    && !guarded.dispatch(context,
+                        guarded.encode(player.registryAccess(), click))
+                    && !invoked.get(),
+                "Non-button elements own authorization in both dispatch paths");
             var button = screen.find("next").orElseThrow();
             menu.action(player,
                 new ScreenNetwork.Action(70, menu.index(button), 1, 0, 0, 0));

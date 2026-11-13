@@ -183,8 +183,24 @@ public final class DefinedMachineEntity extends BaseMachine
         return getBlockState();
     }
     public net.minecraft.world.item.ItemStack item() {
-        return new net.minecraft.world.item.ItemStack(
+        var stack = new net.minecraft.world.item.ItemStack(
             getBlockState().getBlock());
+        stack.applyComponents(collectComponents());
+        return stack;
+    }
+    @Override
+    public boolean authorizePickup(
+        net.minecraft.world.entity.player.Player player) {
+        if (!(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
+            || level == null || level.isClientSide || player.level() != level
+            || !player.mayBuild() || !level.mayInteract(player, worldPosition)
+            || isRemoved() || level.getBlockEntity(worldPosition) != this)
+            return false;
+        var event = net.neoforged.neoforge.common.CommonHooks.fireBlockBreak(
+            level, serverPlayer.gameMode.getGameModeForPlayer(), serverPlayer,
+            worldPosition, getBlockState());
+        return !event.isCanceled() && !isRemoved()
+            && level.getBlockEntity(worldPosition) == this;
     }
     public void remove() {
         if (level != null)
@@ -225,10 +241,9 @@ public final class DefinedMachineEntity extends BaseMachine
     public zone.moddev.mc.lib.machine.feature.PortableProcessor portable() {
         if (!definition.behavior().portable())
             return null;
-        return features.findProcessor(definition.processor()).filter(
-            zone.moddev.mc.lib.machine.feature.PortableProcessor.class::isInstance)
-            .map(
-                zone.moddev.mc.lib.machine.feature.PortableProcessor.class::cast)
+        return features
+            .findProcessor(definition.processor(),
+                zone.moddev.mc.lib.machine.feature.PortableProcessor.class)
             .orElse(null);
     }
     @Override
@@ -249,10 +264,9 @@ public final class DefinedMachineEntity extends BaseMachine
     public void onLoad() {
         super.onLoad();
         if (level != null && !level.isClientSide)
-            features.findProcessor(definition.processor()).filter(
-                zone.moddev.mc.lib.machine.feature.StoredProcessor.class::isInstance)
-                .map(
-                    zone.moddev.mc.lib.machine.feature.StoredProcessor.class::cast)
+            features
+                .findProcessor(definition.processor(),
+                    zone.moddev.mc.lib.machine.feature.StoredProcessor.class)
                 .ifPresent(
                     zone.moddev.mc.lib.machine.feature.StoredProcessor::refreshDerived);
         if (legacyGhostRecipe != null && level != null && !level.isClientSide) {

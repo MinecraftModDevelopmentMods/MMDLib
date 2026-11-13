@@ -250,12 +250,15 @@ public final class ProcessorState implements VisualVariableProvider {
     public void loadPortable(CompoundTag tag) {
         var decoded = new LinkedHashMap<Key<?>, Object>();
         for (var key : portable)
-            decoded.put(key,
-                tag.contains(key.name())
-                    ? key.codec().parse(NbtOps.INSTANCE, tag.get(key.name()))
-                        .getOrThrow()
-                    : key.initial());
+            decoded.put(key, portableValue(tag, key));
         update(() -> decoded.forEach(this::restore));
+    }
+
+    private <T> T portableValue(CompoundTag tag, Key<T> key) {
+        return tag.contains(key.name())
+            ? key.codec().parse(NbtOps.INSTANCE, tag.get(key.name())).result()
+                .orElse(key.initial())
+            : key.initial();
     }
 
     public void clearPortable() {

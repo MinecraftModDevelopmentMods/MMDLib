@@ -2,7 +2,6 @@ package zone.moddev.mc.lib.machine.feature;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.mojang.serialization.Codec;
@@ -37,7 +36,7 @@ class PortableStateTest {
     }
 
     @Test
-    void onlySelectedVariablesTravelAndInvalidPayloadsDoNotPartiallyRestore() {
+    void onlySelectedVariablesTravelAndInvalidFieldsUseDefaults() {
         var state = new ProcessorState();
         var animal = state.portable(state.define("animal", Codec.STRING, ""));
         var count = state
@@ -59,9 +58,14 @@ class PortableStateTest {
         assertEquals("cow", state.get(animal));
         payload.putString("animal", "pig");
         payload.putInt("count", -1);
-        assertThrows(IllegalStateException.class,
-            () -> state.loadPortable(payload));
-        assertEquals("cow", state.get(animal));
+        state.loadPortable(payload);
+        assertEquals("pig", state.get(animal));
+        assertEquals(0, state.get(count));
+        payload.putInt("animal", 42);
+        payload.putInt("count", 3);
+        state.loadPortable(payload);
+        assertEquals("", state.get(animal));
+        assertEquals(3, state.get(count));
         state.loadPortable(new CompoundTag());
         assertFalse(state.hasPortableContent());
     }

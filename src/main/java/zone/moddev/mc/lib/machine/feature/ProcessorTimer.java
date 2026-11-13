@@ -24,6 +24,7 @@ public final class ProcessorTimer {
     private final ProcessorState state;
     private final ProcessorState.Key<Integer> key;
     private final Policy policy;
+    private final int maximum;
 
     ProcessorTimer(ProcessorState state, String name, int maximum,
         Policy policy) {
@@ -31,6 +32,7 @@ public final class ProcessorTimer {
             throw new IllegalArgumentException(
                 "Timer maximum must be positive");
         this.state = state;
+        this.maximum = maximum;
         this.policy = java.util.Objects.requireNonNull(policy);
         key = state.integer(name, 0, maximum, 0).define();
     }
@@ -45,6 +47,9 @@ public final class ProcessorTimer {
         return remaining() == 0;
     }
     public void start(int ticks) {
+        if (ticks < 0 || ticks > maximum)
+            throw new IllegalArgumentException("Timer " + key.name()
+                + " must start within 0.." + maximum + " ticks, got " + ticks);
         state.update(() -> state.set(key, ticks));
     }
     public void clear() {

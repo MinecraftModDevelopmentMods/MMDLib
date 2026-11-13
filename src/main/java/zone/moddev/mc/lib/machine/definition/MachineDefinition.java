@@ -31,7 +31,22 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
     boolean redstone, Node screen, RecipeSelection recipeSelection,
-    List<Ghost> ghosts, MachineBehavior behavior) {
+    List<Ghost> ghosts, MachineBehavior behavior,
+    Map<String, String> groupNames) {
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection,
+        List<Ghost> ghosts, MachineBehavior behavior) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, ghosts, behavior, Map.of());
+    }
     public MachineDefinition(ResourceLocation id, String checksum, String name,
         float hardness, ResourceLocation mineable, boolean requiresTool,
         Map<String, String> textures, ResourceLocation baseModel,
@@ -149,6 +164,17 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         faceTextures = List.copyOf(faceTextures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
+        // Derived from the immutable declarations, including for canonical
+        // callers.
+        var names = new LinkedHashMap<String, String>();
+        groups.forEach(group -> names.put(group.id(), group.name()));
+        ghosts.forEach(ghost -> names.put(ghost.id(), ghost.name()));
+        if (power != null)
+            names.put(power.id(), power.name());
+        if (fluids != null)
+            fluids.groups()
+                .forEach(group -> names.put(group.id(), group.name()));
+        groupNames = Collections.unmodifiableMap(names);
     }
 
     public boolean hasProcessor() {
@@ -199,19 +225,6 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     /** Stable localization key, independent of the English display name. */
     public String groupTranslationKey(String group) {
         return id + ".group." + group;
-    }
-
-    /** English defaults, including recipe-only tanks and ghost inventories. */
-    public Map<String, String> groupNames() {
-        var names = new LinkedHashMap<String, String>();
-        groups.forEach(group -> names.put(group.id(), group.name()));
-        ghosts.forEach(ghost -> names.put(ghost.id(), ghost.name()));
-        if (power != null)
-            names.put(power.id(), power.name());
-        if (fluids != null)
-            fluids.groups()
-                .forEach(group -> names.put(group.id(), group.name()));
-        return Collections.unmodifiableMap(names);
     }
 
     /** Keep the component translatable until it reaches the viewer. */

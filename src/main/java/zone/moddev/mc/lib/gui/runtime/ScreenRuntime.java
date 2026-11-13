@@ -47,16 +47,10 @@ public final class ScreenRuntime {
                     screen.source(), 0, "At most 4096 elements are supported");
             for (var e : screen.elements()) {
                 var c = e.common();
-                var clicks = c.clicks();
-                for (var id : java.util.stream.Stream
-                    .of(clicks.click(), clicks.rightClick(),
-                        clicks.shiftClick(), clicks.shiftRightClick())
-                    .flatMap(java.util.Optional::stream).toList())
-                    if (!(e instanceof zone.moddev.mc.lib.gui.model.elements.BoundButtonElement button)
-                        || button.processor().isEmpty())
-                        requireCallback(callbacks, id,
-                            zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK,
-                            screen, e);
+                for (var id : e.clickCallbacks())
+                    requireCallback(callbacks, id,
+                        zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK,
+                        screen, e);
                 c.onHover()
                     .ifPresent(id -> requireCallback(callbacks, id,
                         zone.moddev.mc.lib.api.MaterialEventTypes.GUI_HOVER,

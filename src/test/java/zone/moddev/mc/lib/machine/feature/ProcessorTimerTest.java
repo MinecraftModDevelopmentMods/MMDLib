@@ -43,7 +43,11 @@ class ProcessorTimerTest {
         assertTrue(timer.ready());
         state.load(saved, false);
         assertEquals(40, timer.remaining());
-        assertThrows(IllegalStateException.class, () -> timer.start(41));
+        var failure = assertThrows(IllegalArgumentException.class,
+            () -> timer.start(41));
+        assertTrue(failure.getMessage().contains("0..40"));
+        assertThrows(IllegalArgumentException.class, () -> timer.start(-1));
+        assertEquals(40, timer.remaining());
         assertThrows(IllegalArgumentException.class, () -> state.update(
             () -> state.advanceTimers(-1, Processor.ProcessState.IDLE)));
     }

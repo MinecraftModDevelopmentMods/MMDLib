@@ -16,6 +16,15 @@ public interface ProcessorMachine {
     }
     net.minecraft.world.level.block.state.BlockState blockState();
     net.minecraft.world.item.ItemStack item();
+    /**
+     * Authorize player pickup before ownership changes. Hosts must enforce
+     * build permissions and platform protection events; absent support denies
+     * it.
+     */
+    default boolean authorizePickup(
+        net.minecraft.world.entity.player.Player player) {
+        return false;
+    }
     void remove();
     boolean removed();
 }

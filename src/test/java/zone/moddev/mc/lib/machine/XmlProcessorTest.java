@@ -98,6 +98,25 @@ public class XmlProcessorTest {
                 MachineScreenGenerators.forMachines(definitions))
             .get(id).screen();
         MachineScreenGenerators.validate(definition, screen);
+        var validated = new java.util.concurrent.atomic.AtomicBoolean();
+        var custom = new zone.moddev.mc.lib.gui.model.Element() {
+            public zone.moddev.mc.lib.gui.model.Common common() {
+                return zone.moddev.mc.lib.gui.model.Common.empty();
+            }
+            public void validateDefinition(
+                Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> processors,
+                Map<String, Object> defaults) {
+                assertTrue(processors.containsKey("courier"));
+                assertTrue(defaults.containsKey("processors.courier.occupied"));
+                validated.set(true);
+            }
+        };
+        MachineScreenGenerators.validate(definition,
+            new zone.moddev.mc.lib.gui.model.Screen(screen.id(),
+                screen.source(), screen.title(), screen.blockEntity(), false,
+                List.of(custom), List.of()));
+        assertTrue(validated.get(),
+            "Custom elements own processor-schema validation");
         assertInstanceOf(
             zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement.class,
             screen.find("portrait").orElseThrow());
