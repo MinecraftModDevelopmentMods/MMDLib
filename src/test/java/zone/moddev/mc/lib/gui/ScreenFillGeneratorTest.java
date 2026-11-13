@@ -67,7 +67,7 @@ class ScreenFillGeneratorTest {
             assertEquals(machines.get(id).hasProcessor(),
                 screen.find("toggle_0").isPresent());
             for (String content : List.of("",
-                "<label id=\"custom\" text=\"Custom controls\"/>")) {
+                "<label id=\"custom\" text=\"test.custom_controls\"/>")) {
                 write("compact",
                     "abstract=\"true\" extends=\"mmdlib:base_machine\" inventory=\"none\"",
                     "<fill name=\"inventory_controls\">" + content + "</fill>");
@@ -94,7 +94,7 @@ class ScreenFillGeneratorTest {
     void defaultFiltersRetainAuthoredContentAndYieldToFills() throws Exception {
         write("base",
             "abstract=\"true\" block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\"",
-            "<placeholder name=\"controls\" default-filter=\"test:enabled\"><label id=\"authored\" text=\"From XML\"/></placeholder>");
+            "<placeholder name=\"controls\" default-filter=\"test:enabled\"><label id=\"authored\" text=\"test.authored\"/></placeholder>");
         write("default", "extends=\"test:base\" title=\"Default\"", "");
         write("override", "extends=\"test:base\" title=\"Override\"",
             "<fill name=\"controls\"><label id=\"custom\" text=\"Override\"/></fill>");
