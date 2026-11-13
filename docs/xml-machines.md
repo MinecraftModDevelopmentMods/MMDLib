@@ -1094,6 +1094,11 @@ the component-list codec and defensive copies; `string`, `bool`, `integer` and
 `entity` supply their corresponding codecs. `value` accepts a custom codec and
 copy function. Finish with `define()` or `derived(dependencies, computation)`.
 
+Use `features.findProcessor(key, ExpectedProcessor.class)` for typed lookup, or
+`Processors.find(host, key, ExpectedProcessor.class)` when the host is a block
+entity or another object. The latter accepts `FeatureHost` and `ScreenHost` and
+returns an empty optional for missing, incompatible or unsupported hosts.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and
