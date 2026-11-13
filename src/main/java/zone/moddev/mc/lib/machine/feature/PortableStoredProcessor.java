@@ -1,7 +1,11 @@
 package zone.moddev.mc.lib.machine.feature;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import com.mojang.serialization.Codec;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -10,11 +14,40 @@ import net.minecraft.world.item.ItemStack;
  */
 public abstract class PortableStoredProcessor extends StoredProcessor
     implements PortableProcessor {
+    public static final ResourceLocation PICKUP = ResourceLocation
+        .parse("mmdlib:pickup");
     private final ProcessorState.Key<Boolean> taken = variables.define("taken",
         Codec.BOOL, false);
 
     public final boolean taken() {
         return variables.get(taken);
+    }
+
+    /** Mod-owned commands; the library pickup action is always included. */
+    protected Map<ResourceLocation, ProcessorAction> customActions() {
+        return Map.of();
+    }
+
+    @Override
+    public final Map<ResourceLocation, ProcessorAction> actions() {
+        var actions = new LinkedHashMap<>(customActions());
+        if (actions.putIfAbsent(PICKUP, new ProcessorAction(
+            (state, context) -> !taken(), (state, context) -> {
+                var stack = take();
+                if (stack.isEmpty())
+                    return ProcessorAction.Result.unavailable();
+                context.machine().remove();
+                if (!context.machine().removed()) {
+                    placed(stack);
+                    return ProcessorAction.Result.unavailable();
+                }
+                context.player().getInventory().placeItemBackInInventory(stack);
+                context.player().closeContainer();
+                return ProcessorAction.Result.success();
+            })) != null)
+            throw new IllegalArgumentException(
+                "The mmdlib:pickup action is reserved");
+        return Map.copyOf(actions);
     }
 
     @Override

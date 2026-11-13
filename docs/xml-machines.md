@@ -1064,6 +1064,14 @@ to clients, which accept the server result even when dependencies are private.
 XML hosts refresh them again on load once their level is available; other hosts
 should call `StoredProcessor.refreshDerived()` at that lifecycle boundary.
 
+`PortableStoredProcessor` always declares `mmdlib:pickup`. Override `customActions()`
+for additional commands. The standard action transfers the machine item once,
+removes the block, returns the item to the player (dropping overflow through vanilla
+inventory handling), and closes the screen. A refused removal restores ownership.
+Bind a button with `on-click="mmdlib:pickup"` and opt into sneak-use with
+`<block ... on-secondary-use="mmdlib:pickup"/>`. Secondary-use can name any declared
+processor action and uses the same server-side availability checks as buttons.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and

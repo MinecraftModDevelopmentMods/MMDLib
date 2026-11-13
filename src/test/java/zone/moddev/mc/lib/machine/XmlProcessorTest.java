@@ -63,6 +63,7 @@ public class XmlProcessorTest {
         Files.writeString(directory.resolve("machine/courier.xml"),
             """
                 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="mmdlib:base_machine" name="Courier">
+                  <block on-secondary-use="%s"/>
                   <appearance preset="model" model="test:block/base">
                     <part id="cage" model="test:block/cage" when="$processors.courier.occupied"/>
                   </appearance>
@@ -79,7 +80,7 @@ public class XmlProcessorTest {
                   </screen>
                 </machine>
                 """
-                .formatted(action, condition));
+                .formatted(action, action, condition));
         var sources = List.of(
             new SourceRoot("mmdlib", Path.of("src/main/resources/mmdlib"),
                 getClass().getClassLoader()),
@@ -90,6 +91,8 @@ public class XmlProcessorTest {
         assertTrue(definition.hasProcessor());
         assertTrue(definition.processingType().isEmpty());
         assertEquals(1, definition.behavior().shapes().size());
+        assertEquals(ResourceLocation.parse(action),
+            definition.behavior().secondaryAction());
         var screen = ScreenLoader
             .load(sources, Map.of(id, definition.screen()),
                 MachineScreenGenerators.forMachines(definitions))

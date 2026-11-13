@@ -5,9 +5,10 @@ import java.util.List;
 /** Optional physical/item policies and a mod-owned processor. */
 public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     boolean noOcclusion, boolean immovable, boolean portable, boolean drawers,
-    List<Shape> shapes) {
+    List<Shape> shapes,
+    net.minecraft.resources.ResourceLocation secondaryAction) {
     public static final MachineBehavior DEFAULT = new MachineBehavior(null, 64,
-        false, false, false, true, List.of());
+        false, false, false, true, List.of(), null);
     public MachineBehavior {
         if (stackSize < 1 || stackSize > 64)
             throw new IllegalArgumentException("Stack size must be 1..64");

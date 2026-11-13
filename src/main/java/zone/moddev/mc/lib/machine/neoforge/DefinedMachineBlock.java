@@ -92,6 +92,23 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level,
         BlockPos pos, Player player, BlockHitResult hit) {
+        if (player.isShiftKeyDown()
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.definition.behavior().secondaryAction() != null) {
+            var action = host.definition.behavior().secondaryAction();
+            var processor = host.screenFeatures()
+                .findProcessor(host.definition.processor()).orElseThrow();
+            if (level.isClientSide())
+                return processor.actionAvailable(action, player)
+                    ? InteractionResult.SUCCESS
+                    : InteractionResult.FAIL;
+            var result = processor.invoke(action, player);
+            result.message().ifPresent(
+                message -> player.displayClientMessage(message, true));
+            return result.accepted()
+                ? InteractionResult.CONSUME
+                : InteractionResult.FAIL;
+        }
         if (level.getBlockEntity(pos) instanceof DefinedMachineEntity host
             && host.portable() != null) {
             var result = host.portable().use(player, player.isShiftKeyDown());

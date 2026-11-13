@@ -167,7 +167,7 @@ public final class MachineDefinitions {
         Map.entry("block",
             Set.of("hardness", "facing", "drop", "mineable", "requires-tool",
                 "stack-size", "no-occlusion", "immovable", "portable",
-                "drawers")),
+                "on-secondary-use", "drawers")),
         Map.entry("appearance",
             Set.of("preset", "front", "side", "top", "bottom", "model")),
         Map.entry("part", Set.of("id", "model", "when")),
@@ -656,7 +656,15 @@ public final class MachineDefinitions {
                 : 64),
             bool(block, "no-occlusion", false), bool(block, "immovable", false),
             bool(block, "portable", false), bool(block, "drawers", true),
-            shapes);
+            shapes,
+            block.attributes().containsKey("on-secondary-use")
+                ? resource(block, "on-secondary-use")
+                : null);
+        if (behavior.secondaryAction() != null && (behavior.processor() == null
+            || !behavior.processor().create(required(processor, "id"), null)
+                .actions().containsKey(behavior.secondaryAction())))
+            throw error(block, "Unknown secondary-use processor action: "
+                + behavior.secondaryAction());
         if (behavior.portable() && (!custom
             || !zone.moddev.mc.lib.machine.feature.PortableProcessor.class
                 .isAssignableFrom(behavior.processor().type())))
