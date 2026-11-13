@@ -1,5 +1,12 @@
 # GUI screens
 
+Entity previews can share `api.entity.EntityPreviewCache<T>`. It caches immutable
+`EntitySnapshot` values, including failed decodes, with a bounded least-recently-used
+capacity. A changed level clears the cache. The default loader creates detached
+entities and validates their dimensions; a custom loader may restore mod-specific
+pose data but must never spawn or tick previews. Owners call `clear()` on close or
+disconnect. The standard entity portrait uses this cache automatically.
+
 > **Status: implemented; runtime validation is described below.** Screens load at startup,
 > open through `block-right-click`, and use one generic menu with custom value packets.
 > Rendering and optional JEI integration live exclusively on the client.

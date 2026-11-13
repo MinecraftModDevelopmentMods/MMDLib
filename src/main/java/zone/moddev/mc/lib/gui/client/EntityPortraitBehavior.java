@@ -2,10 +2,9 @@ package zone.moddev.mc.lib.gui.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 
+import zone.moddev.mc.lib.api.entity.EntityPreviewCache;
 import zone.moddev.mc.lib.api.entity.EntitySnapshot;
 import zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement;
 
@@ -14,9 +13,8 @@ import zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement;
  * it.
  */
 public final class EntityPortraitBehavior extends DefaultElementBehavior {
-    private ClientLevel level;
-    private EntitySnapshot data;
-    private LivingEntity preview;
+    private final EntityPreviewCache<LivingEntity> previews = new EntityPreviewCache<>(
+        LivingEntity.class, 1);
 
     public EntityPortraitBehavior(EntityPortraitElement element,
         ElementAccess access) {
@@ -24,41 +22,11 @@ public final class EntityPortraitBehavior extends DefaultElementBehavior {
     }
 
     private LivingEntity preview(EntitySnapshot next) {
-        var currentLevel = Minecraft.getInstance().level;
-        if (level == currentLevel && next.equals(data))
-            return preview;
-        level = currentLevel;
-        data = next;
-        preview = null;
-        if (level == null || data.isEmpty())
-            return null;
-        try {
-            var tag = data.data();
-            // Only this entity is needed for a portrait. No passenger tree or
-            // world lookup.
-            tag.remove("Passengers");
-            var entity = EntityType.by(tag).map(type -> type.create(level))
-                .orElse(null);
-            if (entity instanceof LivingEntity living) {
-                living.load(tag);
-                living.setPos(0, 0, 0);
-                if (Float.isFinite(living.getBbHeight())
-                    && Float.isFinite(living.getBbWidth())
-                    && living.getBbHeight() > 0 && living.getBbWidth() > 0)
-                    preview = living;
-            }
-        } catch (RuntimeException malformed) {
-            // Missing modded types or malformed display data leave the
-            // placeholder visible.
-            preview = null;
-        }
-        return preview;
+        return previews.get(Minecraft.getInstance().level, next);
     }
 
     public void removed() {
-        preview = null;
-        data = null;
-        level = null;
+        previews.clear();
     }
 
     public static void render(EntityPortraitElement element,
