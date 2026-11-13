@@ -11,7 +11,7 @@
       </hbox>
     </vbox>
   </placeholder>
-  <placeholder name="inventory_controls">
+  <placeholder name="inventory_controls" default-filter="mmdlib:processor-controls">
     <inventory-controls id="inventory_controls">
       <processor-button id="toggle_0"/>
     </inventory-controls>

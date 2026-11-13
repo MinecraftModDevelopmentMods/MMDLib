@@ -5,6 +5,5 @@
   <recovery policy="capsule"/>
   <screen xmlns="https://moddev.zone/mmdlib/screen" extends="mmdlib:base_machine">
     <fill name="tanks" generator="mmdlib:tanks"/>
-    <fill name="inventory_controls" generator="mmdlib:processor-controls"/>
   </screen>
 </machine>

@@ -43,14 +43,21 @@ final class ScreenTemplates {
         if (tags.is(node, ScreenTag.Role.FILL)
             || tags.is(node, ScreenTag.Role.PLACEHOLDER)) {
             boolean generated = node.attributes().containsKey("generator");
+            if (node.attributes().containsKey("default-filter")) {
+                if (!tags.is(node, ScreenTag.Role.PLACEHOLDER) || generated
+                    || ResourceLocation.tryParse(
+                        node.attributes().get("default-filter")) == null)
+                    throw error(node,
+                        "default-filter requires a literal placeholder and a resource location");
+            }
             if (generated && ResourceLocation
                 .tryParse(node.attributes().get("generator")) == null)
                 throw error(node, "Invalid generator='"
                     + node.attributes().get("generator") + "'");
             for (var key : node.attributes().keySet())
-                if (!key.equals("name") && !key.equals("generator")
-                    && !(tags.is(node, ScreenTag.Role.PLACEHOLDER)
-                        && key.equals("required"))
+                if (!key.equals("name") && !key.equals("generator") && !(tags
+                    .is(node, ScreenTag.Role.PLACEHOLDER)
+                    && (key.equals("required") || key.equals("default-filter")))
                     && !generated)
                     throw error(node, "Unknown attribute " + key + " on <"
                         + node.name() + "> without a generator");
@@ -198,7 +205,8 @@ final class ScreenTemplates {
                     for (var child : generated)
                         rejectTemplates(child);
                     result.addAll(generated);
-                } else
+                } else if (!node.attributes().containsKey("default-filter")
+                    || generator.includeDefault(id, node))
                     result.addAll(expand(id, node.children()));
             } else
                 result.add(node.withChildren(expand(id, node.children())));

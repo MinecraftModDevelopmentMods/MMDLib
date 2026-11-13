@@ -124,7 +124,7 @@ public final class DefinedMachineEntity extends BaseMachine {
         }
         resources.build();
         RecipeProcessor processor = null;
-        if (definition.processor() != null) {
+        if (definition.hasProcessor()) {
             processor = new RecipeProcessor(definition.processor(), recipes,
                 resources.recipes(),
                 Component.literal(definition.processorName()));
@@ -254,7 +254,7 @@ public final class DefinedMachineEntity extends BaseMachine {
         readGhosts(metadata, registries);
         // Migrate the earlier output selector, including an explicitly cleared
         // selection.
-        if (definition.processor() == null)
+        if (!definition.hasProcessor())
             return;
         var old = tag.getCompound("features")
             .getCompound(definition.processor());
@@ -320,8 +320,7 @@ public final class DefinedMachineEntity extends BaseMachine {
 
     @Override
     public int[] screenRecipeSlots(ResourceLocation category) {
-        if (definition.recipeType() == null
-            || !definition.recipeType().id().equals(category))
+        if (!definition.processes(category))
             return new int[0];
         return definition.groups().stream()
             .filter(g -> g.mode() == IoMode.INPUT)

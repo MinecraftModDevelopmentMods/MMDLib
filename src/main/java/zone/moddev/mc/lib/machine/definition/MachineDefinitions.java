@@ -291,7 +291,7 @@ public final class MachineDefinitions {
         String itemId = items == null ? null : required(items, "id");
         if (items != null && (itemId.equals("energy")
             || MachineStorageKeys.RESERVED.contains(itemId)))
-            throw error(items, "Reserved storage ID " + required(items, "id"));
+            throw error(items, "Reserved storage ID " + itemId);
         String powerId = power == null ? null : required(power, "id");
         // BasePoweredMachine owns this stable save key.
         if (powerId != null && !powerId.equals("energy"))
@@ -524,6 +524,17 @@ public final class MachineDefinitions {
         if ((recipe == null) != (processor == null))
             throw error(root,
                 "recipe-type and processor must be supplied together");
+        if (processor == null) {
+            if (slots.stream().anyMatch(
+                slot -> slot.role() == Role.INPUT || slot.role() == Role.OUTPUT)
+                || !ghosts.isEmpty())
+                throw error(items,
+                    "Machines without a processor require storage/manual item roles");
+            if (tanks.stream().anyMatch(tank -> tank.role() == Role.INPUT
+                || tank.role() == Role.OUTPUT))
+                throw error(fluidNode,
+                    "Machines without a processor require storage/manual tank roles");
+        }
         var recipeType = recipe == null ? null : recipeType(recipe, loaders);
         if (processor != null
             && !recipeType.id().equals(resource(processor, "recipe-type")))

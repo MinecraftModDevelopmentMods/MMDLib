@@ -15,6 +15,7 @@ import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.gui.layout.GroupHighlights;
 import zone.moddev.mc.lib.gui.load.ResourceValidationContext;
 import zone.moddev.mc.lib.gui.load.ScreenException;
+import zone.moddev.mc.lib.gui.load.ScreenFillGenerator;
 import zone.moddev.mc.lib.gui.load.ScreenReader.Node;
 import zone.moddev.mc.lib.gui.model.ElementGroup;
 import zone.moddev.mc.lib.gui.model.Screen;
@@ -41,23 +42,38 @@ public final class MachineScreenGenerators {
         register(ResourceLocation.parse("mmdlib:processors"),
             (machine, node) -> {
                 options(node, Set.of());
-                return machine.processor() == null
+                return !machine.hasProcessor()
                     ? List.of()
                     : List.of(progress(machine, node));
-            });
-        register(ResourceLocation.parse("mmdlib:processor-controls"),
-            (machine, node) -> {
-                options(node, Set.of());
-                return machine.processor() == null
-                    ? List.of()
-                    : List.of(n(node, "inventory-controls",
-                        Map.of("id", "inventory_controls"),
-                        List.of(n(node, "processor-button",
-                            Map.of("id", "toggle_0"), List.of()))));
             });
     }
 
     private MachineScreenGenerators() {
+    }
+
+    /**
+     * Machine context for generated fills and template-owned literal defaults.
+     */
+    public static ScreenFillGenerator forMachines(
+        Map<ResourceLocation, MachineDefinition> machines) {
+        return new ScreenFillGenerator() {
+            @Override
+            public List<Node> generate(ResourceLocation id, Node node) {
+                return MachineScreenGenerators.generate(machines.get(id), node);
+            }
+
+            @Override
+            public boolean includeDefault(ResourceLocation id, Node node) {
+                var filter = MachineDefinitions.resource(node,
+                    "default-filter");
+                if (!filter.equals(
+                    ResourceLocation.parse("mmdlib:processor-controls")))
+                    throw MachineDefinitions.error(node,
+                        "Unknown machine default filter " + filter);
+                var machine = machines.get(id);
+                return machine == null || machine.hasProcessor();
+            }
+        };
     }
 
     public static synchronized void register(ResourceLocation id,
@@ -96,7 +112,7 @@ public final class MachineScreenGenerators {
                 "energy", machine.power() == null ? 0 : 1),
             inventories,
             Map.of("processors",
-                machine.processor() == null
+                !machine.hasProcessor()
                     ? Set.of()
                     : Set.of(machine.processor())));
         for (var element : screen.elements()) {
@@ -169,7 +185,7 @@ public final class MachineScreenGenerators {
         var main = new ArrayList<Node>();
         main.add(spacer(node));
         main.addAll(groups(machine, node, IoMode.INPUT, 3));
-        if (machine.processor() != null)
+        if (machine.hasProcessor())
             main.add(progress(machine, node));
         main.addAll(groups(machine, node, IoMode.OUTPUT, 3));
         main.add(spacer(node));

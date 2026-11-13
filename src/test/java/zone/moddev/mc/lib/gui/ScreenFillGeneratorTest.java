@@ -46,6 +46,80 @@ class ScreenFillGeneratorTest {
     Path directory;
 
     @Test
+    void machineContextFiltersOnlyUnmodifiedTemplateDefaults()
+        throws Exception {
+        var sources = List.of(
+            new SourceRoot("mmdlib", Path.of("src/main/resources/mmdlib"),
+                getClass().getClassLoader()),
+            new SourceRoot("test", directory, getClass().getClassLoader()));
+        Files.createDirectories(directory.resolve("machine"));
+        var id = ResourceLocation.parse("test:machine");
+        for (String fixture : List.of("fluid_still", "fluid_tank")) {
+            String xml = Files.readString(
+                Path.of("src/companionTest/resources/mmdlib/machine/test/"
+                    + fixture + ".xml"));
+            Files.writeString(directory.resolve("machine/machine.xml"), xml);
+            var machines = MachineDefinitions.load(sources);
+            var screen = ScreenLoader
+                .load(sources, Map.of(id, machines.get(id).screen()),
+                    MachineScreenGenerators.forMachines(machines))
+                .get(id).screen();
+            assertEquals(machines.get(id).hasProcessor(),
+                screen.find("toggle_0").isPresent());
+            for (String content : List.of("",
+                "<label id=\"custom\" text=\"Custom controls\"/>")) {
+                write("compact",
+                    "abstract=\"true\" extends=\"mmdlib:base_machine\" inventory=\"none\"",
+                    "<fill name=\"inventory_controls\">" + content + "</fill>");
+                Files.writeString(directory.resolve("machine/machine.xml"),
+                    xml.replace("</machine>",
+                        "<screen xmlns=\"https://moddev.zone/mmdlib/screen\" extends=\"test:compact\"/></machine>"));
+                var customMachines = MachineDefinitions.load(sources);
+                var custom = ScreenLoader
+                    .load(sources, Map.of(id, customMachines.get(id).screen()),
+                        MachineScreenGenerators.forMachines(customMachines))
+                    .get(id).screen();
+                assertFalse(custom.find("toggle_0").isPresent());
+                assertEquals(!content.isEmpty(),
+                    custom.find("custom").isPresent());
+                assertDoesNotThrow(
+                    () -> ScreenLayout.of(custom, TextMeasure.NONE));
+                assertDoesNotThrow(() -> MachineScreenGenerators
+                    .validate(customMachines.get(id), custom));
+            }
+        }
+    }
+
+    @Test
+    void defaultFiltersRetainAuthoredContentAndYieldToFills() throws Exception {
+        write("base",
+            "abstract=\"true\" block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\"",
+            "<placeholder name=\"controls\" default-filter=\"test:enabled\"><label id=\"authored\" text=\"From XML\"/></placeholder>");
+        write("default", "extends=\"test:base\" title=\"Default\"", "");
+        write("override", "extends=\"test:base\" title=\"Override\"",
+            "<fill name=\"controls\"><label id=\"custom\" text=\"Override\"/></fill>");
+        var sources = List
+            .of(new SourceRoot("test", directory, getClass().getClassLoader()));
+        // No machine context: Java screens retain exactly the authored default.
+        assertTrue(ScreenLoader.load(sources)
+            .get(ResourceLocation.parse("test:default")).screen()
+            .find("authored").isPresent());
+        var filtered = ScreenLoader.load(sources, Map.of(),
+            new ScreenFillGenerator() {
+                public List<Node> generate(ResourceLocation id, Node node) {
+                    throw new AssertionError();
+                }
+                public boolean includeDefault(ResourceLocation id, Node node) {
+                    return false;
+                }
+            });
+        assertTrue(filtered.get(ResourceLocation.parse("test:default")).screen()
+            .find("authored").isEmpty());
+        assertTrue(filtered.get(ResourceLocation.parse("test:override"))
+            .screen().find("custom").isPresent());
+    }
+
+    @Test
     void multipleTankGaugesBindSeparateIndexesAndReplaceableFill()
         throws Exception {
         Files.createDirectories(directory.resolve("machine"));

@@ -420,6 +420,16 @@ buffer named `energy`, and at most one recipe type and processor per machine. Su
 `<recipe-type>` and `<processor>` together for processing, or omit both for a plain
 tank or storage block. Storage-only machines do not apply recipe admission filters,
 register JEI catalysts, or generate processor progress/buttons in the base screen.
+Without a processor, item and tank roles must be `storage` or `manual`; `input`
+and `output` require a processor to consume or produce their contents.
+Java consumers can query `MachineDefinition.hasProcessor()`, use
+`processingType()` for an optional recipe type, or call `processes(typeId)` for
+a null-safe type match. The existing nullable `recipeType()` accessor and
+constructor signatures remain available for compatibility; every constructor
+rejects a mismatched recipe type/processor pair immediately. Custom XML machine
+screen loaders should pass `MachineScreenGenerators.forMachines(definitions)`
+to `ScreenLoader.load` to provide both generators and contextual default filters.
+
 For example, this tank needs neither item slots nor a recipe:
 
 ```xml
@@ -681,7 +691,6 @@ Custom screen templates can use these fragment generators on their placeholders:
 | `mmdlib:processing` | None | Complete processor region, excluding inherited frame/controls |
 | `mmdlib:resource-groups` | `role="input\|output\|storage"`, optional `columns="1..9"` (default 3) | Slots for matching groups; storage includes manual groups |
 | `mmdlib:processors` | None | The processor's progress arrow, or nothing without a processor |
-| `mmdlib:processor-controls` | None | The base inventory-controls row and processor button, or nothing without a processor |
 | `mmdlib:tanks` | None | One indexed fluid gauge per tank, in declaration order |
 
 Register custom namespaced builders with `MachineScreenGenerators.register`

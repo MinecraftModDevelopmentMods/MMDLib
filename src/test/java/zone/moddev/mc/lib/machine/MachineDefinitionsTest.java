@@ -65,12 +65,19 @@ class MachineDefinitionsTest {
         assertEquals(2, still.fluids().tanks().size());
         assertEquals("still", still.processor());
         assertNotNull(still.recipeType());
+        assertTrue(still.hasProcessor());
+        assertEquals(still.recipeType(), still.processingType().orElseThrow());
+        assertTrue(still.processes(still.recipeType().id()));
+        assertFalse(still.processes(ResourceLocation.parse("test:other")));
 
         write(fluidMachine("fluid_tank"));
         var tank = MachineDefinitions.load(sources()).get(still.id());
         assertNull(tank.itemStorageId());
         assertNull(tank.recipeType());
         assertNull(tank.processor());
+        assertFalse(tank.hasProcessor());
+        assertTrue(tank.processingType().isEmpty());
+        assertFalse(tank.processes(still.recipeType().id()));
         assertEquals("items", tank.fluids().id());
         assertEquals(1, tank.fluids().tanks().size());
         assertTrue(tank.visualDefaults().containsKey("tanks.contents.empty"));
@@ -97,10 +104,54 @@ class MachineDefinitionsTest {
             assertThrows(IllegalArgumentException.class,
                 () -> MachineDefinitions.load(sources()));
         }
-        write(fluidMachine("fluid_tank").replace("role=\"storage\"",
-            "role=\"input\""));
-        assertNull(MachineDefinitions.load(sources())
-            .get(ResourceLocation.parse("test:crusher")).processor());
+        for (String role : List.of("input", "output", "storage", "manual")) {
+            var tank = fluidMachine("fluid_tank");
+            for (String candidate : List.of(
+                tank.replace("role=\"storage\"", "role=\"" + role + "\""),
+                tank.replace("<storage>",
+                    "<storage><items id=\"inventory\"><slots id=\"contents\" count=\"1\" role=\""
+                        + role + "\"/></items>")
+                    .replace("<tank id=\"contents\"",
+                        "<tank id=\"fluid_contents\"")
+                    .replace("$tanks.contents.empty",
+                        "$tanks.fluid_contents.empty"))) {
+                write(candidate);
+                if (role.equals("input") || role.equals("output"))
+                    assertTrue(assertThrows(IllegalArgumentException.class,
+                        () -> MachineDefinitions.load(sources())).getMessage()
+                        .contains("storage/manual"));
+                else
+                    assertFalse(MachineDefinitions.load(sources())
+                        .get(ResourceLocation.parse("test:crusher"))
+                        .hasProcessor());
+            }
+        }
+    }
+
+    @Test
+    void publicConstructorsRejectMismatchedProcessingConfiguration()
+        throws Exception {
+        write(crusher());
+        var d = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        for (boolean hasType : List.of(true, false)) {
+            var type = hasType ? d.recipeType() : null;
+            var processor = hasType ? null : d.processor();
+            var failure = assertThrows(IllegalArgumentException.class,
+                () -> new MachineDefinition(d.id(), d.checksum(), d.name(),
+                    d.hardness(), d.mineable(), d.requiresTool(), d.textures(),
+                    d.baseModel(), d.modelParts(), d.faceTextures(), d.power(),
+                    d.fluids(), d.itemStorageId(), d.slots(), d.groups(), type,
+                    processor, d.processorName(), d.redstone(), d.screen(),
+                    d.recipeSelection(), d.ghosts()));
+            assertTrue(failure.getMessage().contains("supplied together"));
+            assertThrows(IllegalArgumentException.class,
+                () -> new MachineDefinition(d.id(), d.checksum(), d.name(),
+                    d.hardness(), d.mineable(), d.requiresTool(), d.textures(),
+                    d.power(), d.fluids(), d.itemStorageId(), d.slots(),
+                    d.groups(), type, processor, d.processorName(),
+                    d.redstone(), d.screen()));
+        }
     }
 
     @Test

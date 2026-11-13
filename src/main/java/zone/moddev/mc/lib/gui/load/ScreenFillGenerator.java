@@ -14,4 +14,15 @@ public interface ScreenFillGenerator {
 
     List<ScreenReader.Node> generate(ResourceLocation screen,
         ScreenReader.Node template);
+
+    /**
+     * Contextual filter for literal placeholder defaults. An authored fill
+     * replaces the placeholder's attributes, so this never filters an
+     * overriding fill. Screens without a contextual provider retain their
+     * literal defaults.
+     */
+    default boolean includeDefault(ResourceLocation screen,
+        ScreenReader.Node template) {
+        return true;
+    }
 }

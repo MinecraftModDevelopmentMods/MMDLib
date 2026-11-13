@@ -240,6 +240,7 @@
       <xs:complexContent>
         <xs:extension base="templateContent">
           <xs:attribute name="required" type="xs:boolean"/>
+          <xs:attribute name="default-filter" type="xs:string"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>

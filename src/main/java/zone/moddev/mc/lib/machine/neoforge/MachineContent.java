@@ -82,30 +82,30 @@ public final class MachineContent {
     public static void load(List<SourceRoot> roots) {
         definitions = MachineDefinitions.load(roots);
         var declarations = new TreeMap<ResourceLocation, MachineDefinition.RecipeType>();
-        for (var machine : definitions.values()) {
-            var type = machine.recipeType();
-            if (type != null && type.declare()) {
-                var previous = declarations.putIfAbsent(type.id(), type);
-                if (previous != null && !same(previous, type))
-                    throw new IllegalArgumentException(
-                        "Conflicting recipe declarations " + type.id());
-            }
-        }
+        for (var machine : definitions.values())
+            machine.processingType()
+                .filter(MachineDefinition.RecipeType::declare)
+                .ifPresent(type -> {
+                    var previous = declarations.putIfAbsent(type.id(), type);
+                    if (previous != null && !same(previous, type))
+                        throw new IllegalArgumentException(
+                            "Conflicting recipe declarations " + type.id());
+                });
         declarations
             .forEach((id, type) -> recipes.put(id, new MachineRecipeType(id)));
         for (var machine : definitions.values())
-            if (machine.recipeType() != null
-                && !recipes.containsKey(machine.recipeType().id()))
-                throw new IllegalArgumentException(machine.id()
-                    + ": recipe type must be declared in machine XML: "
-                    + machine.recipeType().id());
+            machine.processingType().ifPresent(type -> {
+                if (!recipes.containsKey(type.id()))
+                    throw new IllegalArgumentException(machine.id()
+                        + ": recipe type must be declared in machine XML: "
+                        + type.id());
+            });
         GeneratedMachineRecipes.configure(declarations);
         var embedded = new TreeMap<ResourceLocation, zone.moddev.mc.lib.gui.load.ScreenReader.Node>();
         definitions
             .forEach((id, machine) -> embedded.put(id, machine.screen()));
         var screens = ScreenLoader.load(roots, embedded,
-            (id, node) -> MachineScreenGenerators.generate(definitions.get(id),
-                node));
+            MachineScreenGenerators.forMachines(definitions));
         var highlights = new TreeMap<ResourceLocation, Map<String, List<String>>>();
         definitions
             .forEach((id, machine) -> highlights.put(id, MachineScreenGenerators
@@ -155,9 +155,9 @@ public final class MachineContent {
                 var type = BlockEntityType.Builder.of(
                     (pos, state) -> new DefinedMachineEntity(entities.get(id),
                         pos, state, definition,
-                        definition.recipeType() == null
-                            ? null
-                            : recipeType(definition.recipeType().id())),
+                        definition.processingType()
+                            .map(recipe -> recipeType(recipe.id()))
+                            .orElse(null)),
                     blocks.get(id)).build(null);
                 helper.register(id, type);
                 entities.put(id, type);
