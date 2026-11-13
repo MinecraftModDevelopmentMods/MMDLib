@@ -24,6 +24,11 @@ public final class EntityPreviewCache<T extends Entity> {
             .orElse(null));
     }
 
+    public EntityPreviewCache(EntitySnapshotPolicy<T> policy, int capacity) {
+        this(capacity, (snapshot, world) -> policy
+            .createDetached(snapshot, world).orElse(null));
+    }
+
     /**
      * Custom loaders can restore mod-specific poses; they must never spawn or
      * tick the entity.

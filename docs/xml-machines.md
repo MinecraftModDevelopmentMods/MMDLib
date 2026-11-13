@@ -1076,6 +1076,21 @@ and `createDetached(level, expectedClass)`. Reconstruction never spawns or ticks
 entities and returns empty for unknown types, malformed data or passenger trees.
 Capture/release eligibility and extra mod-specific state remain consumer policy.
 
+`EntitySnapshotPolicy<T>` pairs a typed eligibility predicate with capture and
+restore hooks. Capture hooks edit the serialized copy; restore hooks apply extra
+state after vanilla loading. `capture(entity)` returns an immutable snapshot;
+`createDetached(snapshot, level)` applies both restoration and eligibility without
+spawning. Unknown/malformed payloads, rejected entities and failed restore hooks
+return an empty optional. Hook code must not spawn entities or mutate inventories.
+
+Use `new EntityPreviewCache<>(policy, capacity)` for the same restoration in
+renderers. `policy.updateDetached(preview, snapshot)` refreshes an existing preview
+only when its type and UUID match and it has no passenger tree. This preserves
+renderer identity while reapplying extra pose state. It is only for detached
+entities; discard the preview if it returns false, since a failed load or hook may
+have partially changed it. Portable ownership and world placement stay with the
+caller, who must retain the snapshot until placement succeeds.
+
 `ProcessorState.derive` declares a cached, read-only value with an explicit list
 of existing dependencies and a computation. Existing-only dependencies prevent
 cycles. Computations may read only declared dependencies and may not mutate state.
