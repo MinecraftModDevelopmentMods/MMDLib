@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import net.minecraft.resources.ResourceLocation;
@@ -16,8 +17,9 @@ import zone.moddev.mc.lib.machine.presentation.ConditionalFaceTexture;
 import zone.moddev.mc.lib.machine.presentation.ConditionalModelPart;
 
 /**
- * Immutable, resolved startup configuration for a powered item-processing
- * machine.
+ * Immutable, resolved startup configuration. Item storage, power and processing
+ * are optional; recipeType and processor are either both present or both
+ * absent.
  */
 public record MachineDefinition(ResourceLocation id, String checksum,
     String name, float hardness, ResourceLocation mineable,
@@ -41,7 +43,7 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         ResourceLocation recipeType) {
         Set<String> result = null;
         for (var machine : definitions) {
-            if (!machine.recipeType().id().equals(recipeType))
+            if (!machine.processes(recipeType))
                 continue;
             var ghosts = new HashSet<String>();
             machine.ghosts().forEach(ghost -> ghosts.add(ghost.id()));
@@ -112,12 +114,31 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public MachineDefinition {
+        if ((recipeType == null) != (processor == null))
+            throw new IllegalArgumentException(
+                "recipeType and processor must be supplied together");
         ghosts = List.copyOf(ghosts);
         textures = Map.copyOf(textures);
         modelParts = List.copyOf(modelParts);
         faceTextures = List.copyOf(faceTextures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
+    }
+
+    public boolean hasProcessor() {
+        return processor != null;
+    }
+
+    /**
+     * Optional processing type; prefer this over dereferencing the nullable
+     * record accessor.
+     */
+    public Optional<RecipeType> processingType() {
+        return Optional.ofNullable(recipeType);
+    }
+
+    public boolean processes(ResourceLocation type) {
+        return recipeType != null && recipeType.id().equals(type);
     }
 
     public Map<String, Object> visualDefaults() {

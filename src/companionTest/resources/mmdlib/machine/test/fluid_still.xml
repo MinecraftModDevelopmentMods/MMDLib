@@ -1,0 +1,13 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Fluid-only Still">
+  <appearance preset="cube-front" front="minecraft:block/furnace_front"
+              side="minecraft:block/iron_block" top="minecraft:block/smooth_stone"/>
+  <storage>
+    <fluids id="fluids">
+      <tank id="feed" role="input" capacity="1000"/>
+      <tank id="product" role="output" capacity="1000"/>
+    </fluids>
+  </storage>
+  <recipe-type id="mmdlib_companion:test/distilling" declare="true" name="Test Distilling"/>
+  <processor id="still" recipe-type="mmdlib_companion:test/distilling" filter-inputs="feed"/>
+</machine>

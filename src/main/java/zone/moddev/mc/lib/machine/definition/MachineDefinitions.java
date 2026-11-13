@@ -287,10 +287,11 @@ public final class MachineDefinitions {
         }
         var storage = one(root, "storage");
         var power = optional(storage, "energy");
-        var items = one(storage, "items");
-        if (required(items, "id").equals("energy")
-            || MachineStorageKeys.RESERVED.contains(required(items, "id")))
-            throw error(items, "Reserved storage ID " + required(items, "id"));
+        var items = optional(storage, "items");
+        String itemId = items == null ? null : required(items, "id");
+        if (items != null && (itemId.equals("energy")
+            || MachineStorageKeys.RESERVED.contains(itemId)))
+            throw error(items, "Reserved storage ID " + itemId);
         String powerId = power == null ? null : required(power, "id");
         // BasePoweredMachine owns this stable save key.
         if (powerId != null && !powerId.equals("energy"))
@@ -304,8 +305,7 @@ public final class MachineDefinitions {
         var tankIds = new HashMap<String, Integer>();
         if (fluidNode != null) {
             String fluidId = required(fluidNode, "id");
-            if (fluidId.equals("energy")
-                || fluidId.equals(required(items, "id"))
+            if (fluidId.equals("energy") || fluidId.equals(itemId)
                 || MachineStorageKeys.RESERVED.contains(fluidId))
                 throw error(fluidNode,
                     "Duplicate or reserved storage ID " + fluidId);
@@ -347,7 +347,7 @@ public final class MachineDefinitions {
         var ghosts = new ArrayList<MachineDefinition.Ghost>();
         var groups = new LinkedHashMap<String, Group>();
         var ids = new HashMap<String, Integer>();
-        for (var node : items.children()) {
+        for (var node : items == null ? List.<Node>of() : items.children()) {
             String slotId = required(node, "id");
             Role role;
             try {
@@ -408,7 +408,7 @@ public final class MachineDefinitions {
         }
         int totalSlots = slots.size()
             + ghosts.stream().mapToInt(MachineDefinition.Ghost::count).sum();
-        if (totalSlots == 0 || totalSlots > 54)
+        if (items != null && (totalSlots == 0 || totalSlots > 54))
             throw error(items, "Expected 1..54 item slots");
         var groupsNode = optional(root, "groups");
         if (groupsNode != null)
@@ -453,7 +453,7 @@ public final class MachineDefinitions {
                         mode, color(node, prior.color()), prior.automation()));
                     continue;
                 }
-                if (!required(node, "storage").equals(required(items, "id")))
+                if (!required(node, "storage").equals(itemId))
                     throw error(node, "Unknown storage");
                 var prior = groups.get(groupId);
                 var members = new ArrayList<Integer>();
@@ -502,8 +502,7 @@ public final class MachineDefinitions {
         for (var ghost : ghosts)
             if (groups.containsKey(ghost.id()) || ids.containsKey(ghost.id())
                 || fluidGroups.containsKey(ghost.id())
-                || ghost.id().equals(powerId)
-                || ghost.id().equals(required(items, "id"))
+                || ghost.id().equals(powerId) || ghost.id().equals(itemId)
                 || MachineStorageKeys.RESERVED.contains(ghost.id()))
                 throw error(items,
                     "Ghost inventory conflicts with another resource: "
@@ -520,33 +519,32 @@ public final class MachineDefinitions {
                         "Group mode conflicts with tank role: " + group.id());
             }
         }
-        var recipe = one(root, "recipe-type");
-        var generatorNode = optional(recipe, "generator");
-        Generator generator = null;
-        if (generatorNode != null) {
-            var props = new HashMap<>(generatorNode.attributes());
-            props.remove("class");
-            generator = new Generator(required(generatorNode, "class"), props,
-                generatorNode.source(), generatorNode.line(),
-                loaders.get(generatorNode.source()));
+        var recipe = optional(root, "recipe-type");
+        var processor = optional(root, "processor");
+        if ((recipe == null) != (processor == null))
+            throw error(root,
+                "recipe-type and processor must be supplied together");
+        if (processor == null) {
+            if (slots.stream().anyMatch(
+                slot -> slot.role() == Role.INPUT || slot.role() == Role.OUTPUT)
+                || !ghosts.isEmpty())
+                throw error(items,
+                    "Machines without a processor require storage/manual item roles");
+            if (tanks.stream().anyMatch(tank -> tank.role() == Role.INPUT
+                || tank.role() == Role.OUTPUT))
+                throw error(fluidNode,
+                    "Machines without a processor require storage/manual tank roles");
         }
-        var recipeId = resource(recipe, "id");
-        var recipeType = new RecipeType(recipeId,
-            bool(recipe, "declare", false),
-            recipe.attributes().getOrDefault("name", recipeId.getPath()),
-            generator);
-        if (!recipeType.declare() && generator != null)
-            throw error(recipe,
-                "Only a declaring recipe type may supply a generator");
-        var processor = one(root, "processor");
-        if (!recipeId.equals(resource(processor, "recipe-type")))
+        var recipeType = recipe == null ? null : recipeType(recipe, loaders);
+        if (processor != null
+            && !recipeType.id().equals(resource(processor, "recipe-type")))
             throw error(processor, "Unknown recipe type");
-        // All input groups are linked automatically; an explicit list must
-        // agree.
+        // All input groups are linked automatically when processing is enabled.
         var inputs = java.util.stream.Stream
             .concat(groups.values().stream(), fluidGroups.values().stream())
             .filter(g -> g.mode() == IoMode.INPUT).map(Group::id).toList();
-        if (processor.attributes().containsKey("filter-inputs")
+        if (processor != null
+            && processor.attributes().containsKey("filter-inputs")
             && !new HashSet<>(Arrays
                 .asList(required(processor, "filter-inputs").split("\\s+")))
                 .equals(new HashSet<>(inputs)))
@@ -597,8 +595,10 @@ public final class MachineDefinitions {
             modelParts.add(new ConditionalModelPart(required(part, "id"),
                 resource(part, "model"), required(part, "when")));
         }
-        boolean selectable = bool(processor, "selectable", false);
-        if (!selectable && processor.attributes().containsKey("default-recipe"))
+        boolean selectable = processor != null
+            && bool(processor, "selectable", false);
+        if (processor != null && !selectable
+            && processor.attributes().containsKey("default-recipe"))
             throw error(processor, "default-recipe requires selectable='true'");
         var definition = new MachineDefinition(id, checksum(root),
             required(root, "name"), hardness, resource(block, "mineable"),
@@ -615,9 +615,12 @@ public final class MachineDefinitions {
                 ? null
                 : new Fluids(required(fluidNode, "id"), tanks,
                     List.copyOf(fluidGroups.values())),
-            required(items, "id"), slots, List.copyOf(groups.values()),
-            recipeType, required(processor, "id"),
-            processor.attributes().getOrDefault("name", required(root, "name")),
+            itemId, slots, List.copyOf(groups.values()), recipeType,
+            processor == null ? null : required(processor, "id"),
+            processor == null
+                ? null
+                : processor.attributes().getOrDefault("name",
+                    required(root, "name")),
             redstone != null && bool(redstone, "enabled", false),
             new Node("screen", attrs, screen.children(), screen.source(),
                 screen.line()),
@@ -639,6 +642,28 @@ public final class MachineDefinitions {
             }
         }
         return definition;
+    }
+
+    private static RecipeType recipeType(Node recipe,
+        Map<String, ClassLoader> loaders) {
+        var generatorNode = optional(recipe, "generator");
+        Generator generator = null;
+        if (generatorNode != null) {
+            var props = new HashMap<>(generatorNode.attributes());
+            props.remove("class");
+            generator = new Generator(required(generatorNode, "class"), props,
+                generatorNode.source(), generatorNode.line(),
+                loaders.get(generatorNode.source()));
+        }
+        var recipeId = resource(recipe, "id");
+        var recipeType = new RecipeType(recipeId,
+            bool(recipe, "declare", false),
+            recipe.attributes().getOrDefault("name", recipeId.getPath()),
+            generator);
+        if (!recipeType.declare() && generator != null)
+            throw error(recipe,
+                "Only a declaring recipe type may supply a generator");
+        return recipeType;
     }
 
     public static String required(Node node, String key) {

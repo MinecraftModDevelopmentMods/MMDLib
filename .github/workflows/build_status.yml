@@ -84,17 +84,20 @@ jobs:
           sudo apt-get install -y xvfb libgl1-mesa-dri
 
       # Run the companion before the library smoke, which injects test sources into main output.
+      - name: Verify client crash watchdog
+        run: python3 -m unittest discover -s scripts -p test_ci_client_smoke.py
+
       - name: Companion GUI smoke test
         timeout-minutes: 20
-        run: xvfb-run -a ./gradlew runCompanionClientSmoke
+        run: python3 scripts/ci_client_smoke.py build/companion-client-smoke xvfb-run -a ./gradlew --no-daemon runCompanionClientSmoke
 
       - name: GUI smoke test with JEI
         timeout-minutes: 20
-        run: xvfb-run -a ./gradlew runClient -I scripts/gui-smoke.init.gradle
+        run: python3 scripts/ci_client_smoke.py build/gui-smoke xvfb-run -a ./gradlew --no-daemon runClient -I scripts/gui-smoke.init.gradle
 
       - name: GUI smoke test without JEI
         timeout-minutes: 20
-        run: xvfb-run -a ./gradlew runClient -PwithoutJei -I scripts/gui-smoke.init.gradle
+        run: python3 scripts/ci_client_smoke.py build/gui-smoke-without-jei xvfb-run -a ./gradlew --no-daemon runClient -PwithoutJei -I scripts/gui-smoke.init.gradle
 
       - name: Upload client logs and screenshots
         if: always()
@@ -103,9 +106,12 @@ jobs:
           name: gui-smoke-logs
           path: |
             build/companion-client-smoke/logs/
+            build/companion-client-smoke/crash-reports/
             build/companion-client-smoke/screenshots/
             build/gui-smoke/logs/
+            build/gui-smoke/crash-reports/
             build/gui-smoke/screenshots/
             build/gui-smoke-without-jei/logs/
+            build/gui-smoke-without-jei/crash-reports/
             build/gui-smoke-without-jei/screenshots/
           if-no-files-found: ignore

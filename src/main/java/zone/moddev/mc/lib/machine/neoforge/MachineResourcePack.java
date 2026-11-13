@@ -175,15 +175,15 @@ public final class MachineResourcePack extends AbstractPackResources {
                 lang.addProperty("block." + id.getNamespace() + "."
                     + id.getPath().replace('/', '.'), machine.name());
                 lang.addProperty(id + ".info", machine.name());
-                var recipeId = machine.recipeType().id();
-                if (machine.recipeType().declare())
-                    languages
-                        .computeIfAbsent(recipeId.getNamespace(),
-                            key -> new JsonObject())
-                        .addProperty(
-                            "jei." + recipeId.getNamespace() + "."
-                                + recipeId.getPath(),
-                            machine.recipeType().name());
+                machine.processingType().filter(recipe -> recipe.declare())
+                    .ifPresent(recipe -> {
+                        var recipeId = recipe.id();
+                        languages
+                            .computeIfAbsent(recipeId.getNamespace(),
+                                key -> new JsonObject())
+                            .addProperty("jei." + recipeId.getNamespace() + "."
+                                + recipeId.getPath(), recipe.name());
+                    });
             } else {
                 var table = JsonParser.parseString(
                     "{\"type\":\"minecraft:block\",\"pools\":[{\"rolls\":1,\"entries\":[{\"type\":\"minecraft:item\",\"name\":\""

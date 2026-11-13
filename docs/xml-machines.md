@@ -1,6 +1,6 @@
 # XML machines
 
-An installed mod can declare an item-processing machine with optional energy and fluid storage in
+An installed mod can declare a machine with optional item, energy and fluid storage in
 `src/main/resources/mmdlib/machine/<path>.xml`. Its ID is `<modid>:<path>`.
 MMDLib registers the block, item, block-entity type, declared recipe type and
 serializer, capabilities, screen and JEI catalyst. All instances use the shared
@@ -411,10 +411,41 @@ groups can configure the mode/color of an automatic group without changing its
 membership. Roles are `input`, `output`, `storage`, and `manual`; automatic group
 modes are respectively `input`, `output`, `both`, and `disabled`. A group cannot
 grant automation permissions that its members' roles prohibit. Slot `limit`
-defaults to 64. There must be 1–54 item slots overall.
+defaults to 64. When `<items>` is present it must contain 1–54 slots overall.
+Omit `<items>` entirely for fluid-only machines; no dummy inventory or item
+capability is created.
 
-The runtime supports one item storage, an optional fluid storage, an optional energy
-buffer named `energy`, one recipe type and one processor per machine. Energy automation
+The runtime supports an optional item storage, an optional fluid storage, an optional energy
+buffer named `energy`, and at most one recipe type and processor per machine. Supply
+`<recipe-type>` and `<processor>` together for processing, or omit both for a plain
+tank or storage block. Storage-only machines do not apply recipe admission filters,
+register JEI catalysts, or generate processor progress/buttons in the base screen.
+Without a processor, item and tank roles must be `storage` or `manual`; `input`
+and `output` require a processor to consume or produce their contents.
+Java consumers can query `MachineDefinition.hasProcessor()`, use
+`processingType()` for an optional recipe type, or call `processes(typeId)` for
+a null-safe type match. The existing nullable `recipeType()` accessor and
+constructor signatures remain available for compatibility; every constructor
+rejects a mismatched recipe type/processor pair immediately. Custom XML machine
+screen loaders should pass `MachineScreenGenerators.forMachines(definitions)`
+to `ScreenLoader.load` to provide both generators and contextual default filters.
+
+For example, this tank needs neither item slots nor a recipe:
+
+```xml
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Fluid Tank">
+  <appearance preset="cube-front" front="minecraft:block/iron_block"
+              side="minecraft:block/iron_block" top="minecraft:block/iron_block"/>
+  <storage>
+    <fluids id="fluids">
+      <tank id="contents" role="storage" capacity="4000"/>
+    </fluids>
+  </storage>
+</machine>
+```
+
+Energy automation
 uses the `energy/input` group. Item storage IDs `energy`, `features`, `automation`,
 `redstone_control`, `redstone_mode`, `id`, `components`, `mmdlib_features`, and
 `mmdlib_machine` are reserved. Input-mode item and fluid groups are automatically linked to
@@ -659,7 +690,7 @@ Custom screen templates can use these fragment generators on their placeholders:
 | --- | --- | --- |
 | `mmdlib:processing` | None | Complete processor region, excluding inherited frame/controls |
 | `mmdlib:resource-groups` | `role="input\|output\|storage"`, optional `columns="1..9"` (default 3) | Slots for matching groups; storage includes manual groups |
-| `mmdlib:processors` | None | The single processor's progress arrow |
+| `mmdlib:processors` | None | The processor's progress arrow, or nothing without a processor |
 | `mmdlib:tanks` | None | One indexed fluid gauge per tank, in declaration order |
 
 Register custom namespaced builders with `MachineScreenGenerators.register`

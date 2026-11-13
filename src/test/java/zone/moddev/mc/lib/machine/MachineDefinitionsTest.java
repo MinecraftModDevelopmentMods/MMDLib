@@ -48,6 +48,112 @@ class MachineDefinitionsTest {
             .of("src/companion/resources/mmdlib/machine/simple_crusher.xml"));
     }
 
+    private String fluidMachine(String name) throws Exception {
+        return Files.readString(
+            Path.of("src/companionTest/resources/mmdlib/machine/test/" + name
+                + ".xml"));
+    }
+
+    @Test
+    void fluidOnlyAndStorageOnlyDefinitionsHaveNoDummyItems() throws Exception {
+        write(fluidMachine("fluid_still"));
+        var still = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertNull(still.itemStorageId());
+        assertTrue(still.slots().isEmpty());
+        assertTrue(still.groups().isEmpty());
+        assertEquals(2, still.fluids().tanks().size());
+        assertEquals("still", still.processor());
+        assertNotNull(still.recipeType());
+        assertTrue(still.hasProcessor());
+        assertEquals(still.recipeType(), still.processingType().orElseThrow());
+        assertTrue(still.processes(still.recipeType().id()));
+        assertFalse(still.processes(ResourceLocation.parse("test:other")));
+
+        write(fluidMachine("fluid_tank"));
+        var tank = MachineDefinitions.load(sources()).get(still.id());
+        assertNull(tank.itemStorageId());
+        assertNull(tank.recipeType());
+        assertNull(tank.processor());
+        assertFalse(tank.hasProcessor());
+        assertTrue(tank.processingType().isEmpty());
+        assertFalse(tank.processes(still.recipeType().id()));
+        assertEquals("items", tank.fluids().id());
+        assertEquals(1, tank.fluids().tanks().size());
+        assertTrue(tank.visualDefaults().containsKey("tanks.contents.empty"));
+        assertFalse(tank.visualDefaults().keySet().stream()
+            .anyMatch(key -> key.startsWith("processors.")));
+        assertTrue(MachineDefinition
+            .ghostInputsFor(List.of(tank, still), still.recipeType().id())
+            .isEmpty());
+    }
+
+    @Test
+    void optionalStorageAndProcessingStillRejectInvalidDeclarations()
+        throws Exception {
+        var still = fluidMachine("fluid_still");
+        for (String invalid : List.of(
+            still.replace("<storage>", "<storage><items id=\"items\"/>"),
+            still.replaceAll("<recipe-type[^>]*/>", ""),
+            still.replaceAll("<processor[^>]*/>", ""),
+            still.replace("filter-inputs=\"feed\"",
+                "filter-inputs=\"unknown\""),
+            still.replace("</storage>",
+                "</storage><groups><group id=\"unknown\" storage=\"missing\" mode=\"input\" members=\"missing\"/></groups>"))) {
+            write(invalid);
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+        for (String role : List.of("input", "output", "storage", "manual")) {
+            var tank = fluidMachine("fluid_tank");
+            for (String candidate : List.of(
+                tank.replace("role=\"storage\"", "role=\"" + role + "\""),
+                tank.replace("<storage>",
+                    "<storage><items id=\"inventory\"><slots id=\"contents\" count=\"1\" role=\""
+                        + role + "\"/></items>")
+                    .replace("<tank id=\"contents\"",
+                        "<tank id=\"fluid_contents\"")
+                    .replace("$tanks.contents.empty",
+                        "$tanks.fluid_contents.empty"))) {
+                write(candidate);
+                if (role.equals("input") || role.equals("output"))
+                    assertTrue(assertThrows(IllegalArgumentException.class,
+                        () -> MachineDefinitions.load(sources())).getMessage()
+                        .contains("storage/manual"));
+                else
+                    assertFalse(MachineDefinitions.load(sources())
+                        .get(ResourceLocation.parse("test:crusher"))
+                        .hasProcessor());
+            }
+        }
+    }
+
+    @Test
+    void publicConstructorsRejectMismatchedProcessingConfiguration()
+        throws Exception {
+        write(crusher());
+        var d = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        for (boolean hasType : List.of(true, false)) {
+            var type = hasType ? d.recipeType() : null;
+            var processor = hasType ? null : d.processor();
+            var failure = assertThrows(IllegalArgumentException.class,
+                () -> new MachineDefinition(d.id(), d.checksum(), d.name(),
+                    d.hardness(), d.mineable(), d.requiresTool(), d.textures(),
+                    d.baseModel(), d.modelParts(), d.faceTextures(), d.power(),
+                    d.fluids(), d.itemStorageId(), d.slots(), d.groups(), type,
+                    processor, d.processorName(), d.redstone(), d.screen(),
+                    d.recipeSelection(), d.ghosts()));
+            assertTrue(failure.getMessage().contains("supplied together"));
+            assertThrows(IllegalArgumentException.class,
+                () -> new MachineDefinition(d.id(), d.checksum(), d.name(),
+                    d.hardness(), d.mineable(), d.requiresTool(), d.textures(),
+                    d.power(), d.fluids(), d.itemStorageId(), d.slots(),
+                    d.groups(), type, processor, d.processorName(),
+                    d.redstone(), d.screen()));
+        }
+    }
+
     @Test
     void originalConstructorRetainsAutomaticCubeDefaults() throws Exception {
         write(crusher());

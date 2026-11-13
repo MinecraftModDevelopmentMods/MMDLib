@@ -1644,6 +1644,12 @@ Inheritance does not replace the type-ID screen lookup described above.
   the named placeholder's contents; an empty fill removes its default content.
 - An unfilled optional placeholder uses its children, or nothing when it has none. A required
   placeholder must be filled and cannot also have default content.
+- A literal placeholder can use `default-filter="namespace:id"` to let its
+  `ScreenFillGenerator.includeDefault` context suppress the authored default. A fill
+  replaces the filter along with the default, so custom and empty fills always win.
+  Without a contextual provider, the literal content remains unchanged. The base
+  machine screen uses `mmdlib:processor-controls`; XML machine loading omits those
+  default controls when no processor exists. The controls themselves stay in XML.
 - A placeholder may instead supply `generator="namespace:id"` and generator options.
   An explicit fill replaces that generator, even when empty; a fill can choose its own
   generator. Generated fills cannot also contain literal children. Generators return normal
