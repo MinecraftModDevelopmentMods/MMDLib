@@ -243,10 +243,11 @@ class ScreenFillGeneratorTest {
             Map.of(id, machines.get(id).screen()),
             (key,
                 node) -> node.attributes().get("generator")
-                    .equals("mmdlib:tanks")
-                        ? List.of()
-                        : List.of(new Node("slot", Map.of("index", "99"),
-                            List.of(), node.source(), node.line())));
+                    .equals("mmdlib:processing")
+                        ? List.of(new Node("slot", Map.of("index", "99"),
+                            List.of(), node.source(), node.line()))
+                        : MachineScreenGenerators.generate(machines.get(key),
+                            node));
         assertThrows(IllegalArgumentException.class,
             () -> MachineScreenGenerators.validate(machines.get(id),
                 invalid.get(id).screen()));

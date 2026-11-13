@@ -680,7 +680,8 @@ Custom screen templates can use these fragment generators on their placeholders:
 | --- | --- | --- |
 | `mmdlib:processing` | None | Complete processor region, excluding inherited frame/controls |
 | `mmdlib:resource-groups` | `role="input\|output\|storage"`, optional `columns="1..9"` (default 3) | Slots for matching groups; storage includes manual groups |
-| `mmdlib:processors` | None | The single processor's progress arrow |
+| `mmdlib:processors` | None | The processor's progress arrow, or nothing without a processor |
+| `mmdlib:processor-controls` | None | The base inventory-controls row and processor button, or nothing without a processor |
 | `mmdlib:tanks` | None | One indexed fluid gauge per tank, in declaration order |
 
 Register custom namespaced builders with `MachineScreenGenerators.register`
