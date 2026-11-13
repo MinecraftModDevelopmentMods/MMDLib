@@ -34,10 +34,10 @@ public class XmlProcessorTest {
     @TempDir
     Path directory;
     public static final class Courier extends StoredProcessor {
-        final ProcessorState.Key<zone.moddev.mc.lib.gui.model.EntityPortraitData> occupant = variables
+        final ProcessorState.Key<zone.moddev.mc.lib.api.entity.EntitySnapshot> occupant = variables
             .define("occupant",
-                zone.moddev.mc.lib.gui.model.EntityPortraitData.CODEC,
-                zone.moddev.mc.lib.gui.model.EntityPortraitData.EMPTY,
+                zone.moddev.mc.lib.api.entity.EntitySnapshot.CODEC,
+                zone.moddev.mc.lib.api.entity.EntitySnapshot.EMPTY,
                 java.util.function.UnaryOperator.identity(), false, true);
         final ProcessorState.Key<Boolean> occupied = variables
             .define("occupied", Codec.BOOL, false);

@@ -2646,10 +2646,10 @@ transport; it does not call a mod-specific status-building getter on every tick.
 ```
 
 `entity-portrait` accepts a client-visible stored variable of type
-`EntityPortraitData` (`gui.model`). Construct it from saved entity NBT including
-the namespaced `id`, or use `EntityPortraitData.EMPTY`. The value copies incoming
+`EntitySnapshot` (`gui.model`). Construct it from saved entity NBT including
+the namespaced `id`, or use `EntitySnapshot.EMPTY`. The value copies incoming
 NBT and returns copies from `data()`, so it is safe to declare with
-`EntityPortraitData.CODEC`, an identity copier, `visual=false`, and
+`EntitySnapshot.CODEC`, an identity copier, `visual=false`, and
 `synchronize=true`. No mod-specific host lookup, widget registration or renderer
 is required. Wrong variable types and missing/private bindings fail validation.
 

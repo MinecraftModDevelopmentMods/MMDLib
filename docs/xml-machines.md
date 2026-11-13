@@ -1047,6 +1047,13 @@ machine serializes first, marks ownership transferred, then clears its portable
 variables; repeated calls return an empty stack. Item-side content checks compare
 against declared defaults without mutating the shared processor prototype.
 
+`api.entity.EntitySnapshot` is the common immutable entity payload used by the
+standard portrait and available to gameplay code. It offers a codec, detached
+NBT copies, `capture(entity)`, optional capture customization, type/UUID access,
+and `createDetached(level, expectedClass)`. Reconstruction never spawns or ticks
+entities and returns empty for unknown types, malformed data or passenger trees.
+Capture/release eligibility and extra mod-specific state remain consumer policy.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and

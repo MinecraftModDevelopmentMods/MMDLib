@@ -9,9 +9,9 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 
+import zone.moddev.mc.lib.api.entity.EntitySnapshot;
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.model.Common;
-import zone.moddev.mc.lib.gui.model.EntityPortraitData;
 import zone.moddev.mc.lib.gui.model.ProcessorVariable;
 import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
@@ -24,11 +24,11 @@ import zone.moddev.mc.lib.machine.feature.Processor;
  * variable.
  */
 public class EntityPortraitElement implements SynchronizedElement {
-    public static final ElementSync<EntityPortraitData> ENTITY = ElementSync
+    public static final ElementSync<EntitySnapshot> ENTITY = ElementSync
         .field(ResourceLocation.parse("mmdlib:entity_portrait"),
             ByteBufCodecs.COMPOUND_TAG.<RegistryFriendlyByteBuf>cast()
-                .map(EntityPortraitData::new, EntityPortraitData::data),
-            ElementSync.MAX_BYTES, element -> EntityPortraitData.EMPTY)
+                .map(EntitySnapshot::new, EntitySnapshot::data),
+            ElementSync.MAX_BYTES, element -> EntitySnapshot.EMPTY)
         .sample((source, previous) -> ((EntityPortraitElement) source.element())
             .read((ScreenHost) source.machine()))
         .build();
@@ -66,14 +66,13 @@ public class EntityPortraitElement implements SynchronizedElement {
     public List<ElementSync<?>> synchronizedValues() {
         return List.of(ENTITY);
     }
-    private EntityPortraitData checked(Object value) {
-        if (!(value instanceof EntityPortraitData data))
+    private EntitySnapshot checked(Object value) {
+        if (!(value instanceof EntitySnapshot data))
             throw new IllegalArgumentException(
-                "Entity portrait variable must be EntityPortraitData: "
-                    + variable);
+                "Entity portrait variable must be EntitySnapshot: " + variable);
         return data;
     }
-    public EntityPortraitData read(ScreenHost host) {
+    public EntitySnapshot read(ScreenHost host) {
         return checked(variable.read(host));
     }
     public void validateDefinition(Map<String, Processor<?>> processors) {

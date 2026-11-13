@@ -6,7 +6,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 
-import zone.moddev.mc.lib.gui.model.EntityPortraitData;
+import zone.moddev.mc.lib.api.entity.EntitySnapshot;
 import zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement;
 
 /**
@@ -15,7 +15,7 @@ import zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement;
  */
 public final class EntityPortraitBehavior extends DefaultElementBehavior {
     private ClientLevel level;
-    private EntityPortraitData data;
+    private EntitySnapshot data;
     private LivingEntity preview;
 
     public EntityPortraitBehavior(EntityPortraitElement element,
@@ -23,7 +23,7 @@ public final class EntityPortraitBehavior extends DefaultElementBehavior {
         super(access);
     }
 
-    private LivingEntity preview(EntityPortraitData next) {
+    private LivingEntity preview(EntitySnapshot next) {
         var currentLevel = Minecraft.getInstance().level;
         if (level == currentLevel && next.equals(data))
             return preview;
