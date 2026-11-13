@@ -46,6 +46,90 @@ public final class ProcessorState implements VisualVariableProvider {
     };
     private int depth;
 
+    public Declaration<Boolean> bool(String name, boolean initial) {
+        return value(name, Codec.BOOL, initial, UnaryOperator.identity());
+    }
+
+    public Declaration<Integer> integer(String name, int minimum, int maximum,
+        int initial) {
+        return value(name, Codec.intRange(minimum, maximum), initial,
+            UnaryOperator.identity());
+    }
+
+    public Declaration<String> string(String name, String initial) {
+        return value(name, Codec.STRING, initial, UnaryOperator.identity());
+    }
+
+    public Declaration<zone.moddev.mc.lib.api.entity.EntitySnapshot> entity(
+        String name) {
+        return value(name, zone.moddev.mc.lib.api.entity.EntitySnapshot.CODEC,
+            zone.moddev.mc.lib.api.entity.EntitySnapshot.EMPTY,
+            UnaryOperator.identity());
+    }
+
+    public Declaration<List<net.minecraft.network.chat.Component>> components(
+        String name, List<net.minecraft.network.chat.Component> initial) {
+        return value(name,
+            net.minecraft.network.chat.ComponentSerialization.CODEC.listOf(),
+            initial,
+            lines -> lines.stream().<net.minecraft.network.chat.Component>map(
+                net.minecraft.network.chat.Component::copy).toList());
+    }
+
+    public <T> Declaration<T> value(String name, Codec<T> codec, T initial,
+        UnaryOperator<T> copy) {
+        return new Declaration<>(name, codec, initial, copy);
+    }
+
+    /**
+     * Named options replace positional boolean flags; values are private unless
+     * opted in.
+     */
+    public final class Declaration<T> {
+        private final String name;
+        private final Codec<T> codec;
+        private final T initial;
+        private final UnaryOperator<T> copy;
+        private boolean visual, synchronize, portable;
+
+        private Declaration(String name, Codec<T> codec, T initial,
+            UnaryOperator<T> copy) {
+            this.name = name;
+            this.codec = codec;
+            this.copy = copy;
+            this.initial = copy.apply(initial);
+        }
+
+        public Declaration<T> synced() {
+            synchronize = true;
+            return this;
+        }
+        public Declaration<T> visual() {
+            visual = true;
+            synchronize = true;
+            return this;
+        }
+        public Declaration<T> portable() {
+            portable = true;
+            return this;
+        }
+
+        public Key<T> define() {
+            var key = ProcessorState.this.define(name, codec, initial, copy,
+                visual, synchronize);
+            return portable ? ProcessorState.this.portable(key) : key;
+        }
+
+        public Key<T> derived(List<Key<?>> dependencies,
+            Function<ProcessorState, T> compute) {
+            if (portable)
+                throw new IllegalArgumentException(
+                    "Derived values cannot be portable");
+            return derive(name, codec, copy, visual, synchronize, dependencies,
+                compute);
+        }
+    }
+
     public <T> Key<T> define(String name, Codec<T> codec, T initial,
         UnaryOperator<T> copy, boolean visual, boolean synchronize) {
         if (!name.matches("[a-zA-Z_][a-zA-Z0-9_]*") || keys.containsKey(name))

@@ -1080,6 +1080,20 @@ no space and rejected spawning. Failed attempts restore position and velocity.
 The caller retains its snapshot until `SUCCESS`; the helper never clears owned data.
 UUID checks cover loaded entities, not entities stored in unloaded chunks.
 
+Named variable declarations default to private, nonvisual state:
+
+```java
+var occupant = variables.entity("occupant").synced().portable().define();
+var occupied = variables.bool("occupied", false).visual()
+    .derived(List.of(occupant), state -> !state.get(occupant).isEmpty());
+var cooldown = variables.integer("cooldown", 0, 40, 0).define();
+```
+
+`visual()` also enables synchronization. `components(name, initialLines)` supplies
+the component-list codec and defensive copies; `string`, `bool`, `integer` and
+`entity` supply their corresponding codecs. `value` accepts a custom codec and
+copy function. Finish with `define()` or `derived(dependencies, computation)`.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and
