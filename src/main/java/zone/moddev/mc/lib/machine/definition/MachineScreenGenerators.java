@@ -42,7 +42,7 @@ public final class MachineScreenGenerators {
         register(ResourceLocation.parse("mmdlib:processors"),
             (machine, node) -> {
                 options(node, Set.of());
-                return !machine.hasProcessor()
+                return machine.processingType().isEmpty()
                     ? List.of()
                     : List.of(progress(machine, node));
             });
@@ -118,6 +118,32 @@ public final class MachineScreenGenerators {
         for (var element : screen.elements()) {
             try {
                 element.validateResources(context);
+                if (element instanceof zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement portrait) {
+                    Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> declared = machine
+                        .behavior().processor() == null
+                            ? Map.of()
+                            : Map.of(machine.processor(), machine.behavior()
+                                .processor().create(machine.processor(), null));
+                    portrait.validateDefinition(declared);
+                }
+                if (element instanceof zone.moddev.mc.lib.gui.model.elements.LabelElement label
+                    && label.variable().isPresent()) {
+                    Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> declared = machine
+                        .behavior().processor() == null
+                            ? Map.of()
+                            : Map.of(machine.processor(), machine.behavior()
+                                .processor().create(machine.processor(), null));
+                    label.validateDefinition(declared);
+                }
+                if (element instanceof zone.moddev.mc.lib.gui.model.elements.BoundButtonElement button) {
+                    Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> declared = machine
+                        .behavior().processor() == null
+                            ? Map.of()
+                            : Map.of(machine.processor(), machine.behavior()
+                                .processor().create(machine.processor(), null));
+                    button.validateDefinition(declared,
+                        machine.visualDefaults());
+                }
             } catch (IllegalArgumentException failure) {
                 throw new ScreenException(screen.source(element.common()),
                     element.common().line(), failure.getMessage());
@@ -185,7 +211,7 @@ public final class MachineScreenGenerators {
         var main = new ArrayList<Node>();
         main.add(spacer(node));
         main.addAll(groups(machine, node, IoMode.INPUT, 3));
-        if (machine.hasProcessor())
+        if (machine.processingType().isPresent())
             main.add(progress(machine, node));
         main.addAll(groups(machine, node, IoMode.OUTPUT, 3));
         main.add(spacer(node));
@@ -248,7 +274,8 @@ public final class MachineScreenGenerators {
                 for (int i = 0; i < ghost.count(); i++)
                     children.add(n(node, "ghost-slot",
                         Map.of("id", "ghost_" + ghost.id() + "_" + i, "index",
-                            Integer.toString(i)),
+                            Integer.toString(i), "tooltip",
+                            machine.groupTranslationKey(ghost.id())),
                         List.of()));
                 result.add(n(node, "inventory", Map.of("storage", ghost.id(),
                     "columns", Integer.toString(columns)), children));

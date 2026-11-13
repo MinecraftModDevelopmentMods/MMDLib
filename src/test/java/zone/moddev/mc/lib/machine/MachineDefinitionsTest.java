@@ -232,6 +232,8 @@ class MachineDefinitionsTest {
             .orElseThrow();
         assertEquals("pattern", inventory.attributes().get("storage"));
         assertEquals("ghost-slot", inventory.children().getFirst().name());
+        assertEquals("test:crusher.group.pattern",
+            inventory.children().getFirst().attributes().get("tooltip"));
         for (String invalid : List.of(
             ghost.replace("role=\"input\"", "role=\"output\""),
             ghost.replace("type=\"ghost\"", "type=\"phantom\""),
@@ -553,6 +555,102 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void groupNamesGenerateTranslationsForAllResourceKinds() throws Exception {
+        write(crusher()
+            .replace("<storage>",
+                """
+                    <storage>
+                      <energy id="energy" name="Power Supply"/>
+                      <fluids id="fluids">
+                        <tank id="water" name="Water Catalyst" capacity="1000" role="manual" automation="false"/>
+                        <tanks id="buffer" name="Fluid Buffer" count="2" capacity="1000" role="storage"/>
+                      </fluids>
+                    """)
+            .replace("<items id=\"items\">",
+                """
+                    <items id="items">
+                      <slots id="pattern" name="Rock Selection" count="1" role="input" type="ghost"/>
+                    """)
+            .replace("<slots id=\"output\"",
+                "<slots id=\"output\" name=\"Products\""));
+        var machine = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        var expected = Map.of("energy", "Power Supply", "water",
+            "Water Catalyst", "buffer", "Fluid Buffer", "pattern",
+            "Rock Selection", "input", "input", "output", "Products");
+        assertEquals(expected, machine.groupNames());
+        assertFalse(machine.fluids().groups().getFirst().automation());
+        var assets = zone.moddev.mc.lib.machine.neoforge.MachineResourcePack
+            .build(net.minecraft.server.packs.PackType.CLIENT_RESOURCES,
+                Map.of(machine.id(), machine));
+        var lang = com.google.gson.JsonParser.parseString(new String(
+            assets.get(ResourceLocation.parse("test:lang/en_us.json")),
+            java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        expected.forEach((group, name) -> {
+            String key = "test:crusher.group." + group;
+            assertEquals(name, lang.get(key).getAsString());
+            var text = org.junit.jupiter.api.Assertions.assertInstanceOf(
+                net.minecraft.network.chat.contents.TranslatableContents.class,
+                machine.groupName(group).getContents());
+            assertEquals(key, text.getKey());
+            assertEquals(name, text.getFallback());
+        });
+    }
+
+    @Test
+    void inheritedNamesAndExplicitGroupOverridesKeepStableIds()
+        throws Exception {
+        var parent = crusher()
+            .replace("<machine ", "<machine abstract=\"true\" ")
+            .replace("<slots id=\"input\"",
+                "<slots id=\"input\" name=\"Raw Materials\"")
+            .replace("<slots id=\"output\"",
+                "<slots id=\"output\" name=\"Products\"")
+            .replace("<storage>",
+                """
+                    <storage>
+                      <energy id="energy" name="Power"/>
+                      <fluids id="fluids">
+                        <tank id="water" name="Water Catalyst" capacity="1000" role="manual" automation="false"/>
+                      </fluids>
+                    """);
+        write(
+            """
+                <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="test:base" name="Child">
+                  <storage><items id="items"><slots id="input" count="2"/></items></storage>
+                  <groups>
+                    <group id="input" storage="items" mode="input" color="#123456"/>
+                    <group id="output" storage="items" mode="output" name="Finished Products"/>
+                    <group id="water" storage="fluids" mode="disabled" name="Reusable Water"/>
+                    <group id="energy" storage="energy" name="Electricity"/>
+                  </groups>
+                </machine>
+                """);
+        Files.writeString(directory.resolve("machine/base.xml"), parent);
+        var machine = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals(
+            Map.of("input", "Raw Materials", "output", "Finished Products",
+                "water", "Reusable Water", "energy", "Electricity"),
+            machine.groupNames());
+        assertEquals(List.of("input/0", "input/1", "output/0", "output/1"),
+            machine.slots().stream().map(MachineDefinition.Slot::id).toList());
+        assertFalse(machine.fluids().groups().getFirst().automation());
+        assertEquals("test:crusher.group.input",
+            machine.groupTranslationKey("input"));
+    }
+
+    @Test
+    void blankGroupNamesAreRejectedAtTheirSource() throws Exception {
+        write(crusher().replace("<slots id=\"input\"",
+            "<slots id=\"input\" name=\" \""));
+        var error = assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        assertTrue(error.getMessage().contains("name"));
+        assertTrue(error.getMessage().contains("crusher.xml"));
+    }
+
+    @Test
     void manualTanksCanRemainRecipeGroupsWithoutAutomation() throws Exception {
         var xml = crusher()
             .replace("filter-inputs=\"input\"",
@@ -599,6 +697,7 @@ class MachineDefinitionsTest {
         assertEquals(200000, machine.power().capacity());
         assertEquals(1000, machine.power().input());
         assertEquals(0xd85b5b, machine.power().color());
+        assertEquals("Energy", machine.power().name());
         assertEquals(List.of("input/0", "output/0", "output/1"),
             machine.slots().stream().map(s -> s.id()).toList());
         assertEquals(List.of(1, 2), machine.groups().get(1).members());

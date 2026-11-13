@@ -44,9 +44,8 @@ import zone.moddev.mc.lib.machine.recipe.RecipeMatcher;
  * Several processors may share an inventory; a processor sees what the others
  * reserved.
  */
-public final class RecipeProcessor
-    implements MachineFeature<RecipeProcessor.State>, IRedstoneOutput,
-    StatsProvider, VisualVariableProvider {
+public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
+    IRedstoneOutput, StatsProvider, VisualVariableProvider {
     private static final int SEARCH_RETRY_INTERVAL = 20;
     private final ChangeSignal activityChanges = new ChangeSignal();
     private final ChangeSignal progressChanges = new ChangeSignal();
@@ -595,6 +594,10 @@ public final class RecipeProcessor
     }
 
     /** What the processor is doing. */
+    public ProcessState executionStatus() {
+        return ProcessState.valueOf(status().name());
+    }
+
     public Status status() {
         return status;
     }

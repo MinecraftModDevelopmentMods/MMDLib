@@ -58,6 +58,8 @@ final class ElementActionSession {
         ElementAction<T> action, T value) {
         int index = menu.findIndex(element);
         if (closed || index < 0 || !menu.visible(element)
+            || (element instanceof zone.moddev.mc.lib.gui.model.elements.ButtonControl button
+                && !button.enabled(menu.elementStates()))
             || pending.containsKey(index) || results.containsKey(index)
             || nextRequest == Integer.MAX_VALUE)
             return Optional.empty();
@@ -138,7 +140,10 @@ final class ElementActionSession {
             return result(packet, false, values, elementStates.snapshot());
         boolean accepted = false;
         var action = element.action(packet.action());
-        if (menu.visible(element) && action.isPresent()) {
+        if (menu.visible(element) && action.isPresent()
+            && (!(element instanceof zone.moddev.mc.lib.gui.model.elements.ButtonControl button)
+                || menu.blockEntity instanceof ScreenHost host
+                    && button.serverEnabled(host, player))) {
             try {
                 accepted = action.get().dispatch(
                     new ElementAction.Context(player, menu, element),

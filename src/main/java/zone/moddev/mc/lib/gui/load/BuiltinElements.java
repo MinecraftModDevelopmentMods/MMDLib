@@ -120,6 +120,13 @@ public final class BuiltinElements {
         "progress", ProgressElement.class, BuiltinElements::progress, "widget");
     public static final ElementType<LabelElement> LABEL = builtin("label",
         LabelElement.class, BuiltinElements::label, "widget");
+    public static final ElementType<zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement> ENTITY_PORTRAIT = builtin(
+        "entity-portrait",
+        zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement.class,
+        x -> new zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement(
+            x.common(), x.attribute("variable"), x.size("width", 1),
+            x.size("height", 1), x.text("empty-text")),
+        "widget");
     public static final ElementType<ProcessorButtonElement> PROCESSOR_BUTTON = builtin(
         "processor-button", ProcessorButtonElement.class,
         BuiltinElements::processorButton, "widget", "buttons");
@@ -199,8 +206,8 @@ public final class BuiltinElements {
         for (var element : List.of(BOX, SPACER, INVENTORY_CONTROLS, CUSTOM,
             GROUP, INVENTORY, SLOT, GHOST_SLOT, LEGACY_GAUGE, ENERGY_GAUGE,
             METER, SPRITE, ANIMATED_SPRITE, PROGRESS_SPRITE, COLOURED_GROUP,
-            PROGRESS, LABEL, PROCESSOR_BUTTON, RECIPE_SELECTOR, BUTTON,
-            CHECKBOX, RADIO_GROUP, RADIO, CONTEXT, VIEW, SIDE_CONFIG,
+            PROGRESS, LABEL, ENTITY_PORTRAIT, PROCESSOR_BUTTON, RECIPE_SELECTOR,
+            BUTTON, CHECKBOX, RADIO_GROUP, RADIO, CONTEXT, VIEW, SIDE_CONFIG,
             PLAYER_INVENTORY, PLAYER_ARMOUR, PLAYER_OFFHAND, SIDE_TAB, POPOUT,
             FLUID_TANK))
             element.register(tags);
@@ -392,7 +399,11 @@ public final class BuiltinElements {
     private static LabelElement label(ScreenXml x) {
         var node = x.node();
         var c = x.common();
-        return new LabelElement(c, x.text("text").orElseThrow());
+        return new LabelElement(c, x.text("text").orElse(null),
+            Optional.ofNullable(node.attributes().get("variable")),
+            Integer.parseInt(node.attributes().getOrDefault("width", "0")),
+            Integer.parseInt(node.attributes().getOrDefault("height", "0")),
+            x.flag("translate-lines"));
     }
 
     private static ProcessorButtonElement processorButton(ScreenXml x) {
@@ -407,6 +418,21 @@ public final class BuiltinElements {
     private static ButtonElement button(ScreenXml x) {
         var node = x.node();
         var c = x.common();
+        if (node.attributes().containsKey("processor")
+            || node.attributes().containsKey("enabled-when"))
+            return new zone.moddev.mc.lib.gui.model.elements.BoundButtonElement(
+                c, x.text("text"), x.id("icon"),
+                Optional.ofNullable(node.attributes().get("shows"))
+                    .map(ViewRef::parse),
+                x.words("icons").stream().map(ResourceLocation::parse).toList(),
+                x.words("value-labels").stream()
+                    .map(key -> new Text(x.translationKey(key),
+                        Optional.empty()))
+                    .toList(),
+                Set.of("true", "1")
+                    .contains(node.attributes().getOrDefault("flat", "false")),
+                Optional.ofNullable(node.attributes().get("processor")),
+                Optional.ofNullable(node.attributes().get("enabled-when")));
         return new ButtonElement(c, x.text("text"), x.id("icon"),
             Optional.ofNullable(node.attributes().get("shows"))
                 .map(ViewRef::parse),

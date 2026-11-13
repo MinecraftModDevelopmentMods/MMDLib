@@ -524,6 +524,10 @@ public class MachineMenu extends AbstractContainerMenu {
             || action.element() < 0 || action.element() >= elements.size())
             return;
         var element = elements.get(action.element());
+        if (element instanceof zone.moddev.mc.lib.gui.model.elements.ButtonControl button
+            && (!(blockEntity instanceof ScreenHost host)
+                || !button.serverEnabled(host, player)))
+            return;
         if (!visible(element) || action.button() < 0 || action.button() > 1
             || (action.modifiers() & ~7) != 0)
             return;

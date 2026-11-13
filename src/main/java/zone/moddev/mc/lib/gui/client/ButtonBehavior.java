@@ -18,6 +18,13 @@ public class ButtonBehavior extends DefaultElementBehavior
         this.button = button;
     }
 
+    @Override
+    public Click mouseClicked(double x, double y, int mouseButton) {
+        return button.enabled(access.presentation().state())
+            ? super.mouseClicked(x, y, mouseButton)
+            : Click.CONSUME;
+    }
+
     public Optional<Text> valueLabel() {
         return button.labelFor(access.value());
     }

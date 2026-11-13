@@ -4,7 +4,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluids;
 
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -14,6 +16,7 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import zone.moddev.mc.lib.gui.Screens;
+import zone.moddev.mc.lib.gui.model.elements.FluidTankElement;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
 
@@ -51,6 +54,47 @@ public final class FluidOnlyMachineTests {
             machine.fluids.getFluidInTank(1).is(Fluids.LAVA)
                 && machine.fluids.getFluidInTank(1).getAmount() == 100,
             "Fluid product produced");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void tankNamesRemainTranslatableWithoutAutomation(
+        GameTestHelper h) {
+        var machine = place(h, "named_tanks");
+        require(
+            machine.resources.automation().groups().stream()
+                .noneMatch(group -> group.id().equals("water")),
+            "Naming the manual tank does not expose automation");
+        var buffer = machine.resources.automation().groups().stream()
+            .filter(group -> group.id().equals("buffer")).findFirst()
+            .orElseThrow();
+        require(buffer.name().equals(machine.screenTankName(1).orElseThrow()),
+            "Automation and tank tooltips share the localized group name");
+        var screen = Screens.get(machine.definition.id()).orElseThrow()
+            .screen();
+        var tanks = screen.elements().stream()
+            .filter(FluidTankElement.class::isInstance)
+            .map(FluidTankElement.class::cast).toList();
+        require(tanks.size() == 3,
+            "All manual and automated tanks are displayed");
+        for (var tank : tanks) {
+            var title = tank.tooltip(machine, ItemStack.EMPTY).getFirst();
+            require(title.getContents() instanceof TranslatableContents,
+                "Tooltip title keeps its translation component for the viewer");
+            var text = (TranslatableContents) title.getContents();
+            boolean manual = tank.tank() == 0;
+            require(
+                text.getKey()
+                    .equals("mmdlib_companion:test/named_tanks.group."
+                        + (manual ? "water" : "buffer")),
+                "Stable group translation key");
+            require(
+                (manual ? "Water Catalyst" : "Fluid Buffer")
+                    .equals(text.getFallback()),
+                "XML name supplies the fallback for every tank in the group");
+        }
+        require(machine.screenTankName(3).isEmpty(),
+            "Unknown tank has no name");
         h.succeed();
     }
 

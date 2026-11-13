@@ -52,9 +52,11 @@ public final class ScreenRuntime {
                     .of(clicks.click(), clicks.rightClick(),
                         clicks.shiftClick(), clicks.shiftRightClick())
                     .flatMap(java.util.Optional::stream).toList())
-                    requireCallback(callbacks, id,
-                        zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK,
-                        screen, e);
+                    if (!(e instanceof zone.moddev.mc.lib.gui.model.elements.BoundButtonElement button)
+                        || button.processor().isEmpty())
+                        requireCallback(callbacks, id,
+                            zone.moddev.mc.lib.api.MaterialEventTypes.GUI_CLICK,
+                            screen, e);
                 c.onHover()
                     .ifPresent(id -> requireCallback(callbacks, id,
                         zone.moddev.mc.lib.api.MaterialEventTypes.GUI_HOVER,

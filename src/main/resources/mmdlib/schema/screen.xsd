@@ -149,6 +149,7 @@
       <xs:element ref="progress"/>
       <xs:element ref="sprite"/><xs:element ref="animated-sprite"/><xs:element ref="progress-sprite"/><xs:element ref="coloured-group"/>
       <xs:element ref="label"/>
+      <xs:element ref="entity-portrait"/>
       <xs:element ref="button"/>
       <xs:element ref="processor-button"/>
       <xs:element ref="recipe-selector"/>
@@ -434,12 +435,30 @@
     </xs:complexType>
   </xs:element>
 
+  <xs:element name="entity-portrait">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="leaf">
+          <xs:attribute name="variable" type="xs:string" use="required"/>
+          <xs:attribute name="width" type="pixels" use="required"/>
+          <xs:attribute name="height" type="pixels" use="required"/>
+          <xs:attribute name="empty-text" type="translationKey"/>
+          <xs:attribute name="empty-text-fallback" type="xs:string"/>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+
   <xs:element name="label">
     <xs:complexType>
       <xs:complexContent>
         <xs:extension base="leaf">
-          <xs:attribute name="text" type="translationKey" use="required"/>
+          <xs:attribute name="text" type="translationKey"/>
           <xs:attribute name="text-fallback" type="xs:string"/>
+          <xs:attribute name="variable" type="xs:string"/>
+          <xs:attribute name="width" type="xs:positiveInteger"/>
+          <xs:attribute name="height" type="xs:positiveInteger"/>
+          <xs:attribute name="translate-lines" type="xs:boolean" default="false"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>
@@ -450,6 +469,8 @@
     <xs:complexType>
       <xs:complexContent>
         <xs:extension base="leaf">
+          <xs:attribute name="processor" type="xs:string"/>
+          <xs:attribute name="enabled-when" type="xs:string"/>
           <xs:attribute name="text" type="translationKey"/>
           <xs:attribute name="text-fallback" type="xs:string"/>
           <xs:attribute name="icon" type="resourceId"/>

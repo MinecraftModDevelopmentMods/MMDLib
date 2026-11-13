@@ -121,12 +121,17 @@ public final class BuiltinVisualVariables {
      * server sampling.
      */
     public static VisualVariables forMachine(MachineDefinition definition,
-        RecipeProcessor processor, ItemInventories items, FluidStorage fluids,
-        EnergyBuffer energy) {
+        zone.moddev.mc.lib.machine.feature.Processor<?> processor,
+        ItemInventories items, FluidStorage fluids, EnergyBuffer energy) {
         var vars = new VisualVariables.Builder();
         if (definition.hasProcessor())
             vars.component("processors." + definition.processor(),
-                processor == null ? processor(null) : processor);
+                processor != null
+                    ? processor
+                    : definition.behavior().processor() != null
+                        ? definition.behavior().processor()
+                            .create(definition.processor(), null)
+                        : processor(null));
         for (var group : definition.groups()) {
             var indexes = definition.inventorySlots(group.id());
             vars.component("inventories." + group.id(),

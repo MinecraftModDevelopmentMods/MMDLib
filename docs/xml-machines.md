@@ -522,6 +522,43 @@ inline attributes normally. Explicit groups remain useful for grouping standalon
 `<slot>` entries or overriding automation mode. A standalone `<slot>` has no
 automatic group, so its color belongs on that explicit group.
 
+### Group display names and localization
+
+Set `name` on `<slots>`, `<tank>`, `<tanks>`, or `<energy>` to supply an English
+display name independently of its stable `id`:
+
+```xml
+<tank id="water" name="Water Catalyst" capacity="1000" role="manual"
+      fluid="minecraft:water" automation="false"/>
+<slots id="input" name="Rock Selection" count="1" role="input" type="ghost"/>
+<slots id="output" name="Products" count="4" role="output"/>
+```
+
+Each group gets the translation key `<namespace>:<machine-path>.group.<group-id>`.
+For example, `industrial_overkill:rock_stew_factory.group.water` defaults to
+`Water Catalyst`. The generated low-priority `assets/<namespace>/lang/en_us.json`
+contains these defaults; authored language files/resource packs can override them.
+For another language, add the same key to that locale's file, for example
+`assets/industrial_overkill/lang/ro_ro.json`:
+
+```json
+{"industrial_overkill:rock_stew_factory.group.water": "Catalizator de apă"}
+```
+
+Names remain translatable components, so the viewer's language selects the text.
+Without `name`, the default is the group ID (`Energy` for power). A `<tanks>` group
+shares its name across its tanks. Manual tanks retain their names even with
+`automation="false"`; naming does not enable automation. Ghost names appear in
+generated slot tooltips. A standalone ghost `<slot>` also accepts `name`; for a
+standalone real `<slot>`, put the name on its explicit `<group>` instead.
+
+Names inherit normally. An explicit `<group name="...">` overrides an inline
+name; omitting it preserves the inline/default name. Blank names are rejected.
+Inheritance generates translation keys for the concrete child machine. IDs,
+recipe references, storage keys and automation behavior are unaffected.
+
+### Manual tanks
+
 For a tank that players fill through its screen gauge but automation must not
 access or configure, use `role="manual" automation="false"`:
 
@@ -910,6 +947,100 @@ declarations must agree on name, generator class and properties. A definition
 referencing it with `declare="false"` must not supply a generator. Types registered
 only by Java are not currently resolved by this XML loader.
 
-This delivery covers item processing with optional FE and fluids, and cube or authored-model appearances.
-Multiple processors, world-interaction features and standalone loose content packs
-remain outside this format's implemented scope.
+The format supports recipe processors and mod-owned world-interaction processors,
+optional FE/fluids and cube or authored-model appearances. Multiple processors per
+XML definition and standalone loose content packs remain outside its scope.
+
+## Stored custom processors
+
+A machine can replace its recipe processor with a public, no-argument subclass of
+`StoredProcessor`. Declare the class in the owning mod; omit `<recipe-type>` and
+recipe-selection attributes. An empty `<storage/>` is valid.
+
+```xml
+<processor id="courier" class="example.CourierProcessor"/>
+```
+
+The constructor declares typed state keys and actions without accessing the world.
+The loader constructs prototypes for validation as well as one instance per host.
+`ProcessorMachine` supplies the level, position, block state and item/removal hooks.
+Implement `canStart(ProcessorState, ProcessorMachine)` and
+`ProcessState process(ProcessorState, ProcessorMachine, int deltaTicks)`.
+The host currently supplies one simulation tick per call. It checks `canStart`
+while idle; active, stalled or blocked work resumes without checking it again.
+Returning `IDLE` completes the operation. `idle(...)` supports cooldown bookkeeping
+even when starting is unavailable. Pause/host suspension stop both processing and
+idle bookkeeping; declared actions remain available subject to their own guards.
+
+Declare a key with `variables.define("occupied", Codec.BOOL, false)` and use
+`state.get(key)` / `state.set(key, value)`. Simple keys must contain immutable
+Boolean, numeric or short text values. The full overload accepts a defensive copier
+and separate visual/client-sync flags for payloads such as NBT. All declared keys
+persist; client snapshots omit keys whose sync flag is false.
+Use `variables.update(...)` for placement or other lifecycle operations outside
+processing/actions. Mutation outside an update operation is rejected. Updates batch
+notifications and compare values; unchanged values do not invalidate bindings.
+Batching does not roll back changes to the world or inventory if an operation fails.
+
+Visual keys appear as `$processors.<id>.<key>` in existing model conditions and
+button/shape conditions. `paused`, `held` and `status` are built in; `status` is the
+stored uppercase process status, with pause/hold represented separately.
+Bindings subscribe to their referenced keys, including UI-only keys. They reevaluate
+after dependency changes rather than polling state getters each tick. Server-only
+state changes still mark persistence dirty without scheduling client synchronization.
+Feature networking sends a current client snapshot, not individual variable deltas.
+
+Override `actions()` with stable namespaced IDs mapped to `ProcessorAction` values.
+Each has a side-effect-free availability predicate and a handler receiving state,
+machine and initiating player. Actions currently have no arguments. Return a
+`ProcessorAction.Result`; an optional message is displayed to the player. The server
+rechecks availability at invocation and batches the handler's state changes.
+Unknown action IDs cannot invoke arbitrary methods.
+
+```xml
+<button id="release" processor="courier" on-click="example:release"
+        enabled-when="$processors.courier.occupied &amp;&amp; !$processors.courier.paused"
+        text="Release"/>
+```
+
+Custom processor actions and Boolean conditions are validated when loading the
+screen. Disabled buttons stay visible with tooltips and reject activation on both
+client and server. Omitting `enabled-when` leaves action availability in control.
+Buttons without a processor target continue to use ordinary callback routing.
+
+## Physical shapes and portable machines
+
+`<block>` also accepts `stack-size="1"`, `no-occlusion="true"`,
+`immovable="true"`, `drawers="false"` and `portable="true"`.
+These are opt-in policies; existing machines retain their defaults. `drawers`
+controls the stats and automation drawers, while redstone remains separately configured.
+
+```xml
+<shapes>
+  <shape id="plate" bounds="0 0 0 16 3 16" when="!$processors.courier.occupied"/>
+  <shape id="cage" bounds="0 0 0 16 16 16" when="$processors.courier.occupied"/>
+</shapes>
+```
+
+Shape bounds are block-local 0..16 boxes, rotated with horizontal facing. Active
+boxes are unioned; no active box produces an empty shape. Omit `<shapes>` for the
+normal full cube. Conditions use processor variables and authoritative server
+state; model visibility alone never changes collision. Shape-bearing machines
+send synchronized state immediately after mutations so client bounds follow it.
+
+A portable machine's processor must also implement `PortableProcessor`: transfer
+its payload through `take()` and `placed(ItemStack)`, with optional interaction,
+tooltip and creative-destruction hooks. `take()` must consume ownership exactly
+once. The generic host handles drops; generated self-loot is empty. Occupied
+creative placement consumes the carried item. Custom loot overrides must preserve
+that single-owner rule. No legacy state migration is implied by this interface.
+Consumer client code can register a renderer for `MachineContent.entityType(id)`
+to draw live previews on the generic block entity.
+
+MMDLib automatically registers each concrete machine's block, item and block entity
+type from its XML definition. Java integrations can access them through
+`MachineContent.block(id)`, `MachineContent.item(id)` and
+`MachineContent.entityType(id)`; no per-machine registration or supplier class is
+needed. Call these after the corresponding registry event (for example, in creative
+tab contents or client setup), not while initializing a mod's static fields. Unknown
+or not-yet-registered IDs fail explicitly instead of returning air.

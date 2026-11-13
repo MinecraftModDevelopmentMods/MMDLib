@@ -40,7 +40,7 @@ public final class BuiltinDrawers {
                         DrawerPlacement.top(Edge.RIGHT, 10)))
                     : List.of());
         registry.register(STATS,
-            c -> c.host() == null
+            c -> c.host() == null || !c.host().screenStatsDrawer()
                 ? List.of()
                 : List.of(new DrawerDefinition(STATS, "stats",
                     DrawerPlacement.top(Edge.LEFT, 40))));

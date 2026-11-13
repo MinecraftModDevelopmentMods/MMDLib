@@ -92,6 +92,12 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level,
         BlockPos pos, Player player, BlockHitResult hit) {
+        if (level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.portable() != null) {
+            var result = host.portable().use(player, player.isShiftKeyDown());
+            if (result != InteractionResult.PASS)
+                return result;
+        }
         return level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
             && machine.openScreen(player)
                 ? InteractionResult.sidedSuccess(level.isClientSide())
@@ -128,6 +134,48 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
         BlockState replacement, boolean moved) {
         DropsContents.onRemove(state, level, pos, replacement);
         super.onRemove(state, level, pos, replacement, moved);
+    }
+
+    @Override
+    public BlockState playerWillDestroy(Level level, BlockPos pos,
+        BlockState state, Player player) {
+        if (!level.isClientSide() && player.isCreative()
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.portable() != null)
+            host.portable().creativeDestroy();
+        return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    protected net.minecraft.world.phys.shapes.VoxelShape getShape(
+        BlockState state, BlockGetter world, BlockPos pos,
+        net.minecraft.world.phys.shapes.CollisionContext context) {
+        if (!(world.getBlockEntity(pos) instanceof DefinedMachineEntity host)
+            || host.definition.behavior().shapes().isEmpty())
+            return super.getShape(state, world, pos, context);
+        var result = net.minecraft.world.phys.shapes.Shapes.empty();
+        for (var shape : host.definition.behavior().shapes())
+            if (host.screenFeatures().condition(shape.when())) {
+                double x1 = shape.x1(), z1 = shape.z1(), x2 = shape.x2(),
+                    z2 = shape.z2();
+                int turns = switch (state
+                    .getValue(BlockStateProperties.HORIZONTAL_FACING)) {
+                    case EAST -> 1;
+                    case SOUTH -> 2;
+                    case WEST -> 3;
+                    default -> 0;
+                };
+                for (int turn = 0; turn < turns; turn++) {
+                    double oldX1 = x1, oldX2 = x2;
+                    x1 = 16 - z2;
+                    x2 = 16 - z1;
+                    z1 = oldX1;
+                    z2 = oldX2;
+                }
+                result = net.minecraft.world.phys.shapes.Shapes.or(result,
+                    Block.box(x1, shape.y1(), z1, x2, shape.y2(), z2));
+            }
+        return result;
     }
 
     @Override

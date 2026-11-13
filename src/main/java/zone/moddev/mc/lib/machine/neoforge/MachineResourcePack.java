@@ -175,6 +175,8 @@ public final class MachineResourcePack extends AbstractPackResources {
                 lang.addProperty("block." + id.getNamespace() + "."
                     + id.getPath().replace('/', '.'), machine.name());
                 lang.addProperty(id + ".info", machine.name());
+                machine.groupNames().forEach((group, name) -> lang
+                    .addProperty(machine.groupTranslationKey(group), name));
                 machine.processingType().filter(recipe -> recipe.declare())
                     .ifPresent(recipe -> {
                         var recipeId = recipe.id();
@@ -189,6 +191,9 @@ public final class MachineResourcePack extends AbstractPackResources {
                     "{\"type\":\"minecraft:block\",\"pools\":[{\"rolls\":1,\"entries\":[{\"type\":\"minecraft:item\",\"name\":\""
                         + id
                         + "\"}],\"conditions\":[{\"condition\":\"minecraft:survives_explosion\"}]}]}");
+                if (machine.behavior().portable())
+                    table = JsonParser.parseString(
+                        "{\"type\":\"minecraft:block\",\"pools\":[]}");
                 put(result, id, "loot_table/blocks/", table);
                 tags.computeIfAbsent(machine.mineable(), key -> new JsonArray())
                     .add(id.toString());

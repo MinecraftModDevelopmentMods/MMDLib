@@ -2589,3 +2589,79 @@ BaseMachine does this automatically. Normal disk persistence still uses `save`/`
 Automation and redstone drawer protocols are version 17 with bounded unavailable-face masks.
 Inline controls synchronize a separate `mmdlib:side_unavailable` field. Existing machines default
 to all faces available and need no policy declaration.
+
+## Processor-bound buttons
+
+Ordinary `<button>` elements accept `processor="courier"` to route their declared
+click IDs to that processor's explicit action map. They also accept a Boolean
+`enabled-when` expression over processor variables, for example
+`enabled-when="$processors.courier.occupied"`. Both attributes are optional.
+Escape `&&` as `&amp;&amp;` in XML. See [stored processors](xml-machines.md#stored-custom-processors).
+
+These buttons synchronize their effective enabled state per viewer. Before the
+initial snapshot they are disabled; a false condition keeps the button visible
+with disabled styling and its tooltip. The server rechecks the condition and the
+chosen action's availability, so an outdated enabled snapshot cannot bypass the
+guard. Expressions subscribe to stored variable changes, including variables that
+are not used by model parts. Unknown variables, non-Boolean expressions, missing
+processor IDs and unknown custom processor actions are rejected during validation.
+Only processor variables are supported by `enabled-when`; ordinary global callbacks
+remain available when `processor` is omitted. Processor actions are argument-free
+and cannot be combined with navigation/recipe-link interaction on the same button.
+
+## Labels from stored processor variables
+
+Use a standard label for dynamic text; no mod-specific status element is needed:
+
+```xml
+<label id="status" variable="$processors.courier.details"
+       width="170" height="66" translate-lines="true"/>
+```
+
+`variable` selects a client-visible stored processor value. It can contain a string,
+number, Boolean, text component, or list of those line values. It is mutually
+exclusive with `text`, `value` and `max`. Dynamic labels require explicit width and
+height (1–1024 pixels); text wraps and clips to those bounds. Existing `text`
+labels retain their behavior. Missing processors/variables and unsupported value
+types are rejected during XML machine validation.
+
+`translate-lines` defaults to `false`. When true, each string line is treated as
+its own translation key, including newline-separated strings. Text components
+keep their own literal/translated semantics, styles and arguments. Thus a list like
+`Component.translatable("courier.occupied")`, `Component.literal("Bessie")` and
+`Component.translatable("courier.health", "8.0", "10.0")` needs only independent
+translations, never a key for every combination of lines. Translation happens on
+the client; the server sends components with their keys and arguments intact.
+
+Declare component lines using `ComponentSerialization.CODEC.listOf()` with a deep
+copy function, `visual=false` and `synchronize=true`. Store updated lines when the
+underlying state changes. The GUI reads stored values through its normal snapshot
+transport; it does not call a mod-specific status-building getter on every tick.
+
+## Entity portraits from processor state
+
+```xml
+<entity-portrait id="portrait" variable="$processors.courier.occupant"
+                 width="72" height="72" empty-text="example.no_occupant"/>
+```
+
+`entity-portrait` accepts a client-visible stored variable of type
+`EntityPortraitData` (`gui.model`). Construct it from saved entity NBT including
+the namespaced `id`, or use `EntityPortraitData.EMPTY`. The value copies incoming
+NBT and returns copies from `data()`, so it is safe to declare with
+`EntityPortraitData.CODEC`, an identity copier, `visual=false`, and
+`synchronize=true`. No mod-specific host lookup, widget registration or renderer
+is required. Wrong variable types and missing/private bindings fail validation.
+
+Width and height are required, in pixels (1–1024). `empty-text` is an optional
+translation key; `empty-text-fallback` provides its usual literal fallback.
+The portrait has a dark background, fits the living entity to its bounds, and
+turns it toward the cursor. Non-living entities, missing types, empty or malformed
+data show the placeholder. Rendering supports vanilla and registered modded
+living-entity renderers.
+
+The element synchronizes a bounded NBT snapshot (up to 64 KiB encoded). Its
+client preview is cached per open screen and rebuilt only when the data or client
+level changes. It never spawns, ticks or searches for a live world entity, and
+does not load passenger trees. The preview cache is discarded when the screen
+closes. Entity data should be updated by the processor when its occupant changes.

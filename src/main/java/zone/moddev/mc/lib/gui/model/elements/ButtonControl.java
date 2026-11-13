@@ -13,6 +13,17 @@ import zone.moddev.mc.lib.gui.model.Text;
  * and values.
  */
 public interface ButtonControl extends Element {
+    default boolean enabled(
+        zone.moddev.mc.lib.gui.sync.ElementStateView state) {
+        return true;
+    }
+
+    default boolean serverEnabled(
+        zone.moddev.mc.lib.gui.runtime.ScreenHost host,
+        net.minecraft.world.entity.player.Player player) {
+        return true;
+    }
+
     boolean flat();
 
     Optional<Text> text();

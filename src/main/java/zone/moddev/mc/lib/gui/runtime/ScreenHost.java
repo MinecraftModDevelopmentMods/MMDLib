@@ -1,12 +1,15 @@
 package zone.moddev.mc.lib.gui.runtime;
 
 import java.util.Map;
+import java.util.Optional;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
+import zone.moddev.mc.lib.api.automation.ResourceType;
 import zone.moddev.mc.lib.api.capabilities.SideConfig;
 
 /**
@@ -14,6 +17,10 @@ import zone.moddev.mc.lib.api.capabilities.SideConfig;
  * data-defined menu.
  */
 public interface ScreenHost {
+    default boolean screenStatsDrawer() {
+        return true;
+    }
+
     /**
      * Validated physical interaction anchor; single-block hosts keep their
      * existing position.
@@ -136,6 +143,17 @@ public interface ScreenHost {
      */
     default zone.moddev.mc.lib.api.capabilities.FluidStorage screenFluids() {
         return null;
+    }
+
+    /** Display metadata independent of whether a tank exposes automation. */
+    default Optional<Component> screenTankName(int tank) {
+        var automation = screenAutomation();
+        return automation == null
+            ? Optional.empty()
+            : automation.groups().stream()
+                .filter(group -> group.type() == ResourceType.FLUIDS
+                    && group.members().contains(tank))
+                .map(group -> group.name()).findFirst();
     }
 
     /** The optional energy storage exposed to resource-bound elements. */

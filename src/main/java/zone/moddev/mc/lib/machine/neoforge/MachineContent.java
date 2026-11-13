@@ -9,7 +9,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -46,6 +45,7 @@ public final class MachineContent {
         .of();
     private static final Map<ResourceLocation, MachineRecipeType> recipes = new TreeMap<>();
     private static final Map<ResourceLocation, DefinedMachineBlock> blocks = new TreeMap<>();
+    private static final Map<ResourceLocation, DefinedMachineItem> items = new TreeMap<>();
     private static final Map<ResourceLocation, BlockEntityType<DefinedMachineEntity>> entities = new TreeMap<>();
 
     private MachineContent() {
@@ -73,6 +73,27 @@ public final class MachineContent {
             throw new IllegalArgumentException(
                 "Unknown machine recipe type " + id);
         return type;
+    }
+
+    /** The XML-registered block; available after block registration. */
+    public static DefinedMachineBlock block(ResourceLocation id) {
+        return Objects.requireNonNull(blocks.get(id),
+            "XML machine block is not registered: " + id);
+    }
+
+    /** The XML-registered item; available after item registration. */
+    public static DefinedMachineItem item(ResourceLocation id) {
+        return Objects.requireNonNull(items.get(id),
+            "XML machine item is not registered: " + id);
+    }
+
+    /**
+     * The XML-registered entity type; available after entity type registration.
+     */
+    public static BlockEntityType<DefinedMachineEntity> entityType(
+        ResourceLocation id) {
+        return Objects.requireNonNull(entities.get(id),
+            "Unknown XML machine: " + id);
     }
 
     public static Item recoveryItem() {
@@ -140,6 +161,13 @@ public final class MachineContent {
                     .strength(definition.hardness());
                 if (definition.requiresTool())
                     properties.requiresCorrectToolForDrops();
+                if (definition.behavior().noOcclusion())
+                    properties.noOcclusion();
+                if (definition.behavior().immovable())
+                    properties.pushReaction(
+                        net.minecraft.world.level.material.PushReaction.BLOCK);
+                if (!definition.behavior().shapes().isEmpty())
+                    properties.dynamicShape();
                 var block = new DefinedMachineBlock(properties,
                     () -> entities.get(id));
                 helper.register(id, block);
@@ -147,8 +175,11 @@ public final class MachineContent {
             }));
         event.register(Registries.ITEM, helper -> {
             helper.register(RECOVERY, new MachineRecoveryItem());
-            blocks.forEach((id, block) -> helper.register(id,
-                new BlockItem(block, new Item.Properties())));
+            blocks.forEach((id, block) -> {
+                var item = new DefinedMachineItem(block, definitions.get(id));
+                helper.register(id, item);
+                items.put(id, item);
+            });
         });
         event.register(Registries.BLOCK_ENTITY_TYPE,
             helper -> definitions.forEach((id, definition) -> {

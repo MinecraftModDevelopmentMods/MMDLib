@@ -16,7 +16,7 @@ import zone.moddev.mc.lib.gui.model.ProcessorButtonState;
 import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.runtime.ScreenClick;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
-import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
+import zone.moddev.mc.lib.machine.feature.Processor;
 
 /**
  * Owns processor selection, state, pause action and redstone-conflict
@@ -77,11 +77,11 @@ public class ProcessorButtonElement implements ButtonControl {
                 "Unknown processor-key: " + processorKey.get());
     }
 
-    private RecipeProcessor processor(ScreenHost host) {
+    private Processor<?> processor(ScreenHost host) {
         if (host.screenFeatures() == null)
             throw new IllegalArgumentException(
                 "<processor-button> requires at least one recipe processor");
-        return host.screenFeatures().processor(processorKey)
+        return host.screenFeatures().findProcessor(processorKey)
             .orElseThrow(() -> new IllegalArgumentException(
                 processorKey.map(key -> "Unknown processor-key: " + key).orElse(
                     "<processor-button> requires at least one recipe processor")));
