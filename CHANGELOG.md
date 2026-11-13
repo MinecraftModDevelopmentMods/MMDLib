@@ -33,6 +33,19 @@
     clients and servers must both run 2.0.2.
   - A local Maven repository can be configured for development builds; see
     [local development](docs/local-development.md).
+- Fluid-only and storage-only XML machines (#107): `<items>`, `<recipe-type>`
+  and `<processor>` are optional, so a machine can be a plain tank or storage
+  block. Without a processor, slot and tank roles must be `storage` or
+  `manual`, and the base screen leaves out the processor's progress arrow and
+  controls. `MachineDefinition.hasProcessor()`, `processingType()` and
+  `processes(typeId)` give null-safe checks; `recipeType()` stays, nullable.
+  Processor sounds and `on-start`/`on-finish` events apply only to machines
+  with a processor.
+- Screen XML: a literal placeholder can take `default-filter="namespace:id"`,
+  letting a contextual fill generator drop the authored default (#107).
+- CI: the client smoke tests run under a watchdog that stops the game as soon
+  as it writes a crash report, instead of hanging until the step times out
+  (#107).
 - Add data-driven sound events: each `mmdlib/sound/<path>.json` registers the
   sound event `<mod>:<path>` at startup, with an optional fixed hearing `range`.
   Audio comes from `sounds.json` as usual. MMDLib registers its own namespace's;
