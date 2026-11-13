@@ -45,6 +45,18 @@ public final class ProcessorState implements VisualVariableProvider {
     private java.util.function.Consumer<Boolean> onBatch = ignored -> {
     };
     private int depth;
+    private final List<ProcessorTimer> timers = new java.util.ArrayList<>();
+
+    public ProcessorTimer timer(String name, int maximum,
+        ProcessorTimer.Policy policy) {
+        var timer = new ProcessorTimer(this, name, maximum, policy);
+        timers.add(timer);
+        return timer;
+    }
+
+    void advanceTimers(int deltaTicks, Processor.ProcessState phase) {
+        timers.forEach(timer -> timer.advance(deltaTicks, phase));
+    }
 
     public Declaration<Boolean> bool(String name, boolean initial) {
         return value(name, Codec.BOOL, initial, UnaryOperator.identity());

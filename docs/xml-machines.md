@@ -1099,6 +1099,14 @@ Use `features.findProcessor(key, ExpectedProcessor.class)` for typed lookup, or
 entity or another object. The latter accepts `FeatureHost` and `ScreenHost` and
 returns an empty optional for missing, incompatible or unsupported hosts.
 
+`variables.timer("cooldown", 40, ProcessorTimer.Policy.IDLE)` creates a private,
+persisted countdown. Use `start(ticks)`, `ready()`, `remaining()` and `clear()`;
+the `StoredProcessor` lifecycle decrements it automatically before processing.
+Policies are `IDLE`, `ACTIVE` (including stalled/blocked active work), `UNPAUSED`
+(idle or active, excluding holds), and `ALWAYS` (including paused/held loaded ticks).
+Timers clamp at zero, never advance while unloaded, and are not portable unless
+their key is explicitly opted in. `key()` can be a dependency of a derived value.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and

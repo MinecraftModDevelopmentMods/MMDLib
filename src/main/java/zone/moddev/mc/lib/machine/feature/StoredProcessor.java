@@ -106,6 +106,7 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
     public final void tick(FeatureHost host) {
         variables.update(() -> {
             variables.set(held, false);
+            variables.advanceTimers(1, executionStatus());
             if (paused())
                 return;
             boolean active = !variables.get(status).equals("IDLE");
@@ -121,7 +122,10 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
     public final void suspended(FeatureHost host) {
         // Keep active-operation status so resume does not incorrectly call
         // canStart again.
-        variables.update(() -> variables.set(held, true));
+        variables.update(() -> {
+            variables.set(held, true);
+            variables.advanceTimers(1, ProcessState.HELD);
+        });
     }
 
     public final boolean actionAvailable(ResourceLocation id, Player player) {
