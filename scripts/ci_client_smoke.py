@@ -13,10 +13,14 @@ import time
 
 
 def reports(directory):
-    return {
-        path: (path.stat().st_mtime_ns, path.stat().st_size)
-        for path in (directory / "crash-reports").glob("*.txt")
-    }
+    result = {}
+    for path in (directory / "crash-reports").glob("*.txt"):
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            continue  # Rotated or removed after glob enumerated the path.
+        result[path] = (stat.st_mtime_ns, stat.st_size)
+    return result
 
 
 def stop(process):
@@ -39,20 +43,41 @@ def stop(process):
 
 
 def run(directory, command):
-    previous = reports(directory)
-    process = subprocess.Popen(command, start_new_session=True)
+    cancelled = 0
+
+    def cancel(signum, _frame):
+        # Do not raise from the handler: it may interrupt Popen or cleanup.
+        nonlocal cancelled
+        cancelled = cancelled or signum
+
+    handlers = {sig: signal.signal(sig, cancel) for sig in (signal.SIGTERM, signal.SIGINT)}
+    process = None
     try:
+        baseline = reports(directory)
+        previous = baseline
+        process = subprocess.Popen(command, start_new_session=True)
         while True:
+            if cancelled:
+                return 128 + cancelled
             result = process.poll()
-            for path, stamp in reports(directory).items():
-                if previous.get(path) != stamp:
+            current = reports(directory)
+            changed = {path: stamp for path, stamp in current.items() if baseline.get(path) != stamp}
+            for path, stamp in changed.items():
+                if previous.get(path) == stamp:
                     print(f"::error::Minecraft crashed: {path}; see the uploaded crash report.", flush=True)
                     return 1
-            if result is not None:
+            if result is not None and not changed:
                 return result
+            # Give a newly written report at least one full poll to settle.
+            previous = current
             time.sleep(1)
     finally:
-        stop(process)
+        try:
+            if process is not None:
+                stop(process)
+        finally:
+            for sig, handler in handlers.items():
+                signal.signal(sig, handler)
 
 
 if __name__ == "__main__":
