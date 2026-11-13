@@ -140,10 +140,7 @@ final class ElementActionSession {
             return result(packet, false, values, elementStates.snapshot());
         boolean accepted = false;
         var action = element.action(packet.action());
-        if (menu.visible(element) && action.isPresent()
-            && (!(element instanceof zone.moddev.mc.lib.gui.model.elements.ButtonControl button)
-                || menu.blockEntity instanceof ScreenHost host
-                    && button.serverEnabled(host, player))) {
+        if (menu.visible(element) && action.isPresent()) {
             try {
                 accepted = action.get().dispatch(
                     new ElementAction.Context(player, menu, element),

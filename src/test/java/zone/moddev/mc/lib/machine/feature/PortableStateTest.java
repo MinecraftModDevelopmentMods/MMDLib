@@ -13,6 +13,30 @@ import org.junit.jupiter.api.Test;
 
 class PortableStateTest {
     @Test
+    void actionDeclarationsAreBuiltOncePerProcessor() {
+        var builds = new java.util.concurrent.atomic.AtomicInteger();
+        var processor = new PortableStoredProcessor() {
+            protected java.util.Map<net.minecraft.resources.ResourceLocation, ProcessorAction> customActions() {
+                builds.incrementAndGet();
+                return java.util.Map.of();
+            }
+            public boolean canStart(ProcessorState state,
+                ProcessorMachine machine) {
+                return false;
+            }
+            public ProcessState process(ProcessorState state,
+                ProcessorMachine machine, int deltaTicks) {
+                return ProcessState.IDLE;
+            }
+        };
+        org.junit.jupiter.api.Assertions.assertSame(processor.actions(),
+            processor.actions());
+        assertEquals(1, builds.get());
+        assertTrue(
+            processor.actions().containsKey(PortableStoredProcessor.PICKUP));
+    }
+
+    @Test
     void onlySelectedVariablesTravelAndInvalidPayloadsDoNotPartiallyRestore() {
         var state = new ProcessorState();
         var animal = state.portable(state.define("animal", Codec.STRING, ""));

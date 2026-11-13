@@ -1,8 +1,8 @@
 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
          extends="mmdlib:base_machine" name="Portable Test Machine">
-  <block portable="true" drawers="false"/>
+  <block portable="true" drawers="false" on-secondary-use="mmdlib:pickup"/>
   <appearance preset="cube-front" front="minecraft:block/stone"
               side="minecraft:block/stone" top="minecraft:block/stone"/>
-  <storage/>
+  <storage><items id="items"><slots id="storage" count="1" role="manual"/></items></storage>
   <processor id="portable" class="zone.moddev.mc.companion.test.PortableMachineTests$Payload"/>
 </machine>

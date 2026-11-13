@@ -168,8 +168,13 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public Map<String, Object> visualDefaults() {
-        return BuiltinVisualVariables.forMachine(this, null, null, null, null)
-            .defaults();
+        return visualDefaults(null);
+    }
+
+    public Map<String, Object> visualDefaults(
+        zone.moddev.mc.lib.machine.feature.Processor<?> prototype) {
+        return BuiltinVisualVariables
+            .forMachine(this, prototype, null, null, null).defaults();
     }
 
     public boolean hasConditionalAppearance() {

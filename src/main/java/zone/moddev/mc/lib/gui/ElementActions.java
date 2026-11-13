@@ -35,11 +35,6 @@ public final class ElementActions {
         ResourceLocation.parse("mmdlib:click"), Click.CODEC, 8,
         (context, value) -> {
             var element = context.element();
-            if (element instanceof zone.moddev.mc.lib.gui.model.elements.ButtonControl button
-                && (!(context
-                    .menu().blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host)
-                    || !button.serverEnabled(host, context.player())))
-                return false;
             if (!element.validClickOption(value.option()))
                 return false;
             var click = new ScreenClick(context.player(), context.menu(),

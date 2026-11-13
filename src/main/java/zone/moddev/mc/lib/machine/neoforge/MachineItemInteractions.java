@@ -102,8 +102,11 @@ public final class MachineItemInteractions {
             event.getHitVec());
         var owner = owner(context);
         if (owner != null && !context.getItemInHand().isEmpty()
-            && receiver(owner, context,
-                context.getItemInHand().copyWithCount(1)) != null)
+            && ((owner instanceof DefinedMachineEntity machine
+                && machine.portable() != null
+                && context.getItemInHand().is(MachineContent.PICKUP_TOOLS))
+                || receiver(owner, context,
+                    context.getItemInHand().copyWithCount(1)) != null))
             event.setUseBlock(net.neoforged.neoforge.common.util.TriState.TRUE);
     }
 

@@ -94,6 +94,10 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
             && level.getBlockEntity(pos) instanceof DefinedMachineEntity host
             && host.definition.behavior().secondaryAction() != null) {
             var action = host.definition.behavior().secondaryAction();
+            if (action.equals(
+                zone.moddev.mc.lib.machine.feature.PortableStoredProcessor.PICKUP))
+                return InteractionResult.FAIL; // Pickup requires the UI or a
+                                               // tagged tool.
             var processor = host.screenFeatures()
                 .findProcessor(host.definition.processor()).orElseThrow();
             if (level.isClientSide())
@@ -123,6 +127,21 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state,
         Level level, BlockPos pos, Player player, InteractionHand hand,
         BlockHitResult hit) {
+        if (player.isSecondaryUseActive()
+            && stack.is(MachineContent.PICKUP_TOOLS)
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.portable() != null) {
+            if (!level.isClientSide()) {
+                var processor = host.screenFeatures()
+                    .findProcessor(host.definition.processor()).orElseThrow();
+                var result = processor.invoke(
+                    zone.moddev.mc.lib.machine.feature.PortableStoredProcessor.PICKUP,
+                    player);
+                result.message().ifPresent(
+                    message -> player.displayClientMessage(message, true));
+            }
+            return ItemInteractionResult.sidedSuccess(level.isClientSide());
+        }
         if (stack.is(MachineContent.recoveryItem()) && level
             .getBlockEntity(pos) instanceof DefinedMachineEntity machine) {
             if (level.isClientSide())
@@ -170,29 +189,8 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
         if (!(world.getBlockEntity(pos) instanceof DefinedMachineEntity host)
             || host.definition.behavior().shapes().isEmpty())
             return super.getShape(state, world, pos, context);
-        var result = net.minecraft.world.phys.shapes.Shapes.empty();
-        for (var shape : host.definition.behavior().shapes())
-            if (host.screenFeatures().condition(shape.when())) {
-                double x1 = shape.x1(), z1 = shape.z1(), x2 = shape.x2(),
-                    z2 = shape.z2();
-                int turns = switch (state
-                    .getValue(BlockStateProperties.HORIZONTAL_FACING)) {
-                    case EAST -> 1;
-                    case SOUTH -> 2;
-                    case WEST -> 3;
-                    default -> 0;
-                };
-                for (int turn = 0; turn < turns; turn++) {
-                    double oldX1 = x1, oldX2 = x2;
-                    x1 = 16 - z2;
-                    x2 = 16 - z1;
-                    z1 = oldX1;
-                    z2 = oldX2;
-                }
-                result = net.minecraft.world.phys.shapes.Shapes.or(result,
-                    Block.box(x1, shape.y1(), z1, x2, shape.y2(), z2));
-            }
-        return result;
+        return host
+            .shape(state.getValue(BlockStateProperties.HORIZONTAL_FACING));
     }
 
     @Override

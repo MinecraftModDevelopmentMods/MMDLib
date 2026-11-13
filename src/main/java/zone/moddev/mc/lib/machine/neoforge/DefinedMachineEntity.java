@@ -37,6 +37,7 @@ public final class DefinedMachineEntity extends BaseMachine
     public final MachineInventoryLifecycle inventory;
     private final RedstoneControl redstone;
     private final MachineVisualState visuals;
+    private final MachineShapeState shapes;
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
 
@@ -154,6 +155,22 @@ public final class DefinedMachineEntity extends BaseMachine
             : BuiltinVisualVariables.forMachine(definition, visualProcessor,
                 items, fluids, energy),
             definition.visualConditions());
+        shapes = new MachineShapeState(definition.behavior().shapes(),
+            definition.behavior().shapes().isEmpty()
+                ? new VisualVariables.Builder().build()
+                : BuiltinVisualVariables.forMachine(definition, visualProcessor,
+                    items, fluids, energy),
+            () -> {
+                if (level != null && level.isClientSide)
+                    level.sendBlockUpdated(worldPosition, getBlockState(),
+                        getBlockState(),
+                        net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+            });
+    }
+
+    public net.minecraft.world.phys.shapes.VoxelShape shape(
+        net.minecraft.core.Direction facing) {
+        return shapes.shape(facing);
     }
 
     public Level level() {
@@ -229,18 +246,6 @@ public final class DefinedMachineEntity extends BaseMachine
             : null;
     }
     @Override
-    public void dropContents(Level world, BlockPos pos) {
-        var portable = portable();
-        if (portable != null) {
-            var stack = portable.take();
-            if (!stack.isEmpty())
-                net.minecraft.world.Containers.dropItemStack(world,
-                    pos.getX() + .5, pos.getY() + .5, pos.getZ() + .5, stack);
-        }
-        super.dropContents(world, pos);
-    }
-
-    @Override
     public void onLoad() {
         super.onLoad();
         if (level != null && !level.isClientSide)
@@ -280,6 +285,7 @@ public final class DefinedMachineEntity extends BaseMachine
     @Override
     protected void loadClientData(CompoundTag tag,
         net.minecraft.core.HolderLookup.Provider registries) {
+        shapes.refresh();
         visuals.read(tag.getCompound("visuals"), this);
         readGhosts(tag, registries);
     }
@@ -333,6 +339,7 @@ public final class DefinedMachineEntity extends BaseMachine
     @Override
     protected void loadMachineData(CompoundTag tag,
         net.minecraft.core.HolderLookup.Provider registries) {
+        shapes.refresh();
         legacyGhostRecipe = null;
         for (var ghost : definition.ghosts()) {
             var sample = ghost.defaultItem() == null

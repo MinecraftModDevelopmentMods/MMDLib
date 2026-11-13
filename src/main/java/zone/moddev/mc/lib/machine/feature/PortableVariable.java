@@ -120,14 +120,24 @@ public final class PortableVariable<T> {
      * unchanged payloads.
      */
     public Reader reader() {
-        return new Reader();
+        return reader(1);
+    }
+
+    /** Bounded identity cache for owners rendering several stacks per frame. */
+    public Reader reader(int capacity) {
+        return new Reader(capacity);
     }
 
     public final class Reader {
-        private CustomData component;
-        private T value = copy.apply(initial);
+        private final int capacity;
+        private final java.util.Map<CustomData, T> values = new java.util.IdentityHashMap<>();
+        private final java.util.Deque<CustomData> order = new java.util.ArrayDeque<>();
 
-        private Reader() {
+        private Reader(int capacity) {
+            if (capacity < 1 || capacity > 256)
+                throw new IllegalArgumentException(
+                    "Reader capacity must be 1..256");
+            this.capacity = capacity;
         }
 
         public T read(ItemStack stack) {
@@ -135,16 +145,20 @@ public final class PortableVariable<T> {
                 ? stack.getOrDefault(DataComponents.CUSTOM_DATA,
                     CustomData.EMPTY)
                 : CustomData.EMPTY;
-            if (component != next) {
+            var value = values.get(next);
+            if (value == null) {
                 value = PortableVariable.this.read(stack);
-                component = next;
+                values.put(next, value);
+                order.addLast(next);
+                if (order.size() > capacity)
+                    values.remove(order.removeFirst());
             }
             return copy.apply(value);
         }
 
         public void clear() {
-            component = null;
-            value = copy.apply(initial);
+            values.clear();
+            order.clear();
         }
     }
 }

@@ -18,6 +18,7 @@ public abstract class PortableStoredProcessor extends StoredProcessor
         .parse("mmdlib:pickup");
     private final ProcessorState.Key<Boolean> taken = variables.define("taken",
         Codec.BOOL, false);
+    private Map<ResourceLocation, ProcessorAction> declaredActions;
 
     public final boolean taken() {
         return variables.get(taken);
@@ -30,6 +31,8 @@ public abstract class PortableStoredProcessor extends StoredProcessor
 
     @Override
     public final Map<ResourceLocation, ProcessorAction> actions() {
+        if (declaredActions != null)
+            return declaredActions;
         var actions = new LinkedHashMap<>(customActions());
         if (actions.putIfAbsent(PICKUP, new ProcessorAction(
             (state, context) -> !taken(), (state, context) -> {
@@ -47,7 +50,8 @@ public abstract class PortableStoredProcessor extends StoredProcessor
             })) != null)
             throw new IllegalArgumentException(
                 "The mmdlib:pickup action is reserved");
-        return Map.copyOf(actions);
+        declaredActions = Map.copyOf(actions);
+        return declaredActions;
     }
 
     @Override

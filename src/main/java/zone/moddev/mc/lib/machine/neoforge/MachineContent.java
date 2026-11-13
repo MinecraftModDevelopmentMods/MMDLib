@@ -37,6 +37,13 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
  * namespace.
  */
 public final class MachineContent {
+    /**
+     * Items that may sneak-right-click a portable machine to preserve its
+     * payload.
+     */
+    public static final net.minecraft.tags.TagKey<Item> PICKUP_TOOLS = net.minecraft.tags.TagKey
+        .create(Registries.ITEM,
+            ResourceLocation.parse("mmdlib:machine_pickup_tools"));
     public static final ResourceLocation RECOVERY = ResourceLocation
         .parse("mmdlib:machine_recovery_capsule");
     private static Map<ResourceLocation, MachineDefinition> definitions = Map

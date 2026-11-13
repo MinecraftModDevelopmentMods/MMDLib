@@ -23,9 +23,11 @@ public final class EntitySnapshot {
     public static final Codec<EntitySnapshot> CODEC = CompoundTag.CODEC
         .xmap(EntitySnapshot::new, EntitySnapshot::data);
     private final CompoundTag data;
+    private final int hash;
 
     public EntitySnapshot(CompoundTag data) {
         this.data = Objects.requireNonNull(data).copy();
+        this.hash = this.data.hashCode();
     }
 
     public static EntitySnapshot capture(Entity entity) {
@@ -116,6 +118,6 @@ public final class EntitySnapshot {
 
     @Override
     public int hashCode() {
-        return data.hashCode();
+        return hash;
     }
 }

@@ -134,7 +134,8 @@ public final class MachineScreenGenerators {
                 }
                 if (element instanceof zone.moddev.mc.lib.gui.model.elements.BoundButtonElement button) {
                     if (defaults == null)
-                        defaults = machine.visualDefaults();
+                        defaults = machine
+                            .visualDefaults(declared.get(machine.processor()));
                     button.validateDefinition(declared, defaults);
                 }
             } catch (IllegalArgumentException failure) {

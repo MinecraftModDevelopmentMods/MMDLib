@@ -47,7 +47,8 @@ import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 public final class MachineEntityDisplays {
     private static final List<java.lang.ref.WeakReference<EntityPreviewCache<?>>> CACHES = new ArrayList<>();
 
-    private record Binding(EntityDisplay display, PortableVariable<?> reference,
+    private record Binding(EntityDisplay display,
+        PortableVariable<?>.Reader reader,
         Optional<EntitySnapshotPolicy<?>> policy) {
         static Binding of(MachineDefinition definition) {
             var display = definition.behavior().entityDisplay();
@@ -55,15 +56,16 @@ public final class MachineEntityDisplays {
                 .create(definition.processor(), null);
             var reference = processor
                 .portableVariable(display.variable().name()).orElse(null);
-            return new Binding(display, reference,
+            return new Binding(display,
+                reference == null ? null : reference.reader(64),
                 reference == null
                     ? Optional.empty()
                     : reference.entityPolicy());
         }
 
         EntitySnapshot read(ItemStack stack) {
-            return reference != null
-                && reference.read(stack) instanceof EntitySnapshot snapshot
+            return reader != null
+                && reader.read(stack) instanceof EntitySnapshot snapshot
                     ? snapshot
                     : EntitySnapshot.EMPTY;
         }

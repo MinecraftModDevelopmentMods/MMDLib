@@ -191,9 +191,6 @@ public final class MachineResourcePack extends AbstractPackResources {
                     "{\"type\":\"minecraft:block\",\"pools\":[{\"rolls\":1,\"entries\":[{\"type\":\"minecraft:item\",\"name\":\""
                         + id
                         + "\"}],\"conditions\":[{\"condition\":\"minecraft:survives_explosion\"}]}]}");
-                if (machine.behavior().portable())
-                    table = JsonParser.parseString(
-                        "{\"type\":\"minecraft:block\",\"pools\":[]}");
                 put(result, id, "loot_table/blocks/", table);
                 tags.computeIfAbsent(machine.mineable(), key -> new JsonArray())
                     .add(id.toString());

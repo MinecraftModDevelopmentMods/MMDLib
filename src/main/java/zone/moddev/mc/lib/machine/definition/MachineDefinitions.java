@@ -645,11 +645,15 @@ public final class MachineDefinitions {
                 var bounds = required(shape, "bounds").trim().split("\\s+");
                 if (bounds.length != 6)
                     throw error(shape, "Shape bounds require six coordinates");
-                double[] v = Arrays.stream(bounds)
-                    .mapToDouble(Double::parseDouble).toArray();
-                shapes.add(new MachineBehavior.Shape(required(shape, "id"),
-                    required(shape, "when"), v[0], v[1], v[2], v[3], v[4],
-                    v[5]));
+                try {
+                    double[] v = Arrays.stream(bounds)
+                        .mapToDouble(Double::parseDouble).toArray();
+                    shapes.add(new MachineBehavior.Shape(required(shape, "id"),
+                        required(shape, "when"), v[0], v[1], v[2], v[3], v[4],
+                        v[5]));
+                } catch (IllegalArgumentException ex) {
+                    throw error(shape, ex.getMessage());
+                }
             }
         var displayNode = optional(root, "entity-display");
         EntityDisplay display = null;
@@ -683,37 +687,44 @@ public final class MachineDefinitions {
                 throw error(displayNode, ex.getMessage());
             }
         }
-        var behavior = new MachineBehavior(
-            custom
-                ? ProcessorDeclaration.load(required(processor, "class"),
-                    loaders.get(processor.source()))
-                : null,
-            (int) (block.attributes().containsKey("stack-size")
-                ? number(block, "stack-size", 1, 64)
-                : 64),
-            bool(block, "no-occlusion", false), bool(block, "immovable", false),
-            bool(block, "portable", false), bool(block, "drawers", true),
-            shapes,
-            block.attributes().containsKey("on-secondary-use")
-                ? resource(block, "on-secondary-use")
-                : null,
-            display);
-        if (behavior.secondaryAction() != null && (behavior.processor() == null
-            || !behavior.processor().create(required(processor, "id"), null)
-                .actions().containsKey(behavior.secondaryAction())))
+        ProcessorDeclaration declaration = null;
+        zone.moddev.mc.lib.machine.feature.StoredProcessor prototype = null;
+        if (custom) {
+            try {
+                declaration = ProcessorDeclaration.load(
+                    required(processor, "class"),
+                    loaders.get(processor.source()));
+                prototype = declaration.create(required(processor, "id"), null);
+            } catch (IllegalArgumentException ex) {
+                throw error(processor, ex.getMessage());
+            }
+        }
+        MachineBehavior behavior;
+        try {
+            behavior = new MachineBehavior(declaration,
+                (int) (block.attributes().containsKey("stack-size")
+                    ? number(block, "stack-size", 1, 64)
+                    : 64),
+                bool(block, "no-occlusion", false),
+                bool(block, "immovable", false), bool(block, "portable", false),
+                bool(block, "drawers", true), shapes,
+                block.attributes().containsKey("on-secondary-use")
+                    ? resource(block, "on-secondary-use")
+                    : null,
+                display);
+        } catch (IllegalArgumentException ex) {
+            throw error(block, ex.getMessage());
+        }
+        if (behavior.secondaryAction() != null && (prototype == null
+            || !prototype.actions().containsKey(behavior.secondaryAction())))
             throw error(block, "Unknown secondary-use processor action: "
                 + behavior.secondaryAction());
-        if (behavior.portable() && (!custom
-            || !zone.moddev.mc.lib.machine.feature.PortableProcessor.class
-                .isAssignableFrom(behavior.processor().type())))
-            throw error(block, "Portable machines need a PortableProcessor");
         if (display != null) {
             if (!custom || (display.item() && !behavior.portable()))
                 throw error(displayNode,
                     "Entity displays require a custom processor; item displays require portable machines");
             try {
-                display.validate(Map.of(required(processor, "id"), behavior
-                    .processor().create(required(processor, "id"), null)));
+                display.validate(Map.of(required(processor, "id"), prototype));
             } catch (IllegalArgumentException ex) {
                 throw error(displayNode, ex.getMessage());
             }
@@ -749,9 +760,7 @@ public final class MachineDefinitions {
                         : null)
                 : null,
             ghosts, behavior);
-        var defaults = definition.hasConditionalAppearance()
-            ? definition.visualDefaults()
-            : Map.<String, Object>of();
+        var defaults = definition.visualDefaults(prototype);
         for (var part : appearance.children()) {
             try {
                 VisualCondition.compile(required(part, "when"), defaults);
@@ -759,12 +768,19 @@ public final class MachineDefinitions {
                 throw error(part, ex.getMessage());
             }
         }
-        var processorDefaults = definition.visualDefaults().entrySet().stream()
+        var processorDefaults = defaults.entrySet().stream()
             .filter(entry -> entry.getKey().startsWith("processors."))
             .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey,
                 Map.Entry::getValue));
-        for (var shape : shapes)
-            VisualCondition.compile(shape.when(), processorDefaults);
+        if (shapeNode != null)
+            for (var shape : shapeNode.children()) {
+                try {
+                    VisualCondition.compile(required(shape, "when"),
+                        processorDefaults);
+                } catch (IllegalArgumentException ex) {
+                    throw error(shape, ex.getMessage());
+                }
+            }
         return definition;
     }
 

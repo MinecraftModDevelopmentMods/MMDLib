@@ -31,6 +31,109 @@ import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 @GameTestHolder("mmdlib_companion")
 @PrefixGameTestTemplate(false)
 public final class PortableMachineTests {
+    private static DefinedMachineEntity occupied(GameTestHelper h) {
+        var pos = h.absolutePos(new BlockPos(2, 2, 2));
+        var id = ResourceLocation.parse("mmdlib_companion:test/portable");
+        h.getLevel().setBlock(pos, MachineContent.block(id).defaultBlockState(),
+            3);
+        var machine = (DefinedMachineEntity) h.getLevel().getBlockEntity(pos);
+        var stack = new ItemStack(MachineContent.item(id));
+        PortableData.write(stack, "portable", "contents", Codec.INT, 7);
+        machine.portable().placed(stack);
+        machine.items.setStackInSlot(0,
+            new ItemStack(net.minecraft.world.item.Items.DIAMOND, 3));
+        return machine;
+    }
+
+    @GameTest(template = "empty")
+    public static void ordinaryDestructionDropsEmptyMachineAndInventory(
+        GameTestHelper h) {
+        var machine = occupied(h);
+        var pos = machine.getBlockPos();
+        h.getLevel().destroyBlock(pos, true);
+        var drops = h.getLevel().getEntitiesOfClass(ItemEntity.class,
+            new AABB(pos).inflate(2));
+        var item = MachineContent
+            .item(ResourceLocation.parse("mmdlib_companion:test/portable"));
+        var machines = drops.stream().map(ItemEntity::getItem)
+            .filter(stack -> stack.is(item)).toList();
+        h.assertTrue(
+            machines.size() == 1
+                && PortableData.read(machines.getFirst(), "portable").isEmpty(),
+            "Normal loot drops one empty machine without portable processor contents");
+        h.assertTrue(
+            drops.stream().map(ItemEntity::getItem)
+                .filter(
+                    stack -> stack.is(net.minecraft.world.item.Items.DIAMOND))
+                .mapToInt(ItemStack::getCount).sum() == 3,
+            "Inventory contents still drop");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void wrongToolDropsInventoryButNoMachine(GameTestHelper h) {
+        var machine = occupied(h);
+        var pos = machine.getBlockPos();
+        var player = net.neoforged.neoforge.common.util.FakePlayerFactory
+            .get(h.getLevel(), new com.mojang.authlib.GameProfile(
+                java.util.UUID.randomUUID(), "portable-break"));
+        player.gameMode.changeGameModeForPlayer(GameType.SURVIVAL);
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        h.assertTrue(player.gameMode.destroyBlock(pos),
+            "Survival break removes the machine");
+        var drops = h.getLevel().getEntitiesOfClass(ItemEntity.class,
+            new AABB(pos).inflate(2));
+        var item = MachineContent
+            .item(ResourceLocation.parse("mmdlib_companion:test/portable"));
+        h.assertTrue(drops.stream().noneMatch(drop -> drop.getItem().is(item)),
+            "Wrong tool cannot bypass the machine's tool requirement");
+        h.assertTrue(
+            drops.stream().map(ItemEntity::getItem)
+                .filter(
+                    stack -> stack.is(net.minecraft.world.item.Items.DIAMOND))
+                .mapToInt(ItemStack::getCount).sum() == 3,
+            "Wrong tool still releases inventory contents");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void taggedToolPreservesPayloadAndEmptyHandCannotPickUp(
+        GameTestHelper h) {
+        var machine = occupied(h);
+        var player = h.makeMockServerPlayerInLevel();
+        var pos = machine.getBlockPos();
+        player.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + 2);
+        player.setShiftKeyDown(true);
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos,
+            false);
+        player.gameMode.useItemOn(player, h.getLevel(),
+            player.getMainHandItem(), InteractionHand.MAIN_HAND, hit);
+        h.assertTrue(h.getLevel().getBlockEntity(pos) == machine,
+            "Empty-hand secondary use cannot pick up payloads");
+        player.setItemInHand(InteractionHand.MAIN_HAND,
+            new ItemStack(net.minecraft.world.item.Items.STICK));
+        player.gameMode.useItemOn(player, h.getLevel(),
+            player.getMainHandItem(), InteractionHand.MAIN_HAND, hit);
+        h.assertTrue(h.getLevel().getBlockState(pos).isAir(),
+            "Tagged tool picks up the machine");
+        var carried = player.getInventory().items.stream()
+            .filter(stack -> PortableData.read(stack, "portable", "contents",
+                Codec.INT, 0) == 7)
+            .toList();
+        h.assertTrue(carried.size() == 1 && carried.getFirst().getCount() == 1,
+            "Tagged pickup transfers portable ownership exactly once");
+        var drops = h.getLevel().getEntitiesOfClass(ItemEntity.class,
+            new AABB(pos).inflate(2));
+        h.assertTrue(
+            drops.stream().map(ItemEntity::getItem)
+                .filter(
+                    stack -> stack.is(net.minecraft.world.item.Items.DIAMOND))
+                .mapToInt(ItemStack::getCount).sum() == 3,
+            "Pickup preserves inventory drops");
+        h.succeed();
+    }
+
     public static final class Payload extends PortableStoredProcessor {
         public Payload() {
             variables.integer("contents", 0, 100, 0).portable().define();

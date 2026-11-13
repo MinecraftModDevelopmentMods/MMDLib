@@ -1023,7 +1023,9 @@ controls the stats and automation drawers, while redstone remains separately con
 ```
 
 Shape bounds are block-local 0..16 boxes, rotated with horizontal facing. Active
-boxes are unioned; no active box produces an empty shape. Omit `<shapes>` for the
+boxes are unioned; no active box falls back to a full cube so the machine remains
+targetable. Shapes are sampled on the owning thread and published as immutable
+geometry for chunk rendering. Omit `<shapes>` for the
 normal full cube. Conditions use processor variables and authoritative server
 state; model visibility alone never changes collision. Shape-bearing machines
 send synchronized state immediately after mutations so client bounds follow it.
@@ -1031,9 +1033,16 @@ send synchronized state immediately after mutations so client bounds follow it.
 A portable machine's processor must also implement `PortableProcessor`: transfer
 its payload through `take()` and `placed(ItemStack)`, with optional interaction,
 tooltip and creative-destruction hooks. `take()` must consume ownership exactly
-once. The generic host handles drops; generated self-loot is empty. Occupied
-creative placement consumes the carried item. Custom loot overrides must preserve
-that single-owner rule. No legacy state migration is implied by this interface.
+once. Ordinary breaking and explosions use normal empty-machine loot, including
+tool requirements and explosion survival, plus the existing inventory-content
+drops. They do not preserve portable processor variables. Preserve those values
+through the UI's `mmdlib:pickup` action or sneak-right-click with an item in
+`mmdlib:machine_pickup_tools`. The library ships this item tag empty; consumers
+add their wrench or other pickup tool in
+`data/mmdlib/tags/item/machine_pickup_tools.json`. Empty-hand secondary use cannot
+invoke `mmdlib:pickup`. Occupied creative placement consumes the carried item.
+Custom loot overrides must preserve the single-owner rule. No legacy state
+migration is implied by this interface.
 Consumer client code can register a renderer for `MachineContent.entityType(id)`
 to draw live previews on the generic block entity.
 
@@ -1072,8 +1081,10 @@ constructor with a codec, default and defensive copy function.
 For repeated reads, keep an owner-local `var reader = OCCUPANT.reader()` and call
 `reader.read(stack)`. It decodes only when the immutable custom-data component
 changes, handles item replacement/removal, and returns defensive copies according
-to the variable's copy policy. `reader.clear()` discards the cached value. Do not
-share a reader between unrelated slots.
+to the variable's copy policy. `reader.clear()` discards cached values. The default
+reader retains one component; rendering owners displaying several stacks can use
+`OCCUPANT.reader(64)` to retain up to 64 component identities without repeated NBT
+decoding. Capacity must be 1..256. XML item displays use this bounded form.
 
 The overload `PortableVariable.entity(itemSupplier, processor, name, policy)`
 also attaches an `EntitySnapshotPolicy` to the declaration. The standard portrait
@@ -1149,12 +1160,15 @@ XML hosts refresh them again on load once their level is available; other hosts
 should call `StoredProcessor.refreshDerived()` at that lifecycle boundary.
 
 `PortableStoredProcessor` always declares `mmdlib:pickup`. Override `customActions()`
-for additional commands. The standard action transfers the machine item once,
+for additional commands; this declaration is cached on first use, so put changing
+availability in each action's predicate. The standard action transfers the machine item once,
 removes the block, returns the item to the player (dropping overflow through vanilla
 inventory handling), and closes the screen. A refused removal restores ownership.
-Bind a button with `on-click="mmdlib:pickup"` and opt into sneak-use with
-`<block ... on-secondary-use="mmdlib:pickup"/>`. Secondary-use can name any declared
-processor action and uses the same server-side availability checks as buttons.
+Bind a button with `on-click="mmdlib:pickup"`; tagged pickup tools automatically use
+the same action on sneak-right-click. Other declared actions can use
+`<block ... on-secondary-use="yourmod:action"/>` with the same server-side
+availability checks as buttons. The reserved pickup action requires a tagged tool
+outside the UI, even if named by `on-secondary-use`.
 
 `EntityPlacement.place(entity, serverLevel, candidates)` validates a detached entity,
 checks loaded UUIDs across dimensions, loaded chunks, the world border and collision,

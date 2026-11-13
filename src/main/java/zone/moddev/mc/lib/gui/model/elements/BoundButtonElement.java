@@ -110,6 +110,8 @@ public final class BoundButtonElement extends ButtonElement
     }
 
     public boolean serverEnabled(ScreenHost host, Player player) {
+        if (host == null)
+            return false;
         var features = host.screenFeatures();
         if (features == null)
             return false;
@@ -131,8 +133,7 @@ public final class BoundButtonElement extends ButtonElement
     public boolean interact(ScreenClick click) {
         if (processor.isEmpty())
             return super.interact(click);
-        if (!(click.menu().blockEntity instanceof ScreenHost host)
-            || !serverEnabled(host, click.player()))
+        if (!(click.menu().blockEntity instanceof ScreenHost host))
             return true;
         var clicks = common().clicks();
         var normal = click.button() == 0 ? clicks.click() : clicks.rightClick();

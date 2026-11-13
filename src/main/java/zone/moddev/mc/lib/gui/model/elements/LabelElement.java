@@ -26,6 +26,7 @@ public class LabelElement implements Element {
     private final Common common;
     private final Text text;
     private final Optional<String> variable;
+    private final Optional<ProcessorVariable> binding;
     private final int width, height;
     private final boolean translateLines;
 
@@ -38,6 +39,7 @@ public class LabelElement implements Element {
         this.common = common;
         this.text = text;
         this.variable = variable;
+        this.binding = variable.map(ProcessorVariable::parse);
         this.width = width;
         this.height = height;
         this.translateLines = translateLines;
@@ -66,7 +68,6 @@ public class LabelElement implements Element {
             || common.max().isPresent()))
             throw new IllegalArgumentException(
                 "Label variable cannot be combined with text/value/max");
-        variable.ifPresent(ProcessorVariable::parse);
         if (width < 0 || height < 0 || width > 1024 || height > 1024
             || (text == null && (width == 0 || height == 0)))
             throw new IllegalArgumentException(
@@ -82,12 +83,11 @@ public class LabelElement implements Element {
     public void validateDefinition(Map<String, Processor<?>> processors) {
         if (variable.isEmpty())
             return;
-        displayLines(ProcessorVariable.parse(variable.orElseThrow())
-            .defaultValue(processors));
+        displayLines(binding.orElseThrow().defaultValue(processors));
     }
 
     private Object storedValue(ScreenHost host) {
-        return ProcessorVariable.parse(variable.orElseThrow()).read(host);
+        return binding.orElseThrow().read(host);
     }
 
     public void validateHost(ScreenHost host) {

@@ -22,6 +22,35 @@ import zone.moddev.mc.lib.machine.feature.ProcessorState;
 @PrefixGameTestTemplate(false)
 public final class PortableVariableTests {
     @GameTest(template = "empty")
+    public static void boundedReadersReuseSeveralStacksAndEvictOldComponents(
+        GameTestHelper h) {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var codec = Codec.INT.xmap(value -> {
+            calls.incrementAndGet();
+            return value;
+        }, value -> value);
+        var reference = new PortableVariable<>(() -> Items.PAPER, "test",
+            "count", codec, 0, UnaryOperator.<Integer>identity());
+        var first = reference.stack(1);
+        var second = reference.stack(2);
+        var reader = reference.reader(2);
+        for (int i = 0; i < 10; i++) {
+            h.assertTrue(reader.read(first) == 1 && reader.read(second) == 2,
+                "Alternating items retain their independent values");
+        }
+        h.assertTrue(calls.get() == 2,
+            "Each unchanged component decodes only once");
+        reader.read(reference.stack(3));
+        reader.read(first);
+        h.assertTrue(calls.get() == 4,
+            "Bounded readers evict old component identities");
+        reader.clear();
+        reader.read(first);
+        h.assertTrue(calls.get() == 5, "Explicit clear releases cached data");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void readerTracksReplacementRemovalAndDefensiveCopies(
         GameTestHelper h) {
         var calls = new java.util.concurrent.atomic.AtomicInteger();
