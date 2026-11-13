@@ -1072,6 +1072,14 @@ Bind a button with `on-click="mmdlib:pickup"` and opt into sneak-use with
 `<block ... on-secondary-use="mmdlib:pickup"/>`. Secondary-use can name any declared
 processor action and uses the same server-side availability checks as buttons.
 
+`EntityPlacement.place(entity, serverLevel, candidates)` validates a detached entity,
+checks loaded UUIDs across dimensions, loaded chunks, the world border and collision,
+then attempts spawning. Its result distinguishes invalid data, duplicate identity,
+no space and rejected spawning. Failed attempts restore position and velocity.
+`around(entity, origin, orderedSides)` provides size-aware adjacent candidates.
+The caller retains its snapshot until `SUCCESS`; the helper never clears owned data.
+UUID checks cover loaded entities, not entities stored in unloaded chunks.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and
