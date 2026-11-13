@@ -15,18 +15,6 @@ import zone.moddev.mc.lib.api.entity.EntitySnapshot;
 
 class EntitySnapshotTest {
     @Test
-    void customNamesRemainComponentsAndMalformedNamesAreIgnored() {
-        var data = new CompoundTag();
-        data.putString("CustomName",
-            "{\"translate\":\"test.pet\",\"with\":[\"Bessie\"]}");
-        var name = new EntitySnapshot(data).customName().orElseThrow();
-        assertEquals(net.minecraft.network.chat.Component
-            .translatable("test.pet", "Bessie"), name);
-        data.putString("CustomName", "{");
-        assertTrue(new EntitySnapshot(data).customName().isEmpty());
-        assertTrue(EntitySnapshot.EMPTY.customName().isEmpty());
-    }
-    @Test
     void snapshotAndCodecKeepIndependentDataAndIdentity() {
         var id = UUID.randomUUID();
         var data = new CompoundTag();
@@ -44,5 +32,15 @@ class EntitySnapshotTest {
             EntitySnapshot.CODEC.parse(NbtOps.INSTANCE, encoded).getOrThrow());
         assertTrue(EntitySnapshot.EMPTY.uuid().isEmpty());
         assertTrue(EntitySnapshot.EMPTY.typeId().isEmpty());
+    }
+
+    @Test
+    void missingBlankAndMalformedTypeIdsAreAbsent() {
+        var data = new CompoundTag();
+        assertTrue(new EntitySnapshot(data).typeId().isEmpty());
+        for (var id : java.util.List.of("", " ", "not an id")) {
+            data.putString("id", id);
+            assertTrue(new EntitySnapshot(data).typeId().isEmpty());
+        }
     }
 }

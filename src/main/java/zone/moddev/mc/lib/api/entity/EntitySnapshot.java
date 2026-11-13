@@ -55,8 +55,10 @@ public final class EntitySnapshot {
     }
 
     public Optional<ResourceLocation> typeId() {
-        return Optional
-            .ofNullable(ResourceLocation.tryParse(data.getString("id")));
+        var id = data.getString("id");
+        return id.isBlank()
+            ? Optional.empty()
+            : Optional.ofNullable(ResourceLocation.tryParse(id));
     }
 
     public Optional<UUID> uuid() {

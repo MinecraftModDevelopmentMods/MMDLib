@@ -4,6 +4,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Panda;
@@ -18,6 +20,23 @@ import zone.moddev.mc.lib.api.entity.EntitySnapshotPolicy;
 @GameTestHolder("mmdlib_companion")
 @PrefixGameTestTemplate(false)
 public final class EntityPreviewTests {
+    @GameTest(template = "empty")
+    public static void customNamesRemainComponentsAndMalformedNamesAreIgnored(
+        GameTestHelper h) {
+        var data = new CompoundTag();
+        data.putString("CustomName",
+            "{\"translate\":\"test.pet\",\"with\":[\"Bessie\"]}");
+        var name = new EntitySnapshot(data).customName().orElseThrow();
+        h.assertTrue(name.equals(Component.translatable("test.pet", "Bessie")),
+            "Saved names preserve translatable component arguments");
+        data.putString("CustomName", "{");
+        h.assertTrue(new EntitySnapshot(data).customName().isEmpty(),
+            "Malformed custom names are ignored");
+        h.assertTrue(EntitySnapshot.EMPTY.customName().isEmpty(),
+            "Empty snapshots have no custom name");
+        h.succeed();
+    }
+
     @GameTest(template = "empty")
     public static void pairedPolicyPreservesExtraPoseAcrossRestoreAndPreviewUpdates(
         GameTestHelper h) {
