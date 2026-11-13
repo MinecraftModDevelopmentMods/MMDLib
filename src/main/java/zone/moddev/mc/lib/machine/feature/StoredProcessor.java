@@ -70,6 +70,11 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
     public final Object variable(String name) {
         return variables.clientValue(name);
     }
+
+    public final java.util.Optional<PortableVariable<?>> portableVariable(
+        String name) {
+        return variables.portableVariable(name);
+    }
     public final boolean syncsToClient() {
         return true;
     }

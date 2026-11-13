@@ -22,6 +22,39 @@ import zone.moddev.mc.lib.machine.feature.ProcessorState;
 @PrefixGameTestTemplate(false)
 public final class PortableVariableTests {
     @GameTest(template = "empty")
+    public static void readerTracksReplacementRemovalAndDefensiveCopies(
+        GameTestHelper h) {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var codec = net.minecraft.nbt.CompoundTag.CODEC.xmap(tag -> {
+            calls.incrementAndGet();
+            return tag;
+        }, tag -> tag);
+        var reference = new PortableVariable<>(() -> Items.PAPER, "test",
+            "payload", codec, new net.minecraft.nbt.CompoundTag(),
+            net.minecraft.nbt.CompoundTag::copy);
+        var data = new net.minecraft.nbt.CompoundTag();
+        data.putInt("value", 1);
+        var stack = reference.stack(data);
+        var reader = reference.reader();
+        reader.read(stack).putInt("value", 99);
+        h.assertTrue(
+            reader.read(stack).getInt("value") == 1 && calls.get() == 1,
+            "Unchanged component decodes once and returned data is detached");
+        data.putInt("value", 2);
+        reference.write(stack, data);
+        h.assertTrue(
+            reader.read(stack).getInt("value") == 2 && calls.get() == 2,
+            "Same stack with replaced component refreshes");
+        h.assertTrue(reader.read(ItemStack.EMPTY).isEmpty(),
+            "Removal clears the cached payload");
+        reader.read(stack);
+        reader.clear();
+        reader.read(stack);
+        h.assertTrue(calls.get() == 4,
+            "Removal and explicit clear invalidate the reader");
+        h.succeed();
+    }
+    @GameTest(template = "empty")
     public static void itemAndProcessorShareSchemaWithoutSharingState(
         GameTestHelper h) {
         var reference = new PortableVariable<>(() -> Items.PAPER, "test",

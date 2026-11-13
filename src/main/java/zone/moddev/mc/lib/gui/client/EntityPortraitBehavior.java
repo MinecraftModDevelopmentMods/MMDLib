@@ -13,12 +13,15 @@ import zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement;
  * it.
  */
 public final class EntityPortraitBehavior extends DefaultElementBehavior {
-    private final EntityPreviewCache<LivingEntity> previews = new EntityPreviewCache<>(
-        LivingEntity.class, 1);
+    private final EntityPreviewCache<LivingEntity> previews;
 
     public EntityPortraitBehavior(EntityPortraitElement element,
         ElementAccess access) {
         super(access);
+        previews = new EntityPreviewCache<>(1,
+            (snapshot, level) -> EntityPreviewPolicies.create(snapshot, level,
+                access.service(EntityPreviewPolicies.class)
+                    .flatMap(policies -> policies.policy(element.variable()))));
     }
 
     private LivingEntity preview(EntitySnapshot next) {

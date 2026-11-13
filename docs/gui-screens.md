@@ -2660,6 +2660,12 @@ NBT and returns copies from `data()`, so it is safe to declare with
 `synchronize=true`. No mod-specific host lookup, widget registration or renderer
 is required. Wrong variable types and missing/private bindings fail validation.
 
+When the variable was declared with `PortableVariable.entity(..., policy)`, the
+standard machine screen resolves that policy and applies its restoration hooks
+to the synchronized snapshot, including custom pose data. Other screen hosts can
+provide the `EntityPreviewPolicies` element-access service. Without a policy,
+portraits use vanilla snapshot restoration.
+
 Width and height are required, in pixels (1–1024). `empty-text` is an optional
 translation key; `empty-text-fallback` provides its usual literal fallback.
 The portrait has a dark background, fits the living entity to its bounds, and

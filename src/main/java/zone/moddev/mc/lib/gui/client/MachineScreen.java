@@ -179,6 +179,14 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                     return renderAccess;
                 }
 
+                public <T> java.util.Optional<T> service(Class<T> type) {
+                    return type == EntityPreviewPolicies.class
+                        && menu.blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host
+                            ? java.util.Optional.of(
+                                type.cast(EntityPreviewPolicies.forHost(host)))
+                            : java.util.Optional.empty();
+                }
+
                 public List<Element> elements() {
                     return List.copyOf(menu.elements);
                 }

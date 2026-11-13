@@ -34,6 +34,15 @@ public interface Processor<S>
             "Unknown processor variable: " + name);
     }
 
+    /**
+     * Static schema metadata, without reading or mutating item-side processor
+     * state.
+     */
+    default java.util.Optional<PortableVariable<?>> portableVariable(
+        String name) {
+        return java.util.Optional.empty();
+    }
+
     default Map<ResourceLocation, ProcessorAction> actions() {
         return Map.of();
     }

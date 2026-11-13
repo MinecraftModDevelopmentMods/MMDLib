@@ -34,6 +34,12 @@ public final class ProcessorState implements VisualVariableProvider {
     private final Map<Key<?>, ChangeSignal> signals = new LinkedHashMap<>();
     private final Set<Key<?>> changed = new LinkedHashSet<>();
     private final Set<Key<?>> portable = new LinkedHashSet<>();
+    private final Map<String, PortableVariable<?>> portableReferences = new LinkedHashMap<>();
+
+    public java.util.Optional<PortableVariable<?>> portableVariable(
+        String name) {
+        return java.util.Optional.ofNullable(portableReferences.get(name));
+    }
     private record Derived<T>(List<Key<?>> dependencies,
         Function<ProcessorState, T> compute) {
     }
@@ -103,6 +109,12 @@ public final class ProcessorState implements VisualVariableProvider {
         private final T initial;
         private final UnaryOperator<T> copy;
         private boolean visual, synchronize, portable;
+        private PortableVariable<T> reference;
+
+        Declaration<T> reference(PortableVariable<T> value) {
+            reference = value;
+            return this;
+        }
 
         private Declaration(String name, Codec<T> codec, T initial,
             UnaryOperator<T> copy) {
@@ -129,6 +141,8 @@ public final class ProcessorState implements VisualVariableProvider {
         public Key<T> define() {
             var key = ProcessorState.this.define(name, codec, initial, copy,
                 visual, synchronize);
+            if (reference != null)
+                portableReferences.put(name, reference);
             return portable ? ProcessorState.this.portable(key) : key;
         }
 
