@@ -94,7 +94,7 @@ class ScreenFillGeneratorTest {
     void defaultFiltersRetainAuthoredContentAndYieldToFills() throws Exception {
         write("base",
             "abstract=\"true\" block-entity=\"zone.moddev.mc.lib.gui.ScreenLoaderTest$Press\"",
-            "<placeholder name=\"controls\" default-filter=\"test:enabled\"><label id=\"authored\" text=\"test.authored\"/></placeholder>");
+            "<vbox><label text=\"test.body\"/><placeholder name=\"controls\" default-filter=\"test:enabled\"><label id=\"authored\" text=\"test.authored\"/></placeholder></vbox>");
         write("default", "extends=\"test:base\" title=\"Default\"", "");
         write("override", "extends=\"test:base\" title=\"Override\"",
             "<fill name=\"controls\"><label id=\"custom\" text=\"Override\"/></fill>");
