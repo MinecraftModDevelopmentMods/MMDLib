@@ -29,6 +29,9 @@ public final class DefinedMachineItem extends BlockItem {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
+        var exchange = MachineItemInteractions.interact(context);
+        if (exchange != InteractionResult.PASS)
+            return exchange;
         if (behavior != null) {
             var result = behavior.useItem(context);
             if (result != InteractionResult.PASS)

@@ -1107,6 +1107,41 @@ Policies are `IDLE`, `ACTIVE` (including stalled/blocked active work), `UNPAUSED
 Timers clamp at zero, never advance while unloaded, and are not portable unless
 their key is explicitly opted in. `key()` can be a dependency of a derived value.
 
+## Right-click item receivers
+
+Implement `machine.feature.ItemReceiver` on a machine block entity or its XML
+processor to accept items without teaching those items about the destination.
+`accepts(offered)` is a pure recognition check used on both sides; recognize the
+item even when the destination is full. `receive(offered, context)` runs only on
+the server with a detached one-item copy. Return `Exchange.reject()` without
+mutating anything, or commit acceptance and return `Exchange.accept(remainder)`.
+The receiver must not edit the player's hand. Validate all conditions before
+committing; the library cannot roll back arbitrary consumer side effects.
+
+`DefinedMachineBlock` and `MultiblockBlock` route right-clicks automatically;
+`DefinedMachineItem` also routes direct item use. Other blocks can delegate to
+`MachineItemInteractions.useOnBlock(context)`. Linked parts resolve to their
+validated controller without loading chunks; stale links are not forwarded.
+Unready structures reject recognized exchanges. XML processor receivers follow
+block-entity receivers, and the fluid adapter is the final fallback.
+
+On success the router consumes exactly one held item, puts any returned container
+in the hand or inventory, and drops overflow rather than deleting it. Portable
+contents are consumed even in creative. `Exchange.reusable(remainder)` instead
+keeps the original item in creative, as ordinary fluid containers do. Client
+prediction recognizes the interaction without changing storage or inventory.
+Recognized rejections consume the block interaction to prevent bucket spilling
+or placing a carried machine beside a full receiver. Sneaking uses the same path
+on library machine blocks, while respecting explicit interaction denials.
+
+`FluidItemReceiver` adapts NeoForge's item fluid capability, supporting buckets
+and compatible modded containers in either direction. It uses normal fill-first,
+then empty-container semantics and preserves the returned container/components.
+XML machines retain manual access to all their tanks, including static tanks with
+no automation group. Other machines use the clicked face's fluid capability, so
+multiblock port and side rules remain effective. GUI tank clicks keep their own
+per-tank selection and interaction behavior.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and

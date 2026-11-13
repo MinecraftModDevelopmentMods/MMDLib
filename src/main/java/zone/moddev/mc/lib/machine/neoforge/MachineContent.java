@@ -56,6 +56,7 @@ public final class MachineContent {
         bus.addListener(MachineContent::capabilities);
         bus.addListener(MachineResourcePack::register);
         NeoForge.EVENT_BUS.addListener(GeneratedMachineRecipes::register);
+        NeoForge.EVENT_BUS.addListener(MachineItemInteractions::secondaryUse);
     }
 
     public static Map<ResourceLocation, MachineDefinition> definitions() {

@@ -24,8 +24,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
-import net.neoforged.neoforge.fluids.FluidUtil;
-
 import org.jetbrains.annotations.Nullable;
 
 import zone.moddev.mc.lib.common.runtime.DropsContents;
@@ -133,17 +131,9 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
                 ? ItemInteractionResult.CONSUME
                 : ItemInteractionResult.FAIL;
         }
-        if (level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
-            && machine.fluids.getTanks() > 0
-            && FluidUtil.getFluidHandler(stack).isPresent()) {
-            if (level.isClientSide())
-                return ItemInteractionResult.SUCCESS;
-            return FluidUtil.interactWithFluidHandler(player, hand,
-                machine.fluids)
-                    ? ItemInteractionResult.CONSUME
-                    : ItemInteractionResult.FAIL;
-        }
-        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        return MachineItemInteractions.useOnBlock(
+            new net.minecraft.world.item.context.UseOnContext(player, hand,
+                hit));
     }
 
     @Override

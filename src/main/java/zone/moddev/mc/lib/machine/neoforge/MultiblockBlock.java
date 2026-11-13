@@ -81,6 +81,16 @@ public class MultiblockBlock extends Block implements EntityBlock {
         MultiblockMembers.reconcile(level, pos);
     }
     @Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(
+        net.minecraft.world.item.ItemStack stack, BlockState state, Level level,
+        BlockPos pos, Player player, net.minecraft.world.InteractionHand hand,
+        BlockHitResult hit) {
+        return MachineItemInteractions.useOnBlock(
+            new net.minecraft.world.item.context.UseOnContext(player, hand,
+                hit));
+    }
+
+    @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level,
         BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide)
