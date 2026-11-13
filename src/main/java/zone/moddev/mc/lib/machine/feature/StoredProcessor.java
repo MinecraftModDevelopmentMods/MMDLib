@@ -79,6 +79,9 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
     public final void restoreOnClient(CompoundTag data) {
         variables.load(data, true);
     }
+    public final void refreshDerived() {
+        variables.refreshDerived();
+    }
     public final boolean paused() {
         return variables.get(paused);
     }

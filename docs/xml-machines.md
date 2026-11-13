@@ -1054,6 +1054,16 @@ and `createDetached(level, expectedClass)`. Reconstruction never spawns or ticks
 entities and returns empty for unknown types, malformed data or passenger trees.
 Capture/release eligibility and extra mod-specific state remain consumer policy.
 
+`ProcessorState.derive` declares a cached, read-only value with an explicit list
+of existing dependencies and a computation. Existing-only dependencies prevent
+cycles. Computations may read only declared dependencies and may not mutate state.
+Changes recompute affected values at the end of a batch (or when read within it),
+before publishing notifications. Derived variables are reconstructed on server
+load rather than persisted or transported. Synchronized derived values are sent
+to clients, which accept the server result even when dependencies are private.
+XML hosts refresh them again on load once their level is available; other hosts
+should call `StoredProcessor.refreshDerived()` at that lifecycle boundary.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and

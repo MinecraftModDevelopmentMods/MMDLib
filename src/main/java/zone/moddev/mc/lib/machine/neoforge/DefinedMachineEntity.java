@@ -228,6 +228,13 @@ public final class DefinedMachineEntity extends BaseMachine
     @Override
     public void onLoad() {
         super.onLoad();
+        if (level != null && !level.isClientSide)
+            features.findProcessor(definition.processor()).filter(
+                zone.moddev.mc.lib.machine.feature.StoredProcessor.class::isInstance)
+                .map(
+                    zone.moddev.mc.lib.machine.feature.StoredProcessor.class::cast)
+                .ifPresent(
+                    zone.moddev.mc.lib.machine.feature.StoredProcessor::refreshDerived);
         if (legacyGhostRecipe != null && level != null && !level.isClientSide) {
             migrateGhostRecipe(legacyGhostRecipe, level.registryAccess());
             legacyGhostRecipe = null;
