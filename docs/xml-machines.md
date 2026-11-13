@@ -1037,6 +1037,16 @@ that single-owner rule. No legacy state migration is implied by this interface.
 Consumer client code can register a renderer for `MachineContent.entityType(id)`
 to draw live previews on the generic block entity.
 
+For automatic item transport, extend `PortableStoredProcessor` and mark only the
+carried variables with `variables.portable(key)`. The library implements `take`,
+`placed`, `hasContent` and empty creative destruction. Payloads live in the item's
+`mmdlib:processors` custom-data compound, scoped by processor key. `PortableData`
+offers codec-based reads/writes for tooltips and other integrations. Variables not
+marked portable (including the reserved `taken` guard) never travel. Taking a
+machine serializes first, marks ownership transferred, then clears its portable
+variables; repeated calls return an empty stack. Item-side content checks compare
+against declared defaults without mutating the shared processor prototype.
+
 MMDLib automatically registers each concrete machine's block, item and block entity
 type from its XML definition. Java integrations can access them through
 `MachineContent.block(id)`, `MachineContent.item(id)` and

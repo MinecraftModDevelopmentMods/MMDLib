@@ -31,6 +31,7 @@ public final class ProcessorState implements VisualVariableProvider {
     private final Map<Key<?>, Object> values = new LinkedHashMap<>();
     private final Map<Key<?>, ChangeSignal> signals = new LinkedHashMap<>();
     private final Set<Key<?>> changed = new LinkedHashSet<>();
+    private final Set<Key<?>> portable = new LinkedHashSet<>();
     private Runnable onChange = () -> {
     };
     private java.util.function.Consumer<Boolean> onBatch = ignored -> {
@@ -56,6 +57,52 @@ public final class ProcessorState implements VisualVariableProvider {
     public <T> Key<T> define(String name, Codec<T> codec, T initial) {
         return define(name, codec, initial, UnaryOperator.identity(), true,
             true);
+    }
+
+    /**
+     * Opt a variable into item transport; execution state stays on the machine.
+     */
+    public <T> Key<T> portable(Key<T> key) {
+        require(key);
+        portable.add(key);
+        return key;
+    }
+
+    public CompoundTag savePortable() {
+        var tag = new CompoundTag();
+        portable.forEach(key -> save(tag, key));
+        return tag;
+    }
+
+    public CompoundTag portableDefaults() {
+        var tag = new CompoundTag();
+        portable.forEach(key -> saveInitial(tag, key));
+        return tag;
+    }
+
+    private <T> void saveInitial(CompoundTag tag, Key<T> key) {
+        tag.put(key.name(), key.codec()
+            .encodeStart(NbtOps.INSTANCE, key.initial()).getOrThrow());
+    }
+
+    public void loadPortable(CompoundTag tag) {
+        var decoded = new LinkedHashMap<Key<?>, Object>();
+        for (var key : portable)
+            decoded.put(key,
+                tag.contains(key.name())
+                    ? key.codec().parse(NbtOps.INSTANCE, tag.get(key.name()))
+                        .getOrThrow()
+                    : key.initial());
+        update(() -> decoded.forEach(this::restore));
+    }
+
+    public void clearPortable() {
+        update(() -> portable.forEach(key -> restore(key, key.initial())));
+    }
+
+    public boolean hasPortableContent() {
+        return portable.stream()
+            .anyMatch(key -> !Objects.equals(values.get(key), key.initial()));
     }
 
     @SuppressWarnings("unchecked")
