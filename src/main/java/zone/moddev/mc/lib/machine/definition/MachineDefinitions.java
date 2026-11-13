@@ -170,6 +170,9 @@ public final class MachineDefinitions {
                 "on-secondary-use", "drawers")),
         Map.entry("appearance",
             Set.of("preset", "front", "side", "top", "bottom", "model")),
+        Map.entry("entity-display",
+            Set.of("variable", "offset", "width", "height", "yaw", "item-yaw",
+                "block", "item", "item-property")),
         Map.entry("part", Set.of("id", "model", "when")),
         Map.entry("face-texture",
             Set.of("id", "face", "texture", "when", "emissive-mask")),
@@ -202,7 +205,8 @@ public final class MachineDefinitions {
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
         Set.of("block", "appearance", "storage", "groups", "recipe-type",
-            "processor", "redstone", "recovery", "screen", "shapes"),
+            "processor", "redstone", "recovery", "screen", "shapes",
+            "entity-display"),
         "storage", Set.of("energy", "items", "fluids"), "fluids",
         Set.of("tank", "tanks"), "items", Set.of("slot", "slots"), "groups",
         Set.of("group"), "appearance", Set.of("part", "face-texture"),
@@ -232,6 +236,7 @@ public final class MachineDefinitions {
             case "appearance" ->
                 List.of("front", "side", "top", "bottom", "model");
             case "part" -> List.of("model");
+            case "entity-display" -> List.of("item-property");
             case "face-texture" -> List.of("texture", "emissive-mask");
             case "recipe-type" -> List.of("id");
             case "processor" -> List.of("recipe-type", "default-recipe");
@@ -646,6 +651,38 @@ public final class MachineDefinitions {
                     required(shape, "when"), v[0], v[1], v[2], v[3], v[4],
                     v[5]));
             }
+        var displayNode = optional(root, "entity-display");
+        EntityDisplay display = null;
+        if (displayNode != null) {
+            var offset = displayNode.attributes()
+                .getOrDefault("offset", "0.5 0 0.5").trim().split("\\s+");
+            if (offset.length != 3)
+                throw error(displayNode,
+                    "Entity display offset needs three coordinates");
+            try {
+                display = new EntityDisplay(
+                    zone.moddev.mc.lib.gui.model.ProcessorVariable
+                        .parse(required(displayNode, "variable")),
+                    Double.parseDouble(offset[0]),
+                    Double.parseDouble(offset[1]),
+                    Double.parseDouble(offset[2]),
+                    Float.parseFloat(
+                        displayNode.attributes().getOrDefault("width", "1")),
+                    Float.parseFloat(
+                        displayNode.attributes().getOrDefault("height", "1")),
+                    Float.parseFloat(
+                        displayNode.attributes().getOrDefault("yaw", "0")),
+                    Float.parseFloat(displayNode.attributes()
+                        .getOrDefault("item-yaw", "180")),
+                    bool(displayNode, "block", true),
+                    bool(displayNode, "item", true),
+                    displayNode.attributes().containsKey("item-property")
+                        ? resource(displayNode, "item-property")
+                        : null);
+            } catch (IllegalArgumentException ex) {
+                throw error(displayNode, ex.getMessage());
+            }
+        }
         var behavior = new MachineBehavior(
             custom
                 ? ProcessorDeclaration.load(required(processor, "class"),
@@ -659,7 +696,8 @@ public final class MachineDefinitions {
             shapes,
             block.attributes().containsKey("on-secondary-use")
                 ? resource(block, "on-secondary-use")
-                : null);
+                : null,
+            display);
         if (behavior.secondaryAction() != null && (behavior.processor() == null
             || !behavior.processor().create(required(processor, "id"), null)
                 .actions().containsKey(behavior.secondaryAction())))
@@ -669,6 +707,17 @@ public final class MachineDefinitions {
             || !zone.moddev.mc.lib.machine.feature.PortableProcessor.class
                 .isAssignableFrom(behavior.processor().type())))
             throw error(block, "Portable machines need a PortableProcessor");
+        if (display != null) {
+            if (!custom || (display.item() && !behavior.portable()))
+                throw error(displayNode,
+                    "Entity displays require a custom processor; item displays require portable machines");
+            try {
+                display.validate(Map.of(required(processor, "id"), behavior
+                    .processor().create(required(processor, "id"), null)));
+            } catch (IllegalArgumentException ex) {
+                throw error(displayNode, ex.getMessage());
+            }
+        }
         var definition = new MachineDefinition(id, checksum(root),
             required(root, "name"), hardness, resource(block, "mineable"),
             bool(block, "requires-tool", false), textures, baseModel,

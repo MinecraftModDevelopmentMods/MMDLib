@@ -1069,6 +1069,19 @@ items or malformed/missing values return a copied default. Writes reject wrong
 items and preserve unrelated variables/components. Custom value types use the
 constructor with a codec, default and defensive copy function.
 
+For repeated reads, keep an owner-local `var reader = OCCUPANT.reader()` and call
+`reader.read(stack)`. It decodes only when the immutable custom-data component
+changes, handles item replacement/removal, and returns defensive copies according
+to the variable's copy policy. `reader.clear()` discards the cached value. Do not
+share a reader between unrelated slots.
+
+The overload `PortableVariable.entity(itemSupplier, processor, name, policy)`
+also attaches an `EntitySnapshotPolicy` to the declaration. The standard portrait
+and XML entity displays discover it through `Processor.portableVariable(name)`;
+they apply the same restoration hooks as gameplay without custom registrations.
+Policies must be safe for detached entities on both logical sides. Declarations
+without a policy keep vanilla snapshot restoration.
+
 `api.entity.EntitySnapshot` is the common immutable entity payload used by the
 standard portrait and available to gameplay code. It offers a codec, detached
 NBT copies, `capture(entity)`, optional capture customization, type/UUID access,
@@ -1090,6 +1103,37 @@ renderer identity while reapplying extra pose state. It is only for detached
 entities; discard the preview if it returns false, since a failed load or hook may
 have partially changed it. Portable ownership and world placement stay with the
 caller, who must retain the snapshot until placement succeeds.
+
+### Entity displays on blocks and items
+
+Declare a detached living-entity overlay beside the machine's appearance:
+
+```xml
+<entity-display variable="$processors.courier.occupant"
+                offset="0.5 0.2 0.5" width="0.62" height="0.45"
+                item-yaw="180" item-property="example:occupied"/>
+```
+
+MMDLib registers the block renderer, item renderer and model wrapper. The variable
+must be a synchronized `EntitySnapshot`. Item displays additionally require a
+portable machine and a `PortableVariable.entity(...)` declaration using the same
+processor ID. The optional `item-property` is a model predicate: 0 for an empty
+snapshot, 1 for a nonempty snapshot. Existing JSON overrides, transforms and foil
+rendering are retained. Block/item overlays use the declaration's snapshot policy.
+
+`block` and `item` default to `true`; at least one must be enabled. A block-only
+display may use an ordinary synchronized entity variable. `item-property` requires
+`item="true"`. `offset` defaults to `0.5 0 0.5` in block units, rotated around the
+block center from north to its horizontal facing. Item offsets are unrotated.
+`width` and `height` default to 1 and fit the entity without enlarging it. `yaw`
+defaults to 0 relative to the block facing; `item-yaw` defaults to 180 degrees.
+Offsets must be finite within -16 to 16, dimensions greater than 0 and at most 16,
+and angles finite within -360 to 360. Invalid bindings and values fail loading.
+
+Previews do not spawn or tick entities. Empty, invalid or non-living snapshots
+leave just the machine geometry. Bounded caches reset across levels, resource
+reloads and logout. Nested carried entity displays are suppressed to prevent
+recursive rendering.
 
 `ProcessorState.derive` declares a cached, read-only value with an explicit list
 of existing dependencies and a computation. Existing-only dependencies prevent

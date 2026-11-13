@@ -6,7 +6,15 @@ import java.util.List;
 public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     boolean noOcclusion, boolean immovable, boolean portable, boolean drawers,
     List<Shape> shapes,
-    net.minecraft.resources.ResourceLocation secondaryAction) {
+    net.minecraft.resources.ResourceLocation secondaryAction,
+    EntityDisplay entityDisplay) {
+    public MachineBehavior(ProcessorDeclaration processor, int stackSize,
+        boolean noOcclusion, boolean immovable, boolean portable,
+        boolean drawers, List<Shape> shapes,
+        net.minecraft.resources.ResourceLocation secondaryAction) {
+        this(processor, stackSize, noOcclusion, immovable, portable, drawers,
+            shapes, secondaryAction, null);
+    }
     public static final MachineBehavior DEFAULT = new MachineBehavior(null, 64,
         false, false, false, true, List.of(), null);
     public MachineBehavior {
