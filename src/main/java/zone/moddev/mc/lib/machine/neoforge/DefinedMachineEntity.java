@@ -29,6 +29,7 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 public final class DefinedMachineEntity extends BaseMachine
     implements zone.moddev.mc.lib.machine.feature.ProcessorMachine {
     public final MachineDefinition definition;
+    private Runnable placementComplete;
     public final ItemInventories items;
     public final FluidStorage fluids;
     public final EnergyBuffer energy;
@@ -174,6 +175,20 @@ public final class DefinedMachineEntity extends BaseMachine
     }
     public boolean removed() {
         return isRemoved();
+    }
+    void afterPlacement(Runnable action) {
+        // NeoForge confirms captured placements through Block.onPlace only
+        // after the placement event accepts them.
+        if (level != null && level.captureBlockSnapshots)
+            placementComplete = action;
+        else
+            action.run();
+    }
+    void completePlacement() {
+        var action = placementComplete;
+        placementComplete = null;
+        if (action != null)
+            action.run();
     }
     public void changed() {
         changed(true);

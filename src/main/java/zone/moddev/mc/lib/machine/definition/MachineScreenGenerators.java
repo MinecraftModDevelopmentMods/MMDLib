@@ -19,6 +19,7 @@ import zone.moddev.mc.lib.gui.load.ScreenFillGenerator;
 import zone.moddev.mc.lib.gui.load.ScreenReader.Node;
 import zone.moddev.mc.lib.gui.model.ElementGroup;
 import zone.moddev.mc.lib.gui.model.Screen;
+import zone.moddev.mc.lib.machine.feature.Processor;
 
 /**
  * Registered fragment builders; templates retain ownership of the enclosing
@@ -115,34 +116,26 @@ public final class MachineScreenGenerators {
                 !machine.hasProcessor()
                     ? Set.of()
                     : Set.of(machine.processor())));
+        Map<String, Processor<?>> declared = machine.behavior()
+            .processor() == null
+                ? Map.of()
+                : Map.of(machine.processor(), machine.behavior().processor()
+                    .create(machine.processor(), null));
+        Map<String, Object> defaults = null;
         for (var element : screen.elements()) {
             try {
                 element.validateResources(context);
                 if (element instanceof zone.moddev.mc.lib.gui.model.elements.EntityPortraitElement portrait) {
-                    Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> declared = machine
-                        .behavior().processor() == null
-                            ? Map.of()
-                            : Map.of(machine.processor(), machine.behavior()
-                                .processor().create(machine.processor(), null));
                     portrait.validateDefinition(declared);
                 }
                 if (element instanceof zone.moddev.mc.lib.gui.model.elements.LabelElement label
                     && label.variable().isPresent()) {
-                    Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> declared = machine
-                        .behavior().processor() == null
-                            ? Map.of()
-                            : Map.of(machine.processor(), machine.behavior()
-                                .processor().create(machine.processor(), null));
                     label.validateDefinition(declared);
                 }
                 if (element instanceof zone.moddev.mc.lib.gui.model.elements.BoundButtonElement button) {
-                    Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> declared = machine
-                        .behavior().processor() == null
-                            ? Map.of()
-                            : Map.of(machine.processor(), machine.behavior()
-                                .processor().create(machine.processor(), null));
-                    button.validateDefinition(declared,
-                        machine.visualDefaults());
+                    if (defaults == null)
+                        defaults = machine.visualDefaults();
+                    button.validateDefinition(declared, defaults);
                 }
             } catch (IllegalArgumentException failure) {
                 throw new ScreenException(screen.source(element.common()),

@@ -137,9 +137,19 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     }
 
     @Override
+    protected void onPlace(BlockState state, Level level, BlockPos pos,
+        BlockState previous, boolean moved) {
+        super.onPlace(state, level, pos, previous, moved);
+        if (!level.isClientSide()
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host)
+            host.completePlacement();
+    }
+
+    @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos,
         BlockState replacement, boolean moved) {
-        DropsContents.onRemove(state, level, pos, replacement);
+        if (!level.restoringBlockSnapshots)
+            DropsContents.onRemove(state, level, pos, replacement);
         super.onRemove(state, level, pos, replacement, moved);
     }
 

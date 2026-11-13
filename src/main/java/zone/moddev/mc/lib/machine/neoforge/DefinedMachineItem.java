@@ -51,8 +51,16 @@ public final class DefinedMachineItem extends BlockItem {
             && host.portable() != null) {
             host.portable().placed(payload);
             if (context.getPlayer() != null && context.getPlayer().isCreative()
-                && behavior.hasContent(payload))
-                context.getItemInHand().shrink(1);
+                && behavior.hasContent(payload)) {
+                // The outer creative interaction restores the original stack's
+                // count. Replace the hand to keep transferred content consumed.
+                host.afterPlacement(() -> {
+                    var remainder = context.getItemInHand().copy();
+                    remainder.shrink(1);
+                    context.getPlayer().setItemInHand(context.getHand(),
+                        remainder);
+                });
+            }
         }
         return result;
     }
