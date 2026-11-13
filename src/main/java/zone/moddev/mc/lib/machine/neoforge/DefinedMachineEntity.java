@@ -105,11 +105,11 @@ public final class DefinedMachineEntity extends BaseMachine {
                     ResourceType.FLUIDS, group.mode(), group.members(),
                     highlights.get(group.id()), new SideConfig(group.mode())),
                     fluids);
-                if (group.mode() == IoMode.INPUT)
+                if (recipes != null && group.mode() == IoMode.INPUT)
                     resources.recipeInputs(recipes, group.id());
             }
         for (var group : definition.groups())
-            if (group.mode() == IoMode.INPUT)
+            if (recipes != null && group.mode() == IoMode.INPUT)
                 resources.recipeInputs(recipes, group.id());
         for (var ghost : definition.ghosts()) {
             var samples = new zone.moddev.mc.lib.machine.inventory.GhostItemGroup(
@@ -123,13 +123,19 @@ public final class DefinedMachineEntity extends BaseMachine {
             resources.recipeOnlyGroup(ghost.id(), samples);
         }
         resources.build();
-        var processor = new RecipeProcessor(definition.processor(), recipes,
-            resources.recipes(), Component.literal(definition.processorName()));
-        if (definition.recipeSelection() != null)
-            processor.selectable(definition.recipeSelection().defaultRecipe());
-        features.add(processor);
-        inventory = genericInventory(resources.automation())
-            .items(definition.itemStorageId(), items);
+        RecipeProcessor processor = null;
+        if (definition.processor() != null) {
+            processor = new RecipeProcessor(definition.processor(), recipes,
+                resources.recipes(),
+                Component.literal(definition.processorName()));
+            if (definition.recipeSelection() != null)
+                processor
+                    .selectable(definition.recipeSelection().defaultRecipe());
+            features.add(processor);
+        }
+        inventory = genericInventory(resources.automation());
+        if (definition.itemStorageId() != null)
+            inventory.items(definition.itemStorageId(), items);
         if (definition.fluids() != null)
             inventory.fluids(definition.fluids().id(), fluids);
         redstone = definition.redstone()
@@ -137,8 +143,7 @@ public final class DefinedMachineEntity extends BaseMachine {
             : null;
         visuals = new MachineVisualState(!definition.hasConditionalAppearance()
             ? new VisualVariables.Builder().build()
-            : BuiltinVisualVariables.forMachine(definition,
-                features.processor(definition.processor()).orElseThrow(), items,
+            : BuiltinVisualVariables.forMachine(definition, processor, items,
                 fluids, energy),
             definition.visualConditions());
     }
@@ -242,13 +247,15 @@ public final class DefinedMachineEntity extends BaseMachine {
         // Pre-release ghost saves used a top-level key which could also be a
         // consumer storage ID.
         if (!metadata.contains("mmdlib_ghost_items")
-            && !definition.itemStorageId().equals("mmdlib_ghost_items")
+            && !"mmdlib_ghost_items".equals(definition.itemStorageId())
             && (definition.fluids() == null
                 || !definition.fluids().id().equals("mmdlib_ghost_items")))
             metadata = tag;
         readGhosts(metadata, registries);
         // Migrate the earlier output selector, including an explicitly cleared
         // selection.
+        if (definition.processor() == null)
+            return;
         var old = tag.getCompound("features")
             .getCompound(definition.processor());
         if (!metadata.contains("mmdlib_ghost_items")
@@ -313,7 +320,8 @@ public final class DefinedMachineEntity extends BaseMachine {
 
     @Override
     public int[] screenRecipeSlots(ResourceLocation category) {
-        if (!definition.recipeType().id().equals(category))
+        if (definition.recipeType() == null
+            || !definition.recipeType().id().equals(category))
             return new int[0];
         return definition.groups().stream()
             .filter(g -> g.mode() == IoMode.INPUT)

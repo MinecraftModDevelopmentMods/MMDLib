@@ -124,8 +124,9 @@ public final class BuiltinVisualVariables {
         RecipeProcessor processor, ItemInventories items, FluidStorage fluids,
         EnergyBuffer energy) {
         var vars = new VisualVariables.Builder();
-        vars.component("processors." + definition.processor(),
-            processor == null ? processor(null) : processor);
+        if (definition.processor() != null)
+            vars.component("processors." + definition.processor(),
+                processor == null ? processor(null) : processor);
         for (var group : definition.groups()) {
             var indexes = definition.inventorySlots(group.id());
             vars.component("inventories." + group.id(),

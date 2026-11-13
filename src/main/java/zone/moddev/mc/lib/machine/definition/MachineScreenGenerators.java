@@ -41,7 +41,19 @@ public final class MachineScreenGenerators {
         register(ResourceLocation.parse("mmdlib:processors"),
             (machine, node) -> {
                 options(node, Set.of());
-                return List.of(progress(machine, node));
+                return machine.processor() == null
+                    ? List.of()
+                    : List.of(progress(machine, node));
+            });
+        register(ResourceLocation.parse("mmdlib:processor-controls"),
+            (machine, node) -> {
+                options(node, Set.of());
+                return machine.processor() == null
+                    ? List.of()
+                    : List.of(n(node, "inventory-controls",
+                        Map.of("id", "inventory_controls"),
+                        List.of(n(node, "processor-button",
+                            Map.of("id", "toggle_0"), List.of()))));
             });
     }
 
@@ -157,7 +169,8 @@ public final class MachineScreenGenerators {
         var main = new ArrayList<Node>();
         main.add(spacer(node));
         main.addAll(groups(machine, node, IoMode.INPUT, 3));
-        main.add(progress(machine, node));
+        if (machine.processor() != null)
+            main.add(progress(machine, node));
         main.addAll(groups(machine, node, IoMode.OUTPUT, 3));
         main.add(spacer(node));
         var rows = new ArrayList<Node>();

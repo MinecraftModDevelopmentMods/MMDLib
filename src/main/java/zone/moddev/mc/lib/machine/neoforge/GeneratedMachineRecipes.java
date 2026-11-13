@@ -228,7 +228,8 @@ public final class GeneratedMachineRecipes {
     private static void validateGroups(MachineRecipeType type,
         MachineRecipe recipe) {
         for (var machine : MachineContent.definitions().values())
-            if (machine.recipeType().id().equals(type.id()))
+            if (machine.recipeType() != null
+                && machine.recipeType().id().equals(type.id()))
                 validateGroups(machine, recipe);
     }
 

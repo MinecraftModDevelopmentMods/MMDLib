@@ -16,8 +16,9 @@ import zone.moddev.mc.lib.machine.presentation.ConditionalFaceTexture;
 import zone.moddev.mc.lib.machine.presentation.ConditionalModelPart;
 
 /**
- * Immutable, resolved startup configuration for a powered item-processing
- * machine.
+ * Immutable, resolved startup configuration. Item storage, power and processing
+ * are optional; recipeType and processor are either both present or both
+ * absent.
  */
 public record MachineDefinition(ResourceLocation id, String checksum,
     String name, float hardness, ResourceLocation mineable,
@@ -41,7 +42,8 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         ResourceLocation recipeType) {
         Set<String> result = null;
         for (var machine : definitions) {
-            if (!machine.recipeType().id().equals(recipeType))
+            if (machine.recipeType() == null
+                || !machine.recipeType().id().equals(recipeType))
                 continue;
             var ghosts = new HashSet<String>();
             machine.ghosts().forEach(ghost -> ghosts.add(ghost.id()));

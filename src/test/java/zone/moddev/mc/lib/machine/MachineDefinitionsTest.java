@@ -48,6 +48,61 @@ class MachineDefinitionsTest {
             .of("src/companion/resources/mmdlib/machine/simple_crusher.xml"));
     }
 
+    private String fluidMachine(String name) throws Exception {
+        return Files.readString(
+            Path.of("src/companionTest/resources/mmdlib/machine/test/" + name
+                + ".xml"));
+    }
+
+    @Test
+    void fluidOnlyAndStorageOnlyDefinitionsHaveNoDummyItems() throws Exception {
+        write(fluidMachine("fluid_still"));
+        var still = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertNull(still.itemStorageId());
+        assertTrue(still.slots().isEmpty());
+        assertTrue(still.groups().isEmpty());
+        assertEquals(2, still.fluids().tanks().size());
+        assertEquals("still", still.processor());
+        assertNotNull(still.recipeType());
+
+        write(fluidMachine("fluid_tank"));
+        var tank = MachineDefinitions.load(sources()).get(still.id());
+        assertNull(tank.itemStorageId());
+        assertNull(tank.recipeType());
+        assertNull(tank.processor());
+        assertEquals("items", tank.fluids().id());
+        assertEquals(1, tank.fluids().tanks().size());
+        assertTrue(tank.visualDefaults().containsKey("tanks.contents.empty"));
+        assertFalse(tank.visualDefaults().keySet().stream()
+            .anyMatch(key -> key.startsWith("processors.")));
+        assertTrue(MachineDefinition
+            .ghostInputsFor(List.of(tank, still), still.recipeType().id())
+            .isEmpty());
+    }
+
+    @Test
+    void optionalStorageAndProcessingStillRejectInvalidDeclarations()
+        throws Exception {
+        var still = fluidMachine("fluid_still");
+        for (String invalid : List.of(
+            still.replace("<storage>", "<storage><items id=\"items\"/>"),
+            still.replaceAll("<recipe-type[^>]*/>", ""),
+            still.replaceAll("<processor[^>]*/>", ""),
+            still.replace("filter-inputs=\"feed\"",
+                "filter-inputs=\"unknown\""),
+            still.replace("</storage>",
+                "</storage><groups><group id=\"unknown\" storage=\"missing\" mode=\"input\" members=\"missing\"/></groups>"))) {
+            write(invalid);
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+        write(fluidMachine("fluid_tank").replace("role=\"storage\"",
+            "role=\"input\""));
+        assertNull(MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher")).processor());
+    }
+
     @Test
     void originalConstructorRetainsAutomaticCubeDefaults() throws Exception {
         write(crusher());

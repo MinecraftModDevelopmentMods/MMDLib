@@ -1,0 +1,6 @@
+{
+  "type": "mmdlib_companion:test/distilling",
+  "inputs": {"feed": [{"fluids": "minecraft:water", "amount": 250}]},
+  "outputs": {"product": [{"fluid": {"id": "minecraft:lava", "amount": 100}}]},
+  "time": 2
+}

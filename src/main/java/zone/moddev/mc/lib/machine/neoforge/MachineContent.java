@@ -84,7 +84,7 @@ public final class MachineContent {
         var declarations = new TreeMap<ResourceLocation, MachineDefinition.RecipeType>();
         for (var machine : definitions.values()) {
             var type = machine.recipeType();
-            if (type.declare()) {
+            if (type != null && type.declare()) {
                 var previous = declarations.putIfAbsent(type.id(), type);
                 if (previous != null && !same(previous, type))
                     throw new IllegalArgumentException(
@@ -94,7 +94,8 @@ public final class MachineContent {
         declarations
             .forEach((id, type) -> recipes.put(id, new MachineRecipeType(id)));
         for (var machine : definitions.values())
-            if (!recipes.containsKey(machine.recipeType().id()))
+            if (machine.recipeType() != null
+                && !recipes.containsKey(machine.recipeType().id()))
                 throw new IllegalArgumentException(machine.id()
                     + ": recipe type must be declared in machine XML: "
                     + machine.recipeType().id());
@@ -154,7 +155,9 @@ public final class MachineContent {
                 var type = BlockEntityType.Builder.of(
                     (pos, state) -> new DefinedMachineEntity(entities.get(id),
                         pos, state, definition,
-                        recipeType(definition.recipeType().id())),
+                        definition.recipeType() == null
+                            ? null
+                            : recipeType(definition.recipeType().id())),
                     blocks.get(id)).build(null);
                 helper.register(id, type);
                 entities.put(id, type);
@@ -180,9 +183,10 @@ public final class MachineContent {
             validateResources(definition);
         for (var type : entities.values()) {
             event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type,
-                (entity,
-                    side) -> entity.items.view(index -> entity.resources
-                        .automation().mode(ResourceType.ITEMS,
+                (entity, side) -> entity.items.getSlots() == 0
+                    ? null
+                    : entity.items.view(index -> entity.resources.automation()
+                        .mode(ResourceType.ITEMS,
                             entity.items.address(index).inventory(),
                             entity.items.address(index).slot(), side)));
             event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, type,

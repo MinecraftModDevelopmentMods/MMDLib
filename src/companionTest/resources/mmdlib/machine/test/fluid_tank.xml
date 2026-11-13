@@ -1,0 +1,13 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Plain Fluid Tank">
+  <appearance preset="cube-front" front="minecraft:block/furnace_front"
+              side="minecraft:block/iron_block" top="minecraft:block/smooth_stone">
+    <face-texture id="filled" face="front" texture="minecraft:block/water_still"
+                  when="!$tanks.contents.empty"/>
+  </appearance>
+  <storage>
+    <fluids id="items">
+      <tank id="contents" role="storage" capacity="4000"/>
+    </fluids>
+  </storage>
+</machine>
