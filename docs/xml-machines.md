@@ -1047,6 +1047,28 @@ machine serializes first, marks ownership transferred, then clears its portable
 variables; repeated calls return an empty stack. Item-side content checks compare
 against declared defaults without mutating the shared processor prototype.
 
+`PortableVariable<T>` shares one item identity, processor/variable address, codec,
+default and copy policy between machine state and external item consumers. The item
+supplier is resolved lazily. For an entity payload:
+
+```java
+static final PortableVariable<EntitySnapshot> OCCUPANT = PortableVariable.entity(
+    () -> MachineContent.item(ID), "courier", "occupant");
+private final ProcessorState.Key<EntitySnapshot> occupant =
+    OCCUPANT.declare(variables).synced().define();
+// Other machines and renderers need no processor instance:
+EntitySnapshot carried = OCCUPANT.read(stack);
+OCCUPANT.write(stack, updatedSnapshot);
+ItemStack newCarrier = OCCUPANT.stack(updatedSnapshot);
+```
+
+`declare` creates independent state for each processor and always opts into portable
+storage. Use the same processor ID in XML. `matches` checks item identity;
+`hasContent` compares the decoded value to its declared default. Reads of wrong
+items or malformed/missing values return a copied default. Writes reject wrong
+items and preserve unrelated variables/components. Custom value types use the
+constructor with a codec, default and defensive copy function.
+
 `api.entity.EntitySnapshot` is the common immutable entity payload used by the
 standard portrait and available to gameplay code. It offers a codec, detached
 NBT copies, `capture(entity)`, optional capture customization, type/UUID access,
