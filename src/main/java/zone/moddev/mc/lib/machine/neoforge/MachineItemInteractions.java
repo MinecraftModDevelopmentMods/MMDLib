@@ -14,7 +14,7 @@ import zone.moddev.mc.lib.machine.multiblock.LinkedMember;
 import zone.moddev.mc.lib.machine.multiblock.MultiblockController;
 
 /**
- * Shared right-click routing and one-item/remainder ownership for machine
+ * Shared right-click routing and held-stack/remainder ownership for machine
  * interactions.
  */
 public final class MachineItemInteractions {
@@ -126,12 +126,22 @@ public final class MachineItemInteractions {
             && controller.multiblock() != null
             && !controller.multiblock().ready())
             return InteractionResult.FAIL;
-        var result = receiver.receive(offered, context);
+        int offeredCount = Math.clamp(receiver.offerLimit(held.copy()), 1,
+            held.getCount());
+        var result = receiver.receive(held.copyWithCount(offeredCount),
+            context);
         if (!result.accepted())
             return InteractionResult.FAIL;
         if (!player.isCreative() || result.consumeInCreative()) {
-            held.shrink(1);
+            held.shrink(offeredCount);
             var remainder = result.remainder();
+            if (!held.isEmpty()
+                && ItemStack.isSameItemSameComponents(held, remainder)) {
+                int merged = Math.min(remainder.getCount(),
+                    Math.max(0, held.getMaxStackSize() - held.getCount()));
+                held.grow(merged);
+                remainder.shrink(merged);
+            }
             // Replace the hand even for a partial stack: vanilla restores the
             // original stack's
             // count after creative Item.useOn, which must not duplicate unique

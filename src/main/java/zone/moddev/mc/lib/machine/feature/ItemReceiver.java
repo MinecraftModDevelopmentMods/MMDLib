@@ -15,9 +15,19 @@ public interface ItemReceiver {
     boolean accepts(ItemStack offered);
 
     /**
-     * Server only. Receives a detached one-item copy. Reject without changing
-     * anything, or commit acceptance and return its remainder. Never mutate the
-     * player's hand.
+     * Pure offer sizing with a detached held stack. Defaults to one item for
+     * container exchanges; return held.getCount() to receive the whole stack.
+     * The router clamps this limit between one and the held count.
+     */
+    default int offerLimit(ItemStack held) {
+        return 1;
+    }
+
+    /**
+     * Server only. Receives a detached copy sized by offerLimit. Reject without
+     * changing anything, or commit acceptance (possibly partial) and return all
+     * unaccepted items or the resulting container. Never mutate the player's
+     * hand.
      */
     Exchange receive(ItemStack offered, UseOnContext context);
 

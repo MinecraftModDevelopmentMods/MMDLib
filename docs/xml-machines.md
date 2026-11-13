@@ -1113,8 +1113,11 @@ Implement `machine.feature.ItemReceiver` on a machine block entity or its XML
 processor to accept items without teaching those items about the destination.
 `accepts(offered)` is a pure recognition check used on both sides; recognize the
 item even when the destination is full. `receive(offered, context)` runs only on
-the server with a detached one-item copy. Return `Exchange.reject()` without
-mutating anything, or commit acceptance and return `Exchange.accept(remainder)`.
+the server with a detached copy, defaulting to one item. Override
+`offerLimit(held)` to return `held.getCount()` for whole-stack deposits (the router
+clamps the limit to the held count and at least one). Return `Exchange.reject()`
+without mutating anything, or commit full or partial acceptance and return
+`Exchange.accept(remainder)` with all unaccepted items or the resulting container.
 The receiver must not edit the player's hand. Validate all conditions before
 committing; the library cannot roll back arbitrary consumer side effects.
 
@@ -1125,8 +1128,10 @@ validated controller without loading chunks; stale links are not forwarded.
 Unready structures reject recognized exchanges. XML processor receivers follow
 block-entity receivers, and the fluid adapter is the final fallback.
 
-On success the router consumes exactly one held item, puts any returned container
-in the hand or inventory, and drops overflow rather than deleting it. Portable
+On success the router removes the offered count from the hand and returns the
+remainder, merging matching items back into the hand first. Whole-stack deposits
+leave any unaccepted items in that hand. Different returned containers use the
+hand or inventory, with overflow dropped rather than deleted. Portable
 contents are consumed even in creative. `Exchange.reusable(remainder)` instead
 keeps the original item in creative, as ordinary fluid containers do. Client
 prediction recognizes the interaction without changing storage or inventory.
