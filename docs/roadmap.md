@@ -27,12 +27,13 @@ The policy choices below remain open; these items are not implemented or verifie
   [RuntimeProperties.item](../src/main/java/zone/moddev/mc/lib/common/runtime/RuntimeProperties.java),
   [StandardItems.Basic](../src/main/java/zone/moddev/mc/lib/common/runtime/StandardItems.java).
 
-- [ ] **Creative-tab membership and custom tabs.** First apply existing `group`
-  and `creative_menu_stacks` declarations to the requested vanilla or modded tabs.
-  Then add public custom-tab definitions/registration for Java and JSON, with
-  CraftTweaker wrappers using that same path: ID, translated title, icon stack,
-  contents, relative placement, and basic presentation. Use the public mechanism
-  for MMDLib's own materials tab.
+- [ ] **Creative-tab membership and custom tabs.** Custom tabs are done for JSON
+  and Java ([creative tabs](creative-tabs.md)): ID, translated title with fallback,
+  icon, ordered contents (items, tags, materials), relative placement and a search
+  bar; CraftTweaker scripts can make tabs and change file tabs. Still to do: apply
+  items' existing `group` and `creative_menu_stacks` declarations to vanilla or
+  modded tabs, and move MMDLib's own materials tab (and the XML machines' tab)
+  onto the public mechanism.
   **Decisions needed:** duplicate entries, ordering, visibility, missing tab IDs,
   default materials-tab membership for explicitly assigned items, and modern
   component-aware stack definitions versus the existing legacy `tag` field.
@@ -74,7 +75,7 @@ The policy choices below remain open; these items are not implemented or verifie
   block-entity getter is not implemented yet; block entities are now registered at runtime.
 
 - **Standalone blocks** (`mmdlib/standalone/block/*.json`), material-less as in 1.0, built by
-  any block module's factory; first use is the player-only plate `mmdlib:human_detector`. See
+  any block module's factory, such as a player-only plate. See
   [startup definition loading](definition-loading.md#standalone-blocks).
 - **Block entities for data-defined machines.** Each mod's `RuntimeContentRegistrar` registers
   the block-entity type of every planned machine in its own namespace, with the block's ID,

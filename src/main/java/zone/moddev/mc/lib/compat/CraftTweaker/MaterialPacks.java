@@ -75,6 +75,7 @@ final class MaterialPacks {
             var items = ScriptDefinitions.itemResults();
             return type == PackType.CLIENT_RESOURCES
                 ? ScriptMaterialResources.assets(materials, blocks, items,
+                    ScriptDefinitions.fluidResults(),
                     ScriptDefinitions.basedOn(), templates(folder), folder,
                     ScriptDefinitions.resourceOptions())
                 : ScriptMaterialResources.data(materials, blocks, items,

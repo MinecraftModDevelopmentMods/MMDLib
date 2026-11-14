@@ -33,12 +33,10 @@ public final class RuntimeContentClient {
         for (var registrar : RuntimeContentRegistrar.instances())
             registrar.itemMaterials().forEach((id, material) -> {
                 var item = registrar.items().get(id).get();
-                // Fluid container models obtain their tint from the fluid type,
-                // not the
-                // bucket
-                // shell.
-                if (!(item instanceof BucketItem) && material.runtime().tinted()
-                    && !StaticAssetRules.INSTANCE.untintedItems().contains(id))
+                // Fluid container models obtain their tint from the fluid
+                // type, not the bucket shell.
+                if (!(item instanceof BucketItem)
+                    && material.runtime().tinted())
                     event.register((stack, layer) -> layer == 0
                         ? material.properties().color()
                         : -1, item);
@@ -50,8 +48,7 @@ public final class RuntimeContentClient {
     public static void blocks(RegisterColorHandlersEvent.Block event) {
         for (var registrar : RuntimeContentRegistrar.instances())
             registrar.blockMaterials().forEach((id, material) -> {
-                if (material.runtime().tinted()
-                    && !StaticAssetRules.INSTANCE.untintedBlocks().contains(id))
+                if (material.runtime().tinted())
                     event.register((state, level, pos, tint) -> material
                         .properties().color(),
                         registrar.blocks().get(id).get());
@@ -105,12 +102,9 @@ public final class RuntimeContentClient {
             registrar.items().values().forEach(holder -> {
                 var owner = registrar.itemMaterials().get(holder.getId());
                 // Precolored shields use their own item model instead of the
-                // vanilla
-                // shield.
+                // vanilla shield.
                 if (holder.get() instanceof ShieldItem
-                    && (owner == null || owner.runtime().tinted())
-                    && !StaticAssetRules.INSTANCE.untintedItems()
-                        .contains(holder.getId()))
+                    && (owner == null || owner.runtime().tinted()))
                     event.registerItem(new IClientItemExtensions() {
                         private BlockEntityWithoutLevelRenderer renderer;
 

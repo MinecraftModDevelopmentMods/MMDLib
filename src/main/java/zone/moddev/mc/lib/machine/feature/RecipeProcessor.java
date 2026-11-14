@@ -100,21 +100,16 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      * The saved form. A cycle that won't decode, say because an item is gone
      * from the game, is dropped as a whole while the rest of the state is kept.
      *
-     * @param paused
-     *            whether an interrupt holds the processor
-     * @param progress
-     *            ticks done of {@code cycle}, or of the recipe to resume
-     * @param resumeRecipe
-     *            the recipe a pause or a resume is waiting to reserve again
-     * @param resumeTime
-     *            the time that recipe took, so progress is dropped if its time
-     *            changed
-     * @param cycle
-     *            the running cycle
-     * @param status
-     *            what the processor was doing; loading works it out again, and
-     *            only a client takes it from here. A name this version doesn't
-     *            know reads as empty, which loses nothing else.
+     * @param paused whether an interrupt holds the processor
+     * @param progress ticks done of {@code cycle}, or of the recipe to resume
+     * @param resumeRecipe the recipe a pause or a resume is waiting to reserve
+     *            again
+     * @param resumeTime the time that recipe took, so progress is dropped if
+     *            its time changed
+     * @param cycle the running cycle
+     * @param status what the processor was doing; loading works it out again,
+     *            and only a client takes it from here. A name this version
+     *            doesn't know reads as empty, which loses nothing else.
      */
     public record State(boolean paused, int progress,
         Optional<ResourceLocation> resumeRecipe, int resumeTime,
@@ -258,6 +253,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     private boolean changed;
     private Status status = Status.IDLE;
     private java.math.BigInteger completedCycles = java.math.BigInteger.ZERO;
+    private long startedCycles;
     private final Component displayName;
 
     /**
@@ -266,6 +262,24 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      */
     public java.math.BigInteger completedCycles() {
         return completedCycles;
+    }
+
+    /**
+     * Cycles started since this processor was created: new cycles only, not a
+     * paused or saved cycle taken up again. Not saved.
+     */
+    public long startedCycles() {
+        return startedCycles;
+    }
+
+    /** The running cycle, if any. */
+    public Optional<CyclePlan> cycle() {
+        return Optional.ofNullable(cycle);
+    }
+
+    /** The cycle finished on the latest tick, if one was. */
+    public Optional<CyclePlan> justFinished() {
+        return Optional.ofNullable(justFinished);
     }
 
     public Component displayName() {
@@ -760,6 +774,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         progress = 0;
         status = Status.RUNNING;
         progressChanges.changed();
+        startedCycles++;
         host.markChanged();
     }
 

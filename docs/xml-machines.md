@@ -452,6 +452,50 @@ uses the `energy/input` group. Item storage IDs `energy`, `features`, `automatio
 the processor's recipes; an explicit `filter-inputs` list must name those groups.
 Processor `name` optionally overrides the displayed machine name.
 
+A processor can also have sounds, given as sound event IDs:
+
+* `running-sound` loops at the machine for every player nearby while a cycle runs,
+  and stops when the cycle finishes, stalls or pauses, or the machine is removed.
+* `finish-sound` plays once at the machine each time a cycle completes.
+
+```xml
+<processor id="crusher" recipe-type="example:crushing"
+           running-sound="example:machine/crusher_run"
+           finish-sound="example:machine/crusher_done"/>
+```
+
+Sounds and the cycle handlers below belong to recipe processors. A
+[stored custom processor](#stored-custom-processors) (`class`) has no recipe
+cycles, so loading fails if it names any of `running-sound`, `finish-sound`,
+`on-start` or `on-finish`.
+
+Any sound in a `sounds.json` works; to declare your own sound events, see
+[sound events](definition-loading.md#sound-events). A looping sound's `.ogg` should
+loop cleanly.
+
+A processor can also run handlers, named by callback ID:
+
+* `on-start` runs when the processor starts a new cycle: a `machine-cycle-start`
+  handler. Resuming a paused or saved cycle does not count.
+* `on-finish` runs when a cycle has finished and placed its outputs: a
+  `machine-cycle-finish` handler.
+
+```xml
+<processor id="crusher" recipe-type="example:crushing"
+           on-start="example:crusher_started" on-finish="example:crusher_done"/>
+```
+
+Both run on the server and receive a `MaterialEventContexts.MachineCycle`: the
+machine's block entity, its level and position, the machine definition's ID, and
+the cycle's recipe ID and length in ticks. Register a handler in code with
+`MaterialExtensions.GLOBAL.events().registerCallback(id,
+MaterialEventTypes.MACHINE_CYCLE_FINISH, cycle -> ...)`, in an extension file
+(`"type": "machine-cycle-finish"`, a `public static void method(MachineCycle)`), or
+from a [CraftTweaker script](crafttweaker.md#machine-handlers). Machines load after
+extension files, code and scripts have registered their handlers; a machine naming
+an ID nobody registered, or a handler of the other event, fails loading with the
+machine's ID.
+
 Stable storage IDs, processing reservations and side settings survive saves.
 Displaced resources use `mmdlib:machine_recovery_capsule`; use a capsule on an XML
 machine to restore compatible items, fluids and energy. Overflow and unknown resource
@@ -776,6 +820,13 @@ checked against every XML machine using the type. Duplicate generated IDs fail
 the reload. An authored recipe with the same ID replaces the generated one.
 Generator failure prevents publishing the candidate recipe manager; a successful
 reload synchronizes ordinary machine recipes to clients.
+
+CraftTweaker recipe scripts can add and remove a declared type's recipes too, with
+CraftTweaker's own `<recipetype:...>` manager or the typed
+`mods.mmdlib.MachineRecipeBuilder`; see [CraftTweaker machine recipes](crafttweaker.md#machine-recipes).
+A `#loader mmdlib` script can also be the generator itself, named through
+`zone.moddev.mc.lib.compat.CraftTweaker.ScriptRecipeGenerator` with a `script`
+attribute; see [CraftTweaker recipe generators](crafttweaker.md#recipe-generators).
 
 `OreToIngotGenerator` matches `c:ores/<metal>` with `c:ingots/<metal>`, including
 metals from other installed mods. Empty/unmatched tags are skipped. It consumes

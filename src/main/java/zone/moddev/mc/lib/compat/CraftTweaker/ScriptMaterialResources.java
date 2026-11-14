@@ -55,8 +55,8 @@ final class ScriptMaterialResources {
      * block textures are not generated, and any the {@code userFolder} pack
      * does not supply are logged.
      *
-     * @throws IllegalStateException
-     *             if a template references a template that does not exist
+     * @throws IllegalStateException if a template references a template that
+     *             does not exist
      */
     static SortedMap<String, byte[]> assets(
         Collection<MaterialFactory.Result> materials,
@@ -75,8 +75,27 @@ final class ScriptMaterialResources {
         Map<ResourceLocation, ResourceLocation> basedOn,
         MaterialTemplates templates, Path userFolder,
         Map<String, ScriptResourceOptions> options) {
+        return assets(materials, blocks, items, List.of(), basedOn, templates,
+            userFolder, options);
+    }
+
+    /**
+     * As above, with the script's standalone fluids: each gets an empty
+     * liquid-block model (the fluid renders itself), a filled-bucket model and
+     * English names for the fluid, its block and bucket.
+     */
+    static SortedMap<String, byte[]> assets(
+        Collection<MaterialFactory.Result> materials,
+        Collection<MaterialFactory.Result> blocks,
+        Collection<MaterialFactory.Result> items,
+        Collection<MaterialFactory.Result> fluids,
+        Map<ResourceLocation, ResourceLocation> basedOn,
+        MaterialTemplates templates, Path userFolder,
+        Map<String, ScriptResourceOptions> options) {
         var files = new TreeMap<String, byte[]>();
         var lang = new TreeMap<String, String>();
+        for (var result : fluids)
+            fluidAssets(result.content().fluid(), options, files, lang);
         for (var result : materials) {
             var material = result.material();
             var name = name(material);
@@ -215,6 +234,42 @@ final class ScriptMaterialResources {
         return files;
     }
 
+    private static void fluidAssets(
+        zone.moddev.mc.lib.common.types.MMDFluid fluid,
+        Map<String, ScriptResourceOptions> options, Map<String, byte[]> files,
+        Map<String, String> lang) {
+        var id = fluid.name();
+        var ns = id.getNamespace();
+        var path = id.getPath();
+        var name = options
+            .getOrDefault(ScriptResourceOptions.key("fluid", id),
+                ScriptResourceOptions.DEFAULT)
+            .label(display(path), display(path));
+        lang.put("fluid_type." + ns + "." + path, name);
+        if (fluid.block() != null) {
+            lang.put("block." + ns + "." + path, name);
+            var state = new JsonObject();
+            var variants = new JsonObject();
+            var model = new JsonObject();
+            model.addProperty("model", "minecraft:block/air");
+            variants.add("", model);
+            state.add("variants", variants);
+            files.put("assets/" + ns + "/blockstates/" + path + ".json",
+                json(state).getBytes(StandardCharsets.UTF_8));
+        }
+        if (fluid.bucket() != null) {
+            var bucket = fluid.bucketId();
+            lang.put("item." + ns + "." + bucket.getPath(), name + " Bucket");
+            var model = new JsonObject();
+            model.addProperty("parent", "neoforge:item/bucket");
+            model.addProperty("loader", "neoforge:fluid_container");
+            model.addProperty("fluid", id.toString());
+            files.put(
+                "assets/" + ns + "/models/item/" + bucket.getPath() + ".json",
+                json(model).getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
     /** Whether the part's redstone settings turn it to face its placer. */
     private static boolean directional(MaterialPart part) {
         var json = part.factoryData().json();
@@ -343,14 +398,13 @@ final class ScriptMaterialResources {
             var name = name(material);
             var plan = result.content();
             var properties = material.properties();
-            plan.items().forEach((part, item) -> {
-                if (!plan.blocks().containsKey(part))
-                    itemTags(part.id(), name, item.name().toString(), tags);
-                // Tags a script item module gives its parts.
-                itemTags.getOrDefault(part.templateId(), Set.of())
+            // Each part's standard tags come from MaterialTagPack, as for
+            // every material; these are the tags a script item module adds.
+            plan.items()
+                .forEach((part, item) -> itemTags
+                    .getOrDefault(part.templateId(), Set.of())
                     .forEach(tag -> tag(tags, "item", tag.toString(),
-                        item.name().toString()));
-            });
+                        item.name().toString())));
             var hardness = properties.hardness();
             var level = hardness >= 10
                 ? "diamond"
@@ -499,61 +553,6 @@ final class ScriptMaterialResources {
             default ->
                 display + " " + display(part.substring(part.indexOf(':') + 1));
         };
-    }
-
-    private static void itemTags(String part, String name, String id,
-        Map<String, TreeSet<String>> tags) {
-        switch (part) {
-            case "bow" -> tag(tags, "item", "minecraft:enchantable/bow", id);
-            case "crossbow" ->
-                tag(tags, "item", "minecraft:enchantable/crossbow", id);
-            case "fishing_rod" ->
-                tag(tags, "item", "minecraft:enchantable/fishing", id);
-            default -> {
-            }
-        }
-        if (Set.of("bow", "crossbow", "fishing_rod", "shears", "shield", "axe",
-            "pickaxe", "shovel", "hoe", "sword", "crackhammer", "scythe",
-            "helmet", "chestplate", "leggings", "boots").contains(part))
-            tag(tags, "item", "minecraft:enchantable/durability", id);
-        if (Set.of("axe", "pickaxe", "shovel", "hoe", "crackhammer", "scythe")
-            .contains(part)) {
-            tag(tags, "item", "minecraft:enchantable/mining", id);
-            tag(tags, "item", "minecraft:enchantable/mining_loot", id);
-        }
-        if (Set.of("sword", "axe", "scythe", "crackhammer").contains(part)) {
-            tag(tags, "item", "minecraft:enchantable/weapon", id);
-            tag(tags, "item", "minecraft:enchantable/sharp_weapon", id);
-        }
-        if (part.equals("sword"))
-            tag(tags, "item", "minecraft:enchantable/sword", id);
-        if (part.equals("arrow") || part.equals("bolt")) {
-            tag(tags, "item", "minecraft:arrows", id);
-            tag(tags, "item", "c:arrows", id);
-        }
-        if (Set.of("pickaxe", "axe", "shovel", "hoe", "sword").contains(part))
-            tag(tags, "item", "minecraft:" + part + "s", id);
-        if (ARMOR.contains(part)) {
-            tag(tags, "item", "minecraft:enchantable/armor", id);
-            tag(tags, "item", "minecraft:enchantable/" + switch (part) {
-                case "helmet" -> "head_armor";
-                case "chestplate" -> "chest_armor";
-                case "leggings" -> "leg_armor";
-                default -> "foot_armor";
-            }, id);
-        }
-        var common = switch (part) {
-            case "dust" -> "dusts";
-            case "ingot" -> "ingots";
-            case "nugget" -> "nuggets";
-            case "rod" -> "rods";
-            case "gear" -> "gears";
-            default -> null;
-        };
-        if (common != null) {
-            tag(tags, "item", "c:" + common + "/" + name, id);
-            tag(tags, "item", "c:" + common, "#c:" + common + "/" + name);
-        }
     }
 
     /**

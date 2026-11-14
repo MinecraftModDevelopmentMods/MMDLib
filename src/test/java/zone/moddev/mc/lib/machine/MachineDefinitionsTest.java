@@ -737,6 +737,41 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void readsProcessorSounds() throws Exception {
+        var id = ResourceLocation.parse("test:crusher");
+        write(crusher());
+        assertEquals(java.util.Optional.empty(),
+            MachineDefinitions.load(sources()).get(id).sounds().running());
+        write(crusher().replace("<processor",
+            "<processor running-sound=\"test:machine/hum\""
+                + " finish-sound=\"test:machine/ding\""));
+        var sounds = MachineDefinitions.load(sources()).get(id).sounds();
+        assertEquals(ResourceLocation.parse("test:machine/hum"),
+            sounds.running().orElseThrow());
+        assertEquals(ResourceLocation.parse("test:machine/ding"),
+            sounds.finish().orElseThrow());
+        write(crusher().replace("<processor",
+            "<processor on-start=\"test:machine/started\""
+                + " on-finish=\"test:machine/finished\""));
+        var events = MachineDefinitions.load(sources()).get(id).events();
+        assertEquals(ResourceLocation.parse("test:machine/started"),
+            events.start().orElseThrow());
+        assertEquals(ResourceLocation.parse("test:machine/finished"),
+            events.finish().orElseThrow());
+        write(crusher().replace("<processor",
+            "<processor on-finish=\"Not A Handler\""));
+        var badEvent = assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        assertTrue(badEvent.getMessage().contains("on-finish"),
+            badEvent.getMessage());
+        write(crusher().replace("<processor",
+            "<processor finish-sound=\"Not A Sound\""));
+        var bad = assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        assertTrue(bad.getMessage().contains("finish-sound"), bad.getMessage());
+    }
+
+    @Test
     void rejectsUnknownAndOverlappingAndUnsafeDefinitions() throws Exception {
         write(crusher().replace("capacity=", "capcity=").replace("<storage>",
             "<storage bogus=\"true\">"));

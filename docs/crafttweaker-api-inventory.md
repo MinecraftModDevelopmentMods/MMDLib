@@ -191,6 +191,37 @@ Source: [ScriptClickHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTwe
 
 - method `void handle(ClickContext context)`
 
+### `CreativeTabBuilder`
+
+Source: [ScriptCreativeTabBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptCreativeTabBuilder.java).
+
+- constructor `CreativeTabBuilder(String name)`
+- static method `CreativeTabBuilder edit(String id)`
+- static method `boolean exists(String id)`
+- static method `String[] declared()`
+- get `name` — `String getName()`
+- get `title` — `String getTitle()`
+- set `title` — `void setTitle(String value)`
+- get `titleFallback` — `String getTitleFallback()`
+- set `titleFallback` — `void setTitleFallback(String value)`
+- get `icon` — `String getIcon()`
+- set `icon` — `void setIcon(String value)`
+- get `searchBar` — `boolean getSearchBar()`
+- set `searchBar` — `void setSearchBar(boolean value)`
+- get `before` — `String[] getBefore()`
+- set `before` — `void setBefore(String[] tabs)`
+- get `after` — `String[] getAfter()`
+- set `after` — `void setAfter(String[] tabs)`
+- get `contents` — `String[] getContents()`
+- method `CreativeTabBuilder addItems(String... items)`
+- method `CreativeTabBuilder addTags(String... tags)`
+- method `CreativeTabBuilder addMaterials(String... materials)`
+- method `CreativeTabBuilder removeItems(String... items)`
+- method `CreativeTabBuilder removeTags(String... tags)`
+- method `CreativeTabBuilder removeMaterials(String... materials)`
+- method `CreativeTabBuilder clearContents()`
+- method `void build()`
+
 ### `DefinitionProperties`
 
 Source: [ScriptDefinitionProperties](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptDefinitionProperties.java).
@@ -206,6 +237,20 @@ Source: [ScriptDefinitionProperties](../src/main/java/zone/moddev/mc/lib/compat/
 - get `events` — `String[] getEvents()`
 - method `DefinitionProperties addEvent(String event, String callback)`
 - method `DefinitionProperties removeEvents(String... events)`
+
+### `FluidBuilder`
+
+Source: [ScriptFluidBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptFluidBuilder.java).
+
+- constructor `FluidBuilder(String name)`, from module `mmdlib:fluid`
+- constructor `FluidBuilder(String name, String module)`
+- getter `name`
+- setters `density`, `viscosity`, `temperature`, `lightLevel` (int); `motionScale` (double)
+- setters `canSwim`, `canDrown`, `canExtinguish`, `supportsBoating`, `canHydrate` (bool)
+- setters `slopeFindDistance`, `levelDecreasePerBlock`, `tickRate` (int); `explosionResistance` (float); `canConvertToSource` (bool)
+- setters `still`, `flowing`, `overlay` (string texture IDs); `tint` (int ARGB)
+- setters `hasBlock`, `hasBucket` (bool); `displayName` (string)
+- method `void build()`
 
 ### `HitContext`
 
@@ -331,6 +376,61 @@ Source: [ScriptItemUseHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftT
 
 - method `void handle(ItemUseContext context)`
 
+### `MachineCycleContext`
+
+Source: [ScriptMachineCycleContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineCycleContext.java).
+
+- get `machine` — `BlockEntity getMachine()`
+- get `level` — `Level getLevel()`
+- get `pos` — `BlockPos getPos()`
+- get `machineId` — `String getMachineId()`
+- get `recipe` — `String getRecipe()`
+- get `time` — `int getTime()`
+
+### `MachineCycleHandler`
+
+Source: [ScriptMachineCycleHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineCycleHandler.java).
+
+- method `void handle(MachineCycleContext cycle)`
+
+### `MachineHandlers`
+
+Source: [ScriptMachineHandlers](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineHandlers.java).
+
+- static method `String onStart(String name, MachineCycleHandler handler)`
+- static method `String onFinish(String name, MachineCycleHandler handler)`
+- static method `boolean exists(String id)`
+
+### `MachineRecipeBuilder`
+
+Source: [ScriptMachineRecipeBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMachineRecipeBuilder.java). Registered for the default `crafttweaker` loader (recipe scripts).
+
+- constructor `MachineRecipeBuilder(String recipeType)`
+- method `MachineRecipeBuilder inputItems(String group, IIngredient ingredient, int count = 1, boolean consumed = true)`
+- method `MachineRecipeBuilder inputFluid(String group, IFluidStack fluid, boolean consumed = true)`
+- method `MachineRecipeBuilder inputFluids(String group, CTFluidIngredient fluids, boolean consumed = true)`
+- method `MachineRecipeBuilder inputEnergy(String group, long energy)`
+- method `MachineRecipeBuilder outputItem(String group, IItemStack stack, float chance = 1)`
+- method `MachineRecipeBuilder outputFluid(String group, IFluidStack fluid, float chance = 1)`
+- method `MachineRecipeBuilder time(int ticks)`
+- method `void build(String name)`
+
+Machine recipes also have a CraftTweaker recipe handler
+([MachineRecipeHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/MachineRecipeHandler.java)):
+dumps as builder calls, and decomposition into `crafttweaker:input/ingredients`,
+`input/fluid_ingredients`, `output/chanced_items`, `output/fluids`,
+`processing/time`, plus `mmdlib:machine/energy` and `mmdlib:machine/layout`.
+
+### `RecipeGenerators`
+
+Source: [ScriptRecipeGeneratorRegistry](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptRecipeGeneratorRegistry.java). Registered for the `mmdlib` loader; run on each data reload through [ScriptRecipeGenerator](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptRecipeGenerator.java).
+
+- static method `String register(String name, RecipeGeneratorFunction generator)`
+- static method `boolean exists(String id)`
+- `RecipeGeneratorFunction`: `void generate(RecipeGeneration generation)`
+- `RecipeGeneration`: getter `recipeType`; methods `property(name, fallback = "")`, `intProperty(name, fallback)`, `doubleProperty(name, fallback)`, `tagIds(prefix)`, `hasTag(id)`, `tagItems(id)`, `recipe(name)`
+- `GeneratedRecipe`: `inputItems`, `inputTag(group, tag, count = 1, consumed = true)`, `inputFluid`, `inputEnergy`, `outputItem`, `outputFluid`, `time`, `add()`
+
 ### `MaterialBuilder`
 
 Source: [ScriptMaterialBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptMaterialBuilder.java).
@@ -404,6 +504,127 @@ Source: [ScriptRedstoneHandler](../src/main/java/zone/moddev/mc/lib/compat/Craft
 
 - method `void handle(RedstoneContext context)`
 
+### `ScreenClickContext`
+
+Source: [ScriptScreenClickContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenClickContext.java).
+
+- get `player` — `Player getPlayer()`
+- get `blockEntity` — `BlockEntity getBlockEntity()`
+- get `level` — `Level getLevel()`
+- get `pos` — `BlockPos getPos()`
+- get `screen` — `String getScreen()`
+- get `element` — `String getElement()`
+- get `button` — `int getButton()`
+- get `shift` — `boolean getShift()`
+- get `control` — `boolean getControl()`
+- get `alt` — `boolean getAlt()`
+- get `option` — `int getOption()`
+
+### `ScreenClickHandler`
+
+Source: [ScriptScreenClickHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenClickHandler.java).
+
+- method `void handle(ScreenClickContext click)`
+
+### `ScreenHandlers`
+
+Source: [ScriptScreenHandlers](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHandlers.java).
+
+- static method `String onClick(String name, ScreenClickHandler handler)`
+- static method `String onHover(String name, ScreenHoverHandler handler)`
+- static method `boolean exists(String id)`
+
+### `ScreenDecimalValue`
+
+Source: [ScriptScreenDecimalValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenDecimalValue.java).
+
+- method `double read(BlockEntity blockEntity)`
+
+### `ScreenFlagValue`
+
+Source: [ScriptScreenFlagValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenFlagValue.java).
+
+- method `boolean read(BlockEntity blockEntity)`
+
+### `ScreenHoverContext`
+
+Source: [ScriptScreenHoverContext](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHoverContext.java).
+
+- get `blockEntity` — `BlockEntity getBlockEntity()`
+- get `level` — `Level getLevel()`
+- get `pos` — `BlockPos getPos()`
+- get `screen` — `String getScreen()`
+- get `element` — `String getElement()`
+- get `entered` — `boolean getEntered()`
+
+### `ScreenHoverHandler`
+
+Source: [ScriptScreenHoverHandler](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenHoverHandler.java).
+
+- method `void handle(ScreenHoverContext hover)`
+
+### `ScreenTextValue`
+
+Source: [ScriptScreenTextValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenTextValue.java).
+
+- method `String read(BlockEntity blockEntity)`
+
+### `ScreenValues`
+
+Source: [ScriptScreenValues](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenValues.java).
+
+- static method `String whole(String name, ScreenWholeValue function)`
+- static method `String decimal(String name, ScreenDecimalValue function)`
+- static method `String flag(String name, ScreenFlagValue function)`
+- static method `String text(String name, ScreenTextValue function)`
+- static method `boolean exists(String id)`
+
+### `ScreenWholeValue`
+
+Source: [ScriptScreenWholeValue](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptScreenWholeValue.java).
+
+- method `long read(BlockEntity blockEntity)`
+
+### `SoundBuilder`
+
+Source: [ScriptSoundBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptSoundBuilder.java).
+
+- constructor `SoundBuilder(String name)`
+- static method `SoundBuilder edit(String id)`
+- static method `boolean exists(String id)`
+- static method `String[] declared()`
+- get `name` — `String getName()`
+- get `range` — `float getRange()`
+- set `range` — `void setRange(float value)`
+- method `void build()`
+
+### `SoundTypeBuilder`
+
+Source: [ScriptSoundTypeBuilder](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptSoundTypeBuilder.java).
+
+- constructor `SoundTypeBuilder(String name)`
+- static method `SoundTypeBuilder edit(String id)`
+- static method `boolean exists(String id)`
+- static method `String[] declared()`
+- get `name` — `String getName()`
+- get `base` — `String getBase()`
+- set `base` — `void setBase(String value)`
+- get `breakSound` — `String getBreakSound()`
+- set `breakSound` — `void setBreakSound(String value)`
+- get `stepSound` — `String getStepSound()`
+- set `stepSound` — `void setStepSound(String value)`
+- get `placeSound` — `String getPlaceSound()`
+- set `placeSound` — `void setPlaceSound(String value)`
+- get `hitSound` — `String getHitSound()`
+- set `hitSound` — `void setHitSound(String value)`
+- get `fallSound` — `String getFallSound()`
+- set `fallSound` — `void setFallSound(String value)`
+- get `volume` — `float getVolume()`
+- set `volume` — `void setVolume(float value)`
+- get `pitch` — `float getPitch()`
+- set `pitch` — `void setPitch(float value)`
+- method `void build()`
+
 ### `ToolSettings`
 
 Source: [ScriptToolSettings](../src/main/java/zone/moddev/mc/lib/compat/CraftTweaker/ScriptToolSettings.java).
@@ -475,7 +696,8 @@ from script callback execution are logged by the binding wrapper.
 | Runtime-supported through an existing generic script map | Tool stat overrides and generic tool settings; basic-item burn time | `MaterialStats`, `StandardItems.ToolSettings`, `StandardImplementations`; addSpecial/factoryData already reach them. Named stat methods and ToolSettings now wrap these existing paths; per-tool durability scaling is limited by TieredItem overriding durability. |
 | Schema-only in current standard runtime | food reference, lore, declared toolActions, general attributeModifiers, delayed-use onComplete/useFinishMode, creativeStacks | Stored in ItemTemplate/MMDItem; no standard runtime consumer found. Native tool attributes and generic tool abilities are separate implemented paths. |
 | Unavailable as a configurable definition capability | Item rarity/feature flags; advanced block predicates, piston reaction, instrument, offsets, solidity flags | Current definition/runtime property path does not represent and apply them. |
-| Unavailable as a public script registration path | Custom sound events/types, independent tool tiers, user-defined creative tabs | Existing material tab/armor/tier machinery is not a general script builder API. |
+| Unavailable as a public script registration path | Independent tool tiers, script fluid modules for materials | Existing material armor/tier machinery is not a general script builder API; scripts build standalone fluids, not modules materials select. |
+| Script-exposed in 2.0.2 | Sound events and sound sets, creative tabs, standalone fluids, screen handlers and value providers, machine cycle handlers, machine recipes | `SoundBuilder`, `SoundTypeBuilder`, `CreativeTabBuilder`, `FluidBuilder`, `ScreenHandlers`, `ScreenValues`, `MachineHandlers`, `MachineRecipeBuilder`; each feeds the same definition or registry path as data files. |
 | Script-exposed in phase 3 | Typed ID references and module snapshot copies | New wrappers unwrap into existing consumers; copy rebinds locally owned callbacks with separate handler maps. |
 | Script-exposed in phase 4 | Fluent builder aliases, displayName, default/self/empty/referenced loot | Aliases use existing setters. Immutable ScriptResourceOptions metadata feeds the generated pack; external resources keep priority. |
 | Unavailable script conveniences | Arbitrary game-object property cloning | Module configuration copying does not clone registered game objects. |

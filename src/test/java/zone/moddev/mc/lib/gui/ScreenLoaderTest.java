@@ -6,6 +6,8 @@ import java.math.BigInteger;
 
 import java.nio.charset.StandardCharsets;
 
+import java.util.Optional;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -144,7 +146,7 @@ public final class ScreenLoaderTest {
               <button icon="mmdlib:icon_sides" shows="main:sides" tooltip="screen.mmdlib.side_config.show"/>
               <button text="screen.example.eject" on-click="example:eject_outputs"
                       on-right-click="example:eject_one" on-shift-click="example:eject_all"
-                      tooltip="screen.example.eject.tooltip"/>
+                      click-sound="example:ui/eject" tooltip="screen.example.eject.tooltip"/>
               <checkbox text="screen.example.auto_eject" value="#isAutoEject" on-click="example:toggle_auto_eject"/>
               <label text="screen.example.temperature" value="zone.moddev.mc.lib.gui.ScreenLoaderTest$Helpers#temperature"/>
             </hbox>
@@ -188,6 +190,13 @@ public final class ScreenLoaderTest {
                 e -> e instanceof SlotElement slot && !slot.playerInventory())
             .count() == 5);
         require(BoundValue.whole(7L).equals(BigInteger.valueOf(7)));
+        var eject = screen.elements().stream()
+            .filter(e -> e.common().clicks().click().equals(
+                Optional.of(ResourceLocation.parse("example:eject_outputs"))))
+            .findFirst().orElseThrow();
+        require(eject.common().clicks().sound()
+            .equals(Optional.of(ResourceLocation.parse("example:ui/eject"))));
+        require(meter.common().clicks().sound().isEmpty());
 
         checkLayout(screen);
 
@@ -596,6 +605,51 @@ public final class ScreenLoaderTest {
         } catch (IllegalArgumentException expected) {
             require(expected.getMessage().contains("left edge"));
         }
+    }
+
+    /**
+     * {@code value="@ns:id"} reads a registered provider, checked against the
+     * element; an unknown provider, or one of the wrong kind, fails naming the
+     * file.
+     */
+    @Test
+    void bindsNamedValueProviders() throws Throwable {
+        var providers = new zone.moddev.mc.lib.gui.value.ScreenValueProviders();
+        providers.register(ResourceLocation.parse("test:heat"),
+            zone.moddev.mc.lib.gui.value.ValueTypes.WHOLE,
+            entity -> BigInteger.valueOf(451));
+        providers.register(ResourceLocation.parse("test:label"),
+            zone.moddev.mc.lib.gui.value.ValueTypes.TEXT,
+            entity -> net.minecraft.network.chat.Component.literal("hot"));
+        var bound = bind(HEAD + "<vbox><meter orientation=\"horizontal\""
+            + " thickness=\"5\" length=\"60\" color=\"#3F76E4\" value=\"@test:heat\""
+            + " max=\"@test:heat\"/></vbox></screen>", providers);
+        var meter = bound.screen().elements().stream()
+            .filter(MeterElement.class::isInstance).findFirst().orElseThrow();
+        require(bound.values().get(meter).read(null)
+            .equals(BigInteger.valueOf(451)));
+        require(bound.values().get(meter).ref().text().equals("@test:heat"));
+        for (var bad : java.util.List.of("@test:missing", "@test:label"))
+            try {
+                bind(HEAD + "<vbox><meter orientation=\"horizontal\""
+                    + " thickness=\"5\" length=\"60\" color=\"#3F76E4\" value=\""
+                    + bad + "\"/></vbox></screen>", providers);
+                throw new AssertionError("accepted " + bad);
+            } catch (ScreenException expected) {
+                require(expected.getMessage().startsWith("press.xml"));
+            }
+    }
+
+    private static ScreenBinder.Bound bind(String xml,
+        zone.moddev.mc.lib.gui.value.ScreenValueProviders providers)
+        throws Exception {
+        Screen screen = ScreenReader.read(
+            ResourceLocation.parse("example:press"), "press.xml",
+            new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        return ScreenBinder.bind(screen,
+            ScreenLoaderTest.class.getClassLoader(),
+            zone.moddev.mc.lib.gui.WidgetTypes.GLOBAL,
+            zone.moddev.mc.lib.gui.value.ValueTypeRegistry.GLOBAL, providers);
     }
 
     private static ScreenBinder.Bound bind(String xml) throws Exception {

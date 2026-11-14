@@ -8,6 +8,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.item.*;
@@ -52,6 +53,10 @@ public final class RuntimeContentRegistrar {
     private final DeferredRegister<EntityType<?>> entities;
     private final DeferredRegister<ArmorMaterial> armor;
     private final DeferredRegister<CreativeModeTab> tabs;
+    private final DeferredRegister<SoundEvent> sounds;
+    private final Map<ResourceLocation, DeferredHolder<SoundEvent, SoundEvent>> soundEntries = new TreeMap<>();
+    private final Map<ResourceLocation, CreativeTabDefinition> tabDefinitions = new TreeMap<>();
+    private final Map<ResourceLocation, DeferredHolder<CreativeModeTab, CreativeModeTab>> tabEntries = new TreeMap<>();
     private final Map<ResourceLocation, zone.moddev.mc.lib.api.BlockEntityHandle<?>> blockEntityHandles = new TreeMap<>();
     private final BlockEntityFactories blockEntityFactories;
     private final Map<ResourceLocation, DeferredHolder<Block, ? extends Block>> blockEntries = new TreeMap<>();
@@ -94,10 +99,14 @@ public final class RuntimeContentRegistrar {
         entities = DeferredRegister.create(Registries.ENTITY_TYPE, namespace);
         armor = DeferredRegister.create(Registries.ARMOR_MATERIAL, namespace);
         tabs = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, namespace);
+        sounds = DeferredRegister.create(Registries.SOUND_EVENT, namespace);
         bus.addListener((
             net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) -> event
-                .enqueueWork(() -> blockEntityHandles.values().forEach(
-                    zone.moddev.mc.lib.api.BlockEntityHandle::verifyRegistered)));
+                .enqueueWork(() -> {
+                    blockEntityHandles.values().forEach(
+                        zone.moddev.mc.lib.api.BlockEntityHandle::verifyRegistered);
+                    tabDefinitions.forEach(CreativeTabs::verify);
+                }));
         blocks.register(bus);
         items.register(bus);
         fluids.register(bus);
@@ -105,6 +114,7 @@ public final class RuntimeContentRegistrar {
         entities.register(bus);
         armor.register(bus);
         tabs.register(bus);
+        sounds.register(bus);
 
         tabs.register("materials", () -> CreativeModeTab.builder()
             .title(
@@ -126,6 +136,66 @@ public final class RuntimeContentRegistrar {
     /** Every item queued, by ID. */
     public Map<ResourceLocation, DeferredHolder<Item, ? extends Item>> items() {
         return Collections.unmodifiableMap(itemEntries);
+    }
+
+    /** Every creative tab queued with {@link #queueTab}, by ID. */
+    public Map<ResourceLocation, DeferredHolder<CreativeModeTab, CreativeModeTab>> creativeTabs() {
+        return Collections.unmodifiableMap(tabEntries);
+    }
+
+    /**
+     * Queues the creative tab {@code id}, described by {@code definition}, for
+     * registration. Its items, materials and placement are checked during
+     * common setup, once every registry is complete.
+     *
+     * @return its holder, bound once registries are built
+     * @throws IllegalArgumentException if {@code id} is in another namespace,
+     *             already queued, or {@code <namespace>:materials}, the
+     *             registrar's own tab
+     */
+    public DeferredHolder<CreativeModeTab, CreativeModeTab> queueTab(
+        ResourceLocation id, CreativeTabDefinition definition) {
+        Objects.requireNonNull(definition);
+        if (!namespace.equals(id.getNamespace()))
+            throw new IllegalArgumentException(
+                "Runtime registry namespace differs from " + id);
+        if (id.getPath().equals("materials"))
+            throw new IllegalArgumentException(id
+                + " is the registrar's own materials tab; choose another name");
+        if (tabEntries.containsKey(id))
+            throw new IllegalArgumentException(
+                "Creative tab already queued: " + id);
+        var holder = tabs.register(id.getPath(),
+            () -> CreativeTabs.build(id, definition));
+        tabDefinitions.put(id, definition);
+        tabEntries.put(id, holder);
+        return holder;
+    }
+
+    /** Every sound event queued, by ID. */
+    public Map<ResourceLocation, DeferredHolder<SoundEvent, SoundEvent>> sounds() {
+        return Collections.unmodifiableMap(soundEntries);
+    }
+
+    /**
+     * Queues the sound event {@code id}, defined by {@code definition}, for
+     * registration.
+     *
+     * @return its holder, bound once registries are built
+     * @throws IllegalArgumentException if {@code id} is in another namespace or
+     *             already queued
+     */
+    public DeferredHolder<SoundEvent, SoundEvent> queueSound(
+        ResourceLocation id, SoundDefinition definition) {
+        Objects.requireNonNull(definition);
+        if (!namespace.equals(id.getNamespace()))
+            throw new IllegalArgumentException(
+                "Runtime registry namespace differs from " + id);
+        if (soundEntries.containsKey(id))
+            throw new IllegalArgumentException("Sound already queued: " + id);
+        var holder = sounds.register(id.getPath(), () -> definition.create(id));
+        soundEntries.put(id, holder);
+        return holder;
     }
 
     /** Every block queued, by ID. */
@@ -179,11 +249,11 @@ public final class RuntimeContentRegistrar {
      * for the mod to register with the same ID as its block. The implementation
      * receives its binding through {@link BlockContext#blockEntity()}.
      *
-     * @throws IllegalArgumentException
-     *             if the material is in another namespace, an ID is already
-     *             queued, a block entity's factory is unknown or its settings
-     *             are invalid, or a block with a block entity is created by an
-     *             implementation whose class is not an {@code EntityBlock}
+     * @throws IllegalArgumentException if the material is in another namespace,
+     *             an ID is already queued, a block entity's factory is unknown
+     *             or its settings are invalid, or a block with a block entity
+     *             is created by an implementation whose class is not an
+     *             {@code EntityBlock}
      */
     public void queue(MaterialFactory.Result result) {
         var material = result.material();

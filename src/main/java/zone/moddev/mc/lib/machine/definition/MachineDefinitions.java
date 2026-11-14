@@ -199,7 +199,8 @@ public final class MachineDefinitions {
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
         Map.entry("processor",
             Set.of("id", "name", "recipe-type", "filter-inputs", "selectable",
-                "default-recipe", "class")),
+                "default-recipe", "class", "running-sound", "finish-sound",
+                "on-start", "on-finish")),
         Map.entry("redstone", Set.of("enabled", "pause")),
         Map.entry("shape", Set.of("id", "when", "bounds")),
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
@@ -239,7 +240,8 @@ public final class MachineDefinitions {
             case "entity-display" -> List.of("item-property");
             case "face-texture" -> List.of("texture", "emissive-mask");
             case "recipe-type" -> List.of("id");
-            case "processor" -> List.of("recipe-type", "default-recipe");
+            case "processor" -> List.of("recipe-type", "default-recipe",
+                "running-sound", "finish-sound", "on-start", "on-finish");
             case "tank", "tanks" -> List.of("fluid");
             case "slot", "slots" -> List.of("default-item");
             default -> List.<String>of();
@@ -559,6 +561,12 @@ public final class MachineDefinitions {
             || processor.attributes().containsKey("filter-inputs")))
             throw error(processor,
                 "Custom processors do not declare recipe processing options");
+        if (custom)
+            for (var cycleOnly : List.of("running-sound", "finish-sound",
+                "on-start", "on-finish"))
+                if (processor.attributes().containsKey(cycleOnly))
+                    throw error(processor, "Custom processors have no recipe "
+                        + "cycles, so they cannot take " + cycleOnly);
         if (!custom && (recipe == null) != (processor == null))
             throw error(root,
                 "recipe-type and processor must be supplied together");
@@ -759,7 +767,17 @@ public final class MachineDefinitions {
                         ? resource(processor, "default-recipe")
                         : null)
                 : null,
-            ghosts, behavior);
+            ghosts, behavior,
+            processor == null
+                ? MachineDefinition.Sounds.NONE
+                : new MachineDefinition.Sounds(
+                    optionalResource(processor, "running-sound"),
+                    optionalResource(processor, "finish-sound")),
+            processor == null
+                ? MachineDefinition.Events.NONE
+                : new MachineDefinition.Events(
+                    optionalResource(processor, "on-start"),
+                    optionalResource(processor, "on-finish")));
         var defaults = definition.visualDefaults(prototype);
         for (var part : appearance.children()) {
             try {
@@ -804,6 +822,13 @@ public final class MachineDefinitions {
             throw error(recipe,
                 "Only a declaring recipe type may supply a generator");
         return recipeType;
+    }
+
+    private static java.util.Optional<ResourceLocation> optionalResource(
+        Node node, String key) {
+        return node.attributes().containsKey(key)
+            ? java.util.Optional.of(resource(node, key))
+            : java.util.Optional.empty();
     }
 
     public static String required(Node node, String key) {

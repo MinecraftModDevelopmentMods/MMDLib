@@ -77,6 +77,41 @@ final class ScriptMaterialResourcesTest {
     }
 
     @Test
+    void standaloneFluidsGetBucketBlockstateAndNames() {
+        var id = net.minecraft.resources.ResourceLocation
+            .parse("mmdlib:chocolate");
+        var fluid = new zone.moddev.mc.lib.common.types.StandaloneFluid(
+            net.minecraft.resources.ResourceLocation.parse("mmdlib:fluid"))
+            .resolve(id,
+                MaterialExtensions.GLOBAL
+                    .fluidModule(net.minecraft.resources.ResourceLocation
+                        .parse("mmdlib:fluid")));
+        var files = ScriptMaterialResources.assets(List.of(), List.of(),
+            List.of(), List.of(fluid), Map.of(),
+            new MaterialTemplates(List.of(TEMPLATES)), TEMPLATES,
+            Map.of("fluid|mmdlib:chocolate",
+                ScriptResourceOptions.DEFAULT.named("Hot Chocolate")));
+        var bucket = JsonParser.parseString(new String(
+            files.get("assets/mmdlib/models/item/chocolate_bucket.json"),
+            StandardCharsets.UTF_8)).getAsJsonObject();
+        require(bucket.get("fluid").getAsString().equals("mmdlib:chocolate"),
+            "bucket model names the fluid");
+        require(files.containsKey("assets/mmdlib/blockstates/chocolate.json"),
+            "liquid block blockstate");
+        var lang = JsonParser
+            .parseString(new String(files.get("assets/mmdlib/lang/en_us.json"),
+                StandardCharsets.UTF_8))
+            .getAsJsonObject();
+        require(lang.get("fluid_type.mmdlib.chocolate").getAsString()
+            .equals("Hot Chocolate")
+            && lang.get("block.mmdlib.chocolate").getAsString()
+                .equals("Hot Chocolate")
+            && lang.get("item.mmdlib.chocolate_bucket").getAsString()
+                .equals("Hot Chocolate Bucket"),
+            "names: " + lang);
+    }
+
+    @Test
     void generatesCompleteAssetsForEveryPart() throws Exception {
         var files = ScriptMaterialResources.assets(List.of(everything()),
             List.of(), List.of(), Map.of(),
@@ -170,10 +205,9 @@ final class ScriptMaterialResourcesTest {
             .contains("mmdlib:cold_iron_ore"), "harvest tags");
         require(text(files, "data/minecraft/tags/block/walls.json")
             .contains("mmdlib:cold_iron_wall"), "template tags");
-        require(text(files, "data/minecraft/tags/item/arrows.json")
-            .contains("mmdlib:cold_iron_arrow"), "arrows");
-        require(text(files, "data/c/tags/item/ingots/cold_iron.json")
-            .contains("mmdlib:cold_iron_ingot"), "c:ingots");
+        // Part item tags come from MaterialTagPack for every material.
+        require(!files.containsKey("data/minecraft/tags/item/arrows.json"),
+            "no duplicate part tags");
         require(text(files, "data/c/tags/fluid/molten_cold_iron.json")
             .contains("mmdlib:flowing_cold_iron_molten"), "fluid tag");
     }

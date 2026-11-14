@@ -139,6 +139,31 @@ public class XmlProcessorTest {
         assertFalse(button.enabled(ElementStateView.DEFAULTS));
     }
     @Test
+    void customProcessorsRejectRecipeCycleSoundsAndHandlers() throws Exception {
+        Files.createDirectories(directory.resolve("machine"));
+        var sources = List.of(
+            new SourceRoot("mmdlib", Path.of("src/main/resources/mmdlib"),
+                getClass().getClassLoader()),
+            new SourceRoot("test", directory, getClass().getClassLoader()));
+        for (var attribute : List.of("running-sound", "finish-sound",
+            "on-start", "on-finish")) {
+            Files.writeString(directory.resolve("machine/courier.xml"),
+                """
+                    <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="mmdlib:base_machine" name="Courier">
+                      <appearance preset="model" model="test:block/base"/>
+                      <storage/>
+                      <processor id="courier" class="zone.moddev.mc.lib.machine.XmlProcessorTest$Courier" %s="test:cycle"/>
+                    </machine>
+                    """
+                    .formatted(attribute));
+            var failure = assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources));
+            assertTrue(
+                failure.getMessage().contains("cannot take " + attribute),
+                failure.getMessage());
+        }
+    }
+    @Test
     void invalidActionAndVariableBindingsFailDuringLoading() {
         assertThrows(IllegalArgumentException.class,
             () -> load("$processors.courier.occupied", "test:missing"));

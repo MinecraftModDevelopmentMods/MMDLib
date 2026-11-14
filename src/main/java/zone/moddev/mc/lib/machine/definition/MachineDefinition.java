@@ -31,22 +31,8 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
     boolean redstone, Node screen, RecipeSelection recipeSelection,
-    List<Ghost> ghosts, MachineBehavior behavior) {
-    public MachineDefinition(ResourceLocation id, String checksum, String name,
-        float hardness, ResourceLocation mineable, boolean requiresTool,
-        Map<String, String> textures, ResourceLocation baseModel,
-        List<ConditionalModelPart> modelParts,
-        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
-        String itemStorageId, List<Slot> slots, List<Group> groups,
-        RecipeType recipeType, String processor, String processorName,
-        boolean redstone, Node screen, RecipeSelection recipeSelection,
-        List<Ghost> ghosts) {
-        this(id, checksum, name, hardness, mineable, requiresTool, textures,
-            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
-            slots, groups, recipeType, processor, processorName, redstone,
-            screen, recipeSelection, ghosts, MachineBehavior.DEFAULT);
-    }
-
+    List<Ghost> ghosts, MachineBehavior behavior, Sounds sounds,
+    Events events) {
     public record Ghost(String id, int count, ResourceLocation defaultItem,
         String name) {
         public Ghost(String id, int count, ResourceLocation defaultItem) {
@@ -89,6 +75,54 @@ public record MachineDefinition(ResourceLocation id, String checksum,
             slots, groups, recipeType, processor, processorName, redstone,
             screen, recipeSelection, List.of());
     }
+    /** Without processor sounds. */
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection,
+        List<Ghost> ghosts) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, ghosts, MachineBehavior.DEFAULT);
+    }
+
+    /** Without processor sounds or event handlers. */
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection,
+        List<Ghost> ghosts, MachineBehavior behavior) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, ghosts, behavior, Sounds.NONE);
+    }
+
+    /** Without processor event handlers. */
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection,
+        List<Ghost> ghosts, MachineBehavior behavior, Sounds sounds) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, ghosts, behavior, sounds, Events.NONE);
+    }
+
     public record RecipeSelection(ResourceLocation defaultRecipe) {
     }
 
@@ -149,6 +183,38 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         faceTextures = List.copyOf(faceTextures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
+        java.util.Objects.requireNonNull(sounds);
+        java.util.Objects.requireNonNull(events);
+    }
+
+    /**
+     * The processor's event handlers, as callback IDs.
+     *
+     * @param start run when a cycle starts ({@code on-start}), a
+     *            {@code machine-cycle-start} handler
+     * @param finish run when a cycle finishes ({@code on-finish}), a
+     *            {@code machine-cycle-finish} handler
+     */
+    public record Events(Optional<ResourceLocation> start,
+        Optional<ResourceLocation> finish) {
+        /** No handlers. */
+        public static final Events NONE = new Events(Optional.empty(),
+            Optional.empty());
+    }
+
+    /**
+     * The processor's sounds, as sound event IDs.
+     *
+     * @param running looped at the machine while a cycle runs
+     *            ({@code running-sound})
+     * @param finish played at the machine when a cycle completes
+     *            ({@code finish-sound})
+     */
+    public record Sounds(Optional<ResourceLocation> running,
+        Optional<ResourceLocation> finish) {
+        /** No sounds. */
+        public static final Sounds NONE = new Sounds(Optional.empty(),
+            Optional.empty());
     }
 
     /**

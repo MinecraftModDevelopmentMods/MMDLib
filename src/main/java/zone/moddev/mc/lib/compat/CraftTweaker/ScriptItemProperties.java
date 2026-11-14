@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -18,8 +19,11 @@ import zone.moddev.mc.lib.common.types.FactoryData;
  * fire resistance, container, use time and script handlers, besides the tags
  * (item tags), events and factory data of every definition. Values start from
  * the module the builder is based on.
+ *
+ * @docParam this new ItemBuilder("wrench")
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/definitions/ItemProperties")
 @ZenCodeType.Name("mods.mmdlib.ItemProperties")
 public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     private final ItemTemplate base;
@@ -50,12 +54,21 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
      * bow; 0 (the default) for an item that is not used over time. Plain items
      * need it for the {@code onUse...} handlers; items that are already used
      * over time (food, bows) have their own.
+     *
+     * @return the ticks, or 0
      */
     @ZenCodeType.Getter("useDuration")
     public int getUseDuration() {
         return useDuration;
     }
 
+    /**
+     * Sets the ticks the item takes to use when right-clicked, like eating or
+     * drawing a bow; 0 for an item that is not used over time.
+     *
+     * @param useDuration the ticks
+     * @docParam useDuration 32
+     */
     @ZenCodeType.Setter("useDuration")
     public void setUseDuration(int useDuration) {
         this.useDuration = useDuration;
@@ -63,15 +76,23 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
 
     /**
      * How the player holds the item while using it: {@code none}, {@code eat},
-     * {@code drink}, {@code
-     * block}, {@code bow}, {@code spear}, {@code crossbow}, {@code spyglass},
-     * {@code toot_horn} or {@code brush}.
+     * {@code drink}, {@code block}, {@code bow}, {@code spear}, {@code
+     * crossbow}, {@code spyglass}, {@code toot_horn} or {@code brush}.
+     *
+     * @return the animation's name
      */
     @ZenCodeType.Getter("useAnimation")
     public String getUseAnimation() {
         return useAnimation;
     }
 
+    /**
+     * Sets how the player holds the item while using it, such as {@code eat},
+     * {@code drink}, {@code block} or {@code bow}.
+     *
+     * @param useAnimation the animation's name
+     * @docParam useAnimation "eat"
+     */
     @ZenCodeType.Setter("useAnimation")
     public void setUseAnimation(String useAnimation) {
         net.minecraft.world.item.UseAnim
@@ -82,19 +103,35 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     /**
      * Runs {@code handler} when an entity starts using the item; it can change
      * the duration or cancel.
+     *
+     * @param handler the script function
+     * @return this builder
+     * @docParam handler (context) => { context.duration = 40; }
      */
     @ZenCodeType.Method
     public ScriptItemProperties onUseStart(ScriptItemUseHandler handler) {
         return use(MaterialEventTypes.ITEM_USE_START, handler);
     }
 
-    /** Runs {@code handler} each tick the item is used; it can cancel. */
+    /**
+     * Runs {@code handler} each tick the item is used; it can cancel.
+     *
+     * @param handler the script function
+     * @return this builder
+     * @docParam handler (context) => { println(context.duration); }
+     */
     @ZenCodeType.Method
     public ScriptItemProperties onUseTick(ScriptItemUseHandler handler) {
         return use(MaterialEventTypes.ITEM_USE_TICK, handler);
     }
 
-    /** Runs {@code handler} when use stops early, like releasing a bow. */
+    /**
+     * Runs {@code handler} when use stops early, like releasing a bow.
+     *
+     * @param handler the script function
+     * @return this builder
+     * @docParam handler (context) => { println(context.phase); }
+     */
     @ZenCodeType.Method
     public ScriptItemProperties onUseStop(ScriptItemUseHandler handler) {
         return use(MaterialEventTypes.ITEM_USE_STOP, handler);
@@ -103,6 +140,11 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     /**
      * Runs {@code handler} when use finishes; it can replace the stack left in
      * hand.
+     *
+     * @param handler the script function
+     * @return this builder
+     * @docParam handler (context) => { context.result = <item:minecraft:bowl>;
+     *           }
      */
     @ZenCodeType.Method
     public ScriptItemProperties onUseFinish(ScriptItemUseHandler handler) {
@@ -120,6 +162,10 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     /**
      * Runs {@code handler} on the server after a melee hit with the item has
      * dealt damage.
+     *
+     * @param handler the script function
+     * @return this builder
+     * @docParam handler (context) => { println(context.damage); }
      */
     @ZenCodeType.Method
     public ScriptItemProperties onHit(ScriptHitHandler handler) {
@@ -132,6 +178,11 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
      * Runs {@code handler} on the server when a player holding the item is
      * about to break a block; it can cancel, or {@code mine} more blocks (a 3x3
      * pickaxe).
+     *
+     * @param handler the script function
+     * @return this builder
+     * @docParam handler (context) => { context.mine(context.x, context.y - 1,
+     *           context.z); }
      */
     @ZenCodeType.Method
     public ScriptItemProperties onBreakBlock(ScriptBreakHandler handler) {
@@ -143,6 +194,10 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     /**
      * Runs {@code handler} when a player right-clicks with the item on air, a
      * block or an entity, on both sides, alongside the item's own use.
+     *
+     * @param handler the script function
+     * @return this builder
+     * @docParam handler (context) => { println(context.target); }
      */
     @ZenCodeType.Method
     public ScriptItemProperties onRightClick(ScriptItemClickHandler handler) {
@@ -151,12 +206,22 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
         return this;
     }
 
-    /** How many fit in one stack, 1 to 99. */
+    /**
+     * How many fit in one stack, 1 to 99.
+     *
+     * @return the stack size
+     */
     @ZenCodeType.Getter("stackSize")
     public int getStackSize() {
         return stackSize;
     }
 
+    /**
+     * Sets how many fit in one stack, 1 to 99.
+     *
+     * @param stackSize the stack size
+     * @docParam stackSize 16
+     */
     @ZenCodeType.Setter("stackSize")
     public void setStackSize(int stackSize) {
         this.stackSize = stackSize;
@@ -165,12 +230,21 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     /**
      * Uses before the item breaks; 0 for none. A positive value also sets the
      * stack size to 1.
+     *
+     * @return the uses, or 0
      */
     @ZenCodeType.Getter("durability")
     public int getDurability() {
         return durability;
     }
 
+    /**
+     * Sets the uses before the item breaks; 0 for none. A positive value also
+     * sets the stack size to 1.
+     *
+     * @param durability the uses
+     * @docParam durability 250
+     */
     @ZenCodeType.Setter("durability")
     public void setDurability(int durability) {
         this.durability = durability;
@@ -178,12 +252,22 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
             stackSize = 1;
     }
 
-    /** Whether the item survives fire and lava. */
+    /**
+     * Whether the item survives fire and lava.
+     *
+     * @return true if it survives fire
+     */
     @ZenCodeType.Getter("fireResistant")
     public boolean getFireResistant() {
         return fireResistant;
     }
 
+    /**
+     * Sets whether the item survives fire and lava.
+     *
+     * @param fireResistant true to survive
+     * @docParam fireResistant true
+     */
     @ZenCodeType.Setter("fireResistant")
     public void setFireResistant(boolean fireResistant) {
         this.fireResistant = fireResistant;
@@ -191,14 +275,22 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
 
     /**
      * What is left in the crafting grid after the item is used in a recipe,
-     * such as {@code
-     * minecraft:bucket}; an empty string for nothing.
+     * such as {@code minecraft:bucket}; an empty string for nothing.
+     *
+     * @return the item's ID, or an empty string
      */
     @ZenCodeType.Getter("container")
     public String getContainer() {
         return container.map(ResourceLocation::toString).orElse("");
     }
 
+    /**
+     * Sets what is left in the crafting grid after the item is used in a
+     * recipe; an empty string for nothing.
+     *
+     * @param container the item's ID
+     * @docParam container "minecraft:bucket"
+     */
     @ZenCodeType.Setter("container")
     public void setContainer(String container) {
         this.container = container.isEmpty()
@@ -207,8 +299,12 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
     }
 
     /**
-     * Configure only an item/module whose selected implementation is
-     * mmdlib:tool.
+     * Applies tool settings to the item's factory data. It is an error unless
+     * the selected implementation is {@code mmdlib:tool}.
+     *
+     * @param settings the settings to apply
+     * @return this builder
+     * @docParam settings new ToolSettings()
      */
     @ZenCodeType.Method
     public ScriptItemProperties configureTool(ScriptToolSettings settings) {
@@ -234,24 +330,55 @@ public abstract class ScriptItemProperties extends ScriptDefinitionProperties {
         return this;
     }
 
+    /**
+     * Sets what is left in the crafting grid after the item is used in a
+     * recipe, from a reference.
+     *
+     * @param item the item
+     * @return this builder
+     * @docParam item new ItemReference("minecraft:bucket")
+     */
     @ZenCodeType.Method
     public ScriptItemProperties remainder(ScriptItemReference item) {
         setContainer(item.getId());
         return this;
     }
 
+    /**
+     * Sets how many fit in one stack, as {@code stackSize} does.
+     *
+     * @param size the stack size, 1 to 99
+     * @return this builder
+     * @docParam size 16
+     */
     @ZenCodeType.Method
     public ScriptItemProperties stacksTo(int size) {
         setStackSize(size);
         return this;
     }
 
+    /**
+     * Sets what is left in the crafting grid after the item is used in a
+     * recipe, as {@code container} does.
+     *
+     * @param item the item's ID
+     * @return this builder
+     * @docParam item "minecraft:bucket"
+     */
     @ZenCodeType.Method
     public ScriptItemProperties craftRemainder(String item) {
         setContainer(item);
         return this;
     }
 
+    /**
+     * Sets what is left in the crafting grid after the item is used in a
+     * recipe, from a reference.
+     *
+     * @param item the item
+     * @return this builder
+     * @docParam item new ItemReference("minecraft:bucket")
+     */
     @ZenCodeType.Method
     public ScriptItemProperties craftRemainder(ScriptItemReference item) {
         return craftRemainder(item.getId());

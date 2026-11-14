@@ -50,9 +50,9 @@
   </xs:simpleType>
 
   <xs:simpleType name="valueRef">
-    <xs:annotation><xs:documentation>#method (instance getter on the block entity) or fully.qualified.Class#method (static, taking the block entity).</xs:documentation></xs:annotation>
+    <xs:annotation><xs:documentation>#method (instance getter on the block entity), fully.qualified.Class#method (static, taking the block entity), or @namespace:provider (a registered screen value provider).</xs:documentation></xs:annotation>
     <xs:restriction base="xs:string">
-      <xs:pattern value="(([A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*)?#[A-Za-z_$][A-Za-z0-9_$]*|#[A-Za-z_$][A-Za-z0-9_$]*\([0-9]+\))"/>
+      <xs:pattern value="(([A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*)?#[A-Za-z_$][A-Za-z0-9_$]*|#[A-Za-z_$][A-Za-z0-9_$]*\([0-9]+\)|@[a-z0-9_.\-]+:[a-z0-9_./\-]+)"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -123,6 +123,8 @@
     <xs:attribute name="on-right-click" type="resourceId"/>
     <xs:attribute name="on-shift-click" type="resourceId"/>
     <xs:attribute name="on-shift-right-click" type="resourceId"/>
+    <!-- Played for the player when the element is clicked: a sound event ID -->
+    <xs:attribute name="click-sound" type="resourceId"/>
     <xs:attribute name="on-hover" type="resourceId"/>
     <xs:attribute name="interaction" type="resourceId"/>
     <xs:attribute name="interaction-target" type="xs:string"/>

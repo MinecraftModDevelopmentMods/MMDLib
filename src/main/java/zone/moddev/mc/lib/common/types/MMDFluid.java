@@ -14,32 +14,20 @@ import net.minecraft.resources.ResourceLocation;
  * A material's fluid family: the fluid type, its source and flowing fluids, its
  * liquid block and its bucket. Only a definition: nothing is registered here.
  *
- * @param name
- *            the fluid ID, also used for the fluid type, the source fluid and
+ * @param name the fluid ID, also used for the fluid type, the source fluid and
  *            the liquid block
- * @param template
- *            the fluid module it was built from
- * @param material
- *            the owning material
- * @param parent
- *            an optional parent definition, may be null
- * @param typeProperties
- *            physical properties of the fluid type
- * @param flowProperties
- *            how the fluid spreads in the world
- * @param appearance
- *            textures and tint
- * @param block
- *            the liquid block, or null for none; it has no item
- * @param bucket
- *            the bucket item, or null for none; named {@code <name>_bucket}
- * @param events
- *            event bindings for the fluid
- * @param factory
- *            the fluid implementation ID, {@code mmdlib:flowing_fluid} by
+ * @param template the fluid module it was built from
+ * @param material the owning material
+ * @param parent an optional parent definition, may be null
+ * @param typeProperties physical properties of the fluid type
+ * @param flowProperties how the fluid spreads in the world
+ * @param appearance textures and tint
+ * @param block the liquid block, or null for none; it has no item
+ * @param bucket the bucket item, or null for none; named {@code <name>_bucket}
+ * @param events event bindings for the fluid
+ * @param factory the fluid implementation ID, {@code mmdlib:flowing_fluid} by
  *            default
- * @param factoryData
- *            that implementation's settings
+ * @param factoryData that implementation's settings
  */
 public record MMDFluid(ResourceLocation name, ResourceLocation template,
     ResourceLocation material, ResourceLocation parent,
@@ -64,11 +52,10 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
     /**
      * Validates the definition and copies the event bindings.
      *
-     * @throws IllegalArgumentException
-     *             if an event name is blank; the liquid block does not share
-     *             the fluid's ID and material or has an item; or the bucket
-     *             does not share the material or is not named
-     *             {@code <name>_bucket}
+     * @throws IllegalArgumentException if an event name is blank; the liquid
+     *             block does not share the fluid's ID and material or has an
+     *             item; or the bucket does not share the material or is not
+     *             named {@code <name>_bucket}
      */
     public MMDFluid {
         Objects.requireNonNull(factory);
@@ -104,10 +91,15 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
         return name;
     }
 
-    /** The flowing fluid's ID: {@code flowing_<name>}. */
+    /**
+     * The flowing fluid's ID: {@code flowing_<name>}, with the prefix on the
+     * last path segment ({@code test/flowing_syrup} for {@code test/syrup}).
+     */
     public ResourceLocation flowingId() {
+        var path = name.getPath();
+        int slash = path.lastIndexOf('/') + 1;
         return ResourceLocation.fromNamespaceAndPath(name.getNamespace(),
-            "flowing_" + name.getPath());
+            path.substring(0, slash) + "flowing_" + path.substring(slash));
     }
 
     /** The liquid block's ID, or null when there is no block. */
@@ -134,26 +126,16 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
      * The fluid type's physical properties, as in the {@code type} object of a
      * fluid module.
      *
-     * @param density
-     *            relative density; lighter-than-air fluids are negative
-     * @param viscosity
-     *            how slowly it flows and how hard it is to move through
-     * @param temperature
-     *            in kelvin
-     * @param lightLevel
-     *            light emitted, 0-15
-     * @param motionScale
-     *            how strongly it pushes entities
-     * @param canSwim
-     *            whether entities can swim in it
-     * @param canDrown
-     *            whether entities can drown in it
-     * @param canExtinguish
-     *            whether it puts out burning entities
-     * @param supportsBoating
-     *            whether boats float on it
-     * @param canHydrate
-     *            whether it hydrates farmland and the like
+     * @param density relative density; lighter-than-air fluids are negative
+     * @param viscosity how slowly it flows and how hard it is to move through
+     * @param temperature in kelvin
+     * @param lightLevel light emitted, 0-15
+     * @param motionScale how strongly it pushes entities
+     * @param canSwim whether entities can swim in it
+     * @param canDrown whether entities can drown in it
+     * @param canExtinguish whether it puts out burning entities
+     * @param supportsBoating whether boats float on it
+     * @param canHydrate whether it hydrates farmland and the like
      */
     public record TypeProperties(int density, int viscosity, int temperature,
         int lightLevel, double motionScale, boolean canSwim, boolean canDrown,
@@ -164,10 +146,9 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
         /**
          * Validates the values.
          *
-         * @throws IllegalArgumentException
-         *             if viscosity or temperature is negative, the light level
-         *             is outside 0-15, or the motion scale is negative or not
-         *             finite
+         * @throws IllegalArgumentException if viscosity or temperature is
+         *             negative, the light level is outside 0-15, or the motion
+         *             scale is negative or not finite
          */
         public TypeProperties {
             if (viscosity < 0 || temperature < 0 || lightLevel < 0
@@ -209,16 +190,13 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
      * How the fluid spreads in the world, as in the {@code flow} object of a
      * fluid module.
      *
-     * @param slopeFindDistance
-     *            how far the flowing fluid looks for a way down
-     * @param levelDecreasePerBlock
-     *            how much the level drops per block travelled (1-8)
-     * @param tickRate
-     *            ticks between flow updates
-     * @param explosionResistance
-     *            the liquid block's blast resistance
-     * @param canConvertToSource
-     *            whether two sources make a new source, as water does
+     * @param slopeFindDistance how far the flowing fluid looks for a way down
+     * @param levelDecreasePerBlock how much the level drops per block travelled
+     *            (1-8)
+     * @param tickRate ticks between flow updates
+     * @param explosionResistance the liquid block's blast resistance
+     * @param canConvertToSource whether two sources make a new source, as water
+     *            does
      */
     public record FlowProperties(int slopeFindDistance,
         int levelDecreasePerBlock, int tickRate, float explosionResistance,
@@ -229,10 +207,10 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
         /**
          * Validates the values.
          *
-         * @throws IllegalArgumentException
-         *             if the slope distance is negative, the level decrease is
-         *             outside 1-8, the tick rate is not positive, or the
-         *             explosion resistance is negative or not finite
+         * @throws IllegalArgumentException if the slope distance is negative,
+         *             the level decrease is outside 1-8, the tick rate is not
+         *             positive, or the explosion resistance is negative or not
+         *             finite
          */
         public FlowProperties {
             if (slopeFindDistance < 0 || levelDecreasePerBlock < 1
@@ -267,14 +245,10 @@ public record MMDFluid(ResourceLocation name, ResourceLocation template,
      * How the fluid looks, as in the {@code appearance} object of a fluid
      * module.
      *
-     * @param still
-     *            the still texture
-     * @param flowing
-     *            the flowing texture
-     * @param overlay
-     *            the texture seen through the fluid from inside, if any
-     * @param tint
-     *            an ARGB tint multiplied over the textures; -1 for none
+     * @param still the still texture
+     * @param flowing the flowing texture
+     * @param overlay the texture seen through the fluid from inside, if any
+     * @param tint an ARGB tint multiplied over the textures; -1 for none
      */
     public record Appearance(ResourceLocation still, ResourceLocation flowing,
         Optional<ResourceLocation> overlay, int tint) {

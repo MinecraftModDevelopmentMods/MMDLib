@@ -37,10 +37,8 @@ public final class ScreenLoader {
     /**
      * Loads every screen file under {@code sources}, sorted by ID.
      *
-     * @throws ScreenException
-     *             for an invalid file, naming it
-     * @throws IllegalArgumentException
-     *             if two files have the same ID
+     * @throws ScreenException for an invalid file, naming it
+     * @throws IllegalArgumentException if two files have the same ID
      */
     public static Map<ResourceLocation, ScreenBinder.Bound> load(
         List<SourceRoot> sources) {
@@ -57,6 +55,7 @@ public final class ScreenLoader {
         ScreenFillGenerator generator) {
         WidgetTypes.GLOBAL.freeze();
         zone.moddev.mc.lib.gui.value.ValueTypeRegistry.GLOBAL.freeze();
+        zone.moddev.mc.lib.gui.value.ScreenValueProviders.GLOBAL.freeze();
         ScreenTags.GLOBAL.freeze();
         var discovered = discover(sources);
         var screens = new TreeMap<ResourceLocation, ScreenBinder.Bound>();
@@ -170,10 +169,8 @@ public final class ScreenLoader {
      * Reads and binds one standalone screen file. Use {@link #load} to resolve
      * bases across files.
      *
-     * @throws ScreenException
-     *             if it is invalid
-     * @throws IOException
-     *             if it cannot be read
+     * @throws ScreenException if it is invalid
+     * @throws IOException if it cannot be read
      */
     public static ScreenBinder.Bound loadFile(ResourceLocation id, Path file,
         ClassLoader loader) throws IOException {

@@ -145,7 +145,49 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void toolsAndArmor(GameTestHelper helper) throws Exception {
+    public static void standaloneFluidFromData(GameTestHelper helper) {
+        FluidSmoke.fromData(helper.getLevel(), helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void standaloneFluidFromScript(GameTestHelper helper) {
+        FluidSmoke.fromScript();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void soundEventsRegistered(GameTestHelper helper) {
+        SoundSmoke.registered();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void creativeTabFromData(GameTestHelper helper) {
+        CreativeTabSmoke.workshop(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void creativeTabFromScript(GameTestHelper helper) {
+        CreativeTabSmoke.scriptTab(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void blockSoundSets(GameTestHelper helper) {
+        SoundSmoke.blockSoundSet();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void scriptSoundSets(GameTestHelper helper) {
+        SoundSmoke.scriptSoundSet();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void toolsAndArmor(GameTestHelper helper) {
         ContentSmoke.toolsAndArmor();
         helper.succeed();
     }
@@ -539,6 +581,41 @@ public final class MMDLibGameTests {
     @GameTest(template = EMPTY)
     public static void machineRecipeBuilder(GameTestHelper helper) {
         MachineRecipeTypeSmoke.builderMatchesFile(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void scriptMachineRecipes(GameTestHelper helper) {
+        MachineScriptSmoke.scriptRecipes(helper.getLevel(),
+            helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void scriptGeneratedRecipes(GameTestHelper helper) {
+        MachineScriptSmoke.generatedRecipes(helper.getLevel(),
+            helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void scriptMachineCycleHandlers(GameTestHelper helper) {
+        MachineScriptSmoke.cycleHandlers(helper.getLevel(),
+            helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void scriptScreenValues(GameTestHelper helper) {
+        CrusherSmoke.scriptScreenValues(helper.getLevel(),
+            helper.absolutePos(CENTER));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void scriptScreenHandlers(GameTestHelper helper) {
+        CrusherSmoke.scriptScreenHandlers(helper.getLevel(),
+            helper.absolutePos(CENTER), helper.makeMockServerPlayerInLevel());
         helper.succeed();
     }
 

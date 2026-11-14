@@ -46,10 +46,17 @@ public interface ElementAccess {
         return submit(element(), action, value);
     }
 
+    /**
+     * Sends a click on this element and, once sent, plays its
+     * {@code click-sound} for the player.
+     */
     default boolean click(ElementAction<ElementActions.Click> action,
         int button, int option) {
-        return submit(action,
+        boolean sent = submit(action,
             new ElementActions.Click(button, modifiers(), option));
+        if (sent)
+            ClickSounds.play(element());
+        return sent;
     }
 
     default int modifiers() {

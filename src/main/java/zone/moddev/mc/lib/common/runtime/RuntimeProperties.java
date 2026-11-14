@@ -5,7 +5,6 @@ import java.util.Locale;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 
@@ -40,8 +39,7 @@ public final class RuntimeProperties {
      * Fresh block properties from a definition and the material's runtime
      * settings.
      *
-     * @param fluid
-     *            whether this is a liquid block, which keeps its definition's
+     * @param fluid whether this is a liquid block, which keeps its definition's
      *            sound
      */
     public static BlockBehaviour.Properties block(MMDBlock definition,
@@ -51,7 +49,7 @@ public final class RuntimeProperties {
             .strength(d.hardness(), d.blastResistance()).friction(d.friction())
             .speedFactor(d.speedFactor()).jumpFactor(d.jumpFactor())
             .lightLevel(state -> d.lightLevel())
-            .sound(named(SoundType.class,
+            .sound(SoundTypes.resolve(
                 fluid ? d.sound() : runtime.blockSound().orElse(d.sound())))
             .mapColor(named(MapColor.class,
                 fluid
@@ -83,8 +81,7 @@ public final class RuntimeProperties {
     /**
      * The registry entry {@code id}.
      *
-     * @throws IllegalArgumentException
-     *             if it is missing
+     * @throws IllegalArgumentException if it is missing
      */
     public static <T> T required(net.minecraft.core.Registry<T> registry,
         ResourceLocation id) {

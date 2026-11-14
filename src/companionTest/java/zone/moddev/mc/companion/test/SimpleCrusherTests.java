@@ -175,11 +175,14 @@ public final class SimpleCrusherTests {
     @GameTest(template = "empty")
     public static void generatorDefaultsAndOrderedPreferences(
         GameTestHelper h) {
+        // Any stackable item from a mod, such as the companion's own.
         var modItem = BuiltInRegistries.ITEM.stream()
-            .filter(item -> BuiltInRegistries.ITEM.getKey(item).getNamespace()
-                .equals("mmdlib")
+            .filter(item -> !BuiltInRegistries.ITEM.getKey(item).getNamespace()
+                .equals("minecraft")
                 && item.getDefaultInstance().getMaxStackSize() >= 2)
             .findFirst().orElseThrow();
+        var modNamespace = BuiltInRegistries.ITEM.getKey(modItem)
+            .getNamespace();
         var tags = new ReloadTags(
             Map.of(ResourceLocation.parse("c:ores/testium"),
                 List.of(Items.IRON_ORE.builtInRegistryHolder()),
@@ -204,8 +207,9 @@ public final class SimpleCrusherTests {
             renamed.inputs().keySet().equals(Set.of("ores", "power"))
                 && renamed.outputs().keySet().equals(Set.of("ingots")),
             "Optional group name overrides");
-        var custom = direct(h, tags, Map.of("preferred-mods",
-            "missing; mmdlib ;minecraft", "time", "17", "energy", "41"))
+        var custom = direct(h, tags,
+            Map.of("preferred-mods", "missing; " + modNamespace + " ;minecraft",
+                "time", "17", "energy", "41"))
             .values().iterator().next();
         require(product(custom).is(modItem),
             "First available preferred namespace wins");

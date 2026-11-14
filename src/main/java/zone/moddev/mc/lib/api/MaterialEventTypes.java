@@ -167,11 +167,26 @@ public final class MaterialEventTypes {
     public static final MaterialEvent<BlockAction> BLOCK_RANDOM_TICK = new MaterialEvent<>(
         "block-random-tick", BlockAction.class);
 
+    /**
+     * An XML machine's processor started a new cycle, named by the processor's
+     * {@code on-start}; handler {@code (MachineCycle)}, on the server.
+     */
+    public static final MaterialEvent<MaterialEventContexts.MachineCycle> MACHINE_CYCLE_START = new MaterialEvent<>(
+        "machine-cycle-start", MaterialEventContexts.MachineCycle.class);
+
+    /**
+     * An XML machine's processor finished a cycle and placed its outputs, named
+     * by the processor's {@code on-finish}; handler {@code (MachineCycle)}, on
+     * the server.
+     */
+    public static final MaterialEvent<MaterialEventContexts.MachineCycle> MACHINE_CYCLE_FINISH = new MaterialEvent<>(
+        "machine-cycle-finish", MaterialEventContexts.MachineCycle.class);
+
     /** Every gameplay contract whose handler takes its context alone. */
     private static final List<MaterialEvent<?>> SINGLE_CONTEXT = List.of(
         ITEM_USE_START, ITEM_USE_TICK, ITEM_USE_STOP, ITEM_USE_FINISH, ITEM_HIT,
         ITEM_BREAK_BLOCK, BLOCK_BROKEN, BLOCK_PLACED, BLOCK_STEPPED_ON,
-        BLOCK_RANDOM_TICK);
+        BLOCK_RANDOM_TICK, MACHINE_CYCLE_START, MACHINE_CYCLE_FINISH);
 
     public static final MaterialEvent<zone.moddev.mc.lib.gui.runtime.ScreenHover> GUI_HOVER = new MaterialEvent<>(
         "gui-hover", zone.moddev.mc.lib.gui.runtime.ScreenHover.class);

@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.compat.CraftTweaker;
 
 import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker_annotations.annotations.Document;
 
 import net.minecraft.world.entity.player.Player;
 
@@ -12,8 +13,11 @@ import zone.moddev.mc.lib.api.MaterialEventContexts.BlockClick;
  * What an {@code onRightClick} handler receives: the block, who clicked it and
  * on which face. The handler runs on both sides; the click is used up, so the
  * held item does nothing.
+ *
+ * @docParam this context
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
+@Document("mods/MMDLib/events/ClickContext")
 @ZenCodeType.Name("mods.mmdlib.ClickContext")
 public final class ScriptClickContext extends ScriptBlockContext {
     private final BlockClick click;
@@ -23,19 +27,31 @@ public final class ScriptClickContext extends ScriptBlockContext {
         this.click = click;
     }
 
-    /** The player who clicked. */
+    /**
+     * The player who clicked.
+     *
+     * @return the player
+     */
     @ZenCodeType.Getter("player")
     public Player getPlayer() {
         return click.player();
     }
 
-    /** Whether the player was sneaking. */
+    /**
+     * Whether the player was sneaking.
+     *
+     * @return true if sneaking
+     */
     @ZenCodeType.Getter("sneaking")
     public boolean isSneaking() {
         return click.player().isShiftKeyDown();
     }
 
-    /** The clicked face, such as {@code up}. */
+    /**
+     * The clicked face, such as {@code up}.
+     *
+     * @return the face
+     */
     @ZenCodeType.Getter("face")
     public String getFace() {
         return click.use().face().getSerializedName();

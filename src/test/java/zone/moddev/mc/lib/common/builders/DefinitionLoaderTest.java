@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader;
+import zone.moddev.mc.lib.common.types.CreativeTabDefinition;
 
 public final class DefinitionLoaderTest {
     private static final AtomicInteger calls = new AtomicInteger();
@@ -59,6 +60,9 @@ public final class DefinitionLoaderTest {
                 """
                     {"module":"beta:components/gear","template":{"max_stack_size":1}}
                     """);
+            write(beta, "standalone/fluid/brine.json", """
+                {"module":"beta:coolant","tint":-5,"viscosity":2000}
+                """);
             write(beta, "standalone/item/gated.json", """
                 {"module":"beta:optional"}
                 """);
@@ -117,6 +121,17 @@ public final class DefinitionLoaderTest {
                 && wrench.get(id("beta:tools/wrench")).maxStackSize() == 1);
             require(DefinitionLoader.load(sources, api(), mod -> true)
                 .standaloneItems().containsKey(id("beta:gated")));
+            // A standalone fluid keeps its file ID for the whole family.
+            require(loaded.standaloneFluids().keySet()
+                .equals(java.util.Set.of(id("beta:brine"))));
+            var brine = loaded.standaloneFluids().get(id("beta:brine"))
+                .content().fluid();
+            require(brine.name().equals(id("beta:brine"))
+                && brine.bucketId().equals(id("beta:brine_bucket"))
+                && brine.flowingId().equals(id("beta:flowing_brine"))
+                && brine.appearance().tint() == -5
+                && brine.typeProperties().viscosity() == 2000
+                && brine.factory().equals(id("beta:fluid")));
             var reversed = DefinitionLoader.load(
                 List.of(sources.get(1), sources.get(0)), api(), mod -> false);
             require(reversed.materials().equals(loaded.materials()));
@@ -211,6 +226,199 @@ public final class DefinitionLoaderTest {
             require(DefinitionLoader
                 .load(List.of(), new MaterialExtensions(), mod -> false)
                 .materials().isEmpty());
+        } finally {
+            try (var paths = Files.walk(temporary)) {
+                for (var path : paths
+                    .sorted(java.util.Comparator.reverseOrder()).toList())
+                    Files.delete(path);
+            }
+        }
+    }
+
+    @Test
+    void loadsSoundEvents() throws Exception {
+        Path temporary = Files.createTempDirectory("mmdlib-sounds");
+        var loader = DefinitionLoaderTest.class.getClassLoader();
+        try {
+            var alpha = temporary.resolve("alpha/mmdlib");
+            var beta = temporary.resolve("beta/mmdlib");
+            write(alpha, "sound/machine/hum.json", "{\"range\": 24}");
+            write(beta, "sound/click.json", "{}");
+            var loaded = DefinitionLoader
+                .load(
+                    List.of(new SourceRoot("alpha", alpha, loader),
+                        new SourceRoot("beta", beta, loader)),
+                    api(), mod -> false);
+            require(loaded.sounds().keySet().equals(
+                java.util.Set.of(id("alpha:machine/hum"), id("beta:click"))));
+            require(loaded.sounds().get(id("alpha:machine/hum")).range()
+                .equals(java.util.Optional.of(24f)));
+            require(loaded.sounds().get(id("beta:click")).range().isEmpty());
+
+            var bad = temporary.resolve("bad/mmdlib");
+            write(bad, "sound/silent.json", "{\"range\": 0}");
+            expectFailure(() -> DefinitionLoader.load(
+                List.of(new SourceRoot("bad", bad, loader)), api(),
+                mod -> false), "silent.json");
+
+            write(alpha, "sound_type/steel.json", """
+                {"base":"metal","place":"alpha:machine/hum","volume":0.5}
+                """);
+            var withSets = DefinitionLoader.load(
+                List.of(new SourceRoot("alpha", alpha, loader)), api(),
+                mod -> false);
+            var steel = withSets.soundTypes().get(id("alpha:steel"));
+            require(steel.base().equals("metal")
+                && steel.place()
+                    .equals(java.util.Optional.of(id("alpha:machine/hum")))
+                && steel.breakSound().isEmpty()
+                && steel.volume().equals(java.util.Optional.of(.5f)));
+            var chained = temporary.resolve("chained/mmdlib");
+            write(chained, "sound_type/loop.json",
+                "{\"base\": \"alpha:steel\"}");
+            expectFailure(() -> DefinitionLoader.load(
+                List.of(new SourceRoot("chained", chained, loader)), api(),
+                mod -> false), "loop.json", "vanilla sound set name");
+        } finally {
+            try (var paths = Files.walk(temporary)) {
+                for (var path : paths
+                    .sorted(java.util.Comparator.reverseOrder()).toList())
+                    Files.delete(path);
+            }
+        }
+    }
+
+    @Test
+    void loadsCreativeTabs() throws Exception {
+        Path temporary = Files.createTempDirectory("mmdlib-tabs");
+        var loader = DefinitionLoaderTest.class.getClassLoader();
+        try {
+            var root = temporary.resolve("alpha/mmdlib");
+            write(root, "creative_tab/tools.json",
+                """
+                    {"title": "itemGroup.alpha.tools", "title_fallback": "Tools",
+                     "icon": "alpha:hammer",
+                     "contents": ["alpha:hammer", "#c:ingots", {"material": "alpha:copper"}],
+                     "before": ["minecraft:combat"], "after": ["minecraft:tools_and_utilities"],
+                     "search_bar": true}
+                    """);
+            write(root, "creative_tab/misc/odds.json",
+                "{\"contents\": [{\"material\": \"alpha:tin\"}]}");
+            var tabs = DefinitionLoader
+                .load(List.of(new SourceRoot("alpha", root, loader)), api(),
+                    mod -> false)
+                .creativeTabs();
+            var tools = tabs.get(id("alpha:tools"));
+            var built = CreativeTabDefinition.builder()
+                .title("itemGroup.alpha.tools", "Tools")
+                .icon(id("alpha:hammer")).item(id("alpha:hammer"))
+                .tag(id("c:ingots")).material(id("alpha:copper"))
+                .before(id("minecraft:combat"))
+                .after(id("minecraft:tools_and_utilities")).searchBar().build();
+            require(tools.equals(built));
+            var odds = tabs.get(id("alpha:misc/odds"));
+            require(odds.titleKey(id("alpha:misc/odds"))
+                .equals("itemGroup.alpha.misc.odds") && odds.icon().isEmpty()
+                && !odds.searchBar() && odds.before().isEmpty());
+
+            var bad = temporary.resolve("bad/mmdlib");
+            write(bad, "creative_tab/tags.json",
+                "{\"contents\": [\"#c:ingots\"]}");
+            expectFailure(() -> DefinitionLoader.load(
+                List.of(new SourceRoot("bad", bad, loader)), api(),
+                mod -> false), "tags.json", "needs an icon");
+            var worse = temporary.resolve("worse/mmdlib");
+            write(worse, "creative_tab/broken.json",
+                "{\"contents\": [\"Not An Item\"]}");
+            expectFailure(() -> DefinitionLoader.load(
+                List.of(new SourceRoot("worse", worse, loader)), api(),
+                mod -> false), "broken.json");
+        } finally {
+            try (var paths = Files.walk(temporary)) {
+                for (var path : paths
+                    .sorted(java.util.Comparator.reverseOrder()).toList())
+                    Files.delete(path);
+            }
+        }
+    }
+
+    @Test
+    void sourcesReplaceSoundsAndSoundSets() throws Exception {
+        Path temporary = Files.createTempDirectory("mmdlib-source-sounds");
+        var loader = DefinitionLoaderTest.class.getClassLoader();
+        try {
+            var root = temporary.resolve("alpha/mmdlib");
+            write(root, "sound/hum.json", "{}");
+            write(root, "sound_type/steel.json", "{\"base\": \"metal\"}");
+            var louder = new zone.moddev.mc.lib.common.types.SoundDefinition(
+                java.util.Optional.of(40f));
+            var wooden = new zone.moddev.mc.lib.common.types.SoundTypeDefinition(
+                "wood", java.util.Optional.empty(), java.util.Optional.empty(),
+                java.util.Optional.empty(), java.util.Optional.empty(),
+                java.util.Optional.empty(), java.util.Optional.empty(),
+                java.util.Optional.empty());
+            var seen = new java.util.ArrayList<ResourceLocation>();
+            var api = api();
+            api.registerDefinitionSource("scripts", catalog -> {
+                seen.addAll(catalog.soundFiles().keySet());
+                seen.addAll(catalog.soundTypeFiles().keySet());
+                return new MaterialExtensions.Definitions(List.of(), Map.of(),
+                    Map.of(), Map.of(), Map.of(id("alpha:hum"), louder), Map.of(
+                        id("alpha:steel"), wooden, id("mmdlib:new"), wooden));
+            });
+            var loaded = DefinitionLoader.load(
+                List.of(new SourceRoot("alpha", root, loader)), api,
+                mod -> false);
+            require(seen.equals(List.of(id("alpha:hum"), id("alpha:steel"))));
+            require(loaded.sounds().get(id("alpha:hum")).equals(louder));
+            require(loaded.soundTypes().get(id("alpha:steel")).equals(wooden)
+                && loaded.soundTypes().containsKey(id("mmdlib:new")));
+        } finally {
+            try (var paths = Files.walk(temporary)) {
+                for (var path : paths
+                    .sorted(java.util.Comparator.reverseOrder()).toList())
+                    Files.delete(path);
+            }
+        }
+    }
+
+    @Test
+    void sourcesReplaceAndAddCreativeTabs() throws Exception {
+        Path temporary = Files.createTempDirectory("mmdlib-source-tabs");
+        var loader = DefinitionLoaderTest.class.getClassLoader();
+        try {
+            var root = temporary.resolve("alpha/mmdlib");
+            write(root, "creative_tab/tools.json",
+                "{\"contents\": [\"alpha:hammer\"]}");
+            var sources = List.of(new SourceRoot("alpha", root, loader));
+            var changed = CreativeTabDefinition.builder()
+                .item(id("alpha:hammer")).item(id("minecraft:apple")).build();
+            var added = CreativeTabDefinition.builder()
+                .item(id("minecraft:stick")).build();
+            var seen = new java.util.ArrayList<ResourceLocation>();
+            var api = api();
+            api.registerDefinitionSource("scripts", catalog -> {
+                // The file's tab is visible before any source returns.
+                seen.addAll(catalog.creativeTabFiles().keySet());
+                return new MaterialExtensions.Definitions(List.of(), Map.of(),
+                    Map.of(), Map.of(id("alpha:tools"), changed,
+                        id("mmdlib:extra"), added));
+            });
+            var tabs = DefinitionLoader.load(sources, api, mod -> false)
+                .creativeTabs();
+            require(seen.equals(List.of(id("alpha:tools"))));
+            require(tabs.get(id("alpha:tools")).equals(changed)
+                && tabs.get(id("mmdlib:extra")).equals(added)
+                && tabs.size() == 2);
+
+            var twice = api();
+            for (var name : List.of("first", "second"))
+                twice.registerDefinitionSource(name,
+                    catalog -> new MaterialExtensions.Definitions(List.of(),
+                        Map.of(), Map.of(), Map.of(id("mmdlib:extra"), added)));
+            expectFailure(
+                () -> DefinitionLoader.load(sources, twice, mod -> false),
+                "Duplicate creative tab mmdlib:extra", "first", "second");
         } finally {
             try (var paths = Files.walk(temporary)) {
                 for (var path : paths

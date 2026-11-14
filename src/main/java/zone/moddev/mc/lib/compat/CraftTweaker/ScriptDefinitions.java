@@ -14,8 +14,12 @@ import net.minecraft.resources.ResourceLocation;
 import zone.moddev.mc.lib.MMDLib;
 import zone.moddev.mc.lib.api.MaterialExtensions;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
+import zone.moddev.mc.lib.common.types.CreativeTabDefinition;
 import zone.moddev.mc.lib.common.types.MMDMaterial;
+import zone.moddev.mc.lib.common.types.SoundDefinition;
+import zone.moddev.mc.lib.common.types.SoundTypeDefinition;
 import zone.moddev.mc.lib.common.types.StandaloneBlock;
+import zone.moddev.mc.lib.common.types.StandaloneFluid;
 import zone.moddev.mc.lib.common.types.StandaloneItem;
 
 /**
@@ -37,11 +41,16 @@ final class ScriptDefinitions {
     private static final Map<ResourceLocation, MMDMaterial> materials = new LinkedHashMap<>();
     private static final Map<ResourceLocation, StandaloneBlock> blocks = new LinkedHashMap<>();
     private static final Map<ResourceLocation, StandaloneItem> items = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, StandaloneFluid> fluids = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, CreativeTabDefinition> tabs = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, SoundDefinition> sounds = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, SoundTypeDefinition> soundTypes = new LinkedHashMap<>();
     private static final Map<ResourceLocation, Set<ResourceLocation>> itemTags = new LinkedHashMap<>();
     private static final Map<ResourceLocation, ResourceLocation> basedOn = new LinkedHashMap<>();
     private static volatile Set<ResourceLocation> materialIds = Set.of();
     private static volatile Set<ResourceLocation> blockIds = Set.of();
     private static volatile Set<ResourceLocation> itemIds = Set.of();
+    private static volatile Set<ResourceLocation> fluidIds = Set.of();
     private static volatile Map<ResourceLocation, Set<ResourceLocation>> builtItemTags = Map
         .of();
     private static volatile Map<ResourceLocation, ResourceLocation> builtBasedOn = Map
@@ -78,6 +87,10 @@ final class ScriptDefinitions {
         materials.clear();
         blocks.clear();
         items.clear();
+        fluids.clear();
+        tabs.clear();
+        sounds.clear();
+        soundTypes.clear();
         itemTags.clear();
         basedOn.clear();
         resources.clear();
@@ -98,27 +111,32 @@ final class ScriptDefinitions {
         } finally {
             catalog = null;
         }
-        logger.info("MMDLib scripts built {} materials, {} blocks and {} items",
-            materials.size(), blocks.size(), items.size());
+        logger.info(
+            "MMDLib scripts built {} materials, {} blocks, {} items and {} fluids",
+            materials.size(), blocks.size(), items.size(), fluids.size());
         materialIds = Set.copyOf(materials.keySet());
         blockIds = Set.copyOf(blocks.keySet());
         itemIds = Set.copyOf(items.keySet());
+        fluidIds = Set.copyOf(fluids.keySet());
         builtItemTags = Map.copyOf(itemTags);
         builtBasedOn = Map.copyOf(basedOn);
         builtResources = Map.copyOf(resources);
         var result = new MaterialExtensions.Definitions(materials.values(),
-            blocks, items);
+            blocks, items, tabs, sounds, soundTypes, fluids);
         materials.clear();
         blocks.clear();
         items.clear();
+        fluids.clear();
+        tabs.clear();
+        sounds.clear();
+        soundTypes.clear();
         return result;
     }
 
     /**
      * The catalog being loaded.
      *
-     * @throws IllegalStateException
-     *             outside the startup run
+     * @throws IllegalStateException outside the startup run
      */
     static synchronized MaterialExtensions catalog() {
         if (catalog == null)
@@ -131,8 +149,8 @@ final class ScriptDefinitions {
     /**
      * Records a built material.
      *
-     * @throws IllegalStateException
-     *             outside the startup run, or if the name was already built
+     * @throws IllegalStateException outside the startup run, or if the name was
+     *             already built
      */
     static synchronized void add(MMDMaterial material) {
         catalog();
@@ -145,9 +163,61 @@ final class ScriptDefinitions {
     /**
      * Records a built standalone block.
      *
-     * @throws IllegalStateException
-     *             outside the startup run, or if the ID was already built
+     * @throws IllegalStateException outside the startup run, or if the ID was
+     *             already built
      */
+    /**
+     * Queues a built creative tab; a tab declared in a file is replaced by it.
+     *
+     * @throws IllegalStateException if a script already built {@code id}
+     */
+    static synchronized void add(ResourceLocation id,
+        CreativeTabDefinition tab) {
+        catalog();
+        if (tabs.putIfAbsent(id, tab) != null)
+            throw new IllegalStateException(
+                "Creative tab " + id + " is already built");
+    }
+
+    /**
+     * Queues a built sound event; one declared in a file is replaced by it.
+     *
+     * @throws IllegalStateException if a script already built {@code id}
+     */
+    static synchronized void add(ResourceLocation id, SoundDefinition sound) {
+        catalog();
+        if (sounds.putIfAbsent(id, sound) != null)
+            throw new IllegalStateException(
+                "Sound event " + id + " is already built");
+    }
+
+    /**
+     * Queues a built block sound set; one declared in a file is replaced by it.
+     *
+     * @throws IllegalStateException if a script already built {@code id}
+     */
+    static synchronized void add(ResourceLocation id, SoundTypeDefinition set) {
+        catalog();
+        if (soundTypes.putIfAbsent(id, set) != null)
+            throw new IllegalStateException(
+                "Sound set " + id + " is already built");
+    }
+
+    /** The sound events declared in {@code mmdlib/sound/} files. */
+    static Map<ResourceLocation, SoundDefinition> soundFiles() {
+        return catalog().soundFiles();
+    }
+
+    /** The block sound sets declared in {@code mmdlib/sound_type/} files. */
+    static Map<ResourceLocation, SoundTypeDefinition> soundTypeFiles() {
+        return catalog().soundTypeFiles();
+    }
+
+    /** The creative tabs declared in {@code mmdlib/creative_tab/} files. */
+    static Map<ResourceLocation, CreativeTabDefinition> creativeTabFiles() {
+        return catalog().creativeTabFiles();
+    }
+
     static synchronized void add(ResourceLocation id, StandaloneBlock block) {
         catalog();
         if (blocks.putIfAbsent(id, block) != null)
@@ -156,10 +226,23 @@ final class ScriptDefinitions {
     }
 
     /**
+     * Records a built standalone fluid.
+     *
+     * @throws IllegalStateException outside the startup run, or if the ID was
+     *             already built
+     */
+    static synchronized void add(ResourceLocation id, StandaloneFluid fluid) {
+        catalog();
+        if (fluids.putIfAbsent(id, fluid) != null)
+            throw new IllegalStateException(
+                "Fluid " + id + " is already built");
+    }
+
+    /**
      * Records a built standalone item and its item tags.
      *
-     * @throws IllegalStateException
-     *             outside the startup run, or if the ID was already built
+     * @throws IllegalStateException outside the startup run, or if the ID was
+     *             already built
      */
     static synchronized void add(ResourceLocation id, StandaloneItem item,
         Set<ResourceLocation> tags) {
@@ -204,6 +287,13 @@ final class ScriptDefinitions {
     static List<MaterialFactory.Result> materialResults() {
         var loaded = MMDLib.loadedMaterials();
         return materialIds.stream().sorted().map(loaded::get)
+            .filter(Objects::nonNull).toList();
+    }
+
+    /** The loaded results of script fluids; empty before definitions load. */
+    static List<MaterialFactory.Result> fluidResults() {
+        var loaded = MMDLib.standaloneFluids();
+        return fluidIds.stream().sorted().map(loaded::get)
             .filter(Objects::nonNull).toList();
     }
 

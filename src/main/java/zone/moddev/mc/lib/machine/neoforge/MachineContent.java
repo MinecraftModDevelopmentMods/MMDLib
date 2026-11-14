@@ -108,6 +108,36 @@ public final class MachineContent {
         return BuiltInRegistries.ITEM.get(RECOVERY);
     }
 
+    /**
+     * Requires each of the machine's {@code on-start} and {@code on-finish} IDs
+     * to be a registered handler of its event; scripts and mods register theirs
+     * before machines load.
+     */
+    private static void checkEvents(MachineDefinition machine) {
+        var events = zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.events();
+        machine.events().start()
+            .ifPresent(id -> checkEvent(machine, "on-start", id,
+                zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
+                events));
+        machine.events().finish()
+            .ifPresent(id -> checkEvent(machine, "on-finish", id,
+                zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
+                events));
+    }
+
+    private static void checkEvent(MachineDefinition machine, String attribute,
+        ResourceLocation id, zone.moddev.mc.lib.api.MaterialEvent<?> event,
+        zone.moddev.mc.lib.api.MaterialEvents events) {
+        var callback = events.callbacks().get(id);
+        if (callback == null)
+            throw new IllegalArgumentException(machine.id() + ": " + attribute
+                + " names " + id + ", which no mod or script registered");
+        if (!callback.event().equals(event))
+            throw new IllegalArgumentException(machine.id() + ": " + attribute
+                + " names " + id + ", which is a " + callback.event().name()
+                + " handler, not " + event.name());
+    }
+
     public static void load(List<SourceRoot> roots) {
         definitions = MachineDefinitions.load(roots);
         var declarations = new TreeMap<ResourceLocation, MachineDefinition.RecipeType>();
@@ -129,6 +159,7 @@ public final class MachineContent {
                         + ": recipe type must be declared in machine XML: "
                         + type.id());
             });
+        definitions.values().forEach(MachineContent::checkEvents);
         GeneratedMachineRecipes.configure(declarations);
         var embedded = new TreeMap<ResourceLocation, zone.moddev.mc.lib.gui.load.ScreenReader.Node>();
         definitions

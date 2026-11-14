@@ -783,6 +783,12 @@ validate any machine-specific permission or operation it implements.
              "handler": "example.PressEvents#eject", "name": "Eject outputs"}]}
 ```
 
+Code can register a handler directly, with
+`MaterialExtensions.GLOBAL.events().registerCallback(id, MaterialEventTypes.GUI_CLICK, click -> ...)`.
+CraftTweaker scripts can supply handlers too, as `mmdlib:` IDs: the screen stays
+XML and names them like any other handler. See
+[CraftTweaker screen handlers](crafttweaker.md#screen-handlers).
+
 The owning mod must register every prepared block-entity handle after queuing its definitions;
 see [block entities](block-entities.md). MMDLib uses the resulting type for block construction,
 screen lookup and capability registration.
@@ -1988,7 +1994,7 @@ use `layout.bounds(slotElement)` for independently placed sections.
 ## Values
 
 `value` and `max` name a getter on the mod's own Java code, which is always present behind a
-screen anyway. Every open screen belongs to exactly one block entity (the menu is created for
+screen anyway, or a named value provider. Every open screen belongs to exactly one block entity (the menu is created for
 the block at a position), and that instance is what the getters are called on:
 
 | Form | Resolves to | Called as |
@@ -1996,6 +2002,15 @@ the block at a position), and that instance is what the getters are called on:
 | `#method` | A public instance method on the screen's `block-entity` class (or a superclass or interface of it), taking no parameters | `blockEntity.method()` |
 | `#method(index)` | A public instance getter taking one fixed nonnegative `int`, e.g. `#getTankFluid(0)` | `blockEntity.method(index)` |
 | `Class#method` | A public **static** method taking the block entity (or a supertype) as its only parameter, e.g. a helper shared by several machines | `Class.method(blockEntity)` |
+| `@namespace:id` | A value provider registered under that ID, by code or a CraftTweaker script | `provider(blockEntity)` |
+
+A value provider is registered with
+`ScreenValueProviders.GLOBAL.register(id, valueType, blockEntity -> value)` during mod
+construction, on both sides, like a value type; the registry freezes when screens load. It
+declares the value type it returns (`ValueTypes.WHOLE`, `DECIMAL`, `BOOLEAN`, `TEXT`, ...), which
+is checked against the element at load like a getter's return type; an unknown provider fails
+with the file and line. Providers suit values that don't belong on the block entity class, and
+let a pack's [CraftTweaker scripts](crafttweaker.md#screen-values) supply values to XML screens.
 
 Resolution happens in two steps. At load, each reference is looked up from the class and name
 alone (`findVirtual` / `findStatic`) and checked; no instance is involved. When a player opens
@@ -2043,6 +2058,7 @@ and some values (ProjectE's EMC, for one) exceed even a Java `long`.
 | `tooltip-shift` | client | Detailed tooltip shown while Shift is held; a "Shift for more" hint is added automatically |
 | `on-click`, `on-right-click` | server | Handler IDs from extension files; the handler receives the player, menu, element, and held modifier keys |
 | `on-shift-click`, `on-shift-right-click` | server | Optional: used instead of the plain handler while Shift is held |
+| `click-sound` | client only | Sound event ID played for the player when the element is clicked, as an interface sound like vanilla's button click. Any sound in a `sounds.json` works, registered or not; see [sound events](definition-loading.md#sound-events) |
 | `interaction`, `interaction-target` | server | Reusable registered behavior and its screen-authored target; supported on every element except inventory slots |
 | `on-hover` | client only | Handler run when the mouse enters and leaves the element; display only, it cannot change game state |
 | `hover-shows` | client | ID of an element to show while hovering, without any handler |

@@ -184,8 +184,8 @@ human detector) is therefore data, not a class:
 "factory_data": { "block_set_type": "stone", "detects": "players" }
 ```
 
-MMDLib ships this as the standalone block `mmdlib:human_detector` (brick-textured; BaseMetals'
-recipe: two bricks over two gears of any material, `#c:bricks/normal` / `#c:gears`); see [standalone blocks](definition-loading.md#standalone-blocks).
+BaseMetals ships it as the standalone block `basemetals:human_detector`; see
+[standalone blocks](definition-loading.md#standalone-blocks).
 An unknown `detects` value fails when the definition loads.
 
 `mmdlib:weighted_pressure_plate` is vanilla's weighted plate: its signal grows with the
@@ -242,9 +242,8 @@ This pass does not turn tag metadata into generated resources for each material.
 
 `RuntimeContentRegistrar` applies the built-in item/block helpers, material-aware
 arrow/bolt classes, and fluid families to actual registries. Client rendering and
-fluid extensions are installed by the client-only runtime subscriber. MMDLib's
-[vanilla example](vanilla-extensions.md) exercises this route; custom machinery,
-and world entities still need their specific APIs. Event bindings on loaded item,
+fluid extensions are installed by the client-only runtime subscriber. Custom
+machinery and world entities still need their specific APIs. Event bindings on loaded item,
 block, and material definitions are dispatched by the runtime event bridge.
 `StandardItems` by itself deliberately rejects ammunition instead of substituting
 an item that cannot shoot.

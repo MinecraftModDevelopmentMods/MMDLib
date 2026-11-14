@@ -42,14 +42,10 @@ public final class ScreenBinder {
     /**
      * A screen with its getters resolved.
      *
-     * @param screen
-     *            the screen
-     * @param blockEntityClass
-     *            the class every getter accepts
-     * @param values
-     *            each element's {@code value} getter, by element identity
-     * @param maxima
-     *            each element's {@code max} getter, by element identity
+     * @param screen the screen
+     * @param blockEntityClass the class every getter accepts
+     * @param values each element's {@code value} getter, by element identity
+     * @param maxima each element's {@code max} getter, by element identity
      */
     public record Bound(Screen screen, Class<?> blockEntityClass,
         Map<Element, BoundValue> values, Map<Element, BoundValue> maxima) {
@@ -58,12 +54,10 @@ public final class ScreenBinder {
     /**
      * Resolves every getter of {@code screen}.
      *
-     * @param loader
-     *            the class loader of the mod that owns the screen file
-     * @throws ScreenException
-     *             naming the file and line, if a class or method is missing, is
-     *             not public, has the wrong shape, or returns a kind the
-     *             element cannot show
+     * @param loader the class loader of the mod that owns the screen file
+     * @throws ScreenException naming the file and line, if a class or method is
+     *             missing, is not public, has the wrong shape, or returns a
+     *             kind the element cannot show
      */
     public static Bound bind(Screen screen, ClassLoader loader) {
         return bind(screen, loader, WidgetTypes.GLOBAL);
@@ -81,6 +75,14 @@ public final class ScreenBinder {
      */
     public static Bound bind(Screen screen, ClassLoader loader,
         WidgetTypes widgets, ValueTypeRegistry types) {
+        return bind(screen, loader, widgets, types,
+            zone.moddev.mc.lib.gui.value.ScreenValueProviders.GLOBAL);
+    }
+
+    /** Binds using explicit registries, value providers included. */
+    public static Bound bind(Screen screen, ClassLoader loader,
+        WidgetTypes widgets, ValueTypeRegistry types,
+        zone.moddev.mc.lib.gui.value.ScreenValueProviders providers) {
         ScreenValidation.check(screen, widgets);
         var source = screen.source();
         Class<?> owner = load(screen.blockEntity(), loader, source, 0,
@@ -109,18 +111,25 @@ public final class ScreenBinder {
             if (c.value().isPresent())
                 values.put(element,
                     resolve(c.value().get(), owner, loader, elementSource,
-                        c.line(), element.valueKinds(widgets), types));
+                        c.line(), element.valueKinds(widgets), types,
+                        providers));
             if (c.max().isPresent())
-                maxima.put(element, resolve(c.max().get(), owner, loader,
-                    elementSource, c.line(), element.maximumKinds(), types));
+                maxima.put(element,
+                    resolve(c.max().get(), owner, loader, elementSource,
+                        c.line(), element.maximumKinds(), types, providers));
         }
         return new Bound(screen, owner, values, maxima);
     }
 
     private static BoundValue resolve(ValueRef ref, Class<?> owner,
         ClassLoader loader, String source, int line, Set<ValueType<?>> allowed,
-        ValueTypeRegistry types) {
+        ValueTypeRegistry types,
+        zone.moddev.mc.lib.gui.value.ScreenValueProviders providers) {
+        if (ref instanceof ValueRef.Provided provided)
+            return provided(provided, source, line, allowed, providers);
         Method method = switch (ref) {
+            case ValueRef.Provided unreachable ->
+                throw new IllegalStateException();
             case ValueRef.Instance instance ->
                 instanceMethod(owner, instance, source, line);
             case ValueRef.Indexed indexed ->
@@ -151,6 +160,34 @@ public final class ScreenBinder {
             throw new ScreenException(source, line,
                 ref.text() + " is not accessible", ex);
         }
+    }
+
+    private static final MethodHandle APPLY;
+
+    static {
+        try {
+            APPLY = MethodHandles.publicLookup().findVirtual(
+                java.util.function.Function.class, "apply",
+                MethodType.methodType(Object.class, Object.class));
+        } catch (ReflectiveOperationException ex) {
+            throw new ExceptionInInitializerError(ex);
+        }
+    }
+
+    /** Binds a named value provider, checking its type against the element. */
+    private static BoundValue provided(ValueRef.Provided ref, String source,
+        int line, Set<ValueType<?>> allowed,
+        zone.moddev.mc.lib.gui.value.ScreenValueProviders providers) {
+        var provider = providers.get(ref.id())
+            .orElseThrow(() -> new ScreenException(source, line,
+                "No screen value provider " + ref.id()
+                    + "; register it with ScreenValueProviders or a script"));
+        if (!allowed.contains(provider.kind()))
+            throw new ScreenException(source, line,
+                ref.text() + " provides " + provider.kind().id()
+                    + "; this element needs " + describe(allowed));
+        var reader = provider.reader();
+        return new BoundValue(ref, provider.kind(), APPLY.bindTo(reader));
     }
 
     private static Method instanceMethod(Class<?> owner, ValueRef.Instance ref,

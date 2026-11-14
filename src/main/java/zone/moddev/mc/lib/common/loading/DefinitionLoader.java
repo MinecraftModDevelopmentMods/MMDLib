@@ -21,7 +21,11 @@ import zone.moddev.mc.lib.common.codecs.EventExtension;
 import zone.moddev.mc.lib.common.factories.MaterialFactory;
 import zone.moddev.mc.lib.common.modules.DataModules;
 import zone.moddev.mc.lib.common.modules.ModuleCatalog;
+import zone.moddev.mc.lib.common.types.CreativeTabDefinition;
+import zone.moddev.mc.lib.common.types.SoundDefinition;
+import zone.moddev.mc.lib.common.types.SoundTypeDefinition;
 import zone.moddev.mc.lib.common.types.StandaloneBlock;
+import zone.moddev.mc.lib.common.types.StandaloneFluid;
 import zone.moddev.mc.lib.common.types.StandaloneItem;
 
 /**
@@ -30,8 +34,9 @@ import zone.moddev.mc.lib.common.types.StandaloneItem;
  * installed in a fixed order so results do not depend on timing: extension
  * files (event handlers), then modules, then code-built definitions from
  * {@link MaterialExtensions#registerDefinitionSource} (which may add modules),
- * then materials, then standalone blocks and items from files and sources. See
- * {@code docs/definition-loading.md}.
+ * then materials, then standalone blocks and items from files and sources.
+ * Sound events, block sound sets and creative tabs, which depend on nothing,
+ * are decoded with the modules. See {@code docs/definition-loading.md}.
  */
 public final class DefinitionLoader {
     private DefinitionLoader() {
@@ -39,18 +44,23 @@ public final class DefinitionLoader {
 
     private static final String STANDALONE_BLOCKS = "standalone/block";
     private static final String STANDALONE_ITEMS = "standalone/item";
+    private static final String STANDALONE_FLUIDS = "standalone/fluid";
+    private static final String SOUNDS = "sound";
+    private static final String SOUND_TYPES = "sound_type";
+    private static final String CREATIVE_TABS = "creative_tab";
 
     /**
      * root contains extension/, item/, block/, fluid/, material/,
-     * standalone/block/, standalone/item/. The caller owns its filesystem.
+     * standalone/block/, standalone/item/, standalone/fluid/, sound/,
+     * sound_type/, creative_tab/. The caller owns its filesystem.
      */
     public record SourceRoot(String namespace, Path root,
         ClassLoader classLoader) {
         /**
          * Requires a valid namespace, a root and a class loader.
          *
-         * @throws net.minecraft.ResourceLocationException
-         *             if {@code namespace} is not a valid namespace
+         * @throws net.minecraft.ResourceLocationException if {@code namespace}
+         *             is not a valid namespace
          */
         public SourceRoot {
             ResourceLocation.fromNamespaceAndPath(namespace, "validate");
@@ -62,28 +72,58 @@ public final class DefinitionLoader {
     /**
      * Everything loaded from all sources, each map sorted by ID.
      *
-     * @param modules
-     *            the modules found
-     * @param extensions
-     *            the extension files found, by file ID
-     * @param materials
-     *            the planned materials
-     * @param standalone
-     *            the planned standalone blocks
-     * @param standaloneItems
-     *            the planned standalone items
+     * @param modules the modules found
+     * @param extensions the extension files found, by file ID
+     * @param materials the planned materials
+     * @param standalone the planned standalone blocks
+     * @param standaloneItems the planned standalone items
+     * @param sounds the sound events declared
+     * @param soundTypes the block sound sets declared
+     * @param creativeTabs the creative tabs declared
+     * @param standaloneFluids the planned standalone fluids
      */
     public record Loaded(ModuleCatalog modules,
         Map<ResourceLocation, EventExtension> extensions,
         Map<ResourceLocation, MaterialFactory.Result> materials,
         Map<ResourceLocation, MaterialFactory.Result> standalone,
-        Map<ResourceLocation, MaterialFactory.Result> standaloneItems) {
+        Map<ResourceLocation, MaterialFactory.Result> standaloneItems,
+        Map<ResourceLocation, SoundDefinition> sounds,
+        Map<ResourceLocation, SoundTypeDefinition> soundTypes,
+        Map<ResourceLocation, CreativeTabDefinition> creativeTabs,
+        Map<ResourceLocation, MaterialFactory.Result> standaloneFluids) {
         /** Copies each map, sorted by ID. */
         public Loaded {
             extensions = immutableSorted(extensions);
             materials = immutableSorted(materials);
             standalone = immutableSorted(standalone);
             standaloneItems = immutableSorted(standaloneItems);
+            sounds = immutableSorted(sounds);
+            soundTypes = immutableSorted(soundTypes);
+            creativeTabs = immutableSorted(creativeTabs);
+            standaloneFluids = immutableSorted(standaloneFluids);
+        }
+
+        /** Everything loaded, without standalone fluids. */
+        public Loaded(ModuleCatalog modules,
+            Map<ResourceLocation, EventExtension> extensions,
+            Map<ResourceLocation, MaterialFactory.Result> materials,
+            Map<ResourceLocation, MaterialFactory.Result> standalone,
+            Map<ResourceLocation, MaterialFactory.Result> standaloneItems,
+            Map<ResourceLocation, SoundDefinition> sounds,
+            Map<ResourceLocation, SoundTypeDefinition> soundTypes,
+            Map<ResourceLocation, CreativeTabDefinition> creativeTabs) {
+            this(modules, extensions, materials, standalone, standaloneItems,
+                sounds, soundTypes, creativeTabs, Map.of());
+        }
+
+        /** Everything loaded, without sound events, sound sets or tabs. */
+        public Loaded(ModuleCatalog modules,
+            Map<ResourceLocation, EventExtension> extensions,
+            Map<ResourceLocation, MaterialFactory.Result> materials,
+            Map<ResourceLocation, MaterialFactory.Result> standalone,
+            Map<ResourceLocation, MaterialFactory.Result> standaloneItems) {
+            this(modules, extensions, materials, standalone, standaloneItems,
+                Map.of(), Map.of(), Map.of());
         }
 
         /** Everything loaded, without standalone items. */
@@ -106,6 +146,10 @@ public final class DefinitionLoader {
         final Map<ResourceLocation, Located<Path>> materials = new TreeMap<>();
         final Map<ResourceLocation, Located<StandaloneBlock>> standalone = new TreeMap<>();
         final Map<ResourceLocation, Located<StandaloneItem>> standaloneItems = new TreeMap<>();
+        final Map<ResourceLocation, Located<StandaloneFluid>> standaloneFluids = new TreeMap<>();
+        final Map<ResourceLocation, Located<SoundDefinition>> sounds = new TreeMap<>();
+        final Map<ResourceLocation, Located<SoundTypeDefinition>> soundTypes = new TreeMap<>();
+        final Map<ResourceLocation, Located<CreativeTabDefinition>> creativeTabs = new TreeMap<>();
 
         void merge(Batch other) {
             mergeInto(items, other.items);
@@ -115,6 +159,10 @@ public final class DefinitionLoader {
             mergeInto(materials, other.materials);
             mergeInto(standalone, other.standalone);
             mergeInto(standaloneItems, other.standaloneItems);
+            mergeInto(standaloneFluids, other.standaloneFluids);
+            mergeInto(sounds, other.sounds);
+            mergeInto(soundTypes, other.soundTypes);
+            mergeInto(creativeTabs, other.creativeTabs);
         }
     }
 
@@ -123,13 +171,11 @@ public final class DefinitionLoader {
      * plans materials, standalone blocks and standalone items. A standalone
      * definition whose module needs a missing mod is skipped.
      *
-     * @param sources
-     *            the {@code mmdlib/} roots to read; order does not matter
-     * @param installed
-     *            tests whether a mod is loaded
-     * @throws IllegalArgumentException
-     *             naming the file, for invalid data, duplicate IDs or two
-     *             definitions producing the same registry ID
+     * @param sources the {@code mmdlib/} roots to read; order does not matter
+     * @param installed tests whether a mod is loaded
+     * @throws IllegalArgumentException naming the file, for invalid data,
+     *             duplicate IDs or two definitions producing the same registry
+     *             ID
      */
     public static Loaded load(List<SourceRoot> sources, MaterialExtensions api,
         Predicate<String> installed) {
@@ -147,10 +193,10 @@ public final class DefinitionLoader {
             .forEach((id, source) -> api.events().loadExtension(source.value(),
                 source.classLoader(), source.path().toString()));
         ordered.parallelStream()
-            .map(
-                source -> discover(source,
-                    List.of("block", "item", "fluid", "material",
-                        STANDALONE_BLOCKS, STANDALONE_ITEMS)))
+            .map(source -> discover(source,
+                List.of("block", "item", "fluid", "material", STANDALONE_BLOCKS,
+                    STANDALONE_ITEMS, STANDALONE_FLUIDS, SOUNDS, SOUND_TYPES,
+                    CREATIVE_TABS)))
             .toList().forEach(all::merge);
         all.items.forEach((id, source) -> install(source,
             () -> api.registerItemModule(id, source.value())));
@@ -162,6 +208,10 @@ public final class DefinitionLoader {
         // visible to every
         // material decoded below, from files as well as from the sources
         // themselves.
+        // Sources may read the file tabs and return changed copies of them.
+        api.creativeTabFiles(values(all.creativeTabs));
+        api.soundFiles(values(all.sounds));
+        api.soundTypeFiles(values(all.soundTypes));
         var sourced = new LinkedHashMap<String, MaterialExtensions.Definitions>();
         for (var source : api.definitionSources()) {
             var origin = "definition source '" + source.name() + "'";
@@ -279,10 +329,86 @@ public final class DefinitionLoader {
                     }
                 });
         }
+        var standaloneFluids = new TreeMap<ResourceLocation, MaterialFactory.Result>();
+        all.standaloneFluids.forEach(
+            (id, source) -> install(source, () -> planFluid(id, source.value(),
+                api, installed, source.path(), concreteIds, standaloneFluids)));
+        for (var entry : sourced.entrySet()) {
+            var origin = entry.getKey();
+            new TreeMap<>(entry.getValue().standaloneFluids())
+                .forEach((id, definition) -> {
+                    if (standaloneFluids.containsKey(id))
+                        throw new IllegalArgumentException(
+                            "Duplicate standalone fluid " + id + ": " + origin
+                                + " and an earlier definition");
+                    try {
+                        planFluid(id, definition, api, installed, origin,
+                            concreteIds, standaloneFluids);
+                    } catch (IllegalArgumentException ex) {
+                        throw new IllegalArgumentException(
+                            origin + ": " + id + ": " + ex.getMessage(), ex);
+                    }
+                });
+        }
         return new Loaded(
             new ModuleCatalog(values(all.items), values(all.blocks),
                 values(all.fluids)),
-            values(all.extensions), materials, standalone, standaloneItems);
+            values(all.extensions), materials, standalone, standaloneItems,
+            merge(values(all.sounds), sourced,
+                MaterialExtensions.Definitions::sounds, "sound event"),
+            merge(values(all.soundTypes), sourced,
+                MaterialExtensions.Definitions::soundTypes, "sound set"),
+            merge(values(all.creativeTabs), sourced,
+                MaterialExtensions.Definitions::creativeTabs, "creative tab"),
+            standaloneFluids);
+    }
+
+    /**
+     * Plans one standalone fluid into {@code planned}, unless its module needs
+     * a missing mod.
+     */
+    private static void planFluid(ResourceLocation id,
+        StandaloneFluid definition, MaterialExtensions api,
+        Predicate<String> installed, Object origin,
+        Map<String, Map<ResourceLocation, Object>> concreteIds,
+        Map<ResourceLocation, MaterialFactory.Result> planned) {
+        var module = api.fluidModule(definition.module());
+        if (module.requiredMod().isPresent()
+            && !installed.test(module.requiredMod().get()))
+            return;
+        var result = definition.resolve(id, module);
+        validateConcreteIds(result, origin, concreteIds);
+        var fluid = result.content().fluid();
+        api.events().validate(fluid.events());
+        if (fluid.block() != null)
+            api.events().validate(fluid.block().events());
+        if (fluid.bucket() != null)
+            api.events().validate(fluid.bucket().events());
+        planned.put(id, result);
+    }
+
+    /**
+     * The file definitions, with each source's added; a source's definition
+     * with a file's ID replaces it.
+     *
+     * @throws IllegalArgumentException if two sources supply the same ID
+     */
+    private static <T> Map<ResourceLocation, T> merge(
+        Map<ResourceLocation, T> files,
+        Map<String, MaterialExtensions.Definitions> sourced,
+        java.util.function.Function<MaterialExtensions.Definitions, Map<ResourceLocation, T>> part,
+        String what) {
+        var merged = new TreeMap<>(files);
+        var origins = new HashMap<ResourceLocation, String>();
+        sourced.forEach((origin, definitions) -> part.apply(definitions)
+            .forEach((id, value) -> {
+                var previous = origins.putIfAbsent(id, origin);
+                if (previous != null)
+                    throw new IllegalArgumentException("Duplicate " + what + " "
+                        + id + ": " + previous + " and " + origin);
+                merged.put(id, value);
+            }));
+        return merged;
     }
 
     private static Batch discover(SourceRoot source, List<String> sections) {
@@ -322,6 +448,19 @@ public final class DefinitionLoader {
                         case STANDALONE_ITEMS ->
                             add(batch.standaloneItems, id, new Located<>(file,
                                 decode(file, StandaloneItem.CODEC), loader));
+                        case STANDALONE_FLUIDS ->
+                            add(batch.standaloneFluids, id, new Located<>(file,
+                                decode(file, StandaloneFluid.CODEC), loader));
+                        case SOUNDS -> add(batch.sounds, id, new Located<>(file,
+                            decode(file, SoundDefinition.CODEC), loader));
+                        case CREATIVE_TABS -> add(batch.creativeTabs, id,
+                            new Located<>(file,
+                                decode(file, CreativeTabDefinition.CODEC),
+                                loader));
+                        case SOUND_TYPES -> add(batch.soundTypes, id,
+                            new Located<>(file,
+                                decode(file, SoundTypeDefinition.CODEC),
+                                loader));
                         default -> throw new IllegalStateException(
                             "Unhandled definition section: " + section);
                     }

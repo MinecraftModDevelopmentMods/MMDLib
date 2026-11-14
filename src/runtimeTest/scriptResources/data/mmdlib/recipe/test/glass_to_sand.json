@@ -1,0 +1,10 @@
+{
+  "type": "mmdlib:test/script_machine",
+  "inputs": {
+    "input": [{ "items": { "item": "minecraft:glass" } }]
+  },
+  "outputs": {
+    "output": [{ "item": { "id": "minecraft:sand", "count": 1 } }]
+  },
+  "time": 2
+}

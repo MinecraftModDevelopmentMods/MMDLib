@@ -43,6 +43,10 @@ neoForge.runs.matching { it.name != 'gameTestServer' }.configureEach {
 dependencies {
     runtimeTestRuntimeOnly "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:${crafttweaker_version}"
 }
+// Fixtures that need those scripts (machines naming script handlers or generators, and their
+// recipes) live apart, so runs without CraftTweaker, such as the client GUI smoke test, which
+// loads src/runtimeTest/resources, never see them.
+sourceSets.runtimeTest.resources.srcDir('src/runtimeTest/scriptResources')
 def gameTestTask = tasks.named('runGameTestServer')
 gameTestTask.configure {
     def scripts = file('src/runtimeTest/scripts')

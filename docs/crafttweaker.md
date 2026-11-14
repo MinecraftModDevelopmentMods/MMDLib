@@ -69,7 +69,7 @@ runtime registration; sounds and map colors name vanilla constant keys.
 | `incorrectBlocks` | `minecraft:incorrect_for_iron_tool` | block tag this material's tools cannot harvest |
 | `baseBlock` | `minecraft:iron_block` | base behavior for factories such as stairs |
 | `blockSetType` | `minecraft:iron` | behavior for doors, buttons and pressure plates |
-| `blockSound` | `""` | material block sound override, e.g. `wood`; empty keeps module sound |
+| `blockSound` | `""` | material block sound override: a vanilla set such as `wood`, or a [sound set](#sounds) ID such as `mmdlib:steel_plate`; empty keeps module sound |
 | `mapColor` | `""` | material map-color override, e.g. `gold`; empty keeps module map color |
 
 Named methods `toolDurability(int)`, `toolEfficiency(double)`,
@@ -143,7 +143,7 @@ is put in `minecraft:mineable/pickaxe`.
 | `friction`, `speedFactor`, `jumpFactor` | float | slipperiness (ice 0.98); walk and jump multipliers |
 | `lightLevel` | int | 0 to 15 |
 | `requiresCorrectTool`, `collision`, `occlusion`, `randomTicks`, `replaceable`, `hasItem` | bool | |
-| `sound`, `mapColor` | string | such as `stone`, `wood`, `metal` |
+| `sound`, `mapColor` | string | such as `stone`, `wood`, `metal`; `sound` may also be a [sound set](#sounds) ID |
 | `factoryData` | map | settings for the module's Java implementation |
 | `blockEntityData` | map, write-only | settings for a machine's block entity |
 | `baseBlock` | block ID | what stairs copy their behavior from |
@@ -264,6 +264,47 @@ tin.build();
 
 A module's tags go to every material part built from it. The part's art comes from
 the template of the module it was copied from, in the material color.
+
+## Fluids
+
+`mods.mmdlib.FluidBuilder` builds a fluid with its own ID, like a
+`mmdlib/standalone/fluid` file: the fluid, its flowing form, a liquid block and a
+bucket.
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.FluidBuilder;
+
+var chocolate = new FluidBuilder("chocolate");
+chocolate.tint = 0xFF5C3A21;
+chocolate.viscosity = 3000;
+chocolate.canSwim = false;
+chocolate.displayName = "Liquid Chocolate";
+chocolate.build();
+
+var plasma = new FluidBuilder("plasma", "mmdlib:molten");
+plasma.lightLevel = 15;
+plasma.hasBlock = false;
+plasma.build();
+```
+
+`new FluidBuilder(name)` starts from `mmdlib:fluid`, a plain water-like liquid with
+water's textures; `new FluidBuilder(name, module)` starts from another fluid module,
+such as `mmdlib:molten`. The fluid is `mmdlib:<name>`, its flowing form
+`mmdlib:flowing_<name>` and its bucket `mmdlib:<name>_bucket`.
+
+| Property | Sets |
+| --- | --- |
+| `density`, `viscosity`, `temperature`, `lightLevel`, `motionScale` | the fluid type's values; temperature in kelvin, water 300 |
+| `canSwim`, `canDrown`, `canExtinguish`, `supportsBoating`, `canHydrate` | what entities and blocks can do with it |
+| `slopeFindDistance`, `levelDecreasePerBlock`, `tickRate`, `explosionResistance`, `canConvertToSource` | how it flows |
+| `still`, `flowing`, `overlay` | block-atlas textures, such as `"minecraft:block/water_still"`; an empty `overlay` removes it |
+| `tint` | an ARGB tint over the textures; -1 for none |
+| `hasBlock`, `hasBucket` | whether it has a liquid block (to be placed in the world) and a bucket |
+| `displayName` | its English name; the bucket is "*name* Bucket" |
+
+MMDLib generates the bucket model, the liquid block's blockstate and the English
+names; the textures are block-atlas textures, as in fluid module files.
 
 ## Fluent conveniences and generated resource controls
 
@@ -636,6 +677,391 @@ hammer.build();
 Sneaking mines a single block. The game tests run this hammer
 (`src/runtimeTest/scripts/mmdlib_hooks.zs`).
 
+## Screen handlers
+
+Screens, including XML machines' screens, are defined in XML; scripts can supply
+what their click and hover handlers do. An element names a handler ID in
+`on-click`, `on-right-click`, `on-shift-click`, `on-shift-right-click` or `on-hover`
+(see [GUI screens](gui-screens.md)), and a script registers a function under that
+ID:
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.ScreenHandlers;
+
+ScreenHandlers.onClick("eject", (click) => {
+    if (click.shift) {
+        click.player.addTag("ejected_all");
+    }
+});
+
+ScreenHandlers.onHover("eject_hint", (hover) => {
+    println("Hovering " + hover.element);
+});
+```
+
+```xml
+<button id="eject" text="screen.example.eject" on-click="mmdlib:eject" on-hover="mmdlib:eject_hint"/>
+```
+
+`ScreenHandlers.onClick(name, function)` and `onHover(name, function)` register the
+handler `mmdlib:<name>` and return that ID. Each ID can be registered once, by a
+script or by code. `ScreenHandlers.exists(id)` tells whether a handler ID is
+registered.
+
+Screens load after the scripts run, and every handler ID they name is checked then:
+an `on-click` naming an ID no script or mod registered, or a hover handler used for
+a click, fails loading with the XML file and line.
+
+A click handler runs on the server and gets a `ScreenClickContext`:
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `player` | Player | who clicked |
+| `blockEntity`, `level`, `pos` | BlockEntity, Level, BlockPos | the screen's block entity, such as an XML machine |
+| `screen` | string | the screen's ID |
+| `element` | string | the clicked element's `id`; `""` if it has none |
+| `button` | int | 0 left, 1 right |
+| `shift`, `control`, `alt` | bool | the keys held |
+| `option` | int | the option chosen, such as a radio button's index; otherwise 0 |
+
+A hover handler runs on the client, when the mouse enters or leaves the element,
+and gets a `ScreenHoverContext` with `blockEntity`, `level`, `pos`, `screen`,
+`element` and `entered` (true on entering). Use it for display; it cannot change
+the world. A handler function that throws is logged, and the game carries on.
+
+## Machine handlers
+
+XML machines stay XML; scripts can supply what happens when their processor starts
+or finishes a cycle. The machine's `<processor>` names handler IDs in `on-start`
+and `on-finish` (see [XML machines](xml-machines.md)), and a script registers a
+function under each. Only recipe processors have cycles: a machine whose
+`<processor>` names a Java `class` cannot take these attributes. Scripts cannot
+supply a stored custom processor yet.
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.MachineHandlers;
+
+MachineHandlers.onStart("crusher_started", (cycle) => {
+    println(cycle.machineId + " started " + cycle.recipe);
+});
+
+MachineHandlers.onFinish("crusher_done", (cycle) => {
+    cycle.level.setBlockAndUpdate(cycle.pos.above(), cycle.level.getBlockState(cycle.pos.below()));
+});
+```
+
+```xml
+<processor id="crusher" recipe-type="example:crushing"
+           on-start="mmdlib:crusher_started" on-finish="mmdlib:crusher_done"/>
+```
+
+`MachineHandlers.onStart(name, function)` and `onFinish(name, function)` register
+`mmdlib:<name>` and return that ID; `MachineHandlers.exists(id)` tells whether a
+handler is registered. A start handler runs when a new cycle starts, not when a
+paused one resumes; a finish handler runs once the outputs are placed. Both run on
+the server and get a `MachineCycleContext`:
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `machine` | BlockEntity | the machine |
+| `level`, `pos` | Level, BlockPos | where it is |
+| `machineId` | string | the machine definition's ID |
+| `recipe` | string | the cycle's recipe ID |
+| `time` | int | the cycle's length, in ticks |
+
+Machines load after the scripts run, and their handler IDs are checked then: a
+processor naming an ID nobody registered, or a start handler as its `on-finish`,
+fails loading. A handler function that throws is logged, and the machine carries
+on.
+
+## Machine recipes
+
+An XML machine's recipe type is declared in its XML (see
+[XML machines](xml-machines.md)); its recipes can come from datapacks, generators,
+and ordinary CraftTweaker recipe scripts (the default `crafttweaker` loader, not
+`#loader mmdlib`). The type works with CraftTweaker's own recipe manager, like any
+recipe type, and MMDLib adds a typed builder:
+
+```zenscript
+import mods.mmdlib.MachineRecipeBuilder;
+
+new MachineRecipeBuilder("example:crushing")
+    .inputItems("input", <item:minecraft:cobblestone>, 2)
+    .inputEnergy("energy", 2000)
+    .outputItem("output", <item:minecraft:gravel> * 3)
+    .outputItem("output", <item:minecraft:flint>, 0.1)
+    .time(100)
+    .build("cobble_to_gravel");
+
+<recipetype:example:crushing>.removeByName("example:crushing/gravel");
+
+<recipetype:example:crushing>.addJsonRecipe("dirt_to_diamond", {
+    inputs: { input: [{ items: { item: "minecraft:dirt" } }] },
+    outputs: { output: [{ item: { id: "minecraft:diamond", count: 1 } }] },
+    time: 100
+});
+```
+
+`new MachineRecipeBuilder(recipeType)` starts a recipe of a type some machine XML
+declares; an unknown type is an error. Group names are the logical input and output
+groups the machine declares, as in recipe JSON:
+
+| Method | Adds |
+| --- | --- |
+| `inputItems(group, ingredient, count = 1, consumed = true)` | takes `count` items matching `ingredient`; with `consumed` false, only requires and reserves them |
+| `inputFluid(group, fluid, consumed = true)` | takes the fluid stack's amount, such as `<fluid:minecraft:water> * 500`; `consumed` as for items |
+| `inputFluids(group, fluids, consumed = true)` | takes one of several fluids or a fluid tag, such as `<tag:fluids:minecraft:water> * 250`; every choice has the same amount |
+| `inputEnergy(group, energy)` | draws `energy` over the cycle |
+| `outputItem(group, stack, chance = 1)` | places `stack`, with `chance` from 0 to 1 |
+| `outputFluid(group, fluid, chance = 1)` | places the fluid stack |
+| `time(ticks)` | the cycle's length; required |
+
+`build(name)` adds the recipe like any CraftTweaker recipe; it needs at least one
+input and a time. It first checks the groups against every machine using the type,
+as a recipe reload does: an unknown group, a group holding another kind of
+resource, or a ghost group asked for more samples than it has slots is an error, and
+the recipe is not added. Recipes added with `addJsonRecipe` skip this check.
+
+Removing recipes, and adding them as JSON in the recipe file format, use the type's
+`<recipetype:...>` manager: `removeByName`, `addJsonRecipe` and the rest of
+CraftTweaker's recipe manager methods. A machine's input slots only accept items
+some recipe uses, so removing every recipe for an item also stops the machine
+taking it.
+
+MMDLib registers a CraftTweaker recipe handler for machine recipes, so
+CraftTweaker's own tools work on them too. `/ct recipes` and the recipe dumps print
+each one as `MachineRecipeBuilder` calls. Ingredient replacement takes them apart
+and rebuilds them: item inputs are `<recipecomponent:crafttweaker:input/ingredients>`,
+fluid inputs `input/fluid_ingredients`, item outputs `output/chanced_items`, fluid
+outputs `output/fluids` and the time `processing/time`, as for other recipes.
+Energy is `<recipecomponent:mmdlib:machine/energy>`. Each part keeps its group,
+count and consumption:
+
+```zenscript
+import crafttweaker.api.ingredient.IIngredient;
+import crafttweaker.api.recipe.replacement.Replacer;
+import crafttweaker.api.recipe.replacement.type.ManagerFilteringRule;
+
+Replacer.create()
+    .filter(ManagerFilteringRule.of(<recipetype:example:crushing>))
+    .replace<IIngredient>(<recipecomponent:crafttweaker:input/ingredients>,
+        <item:minecraft:cobblestone>, <tag:items:c:cobblestones>)
+    .execute();
+```
+
+A replaced recipe is renamed, as CraftTweaker renames every recipe it replaces.
+
+## Recipe generators
+
+A machine's recipe type can generate its recipes on every data reload (see
+[XML machines](xml-machines.md#recipe-generators-and-authored-recipes)). A
+`#loader mmdlib` script can be that generator: it registers a function, and the
+machine XML names it through `ScriptRecipeGenerator`:
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.RecipeGenerators;
+
+RecipeGenerators.register("ore_dusts", (gen) => {
+    for tag in gen.tagIds("c:ores/") {
+        val metal = tag[7 .. tag.length];
+        if gen.hasTag("c:dusts/" + metal) {
+            gen.recipe("ore_to_dust/" + metal)
+                .inputTag("input", tag)
+                .outputItem("output", gen.tagItems("c:dusts/" + metal)[0] * 2)
+                .time(gen.intProperty("time", 100))
+                .add();
+        }
+    }
+});
+```
+
+```xml
+<recipe-type id="example:crushing" declare="true" name="Crushing">
+  <generator class="zone.moddev.mc.lib.compat.CraftTweaker.ScriptRecipeGenerator"
+             script="mmdlib:ore_dusts" time="120"/>
+</recipe-type>
+```
+
+The generator's ID is `mmdlib:<name>`. Its function runs on every reload, with:
+
+| Member | Gives |
+| --- | --- |
+| `recipeType` | the type's ID |
+| `property(name, fallback = "")`, `intProperty(name, fallback)`, `doubleProperty(name, fallback)` | the generator element's other attributes, such as `time` above |
+| `tagIds(prefix)` | the IDs of the reload's item tags starting with `prefix`, sorted |
+| `hasTag(id)`, `tagItems(id)` | whether an item tag has items, and its items |
+| `recipe(name)` | a recipe `<type namespace>:<name>` to build and `add()` |
+
+A generated recipe has `inputItems`, `inputTag(group, tag, count = 1, consumed = true)`,
+`inputFluid`, `inputEnergy`, `outputItem`, `outputFluid` and `time`, as
+`MachineRecipeBuilder`, and `add()`. Read tags through the generation: tag brackets
+are not usable during a reload, which is when generators run. As for any generator,
+a recipe file with the same ID replaces a generated recipe, groups are checked
+against the machines, and an error fails the reload. Naming
+`ScriptRecipeGenerator` without CraftTweaker installed, or a generator no script
+registered, fails with a message saying so.
+
+## Screen values
+
+Scripts can also supply the values screen elements show. An element reads a value
+provider with `value="@mmdlib:<name>"` (or `max`), and a script registers a function
+under that name; the screen, including an XML machine's, stays XML:
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.ScreenValues;
+
+ScreenValues.whole("height", (machine) => machine.blockPos.y);
+ScreenValues.decimal("efficiency", (machine) => 0.85);
+ScreenValues.flag("placed", (machine) => machine.hasLevel);
+ScreenValues.text("where", (machine) => "At " + machine.blockPos.x);
+```
+
+```xml
+<label text="screen.example.height" value="@mmdlib:height"/>
+<checkbox text="screen.example.placed" value="@mmdlib:placed"/>
+```
+
+| Method | Value | Shown by |
+| --- | --- | --- |
+| `whole(name, function)` | a whole number (`long`) | gauges, meters, progress bars, labels |
+| `decimal(name, function)` | a decimal number | meters, labels |
+| `flag(name, function)` | `true`/`false` | checkboxes, toggles |
+| `text(name, function)` | a string, shown as written | labels |
+
+Each function gets the screen's block entity and runs on the server every tick the
+screen is open; its result is sent to the player like any other value. Each returns
+the provider's ID, `mmdlib:<name>`. `ScreenValues.exists(id)` tells whether a
+provider is registered.
+
+Screens are checked after the scripts run: an element naming a provider nobody
+registered, or one whose kind it cannot show (text on a gauge, say), fails loading
+with the XML file and line. A function that throws is logged once, and the element
+shows no value.
+
+## Sounds
+
+Scripts can declare sound events and block sound sets, and change the ones that
+`mmdlib/sound/` and `mmdlib/sound_type/` JSON files declare (see
+[sound events](definition-loading.md#sound-events) and
+[block sound sets](definition-loading.md#block-sound-sets) for those files).
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.SoundBuilder;
+import mods.mmdlib.SoundTypeBuilder;
+
+var hum = new SoundBuilder("machine/hum");
+hum.range = 24;
+hum.build();
+
+var steel = new SoundTypeBuilder("steel_plate");
+steel.base = "metal";
+steel.placeSound = "mmdlib:block/steel_place";
+steel.stepSound = "mmdlib:block/steel_step";
+steel.pitch = 0.9;
+steel.build();
+
+var chime = SoundBuilder.edit("example:machine/chime");
+chime.range = 0;
+chime.build();
+```
+
+A sound event only gets an ID: what it sounds like comes from `sounds.json`, as for
+any sound event. A sound set chooses the sounds a block plays; a block uses it by
+naming its ID as its `sound`, and a material as its `blockSound`.
+
+As with [creative tabs](#creative-tabs), `new SoundBuilder(name)` and
+`new SoundTypeBuilder(name)` start an `mmdlib:` ID, and reject a name a file
+already declares. `edit(id)` starts from a file's definition, in any namespace,
+and building it replaces the file's version. `exists(id)` and `declared()` look up
+the file definitions.
+
+`SoundBuilder` has one property:
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `name` | string, read-only | the sound event's ID |
+| `range` | float, blocks | `0`: Minecraft's default, which grows with volume |
+
+`SoundTypeBuilder`:
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `name` | string, read-only | the sound set's ID |
+| `base` | vanilla sound set name | `stone` |
+| `breakSound`, `stepSound`, `placeSound`, `hitSound`, `fallSound` | sound event ID | `""`: the base set's |
+| `volume`, `pitch` | float | `0`: the base set's |
+
+`base` must be one of vanilla's sets, such as `metal` or `wood`, not another
+declared set. Negative `range`, `volume` and `pitch` are errors. Building the same
+ID twice is an error. A block or material naming an unknown sound set fails at
+startup, naming it; a set naming an unregistered sound event fails when the first
+block using it is created.
+
+## Creative tabs
+
+Scripts can make creative tabs, and change the tabs that `mmdlib/creative_tab/`
+JSON files declare (see [creative tabs](creative-tabs.md) for the file format).
+
+```zenscript
+#loader mmdlib
+import mods.mmdlib.CreativeTabBuilder;
+
+var tools = new CreativeTabBuilder("tools");
+tools.titleFallback = "Tools";
+tools.icon = "mmdlib:copper_hammer";
+tools.addMaterials("mmdlib:copper").addItems("minecraft:stick");
+tools.addTags("c:gears");
+tools.after = ["minecraft:tools_and_utilities"];
+tools.searchBar = true;
+tools.build();
+
+var workshop = CreativeTabBuilder.edit("example:workshop");
+workshop.addItems("minecraft:apple").removeTags("c:gears");
+workshop.build();
+```
+
+`new CreativeTabBuilder("tools")` starts the tab `mmdlib:tools`; other namespaces
+are rejected, as for materials. A name a JSON file already declares is rejected
+too: change that tab with `edit` instead.
+
+`CreativeTabBuilder.edit(id)` starts from the tab a JSON file declares, in any
+namespace, with all its settings and contents. Building it replaces the file's
+version, so the changed tab is the one registered. A tab in another mod's namespace
+is registered by that mod; the change applies when it registers its tabs from
+`MMDLib.creativeTabs()`, as [creative tabs](creative-tabs.md) describes.
+`CreativeTabBuilder.exists(id)` tells whether a file declares a tab, and
+`CreativeTabBuilder.declared()` lists every file tab's ID.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `name` | string, read-only | the tab's ID |
+| `title` | translation key | `""`: `itemGroup.<namespace>.<path>` |
+| `titleFallback` | string | `""`: none |
+| `icon` | item ID | `""`: the first item or material entry |
+| `searchBar` | bool | `false` |
+| `before`, `after` | tab IDs, string[] | empty |
+| `contents` | string[], read-only | empty |
+
+`contents` lists the entries in order: an item as `"minecraft:stick"`, a tag as
+`"#c:gears"`, a material as `"material=mmdlib:copper"`. Change them with these
+methods, which return the builder so they can be chained:
+
+* `addItems(ids...)`, `addTags(tags...)`, `addMaterials(ids...)` add entries at the
+  end. A tag may be written with or without its `#`.
+* `removeItems(ids...)`, `removeTags(tags...)`, `removeMaterials(ids...)` remove
+  every entry of that kind with those IDs; removing an item does not affect a tag
+  or material that also includes it.
+* `clearContents()` removes every entry.
+
+`build()` checks the tab: one whose contents are all tags needs an `icon`. Building
+the same tab twice is an error. Items, materials and placement are checked once
+registries are complete, as for tab files.
+
 ## Generated resources
 
 Script materials need no resource pack, and script blocks and items need only their
@@ -651,8 +1077,9 @@ client resources and for world data:
    * block loot tables;
    * block tags: the module's tags, `minecraft:mineable/pickaxe`, the harvest tags,
      and a `needs_*_tool` tag from hardness (5 stone, 8 iron, 10 diamond);
-   * item tags: tool, armor and enchantability tags, `minecraft:arrows`, and
-     `c:ingots/<name>`, `c:dusts/<name>` and the like;
+   * item tags a script item module declares (each part's standard tool, armor,
+     arrow and `c:` tags come from MMDLib's material tag pack, as for every
+     material; see [material tags](definition-loading.md#material-item-tags));
    * the fluid's `c:molten_<name>` tag.
 2. `mmdlib/mmdlibdata` is the `scripts/mmdlibdata` folder, if it exists. It is a
    normal pack root (`assets/`, `data/`, an optional `pack.mcmeta`) placed above the
@@ -705,9 +1132,9 @@ items, blocks, and their resources are created at startup on both sides.
 * Use duration and animation are exposed and applied by the basic-item factory.
   Other item factories keep their native use behavior; these properties do not
   turn an arbitrary sword or tool into an item used over time.
-* Rarity, feature flags, advanced block-property predicates, custom sound events,
-  independent tool tiers, and user-defined creative tabs have no matching exposed
-  definition path. The registrar supplies its existing materials tab.
+* Rarity, feature flags, advanced block-property predicates and independent tool
+  tiers have no matching exposed definition path. Screen click sounds and XML
+  machine sounds are set in their XML, not from scripts.
 
 ## Implementation
 
@@ -716,6 +1143,32 @@ finds its plugin and script classes by annotation. The only reference from the r
 of MMDLib is the `CraftTweakerInit.register(modBus)` call in MMDLib's constructor, made
 only when CraftTweaker is loaded. That call adds a code material source to
 `MaterialExtensions.GLOBAL`; see [startup definition loading](definition-loading.md#stages).
+
+## Generated API docs
+
+Every script type is documented for CraftTweaker's docs wiki. Compiling runs
+CraftTweaker's annotation processor, which writes the pages to
+`build/crafttweaker-docs`: `docs.json`, the navigation (Mods › MMDLib › Definitions,
+Events, Fluids, Machines, References, Screens, Sounds, Tabs, Crusher), and one JSON
+page per type under `docs/mods/MMDLib/`, in the same format as CraftTweaker's own.
+Those are what to contribute to the wiki.
+
+The pages come from the Javadoc of each `@ZenRegister` class in
+`compat/CraftTweaker`, which also carries `@Document("mods/MMDLib/<area>/<Type>")`.
+When adding or changing a script member, keep its page complete:
+
+- a description for the type and every member, written for script authors; state
+  what makes a call an error in the description, since `@throws` is not shown;
+- `@param name description` on one line (the formatter keeps it so), and `@return`
+  for anything returned;
+- `@docParam name example` for every parameter, as script code the wiki puts in its
+  examples, and `@docParam this example` on a type with instance members, for the
+  receiver, such as `new BlockBuilder("marble")` or `context`;
+- no `<pre>` examples in Javadoc; the wiki builds examples from `@docParam`, and full
+  scripts belong in this guide.
+
+Members a type inherits from CraftTweaker, such as a recipe manager's
+`removeByName`, are documented on CraftTweaker's own pages.
 
 ## Verification and executable examples
 

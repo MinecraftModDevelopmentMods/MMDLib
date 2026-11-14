@@ -1,18 +1,27 @@
 package zone.moddev.mc.lib.gui.model;
 
 /**
- * A {@code value} or {@code max} attribute: the Java getter a screen element
- * reads, on the server, every tick while the screen is open.
+ * A {@code value} or {@code max} attribute: the Java getter, or the named value
+ * provider, a screen element reads, on the server, every tick while the screen
+ * is open.
  */
 public sealed interface ValueRef {
     /** The reference as written in the screen file. */
     String text();
 
     /**
-     * Parses {@code #method}, {@code #method(index)} or
-     * {@code fully.qualified.Class#method}.
+     * Parses {@code #method}, {@code #method(index)},
+     * {@code fully.qualified.Class#method} or {@code @namespace:provider}.
      */
     static ValueRef parse(String text) {
+        if (text.startsWith("@")) {
+            var id = net.minecraft.resources.ResourceLocation
+                .tryParse(text.substring(1));
+            if (id == null || text.indexOf(':') < 0)
+                throw new IllegalArgumentException(
+                    "Expected @namespace:provider: " + text);
+            return new Provided(id);
+        }
         int hash = text.indexOf('#');
         if (hash < 0 || hash != text.lastIndexOf('#')
             || hash == text.length() - 1)
@@ -41,9 +50,20 @@ public sealed interface ValueRef {
      * {@code #method}: a public no-argument instance method of the screen's
      * block-entity class (or a superclass or interface of it).
      *
-     * @param method
-     *            the method name
+     * @param method the method name
      */
+    /**
+     * A named value provider, from
+     * {@link zone.moddev.mc.lib.gui.value.ScreenValueProviders}.
+     */
+    record Provided(net.minecraft.resources.ResourceLocation id)
+        implements ValueRef {
+        @Override
+        public String text() {
+            return "@" + id;
+        }
+    }
+
     record Instance(String method) implements ValueRef {
         @Override
         public String text() {
@@ -66,10 +86,8 @@ public sealed interface ValueRef {
      * {@code Class#method}: a public static method taking the block entity (or
      * a supertype) as its only parameter.
      *
-     * @param owner
-     *            the fully qualified class name
-     * @param method
-     *            the method name
+     * @param owner the fully qualified class name
+     * @param method the method name
      */
     record Static(String owner, String method) implements ValueRef {
         @Override
