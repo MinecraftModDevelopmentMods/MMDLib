@@ -735,7 +735,9 @@ the world. A handler function that throws is logged, and the game carries on.
 XML machines stay XML; scripts can supply what happens when their processor starts
 or finishes a cycle. The machine's `<processor>` names handler IDs in `on-start`
 and `on-finish` (see [XML machines](xml-machines.md)), and a script registers a
-function under each:
+function under each. Only recipe processors have cycles: a machine whose
+`<processor>` names a Java `class` cannot take these attributes. Scripts cannot
+supply a stored custom processor yet.
 
 ```zenscript
 #loader mmdlib

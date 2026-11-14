@@ -464,6 +464,11 @@ A processor can also have sounds, given as sound event IDs:
            finish-sound="example:machine/crusher_done"/>
 ```
 
+Sounds and the cycle handlers below belong to recipe processors. A
+[stored custom processor](#stored-custom-processors) (`class`) has no recipe
+cycles, so loading fails if it names any of `running-sound`, `finish-sound`,
+`on-start` or `on-finish`.
+
 Any sound in a `sounds.json` works; to declare your own sound events, see
 [sound events](definition-loading.md#sound-events). A looping sound's `.ogg` should
 loop cleanly.

@@ -25,7 +25,9 @@ import zone.moddev.mc.lib.api.MaterialEventTypes;
  * are {@code mmdlib:<name>}. Machines load after scripts run, and each
  * machine's handler IDs are checked then: one naming an ID no script or mod
  * registered, or a start handler used for finishing, fails loading. A function
- * that throws is logged, and the machine carries on.
+ * that throws is logged, and the machine carries on. Only recipe processors
+ * have cycles; a processor naming a Java {@code class} cannot take these
+ * attributes.
  */
 @ZenRegister(loaders = ScriptDefinitions.LOADER)
 @Document("mods/MMDLib/machines/MachineHandlers")

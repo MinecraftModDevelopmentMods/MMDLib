@@ -561,6 +561,12 @@ public final class MachineDefinitions {
             || processor.attributes().containsKey("filter-inputs")))
             throw error(processor,
                 "Custom processors do not declare recipe processing options");
+        if (custom)
+            for (var cycleOnly : List.of("running-sound", "finish-sound",
+                "on-start", "on-finish"))
+                if (processor.attributes().containsKey(cycleOnly))
+                    throw error(processor, "Custom processors have no recipe "
+                        + "cycles, so they cannot take " + cycleOnly);
         if (!custom && (recipe == null) != (processor == null))
             throw error(root,
                 "recipe-type and processor must be supplied together");

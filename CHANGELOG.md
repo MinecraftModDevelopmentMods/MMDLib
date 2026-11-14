@@ -41,6 +41,10 @@
   `processes(typeId)` give null-safe checks; `recipeType()` stays, nullable.
   Processor sounds and `on-start`/`on-finish` events apply only to machines
   with a processor.
+- Stored custom processors (#108): a `<processor class="...">` has no recipe
+  cycles, so loading now fails if it also names `running-sound`,
+  `finish-sound`, `on-start` or `on-finish`, which would otherwise be ignored.
+  CraftTweaker scripts cannot supply a stored processor yet.
 - Screen XML: a literal placeholder can take `default-filter="namespace:id"`,
   letting a contextual fill generator drop the authored default (#107).
 - CI: the client smoke tests run under a watchdog that stops the game as soon
