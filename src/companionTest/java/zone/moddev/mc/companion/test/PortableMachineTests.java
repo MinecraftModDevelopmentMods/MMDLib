@@ -32,6 +32,73 @@ import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 @PrefixGameTestTemplate(false)
 public final class PortableMachineTests {
     @GameTest(template = "empty")
+    public static void badSavedProcessorFieldDoesNotDiscardBlockEntityInventory(
+        GameTestHelper h) {
+        var machine = occupied(h);
+        var registries = h.getLevel().registryAccess();
+        var saved = machine.saveWithFullMetadata(registries);
+        saved.getCompound("features").getCompound("portable").putInt("contents",
+            999);
+        var restored = net.minecraft.world.level.block.entity.BlockEntity
+            .loadStatic(machine.getBlockPos(), machine.getBlockState(), saved,
+                registries);
+        h.assertTrue(restored instanceof DefinedMachineEntity,
+            "Invalid processor data cannot discard the whole block entity during vanilla loading");
+        var copy = (DefinedMachineEntity) restored;
+        h.assertTrue(
+            copy.items.getStackInSlot(0).getCount() == 3 && copy.items
+                .getStackInSlot(0).is(net.minecraft.world.item.Items.DIAMOND),
+            "Unrelated saved inventory is retained");
+        h.assertTrue(
+            copy.features.findProcessor("portable", Payload.class).orElseThrow()
+                .state().getInt("contents") == 0,
+            "Only the rejected variable falls back to its default");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void creativeBreakingOccupiedMachinesDoesNotPickUpPayload(
+        GameTestHelper h) {
+        creativeBreak(h, true);
+    }
+
+    @GameTest(template = "empty")
+    public static void creativeBreakingEmptyMachinesDoesNotCreateItems(
+        GameTestHelper h) {
+        creativeBreak(h, false);
+    }
+
+    private static void creativeBreak(GameTestHelper h, boolean occupied) {
+        var machine = occupied(h);
+        var pos = machine.getBlockPos();
+        var item = MachineContent
+            .item(ResourceLocation.parse("mmdlib_companion:test/portable"));
+        if (!occupied)
+            machine.portable().placed(new ItemStack(item));
+        var player = net.neoforged.neoforge.common.util.FakePlayerFactory
+            .get(h.getLevel(), new com.mojang.authlib.GameProfile(
+                java.util.UUID.randomUUID(), "portable-creative"));
+        player.gameMode.changeGameModeForPlayer(GameType.CREATIVE);
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        h.assertTrue(player.gameMode.destroyBlock(pos),
+            "Creative breaking removes the machine");
+        var drops = h.getLevel().getEntitiesOfClass(ItemEntity.class,
+            new AABB(pos).inflate(2));
+        h.assertTrue(
+            drops.stream().noneMatch(drop -> drop.getItem().is(item))
+                && player.getInventory().items.stream()
+                    .noneMatch(stack -> stack.is(item)),
+            "Creative breaking never substitutes for UI or tagged-tool pickup");
+        h.assertTrue(
+            drops.stream().map(ItemEntity::getItem)
+                .filter(
+                    stack -> stack.is(net.minecraft.world.item.Items.DIAMOND))
+                .mapToInt(ItemStack::getCount).sum() == 3,
+            "Ordinary inventory contents still drop");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void conditionalShapeDoesNotOccludeNeighbors(
         GameTestHelper h) {
         var machine = occupied(h);

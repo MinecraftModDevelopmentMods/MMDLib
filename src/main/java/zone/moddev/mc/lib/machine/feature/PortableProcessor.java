@@ -13,6 +13,10 @@ public interface PortableProcessor {
     ItemStack take();
     void placed(ItemStack stack);
     boolean hasContent(ItemStack stack);
+    /**
+     * Creative breaking deliberately discards portable contents. Only explicit
+     * pickup (UI or a tagged tool) preserves them; destruction creates no item.
+     */
     default void creativeDestroy() {
     }
     default InteractionResult use(Player player, boolean secondary) {

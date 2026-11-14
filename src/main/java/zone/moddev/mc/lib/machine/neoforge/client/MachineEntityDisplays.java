@@ -124,7 +124,9 @@ public final class MachineEntityDisplays {
 
     @SubscribeEvent
     public static void models(ModelEvent.ModifyBakingResult event) {
-        clear();
+        // Baking runs on a worker; cache registration, reads and invalidation
+        // must all remain on the client/render thread.
+        Minecraft.getInstance().execute(MachineEntityDisplays::clear);
         for (var definition : MachineContent.definitions().values())
             if (definition.behavior().entityDisplay() != null
                 && definition.behavior().entityDisplay().item())

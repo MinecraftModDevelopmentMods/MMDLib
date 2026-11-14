@@ -94,9 +94,4 @@ public abstract class PortableStoredProcessor extends StoredProcessor
         return false;
     }
 
-    @Override
-    public void creativeDestroy() {
-        if (!variables.hasPortableContent())
-            take();
-    }
 }

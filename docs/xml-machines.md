@@ -1042,9 +1042,11 @@ through the UI's `mmdlib:pickup` action or sneak-right-click with an item in
 `mmdlib:machine_pickup_tools`. The library ships this item tag empty; consumers
 add their wrench or other pickup tool in
 `data/mmdlib/tags/item/machine_pickup_tools.json`. Empty-hand secondary use cannot
-invoke `mmdlib:pickup`. Occupied creative placement consumes the carried item.
-Custom loot overrides must preserve the single-owner rule. No legacy state
-migration is implied by this interface.
+invoke `mmdlib:pickup`. Creative breaking deliberately discards the portable
+payload and creates no machine item, whether occupied or empty; ordinary
+inventory contents still drop. Occupied creative placement consumes the carried
+item. Custom loot overrides must preserve the single-owner rule. Portable item
+payloads do not automatically run the saved-world migration hooks described below.
 Pickup retains block-entity components such as custom names and honors player
 build permissions, world interaction protection, and cancellable block-break
 events. Custom `ProcessorMachine` hosts must implement `authorizePickup` with
@@ -1056,7 +1058,7 @@ to draw live previews on the generic block entity.
 
 For automatic item transport, extend `PortableStoredProcessor` and mark only the
 carried variables with `variables.portable(key)`. The library implements `take`,
-`placed`, `hasContent` and empty creative destruction. Payloads live in the item's
+`placed`, `hasContent` and no-op creative destruction. Payloads live in the item's
 `mmdlib:processors` custom-data compound, scoped by processor key. `PortableData`
 offers codec-based reads/writes for tooltips and other integrations. Variables not
 marked portable (including the reserved `taken` guard) never travel. Taking a
@@ -1110,6 +1112,16 @@ Capture/release eligibility and extra mod-specific state remain consumer policy.
 `customName()` decodes the saved name as an optional `Component`, preserving
 translation and styling without reconstructing an entity. Missing or malformed
 names return empty, so tooltips can fall back to the species description.
+
+Portrait synchronization retains the encoded bytes while its immutable snapshot
+is unchanged. A snapshot exceeding the 64 KiB field limit displays the empty
+portrait/`emptyText` without modifying the owned entity payload. Failed samples
+and samples that exceed the combined screen budget use their initial values and
+warn once per machine and field; later valid values recover normally.
+Custom `ElementSync` declarations can use `sample(source -> value)` when they
+do not need the previous value, and opt into `immutable()` only when values have
+stable equality and cannot be mutated. This caches encoded samples and decoded
+reads. Incoming network data is still decoded and validated.
 
 `EntitySnapshotPolicy<T>` pairs a typed eligibility predicate with capture and
 restore hooks. Capture hooks edit the serialized copy; restore hooks apply extra
@@ -1214,6 +1226,40 @@ Policies are `IDLE`, `ACTIVE` (including stalled/blocked active work), `UNPAUSED
 (idle or active, excluding holds), and `ALWAYS` (including paused/held loaded ticks).
 Timers clamp at zero, never advance while unloaded, and are not portable unless
 their key is explicitly opted in. `key()` can be a dependency of a derived value.
+
+### Saved-state upgrades
+
+`StoredProcessor.state()` records `mmdlib:data_version` alongside its variables.
+Override `dataVersion()` with a non-negative schema version and
+`migrateState(int fromVersion, CompoundTag data)` to translate older world saves
+before decoding. Unversioned saves are version zero. The hook receives a detached
+copy and must handle all versions older than the current one, including renamed
+fields and changed integer/timer bounds. For example:
+
+```java
+@Override
+protected int dataVersion() { return 1; }
+
+@Override
+protected CompoundTag migrateState(int fromVersion, CompoundTag data) {
+    if (fromVersion < 1 && data.contains("cooldown"))
+        data.putInt("cooldown", Math.clamp(data.getInt("cooldown"), 0, 20));
+    return data;
+}
+```
+
+The next save records the current version. A migration that throws is logged and
+falls back to the original, unmodified fields; newer-version saves are decoded
+without running a downgrade. Each field rejected by its codec uses its initial
+value, preserving other variables and machine storage. The default
+`invalidState(ProcessorState.DecodeFailure failure, boolean client)` callback
+logs the machine ID/position, processor ID, variable, raw tag and decode error.
+Override it for mod-specific reporting. Direct `ProcessorState.load` callers can
+also supply a failure consumer; the default logs the variable and rejected data.
+
+Client snapshots receive the same per-field validation and reporting, but never
+run disk migrations. Private fields stay private during client restoration.
+Portable item payloads continue to use their separate portable schema/defaults.
 
 ## Right-click item receivers
 

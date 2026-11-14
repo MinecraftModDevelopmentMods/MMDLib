@@ -29,9 +29,9 @@ public class EntityPortraitElement implements SynchronizedElement {
             ByteBufCodecs.COMPOUND_TAG.<RegistryFriendlyByteBuf>cast()
                 .map(EntitySnapshot::new, EntitySnapshot::data),
             ElementSync.MAX_BYTES, element -> EntitySnapshot.EMPTY)
-        .sample((source, previous) -> ((EntityPortraitElement) source.element())
+        .sample(source -> ((EntityPortraitElement) source.element())
             .read((ScreenHost) source.machine()))
-        .build();
+        .immutable().build();
     private final Common common;
     private final ProcessorVariable variable;
     private final int width, height;

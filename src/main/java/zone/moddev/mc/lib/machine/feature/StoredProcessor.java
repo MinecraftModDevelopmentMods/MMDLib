@@ -13,6 +13,10 @@ import zone.moddev.mc.lib.machine.presentation.VisualVariables;
  * actions.
  */
 public abstract class StoredProcessor implements Processor<CompoundTag> {
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils
+        .getLogger();
+    /** Reserved metadata; variable names cannot contain a colon. */
+    public static final String DATA_VERSION = "mmdlib:data_version";
     protected final ProcessorState variables = new ProcessorState();
     private final ProcessorState.Key<Boolean> paused = variables
         .define("paused", Codec.BOOL, false);
@@ -59,7 +63,9 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
         return CompoundTag.CODEC;
     }
     public final CompoundTag state() {
-        return variables.save(false);
+        var data = variables.save(false);
+        data.putInt(DATA_VERSION, checkedDataVersion());
+        return data;
     }
     public final CompoundTag clientState() {
         return variables.save(true);
@@ -79,10 +85,75 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
         return true;
     }
     public final void restore(CompoundTag data) {
-        variables.load(data, false);
+        int fromVersion = data.getInt(DATA_VERSION);
+        int targetVersion = checkedDataVersion();
+        var restored = data.copy();
+        if (fromVersion < targetVersion) {
+            try {
+                // A failed migration cannot leave a partially edited fallback.
+                restored = java.util.Objects
+                    .requireNonNull(migrateState(fromVersion, restored.copy()));
+            } catch (RuntimeException failure) {
+                LOGGER.warn(
+                    "Machine {} processor {} failed migration from version {} to {}; decoding original fields with defaults. Raw data: {}",
+                    machineIdentity(), key, fromVersion, targetVersion, data,
+                    failure);
+            }
+        } else if (fromVersion > targetVersion) {
+            LOGGER.warn(
+                "Machine {} processor {} has newer saved version {} than {}; decoding fields with defaults. Raw data: {}",
+                machineIdentity(), key, fromVersion, targetVersion, data);
+        }
+        variables.load(restored, false,
+            failure -> invalidState(failure, false));
     }
     public final void restoreOnClient(CompoundTag data) {
-        variables.load(data, true);
+        // Client snapshots already use the server's schema; do not run disk
+        // migrations.
+        variables.load(data, true, failure -> invalidState(failure, true));
+    }
+
+    /**
+     * Current saved-state schema version. Unversioned saves are version zero.
+     */
+    protected int dataVersion() {
+        return 0;
+    }
+
+    /**
+     * Upgrade a detached raw disk snapshot before any fields are decoded.
+     * Called once when fromVersion is older than dataVersion(); implementations
+     * handle all intervening versions. Portable item payloads are independent.
+     */
+    protected CompoundTag migrateState(int fromVersion, CompoundTag data) {
+        return data;
+    }
+
+    /**
+     * Notification for an invalid saved/client field before its default is
+     * used.
+     */
+    protected void invalidState(ProcessorState.DecodeFailure failure,
+        boolean client) {
+        LOGGER.warn(
+            "Machine {} processor {} variable {} rejected {} data {}; using its initial value: {}",
+            machineIdentity(), key, failure.variable(),
+            client ? "client" : "saved", failure.raw(), failure.message());
+    }
+
+    private int checkedDataVersion() {
+        int version = dataVersion();
+        if (version < 0)
+            throw new IllegalArgumentException(
+                "Processor data version must be non-negative");
+        return version;
+    }
+
+    private String machineIdentity() {
+        return machine == null
+            ? getClass().getName()
+            : net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(
+                machine.blockState().getBlock()) + " at " + machine.position();
     }
     public final void refreshDerived() {
         variables.refreshDerived();

@@ -54,7 +54,7 @@ class ProcessorStateTest {
     }
 
     @Test
-    void payloadsAreCopiedAndInvalidRestoreCannotPartiallyChangeState() {
+    void payloadsAreCopiedAndInvalidRestoreDefaultsOnlyRejectedFields() {
         var state = new ProcessorState();
         var count = state.define("count", Codec.intRange(0, 40), 0);
         var data = state.define("mob", CompoundTag.CODEC, new CompoundTag(),
@@ -73,10 +73,14 @@ class ProcessorStateTest {
         state.load(saved, false);
         assertEquals(40, state.get(count));
         saved.putInt("count", -1);
-        assertThrows(IllegalStateException.class,
-            () -> state.load(saved, false));
-        assertEquals(40, state.get(count));
+        var failures = new java.util.ArrayList<ProcessorState.DecodeFailure>();
+        state.load(saved, false, failures::add);
+        assertEquals(0, state.get(count));
         assertEquals("Bessie", state.get(data).getString("name"));
+        assertEquals(1, failures.size());
+        assertEquals("count", failures.getFirst().variable());
+        assertEquals(net.minecraft.nbt.IntTag.valueOf(-1),
+            failures.getFirst().raw());
     }
 
     @Test

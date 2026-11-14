@@ -22,6 +22,19 @@ import zone.moddev.mc.lib.machine.presentation.VisualVariables;
  * Stored typed values. Mutations publish once at the end of a host operation.
  */
 public final class ProcessorState implements VisualVariableProvider {
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils
+        .getLogger();
+
+    /** A rejected serialized field; raw data is detached from the input tag. */
+    public record DecodeFailure(String variable, net.minecraft.nbt.Tag raw,
+        String message) {
+        public DecodeFailure {
+            raw = raw.copy();
+        }
+        public net.minecraft.nbt.Tag raw() {
+            return raw.copy();
+        }
+    }
     public record Key<T>(String name, Codec<T> codec, T initial,
         UnaryOperator<T> copy, boolean visual, boolean synchronize) {
         public T initial() {
@@ -372,15 +385,21 @@ public final class ProcessorState implements VisualVariableProvider {
     }
 
     public void load(CompoundTag tag, boolean client) {
-        // Decode everything before mutating, so malformed data cannot partially
-        // restore state.
+        load(tag, client, failure -> LOGGER.warn(
+            "Processor variable {} rejected {} data {}; using its initial value: {}",
+            failure.variable(), client ? "client" : "saved", failure.raw(),
+            failure.message()));
+    }
+
+    /**
+     * Decode independently, defaulting only rejected fields and reporting each.
+     */
+    public void load(CompoundTag tag, boolean client,
+        java.util.function.Consumer<DecodeFailure> rejected) {
         var decoded = new LinkedHashMap<Key<?>, Object>();
         for (var key : keys.values())
             if (client ? key.synchronize() : !derived.containsKey(key))
-                decoded.put(key, tag.contains(key.name())
-                    ? key.codec().parse(NbtOps.INSTANCE, tag.get(key.name()))
-                        .getOrThrow()
-                    : key.initial());
+                decoded.put(key, decode(tag, key, rejected));
         update(() -> {
             decoded.forEach(this::restore);
             if (client)
@@ -389,6 +408,24 @@ public final class ProcessorState implements VisualVariableProvider {
             else
                 dirty.addAll(derived.keySet());
         });
+    }
+
+    private <T> T decode(CompoundTag tag, Key<T> key,
+        java.util.function.Consumer<DecodeFailure> rejected) {
+        var raw = tag.get(key.name());
+        if (raw == null)
+            return key.initial();
+        String problem;
+        try {
+            var result = key.codec().parse(NbtOps.INSTANCE, raw);
+            if (result.result().isPresent())
+                return result.result().orElseThrow();
+            problem = result.error().orElseThrow().message();
+        } catch (RuntimeException failure) {
+            problem = failure.toString();
+        }
+        rejected.accept(new DecodeFailure(key.name(), raw, problem));
+        return key.initial();
     }
 
     @SuppressWarnings("unchecked")
