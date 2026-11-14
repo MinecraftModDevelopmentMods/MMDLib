@@ -1,0 +1,12 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Named Tanks">
+  <appearance preset="cube-front" front="minecraft:block/stone"
+              side="minecraft:block/stone" top="minecraft:block/stone"/>
+  <storage>
+    <fluids id="fluids">
+      <tank id="water" name="Water Catalyst" capacity="1000" role="manual"
+            fluid="minecraft:water" automation="false"/>
+      <tanks id="buffer" name="Fluid Buffer" count="2" capacity="1000" role="storage"/>
+    </fluids>
+  </storage>
+</machine>

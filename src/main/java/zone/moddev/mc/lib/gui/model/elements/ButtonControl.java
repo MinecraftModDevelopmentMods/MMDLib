@@ -13,6 +13,11 @@ import zone.moddev.mc.lib.gui.model.Text;
  * and values.
  */
 public interface ButtonControl extends Element {
+    default boolean enabled(
+        zone.moddev.mc.lib.gui.sync.ElementStateView state) {
+        return true;
+    }
+
     boolean flat();
 
     Optional<Text> text();

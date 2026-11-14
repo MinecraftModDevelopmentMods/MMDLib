@@ -58,6 +58,8 @@ final class ElementActionSession {
         ElementAction<T> action, T value) {
         int index = menu.findIndex(element);
         if (closed || index < 0 || !menu.visible(element)
+            || (element instanceof zone.moddev.mc.lib.gui.model.elements.ButtonControl button
+                && !button.enabled(menu.elementStates()))
             || pending.containsKey(index) || results.containsKey(index)
             || nextRequest == Integer.MAX_VALUE)
             return Optional.empty();

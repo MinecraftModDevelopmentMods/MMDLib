@@ -1,12 +1,15 @@
 package zone.moddev.mc.lib.machine.definition;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.api.capabilities.IoMode;
@@ -18,8 +21,7 @@ import zone.moddev.mc.lib.machine.presentation.ConditionalModelPart;
 
 /**
  * Immutable, resolved startup configuration. Item storage, power and processing
- * are optional; recipeType and processor are either both present or both
- * absent.
+ * are optional. A processor is either recipe-backed or a mod-owned declaration.
  */
 public record MachineDefinition(ResourceLocation id, String checksum,
     String name, float hardness, ResourceLocation mineable,
@@ -29,8 +31,27 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
     boolean redstone, Node screen, RecipeSelection recipeSelection,
-    List<Ghost> ghosts) {
-    public record Ghost(String id, int count, ResourceLocation defaultItem) {
+    List<Ghost> ghosts, MachineBehavior behavior) {
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection,
+        List<Ghost> ghosts) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, ghosts, MachineBehavior.DEFAULT);
+    }
+
+    public record Ghost(String id, int count, ResourceLocation defaultItem,
+        String name) {
+        public Ghost(String id, int count, ResourceLocation defaultItem) {
+            this(id, count, defaultItem, id);
+        }
     }
 
     /**
@@ -114,7 +135,12 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public MachineDefinition {
-        if ((recipeType == null) != (processor == null))
+        if (behavior.processor() != null
+            && (recipeType != null || processor == null || processor.isBlank()))
+            throw new IllegalArgumentException(
+                "Custom processors require an ID and no recipe type");
+        if (behavior.processor() == null
+            && (recipeType == null) != (processor == null))
             throw new IllegalArgumentException(
                 "recipeType and processor must be supplied together");
         ghosts = List.copyOf(ghosts);
@@ -123,6 +149,21 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         faceTextures = List.copyOf(faceTextures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
+    }
+
+    /**
+     * Derived names for resource generation; no redundant constructor input.
+     */
+    public Map<String, String> groupNames() {
+        var names = new LinkedHashMap<String, String>();
+        groups.forEach(group -> names.put(group.id(), group.name()));
+        ghosts.forEach(ghost -> names.put(ghost.id(), ghost.name()));
+        if (power != null)
+            names.put(power.id(), power.name());
+        if (fluids != null)
+            fluids.groups()
+                .forEach(group -> names.put(group.id(), group.name()));
+        return Collections.unmodifiableMap(names);
     }
 
     public boolean hasProcessor() {
@@ -142,8 +183,13 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public Map<String, Object> visualDefaults() {
-        return BuiltinVisualVariables.forMachine(this, null, null, null, null)
-            .defaults();
+        return visualDefaults(null);
+    }
+
+    public Map<String, Object> visualDefaults(
+        zone.moddev.mc.lib.machine.feature.Processor<?> prototype) {
+        return BuiltinVisualVariables
+            .forMachine(this, prototype, null, null, null).defaults();
     }
 
     public boolean hasConditionalAppearance() {
@@ -158,7 +204,41 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public record Power(String id, long capacity, long input, long output,
-        int color) {
+        int color, String name) {
+        public Power(String id, long capacity, long input, long output,
+            int color) {
+            this(id, capacity, input, output, color, "Energy");
+        }
+    }
+
+    /** Stable localization key, independent of the English display name. */
+    public String groupTranslationKey(String group) {
+        return id + ".group." + group;
+    }
+
+    /** Keep the component translatable until it reaches the viewer. */
+    public Component groupName(String group) {
+        return Component.translatableWithFallback(groupTranslationKey(group),
+            groupNameFallback(group));
+    }
+
+    /**
+     * Hot tooltip path: resolve directly without constructing the names map.
+     */
+    private String groupNameFallback(String id) {
+        if (fluids != null)
+            for (int i = fluids.groups().size() - 1; i >= 0; i--)
+                if (fluids.groups().get(i).id().equals(id))
+                    return fluids.groups().get(i).name();
+        if (power != null && power.id().equals(id))
+            return power.name();
+        for (int i = ghosts.size() - 1; i >= 0; i--)
+            if (ghosts.get(i).id().equals(id))
+                return ghosts.get(i).name();
+        for (int i = groups.size() - 1; i >= 0; i--)
+            if (groups.get(i).id().equals(id))
+                return groups.get(i).name();
+        return id;
     }
 
     /**
@@ -195,7 +275,11 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public record Group(String id, List<Integer> members, IoMode mode,
-        int color, boolean automation) {
+        int color, boolean automation, String name) {
+        public Group(String id, List<Integer> members, IoMode mode, int color,
+            boolean automation) {
+            this(id, members, mode, color, automation, id);
+        }
         public Group(String id, List<Integer> members, IoMode mode, int color) {
             this(id, members, mode, color, true);
         }

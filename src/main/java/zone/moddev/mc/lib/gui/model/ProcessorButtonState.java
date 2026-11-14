@@ -40,10 +40,10 @@ public enum ProcessorButtonState {
     }
 
     public static ProcessorButtonState of(
-        zone.moddev.mc.lib.machine.feature.RecipeProcessor processor) {
+        zone.moddev.mc.lib.machine.feature.Processor<?> processor) {
         if (processor.paused() || processor.processing())
             return of(processor.paused(), processor.processing());
-        return switch (processor.status()) {
+        return switch (processor.executionStatus()) {
             case RUNNING -> PROCESSING;
             case STALLED -> STALLED;
             case BLOCKED -> BLOCKED;

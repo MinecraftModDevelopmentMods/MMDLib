@@ -19,7 +19,6 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
-import zone.moddev.mc.lib.api.automation.ResourceType;
 import zone.moddev.mc.lib.api.capabilities.FluidStorage;
 import zone.moddev.mc.lib.gui.ElementInteractions;
 import zone.moddev.mc.lib.gui.layout.ElementLayouts;
@@ -219,15 +218,8 @@ public class FluidTankElement implements Element {
     public List<Component> tooltip(ScreenHost host, ItemStack carried) {
         var storage = storage(host, tank);
         var current = storage.getFluidInTank(tank);
-        var automation = host.screenAutomation();
-        Component name = automation == null
-            ? Component.translatable("screen.mmdlib.tank.name", tank + 1)
-            : automation.groups().stream()
-                .filter(group -> group.type() == ResourceType.FLUIDS
-                    && group.members().contains(tank))
-                .map(group -> group.name()).findFirst()
-                .orElseGet(() -> Component
-                    .translatable("screen.mmdlib.tank.name", tank + 1));
+        Component name = host.screenTankName(tank).orElseGet(
+            () -> Component.translatable("screen.mmdlib.tank.name", tank + 1));
         var accepted = BuiltInRegistries.FLUID.stream()
             .filter(fluid -> fluid != Fluids.EMPTY
                 && fluid.isSource(fluid.defaultFluidState()))

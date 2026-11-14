@@ -522,6 +522,43 @@ inline attributes normally. Explicit groups remain useful for grouping standalon
 `<slot>` entries or overriding automation mode. A standalone `<slot>` has no
 automatic group, so its color belongs on that explicit group.
 
+### Group display names and localization
+
+Set `name` on `<slots>`, `<tank>`, `<tanks>`, or `<energy>` to supply an English
+display name independently of its stable `id`:
+
+```xml
+<tank id="water" name="Water Catalyst" capacity="1000" role="manual"
+      fluid="minecraft:water" automation="false"/>
+<slots id="input" name="Rock Selection" count="1" role="input" type="ghost"/>
+<slots id="output" name="Products" count="4" role="output"/>
+```
+
+Each group gets the translation key `<namespace>:<machine-path>.group.<group-id>`.
+For example, `industrial_overkill:rock_stew_factory.group.water` defaults to
+`Water Catalyst`. The generated low-priority `assets/<namespace>/lang/en_us.json`
+contains these defaults; authored language files/resource packs can override them.
+For another language, add the same key to that locale's file, for example
+`assets/industrial_overkill/lang/ro_ro.json`:
+
+```json
+{"industrial_overkill:rock_stew_factory.group.water": "Catalizator de apă"}
+```
+
+Names remain translatable components, so the viewer's language selects the text.
+Without `name`, the default is the group ID (`Energy` for power). A `<tanks>` group
+shares its name across its tanks. Manual tanks retain their names even with
+`automation="false"`; naming does not enable automation. Ghost names appear in
+generated slot tooltips. A standalone ghost `<slot>` also accepts `name`; for a
+standalone real `<slot>`, put the name on its explicit `<group>` instead.
+
+Names inherit normally. An explicit `<group name="...">` overrides an inline
+name; omitting it preserves the inline/default name. Blank names are rejected.
+Inheritance generates translation keys for the concrete child machine. IDs,
+recipe references, storage keys and automation behavior are unaffected.
+
+### Manual tanks
+
 For a tank that players fill through its screen gauge but automation must not
 access or configure, use `role="manual" automation="false"`:
 
@@ -910,6 +947,371 @@ declarations must agree on name, generator class and properties. A definition
 referencing it with `declare="false"` must not supply a generator. Types registered
 only by Java are not currently resolved by this XML loader.
 
-This delivery covers item processing with optional FE and fluids, and cube or authored-model appearances.
-Multiple processors, world-interaction features and standalone loose content packs
-remain outside this format's implemented scope.
+The format supports recipe processors and mod-owned world-interaction processors,
+optional FE/fluids and cube or authored-model appearances. Multiple processors per
+XML definition and standalone loose content packs remain outside its scope.
+
+## Stored custom processors
+
+A machine can replace its recipe processor with a public, no-argument subclass of
+`StoredProcessor`. Declare the class in the owning mod; omit `<recipe-type>` and
+recipe-selection attributes. An empty `<storage/>` is valid.
+
+```xml
+<processor id="courier" class="example.CourierProcessor"/>
+```
+
+The constructor declares typed state keys and actions without accessing the world.
+The loader constructs prototypes for validation as well as one instance per host.
+`ProcessorMachine` supplies the level, position, block state and item/removal hooks.
+Implement `canStart(ProcessorState, ProcessorMachine)` and
+`ProcessState process(ProcessorState, ProcessorMachine, int deltaTicks)`.
+The host currently supplies one simulation tick per call. It checks `canStart`
+while idle; active, stalled or blocked work resumes without checking it again.
+Returning `IDLE` completes the operation. `idle(...)` supports cooldown bookkeeping
+even when starting is unavailable. Pause/host suspension stop both processing and
+idle bookkeeping; declared actions remain available subject to their own guards.
+
+Declare a key with `variables.define("occupied", Codec.BOOL, false)` and use
+`state.get(key)` / `state.set(key, value)`. Simple keys must contain immutable
+Boolean, numeric or short text values. The full overload accepts a defensive copier
+and separate visual/client-sync flags for payloads such as NBT. All declared keys
+persist; client snapshots omit keys whose sync flag is false.
+Use `variables.update(...)` for placement or other lifecycle operations outside
+processing/actions. Mutation outside an update operation is rejected. Updates batch
+notifications and compare values; unchanged values do not invalidate bindings.
+Batching does not roll back changes to the world or inventory if an operation fails.
+
+Visual keys appear as `$processors.<id>.<key>` in existing model conditions and
+button/shape conditions. `paused`, `held` and `status` are built in; `status` is the
+stored uppercase process status, with pause/hold represented separately.
+Bindings subscribe to their referenced keys, including UI-only keys. They reevaluate
+after dependency changes rather than polling state getters each tick. Server-only
+state changes still mark persistence dirty without scheduling client synchronization.
+Feature networking sends a current client snapshot, not individual variable deltas.
+
+Override `actions()` with stable namespaced IDs mapped to `ProcessorAction` values.
+Each has a side-effect-free availability predicate and a handler receiving state,
+machine and initiating player. Actions currently have no arguments. Return a
+`ProcessorAction.Result`; an optional message is displayed to the player. The server
+rechecks availability at invocation and batches the handler's state changes.
+Unknown action IDs cannot invoke arbitrary methods.
+
+```xml
+<button id="release" processor="courier" on-click="example:release"
+        enabled-when="$processors.courier.occupied &amp;&amp; !$processors.courier.paused"
+        text="Release"/>
+```
+
+Custom processor actions and Boolean conditions are validated when loading the
+screen. Disabled buttons stay visible with tooltips and reject activation on both
+client and server. Omitting `enabled-when` leaves action availability in control.
+Buttons without a processor target continue to use ordinary callback routing.
+
+## Physical shapes and portable machines
+
+`<block>` also accepts `stack-size="1"`, `no-occlusion="true"`,
+`immovable="true"`, `drawers="false"` and `portable="true"`.
+These are opt-in policies; existing machines retain their defaults. `drawers`
+controls the stats and automation drawers, while redstone remains separately configured.
+
+```xml
+<shapes>
+  <shape id="plate" bounds="0 0 0 16 3 16" when="!$processors.courier.occupied"/>
+  <shape id="cage" bounds="0 0 0 16 16 16" when="$processors.courier.occupied"/>
+</shapes>
+```
+
+Shape bounds are block-local 0..16 boxes, rotated with horizontal facing. Active
+boxes are unioned; no active box falls back to a full cube so the machine remains
+targetable. Shapes are sampled on the owning thread and published as immutable
+geometry for chunk rendering. Omit `<shapes>` for the
+normal full cube. Conditions use processor variables and authoritative server
+state; model visibility alone never changes collision. Shape-bearing machines
+send synchronized state immediately when the selected shape changes; unrelated
+synchronized variables retain normal packet batching. Appearance, shape and
+button conditions share one lazily constructed visual-variable graph per machine.
+They also disable face occlusion automatically: blockstate-based occlusion caches
+cannot represent different shapes for machines with the same blockstate.
+
+A portable machine's processor must also implement `PortableProcessor`: transfer
+its payload through `take()` and `placed(ItemStack)`, with optional interaction,
+tooltip and creative-destruction hooks. `take()` must consume ownership exactly
+once. Ordinary breaking and explosions use normal empty-machine loot, including
+tool requirements and explosion survival, plus the existing inventory-content
+drops. They do not preserve portable processor variables. Preserve those values
+through the UI's `mmdlib:pickup` action or sneak-right-click with an item in
+`mmdlib:machine_pickup_tools`. The library ships this item tag empty; consumers
+add their wrench or other pickup tool in
+`data/mmdlib/tags/item/machine_pickup_tools.json`. Empty-hand secondary use cannot
+invoke `mmdlib:pickup`. Creative breaking deliberately discards the portable
+payload and creates no machine item, whether occupied or empty; ordinary
+inventory contents still drop. Occupied creative placement consumes the carried
+item. Custom loot overrides must preserve the single-owner rule. Portable item
+payloads do not automatically run the saved-world migration hooks described below.
+Pickup retains block-entity components such as custom names and honors player
+build permissions, world interaction protection, and cancellable block-break
+events. Custom `ProcessorMachine` hosts must implement `authorizePickup` with
+their platform's permission checks; the default denies pickup.
+Malformed portable fields use their declared defaults when placed, matching
+item-side reads; valid fields in the same payload are still restored.
+Consumer client code can register a renderer for `MachineContent.entityType(id)`
+to draw live previews on the generic block entity.
+
+`ProcessorDeclaration.schema(key)` reuses a read-only schema for definition/screen
+validation and display metadata. Its action declarations cannot execute gameplay.
+Live machines and item interaction hooks still receive independent processor
+instances through `create`, so metadata reuse cannot share mutable gameplay state.
+
+For automatic item transport, extend `PortableStoredProcessor` and mark only the
+carried variables with `variables.portable(key)`. The library implements `take`,
+`placed`, `hasContent` and no-op creative destruction. Payloads live in the item's
+`mmdlib:processors` custom-data compound, scoped by processor key. `PortableData`
+offers codec-based reads/writes for tooltips and other integrations. Variables not
+marked portable (including the reserved `taken` guard) never travel. Taking a
+machine serializes first, marks ownership transferred, then clears its portable
+variables; repeated calls return an empty stack. Item-side content checks compare
+against declared defaults without mutating the shared processor prototype.
+
+`PortableVariable<T>` shares one item identity, processor/variable address, codec,
+default and copy policy between machine state and external item consumers. The item
+supplier is resolved lazily. For an entity payload:
+
+```java
+static final PortableVariable<EntitySnapshot> OCCUPANT = PortableVariable.entity(
+    () -> MachineContent.item(ID), "courier", "occupant");
+private final ProcessorState.Key<EntitySnapshot> occupant =
+    OCCUPANT.declare(variables).synced().define();
+// Other machines and renderers need no processor instance:
+EntitySnapshot carried = OCCUPANT.read(stack);
+OCCUPANT.write(stack, updatedSnapshot);
+ItemStack newCarrier = OCCUPANT.stack(updatedSnapshot);
+```
+
+`declare` creates independent state for each processor and always opts into portable
+storage. Use the same processor ID in XML. `matches` checks item identity;
+`hasContent` compares the decoded value to its declared default. Reads of wrong
+items or malformed/missing values return a copied default. Writes reject wrong
+items and preserve unrelated variables/components. Custom value types use the
+constructor with a codec, default and defensive copy function.
+
+For repeated reads, keep an owner-local `var reader = OCCUPANT.reader()` and call
+`reader.read(stack)`. It decodes only when the immutable custom-data component
+changes, handles item replacement/removal, and returns defensive copies according
+to the variable's copy policy. `reader.clear()` discards cached values. The default
+reader retains one component; rendering owners displaying several stacks can use
+`OCCUPANT.reader(64)` to retain up to 64 component identities without repeated NBT
+decoding. Capacity must be 1..256. XML item displays use this bounded form.
+
+The overload `PortableVariable.entity(itemSupplier, processor, name, policy)`
+also attaches an `EntitySnapshotPolicy` to the declaration. The standard portrait
+and XML entity displays discover it through `Processor.portableVariable(name)`;
+they apply the same restoration hooks as gameplay without custom registrations.
+Policies must be safe for detached entities on both logical sides. Declarations
+without a policy keep vanilla snapshot restoration.
+
+`api.entity.EntitySnapshot` is the common immutable entity payload used by the
+standard portrait and available to gameplay code. It offers a codec, detached
+NBT copies, `capture(entity)`, optional capture customization, type/UUID access,
+and `createDetached(level, expectedClass)`. Reconstruction never spawns or ticks
+entities and returns empty for unknown types, malformed data or passenger trees.
+Capture/release eligibility and extra mod-specific state remain consumer policy.
+`customName()` decodes the saved name as an optional `Component`, preserving
+translation and styling without reconstructing an entity. Missing or malformed
+names return empty, so tooltips can fall back to the species description.
+
+Portrait synchronization retains the encoded bytes while its immutable snapshot
+is unchanged. A snapshot exceeding the 64 KiB field limit displays the empty
+portrait/`emptyText` without modifying the owned entity payload. Failed samples
+and samples that exceed the combined screen budget use their initial values and
+warn once per machine and field; later valid values recover normally.
+Custom `ElementSync` declarations can use `sample(source -> value)` when they
+do not need the previous value, and opt into `immutable()` only when values have
+stable equality and cannot be mutated. This caches encoded samples and decoded
+reads. Incoming network data is still decoded and validated.
+
+`EntitySnapshotPolicy<T>` pairs a typed eligibility predicate with capture and
+restore hooks. Capture hooks edit the serialized copy; restore hooks apply extra
+state after vanilla loading. `capture(entity)` returns an immutable snapshot;
+`createDetached(snapshot, level)` applies both restoration and eligibility without
+spawning. Unknown/malformed payloads, rejected entities and failed restore hooks
+return an empty optional. Hook code must not spawn entities or mutate inventories.
+
+Use `new EntityPreviewCache<>(policy, capacity)` for the same restoration in
+renderers. `policy.updateDetached(preview, snapshot)` refreshes an existing preview
+only when its type and UUID match and it has no passenger tree. This preserves
+renderer identity while reapplying extra pose state. It is only for detached
+entities; discard the preview if it returns false, since a failed load or hook may
+have partially changed it. Portable ownership and world placement stay with the
+caller, who must retain the snapshot until placement succeeds.
+
+### Entity displays on blocks and items
+
+Declare a detached living-entity overlay beside the machine's appearance:
+
+```xml
+<entity-display variable="$processors.courier.occupant"
+                offset="0.5 0.2 0.5" width="0.62" height="0.45"
+                item-yaw="180" item-property="example:occupied"/>
+```
+
+MMDLib registers the block renderer, item renderer and model wrapper. The variable
+must be a synchronized `EntitySnapshot`. Item displays additionally require a
+portable machine and a `PortableVariable.entity(...)` declaration using the same
+processor ID. The optional `item-property` is a model predicate: 0 for an empty
+snapshot, 1 for a nonempty snapshot. Existing JSON overrides, transforms and foil
+rendering are retained. Block/item overlays use the declaration's snapshot policy.
+
+`block` and `item` default to `true`; at least one must be enabled. A block-only
+display may use an ordinary synchronized entity variable. `item-property` requires
+`item="true"`. `offset` defaults to `0.5 0 0.5` in block units, rotated around the
+block center from north to its horizontal facing. Item offsets are unrotated.
+`width` and `height` default to 1 and fit the entity without enlarging it. `yaw`
+defaults to 0 relative to the block facing; `item-yaw` defaults to 180 degrees.
+Offsets must be finite within -16 to 16, dimensions greater than 0 and at most 16,
+and angles finite within -360 to 360. Invalid bindings and values fail loading.
+
+Previews do not spawn or tick entities. Empty, invalid or non-living snapshots
+leave just the machine geometry. Bounded caches reset across levels, resource
+reloads and logout. Nested carried entity displays are suppressed to prevent
+recursive rendering.
+
+`ProcessorState.derive` declares a cached, read-only value with an explicit list
+of existing dependencies and a computation. Existing-only dependencies prevent
+cycles. Computations may read only declared dependencies and may not mutate state.
+Changes recompute affected values at the end of a batch (or when read within it),
+before publishing notifications. Derived variables are reconstructed on server
+load rather than persisted or transported. Synchronized derived values are sent
+to clients, which accept the server result even when dependencies are private.
+XML hosts refresh them again on load once their level is available; other hosts
+should call `StoredProcessor.refreshDerived()` at that lifecycle boundary.
+
+`PortableStoredProcessor` always declares `mmdlib:pickup`. Override `customActions()`
+for additional commands; this declaration is cached on first use, so put changing
+availability in each action's predicate. The standard action transfers the machine item once,
+removes the block, returns the item to the player (dropping overflow through vanilla
+inventory handling), and closes the screen. A refused removal restores ownership.
+Bind a button with `on-click="mmdlib:pickup"`; tagged pickup tools automatically use
+the same action on sneak-right-click. Other declared actions can use
+`<block ... on-secondary-use="yourmod:action"/>` with the same server-side
+availability checks as buttons. The reserved pickup action requires a tagged tool
+outside the UI, even if named by `on-secondary-use`.
+
+`EntityPlacement.place(entity, serverLevel, candidates)` validates a detached entity,
+checks loaded UUIDs across dimensions, loaded chunks, the world border and collision,
+then attempts spawning. Its result distinguishes invalid data, duplicate identity,
+no space and rejected spawning. Failed attempts restore position and velocity.
+`around(entity, origin, orderedSides)` provides size-aware adjacent candidates.
+The caller retains its snapshot until `SUCCESS`; the helper never clears owned data.
+UUID checks cover loaded entities, not entities stored in unloaded chunks.
+
+Named variable declarations default to private, nonvisual state:
+
+```java
+var occupant = variables.entity("occupant").synced().portable().define();
+var occupied = variables.bool("occupied", false).visual()
+    .derived(List.of(occupant), state -> !state.get(occupant).isEmpty());
+var cooldown = variables.integer("cooldown", 0, 40, 0).define();
+```
+
+`visual()` also enables synchronization. `components(name, initialLines)` supplies
+the component-list codec and defensive copies; `string`, `bool`, `integer` and
+`entity` supply their corresponding codecs. `value` accepts a custom codec and
+copy function. Finish with `define()` or `derived(dependencies, computation)`.
+
+Use `features.findProcessor(key, ExpectedProcessor.class)` for typed lookup, or
+`Processors.find(host, key, ExpectedProcessor.class)` when the host is a block
+entity or another object. The latter accepts `FeatureHost` and `ScreenHost` and
+returns an empty optional for missing, incompatible or unsupported hosts.
+
+`variables.timer("cooldown", 40, ProcessorTimer.Policy.IDLE)` creates a private,
+persisted countdown. Use `start(ticks)`, `ready()`, `remaining()` and `clear()`;
+the `StoredProcessor` lifecycle decrements it automatically before processing.
+`start` rejects values outside `0..maximum` with an `IllegalArgumentException`
+that names the timer and bounds, before changing state.
+Policies are `IDLE`, `ACTIVE` (including stalled/blocked active work), `UNPAUSED`
+(idle or active, excluding holds), and `ALWAYS` (including paused/held loaded ticks).
+Timers clamp at zero, never advance while unloaded, and are not portable unless
+their key is explicitly opted in. `key()` can be a dependency of a derived value.
+
+### Saved-state upgrades
+
+`StoredProcessor.state()` records `mmdlib:data_version` alongside its variables.
+Override `dataVersion()` with a non-negative schema version and
+`migrateState(int fromVersion, CompoundTag data)` to translate older world saves
+before decoding. Unversioned saves are version zero. The hook receives a detached
+copy and must handle all versions older than the current one, including renamed
+fields and changed integer/timer bounds. For example:
+
+```java
+@Override
+protected int dataVersion() { return 1; }
+
+@Override
+protected CompoundTag migrateState(int fromVersion, CompoundTag data) {
+    if (fromVersion < 1 && data.contains("cooldown"))
+        data.putInt("cooldown", Math.clamp(data.getInt("cooldown"), 0, 20));
+    return data;
+}
+```
+
+The next save records the current version. A migration that throws is logged and
+falls back to the original, unmodified fields; newer-version saves are decoded
+without running a downgrade. Each field rejected by its codec uses its initial
+value, preserving other variables and machine storage. The default
+`invalidState(ProcessorState.DecodeFailure failure, boolean client)` callback
+logs the machine ID/position, processor ID, variable, raw tag and decode error.
+Override it for mod-specific reporting. Direct `ProcessorState.load` callers can
+also supply a failure consumer; the default logs the variable and rejected data.
+
+Client snapshots receive the same per-field validation and reporting, but never
+run disk migrations. Private fields stay private during client restoration.
+Portable item payloads continue to use their separate portable schema/defaults.
+
+## Right-click item receivers
+
+Implement `machine.feature.ItemReceiver` on a machine block entity or its XML
+processor to accept items without teaching those items about the destination.
+`accepts(offered)` is a pure recognition check used on both sides; recognize the
+item even when the destination is full. `receive(offered, context)` runs only on
+the server with a detached copy, defaulting to one item. Override
+`offerLimit(held)` to return `held.getCount()` for whole-stack deposits (the router
+clamps the limit to the held count and at least one). Return `Exchange.reject()`
+without mutating anything, or commit full or partial acceptance and return
+`Exchange.accept(remainder)` with all unaccepted items or the resulting container.
+The receiver must not edit the player's hand. Validate all conditions before
+committing; the library cannot roll back arbitrary consumer side effects.
+
+`DefinedMachineBlock` and `MultiblockBlock` route right-clicks automatically;
+`DefinedMachineItem` also routes direct item use. Other blocks can delegate to
+`MachineItemInteractions.useOnBlock(context)`. Linked parts resolve to their
+validated controller without loading chunks; stale links are not forwarded.
+Unready structures reject recognized exchanges. XML processor receivers follow
+block-entity receivers, and the fluid adapter is the final fallback.
+
+On success the router removes the offered count from the hand and returns the
+remainder, merging matching items back into the hand first. Whole-stack deposits
+leave any unaccepted items in that hand. Different returned containers use the
+hand or inventory, with overflow dropped rather than deleted. Portable
+contents are consumed even in creative. `Exchange.reusable(remainder)` instead
+keeps the original item in creative, as ordinary fluid containers do. Client
+prediction recognizes the interaction without changing storage or inventory.
+Recognized rejections consume the block interaction to prevent bucket spilling
+or placing a carried machine beside a full receiver. Sneaking uses the same path
+on library machine blocks, while respecting explicit interaction denials.
+
+`FluidItemReceiver` adapts NeoForge's item fluid capability, supporting buckets
+and compatible modded containers in either direction. It uses normal fill-first,
+then empty-container semantics and preserves the returned container/components.
+XML machines retain manual access to all their tanks, including static tanks with
+no automation group. Other machines use the clicked face's fluid capability, so
+multiblock port and side rules remain effective. GUI tank clicks keep their own
+per-tank selection and interaction behavior.
+
+MMDLib automatically registers each concrete machine's block, item and block entity
+type from its XML definition. Java integrations can access them through
+`MachineContent.block(id)`, `MachineContent.item(id)` and
+`MachineContent.entityType(id)`; no per-machine registration or supplier class is
+needed. Call these after the corresponding registry event (for example, in creative
+tab contents or client setup), not while initializing a mod's static fields. Unknown
+or not-yet-registered IDs fail explicitly instead of returning air.

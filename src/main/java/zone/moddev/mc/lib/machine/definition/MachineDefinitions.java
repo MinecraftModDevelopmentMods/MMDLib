@@ -165,41 +165,52 @@ public final class MachineDefinitions {
     private static final Map<String, Set<String>> ATTRIBUTES = Map.ofEntries(
         Map.entry("machine", Set.of("version", "abstract", "extends", "name")),
         Map.entry("block",
-            Set.of("hardness", "facing", "drop", "mineable", "requires-tool")),
+            Set.of("hardness", "facing", "drop", "mineable", "requires-tool",
+                "stack-size", "no-occlusion", "immovable", "portable",
+                "on-secondary-use", "drawers")),
         Map.entry("appearance",
             Set.of("preset", "front", "side", "top", "bottom", "model")),
+        Map.entry("entity-display",
+            Set.of("variable", "offset", "width", "height", "yaw", "item-yaw",
+                "block", "item", "item-property")),
         Map.entry("part", Set.of("id", "model", "when")),
         Map.entry("face-texture",
             Set.of("id", "face", "texture", "when", "emissive-mask")),
         Map.entry("storage", Set.of()), Map.entry("items", Set.of("id")),
         Map.entry("fluids", Set.of("id")),
         Map.entry("tank",
-            Set.of("id", "capacity", "role", "fluid", "color", "automation")),
+            Set.of("id", "capacity", "role", "fluid", "color", "automation",
+                "name")),
         Map.entry("tanks",
             Set.of("id", "count", "capacity", "role", "fluid", "color",
-                "automation")),
+                "automation", "name")),
         Map.entry("energy",
-            Set.of("id", "capacity", "input-rate", "output-rate", "color")),
+            Set.of("id", "capacity", "input-rate", "output-rate", "color",
+                "name")),
         Map.entry("slots",
             Set.of("id", "count", "role", "limit", "color", "type",
-                "default-item")),
+                "default-item", "name")),
         Map.entry("slot",
-            Set.of("id", "count", "role", "limit", "type", "default-item")),
+            Set.of("id", "count", "role", "limit", "type", "default-item",
+                "name")),
         Map.entry("groups", Set.of()),
-        Map.entry("group", Set.of("id", "storage", "members", "mode", "color")),
+        Map.entry("group",
+            Set.of("id", "storage", "members", "mode", "color", "name")),
         Map.entry("recipe-type", Set.of("id", "declare", "name")),
         Map.entry("processor",
             Set.of("id", "name", "recipe-type", "filter-inputs", "selectable",
-                "default-recipe")),
+                "default-recipe", "class")),
         Map.entry("redstone", Set.of("enabled", "pause")),
-        Map.entry("recovery", Set.of("policy")));
+        Map.entry("shape", Set.of("id", "when", "bounds")),
+        Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
         Set.of("block", "appearance", "storage", "groups", "recipe-type",
-            "processor", "redstone", "recovery", "screen"),
+            "processor", "redstone", "recovery", "screen", "shapes",
+            "entity-display"),
         "storage", Set.of("energy", "items", "fluids"), "fluids",
         Set.of("tank", "tanks"), "items", Set.of("slot", "slots"), "groups",
         Set.of("group"), "appearance", Set.of("part", "face-texture"),
-        "recipe-type", Set.of("generator"));
+        "recipe-type", Set.of("generator"), "shapes", Set.of("shape"));
 
     private static void validateTree(Node node) {
         if (node.name().equals("screen")
@@ -225,6 +236,7 @@ public final class MachineDefinitions {
             case "appearance" ->
                 List.of("front", "side", "top", "bottom", "model");
             case "part" -> List.of("model");
+            case "entity-display" -> List.of("item-property");
             case "face-texture" -> List.of("texture", "emissive-mask");
             case "recipe-type" -> List.of("id");
             case "processor" -> List.of("recipe-type", "default-recipe");
@@ -241,6 +253,9 @@ public final class MachineDefinitions {
         if (Set.of("slots", "tank", "tanks", "energy", "group")
             .contains(node.name()))
             color(node, 0);
+        if (Set.of("slot", "slots", "tank", "tanks", "energy", "group")
+            .contains(node.name()) && node.attributes().containsKey("name"))
+            required(node, "name");
         var seen = new HashSet<String>();
         for (var child : node.children()) {
             if (!CHILDREN.getOrDefault(node.name(), Set.of())
@@ -299,6 +314,9 @@ public final class MachineDefinitions {
         int energyColor = power == null
             ? MachineColors.parse("energy")
             : color(power, MachineColors.parse("energy"));
+        String energyName = power == null
+            ? "Energy"
+            : power.attributes().getOrDefault("name", "Energy");
         var fluidNode = optional(storage, "fluids");
         var tanks = new ArrayList<Tank>();
         var fluidGroups = new LinkedHashMap<String, Group>();
@@ -334,10 +352,11 @@ public final class MachineDefinitions {
                     members.add(tanks.size());
                     tanks.add(new Tank(member, role, capacity, filter));
                 }
-                if (fluidGroups.putIfAbsent(tankId,
-                    new Group(tankId, members, mode(role),
-                        color(node, MachineColors.fluid(fluidGroups.size())),
-                        automation)) != null)
+                if (fluidGroups.putIfAbsent(tankId, new Group(tankId, members,
+                    mode(role),
+                    color(node, MachineColors.fluid(fluidGroups.size())),
+                    automation,
+                    node.attributes().getOrDefault("name", tankId))) != null)
                     throw error(node, "Duplicate fluid group " + tankId);
             }
             if (tanks.isEmpty() || tanks.size() > 16)
@@ -375,9 +394,14 @@ public final class MachineDefinitions {
                 ghosts.add(new MachineDefinition.Ghost(slotId, count,
                     node.attributes().containsKey("default-item")
                         ? resource(node, "default-item")
-                        : null));
+                        : null,
+                    node.attributes().getOrDefault("name", slotId)));
                 continue;
             }
+            if (node.name().equals("slot")
+                && node.attributes().containsKey("name"))
+                throw error(node,
+                    "A standalone item slot's name belongs on its group");
             if (node.attributes().containsKey("default-item"))
                 throw error(node,
                     "default-item is only supported for ghost slots");
@@ -402,7 +426,8 @@ public final class MachineDefinitions {
                     case MANUAL -> IoMode.DISABLED;
                 };
                 if (groups.putIfAbsent(slotId, new Group(slotId, members, mode,
-                    color(node, defaultItemColor(groups, mode)))) != null)
+                    color(node, defaultItemColor(groups, mode)), true,
+                    node.attributes().getOrDefault("name", slotId))) != null)
                     throw error(node, "Duplicate group " + slotId);
             }
         }
@@ -422,6 +447,8 @@ public final class MachineDefinitions {
                         throw error(node,
                             "Energy group has a single implicit member");
                     energyColor = color(node, energyColor);
+                    energyName = node.attributes().getOrDefault("name",
+                        energyName);
                     continue;
                 }
                 if (fluidNode != null && required(node, "storage")
@@ -450,7 +477,8 @@ public final class MachineDefinitions {
                         throw error(node, "Invalid group mode");
                     }
                     fluidGroups.put(groupId, new Group(groupId, prior.members(),
-                        mode, color(node, prior.color()), prior.automation()));
+                        mode, color(node, prior.color()), prior.automation(),
+                        node.attributes().getOrDefault("name", prior.name())));
                     continue;
                 }
                 if (!required(node, "storage").equals(itemId))
@@ -482,7 +510,9 @@ public final class MachineDefinitions {
                         color(node,
                             prior == null
                                 ? defaultItemColor(groups, mode)
-                                : prior.color())));
+                                : prior.color()),
+                        true, node.attributes().getOrDefault("name",
+                            prior == null ? groupId : prior.name())));
             }
         var covered = new HashSet<Integer>();
         for (var group : groups.values())
@@ -521,7 +551,15 @@ public final class MachineDefinitions {
         }
         var recipe = optional(root, "recipe-type");
         var processor = optional(root, "processor");
-        if ((recipe == null) != (processor == null))
+        boolean custom = processor != null
+            && processor.attributes().containsKey("class");
+        if (custom && (recipe != null
+            || processor.attributes().containsKey("recipe-type")
+            || processor.attributes().containsKey("selectable")
+            || processor.attributes().containsKey("filter-inputs")))
+            throw error(processor,
+                "Custom processors do not declare recipe processing options");
+        if (!custom && (recipe == null) != (processor == null))
             throw error(root,
                 "recipe-type and processor must be supplied together");
         if (processor == null) {
@@ -536,7 +574,7 @@ public final class MachineDefinitions {
                     "Machines without a processor require storage/manual tank roles");
         }
         var recipeType = recipe == null ? null : recipeType(recipe, loaders);
-        if (processor != null
+        if (!custom && processor != null
             && !recipeType.id().equals(resource(processor, "recipe-type")))
             throw error(processor, "Unknown recipe type");
         // All input groups are linked automatically when processing is enabled.
@@ -600,6 +638,97 @@ public final class MachineDefinitions {
         if (processor != null && !selectable
             && processor.attributes().containsKey("default-recipe"))
             throw error(processor, "default-recipe requires selectable='true'");
+        var shapeNode = optional(root, "shapes");
+        var shapes = new ArrayList<MachineBehavior.Shape>();
+        if (shapeNode != null)
+            for (var shape : shapeNode.children()) {
+                var bounds = required(shape, "bounds").trim().split("\\s+");
+                if (bounds.length != 6)
+                    throw error(shape, "Shape bounds require six coordinates");
+                try {
+                    double[] v = Arrays.stream(bounds)
+                        .mapToDouble(Double::parseDouble).toArray();
+                    shapes.add(new MachineBehavior.Shape(required(shape, "id"),
+                        required(shape, "when"), v[0], v[1], v[2], v[3], v[4],
+                        v[5]));
+                } catch (IllegalArgumentException ex) {
+                    throw error(shape, ex.getMessage());
+                }
+            }
+        var displayNode = optional(root, "entity-display");
+        EntityDisplay display = null;
+        if (displayNode != null) {
+            var offset = displayNode.attributes()
+                .getOrDefault("offset", "0.5 0 0.5").trim().split("\\s+");
+            if (offset.length != 3)
+                throw error(displayNode,
+                    "Entity display offset needs three coordinates");
+            try {
+                display = new EntityDisplay(
+                    zone.moddev.mc.lib.gui.model.ProcessorVariable
+                        .parse(required(displayNode, "variable")),
+                    Double.parseDouble(offset[0]),
+                    Double.parseDouble(offset[1]),
+                    Double.parseDouble(offset[2]),
+                    Float.parseFloat(
+                        displayNode.attributes().getOrDefault("width", "1")),
+                    Float.parseFloat(
+                        displayNode.attributes().getOrDefault("height", "1")),
+                    Float.parseFloat(
+                        displayNode.attributes().getOrDefault("yaw", "0")),
+                    Float.parseFloat(displayNode.attributes()
+                        .getOrDefault("item-yaw", "180")),
+                    bool(displayNode, "block", true),
+                    bool(displayNode, "item", true),
+                    displayNode.attributes().containsKey("item-property")
+                        ? resource(displayNode, "item-property")
+                        : null);
+            } catch (IllegalArgumentException ex) {
+                throw error(displayNode, ex.getMessage());
+            }
+        }
+        ProcessorDeclaration declaration = null;
+        zone.moddev.mc.lib.machine.feature.Processor<?> prototype = null;
+        if (custom) {
+            try {
+                declaration = ProcessorDeclaration.load(
+                    required(processor, "class"),
+                    loaders.get(processor.source()));
+                prototype = declaration.schema(required(processor, "id"));
+            } catch (IllegalArgumentException ex) {
+                throw error(processor, ex.getMessage());
+            }
+        }
+        MachineBehavior behavior;
+        try {
+            behavior = new MachineBehavior(declaration,
+                (int) (block.attributes().containsKey("stack-size")
+                    ? number(block, "stack-size", 1, 64)
+                    : 64),
+                bool(block, "no-occlusion", false),
+                bool(block, "immovable", false), bool(block, "portable", false),
+                bool(block, "drawers", true), shapes,
+                block.attributes().containsKey("on-secondary-use")
+                    ? resource(block, "on-secondary-use")
+                    : null,
+                display);
+        } catch (IllegalArgumentException ex) {
+            throw error(block, ex.getMessage());
+        }
+        if (behavior.secondaryAction() != null && (prototype == null
+            || !prototype.actions().containsKey(behavior.secondaryAction())))
+            throw error(block, "Unknown secondary-use processor action: "
+                + behavior.secondaryAction());
+        if (display != null) {
+            if (!custom || (display.item() && !behavior.portable()))
+                throw error(displayNode,
+                    "Entity displays require a custom processor; item displays require portable machines");
+            try {
+                display.validate(Map.of(required(processor, "id"), prototype));
+            } catch (IllegalArgumentException ex) {
+                throw error(displayNode, ex.getMessage());
+            }
+        }
         var definition = new MachineDefinition(id, checksum(root),
             required(root, "name"), hardness, resource(block, "mineable"),
             bool(block, "requires-tool", false), textures, baseModel,
@@ -610,7 +739,7 @@ public final class MachineDefinitions {
                     number(power, "capacity", 1, Long.MAX_VALUE),
                     number(power, "input-rate", 0, Long.MAX_VALUE),
                     number(power, "output-rate", 0, Long.MAX_VALUE),
-                    energyColor),
+                    energyColor, energyName),
             fluidNode == null
                 ? null
                 : new Fluids(required(fluidNode, "id"), tanks,
@@ -630,10 +759,8 @@ public final class MachineDefinitions {
                         ? resource(processor, "default-recipe")
                         : null)
                 : null,
-            ghosts);
-        var defaults = definition.hasConditionalAppearance()
-            ? definition.visualDefaults()
-            : Map.<String, Object>of();
+            ghosts, behavior);
+        var defaults = definition.visualDefaults(prototype);
         for (var part : appearance.children()) {
             try {
                 VisualCondition.compile(required(part, "when"), defaults);
@@ -641,6 +768,19 @@ public final class MachineDefinitions {
                 throw error(part, ex.getMessage());
             }
         }
+        var processorDefaults = defaults.entrySet().stream()
+            .filter(entry -> entry.getKey().startsWith("processors."))
+            .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey,
+                Map.Entry::getValue));
+        if (shapeNode != null)
+            for (var shape : shapeNode.children()) {
+                try {
+                    VisualCondition.compile(required(shape, "when"),
+                        processorDefaults);
+                } catch (IllegalArgumentException ex) {
+                    throw error(shape, ex.getMessage());
+                }
+            }
         return definition;
     }
 

@@ -26,8 +26,10 @@ import zone.moddev.mc.lib.machine.presentation.VisualVariables;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
 /** Shared runtime assembled from XML. There is no per-machine Java subclass. */
-public final class DefinedMachineEntity extends BaseMachine {
+public final class DefinedMachineEntity extends BaseMachine
+    implements zone.moddev.mc.lib.machine.feature.ProcessorMachine {
     public final MachineDefinition definition;
+    private Runnable placementComplete;
     public final ItemInventories items;
     public final FluidStorage fluids;
     public final EnergyBuffer energy;
@@ -35,6 +37,7 @@ public final class DefinedMachineEntity extends BaseMachine {
     public final MachineInventoryLifecycle inventory;
     private final RedstoneControl redstone;
     private final MachineVisualState visuals;
+    private final MachineShapeState shapes;
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
 
@@ -77,7 +80,7 @@ public final class DefinedMachineEntity extends BaseMachine {
             resources
                 .items(
                     new ResourceGroup<>(group.id(),
-                        Component.literal(group.id()), group.color(),
+                        definition.groupName(group.id()), group.color(),
                         ResourceType.ITEMS, group.mode(),
                         group.members().stream()
                             .map(definition.inventorySlots(group.id())::indexOf)
@@ -88,9 +91,9 @@ public final class DefinedMachineEntity extends BaseMachine {
         }
         if (energy != null)
             resources.energy(new ResourceGroup<>("energy",
-                Component.literal("Energy"), definition.power().color(),
-                ResourceType.ENERGY, IoMode.INPUT, List.of(0),
-                highlights.get(definition.power().id()),
+                definition.groupName(definition.power().id()),
+                definition.power().color(), ResourceType.ENERGY, IoMode.INPUT,
+                List.of(0), highlights.get(definition.power().id()),
                 new SideConfig(IoMode.INPUT)), energy);
         if (definition.fluids() != null)
             for (var group : definition.fluids().groups()) {
@@ -101,7 +104,7 @@ public final class DefinedMachineEntity extends BaseMachine {
                     continue;
                 }
                 resources.fluids(new ResourceGroup<>(group.id(),
-                    Component.literal(group.id()), group.color(),
+                    definition.groupName(group.id()), group.color(),
                     ResourceType.FLUIDS, group.mode(), group.members(),
                     highlights.get(group.id()), new SideConfig(group.mode())),
                     fluids);
@@ -123,8 +126,13 @@ public final class DefinedMachineEntity extends BaseMachine {
             resources.recipeOnlyGroup(ghost.id(), samples);
         }
         resources.build();
+        zone.moddev.mc.lib.machine.feature.Processor<?> visualProcessor = null;
         RecipeProcessor processor = null;
-        if (definition.hasProcessor()) {
+        if (definition.behavior().processor() != null) {
+            visualProcessor = definition.behavior().processor()
+                .create(definition.processor(), this);
+            features.add(visualProcessor);
+        } else if (definition.hasProcessor()) {
             processor = new RecipeProcessor(definition.processor(), recipes,
                 resources.recipes(),
                 Component.literal(definition.processorName()));
@@ -132,6 +140,7 @@ public final class DefinedMachineEntity extends BaseMachine {
                 processor
                     .selectable(definition.recipeSelection().defaultRecipe());
             features.add(processor);
+            visualProcessor = processor;
         }
         inventory = genericInventory(resources.automation());
         if (definition.itemStorageId() != null)
@@ -141,16 +150,130 @@ public final class DefinedMachineEntity extends BaseMachine {
         redstone = definition.redstone()
             ? new RedstoneControl(this, List.of(features))
             : null;
+        var visualSource = visualProcessor;
+        var graph = new VisualVariables[1];
+        java.util.function.Supplier<VisualVariables> sharedVariables = () -> {
+            if (graph[0] == null)
+                graph[0] = BuiltinVisualVariables.forMachine(definition,
+                    visualSource, items, fluids, energy);
+            return graph[0];
+        };
+        features.bindVisualVariables(sharedVariables);
+        var emptyVariables = new VisualVariables.Builder().build();
         visuals = new MachineVisualState(!definition.hasConditionalAppearance()
-            ? new VisualVariables.Builder().build()
-            : BuiltinVisualVariables.forMachine(definition, processor, items,
-                fluids, energy),
-            definition.visualConditions());
+            ? emptyVariables
+            : sharedVariables.get(), definition.visualConditions());
+        shapes = new MachineShapeState(definition.behavior().shapes(),
+            definition.behavior().shapes().isEmpty()
+                ? emptyVariables
+                : sharedVariables.get(),
+            () -> {
+                if (level == null)
+                    return;
+                if (level.isClientSide)
+                    level.sendBlockUpdated(worldPosition, getBlockState(),
+                        getBlockState(),
+                        net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+                else if (!isRemoved())
+                    FeatureSync.send(this);
+            });
     }
 
+    public net.minecraft.world.phys.shapes.VoxelShape shape(
+        net.minecraft.core.Direction facing) {
+        return shapes.shape(facing);
+    }
+
+    public Level level() {
+        return getLevel();
+    }
+    public BlockPos position() {
+        return getBlockPos();
+    }
+    public BlockState blockState() {
+        return getBlockState();
+    }
+    public net.minecraft.world.item.ItemStack item() {
+        var stack = new net.minecraft.world.item.ItemStack(
+            getBlockState().getBlock());
+        stack.applyComponents(collectComponents());
+        return stack;
+    }
+    @Override
+    public boolean authorizePickup(
+        net.minecraft.world.entity.player.Player player) {
+        if (!(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
+            || level == null || level.isClientSide || player.level() != level
+            || !player.mayBuild() || !level.mayInteract(player, worldPosition)
+            || isRemoved() || level.getBlockEntity(worldPosition) != this)
+            return false;
+        var event = net.neoforged.neoforge.common.CommonHooks.fireBlockBreak(
+            level, serverPlayer.gameMode.getGameModeForPlayer(), serverPlayer,
+            worldPosition, getBlockState());
+        return !event.isCanceled() && !isRemoved()
+            && level.getBlockEntity(worldPosition) == this;
+    }
+    public void remove() {
+        if (level != null)
+            level.removeBlock(worldPosition, false);
+    }
+    public boolean removed() {
+        return isRemoved();
+    }
+    void afterPlacement(Runnable action) {
+        // NeoForge confirms captured placements through Block.onPlace only
+        // after the placement event accepts them.
+        if (level != null && level.captureBlockSnapshots)
+            placementComplete = action;
+        else
+            action.run();
+    }
+    void completePlacement() {
+        var action = placementComplete;
+        placementComplete = null;
+        if (action != null)
+            action.run();
+    }
+    public void changed() {
+        changed(true);
+    }
+    public void changed(boolean synchronize) {
+        setChanged();
+        if (!synchronize)
+            return;
+        features.markSync();
+    }
+    public zone.moddev.mc.lib.machine.feature.PortableProcessor portable() {
+        if (!definition.behavior().portable())
+            return null;
+        return features
+            .findProcessor(definition.processor(),
+                zone.moddev.mc.lib.machine.feature.PortableProcessor.class)
+            .orElse(null);
+    }
+    @Override
+    public boolean screenStatsDrawer() {
+        return definition.behavior().drawers();
+    }
+    @Override
+    public boolean screenAutomationAddons() {
+        return definition.behavior().drawers();
+    }
+    @Override
+    public zone.moddev.mc.lib.api.automation.AutomationInventory screenAutomation() {
+        return definition.behavior().drawers()
+            ? super.screenAutomation()
+            : null;
+    }
     @Override
     public void onLoad() {
         super.onLoad();
+        if (level != null && !level.isClientSide)
+            features
+                .findProcessor(definition.processor(),
+                    zone.moddev.mc.lib.machine.feature.StoredProcessor.class)
+                .ifPresent(
+                    zone.moddev.mc.lib.machine.feature.StoredProcessor::refreshDerived);
         if (legacyGhostRecipe != null && level != null && !level.isClientSide) {
             migrateGhostRecipe(legacyGhostRecipe, level.registryAccess());
             legacyGhostRecipe = null;
@@ -181,6 +304,7 @@ public final class DefinedMachineEntity extends BaseMachine {
     @Override
     protected void loadClientData(CompoundTag tag,
         net.minecraft.core.HolderLookup.Provider registries) {
+        shapes.refresh();
         visuals.read(tag.getCompound("visuals"), this);
         readGhosts(tag, registries);
     }
@@ -234,6 +358,7 @@ public final class DefinedMachineEntity extends BaseMachine {
     @Override
     protected void loadMachineData(CompoundTag tag,
         net.minecraft.core.HolderLookup.Provider registries) {
+        shapes.refresh();
         legacyGhostRecipe = null;
         for (var ghost : definition.ghosts()) {
             var sample = ghost.defaultItem() == null
@@ -296,6 +421,15 @@ public final class DefinedMachineEntity extends BaseMachine {
     @Override
     public FluidStorage screenFluids() {
         return fluids;
+    }
+
+    @Override
+    public java.util.Optional<Component> screenTankName(int tank) {
+        if (definition.fluids() == null)
+            return java.util.Optional.empty();
+        return definition.fluids().groups().stream()
+            .filter(group -> group.members().contains(tank))
+            .map(group -> definition.groupName(group.id())).findFirst();
     }
 
     @Override

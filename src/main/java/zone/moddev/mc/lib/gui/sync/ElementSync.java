@@ -31,6 +31,8 @@ public final class ElementSync<T> {
     private final int maxBytes;
     private final Function<Element, T> initial;
     private final BiFunction<Source, T, T> sample;
+    private final Function<Source, T> current;
+    private final boolean immutable;
     private final BiPredicate<Element, T> valid;
     private final boolean layout;
 
@@ -40,6 +42,8 @@ public final class ElementSync<T> {
         maxBytes = builder.maxBytes;
         initial = builder.initial;
         sample = builder.sample;
+        current = builder.current;
+        immutable = builder.immutable;
         valid = builder.valid;
         layout = builder.layout;
     }
@@ -60,8 +64,15 @@ public final class ElementSync<T> {
         return checked(element, initial.apply(element));
     }
 
-    T sample(Source source, T previous) {
-        return checked(source.element(), sample.apply(source, previous));
+    T sample(Source source, java.util.function.Supplier<T> previous) {
+        return checked(source.element(),
+            current != null
+                ? current.apply(source)
+                : sample.apply(source, previous.get()));
+    }
+
+    boolean immutable() {
+        return immutable;
     }
 
     private T checked(Element element, T value) {
@@ -116,6 +127,8 @@ public final class ElementSync<T> {
         private final Function<Element, T> initial;
         private BiFunction<Source, T, T> sample = (source,
             previous) -> previous;
+        private Function<Source, T> current;
+        private boolean immutable;
         private BiPredicate<Element, T> valid = (element, value) -> true;
         private boolean layout;
 
@@ -137,6 +150,22 @@ public final class ElementSync<T> {
          */
         public Builder<T> sample(BiFunction<Source, T, T> sampler) {
             sample = Objects.requireNonNull(sampler);
+            current = null;
+            return this;
+        }
+
+        /** Samples current state without decoding an unused previous value. */
+        public Builder<T> sample(Function<Source, T> sampler) {
+            current = Objects.requireNonNull(sampler);
+            return this;
+        }
+
+        /**
+         * Opt in only for immutable values with stable equality. Unchanged
+         * samples reuse their encoded payload; decoded reads may be cached.
+         */
+        public Builder<T> immutable() {
+            immutable = true;
             return this;
         }
 

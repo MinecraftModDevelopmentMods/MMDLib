@@ -144,8 +144,9 @@ public abstract class BaseMachine extends BlockEntity
     }
 
     public boolean getPaused() {
-        return features.processor(java.util.Optional.empty())
-            .map(RecipeProcessor::paused).orElse(false);
+        return features.findProcessor(java.util.Optional.empty())
+            .map(zone.moddev.mc.lib.machine.feature.Processor::paused)
+            .orElse(false);
     }
 
     @Override
@@ -200,7 +201,9 @@ public abstract class BaseMachine extends BlockEntity
     @Override
     public AutomationInventory screenAutomation() {
         var inventory = configuredInventory();
-        return inventory == null ? null : inventory.automation();
+        return inventory == null || inventory.automation().groups().isEmpty()
+            ? null
+            : inventory.automation();
     }
 
     protected boolean processingAllowed() {

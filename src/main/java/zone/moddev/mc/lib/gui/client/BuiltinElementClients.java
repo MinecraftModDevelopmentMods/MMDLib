@@ -109,6 +109,10 @@ final class BuiltinElementClients {
             ElementClient.of(BUTTON_CONTROL).renderer(ButtonRenderer::draw)
                 .behavior(ButtonBehavior::new),
             ElementClient.of(LABEL).renderer(TextControlRenderer::label),
+            ElementClient
+                .of(zone.moddev.mc.lib.gui.load.BuiltinElements.ENTITY_PORTRAIT)
+                .renderer(EntityPortraitBehavior::render)
+                .behavior(EntityPortraitBehavior::new),
             ElementClient.of(RECIPE_SELECTOR)
                 .renderer(RecipeSelectorBehavior::render)
                 .renderer(ElementRenderers.Pass.TOP,

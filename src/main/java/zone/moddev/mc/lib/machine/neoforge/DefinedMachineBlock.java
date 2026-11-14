@@ -24,8 +24,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
-import net.neoforged.neoforge.fluids.FluidUtil;
-
 import org.jetbrains.annotations.Nullable;
 
 import zone.moddev.mc.lib.common.runtime.DropsContents;
@@ -92,6 +90,33 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level,
         BlockPos pos, Player player, BlockHitResult hit) {
+        if (player.isShiftKeyDown()
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.definition.behavior().secondaryAction() != null) {
+            var action = host.definition.behavior().secondaryAction();
+            if (action.equals(
+                zone.moddev.mc.lib.machine.feature.PortableStoredProcessor.PICKUP))
+                return InteractionResult.FAIL; // Pickup requires the UI or a
+                                               // tagged tool.
+            var processor = host.screenFeatures()
+                .findProcessor(host.definition.processor()).orElseThrow();
+            if (level.isClientSide())
+                return processor.actionAvailable(action, player)
+                    ? InteractionResult.SUCCESS
+                    : InteractionResult.FAIL;
+            var result = processor.invoke(action, player);
+            result.message().ifPresent(
+                message -> player.displayClientMessage(message, true));
+            return result.accepted()
+                ? InteractionResult.CONSUME
+                : InteractionResult.FAIL;
+        }
+        if (level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.portable() != null) {
+            var result = host.portable().use(player, player.isShiftKeyDown());
+            if (result != InteractionResult.PASS)
+                return result;
+        }
         return level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
             && machine.openScreen(player)
                 ? InteractionResult.sidedSuccess(level.isClientSide())
@@ -102,6 +127,21 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state,
         Level level, BlockPos pos, Player player, InteractionHand hand,
         BlockHitResult hit) {
+        if (player.isSecondaryUseActive()
+            && stack.is(MachineContent.PICKUP_TOOLS)
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.portable() != null) {
+            if (!level.isClientSide()) {
+                var processor = host.screenFeatures()
+                    .findProcessor(host.definition.processor()).orElseThrow();
+                var result = processor.invoke(
+                    zone.moddev.mc.lib.machine.feature.PortableStoredProcessor.PICKUP,
+                    player);
+                result.message().ifPresent(
+                    message -> player.displayClientMessage(message, true));
+            }
+            return ItemInteractionResult.sidedSuccess(level.isClientSide());
+        }
         if (stack.is(MachineContent.recoveryItem()) && level
             .getBlockEntity(pos) instanceof DefinedMachineEntity machine) {
             if (level.isClientSide())
@@ -110,24 +150,47 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
                 ? ItemInteractionResult.CONSUME
                 : ItemInteractionResult.FAIL;
         }
-        if (level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
-            && machine.fluids.getTanks() > 0
-            && FluidUtil.getFluidHandler(stack).isPresent()) {
-            if (level.isClientSide())
-                return ItemInteractionResult.SUCCESS;
-            return FluidUtil.interactWithFluidHandler(player, hand,
-                machine.fluids)
-                    ? ItemInteractionResult.CONSUME
-                    : ItemInteractionResult.FAIL;
-        }
-        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        return MachineItemInteractions.useOnBlock(
+            new net.minecraft.world.item.context.UseOnContext(player, hand,
+                hit));
+    }
+
+    @Override
+    protected void onPlace(BlockState state, Level level, BlockPos pos,
+        BlockState previous, boolean moved) {
+        super.onPlace(state, level, pos, previous, moved);
+        if (!level.isClientSide()
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host)
+            host.completePlacement();
     }
 
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos,
         BlockState replacement, boolean moved) {
-        DropsContents.onRemove(state, level, pos, replacement);
+        if (!level.restoringBlockSnapshots)
+            DropsContents.onRemove(state, level, pos, replacement);
         super.onRemove(state, level, pos, replacement, moved);
+    }
+
+    @Override
+    public BlockState playerWillDestroy(Level level, BlockPos pos,
+        BlockState state, Player player) {
+        if (!level.isClientSide() && player.isCreative()
+            && level.getBlockEntity(pos) instanceof DefinedMachineEntity host
+            && host.portable() != null)
+            host.portable().creativeDestroy();
+        return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    protected net.minecraft.world.phys.shapes.VoxelShape getShape(
+        BlockState state, BlockGetter world, BlockPos pos,
+        net.minecraft.world.phys.shapes.CollisionContext context) {
+        if (!(world.getBlockEntity(pos) instanceof DefinedMachineEntity host)
+            || host.definition.behavior().shapes().isEmpty())
+            return super.getShape(state, world, pos, context);
+        return host
+            .shape(state.getValue(BlockStateProperties.HORIZONTAL_FACING));
     }
 
     @Override

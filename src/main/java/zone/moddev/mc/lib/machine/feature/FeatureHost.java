@@ -62,11 +62,82 @@ public final class FeatureHost implements IRedstoneOutput {
      *             if another feature has the same key
      */
     public FeatureHost add(MachineFeature<?> feature) {
+        if (variables != null || variableSource != null)
+            throw new IllegalStateException(
+                "Cannot add features after binding variables");
         if (features.putIfAbsent(feature.key(), feature) != null)
             throw new IllegalArgumentException(
                 "Duplicate machine feature " + feature.key());
         syncs |= feature.syncsToClient();
         return this;
+    }
+
+    public java.util.Optional<Processor<?>> findProcessor(String key) {
+        return features.get(key) instanceof Processor<?> p
+            ? java.util.Optional.of(p)
+            : java.util.Optional.empty();
+    }
+
+    public <T> java.util.Optional<T> findProcessor(String key, Class<T> type) {
+        return findProcessor(key).filter(type::isInstance).map(type::cast);
+    }
+
+    public java.util.Optional<Processor<?>> findProcessor(
+        java.util.Optional<String> key) {
+        return key.isPresent()
+            ? findProcessor(key.get())
+            : features.values().stream().filter(Processor.class::isInstance)
+                .<Processor<?>>map(f -> (Processor<?>) f).findFirst();
+    }
+
+    private zone.moddev.mc.lib.machine.presentation.VisualVariables variables;
+    private java.util.function.Supplier<zone.moddev.mc.lib.machine.presentation.VisualVariables> variableSource;
+    private final Map<String, Condition> conditions = new LinkedHashMap<>();
+
+    /** Bind the owner's shared graph before any conditions are queried. */
+    public void bindVisualVariables(
+        java.util.function.Supplier<zone.moddev.mc.lib.machine.presentation.VisualVariables> source) {
+        if (variables != null || variableSource != null)
+            throw new IllegalStateException("Visual variables already bound");
+        variableSource = java.util.Objects.requireNonNull(source);
+    }
+
+    private final class Condition {
+        final zone.moddev.mc.lib.machine.presentation.VisualCondition expression;
+        boolean dirty = true;
+        boolean value;
+        Condition(String source) {
+            expression = zone.moddev.mc.lib.machine.presentation.VisualCondition
+                .compile(source, variables.defaults());
+            variables.subscribe(expression.variables(),
+                ignored -> dirty = true);
+        }
+        boolean value() {
+            if (dirty) {
+                value = expression
+                    .test(variables.snapshot(expression.variables()));
+                dirty = false;
+            }
+            return value;
+        }
+    }
+
+    public boolean condition(String expression) {
+        if (variables == null) {
+            if (variableSource != null) {
+                variables = java.util.Objects
+                    .requireNonNull(variableSource.get());
+            } else {
+                var builder = new zone.moddev.mc.lib.machine.presentation.VisualVariables.Builder();
+                features.values().forEach(feature -> {
+                    if (feature instanceof Processor<?> processor)
+                        builder.component("processors." + processor.key(),
+                            processor);
+                });
+                variables = builder.build();
+            }
+        }
+        return conditions.computeIfAbsent(expression, Condition::new).value();
     }
 
     public void reset() {
@@ -119,7 +190,7 @@ public final class FeatureHost implements IRedstoneOutput {
      * tick is held.
      */
     public boolean setProcessorPaused(String key, boolean paused) {
-        var processor = processor(key).orElse(null);
+        var processor = findProcessor(key).orElse(null);
         if (processor == null || processor.paused() == paused)
             return false;
         processor.setPaused(paused);

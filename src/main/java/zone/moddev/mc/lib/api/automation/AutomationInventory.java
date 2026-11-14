@@ -62,7 +62,8 @@ public final class AutomationInventory {
 
     public AutomationInventory(BlockEntity owner,
         List<ResourceGroup<?>> groups) {
-        if (groups.isEmpty() || groups.size() > MAX_GROUPS)
+        // World-interaction machines can have no automatable resources.
+        if (groups.size() > MAX_GROUPS)
             throw new IllegalArgumentException("Group count");
         this.owner = Objects.requireNonNull(owner);
         this.groups = List.copyOf(groups);

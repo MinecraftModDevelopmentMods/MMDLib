@@ -17,7 +17,27 @@ public final class TextControlRenderer {
     }
 
     public static void label(LabelElement element, ElementRenderers.Context c) {
-        caption(c, element.text(), c.bounds().x(), c.bounds().y());
+        if (element.variable().isEmpty()) {
+            caption(c, element.text(), c.bounds().x(), c.bounds().y());
+            return;
+        }
+        if (c.value() == null)
+            return;
+        var text = element.displayLines(c.value());
+        var r = c.bounds();
+        c.graphics().enableScissor(r.x(), r.y(), r.right(), r.bottom());
+        try {
+            int y = r.y();
+            for (var line : c.access().font().split(text, r.width())) {
+                if (y + c.access().font().lineHeight > r.bottom())
+                    break;
+                c.graphics().drawString(c.access().font(), line, r.x(), y,
+                    0xff404040, false);
+                y += c.access().font().lineHeight + 2;
+            }
+        } finally {
+            c.graphics().disableScissor();
+        }
     }
 
     public static void checkbox(CheckboxElement element,

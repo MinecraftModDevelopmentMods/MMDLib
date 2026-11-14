@@ -345,8 +345,8 @@ public final class SimpleLavaFurnaceTests {
     public static void bucketsFillAndInvalidSavedFluidIsPreservedForRecovery(
         GameTestHelper h) {
         var machine = place(h);
-        var player = h.makeMockServerPlayerInLevel();
-        player.getAbilities().instabuild = false;
+        var player = h
+            .makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
         var hit = new net.minecraft.world.phys.BlockHitResult(
             net.minecraft.world.phys.Vec3.atCenterOf(machine.getBlockPos()),
             Direction.UP, machine.getBlockPos(), false);
@@ -364,7 +364,7 @@ public final class SimpleLavaFurnaceTests {
             new ItemStack(Items.WATER_BUCKET));
         require(machine.getBlockState().useItemOn(player.getMainHandItem(),
             h.getLevel(), player, net.minecraft.world.InteractionHand.MAIN_HAND,
-            hit) == net.minecraft.world.ItemInteractionResult.FAIL,
+            hit) == net.minecraft.world.ItemInteractionResult.CONSUME,
             "Wrong fluid blocks vanilla bucket placement");
         require(
             player.getMainHandItem().is(Items.WATER_BUCKET)

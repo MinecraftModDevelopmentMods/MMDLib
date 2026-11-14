@@ -18,6 +18,9 @@ import zone.moddev.mc.lib.gui.model.Element;
  * sampling and validation.
  */
 public final class ElementStates implements ElementStateView {
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils
+        .getLogger();
+    private static final Map<BlockEntity, java.util.Set<net.minecraft.resources.ResourceLocation>> WARNED = new java.util.WeakHashMap<>();
     public static final int FIELDS_PER_ELEMENT = 16,
         MAX_FIELDS = 4096 * FIELDS_PER_ELEMENT;
     public static final int MAX_TOTAL_BYTES = 1 << 18;
@@ -32,6 +35,10 @@ public final class ElementStates implements ElementStateView {
         final int address;
         final ElementStateValue initial;
         ElementStateValue value;
+        T lastSample;
+        ElementStateValue lastEncoded;
+        T decoded;
+        ElementStateValue decodedFrom;
 
         Field(Element element, ElementSync<T> definition, int address) {
             this.element = element;
@@ -43,12 +50,59 @@ public final class ElementStates implements ElementStateView {
         }
 
         T read() {
-            return definition.decode(registries, element, value);
+            if (definition.immutable() && decodedFrom == value)
+                return decoded;
+            var result = definition.decode(registries, element, value);
+            if (definition.immutable()) {
+                decoded = result;
+                decodedFrom = value;
+            }
+            return result;
         }
 
         ElementStateValue sample(BlockEntity machine, Player viewer) {
-            return definition.encode(registries, element, definition.sample(
-                new ElementSync.Source(element, machine, viewer), read()));
+            try {
+                var candidate = definition.sample(
+                    new ElementSync.Source(element, machine, viewer),
+                    this::read);
+                if (definition.immutable() && lastEncoded != null
+                    && Objects.equals(lastSample, candidate))
+                    return lastEncoded;
+                ElementStateValue encoded;
+                T readable;
+                try {
+                    encoded = definition.encode(registries, element, candidate);
+                    readable = candidate;
+                } catch (RuntimeException failure) {
+                    encoded = fallback(machine, failure);
+                    readable = definition.initial(element);
+                }
+                if (definition.immutable()) {
+                    lastSample = candidate;
+                    lastEncoded = encoded;
+                    decoded = readable;
+                    decodedFrom = encoded;
+                }
+                return encoded;
+            } catch (RuntimeException failure) {
+                return fallback(machine, failure);
+            }
+        }
+
+        ElementStateValue fallback(BlockEntity machine,
+            RuntimeException failure) {
+            boolean warn;
+            synchronized (WARNED) {
+                warn = WARNED
+                    .computeIfAbsent(machine, ignored -> new HashSet<>())
+                    .add(definition.id());
+            }
+            if (warn)
+                LOGGER.warn(
+                    "Machine {} at {} could not sample element state {}; using its default: {}",
+                    machine.getBlockState(), machine.getBlockPos(),
+                    definition.id(), failure.toString());
+            return initial;
         }
 
         void validate(ElementStateValue encoded) {
@@ -135,9 +189,21 @@ public final class ElementStates implements ElementStateView {
             throw new IllegalStateException(
                 "Element state may only be sampled on the server");
         var sampled = new LinkedHashMap<Integer, ElementStateValue>();
-        fields.forEach((address, field) -> sampled.put(address,
-            field.sample(machine, viewer)));
-        apply(sampled);
+        // Reserve defaults for all fields, then admit each sample within the
+        // total screen budget. Even individually valid fields can exceed it.
+        long size = fields.values().stream()
+            .mapToLong(field -> field.initial.size() + 8L).sum();
+        for (var field : fields.values()) {
+            var encoded = field.sample(machine, viewer);
+            if (size + encoded.size() - field.initial.size() > MAX_TOTAL_BYTES)
+                encoded = field.fallback(machine, new IllegalArgumentException(
+                    "Element states exceed the screen byte budget"));
+            size += encoded.size() - field.initial.size();
+            sampled.put(field.address, encoded);
+        }
+        // Locally encoded values already passed their validators. Only inbound
+        // apply() needs to decode and validate an untrusted payload again.
+        applyTrusted(sampled);
         return Map.copyOf(sampled);
     }
 
@@ -159,6 +225,10 @@ public final class ElementStates implements ElementStateView {
         var combined = new LinkedHashMap<>(snapshot());
         combined.putAll(accepted);
         checkBudget(combined);
+        applyTrusted(accepted);
+    }
+
+    private void applyTrusted(Map<Integer, ElementStateValue> accepted) {
         boolean layout = false;
         for (var entry : accepted.entrySet()) {
             var field = fields.get(entry.getKey());
