@@ -75,7 +75,7 @@ The policy choices below remain open; these items are not implemented or verifie
   block-entity getter is not implemented yet; block entities are now registered at runtime.
 
 - **Standalone blocks** (`mmdlib/standalone/block/*.json`), material-less as in 1.0, built by
-  any block module's factory; first use is the player-only plate `mmdlib:human_detector`. See
+  any block module's factory, such as a player-only plate. See
   [startup definition loading](definition-loading.md#standalone-blocks).
 - **Block entities for data-defined machines.** Each mod's `RuntimeContentRegistrar` registers
   the block-entity type of every planned machine in its own namespace, with the block's ID,

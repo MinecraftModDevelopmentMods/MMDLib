@@ -152,8 +152,11 @@
   worlds when MMDLib is updated.
 - The release jar no longer contains the data generator for that content, which
   ran an external Python script.
-- The human detector's recipe needs `#c:gears`, which MMDLib no longer supplies;
-  it is craftable when another mod (such as BaseMetals) adds gears.
+- The human detector (`mmdlib:human_detector`) and the stone crushing recipe
+  moved to BaseMetals as well (`basemetals:human_detector`, with BaseMetals'
+  other vanilla block crushing recipes), along with the language files that
+  only translated the detector. Placed detectors with the old ID disappear from
+  existing worlds.
 - MMDLib's creative tab is now titled "MMDLib" (it was "MMDLib: Vanilla
   Extensions"); it holds MMDLib's standalone and script-defined items.
 - CraftTweaker API docs: every script type is documented for CraftTweaker's docs

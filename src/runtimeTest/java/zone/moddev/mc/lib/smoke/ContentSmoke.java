@@ -41,26 +41,25 @@ final class ContentSmoke {
 
     /**
      * The materials (five from test resources, two from the test scripts), the
-     * standalone blocks (the detector plate; the test-only NAND gate and hook
-     * block from test resources; the hook block from the test script) and the
-     * item count.
+     * standalone blocks (the player-only plate, NAND gate and hook block from
+     * test resources; the hook block from the test script) and the item count.
      */
     static void registered() {
         if (MMDLib.loadedMaterials().size() != 7)
             throw new AssertionError("Missing materials");
         var detector = BuiltInRegistries.BLOCK
-            .get(ResourceLocation.parse("mmdlib:human_detector"));
+            .get(ResourceLocation.parse("mmdlib:test_player_plate"));
         if (MMDLib.standaloneBlocks().size() != 12
             || !(detector instanceof StandardBlocks.DetectorPressurePlate))
             throw new AssertionError(
                 "Standalone player-only plate missing: " + detector);
-        // The release detector plate; from test resources the five materials'
-        // items, the gate's and hook block's block items and the hook tool;
+        // From test resources the five materials' items, the player-only
+        // plate's, gate's and hook block's block items and the hook tool;
         // from the test script the hook block's block item, the hook tool, the
         // hammer, the phase 2 material tool, and seven phase 3 entries; the
         // buckets of the standalone fluids test/syrup (test resources),
         // test/chocolate and test/plasma (test script).
-        if (registrar().items().size() != 171)
+        if (registrar().items().size() != 169)
             throw new AssertionError(
                 "Wrong runtime item count: " + registrar().items().size());
     }

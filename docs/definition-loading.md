@@ -40,9 +40,9 @@ remains available for explicit `data/<namespace>/...` module directories.
 ## Standalone blocks
 
 `mmdlib/standalone/block/<path>.json` declares one block with its own ID,
-`<namespace>:<path>`, and no material, as MMDLib 1.0 allowed. MMDLib's
-player-only plate is `mmdlib:standalone/block/human_detector.json`, which becomes
-`mmdlib:human_detector`:
+`<namespace>:<path>`, and no material, as MMDLib 1.0 allowed. For example, a
+player-only plate in `example:standalone/block/human_detector.json` becomes
+`example:human_detector` (BaseMetals ships one like it):
 
 ```json
 {

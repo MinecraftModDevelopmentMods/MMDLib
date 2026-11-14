@@ -32,7 +32,6 @@
   "jei.mmdlib.machine.required_fluid": "Requires %s mB",
   "jei.mmdlib.machine.energy": "%s FE",
   "jei.mmdlib.machine.time": "%s s",
-  "block.mmdlib.human_detector": "Security Pressure Plate",
   "screen.mmdlib.shift_for_more": "Hold Shift for details",
   "screen.mmdlib.side_config": "Side configuration",
   "screen.mmdlib.face.front": "Front",

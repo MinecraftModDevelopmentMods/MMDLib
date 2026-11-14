@@ -5,7 +5,7 @@
   "strength": 4,
   "magic": 4.5,
   "damage": 1.0,
-  "items": "arrow axe blend bolt boots bow chestplate crackhammer crossbow dust fishing_rod gear helmet hoe horse_armor leggings nugget pickaxe rod scythe shears shield shovel smallblend smallpowder sword",
+  "items": "arrow axe bolt boots bow chestplate crackhammer crossbow dust fishing_rod gear helmet hoe horse_armor leggings nugget pickaxe rod scythe shears shield shovel smallpowder sword",
   "blocks": "bars button double_slab lever plate pressure_plate slab stairs wall",
   "entities": "arrow bolt",
   "has_fluid": true,

@@ -17,24 +17,20 @@ import zone.moddev.mc.lib.common.modules.DataModules;
 
 /**
  * A block with its own registry ID and no material, as MMDLib 1.0 allowed (e.g.
- * the player-only plate {@code mmdlib:human_detector}). It is built by a block
- * module's registered factory, like a material block. {@code factory_data} is
- * merged over the module's; {@code template} replaces the module's template;
- * {@code runtime} supplies what a material normally would (block set type,
- * sound, map color, base block). When the module declares a block entity, it is
- * planned too, with the block's ID, and {@code block_entity_data} is merged
- * over its {@code factory_data}.
+ * BaseMetals' player-only plate {@code basemetals:human_detector}). It is built
+ * by a block module's registered factory, like a material block.
+ * {@code factory_data} is merged over the module's; {@code template} replaces
+ * the module's template; {@code runtime} supplies what a material normally
+ * would (block set type, sound, map color, base block). When the module
+ * declares a block entity, it is planned too, with the block's ID, and
+ * {@code block_entity_data} is merged over its {@code factory_data}.
  *
- * @param module
- *            the block module that builds the block
- * @param factoryData
- *            merged over the module's {@code factory_data}
- * @param template
- *            replaces the module's template when present
- * @param runtime
- *            the settings a material would supply
- * @param blockEntityData
- *            merged over the module's block-entity {@code factory_data}
+ * @param module the block module that builds the block
+ * @param factoryData merged over the module's {@code factory_data}
+ * @param template replaces the module's template when present
+ * @param runtime the settings a material would supply
+ * @param blockEntityData merged over the module's block-entity
+ *            {@code factory_data}
  */
 public record StandaloneBlock(ResourceLocation module, FactoryData factoryData,
     Optional<BlockTemplate> template, MaterialRuntimeSettings runtime,
@@ -75,8 +71,8 @@ public record StandaloneBlock(ResourceLocation module, FactoryData factoryData,
      * block, carrying {@code runtime}; the host has no parts or stats and is
      * not a loaded material.
      *
-     * @throws IllegalArgumentException
-     *             if the module has a world-entity companion, a {@code
+     * @throws IllegalArgumentException if the module has a world-entity
+     *             companion, a {@code
      *     factory_data} is not an object, or {@code block_entity_data} is set
      *             but the module has no block entity
      */
