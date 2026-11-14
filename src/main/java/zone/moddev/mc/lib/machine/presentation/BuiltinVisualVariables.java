@@ -130,7 +130,7 @@ public final class BuiltinVisualVariables {
                     ? processor
                     : definition.behavior().processor() != null
                         ? definition.behavior().processor()
-                            .create(definition.processor(), null)
+                            .schema(definition.processor())
                         : processor(null));
         for (var group : definition.groups()) {
             var indexes = definition.inventorySlots(group.id());

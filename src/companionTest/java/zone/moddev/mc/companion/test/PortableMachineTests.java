@@ -32,6 +32,28 @@ import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 @PrefixGameTestTemplate(false)
 public final class PortableMachineTests {
     @GameTest(template = "empty")
+    public static void shapeTransitionsAndConditionsUseTheCommittedProcessorState(
+        GameTestHelper h) {
+        var machine = occupied(h);
+        var registries = h.getLevel().registryAccess();
+        var id = ResourceLocation.parse("mmdlib_companion:test/portable");
+        var copy = (DefinedMachineEntity) MachineContent.entityType(id)
+            .create(machine.getBlockPos(), machine.getBlockState());
+        copy.loadWithComponents(machine.getUpdateTag(registries), registries);
+        h.assertTrue(
+            copy.shape(Direction.NORTH).bounds().getYsize() == 3.0 / 16,
+            "Client feature state selects the occupied plate");
+        machine.portable().placed(new ItemStack(MachineContent.item(id)));
+        h.assertTrue(machine.shape(Direction.NORTH).bounds().getYsize() == 1
+            && !machine.features.condition("$processors.portable.contents > 0"),
+            "Shared shape and button conditions see the completed update");
+        copy.loadWithComponents(machine.getUpdateTag(registries), registries);
+        h.assertTrue(copy.shape(Direction.NORTH).bounds().getYsize() == 1,
+            "The same update carries the new state and client bounds");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void badSavedProcessorFieldDoesNotDiscardBlockEntityInventory(
         GameTestHelper h) {
         var machine = occupied(h);
@@ -277,7 +299,8 @@ public final class PortableMachineTests {
 
     public static final class Payload extends PortableStoredProcessor {
         public Payload() {
-            variables.integer("contents", 0, 100, 0).portable().define();
+            variables.integer("contents", 0, 100, 0).visual().portable()
+                .define();
         }
 
         public boolean canStart(ProcessorState state,

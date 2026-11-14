@@ -92,4 +92,28 @@ class ProcessorDiagnosticsTest {
             Fixture.class.getName(), true);
         assertEquals(1, CONSTRUCTIONS.get());
     }
+
+    @Test
+    void declarationSharesReadOnlySchemasButCreatesIndependentRuntimeProcessors() {
+        CONSTRUCTIONS.set(0);
+        var declaration = new zone.moddev.mc.lib.machine.definition.ProcessorDeclaration(
+            Fixture.class);
+        var schema = declaration.schema("test");
+        for (int i = 0; i < 5; i++) {
+            org.junit.jupiter.api.Assertions.assertSame(schema,
+                declaration.schema("test"));
+            schema.variableDefaults();
+            var builder = new zone.moddev.mc.lib.machine.presentation.VisualVariables.Builder();
+            schema.defineVisualVariables(builder);
+        }
+        assertEquals(1, CONSTRUCTIONS.get());
+        assertThrows(UnsupportedOperationException.class,
+            () -> schema.setPaused(true));
+        var first = declaration.create("test", null);
+        var second = declaration.create("test", null);
+        first.setPaused(true);
+        org.junit.jupiter.api.Assertions.assertFalse(second.paused());
+        org.junit.jupiter.api.Assertions.assertFalse(schema.paused());
+        assertEquals(3, CONSTRUCTIONS.get());
+    }
 }

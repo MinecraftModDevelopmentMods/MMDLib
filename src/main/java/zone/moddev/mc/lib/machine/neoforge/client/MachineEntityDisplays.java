@@ -53,7 +53,7 @@ public final class MachineEntityDisplays {
         static Binding of(MachineDefinition definition) {
             var display = definition.behavior().entityDisplay();
             var processor = definition.behavior().processor()
-                .create(definition.processor(), null);
+                .schema(definition.processor());
             var reference = processor
                 .portableVariable(display.variable().name()).orElse(null);
             return new Binding(display,

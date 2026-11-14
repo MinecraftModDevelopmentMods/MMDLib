@@ -18,6 +18,38 @@ import zone.moddev.mc.lib.machine.presentation.VisualVariables;
 
 class MachineShapeStateTest {
     @Test
+    void sharedGraphNotifiesShapesOnlyWhenSelectionChanges() {
+        int[] count = {0};
+        var changes = new ChangeSignal();
+        var variables = new VisualVariables.Builder().observedBy(changes)
+            .add("processors.test.count", 0, () -> count[0]).build();
+        var host = new zone.moddev.mc.lib.machine.feature.FeatureHost(() -> {
+        });
+        host.bindVisualVariables(() -> variables);
+        var notifications = new java.util.concurrent.atomic.AtomicInteger();
+        var state = new MachineShapeState(
+            List.of(new MachineBehavior.Shape("plate",
+                "$processors.test.count > 0", 0, 0, 0, 16, 3, 16)),
+            variables, notifications::incrementAndGet);
+        org.junit.jupiter.api.Assertions
+            .assertFalse(host.condition("$processors.test.count > 0"));
+        count[0] = 1;
+        changes.changed();
+        assertEquals(1, notifications.get());
+        assertEquals(3.0 / 16,
+            state.shape(Direction.NORTH).bounds().getYsize());
+        org.junit.jupiter.api.Assertions
+            .assertTrue(host.condition("$processors.test.count > 0"));
+        count[0] = 2;
+        changes.changed();
+        assertEquals(1, notifications.get(),
+            "Value changes within the same shape stay batched");
+        count[0] = 0;
+        changes.changed();
+        assertEquals(2, notifications.get());
+        assertSame(Shapes.block(), state.shape(Direction.NORTH));
+    }
+    @Test
     void inactiveShapesRemainTargetableAndUpdatesPublishRotatedGeometry()
         throws Exception {
         boolean[] active = {false};

@@ -62,7 +62,7 @@ public final class FeatureHost implements IRedstoneOutput {
      *             if another feature has the same key
      */
     public FeatureHost add(MachineFeature<?> feature) {
-        if (variables != null)
+        if (variables != null || variableSource != null)
             throw new IllegalStateException(
                 "Cannot add features after binding variables");
         if (features.putIfAbsent(feature.key(), feature) != null)
@@ -91,7 +91,16 @@ public final class FeatureHost implements IRedstoneOutput {
     }
 
     private zone.moddev.mc.lib.machine.presentation.VisualVariables variables;
+    private java.util.function.Supplier<zone.moddev.mc.lib.machine.presentation.VisualVariables> variableSource;
     private final Map<String, Condition> conditions = new LinkedHashMap<>();
+
+    /** Bind the owner's shared graph before any conditions are queried. */
+    public void bindVisualVariables(
+        java.util.function.Supplier<zone.moddev.mc.lib.machine.presentation.VisualVariables> source) {
+        if (variables != null || variableSource != null)
+            throw new IllegalStateException("Visual variables already bound");
+        variableSource = java.util.Objects.requireNonNull(source);
+    }
 
     private final class Condition {
         final zone.moddev.mc.lib.machine.presentation.VisualCondition expression;
@@ -115,13 +124,18 @@ public final class FeatureHost implements IRedstoneOutput {
 
     public boolean condition(String expression) {
         if (variables == null) {
-            var builder = new zone.moddev.mc.lib.machine.presentation.VisualVariables.Builder();
-            features.values().forEach(feature -> {
-                if (feature instanceof Processor<?> processor)
-                    builder.component("processors." + processor.key(),
-                        processor);
-            });
-            variables = builder.build();
+            if (variableSource != null) {
+                variables = java.util.Objects
+                    .requireNonNull(variableSource.get());
+            } else {
+                var builder = new zone.moddev.mc.lib.machine.presentation.VisualVariables.Builder();
+                features.values().forEach(feature -> {
+                    if (feature instanceof Processor<?> processor)
+                        builder.component("processors." + processor.key(),
+                            processor);
+                });
+                variables = builder.build();
+            }
         }
         return conditions.computeIfAbsent(expression, Condition::new).value();
     }

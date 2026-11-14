@@ -150,21 +150,32 @@ public final class DefinedMachineEntity extends BaseMachine
         redstone = definition.redstone()
             ? new RedstoneControl(this, List.of(features))
             : null;
+        var visualSource = visualProcessor;
+        var graph = new VisualVariables[1];
+        java.util.function.Supplier<VisualVariables> sharedVariables = () -> {
+            if (graph[0] == null)
+                graph[0] = BuiltinVisualVariables.forMachine(definition,
+                    visualSource, items, fluids, energy);
+            return graph[0];
+        };
+        features.bindVisualVariables(sharedVariables);
+        var emptyVariables = new VisualVariables.Builder().build();
         visuals = new MachineVisualState(!definition.hasConditionalAppearance()
-            ? new VisualVariables.Builder().build()
-            : BuiltinVisualVariables.forMachine(definition, visualProcessor,
-                items, fluids, energy),
-            definition.visualConditions());
+            ? emptyVariables
+            : sharedVariables.get(), definition.visualConditions());
         shapes = new MachineShapeState(definition.behavior().shapes(),
             definition.behavior().shapes().isEmpty()
-                ? new VisualVariables.Builder().build()
-                : BuiltinVisualVariables.forMachine(definition, visualProcessor,
-                    items, fluids, energy),
+                ? emptyVariables
+                : sharedVariables.get(),
             () -> {
-                if (level != null && level.isClientSide)
+                if (level == null)
+                    return;
+                if (level.isClientSide)
                     level.sendBlockUpdated(worldPosition, getBlockState(),
                         getBlockState(),
                         net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+                else if (!isRemoved())
+                    FeatureSync.send(this);
             });
     }
 
@@ -231,12 +242,6 @@ public final class DefinedMachineEntity extends BaseMachine
         if (!synchronize)
             return;
         features.markSync();
-        if (level != null && !level.isClientSide && !isRemoved()) {
-            // Physical bounds and tracking-player state must change together,
-            // without the normal batching delay.
-            if (!definition.behavior().shapes().isEmpty())
-                FeatureSync.send(this);
-        }
     }
     public zone.moddev.mc.lib.machine.feature.PortableProcessor portable() {
         if (!definition.behavior().portable())

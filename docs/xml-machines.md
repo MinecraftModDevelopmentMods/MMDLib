@@ -1028,7 +1028,9 @@ targetable. Shapes are sampled on the owning thread and published as immutable
 geometry for chunk rendering. Omit `<shapes>` for the
 normal full cube. Conditions use processor variables and authoritative server
 state; model visibility alone never changes collision. Shape-bearing machines
-send synchronized state immediately after mutations so client bounds follow it.
+send synchronized state immediately when the selected shape changes; unrelated
+synchronized variables retain normal packet batching. Appearance, shape and
+button conditions share one lazily constructed visual-variable graph per machine.
 They also disable face occlusion automatically: blockstate-based occlusion caches
 cannot represent different shapes for machines with the same blockstate.
 
@@ -1055,6 +1057,11 @@ Malformed portable fields use their declared defaults when placed, matching
 item-side reads; valid fields in the same payload are still restored.
 Consumer client code can register a renderer for `MachineContent.entityType(id)`
 to draw live previews on the generic block entity.
+
+`ProcessorDeclaration.schema(key)` reuses a read-only schema for definition/screen
+validation and display metadata. Its action declarations cannot execute gameplay.
+Live machines and item interaction hooks still receive independent processor
+instances through `create`, so metadata reuse cannot share mutable gameplay state.
 
 For automatic item transport, extend `PortableStoredProcessor` and mark only the
 carried variables with `variables.portable(key)`. The library implements `take`,

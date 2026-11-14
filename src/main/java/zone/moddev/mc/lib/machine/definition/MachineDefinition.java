@@ -31,22 +31,7 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
     boolean redstone, Node screen, RecipeSelection recipeSelection,
-    List<Ghost> ghosts, MachineBehavior behavior,
-    Map<String, String> groupNames) {
-    public MachineDefinition(ResourceLocation id, String checksum, String name,
-        float hardness, ResourceLocation mineable, boolean requiresTool,
-        Map<String, String> textures, ResourceLocation baseModel,
-        List<ConditionalModelPart> modelParts,
-        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
-        String itemStorageId, List<Slot> slots, List<Group> groups,
-        RecipeType recipeType, String processor, String processorName,
-        boolean redstone, Node screen, RecipeSelection recipeSelection,
-        List<Ghost> ghosts, MachineBehavior behavior) {
-        this(id, checksum, name, hardness, mineable, requiresTool, textures,
-            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
-            slots, groups, recipeType, processor, processorName, redstone,
-            screen, recipeSelection, ghosts, behavior, Map.of());
-    }
+    List<Ghost> ghosts, MachineBehavior behavior) {
     public MachineDefinition(ResourceLocation id, String checksum, String name,
         float hardness, ResourceLocation mineable, boolean requiresTool,
         Map<String, String> textures, ResourceLocation baseModel,
@@ -164,8 +149,12 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         faceTextures = List.copyOf(faceTextures);
         slots = List.copyOf(slots);
         groups = List.copyOf(groups);
-        // Derived from the immutable declarations, including for canonical
-        // callers.
+    }
+
+    /**
+     * Derived names for resource generation; no redundant constructor input.
+     */
+    public Map<String, String> groupNames() {
         var names = new LinkedHashMap<String, String>();
         groups.forEach(group -> names.put(group.id(), group.name()));
         ghosts.forEach(ghost -> names.put(ghost.id(), ghost.name()));
@@ -174,7 +163,7 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         if (fluids != null)
             fluids.groups()
                 .forEach(group -> names.put(group.id(), group.name()));
-        groupNames = Collections.unmodifiableMap(names);
+        return Collections.unmodifiableMap(names);
     }
 
     public boolean hasProcessor() {
@@ -230,7 +219,26 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     /** Keep the component translatable until it reaches the viewer. */
     public Component groupName(String group) {
         return Component.translatableWithFallback(groupTranslationKey(group),
-            groupNames().getOrDefault(group, group));
+            groupNameFallback(group));
+    }
+
+    /**
+     * Hot tooltip path: resolve directly without constructing the names map.
+     */
+    private String groupNameFallback(String id) {
+        if (fluids != null)
+            for (int i = fluids.groups().size() - 1; i >= 0; i--)
+                if (fluids.groups().get(i).id().equals(id))
+                    return fluids.groups().get(i).name();
+        if (power != null && power.id().equals(id))
+            return power.name();
+        for (int i = ghosts.size() - 1; i >= 0; i--)
+            if (ghosts.get(i).id().equals(id))
+                return ghosts.get(i).name();
+        for (int i = groups.size() - 1; i >= 0; i--)
+            if (groups.get(i).id().equals(id))
+                return groups.get(i).name();
+        return id;
     }
 
     /**

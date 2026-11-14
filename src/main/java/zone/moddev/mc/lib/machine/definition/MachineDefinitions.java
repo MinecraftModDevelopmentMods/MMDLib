@@ -688,13 +688,13 @@ public final class MachineDefinitions {
             }
         }
         ProcessorDeclaration declaration = null;
-        zone.moddev.mc.lib.machine.feature.StoredProcessor prototype = null;
+        zone.moddev.mc.lib.machine.feature.Processor<?> prototype = null;
         if (custom) {
             try {
                 declaration = ProcessorDeclaration.load(
                     required(processor, "class"),
                     loaders.get(processor.source()));
-                prototype = declaration.create(required(processor, "id"), null);
+                prototype = declaration.schema(required(processor, "id"));
             } catch (IllegalArgumentException ex) {
                 throw error(processor, ex.getMessage());
             }

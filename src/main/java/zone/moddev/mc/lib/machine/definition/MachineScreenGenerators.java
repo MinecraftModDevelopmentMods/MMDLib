@@ -119,8 +119,8 @@ public final class MachineScreenGenerators {
         Map<String, Processor<?>> declared = machine.behavior()
             .processor() == null
                 ? Map.of()
-                : Map.of(machine.processor(), machine.behavior().processor()
-                    .create(machine.processor(), null));
+                : Map.of(machine.processor(),
+                    machine.behavior().processor().schema(machine.processor()));
         var defaults = machine.visualDefaults(
             machine.hasProcessor() ? declared.get(machine.processor()) : null);
         for (var element : screen.elements()) {
