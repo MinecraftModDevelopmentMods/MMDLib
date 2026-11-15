@@ -46,21 +46,16 @@ public final class MaterialPart implements Comparable<MaterialPart> {
     /**
      * A part.
      *
-     * @param name
-     *            the part's ID
-     * @param kind
-     *            item or block
-     * @param requiredMod
-     *            the mod the part needs, if any
-     * @param metadata
-     *            aliases, entity and block-entity companions
-     * @param factory
-     *            the ID of the Java implementation that creates it
-     * @param factoryData
-     *            the settings passed to that implementation
-     * @throws IllegalArgumentException
-     *             if {@code entity_data} is given without {@code
-     *     entity_factory}, or an item part declares a block entity
+     * @param name the part's ID
+     * @param kind item or block
+     * @param requiredMod the mod the part needs, if any
+     * @param metadata aliases, entity and block-entity companions
+     * @param factory the ID of the Java implementation that creates it
+     * @param factoryData the settings passed to that implementation
+     * @throws IllegalArgumentException if {@code entity_data} is given without
+     *             {@code
+     *     entity_factory}, {@code name_pattern} with {@code entity_factory}, or
+     *             an item part declares a block entity
      */
     public MaterialPart(ResourceLocation name, Kind kind,
         Optional<String> requiredMod, PartMetadata metadata,
@@ -75,9 +70,20 @@ public final class MaterialPart implements Comparable<MaterialPart> {
             && !metadata.entityData().equals(FactoryData.EMPTY))
             throw new IllegalArgumentException(
                 "entity_data requires entity_factory: " + name);
+        if (metadata.namePattern().isPresent()
+            && metadata.entityFactory().isPresent())
+            throw new IllegalArgumentException(
+                "name_pattern cannot be used with entity_factory: " + name);
         if (kind == Kind.ITEM && metadata.blockEntity().isPresent())
             throw new IllegalArgumentException(
                 "Block entities require a block module: " + name);
+    }
+
+    /**
+     * Whether {@code all} selects this part; a part that is not must be named.
+     */
+    public boolean inAll() {
+        return metadata.inAll();
     }
 
     /** The ID of the Java implementation that creates this part. */

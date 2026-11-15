@@ -2,6 +2,7 @@ package zone.moddev.mc.lib.common.types;
 
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -11,8 +12,11 @@ import zone.moddev.mc.lib.common.modules.ModuleCatalog;
 /**
  * Parses selection expressions such as
  * {@code "all !scythe !mmdlib:horse_armor"}: space-separated names or aliases,
- * {@code all} for every part in the section, and {@code !} to exclude.
- * Exclusions win whatever their order. JSON may also give the tokens as a list.
+ * {@code all} for every part in the section that {@link MaterialPart#inAll()
+ * all selects}, and {@code !} to exclude ({@code !all} excludes every part).
+ * Parts left out of {@code all}, such as {@code raw}, are selected only by
+ * name. Exclusions win whatever their order. JSON may also give the tokens as a
+ * list.
  */
 public final class PartSelection {
     private PartSelection() {
@@ -26,6 +30,12 @@ public final class PartSelection {
 
     /** Every bundled part that needs a world entity. */
     public static final Set<MaterialPart> ENTITIES = scope(true, true);
+
+    /** The parts of {@code parts} that {@code all} selects. */
+    public static Set<MaterialPart> inAll(Set<MaterialPart> parts) {
+        return parts.stream().filter(MaterialPart::inAll)
+            .collect(Collectors.toUnmodifiableSet());
+    }
 
     private static Set<MaterialPart> scope(boolean items, boolean entities) {
         var result = new java.util.HashSet<MaterialPart>();
@@ -41,8 +51,8 @@ public final class PartSelection {
     /**
      * Parses an expression against the parts {@code available} to one section.
      *
-     * @throws IllegalArgumentException
-     *             for unknown names or names from another section
+     * @throws IllegalArgumentException for unknown names or names from another
+     *             section
      */
     public static Set<MaterialPart> parse(String expression,
         Set<MaterialPart> available) {
@@ -55,7 +65,7 @@ public final class PartSelection {
             String name = negate ? token.substring(1) : token;
             var target = negate ? excluded : included;
             if (name.equals("all"))
-                target.addAll(available);
+                target.addAll(negate ? available : inAll(available));
             else {
                 MaterialPart part = new PartRegistry(available).resolve(name)
                     .getOrThrow(
@@ -87,10 +97,23 @@ public final class PartSelection {
             if (!available.containsAll(values))
                 return DataResult.error(
                     () -> "Selection contains a part from another section");
-            return DataResult.success(values.equals(available)
-                ? "all"
-                : values.stream().sorted().map(MaterialPart::id)
-                    .collect(Collectors.joining(" ")));
+            return DataResult.success(write(values, inAll(available)));
         });
+    }
+
+    /**
+     * {@code values} as an expression: {@code all} followed by any parts all
+     * leaves out when it holds every part {@code all} selects, else its sorted
+     * short IDs.
+     */
+    private static String write(Set<MaterialPart> values,
+        Set<MaterialPart> all) {
+        var whole = !all.isEmpty() && values.containsAll(all);
+        var names = values.stream().filter(p -> !whole || !all.contains(p))
+            .sorted().map(MaterialPart::id);
+        return whole
+            ? Stream.concat(Stream.of("all"), names)
+                .collect(Collectors.joining(" "))
+            : names.collect(Collectors.joining(" "));
     }
 }

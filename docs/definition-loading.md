@@ -285,6 +285,7 @@ pack, `mmdlib_material_tags`, at the bottom of the pack list:
 | tools, weapons, armor, `bow`, `crossbow`, `fishing_rod`, `shears`, `shield` | `minecraft:enchantable/durability` |
 | `arrow`, `bolt` | `minecraft:arrows`, `c:arrows` |
 | `ingot`, `dust`, `nugget`, `rod`, `gear` | `c:<form>s/<material>`, which `c:<form>s` includes |
+| `raw` | `c:raw_materials/<material>`, which `c:raw_materials` includes |
 
 The parts are MMDLib's own (`mmdlib:sword` and so on); other mods' parts get no
 tags here. Parts that are blocks are left to the block's own data. Every file adds

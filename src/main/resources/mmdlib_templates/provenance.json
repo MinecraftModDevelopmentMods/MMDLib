@@ -217,6 +217,11 @@
     "source": "textures/item/starsteel_powder_dirty.png",
     "untinted": false
   },
+  "item/__material___raw": {
+    "sha256": "985908db2752d942b4268331b8ceaa3e45e6e5f2a92fe3a748327448b36a4c4c",
+    "source": "textures/item/starsteel_raw.png",
+    "untinted": false
+  },
   "item/__material___rod": {
     "sha256": "a4e451a068a6b8a6849d5d7cd928b9f75f2a67e81bd4acf90c2a4deefdf67681",
     "source": "textures/item/aquarium_rod.png",

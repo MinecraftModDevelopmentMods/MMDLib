@@ -411,6 +411,9 @@ final class ScriptMaterialResources {
                 : hardness >= 8 ? "iron" : hardness >= 5 ? "stone" : null;
             var hasSlab = plan.blocks().keySet().stream()
                 .anyMatch(other -> other.id().equals("slab"));
+            var raw = plan.items().entrySet().stream()
+                .filter(e -> e.getKey().id().equals("raw"))
+                .map(e -> e.getValue().name().toString()).findFirst();
             plan.blocks().forEach((part, block) -> {
                 var id = block.name().toString();
                 block.tags()
@@ -421,8 +424,13 @@ final class ScriptMaterialResources {
                 if (level != null)
                     tag(tags, "block", "minecraft:needs_" + level + "_tool",
                         id);
-                lootTable(part.factory(), id, NS + ":" + name + "_slab",
-                    hasSlab)
+                var ore = part.factory()
+                    .equals(ResourceLocation.fromNamespaceAndPath(NS, "ore"))
+                    && raw.isPresent();
+                (ore
+                    ? Optional.of(oreTable(id, raw.get()))
+                    : lootTable(part.factory(), id, NS + ":" + name + "_slab",
+                        hasSlab))
                     .ifPresent(table -> files.put(
                         "data/" + NS + "/loot_table/blocks/"
                             + block.name().getPath() + ".json",
@@ -543,6 +551,8 @@ final class ScriptMaterialResources {
     static String label(String part, String display) {
         return switch (part) {
             case "block" -> "Block of " + display;
+            case "raw" -> "Raw " + display;
+            case "raw_block" -> "Block of Raw " + display;
             case "smallpowder" -> display + " Small Dust";
             case "smallblend" -> display + " Small Blend";
             case "powder_dirty" -> "Dirty " + display + " Dust";
@@ -624,6 +634,55 @@ final class ScriptMaterialResources {
         pools.add(pool);
         table.add("pools", pools);
         return Optional.of(json(table));
+    }
+
+    /**
+     * An ore's loot table when its material has a raw form, as vanilla's: the
+     * ore itself with Silk Touch, otherwise the raw item, more with Fortune.
+     */
+    static String oreTable(String ore, String raw) {
+        var children = new JsonArray();
+        children.add(silkTouchEntry(ore));
+        children.add(fortuneEntry(raw));
+        var alternatives = new JsonObject();
+        alternatives.addProperty("type", "minecraft:alternatives");
+        alternatives.add("children", children);
+        var entries = new JsonArray();
+        entries.add(alternatives);
+        var pool = new JsonObject();
+        pool.addProperty("rolls", 1);
+        pool.add("entries", entries);
+        var pools = new JsonArray();
+        pools.add(pool);
+        var table = new JsonObject();
+        table.addProperty("type", "minecraft:block");
+        table.add("pools", pools);
+        return json(table);
+    }
+
+    /** {@code item}, when the tool has Silk Touch. */
+    private static JsonObject silkTouchEntry(String item) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "minecraft:item");
+        entry.addProperty("name", item);
+        entry.add("conditions",
+            JsonParser.parseString("[{\"condition\":"
+                + " \"minecraft:match_tool\", \"predicate\": {\"predicates\":"
+                + " {\"minecraft:enchantments\": [{\"enchantments\":"
+                + " \"minecraft:silk_touch\", \"levels\": {\"min\": 1}}]}}}]"));
+        return entry;
+    }
+
+    /** {@code item}, multiplied by Fortune as vanilla ores are. */
+    private static JsonObject fortuneEntry(String item) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "minecraft:item");
+        entry.addProperty("name", item);
+        entry.add("functions", JsonParser.parseString("[{\"function\":"
+            + " \"minecraft:apply_bonus\", \"enchantment\":"
+            + " \"minecraft:fortune\", \"formula\": \"minecraft:ore_drops\"},"
+            + " {\"function\": \"minecraft:explosion_decay\"}]"));
+        return entry;
     }
 
     private static JsonObject setCount(JsonObject condition) {

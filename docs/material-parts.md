@@ -38,7 +38,7 @@ order. See [material factory](material-factory.md).
 
 The bundled resource manifest `data/mmdlib/modules.json` indexes the baseline;
 external module directories are scanned without a manifest. The baseline
-currently contains 54 forms, but there is no fixed registry size. An empty
+currently contains 57 forms, but there is no fixed registry size. An empty
 `MaterialExtensions(false)` has no parts until modules are installed.
 
 A module's `factory` ID selects registered Java behavior. Its `factory_data` is
@@ -85,6 +85,28 @@ A machine's block entity is separate from a world entity. A block module can use
 `part.block_entity` to declare one, with no item or world-entity companion needed.
 See [block entities and machines](block-entities.md) for its schema, typed factory,
 deferred type registration, and ticking hooks.
+
+`part.name_pattern` names a form that does not follow `<material>_<form>`: the
+pattern is the registry ID's path, with `{material}` (exactly once) standing for
+the material's name. The bundled raw forms use `raw_{material}` and
+`raw_{material}_block`, so tin's are `raw_tin` and `raw_tin_block`, as vanilla
+names its raw ores. A block's item takes the block's ID. A pattern cannot be
+combined with `entity_factory`, and generated IDs are still checked for
+collisions with every other form.
+
+`part.in_all: false` leaves a form out of `all`, and so out of omitted
+sections and the CraftTweaker builder's starting selection: a material gets it
+only by naming it (`"all raw"`). `!all` still excludes it. The bundled `raw`
+and `raw_block` forms are selected this way, so adding them did not change any
+existing material.
+
+```json
+{
+  "factory": "mmdlib:basic_item",
+  "part": {"name_pattern": "raw_{material}", "in_all": false},
+  "template": {"max_stack_size": 64}
+}
+```
 
 `requires_mod` stays at module level. When its mod is absent, the form and its
 companions are omitted before their factories run. The bundled Mekanism crystal,

@@ -1,0 +1,11 @@
+{
+  "factory": "mmdlib:basic_item",
+  "part": {
+    "name_pattern": "raw_{material}",
+    "in_all": false
+  },
+  "template": {
+    "max_stack_size": 64,
+    "fire_resistant": false
+  }
+}

@@ -127,7 +127,12 @@ implemented, so do not rely on `parent` to fill missing properties.
   selections must permit them, otherwise neither is planned.
 * `has_fluid` defaults true. False suppresses the complete fluid family.
 
-Omitted sections mean all registered types in that section. Use `""` or `[]` for
+`raw` (`raw_<material>`) and `raw_block` (`raw_<material>_block`) are the
+vanilla-style raw ore forms. `all` leaves them out; name them to get them,
+for example `"items": "all raw"`.
+
+Omitted sections mean all registered types in that section, except forms such as
+`raw` that must be named. Use `""` or `[]` for
 none. Strings and arrays both support selection expressions:
 
 ```json
@@ -264,6 +269,7 @@ For this example, the plan names include:
 | Part | ID |
 | --- | --- |
 | Ingot | `example:orichalcum_ingot` |
+| Raw ore and raw block, when selected | `example:raw_orichalcum` / `example:raw_orichalcum_block` |
 | Powder/dust | `example:orichalcum_dust` |
 | Storage block | `example:orichalcum_block` |
 | Plate | `example:orichalcum_plate` |

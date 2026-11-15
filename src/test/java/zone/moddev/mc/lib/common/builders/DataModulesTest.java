@@ -25,7 +25,7 @@ public final class DataModulesTest {
     @Test
     void loadsBundledAndExternalModules() throws Exception {
         var bundled = ModuleCatalog.bundled();
-        require(bundled.items().size() == 32 && bundled.blocks().size() == 23
+        require(bundled.items().size() == 33 && bundled.blocks().size() == 24
             && bundled.fluids().size() == 2);
         bundled.items().values()
             .forEach(v -> roundtrip(DataModules.Item.CODEC, v));

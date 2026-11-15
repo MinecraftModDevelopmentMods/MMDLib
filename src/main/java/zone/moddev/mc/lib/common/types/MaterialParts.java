@@ -13,8 +13,11 @@ import zone.moddev.mc.lib.common.modules.ModuleCatalog;
  * the parts' modules were supplied.
  */
 public record MaterialParts(Set<MaterialPart> parts, boolean hasFluid) {
+    /** Every bundled part that {@code all} selects, with a fluid. */
     public static final MaterialParts DEFAULT = new MaterialParts(
-        Set.copyOf(ModuleCatalog.bundled().parts().entries().values()), true);
+        PartSelection.inAll(
+            Set.copyOf(ModuleCatalog.bundled().parts().entries().values())),
+        true);
 
     /** Copies the parts. */
     public MaterialParts {
@@ -24,7 +27,7 @@ public record MaterialParts(Set<MaterialPart> parts, boolean hasFluid) {
     /**
      * A codec for the older {@code {"parts": [...], "has_fluid": ...}} form,
      * resolving part names and aliases in {@code registry}. A missing
-     * {@code parts} list means every part.
+     * {@code parts} list means every part that {@code all} selects.
      */
     public static Codec<MaterialParts> forRegistry(PartRegistry registry) {
         Codec<Set<MaterialPart>> parts = registry.codec().listOf()
@@ -35,15 +38,18 @@ public record MaterialParts(Set<MaterialPart> parts, boolean hasFluid) {
                     : DataResult.error(
                         () -> "Duplicate material part (including aliases)");
             }, values -> values.stream().sorted().toList());
-        return RecordCodecBuilder.create(i -> i
-            .group(
-                parts
-                    .optionalFieldOf("parts",
-                        Set.copyOf(registry.entries().values()))
-                    .forGetter(MaterialParts::parts),
-                Codec.BOOL.optionalFieldOf("has_fluid", true)
-                    .forGetter(MaterialParts::hasFluid))
-            .apply(i, MaterialParts::new));
+        return RecordCodecBuilder
+            .create(
+                i -> i
+                    .group(
+                        parts
+                            .optionalFieldOf("parts",
+                                PartSelection.inAll(
+                                    Set.copyOf(registry.entries().values())))
+                            .forGetter(MaterialParts::parts),
+                        Codec.BOOL.optionalFieldOf("has_fluid", true)
+                            .forGetter(MaterialParts::hasFluid))
+                    .apply(i, MaterialParts::new));
     }
 
     public static final Codec<MaterialParts> CODEC = forRegistry(

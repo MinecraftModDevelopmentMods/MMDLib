@@ -11,7 +11,9 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * One section's selection split into bundled parts and code-registered type
- * IDs.
+ * IDs. {@code all} selects every code-registered type and every bundled part
+ * that {@link MaterialPart#inAll() all selects}; {@code !all} excludes every
+ * one.
  */
 public record TypeSelection(Set<MaterialPart> standard,
     Set<ResourceLocation> custom) {
@@ -25,22 +27,24 @@ public record TypeSelection(Set<MaterialPart> standard,
      * Parses a selection expression (see {@link PartSelection}) over both
      * bundled parts and code-registered type IDs.
      *
-     * @throws IllegalArgumentException
-     *             for unknown or invalid names
+     * @throws IllegalArgumentException for unknown or invalid names
      */
     public static TypeSelection parse(String expression,
         Set<MaterialPart> standard, Set<ResourceLocation> custom) {
         var included = new java.util.HashSet<ResourceLocation>();
         var excluded = new java.util.HashSet<ResourceLocation>();
+        var every = new java.util.HashSet<ResourceLocation>(custom);
+        standard.forEach(part -> every.add(part.templateId()));
         var all = new java.util.HashSet<ResourceLocation>(custom);
-        standard.forEach(part -> all.add(part.templateId()));
+        PartSelection.inAll(standard)
+            .forEach(part -> all.add(part.templateId()));
         if (!expression.isBlank())
             for (String token : expression.strip().split("\\s+")) {
                 boolean negated = token.startsWith("!");
                 String name = negated ? token.substring(1) : token;
                 var target = negated ? excluded : included;
                 if (name.equals("all")) {
-                    target.addAll(all);
+                    target.addAll(negated ? every : all);
                     continue;
                 }
                 ResourceLocation id;
@@ -55,7 +59,7 @@ public record TypeSelection(Set<MaterialPart> standard,
                         throw new IllegalArgumentException(
                             "Invalid type ID: " + name);
                 }
-                if (!all.contains(id))
+                if (!every.contains(id))
                     throw new IllegalArgumentException(
                         "Unknown type or wrong section: " + name);
                 target.add(id);
@@ -84,12 +88,18 @@ public record TypeSelection(Set<MaterialPart> standard,
                 || !custom.containsAll(value.custom))
                 return DataResult
                     .error(() -> "Selection references unknown types");
-            if (value.standard.equals(standard) && value.custom.equals(custom))
-                return DataResult.success("all");
+            var all = PartSelection.inAll(standard);
+            var whole = value.custom.equals(custom)
+                && value.standard.containsAll(all)
+                && !(all.isEmpty() && custom.isEmpty());
             var names = new java.util.TreeSet<String>();
-            value.standard.forEach(part -> names.add(part.id()));
-            value.custom.forEach(id -> names.add(id.toString()));
-            return DataResult.success(String.join(" ", names));
+            value.standard.stream().filter(p -> !whole || !all.contains(p))
+                .forEach(part -> names.add(part.id()));
+            if (!whole)
+                value.custom.forEach(id -> names.add(id.toString()));
+            var listed = String.join(" ", names);
+            return DataResult.success(
+                !whole ? listed : listed.isEmpty() ? "all" : "all " + listed);
         });
     }
 }

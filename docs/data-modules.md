@@ -2,7 +2,7 @@
 
 A module defines a reusable form; a material supplies its identity and properties. For example, the `mmdlib:ingot` module becomes a copper ingot when selected by a copper material. The bundled forms use the same DFU codecs and catalog entries as forms supplied by another mod or pack.
 
-The baseline lives in `src/main/resources/data/mmdlib/item/`, `block/`, and `fluid/`: 32 item forms, 22 block forms, and the `molten` fluid module. `MaterialExtensions()` loads these resources automatically. `MaterialExtensions(false)` creates an empty catalog for isolated use.
+The baseline lives in `src/main/resources/data/mmdlib/item/`, `block/`, and `fluid/`: 33 item forms, 24 block forms, and the `fluid` and `molten` fluid modules. `MaterialExtensions()` loads these resources automatically. `MaterialExtensions(false)` creates an empty catalog for isolated use.
 
 ## Module files
 

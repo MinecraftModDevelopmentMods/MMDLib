@@ -36,7 +36,7 @@ ITEMS = {
     'smallpowder': ['item/{m}_smallpowder'], 'gear': ['item/{m}_gear'], 'rod': ['item/{m}_rod'],
     'blend': ['item/{m}_blend', 'item/{m}_powder'], 'smallblend': ['item/{m}_smallblend', 'item/{m}_smallpowder'],
     'clump': ['item/{m}_clump'], 'crystal': ['item/{m}_crystal'], 'shard': ['item/{m}_shard'],
-    'powder_dirty': ['item/{m}_powder_dirty'], 'gem': ['item/{m}_crystal'],
+    'powder_dirty': ['item/{m}_powder_dirty'], 'gem': ['item/{m}_crystal'], 'raw': ['item/{m}_raw'],
     'crackhammer': ['item/{m}_crackhammer'], 'scythe': ['item/{m}_scythe'], 'axe': ['item/{m}_axe'],
     'hoe': ['item/{m}_hoe'], 'pickaxe': ['item/{m}_pickaxe'], 'shovel': ['item/{m}_shovel'],
     'sword': ['item/{m}_sword'], 'shears': ['item/{m}_shears'], 'helmet': ['item/{m}_helmet'],
@@ -61,7 +61,7 @@ OTHER = {
     'entity/horse/armor/horse_armor_' + TOKEN: ['entity/horse/armor/horse_armor_{m}'],
 }
 # Sprites that are all material: no untinted layer, whatever the pixel test says.
-WHOLE = {'block', 'plate', 'ore_overlay', 'ingot', 'nugget', 'dust', 'smallpowder', 'blend',
+WHOLE = {'block', 'plate', 'ore_overlay', 'raw', 'ingot', 'nugget', 'dust', 'smallpowder', 'blend',
          'smallblend', 'clump', 'crystal', 'shard', 'powder_dirty', 'gem', 'gear', 'rod', 'bars',
          'anvil_base', 'anvil_top_damaged_0', 'anvil_top_damaged_1', 'anvil_top_damaged_2'}
 
@@ -257,7 +257,7 @@ MATERIAL_TEXTURES = {
 CUTOUT = {'door', 'trapdoor', 'bars', 'ladder', 'lever', 'tripwire_hook', 'flower_pot'}
 GENERATED = ['ingot', 'nugget', 'dust', 'smallpowder', 'gear', 'rod', 'blend', 'smallblend', 'clump',
              'crystal', 'shard', 'powder_dirty', 'gem', 'shears', 'helmet', 'chestplate', 'leggings',
-             'boots', 'horse_armor', 'arrow', 'bolt']
+             'boots', 'horse_armor', 'arrow', 'bolt', 'raw']
 HANDHELD = ['axe', 'hoe', 'pickaxe', 'shovel', 'sword', 'crackhammer', 'scythe']
 PLATE_FACES = {'down': ([0, 0, 0], [16, 1, 16]), 'up': ([0, 15, 0], [16, 16, 16]),
                'north': ([0, 0, 0], [16, 16, 1]), 'south': ([0, 0, 15], [16, 16, 16]),

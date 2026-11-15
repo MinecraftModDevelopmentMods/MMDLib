@@ -15,31 +15,28 @@ import zone.moddev.mc.lib.api.MaterialExtensions;
  * such as {@code "all
  * !scythe"}; see {@link PartSelection}.
  *
- * @param items
- *            the item parts
- * @param blocks
- *            the block parts
- * @param entities
- *            the parts whose world entities are wanted (e.g. arrows); a part
- *            that needs an entity is built only when listed here
- * @param hasFluid
- *            whether the material gets a fluid
- * @param customItems
- *            code-registered item types selected, by ID
- * @param customBlocks
- *            code-registered block types selected, by ID
- * @param fluidModule
- *            the fluid module used, {@code mmdlib:molten} by default
+ * @param items the item parts
+ * @param blocks the block parts
+ * @param entities the parts whose world entities are wanted (e.g. arrows); a
+ *            part that needs an entity is built only when listed here
+ * @param hasFluid whether the material gets a fluid
+ * @param customItems code-registered item types selected, by ID
+ * @param customBlocks code-registered block types selected, by ID
+ * @param fluidModule the fluid module used, {@code mmdlib:molten} by default
  */
 public record MaterialSelection(Set<MaterialPart> items,
     Set<MaterialPart> blocks, Set<MaterialPart> entities, boolean hasFluid,
     Set<net.minecraft.resources.ResourceLocation> customItems,
     Set<net.minecraft.resources.ResourceLocation> customBlocks,
     net.minecraft.resources.ResourceLocation fluidModule) {
-    /** Every bundled part, entity and the default fluid. */
+    /**
+     * Every bundled part and entity that {@code all} selects, and the default
+     * fluid.
+     */
     public static final MaterialSelection DEFAULT = new MaterialSelection(
-        PartSelection.ITEMS, PartSelection.BLOCKS, PartSelection.ENTITIES,
-        true);
+        PartSelection.inAll(PartSelection.ITEMS),
+        PartSelection.inAll(PartSelection.BLOCKS),
+        PartSelection.inAll(PartSelection.ENTITIES), true);
 
     /**
      * A selection with no code-registered types and the default fluid module.
@@ -62,8 +59,8 @@ public record MaterialSelection(Set<MaterialPart> items,
      * Copies every set and checks that each part is in the section for its
      * kind.
      *
-     * @throws IllegalArgumentException
-     *             if a block part is in {@code items}, an item part in {@code
+     * @throws IllegalArgumentException if a block part is in {@code items}, an
+     *             item part in {@code
      *     blocks}, or a part without an entity in {@code entities}
      */
     public MaterialSelection {
@@ -80,14 +77,15 @@ public record MaterialSelection(Set<MaterialPart> items,
     }
 
     /**
-     * Every part in {@code snapshot}, with a fluid: what a material gets when
-     * it selects nothing.
+     * Every part in {@code snapshot} that {@code all} selects, with a fluid:
+     * what a material gets when it selects nothing.
      */
     public static MaterialSelection defaults(
         MaterialExtensions.Snapshot snapshot) {
         var registry = snapshot.parts();
-        return new MaterialSelection(registry.items(), registry.blocks(),
-            registry.entities(), true);
+        return new MaterialSelection(PartSelection.inAll(registry.items()),
+            PartSelection.inAll(registry.blocks()),
+            PartSelection.inAll(registry.entities()), true);
     }
 
     /** {@link #defaults} for the global catalog as it is now. */
@@ -104,7 +102,7 @@ public record MaterialSelection(Set<MaterialPart> items,
 
     /**
      * The selection fields of a material file, resolved against
-     * {@code snapshot}. Omitted sections select everything.
+     * {@code snapshot}. Omitted sections select what {@code all} does.
      */
     public static MapCodec<MaterialSelection> mapCodec(
         MaterialExtensions.Snapshot snapshot) {
@@ -112,13 +110,16 @@ public record MaterialSelection(Set<MaterialPart> items,
         return RecordCodecBuilder.mapCodec(i -> i
             .group(
                 PartSelection.codec(registry.items())
-                    .optionalFieldOf("items", registry.items())
+                    .optionalFieldOf("items",
+                        PartSelection.inAll(registry.items()))
                     .forGetter(MaterialSelection::items),
                 PartSelection.codec(registry.blocks())
-                    .optionalFieldOf("blocks", registry.blocks())
+                    .optionalFieldOf("blocks",
+                        PartSelection.inAll(registry.blocks()))
                     .forGetter(MaterialSelection::blocks),
                 PartSelection.codec(registry.entities())
-                    .optionalFieldOf("entities", registry.entities())
+                    .optionalFieldOf("entities",
+                        PartSelection.inAll(registry.entities()))
                     .forGetter(MaterialSelection::entities),
                 Codec.BOOL.optionalFieldOf("has_fluid", true)
                     .forGetter(MaterialSelection::hasFluid),

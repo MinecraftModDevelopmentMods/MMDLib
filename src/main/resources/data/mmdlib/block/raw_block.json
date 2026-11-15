@@ -1,0 +1,15 @@
+{
+  "factory": "mmdlib:block",
+  "material_defaults": true,
+  "part": {
+    "name_pattern": "raw_{material}_block",
+    "in_all": false
+  },
+  "template": {
+    "properties": {
+      "sound": "stone",
+      "map_color": "raw_iron"
+    },
+    "has_item": true
+  }
+}

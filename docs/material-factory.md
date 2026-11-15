@@ -34,7 +34,10 @@ always win, including when they precede all or a later explicit include. An empt
 string/list selects nothing. A negative-only expression selects nothing: use
 `all !hoe`, rather than `!hoe`, to select everything except the hoe.
 
-Omitted sections default to all. Unknown names and names from another section
+Omitted sections default to all. Forms whose module sets `part.in_all` to false,
+such as the `raw` item and `raw_block`, are left out of `all` and must be named,
+as in `"all raw"`; `!all` still excludes them. See
+[material parts](material-parts.md). Unknown names and names from another section
 fail decoding, including unknown excluded names. POWDER's current name is dust;
 powder remains an accepted alias. The codec serializes resolved selections in a
 deterministic form, rather than preserving the original expression's spelling.

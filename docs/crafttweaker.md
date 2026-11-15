@@ -100,9 +100,15 @@ return the builder so calls can be chained, and accept `"all"`:
 A new builder selects every item and block part, like a material file that omits
 those sections; start with `removeItems("all")` to pick parts one by one. Part
 names are the same as in material files, including aliases and code-registered
-types. An unknown name, or a name from the other section, is an error at that call.
-Projectile entities follow their items: selecting the arrow item also builds its
-entity.
+types. An unknown name, or a name from the other section, is an error at that
+call. Projectile entities follow their items: selecting the arrow item also
+builds its entity.
+
+The raw ore forms, `raw` (`mmdlib:raw_copper`) and `raw_block`
+(`mmdlib:raw_copper_block`), are the exception: a new builder and
+`addItems("all")` leave them out, so add them by name, as in
+`copper.addItems("raw").addBlocks("raw_block")`. `removeItems("all")` and
+`removeBlocks("all")` still remove them.
 
 ### Building
 
@@ -1076,8 +1082,10 @@ client resources and for world data:
    items the scripts built. For materials it contains:
    * blockstates and item and block models for every selected part;
    * textures: MMDLib's blank templates multiplied by the material color;
-   * English names, such as "Copper Ingot" and "Block of Copper";
-   * block loot tables;
+   * English names, such as "Copper Ingot", "Block of Copper" and "Raw Copper";
+   * block loot tables. Ores of a material that has a `raw` form drop it as
+     vanilla ores do: the ore itself with Silk Touch, otherwise the raw item,
+     more with Fortune;
    * block tags: the module's tags, `minecraft:mineable/pickaxe`, the harvest tags,
      and a `needs_*_tool` tag from hardness (5 stone, 8 iron, 10 diamond);
    * item tags a script item module declares (each part's standard tool, armor,

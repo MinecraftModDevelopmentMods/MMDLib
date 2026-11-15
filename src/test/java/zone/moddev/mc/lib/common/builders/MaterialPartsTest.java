@@ -19,7 +19,7 @@ import zone.moddev.mc.lib.common.types.MaterialParts;
 public final class MaterialPartsTest {
     @Test
     void plansCanonicalParts() {
-        require(ModuleCatalog.bundled().parts().entries().size() == 55);
+        require(ModuleCatalog.bundled().parts().entries().size() == 57);
         for (var part : ModuleCatalog.bundled().parts().entries().values()) {
             var encoded = ModuleCatalog.bundled().parts().codec()
                 .encodeStart(JsonOps.INSTANCE, part).getOrThrow();
@@ -69,6 +69,12 @@ public final class MaterialPartsTest {
             mod -> mod.equals("mekanism"));
         for (var part : ModuleCatalog.bundled().parts().entries().values()) {
             boolean optional = part.requiredMod().isPresent();
+            if (!part.inAll()) {
+                // Raw forms are planned only when a material names them.
+                require(!with.items().containsKey(part)
+                    && !with.blocks().containsKey(part));
+                continue;
+            }
             if (part.kind() == MaterialPart.Kind.ITEM) {
                 require(with.items().containsKey(part));
                 require(without.items().containsKey(part) != optional);

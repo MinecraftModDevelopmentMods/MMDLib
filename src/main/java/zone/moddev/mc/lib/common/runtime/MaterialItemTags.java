@@ -18,9 +18,9 @@ import zone.moddev.mc.lib.common.factories.MaterialFactory;
 /**
  * The tags every material item gets from its part: tool, armor and
  * enchantability tags, {@code minecraft:arrows} and {@code c:arrows}, and
- * {@code c:<form>/<material>} for ingots, dusts, nuggets, rods and gears.
- * MMDLib adds them for every loaded material, whatever its source, through
- * {@link MaterialTagPack}.
+ * {@code c:<form>/<material>} for ingots, dusts, nuggets, rods, gears and raw
+ * materials. MMDLib adds them for every loaded material, whatever its source,
+ * through {@link MaterialTagPack}.
  */
 public final class MaterialItemTags {
     private static final Set<String> ARMOR = Set.of("helmet", "chestplate",
@@ -93,6 +93,7 @@ public final class MaterialItemTags {
             case "nugget" -> "nuggets";
             case "rod" -> "rods";
             case "gear" -> "gears";
+            case "raw" -> "raw_materials";
             default -> null;
         };
         if (common != null) {

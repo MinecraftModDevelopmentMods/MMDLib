@@ -212,6 +212,54 @@ final class ScriptMaterialResourcesTest {
             .contains("mmdlib:flowing_cold_iron_molten"), "fluid tag");
     }
 
+    private static MaterialFactory.Result withRaw() {
+        var material = MaterialBuilder.create().setName("mmdlib:cold_iron")
+            .setColor(0xFF4080C0).setHardness(8).setItems("ingot raw")
+            .setBlocks("ore endore raw_block").setHasFluid(false).build();
+        return new MaterialFactory(MaterialExtensions.GLOBAL, mod -> true)
+            .create(material);
+    }
+
+    @Test
+    void oresDropTheirRawFormAndRawFormsGetArtAndNames() throws Exception {
+        var data = ScriptMaterialResources.data(List.of(withRaw()), List.of(),
+            List.of(), Map.of());
+        for (var ore : List.of("cold_iron_ore", "cold_iron_endore")) {
+            var table = text(data,
+                "data/mmdlib/loot_table/blocks/" + ore + ".json");
+            require(
+                table.contains("minecraft:silk_touch")
+                    && table.contains("\"mmdlib:" + ore + "\"")
+                    && table.contains("\"mmdlib:raw_cold_iron\"")
+                    && table.contains("minecraft:ore_drops"),
+                "raw drop " + ore);
+        }
+        require(!text(data, "data/mmdlib/loot_table/blocks/cold_iron_ore.json")
+            .contains("raw_cold_iron_block"), "ore drops the item");
+        require(!text(data,
+            "data/mmdlib/loot_table/blocks/raw_cold_iron_block.json")
+            .contains("silk_touch"), "raw block drops itself");
+        require(!text(
+            ScriptMaterialResources.data(List.of(everything()), List.of(),
+                List.of(), Map.of()),
+            "data/mmdlib/loot_table/blocks/cold_iron_ore.json")
+            .contains("silk_touch"), "no raw form: the ore drops itself");
+        var assets = ScriptMaterialResources.assets(List.of(withRaw()),
+            List.of(), List.of(), Map.of(),
+            new MaterialTemplates(List.of(TEMPLATES)), TEMPLATES);
+        require(
+            assets.containsKey("assets/mmdlib/textures/item/raw_cold_iron.png"),
+            "raw texture");
+        require(
+            assets.containsKey("assets/mmdlib/models/item/raw_cold_iron.json"),
+            "raw model");
+        var lang = text(assets, "assets/mmdlib/lang/en_us.json");
+        require(
+            lang.contains("\"Raw Cold Iron\"")
+                && lang.contains("\"Block of Raw Cold Iron\""),
+            "names " + lang);
+    }
+
     @Test
     void generatesStandaloneBlocksNamedAfterTheirId() {
         var stairs = net.minecraft.resources.ResourceLocation

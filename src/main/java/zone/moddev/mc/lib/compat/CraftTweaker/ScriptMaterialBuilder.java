@@ -1,5 +1,6 @@
 package zone.moddev.mc.lib.compat.CraftTweaker;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -292,7 +293,7 @@ public final class ScriptMaterialBuilder {
 
     /**
      * Adds item parts by name, such as {@code "ingot"}; {@code "all"} adds
-     * every item part.
+     * every item part except those that must be named, such as {@code "raw"}.
      *
      * @param names the item part names, or {@code "all"}
      * @return this builder
@@ -300,7 +301,7 @@ public final class ScriptMaterialBuilder {
      */
     @ZenCodeType.Method
     public ScriptMaterialBuilder addItems(String... names) {
-        items.addAll(resolve(names, availableItems, "item"));
+        items.addAll(resolve(names, availableItems, "item", false));
         return this;
     }
 
@@ -313,7 +314,7 @@ public final class ScriptMaterialBuilder {
      */
     @ZenCodeType.Method
     public ScriptMaterialBuilder removeItems(String... names) {
-        items.removeAll(resolve(names, availableItems, "item"));
+        items.removeAll(resolve(names, availableItems, "item", true));
         return this;
     }
 
@@ -329,7 +330,8 @@ public final class ScriptMaterialBuilder {
 
     /**
      * Adds block parts by name, such as {@code "block"}; {@code "all"} adds
-     * every block part.
+     * every block part except those that must be named, such as
+     * {@code "raw_block"}.
      *
      * @param names the block part names, or {@code "all"}
      * @return this builder
@@ -337,7 +339,7 @@ public final class ScriptMaterialBuilder {
      */
     @ZenCodeType.Method
     public ScriptMaterialBuilder addBlocks(String... names) {
-        blocks.addAll(resolve(names, availableBlocks, "block"));
+        blocks.addAll(resolve(names, availableBlocks, "block", false));
         return this;
     }
 
@@ -350,7 +352,7 @@ public final class ScriptMaterialBuilder {
      */
     @ZenCodeType.Method
     public ScriptMaterialBuilder removeBlocks(String... names) {
-        blocks.removeAll(resolve(names, availableBlocks, "block"));
+        blocks.removeAll(resolve(names, availableBlocks, "block", true));
         return this;
     }
 
@@ -794,14 +796,21 @@ public final class ScriptMaterialBuilder {
             baseBlock, blockSetType, name, blockSound, mapColor, false, false);
     }
 
+    /**
+     * The parts {@code names} select; when {@code removing}, {@code "all"}
+     * stands for every part, including those it leaves out when adding.
+     */
     private static Set<MaterialPart> resolve(String[] names,
-        Set<MaterialPart> available, String section) {
+        Set<MaterialPart> available, String section, boolean removing) {
         for (var name : names)
             if (name.startsWith("!"))
                 throw new IllegalArgumentException("Use remove instead of \""
                     + name + "\" to leave out a " + section + " part");
         try {
-            return PartSelection.parse(String.join(" ", names), available);
+            var parts = PartSelection.parse(String.join(" ", names), available);
+            return removing && Arrays.asList(names).contains(ALL)
+                ? available
+                : parts;
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException(
                 "Unknown " + section + " part: " + ex.getMessage(), ex);

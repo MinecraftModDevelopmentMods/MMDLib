@@ -66,8 +66,7 @@ public final class MaterialContentPlanner {
     /**
      * A planner that uses {@code template} for item part {@code part}.
      *
-     * @throws IllegalArgumentException
-     *             if {@code part} is a block part
+     * @throws IllegalArgumentException if {@code part} is a block part
      */
     public MaterialContentPlanner withItemTemplate(MaterialPart part,
         ItemBuilder template) {
@@ -83,8 +82,7 @@ public final class MaterialContentPlanner {
     /**
      * A planner that uses {@code template} for block part {@code part}.
      *
-     * @throws IllegalArgumentException
-     *             if {@code part} is an item part
+     * @throws IllegalArgumentException if {@code part} is an item part
      */
     public MaterialContentPlanner withBlockTemplate(MaterialPart part,
         BlockBuilder template) {
@@ -100,8 +98,7 @@ public final class MaterialContentPlanner {
      * A planner that uses {@code template} for the world entity of
      * {@code part}.
      *
-     * @throws IllegalArgumentException
-     *             if {@code part} needs no entity
+     * @throws IllegalArgumentException if {@code part} needs no entity
      */
     public MaterialContentPlanner withEntityTemplate(MaterialPart part,
         EntityBuilder template) {
@@ -144,12 +141,9 @@ public final class MaterialContentPlanner {
      * Plans {@code selection} for {@code material}, building only the parts
      * {@code available} accepts.
      *
-     * @param installed
-     *            tests whether a mod is loaded
-     * @param available
-     *            decides per part whether to build it
-     * @throws IllegalArgumentException
-     *             if a selected part has no template
+     * @param installed tests whether a mod is loaded
+     * @param available decides per part whether to build it
+     * @throws IllegalArgumentException if a selected part has no template
      */
     public MaterialContentPlan plan(ResourceLocation material,
         MaterialParts selection, Predicate<String> installed,
@@ -164,12 +158,19 @@ public final class MaterialContentPlanner {
         for (MaterialPart part : selection.parts().stream().sorted().toList()) {
             if (!available.test(part))
                 continue;
+            var id = part.metadata().name(material.getPath())
+                .map(path -> ResourceLocation
+                    .fromNamespaceAndPath(material.getNamespace(), path));
             if (part.kind() == MaterialPart.Kind.ITEM) {
-                itemDefinitions.put(part, requireTemplate(items, part)
-                    .setName(part.templateId()).forMaterial(material).build());
+                var item = requireTemplate(items, part)
+                    .setName(part.templateId()).forMaterial(material);
+                itemDefinitions.put(part,
+                    id.map(item::setRegistryName).orElse(item).build());
             } else {
-                var block = requireTemplate(blocks, part)
-                    .setName(part.templateId()).forMaterial(material).build();
+                var builder = requireTemplate(blocks, part)
+                    .setName(part.templateId()).forMaterial(material);
+                var block = id.map(builder::setRegistryName).orElse(builder)
+                    .build();
                 blockDefinitions.put(part, block);
                 part.metadata().blockEntity().ifPresent(
                     template -> blockEntities.put(part, template.bind(block)));
