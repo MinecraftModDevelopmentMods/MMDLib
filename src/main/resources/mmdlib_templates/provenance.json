@@ -53,6 +53,11 @@
     "source": "textures/block/aquarium_plate.png",
     "untinted": false
   },
+  "block/__material___raw_block": {
+    "sha256": "7d3976ecaeaeb8c9603c5d75a26e8c6b0d51942c532edfe5c23023951071ea29",
+    "source": "scripts/textures/raw_block.png",
+    "untinted": false
+  },
   "block/__material___trapdoor": {
     "sha256": "35f7c3343a428640bc86e6a332627e46a9f397eca6c5475a30e308b0af36356b",
     "source": "textures/block/aquarium_trapdoor.png",
@@ -218,8 +223,8 @@
     "untinted": false
   },
   "item/__material___raw": {
-    "sha256": "985908db2752d942b4268331b8ceaa3e45e6e5f2a92fe3a748327448b36a4c4c",
-    "source": "textures/item/starsteel_raw.png",
+    "sha256": "423ec4efdb69bc2dea9d3d273c8e13a7bcaa154d7950197c31cef8f8e9415e1d",
+    "source": "scripts/textures/raw_item.png",
     "untinted": false
   },
   "item/__material___rod": {

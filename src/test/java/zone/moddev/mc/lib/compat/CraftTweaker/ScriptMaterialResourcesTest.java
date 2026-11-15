@@ -253,6 +253,37 @@ final class ScriptMaterialResourcesTest {
         require(
             assets.containsKey("assets/mmdlib/models/item/raw_cold_iron.json"),
             "raw model");
+        require(
+            text(assets, "assets/mmdlib/blockstates/raw_cold_iron_block.json")
+                .contains("mmdlib:block/raw_cold_iron_block"),
+            "raw storage block model selected");
+        require(
+            text(assets, "assets/mmdlib/models/block/raw_cold_iron_block.json")
+                .contains("mmdlib:block/raw_cold_iron_block"),
+            "raw storage block uses its own texture");
+        for (var texture : List.of("item/raw_cold_iron",
+            "block/raw_cold_iron_block")) {
+            var image = ImageIO.read(new ByteArrayInputStream(
+                assets.get("assets/mmdlib/textures/" + texture + ".png")));
+            require(image.getWidth() == 16 && image.getHeight() == 16,
+                "16x16 raw texture " + texture);
+            boolean visible = false;
+            for (int y = 0; y < 16; y++)
+                for (int x = 0; x < 16; x++) {
+                    int pixel = image.getRGB(x, y);
+                    if (texture.startsWith("block/"))
+                        require((pixel >>> 24) == 255,
+                            "opaque raw storage block");
+                    if ((pixel >>> 24) == 0)
+                        continue;
+                    visible = true;
+                    require(
+                        (pixel & 255) >= ((pixel >>> 8) & 255)
+                            && ((pixel >>> 8) & 255) >= ((pixel >>> 16) & 255),
+                        "raw texture receives the blue material tint");
+                }
+            require(visible, "visible raw texture " + texture);
+        }
         var lang = text(assets, "assets/mmdlib/lang/en_us.json");
         require(
             lang.contains("\"Raw Cold Iron\"")

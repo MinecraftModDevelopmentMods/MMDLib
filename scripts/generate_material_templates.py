@@ -36,7 +36,7 @@ ITEMS = {
     'smallpowder': ['item/{m}_smallpowder'], 'gear': ['item/{m}_gear'], 'rod': ['item/{m}_rod'],
     'blend': ['item/{m}_blend', 'item/{m}_powder'], 'smallblend': ['item/{m}_smallblend', 'item/{m}_smallpowder'],
     'clump': ['item/{m}_clump'], 'crystal': ['item/{m}_crystal'], 'shard': ['item/{m}_shard'],
-    'powder_dirty': ['item/{m}_powder_dirty'], 'gem': ['item/{m}_crystal'], 'raw': ['item/{m}_raw'],
+    'powder_dirty': ['item/{m}_powder_dirty'], 'gem': ['item/{m}_crystal'],
     'crackhammer': ['item/{m}_crackhammer'], 'scythe': ['item/{m}_scythe'], 'axe': ['item/{m}_axe'],
     'hoe': ['item/{m}_hoe'], 'pickaxe': ['item/{m}_pickaxe'], 'shovel': ['item/{m}_shovel'],
     'sword': ['item/{m}_sword'], 'shears': ['item/{m}_shears'], 'helmet': ['item/{m}_helmet'],
@@ -179,6 +179,15 @@ def textures_from(source, output, preview_path):
         save(out, target, width, height, tint, keep)
         provenance[target] = {'derived': note, 'untinted': bool(keep)}
         previews.append((width, height, tint, keep))
+    # Team-selected raw defaults are independent of the Base Metals imports.
+    for kind, source_name, form in [('item', 'raw_item', 'raw'), ('block', 'raw_block', 'raw_block')]:
+        file = Path(__file__).resolve().parent / 'textures' / (source_name + '.png')
+        width, height, pixels = read_png(file)
+        target = kind + '/' + TOKEN + '_' + form
+        save(out, target, width, height, pixels, None)
+        provenance[target] = {'source': 'scripts/textures/' + file.name,
+                              'sha256': hashlib.sha256(file.read_bytes()).hexdigest(), 'untinted': False}
+        previews.append((width, height, pixels, None))
     (output / 'provenance.json').write_text(json.dumps(provenance, indent=2, sort_keys=True) + '\n')
     if preview_path: preview(preview_path, previews)
     print(f'Wrote {len(provenance)} texture templates to {out}')
@@ -389,6 +398,10 @@ def models_from(jar, output):
     put('models/item/' + TOKEN + '_shield', {'parent': 'mmdlib:item/shield', 'textures': {'shield': T + '_block'},
         'overrides': [{'predicate': {'blocking': 1}, 'model': I + '_shield_blocking'}]})
     put('models/item/' + TOKEN + '_shield_blocking', {'parent': 'mmdlib:item/shield_blocking', 'textures': {'shield': T + '_block'}})
+    put('blockstates/' + TOKEN + '_raw_block', {'variants': {'': {'model': T + '_raw_block'}}})
+    put('models/block/' + TOKEN + '_raw_block',
+        {'parent': 'minecraft:block/cube_all', 'textures': {'all': T + '_raw_block'}})
+    put('models/item/' + TOKEN + '_raw_block', {'parent': T + '_raw_block'})
     for path, data in sorted(files.items()):
         target = assets / (path + '.json'); target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(data, indent=2) + '\n')

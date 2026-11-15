@@ -42,6 +42,11 @@ fail decoding, including unknown excluded names. POWDER's current name is dust;
 powder remains an accepted alias. The codec serializes resolved selections in a
 deterministic form, rather than preserving the original expression's spelling.
 
+Raw items and raw storage blocks have default tintable artwork, but authors are
+expected to supply their own textures. See
+[replacing artwork](crafttweaker.md#replacing-artwork) for the template and
+per-material override paths.
+
 * items covers the catalog's ITEM forms (including tools, armor, ammo, and the
   Mekanism crafting forms).
 * blocks covers BLOCK and ITEM_BLOCK forms, including anvil, door, slab, ores,

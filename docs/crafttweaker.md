@@ -1101,6 +1101,23 @@ code-registered types get no generated assets; their mod supplies them.
 
 ### Replacing artwork
 
+Raw ore items and raw ore storage blocks include default 16×16 grayscale
+templates: a fractured mineral lump and packed angular chunks, respectively.
+These are fallback artwork; **we expect mod and pack authors to supply their own
+textures** to suit their materials and visual style.
+
+For every script material, replace
+`scripts/mmdlibdata/templates/textures/item/__material___raw.png` and
+`scripts/mmdlibdata/templates/textures/block/__material___raw_block.png`.
+Keep these templates grayscale; MMDLib multiplies them by the material color.
+The item background should be transparent and the storage block fully opaque.
+For just copper, supply finished colored art at
+`scripts/mmdlibdata/assets/mmdlib/textures/item/raw_copper.png` and
+`scripts/mmdlibdata/assets/mmdlib/textures/block/raw_copper_block.png` instead.
+These forms must be selected explicitly with `items: "raw"` and
+`blocks: "raw_block"` (or included alongside other selected forms).
+This artwork does not change the in-world ore overlay.
+
 * **One material's texture**: put finished art at the texture's own path, such as
   `scripts/mmdlibdata/assets/mmdlib/textures/item/copper_ingot.png`. It is used as
   drawn, with no tint. Models, blockstates, loot tables, tags, and names can be
@@ -1119,7 +1136,8 @@ The generated textures are colored already, so script materials set the runtime
 `tinted` flag to false and the client does not tint them a second time. A JSON
 material can set `"runtime": {"tinted": false}` for the same reason.
 
-MMDLib's templates come from Base Metals artwork and vanilla model structure. See
+MMDLib's templates come from Base Metals artwork, the selected raw-form concepts,
+and vanilla model structure. See
 `scripts/generate_material_templates.py`; `provenance.json` beside the templates
 records each source sprite.
 
