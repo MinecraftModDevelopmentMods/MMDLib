@@ -21,9 +21,14 @@ final class EnergyGaugeRenderer {
 
     static void draw(GuiGraphics g, Rect r, EnergyGaugeElement gauge,
         double ratio) {
+        draw(g, r, gauge, ratio, java.util.Optional.empty());
+    }
+
+    static void draw(GuiGraphics g, Rect r, EnergyGaugeElement gauge,
+        double ratio, java.util.Optional<Integer> groupColour) {
         boolean vertical = gauge.orientation() == Orientation.VERTICAL;
         int length = vertical ? r.height() : r.width();
-        GaugeRenderer.background(g, r, vertical);
+        GaugeRenderer.background(g, r, vertical, groupColour);
         int inside = length - 4;
 
         // Clip the last charged bar to the actual level, keeping empty and full

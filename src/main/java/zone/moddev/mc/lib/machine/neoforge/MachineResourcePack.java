@@ -119,8 +119,15 @@ public final class MachineResourcePack extends AbstractPackResources {
                         var json = new JsonObject();
                         json.addProperty("id", part.id());
                         json.addProperty("when", part.when());
-                        var child = new JsonObject();
-                        child.addProperty("parent", part.model().toString());
+                        var child = part.overlay() == null
+                            ? new JsonObject()
+                            : part.overlay().model();
+                        if (part.overlay() == null)
+                            child.addProperty("parent",
+                                part.model().toString());
+                        else
+                            json.addProperty("emissive",
+                                part.overlay().emissive());
                         json.add("model", child);
                         parts.add(json);
                     }

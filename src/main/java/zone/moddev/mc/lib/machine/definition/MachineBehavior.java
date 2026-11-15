@@ -7,7 +7,15 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     boolean noOcclusion, boolean immovable, boolean portable, boolean drawers,
     List<Shape> shapes,
     net.minecraft.resources.ResourceLocation secondaryAction,
-    EntityDisplay entityDisplay) {
+    EntityDisplay entityDisplay, ItemDisplay itemDisplay) {
+    public MachineBehavior(ProcessorDeclaration processor, int stackSize,
+        boolean noOcclusion, boolean immovable, boolean portable,
+        boolean drawers, List<Shape> shapes,
+        net.minecraft.resources.ResourceLocation secondaryAction,
+        EntityDisplay entityDisplay) {
+        this(processor, stackSize, noOcclusion, immovable, portable, drawers,
+            shapes, secondaryAction, entityDisplay, null);
+    }
     public MachineBehavior(ProcessorDeclaration processor, int stackSize,
         boolean noOcclusion, boolean immovable, boolean portable,
         boolean drawers, List<Shape> shapes,

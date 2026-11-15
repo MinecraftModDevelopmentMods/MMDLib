@@ -32,10 +32,16 @@ final class GaugeRenderer {
      * gauges.
      */
     static void background(GuiGraphics g, Rect r, boolean vertical) {
+        background(g, r, vertical, java.util.Optional.empty());
+    }
+
+    static void background(GuiGraphics g, Rect r, boolean vertical,
+        java.util.Optional<Integer> groupColour) {
         var state = RenderState.capture();
         try {
             int length = vertical ? r.height() : r.width();
-            shell(g, r, vertical, length, "body");
+            shell(g, r, vertical, length, "body", 1,
+                ElementDrawing.backgroundTint(0xffffff, groupColour));
         } finally {
             try {
                 g.flush();
@@ -47,11 +53,16 @@ final class GaugeRenderer {
 
     static void draw(GuiGraphics g, Rect r, Orientation orientation,
         GaugeFill fill, double ratio) {
+        draw(g, r, orientation, fill, ratio, java.util.Optional.empty());
+    }
+
+    static void draw(GuiGraphics g, Rect r, Orientation orientation,
+        GaugeFill fill, double ratio, java.util.Optional<Integer> groupColour) {
         var state = RenderState.capture();
         try {
             g.flush();
             g.setColor(1, 1, 1, 1);
-            drawGauge(g, r, orientation, fill, ratio);
+            drawGauge(g, r, orientation, fill, ratio, groupColour);
         } finally {
             try {
                 g.flush();
@@ -62,10 +73,12 @@ final class GaugeRenderer {
     }
 
     private static void drawGauge(GuiGraphics g, Rect r,
-        Orientation orientation, GaugeFill fill, double ratio) {
+        Orientation orientation, GaugeFill fill, double ratio,
+        java.util.Optional<Integer> groupColour) {
         boolean vertical = orientation == Orientation.VERTICAL;
         int length = vertical ? r.height() : r.width();
-        shell(g, r, vertical, length, "body");
+        shell(g, r, vertical, length, "body", 1,
+            ElementDrawing.backgroundTint(0xffffff, groupColour));
         int filled = (int) Math.round((length - 2) * ratio);
         FluidStack fluid = fill.fluid().orElse(null);
         int color = fill.colour().orElseGet(() -> IClientFluidTypeExtensions
@@ -86,8 +99,22 @@ final class GaugeRenderer {
                 g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(),
                     0x4dffffff);
         }
-        // Keep the shared empty background flat. Only the contents get curved
+        // Continue the same curvature above the fluid with a softer reflection.
+        // Clip the two strengths separately so filled pixels keep their
         // lighting.
+        if (filled < length - 2) {
+            if (vertical)
+                g.enableScissor(r.x(), r.y(), r.right(),
+                    r.bottom() - 1 - filled);
+            else
+                g.enableScissor(r.x() + 1 + filled, r.y(), r.right(),
+                    r.bottom());
+            try {
+                shell(g, r, vertical, length, "glass", .35f);
+            } finally {
+                g.disableScissor();
+            }
+        }
         if (filled > 0) {
             if (vertical)
                 g.enableScissor(r.x(), r.bottom() - 1 - filled, r.right(),
@@ -119,12 +146,23 @@ final class GaugeRenderer {
 
     private static void shell(GuiGraphics g, Rect r, boolean vertical,
         int length, String layer) {
+        shell(g, r, vertical, length, layer, 1);
+    }
+
+    private static void shell(GuiGraphics g, Rect r, boolean vertical,
+        int length, String layer, float alpha) {
+        shell(g, r, vertical, length, layer, alpha, 0xffffff);
+    }
+
+    private static void shell(GuiGraphics g, Rect r, boolean vertical,
+        int length, String layer, float alpha, int tint) {
         // GuiGraphics fills may be buffered, and flushing them can disable
         // blending.
         // Drain them before configuring the immediate texture draws (especially
         // translucent glass).
         g.flush();
-        g.setColor(1, 1, 1, 1);
+        g.setColor((tint >> 16 & 255) / 255f, (tint >> 8 & 255) / 255f,
+            (tint & 255) / 255f, alpha);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         g.pose().pushPose();
@@ -153,6 +191,7 @@ final class GaugeRenderer {
         } finally {
             g.pose().popPose();
             RenderSystem.disableBlend();
+            g.setColor(1, 1, 1, 1);
         }
     }
 

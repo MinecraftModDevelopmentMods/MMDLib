@@ -142,6 +142,7 @@ public final class MachineInventoryLifecycle {
             features.load(
                 registries.createSerializationContext(NbtOps.INSTANCE),
                 tag.get("features"));
+        features.restoreResources(registries);
     }
 
     public void tick(boolean processingAllowed, boolean paused,

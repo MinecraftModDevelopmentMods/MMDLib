@@ -7,8 +7,7 @@ import com.mojang.serialization.Codec;
  * {@link RecipeProcessor}. A {@link FeatureHost} runs a machine's features and
  * saves each one under its key.
  *
- * @param <S>
- *            the state that is saved
+ * @param <S> the state that is saved
  */
 public interface MachineFeature<S> {
     /** The name this feature's state is saved under; unique within a host. */
@@ -22,6 +21,13 @@ public interface MachineFeature<S> {
 
     /** Takes on loaded state. */
     void restore(S state);
+
+    /**
+     * Rebinds saved resource claims after storage and feature state are loaded.
+     */
+    default void restoreResources(
+        net.minecraft.core.HolderLookup.Provider registries) {
+    }
 
     /**
      * Releases transient ownership before replacing storage contents or

@@ -14,6 +14,8 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
+import zone.moddev.mc.lib.machine.inventory.SlotPlan;
+
 /**
  * Item storage access, including a combined view over independently owned
  * inventories.
@@ -26,6 +28,21 @@ public interface ItemStore extends IItemHandlerModifiable, ReservedSlots {
     ItemStorage storage(int slot);
 
     int localSlot(int slot);
+
+    /** Actual cycle claims, excluding external pending-batch protection. */
+    default SlotPlan processingPlan(int slot) {
+        return storage(slot).reservationPlans().get(localSlot(slot));
+    }
+
+    default int freeForProcessing(int slot) {
+        return processingPlan(slot).free(getStackInSlot(slot));
+    }
+
+    default ItemStack extractForProcessing(int slot, int amount,
+        boolean simulate) {
+        return storage(slot).extractForProcessing(localSlot(slot), amount,
+            simulate);
+    }
 
     Role role(int slot);
 

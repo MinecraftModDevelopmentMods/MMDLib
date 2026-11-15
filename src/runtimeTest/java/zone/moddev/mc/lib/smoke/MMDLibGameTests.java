@@ -325,6 +325,30 @@ public final class MMDLibGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void recipeCycleRunner(GameTestHelper helper) {
+        RecipeChainSmoke.runner(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void recipeChainPriority(GameTestHelper helper) {
+        RecipeChainSmoke.priority(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void recipeChainConcurrent(GameTestHelper helper) {
+        RecipeChainSmoke.concurrent(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void recipeChainDiscovery(GameTestHelper helper) {
+        RecipeChainSmoke.discovery(helper.getLevel());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void processorWorkedRun(GameTestHelper helper) {
         ProcessorSmoke.workedRun(helper.getLevel());
         helper.succeed();

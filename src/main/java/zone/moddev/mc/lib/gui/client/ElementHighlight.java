@@ -33,15 +33,15 @@ public record ElementHighlight(Kind kind, int colour, int outset) {
     }
 
     public static ElementHighlight decoration(int colour) {
-        return new ElementHighlight(Kind.DECORATION, colour, 0);
+        return new ElementHighlight(Kind.DECORATION, colour, 2);
     }
 
     public static ElementHighlight emphasis(int colour) {
-        return new ElementHighlight(Kind.EMPHASIS, colour, 1);
+        return new ElementHighlight(Kind.EMPHASIS, colour, 2);
     }
 
     public static ElementHighlight selection(int colour) {
-        return new ElementHighlight(Kind.SELECTION, colour, 0);
+        return new ElementHighlight(Kind.SELECTION, colour, 2);
     }
 
     public Rect outline(Rect bounds) {

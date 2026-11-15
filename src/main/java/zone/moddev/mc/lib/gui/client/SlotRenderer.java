@@ -1,5 +1,7 @@
 package zone.moddev.mc.lib.gui.client;
 
+import java.util.Optional;
+
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -15,10 +17,11 @@ final class SlotRenderer {
     private final GhostItems ghosts = new GhostItems();
 
     void draw(GuiGraphics graphics, Rect bounds, SlotElement element,
-        ItemStack contents, ItemStack hint) {
+        ItemStack contents, ItemStack hint, Optional<Integer> groupColour) {
         int[] item = element.itemPosition(bounds);
         element.render(new SlotElement.Painter() {
             public void background(ResourceLocation sprite, int tint) {
+                tint = ElementDrawing.backgroundTint(tint, groupColour);
                 graphics.setColor((tint >> 16 & 255) / 255f,
                     (tint >> 8 & 255) / 255f, (tint & 255) / 255f, 1);
                 graphics.blitSprite(sprite, bounds.x(), bounds.y(),
@@ -47,4 +50,5 @@ final class SlotRenderer {
             }
         }, contents, hint);
     }
+
 }

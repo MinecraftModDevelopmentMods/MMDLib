@@ -3,6 +3,7 @@ package zone.moddev.mc.lib.gui.client;
 import static zone.moddev.mc.lib.api.automation.AutomationInventory.COLUMNS;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import zone.moddev.mc.lib.gui.layout.GroupHighlights;
 import zone.moddev.mc.lib.gui.layout.GroupOrder;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.layout.SideDrawerLayout;
+import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.ElementGroup;
 import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 import zone.moddev.mc.lib.gui.runtime.AutomationMenu;
@@ -44,6 +46,7 @@ public final class SideConfigDrawer extends Drawer {
     private final ColourButtonBar<Integer> colourBar;
     private final List<Integer> displayOrder;
     private final Map<String, List<zone.moddev.mc.lib.gui.model.Element>> groupHighlights;
+    private final Map<Element, Integer> groupColours = new IdentityHashMap<>();
     private String editorKey = "";
     private FilterControl root;
     private ElementFragment editor;
@@ -70,6 +73,11 @@ public final class SideConfigDrawer extends Drawer {
             indices.put(groups.get(i).id(), i);
         var definitionModel = screen.getMenu().bound.screen();
         groupHighlights = GroupHighlights.of(definitionModel, associations);
+        for (var element : definitionModel.elements())
+            element.associatedGroups(definitionModel, associations).stream()
+                .filter(indices::containsKey).findFirst()
+                .ifPresent(id -> groupColours.put(element,
+                    groups.get(indices.get(id)).colour()));
         displayOrder = GroupOrder.of(definitionModel,
             associations.stream().map(ElementGroup::id).toList(),
             element -> element.associatedGroups(definitionModel, associations))
@@ -93,6 +101,11 @@ public final class SideConfigDrawer extends Drawer {
             remember(true, new Selection(model.inventory.group(group).id(), 0));
         }
         return true;
+    }
+
+    @Override
+    public Optional<Integer> groupColour(Element element) {
+        return Optional.ofNullable(groupColours.get(element));
     }
 
     private Rect panel() {
@@ -365,12 +378,6 @@ public final class SideConfigDrawer extends Drawer {
         tooltip = null;
         faceTooltip = List.of();
         drawFrame(g, tab, body, model.open());
-        for (int index = 0; index < count(); index++) {
-            var group = model.inventory.group(index);
-            for (var element : groupHighlights.get(group.id()))
-                screen.presentation().highlight(g, element,
-                    ElementHighlight.decoration(0xff000000 | group.colour()));
-        }
         if (tab.contains(mx, my))
             tooltip = Component.translatable("screen.mmdlib.automation.open");
         int hoveredGroup = colourBar.render(g, mx, my, model.open()).orElse(-1);

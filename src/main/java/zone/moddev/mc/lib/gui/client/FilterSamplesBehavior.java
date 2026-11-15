@@ -45,6 +45,6 @@ final class FilterSamplesBehavior implements ElementBehavior {
             RENDERER.draw(c.graphics(), element.sampleBounds(r, i),
                 element.sampleSlot(i), element
                     .sampleDisplay(FilterDrawing.configuration(c.value()), i),
-                ItemStack.EMPTY);
+                ItemStack.EMPTY, c.access().groupColour(element));
     }
 }

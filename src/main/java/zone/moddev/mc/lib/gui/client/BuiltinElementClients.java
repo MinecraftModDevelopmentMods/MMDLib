@@ -82,9 +82,7 @@ final class BuiltinElementClients {
                 .renderer((element, c) -> SpriteRenderer
                     .draw(element.spriteElement(), c)),
             ElementClient.of(COLOURED_GROUP).renderer((element, c) -> {
-            }).overlay((element, c) -> ColouredGroupRenderer.draw(element,
-                c.graphics(), c.bounds(), false))
-                .behavior(ColouredGroupBehavior::new),
+            }).behavior(ColouredGroupBehavior::new),
             ElementClient.of(BOX).renderer((element, c) -> {
             }), ElementClient.of(SPACER).renderer((element, c) -> {
             }), ElementClient.of(INVENTORY_CONTROLS).renderer((element, c) -> {
@@ -125,19 +123,20 @@ final class BuiltinElementClients {
             ElementClient.of(SLOT)
                 .renderer((element, c) -> slots.draw(c.graphics(), c.bounds(),
                     element, c.access().contents(element),
-                    c.access().hint(element)))
+                    c.access().hint(element), c.access().groupColour(element)))
                 .behavior(SlotBehavior::new),
             ElementClient.of(GAUGE)
                 .renderer((element, c) -> GaugeRenderer.draw(c.graphics(),
                     c.bounds(), element.orientation(), element.fill(c.value()),
-                    c.ratio())),
+                    c.ratio(), c.access().groupColour(element))),
             ElementClient.of(FLUID_TANK)
                 .renderer((element, c) -> GaugeRenderer.draw(c.graphics(),
                     c.bounds(), element.orientation(), element.fill(c.value()),
-                    c.ratio())),
+                    c.ratio(), c.access().groupColour(element))),
             ElementClient.of(ENERGY_GAUGE)
                 .renderer((element, c) -> EnergyGaugeRenderer.draw(c.graphics(),
-                    c.bounds(), element, c.ratio())),
+                    c.bounds(), element, c.ratio(),
+                    c.access().groupColour(element))),
             ElementClient.of(METER).renderer(MeterRenderer::draw),
             ElementClient.of(SIDE_CONFIG).renderer(SideConfigRenderer::draw)
                 .renderer(ElementRenderers.Pass.OVERLAY,

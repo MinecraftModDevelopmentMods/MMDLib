@@ -84,7 +84,7 @@ public final class StorageGroups {
 
         @Override
         public int free(int slot) {
-            return valid(slot) ? storage.freeToTake(slots[slot]) : 0;
+            return valid(slot) ? storage.freeForProcessing(slots[slot]) : 0;
         }
 
         @Override
@@ -95,7 +95,7 @@ public final class StorageGroups {
             if (storage.getStackInSlot(index).isEmpty())
                 return 0;
             track(index, tx);
-            return storage.extractItem(index, count, false).getCount();
+            return storage.extractForProcessing(index, count, false).getCount();
         }
 
         @Override
@@ -157,7 +157,7 @@ public final class StorageGroups {
             var usable = new boolean[slots.length];
             for (int i = 0; i < slots.length; i++) {
                 var stack = storage.getStackInSlot(slots[i]);
-                var plan = storage.plan(slots[i]);
+                var plan = storage.processingPlan(slots[i]);
                 var asked = new SlotPlan(plan.take() + (int) taken[i],
                     plan.add());
                 usable[i] = asked.legal(stack, storage.getSlotLimit(slots[i]));
@@ -172,7 +172,7 @@ public final class StorageGroups {
                 for (boolean merging : new boolean[]{true, false})
                     for (int i = 0; i < slots.length && left > 0; i++) {
                         var slot = held.get(i);
-                        var plan = storage.plan(slots[i]);
+                        var plan = storage.processingPlan(slots[i]);
                         if (!usable[i]
                             || merging == plan.endState(slot).isEmpty())
                             continue;

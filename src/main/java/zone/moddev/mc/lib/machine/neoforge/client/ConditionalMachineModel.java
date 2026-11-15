@@ -56,8 +56,8 @@ import zone.moddev.mc.lib.machine.presentation.VisualVariables;
 @EventBusSubscriber(modid = "mmdlib", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ConditionalMachineModel
     implements IUnbakedGeometry<ConditionalMachineModel> {
-    private record Part(String id, BlockModel model,
-        VisualCondition condition) {
+    private record Part(String id, BlockModel model, VisualCondition condition,
+        boolean emissive) {
     }
     private record FaceTexture(RelativeFace face, String texture,
         VisualCondition condition, String emissiveMask) {
@@ -108,7 +108,9 @@ public final class ConditionalMachineModel
                 parts.add(new Part(id,
                     context.deserialize(part.get("model"), BlockModel.class),
                     VisualCondition.compile(part.get("when").getAsString(),
-                        defaults)));
+                        defaults),
+                    part.has("emissive")
+                        && part.get("emissive").getAsBoolean()));
             }
             var faceTextures = new ArrayList<FaceTexture>();
             if (json.has("face_textures"))
@@ -165,9 +167,11 @@ public final class ConditionalMachineModel
                 ? baseModel
                 : new FaceTextureModel(baseModel, textureRules));
         for (var part : parts)
-            children.put(part.id(), new ConditionalPart(
-                part.model().bake(baker, part.model(), sprites, state, true),
-                part.condition()));
+            children
+                .put(part.id(),
+                    new ConditionalPart(part.model().bake(baker, part.model(),
+                        sprites, state, true), part.condition(),
+                        part.emissive()));
         // Inventory items intentionally show the base appearance, independent
         // of world state.
         return new CompositeModel.Baked(context.isGui3d(),
@@ -203,10 +207,27 @@ public final class ConditionalMachineModel
         extends
             BakedModelWrapper<BakedModel> {
         private final VisualCondition condition;
+        private final boolean emissive;
+        private final com.google.common.cache.LoadingCache<BakedQuad, BakedQuad> lit = com.google.common.cache.CacheBuilder
+            .newBuilder().maximumSize(64)
+            .build(com.google.common.cache.CacheLoader
+                .from(ConditionalPart::light));
 
-        private ConditionalPart(BakedModel model, VisualCondition condition) {
+        private ConditionalPart(BakedModel model, VisualCondition condition,
+            boolean emissive) {
             super(model);
             this.condition = condition;
+            this.emissive = emissive;
+        }
+
+        private static BakedQuad light(BakedQuad quad) {
+            int[] vertices = quad.getVertices().clone();
+            for (int i = 0; i < 4; i++)
+                vertices[i
+                    * net.neoforged.neoforge.client.model.IQuadTransformer.STRIDE
+                    + net.neoforged.neoforge.client.model.IQuadTransformer.UV2] = net.minecraft.client.renderer.LightTexture.FULL_BRIGHT;
+            return new BakedQuad(vertices, quad.getTintIndex(),
+                quad.getDirection(), quad.getSprite(), false, false);
         }
 
         private boolean visible(ModelData data) {
@@ -228,9 +249,12 @@ public final class ConditionalMachineModel
         @Override
         public List<BakedQuad> getQuads(BlockState state, Direction side,
             RandomSource random, ModelData data, RenderType type) {
-            return visible(data)
-                ? originalModel.getQuads(state, side, random, data, type)
-                : List.of();
+            if (!visible(data))
+                return List.of();
+            var quads = originalModel.getQuads(state, side, random, data, type);
+            return emissive
+                ? quads.stream().map(lit::getUnchecked).toList()
+                : quads;
         }
 
         @Override

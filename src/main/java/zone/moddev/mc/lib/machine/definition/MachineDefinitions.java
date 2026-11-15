@@ -37,6 +37,7 @@ import zone.moddev.mc.lib.machine.definition.MachineDefinition.Tank;
 import zone.moddev.mc.lib.machine.inventory.MachineStorageKeys;
 import zone.moddev.mc.lib.machine.presentation.ConditionalFaceTexture;
 import zone.moddev.mc.lib.machine.presentation.ConditionalModelPart;
+import zone.moddev.mc.lib.machine.presentation.FaceOverlay;
 import zone.moddev.mc.lib.machine.presentation.VisualCondition;
 
 /**
@@ -117,11 +118,18 @@ public final class MachineDefinitions {
         // merge identity.
         if (Set.of("machine", "storage", "recipe-type").contains(parent.name()))
             return node.name();
+        if (parent.name().equals("appearance") && isDisplay(node))
+            return node.name();
         var id = node.attributes().getOrDefault("id",
             node.attributes().get("name"));
         // Ordinary unnamed screen siblings are ordered content, never implicit
         // overrides.
         return id == null ? null : node.name() + ":" + id;
+    }
+
+    private static boolean isDisplay(Node node) {
+        return node.name().equals("item-display")
+            || node.name().equals("entity-display");
     }
 
     private static Node merge(Node base, Node child) {
@@ -173,9 +181,14 @@ public final class MachineDefinitions {
         Map.entry("entity-display",
             Set.of("variable", "offset", "width", "height", "yaw", "item-yaw",
                 "block", "item", "item-property")),
+        Map.entry("item-display",
+            Set.of("variable", "x", "y", "width", "height")),
         Map.entry("part", Set.of("id", "model", "when")),
         Map.entry("face-texture",
             Set.of("id", "face", "texture", "when", "emissive-mask")),
+        Map.entry("face-overlay",
+            Set.of("id", "face", "texture", "x", "y", "width", "height",
+                "frames", "variable", "emissive", "when")),
         Map.entry("storage", Set.of()), Map.entry("items", Set.of("id")),
         Map.entry("fluids", Set.of("id")),
         Map.entry("tank",
@@ -206,11 +219,12 @@ public final class MachineDefinitions {
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
         Set.of("block", "appearance", "storage", "groups", "recipe-type",
-            "processor", "redstone", "recovery", "screen", "shapes",
-            "entity-display"),
+            "processor", "redstone", "recovery", "screen", "shapes"),
         "storage", Set.of("energy", "items", "fluids"), "fluids",
         Set.of("tank", "tanks"), "items", Set.of("slot", "slots"), "groups",
-        Set.of("group"), "appearance", Set.of("part", "face-texture"),
+        Set.of("group"), "appearance",
+        Set.of("part", "face-texture", "face-overlay", "entity-display",
+            "item-display"),
         "recipe-type", Set.of("generator"), "shapes", Set.of("shape"));
 
     private static void validateTree(Node node) {
@@ -239,6 +253,7 @@ public final class MachineDefinitions {
             case "part" -> List.of("model");
             case "entity-display" -> List.of("item-property");
             case "face-texture" -> List.of("texture", "emissive-mask");
+            case "face-overlay" -> List.of("texture");
             case "recipe-type" -> List.of("id");
             case "processor" -> List.of("recipe-type", "default-recipe",
                 "running-sound", "finish-sound", "on-start", "on-finish");
@@ -610,10 +625,16 @@ public final class MachineDefinitions {
         float hardness = hardness(block);
         var modelParts = new ArrayList<ConditionalModelPart>();
         var faceTextures = new ArrayList<ConditionalFaceTexture>();
-        if (appearance.children().size() > 64)
+        var appearanceRules = appearance.children().stream()
+            .filter(part -> !isDisplay(part)).toList();
+        if (appearanceRules.size() > 64)
             throw error(appearance,
                 "At most 64 conditional parts and face-texture rules are supported");
-        for (var part : appearance.children()) {
+        for (var part : appearanceRules) {
+            if (part.name().equals("face-overlay")) {
+                modelParts.addAll(overlayParts(part));
+                continue;
+            }
             if (part.name().equals("face-texture")) {
                 if (baseModel != null)
                     throw error(part,
@@ -663,7 +684,7 @@ public final class MachineDefinitions {
                     throw error(shape, ex.getMessage());
                 }
             }
-        var displayNode = optional(root, "entity-display");
+        var displayNode = optional(appearance, "entity-display");
         EntityDisplay display = null;
         if (displayNode != null) {
             var offset = displayNode.attributes()
@@ -695,6 +716,25 @@ public final class MachineDefinitions {
                 throw error(displayNode, ex.getMessage());
             }
         }
+        var itemDisplayNode = optional(appearance, "item-display");
+        ItemDisplay itemDisplay = null;
+        if (itemDisplayNode != null) {
+            try {
+                itemDisplay = new ItemDisplay(
+                    zone.moddev.mc.lib.gui.model.ProcessorVariable
+                        .parse(required(itemDisplayNode, "variable")),
+                    Double.parseDouble(
+                        itemDisplayNode.attributes().getOrDefault("x", "0.5")),
+                    Double.parseDouble(
+                        itemDisplayNode.attributes().getOrDefault("y", "0.5")),
+                    Float.parseFloat(itemDisplayNode.attributes()
+                        .getOrDefault("width", "0.5")),
+                    Float.parseFloat(itemDisplayNode.attributes()
+                        .getOrDefault("height", "0.5")));
+            } catch (IllegalArgumentException ex) {
+                throw error(itemDisplayNode, ex.getMessage());
+            }
+        }
         ProcessorDeclaration declaration = null;
         zone.moddev.mc.lib.machine.feature.Processor<?> prototype = null;
         if (custom) {
@@ -719,7 +759,7 @@ public final class MachineDefinitions {
                 block.attributes().containsKey("on-secondary-use")
                     ? resource(block, "on-secondary-use")
                     : null,
-                display);
+                display, itemDisplay);
         } catch (IllegalArgumentException ex) {
             throw error(block, ex.getMessage());
         }
@@ -735,6 +775,17 @@ public final class MachineDefinitions {
                 display.validate(Map.of(required(processor, "id"), prototype));
             } catch (IllegalArgumentException ex) {
                 throw error(displayNode, ex.getMessage());
+            }
+        }
+        if (itemDisplay != null) {
+            if (prototype == null)
+                throw error(itemDisplayNode,
+                    "Item displays require a custom processor with a synchronized variable");
+            try {
+                itemDisplay
+                    .validate(Map.of(required(processor, "id"), prototype));
+            } catch (IllegalArgumentException ex) {
+                throw error(itemDisplayNode, ex.getMessage());
             }
         }
         var definition = new MachineDefinition(id, checksum(root),
@@ -779,9 +830,13 @@ public final class MachineDefinitions {
                     optionalResource(processor, "on-start"),
                     optionalResource(processor, "on-finish")));
         var defaults = definition.visualDefaults(prototype);
-        for (var part : appearance.children()) {
+        for (var part : appearanceRules) {
             try {
-                VisualCondition.compile(required(part, "when"), defaults);
+                if (part.name().equals("face-overlay")) {
+                    for (var frame : overlayParts(part))
+                        VisualCondition.compile(frame.when(), defaults);
+                } else
+                    VisualCondition.compile(required(part, "when"), defaults);
             } catch (IllegalArgumentException ex) {
                 throw error(part, ex.getMessage());
             }
@@ -929,6 +984,48 @@ public final class MachineDefinitions {
         if (!List.of(values).contains(required(node, name)))
             throw error(node,
                 "Supported " + name + ": " + String.join(", ", values));
+    }
+
+    private static List<ConditionalModelPart> overlayParts(Node node) {
+        try {
+            String id = required(node, "id");
+            if (id.equals("base"))
+                throw new IllegalArgumentException(
+                    "The model part ID 'base' is reserved");
+            var face = RelativeFace
+                .valueOf(required(node, "face").toUpperCase(Locale.ROOT));
+            int frames = node.attributes().containsKey("frames")
+                ? (int) number(node, "frames", 1, 32)
+                : 1;
+            String variable = frames > 1
+                ? required(node, "variable")
+                : node.attributes().get("variable");
+            if (variable != null)
+                zone.moddev.mc.lib.gui.model.ProcessorVariable.parse(variable);
+            var result = new ArrayList<ConditionalModelPart>();
+            for (int frame = 0; frame < frames; frame++) {
+                String when = node.attributes().getOrDefault("when", "true");
+                if (frames > 1)
+                    when = "(" + when + ") && "
+                        + (frame == 0
+                            ? variable + " < 1"
+                            : frame == frames - 1
+                                ? variable + " >= " + frame
+                                : variable + " >= " + frame + " && " + variable
+                                    + " < " + (frame + 1));
+                var overlay = new FaceOverlay(face, resource(node, "texture"),
+                    Double.parseDouble(required(node, "x")),
+                    Double.parseDouble(required(node, "y")),
+                    Double.parseDouble(required(node, "width")),
+                    Double.parseDouble(required(node, "height")), frame, frames,
+                    bool(node, "emissive", false));
+                result.add(new ConditionalModelPart(id + "/frame_" + frame,
+                    null, when, overlay));
+            }
+            return result;
+        } catch (IllegalArgumentException ex) {
+            throw error(node, ex.getMessage());
+        }
     }
 
     private static boolean bool(Node node, String key, boolean fallback) {

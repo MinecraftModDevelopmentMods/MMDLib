@@ -62,6 +62,28 @@ public interface ElementRenderAccess {
         return Optional.empty();
     }
 
+    /** Direct host-owned resource association, without ancestor inheritance. */
+    default Optional<Integer> associatedGroupColour(Element element) {
+        return Optional.empty();
+    }
+
+    /**
+     * Nearest group wins; an element-owned colour precedes its host
+     * association.
+     */
+    default Optional<Integer> groupColour(Element element) {
+        for (Element current = element; current != null; current = parent(
+            current).orElse(null)) {
+            var colour = capability(current, GroupColourProvider.class)
+                .map(GroupColourProvider::groupColour);
+            if (colour.isEmpty())
+                colour = associatedGroupColour(current);
+            if (colour.isPresent())
+                return colour;
+        }
+        return Optional.empty();
+    }
+
     /**
      * A registered group caption, or the ordinary tooltip for elements without
      * that capability.

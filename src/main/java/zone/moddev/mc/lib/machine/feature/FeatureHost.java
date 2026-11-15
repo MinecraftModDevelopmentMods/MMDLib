@@ -58,8 +58,7 @@ public final class FeatureHost implements IRedstoneOutput {
     /**
      * Adds {@code feature}; features tick in the order added.
      *
-     * @throws IllegalArgumentException
-     *             if another feature has the same key
+     * @throws IllegalArgumentException if another feature has the same key
      */
     public FeatureHost add(MachineFeature<?> feature) {
         if (variables != null || variableSource != null)
@@ -142,6 +141,12 @@ public final class FeatureHost implements IRedstoneOutput {
 
     public void reset() {
         features.values().forEach(MachineFeature::reset);
+    }
+
+    public void restoreResources(
+        net.minecraft.core.HolderLookup.Provider registries) {
+        features.values()
+            .forEach(feature -> feature.restoreResources(registries));
     }
 
     /** Finds a recipe processor by its stable feature/persistence key. */

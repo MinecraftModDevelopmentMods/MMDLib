@@ -3,7 +3,7 @@
 
 Writes to src/main/resources/assets/mmdlib/textures/gui/gauge/:
   body_top.png, body_middle.png, body_bottom.png    shared casing: outline + medium grey interior
-  glass_top.png, glass_middle.png, glass_bottom.png  translucent highlight drawn over the contents
+  glass_top.png, glass_middle.png, glass_bottom.png  translucent glass lighting (softer above contents)
 and prints the per-row content clip table for the caps (see docs/gauge-textures.md).
 
 The textures are vertical; horizontal gauges draw them rotated 90 degrees clockwise.

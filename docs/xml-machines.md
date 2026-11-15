@@ -1196,15 +1196,53 @@ entities; discard the preview if it returns false, since a failed load or hook m
 have partially changed it. Portable ownership and world placement stay with the
 caller, who must retain the snapshot until placement succeeds.
 
-### Entity displays on blocks and items
+### Front item displays
 
-Declare a detached living-entity overlay beside the machine's appearance:
+Bind a synchronized processor variable to an item preview on the front of a machine:
 
 ```xml
-<entity-display variable="$processors.courier.occupant"
-                offset="0.5 0.2 0.5" width="0.62" height="0.45"
-                item-yaw="180" item-property="example:occupied"/>
+<appearance preset="model" model="example:block/factory">
+  <item-display variable="$processors.factory.product"
+                x="0.5" y="0.5" width="0.5" height="0.5"/>
+</appearance>
 ```
+
+The variable must be a synchronized `ItemStack` or a string containing an item ID
+such as `minecraft:stone`. An empty stack or empty string displays nothing. Invalid
+or unregistered live item IDs also display nothing; the loader validates the
+binding and default value without looking up the item registry during schema loading.
+Use `.synced()` when declaring the processor variable so tracking players receive
+updates without opening a menu. The processor owns when that value changes.
+
+`x` and `y` position the center on the front face in block units (0..1), with x
+increasing toward the viewer's right and y upward. Width and height are in (0, 1].
+All four default to 0.5. The display follows horizontal machine facing and uses
+the lighting outside that face. It renders one native item GUI model flattened
+just outside the face, over the normal/conditional texture, without a count label.
+
+One `<item-display>` is supported inside `<appearance>`. It follows normal machine
+XML inheritance: children override supplied attributes and inherit the rest. It can
+coexist with an `<entity-display>`; MMDLib registers a combined
+block-entity renderer. No consumer renderer registration or portable-machine policy
+is needed. This displays an item on a placed block; it does not alter the machine's
+inventory item model.
+
+### Entity displays on blocks and items
+
+Declare a detached living-entity overlay inside the machine's `<appearance>`:
+
+```xml
+<appearance preset="model" model="example:block/courier">
+  <entity-display variable="$processors.courier.occupant"
+                  offset="0.5 0.2 0.5" width="0.62" height="0.45"
+                  item-yaw="180" item-property="example:occupied"/>
+</appearance>
+```
+
+One `<entity-display>` is supported per `<appearance>`, with the same attribute
+inheritance as `<item-display>`. Neither display is accepted at the machine root.
+They coexist with parts and face overlays and do not count toward the 64 conditional
+appearance-rule limit. Changing the appearance preset preserves inherited displays.
 
 MMDLib registers the block renderer, item renderer and model wrapper. The variable
 must be a synchronized `EntitySnapshot`. Item displays additionally require a
@@ -1366,3 +1404,34 @@ type from its XML definition. Java integrations can access them through
 needed. Call these after the corresponding registry event (for example, in creative
 tab contents or client setup), not while initializing a mod's static fields. Unknown
 or not-yet-registered IDs fail explicitly instead of returning air.
+
+### Rectangular face overlays
+
+Use independent `<face-overlay>` children of `<appearance>` for lamps, status
+indicators and other dynamic surface regions. Multiple overlays coexist on the
+same face; the base face and `<item-display>` are retained.
+
+```xml
+<face-overlay id="lights" face="front" x="5" y="13.5" width="6" height="1"
+              texture="example:block/lights" frames="4"
+              variable="$processors.main.light_frame" emissive="true"/>
+```
+
+Coordinates use a 16 by 16 face, measured from its top-left as seen from outside.
+For top and bottom, the north-facing machine's model UV orientation applies;
+overlays rotate with the block. Bounds must fit on the face. `face` accepts front,
+back, left, right, top and bottom. Each overlay is a cutout plane just outside the
+face, so transparent pixels expose the casing. Keep independent rectangles or
+opaque pixels disjoint to avoid overlapping coplanar surfaces.
+
+A static overlay needs only its rectangle and texture. `frames` defaults to 1;
+for multiple frames (maximum 32), supply a numeric visual processor `variable`.
+The texture is a vertical strip of equally sized frames, without animation
+`.mcmeta`. The value selects a zero-based frame, rounded down and clamped to the
+strip's range. Optional `when` uses the normal visual conditions; it defaults to
+true. `emissive="true"` makes opaque pixels full-bright without making the block
+emit world light. Default is false. Use transparency around glowing pixels.
+
+MMDLib expands the declaration into conditional model parts, reusing tracking
+snapshots and model invalidation when the selected frame changes. No per-machine
+renderer or full-face variants are needed. Inventory models keep the base casing.

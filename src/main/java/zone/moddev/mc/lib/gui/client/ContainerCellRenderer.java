@@ -42,7 +42,8 @@ final class ContainerCellRenderer {
             return;
         }
         var contents = c.access().contents(element);
-        SLOTS.draw(g, b, element, contents, c.access().hint(element));
+        SLOTS.draw(g, b, element, contents, c.access().hint(element),
+            c.access().groupColour(element));
         int[] xy = element.itemPosition(b);
         var original = new Rect(xy[0], xy[1], 16, 16);
         var item = element.nativeBounds(original);

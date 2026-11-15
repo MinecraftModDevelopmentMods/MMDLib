@@ -14,6 +14,7 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
 public class PlannedItemHandler extends ItemStackHandler
     implements ReservedSlots {
     private final ReservationPlans<SlotPlan> plans;
+    private boolean processingExtraction;
 
     public PlannedItemHandler(int size) {
         super(size);
@@ -32,7 +33,35 @@ public class PlannedItemHandler extends ItemStackHandler
 
     @Override
     public SlotPlan plan(int slot) {
-        return plans.get(slot);
+        var active = plans.get(slot);
+        int pending = Math.clamp(pendingTake(slot), 0,
+            active.free(getStackInSlot(slot)));
+        return pending == 0
+            ? active
+            : new SlotPlan(active.take() + pending, active.add());
+    }
+
+    /**
+     * Additional items protected from external extraction while preparing a
+     * batch. Must be pure: simulation and menu snapshots call this too.
+     * Processing groups use the actual reservation table, not this projection.
+     */
+    protected int pendingTake(int slot) {
+        return 0;
+    }
+
+    /** Internal access still respects active cycles, but not pending demand. */
+    public final ItemStack extractForProcessing(int slot, int amount,
+        boolean simulate) {
+        validateSlotIndex(slot);
+        boolean previous = processingExtraction;
+        processingExtraction = true;
+        try {
+            // Preserve subclass extraction limits and failure behavior.
+            return extractItem(slot, amount, simulate);
+        } finally {
+            processingExtraction = previous;
+        }
     }
 
     /** Replaces a plan for synchronization or restoring state. */
@@ -60,24 +89,33 @@ public class PlannedItemHandler extends ItemStackHandler
 
     @Override
     public int maxHeld(int slot, ItemStack stack) {
-        if (!hasPlan(slot))
+        var active = plans.get(slot);
+        if (active.isNone())
             return Math.min(getSlotLimit(slot), stack.getMaxStackSize());
         var held = getStackInSlot(slot);
-        return held.getCount()
-            + plan(slot).room(held, stack, getSlotLimit(slot));
+        return held.getCount() + active.room(held, stack, getSlotLimit(slot));
     }
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return !hasPlan(slot)
-            || plan(slot).accepts(getStackInSlot(slot), stack);
+        var active = plans.get(slot);
+        return active.isNone() || active.accepts(getStackInSlot(slot), stack);
     }
 
     @Override
     public ItemStack extractItem(int slot, int amount, boolean simulate) {
         validateSlotIndex(slot);
-        return super.extractItem(slot, Math.min(amount, freeToTake(slot)),
-            simulate);
+        boolean processing = processingExtraction;
+        // Content-change callbacks still observe normal external protection.
+        processingExtraction = false;
+        try {
+            int free = processing
+                ? plans.get(slot).free(getStackInSlot(slot))
+                : freeToTake(slot);
+            return super.extractItem(slot, Math.min(amount, free), simulate);
+        } finally {
+            processingExtraction = processing;
+        }
     }
 
     @Override

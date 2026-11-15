@@ -47,6 +47,28 @@ public final class Drawers {
         return List.copyOf(entries);
     }
 
+    /**
+     * Opens a declared, available drawer through its normal
+     * restoration/arbitration path.
+     */
+    public boolean open(String id) {
+        for (var drawer : entries)
+            if (drawer.id().equals(id) && drawer.available()
+                && !pending(drawer.edge())) {
+                userInput();
+                if (!drawer.restore(drawer.selection()))
+                    return false;
+                remember(drawer, true, drawer.selection());
+                return true;
+            }
+        return false;
+    }
+
+    public Optional<Integer> groupColour(Element element) {
+        return entries.stream().map(drawer -> drawer.groupColour(element))
+            .flatMap(Optional::stream).findFirst();
+    }
+
     public <T> Optional<T> presentation(Element element, Class<T> type) {
         var drawer = elements.get(element);
         return drawer == null ? Optional.empty() : drawer.presentation(type);
@@ -107,6 +129,14 @@ public final class Drawers {
 
     public void render(GuiGraphics graphics, int x, int y) {
         entries.forEach(d -> d.render(graphics, x, y));
+    }
+
+    public void renderForeground(GuiGraphics graphics, int x, int y) {
+        entries.forEach(d -> d.renderForeground(graphics, x, y));
+    }
+
+    public boolean covers(double x, double y) {
+        return entries.stream().anyMatch(d -> d.covers(x, y));
     }
 
     /**
