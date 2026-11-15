@@ -96,12 +96,29 @@ public final class MachineEntityDisplays {
 
     @SubscribeEvent
     public static void renderers(EntityRenderersEvent.RegisterRenderers event) {
-        for (var definition : MachineContent.definitions().values())
-            if (definition.behavior().entityDisplay() != null
-                && definition.behavior().entityDisplay().block())
+        for (var definition : MachineContent.definitions().values()) {
+            var entity = definition.behavior().entityDisplay();
+            var item = definition.behavior().itemDisplay();
+            if (entity != null && entity.block() || item != null)
                 event.registerBlockEntityRenderer(
-                    MachineContent.entityType(definition.id()),
-                    context -> new BlockDisplay(Binding.of(definition)));
+                    MachineContent.entityType(definition.id()), context -> {
+                        var entityRenderer = entity != null && entity.block()
+                            ? new BlockDisplay(Binding.of(definition))
+                            : null;
+                        var itemRenderer = item == null
+                            ? null
+                            : new MachineItemDisplay(item);
+                        return (machine, partial, pose, buffers, light,
+                            overlay) -> {
+                            if (entityRenderer != null)
+                                entityRenderer.render(machine, partial, pose,
+                                    buffers, light, overlay);
+                            if (itemRenderer != null)
+                                itemRenderer.render(machine, partial, pose,
+                                    buffers, light, overlay);
+                        };
+                    });
+        }
     }
 
     @SubscribeEvent

@@ -104,6 +104,12 @@ public abstract class Drawer {
         return java.util.Optional.empty();
     }
 
+    /** Optional resource-group colour for an element on the host screen. */
+    public java.util.Optional<Integer> groupColour(
+        zone.moddev.mc.lib.gui.model.Element element) {
+        return java.util.Optional.empty();
+    }
+
     public abstract void close();
 
     /** Close purely local presentation when a server-owned drawer is opened. */
@@ -161,6 +167,17 @@ public abstract class Drawer {
     }
 
     public void render(GuiGraphics graphics, int mouseX, int mouseY) {
+    }
+
+    /** Content that may cover the main panel, drawn above its native slots. */
+    public void renderForeground(GuiGraphics graphics, int mouseX, int mouseY) {
+    }
+
+    /**
+     * Prevent underlying machine controls and slots from claiming hover/input.
+     */
+    public boolean covers(double x, double y) {
+        return false;
     }
 
     public void tooltip(GuiGraphics graphics, int mouseX, int mouseY) {

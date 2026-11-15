@@ -35,11 +35,18 @@ public final class SideDrawerRenderer {
         sprite(graphics, TAB, tab, color);
     }
 
+    /**
+     * A detached panel, also suitable for drawers overlapping their host at
+     * narrow GUI widths.
+     */
+    public static void panel(GuiGraphics graphics, Rect body, int color) {
+        sprite(graphics, PANEL, body, color);
+    }
+
     public static void open(GuiGraphics graphics, Rect tab, Rect body,
         Edge edge, int color) {
-        int x = Math.min(tab.x(), body.x());
-        var whole = new Rect(x, body.y(), body.width() + tab.width(),
-            body.height());
+        var whole = zone.moddev.mc.lib.gui.layout.SideDrawerLayout.frame(tab,
+            body);
         sprite(graphics, PANEL, whole, color);
         // The narrow, darker rail retains the active icon beside the main
         // machine panel.
@@ -47,7 +54,7 @@ public final class SideDrawerRenderer {
             | (((color & 0xfefefe) >> 1) + ((color & 0xfcfcfc) >> 2));
         graphics.fill(tab.x() + 2, body.y() + 2, tab.right() - 2,
             body.bottom() - 2, rail);
-        int seam = edge == Edge.LEFT ? tab.x() : tab.right() - 1;
+        int seam = body.x() >= tab.right() ? tab.right() - 1 : tab.x();
         graphics.fill(seam, body.y() + 2, seam + 1, body.bottom() - 2,
             0xff000000 | ((color & 0xfefefe) >> 1));
         tab(graphics, tab, color);

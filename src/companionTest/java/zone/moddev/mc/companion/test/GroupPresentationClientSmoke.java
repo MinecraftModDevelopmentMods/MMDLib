@@ -189,12 +189,28 @@ final class GroupPresentationClientSmoke {
                         .contains(ElementHighlight.Kind.SELECTION),
                     "Inline side config reads the mod caption and invokes its highlight capability");
                 require(
-                    customRequests.contains(ElementHighlight.Kind.DECORATION),
-                    "Drawer identification reaches the custom highlight capability");
+                    !customRequests.contains(ElementHighlight.Kind.DECORATION),
+                    "Idle groups use background tints without persistent outlines");
                 assertLabel(screen, "tank_1", "Mod tank");
                 assertLabel(screen, "labelled_group", "Panel");
                 assertLabel(screen, "tank_2", "Coloured");
                 assertLabel(screen, "tank_3", "Plain");
+                for (String id : List.of("tank_1", "tank_3")) {
+                    var target = menu.bound.screen().find(id).orElseThrow();
+                    var group = automation.inventory.groups().stream()
+                        .filter(candidate -> candidate.id().equals("tank_3"))
+                        .findFirst().orElseThrow();
+                    require(
+                        screen.presentation().groupColour(target)
+                            .equals(Optional.of(group.colour())),
+                        "Legacy targets respect the element's group association order for background colour");
+                }
+                var owned = (ColouredGroupElement) menu.bound.screen()
+                    .find("tank_2").orElseThrow();
+                require(
+                    screen.presentation().groupColour(owned.child())
+                        .equals(Optional.of(owned.colour())),
+                    "Descendants inherit the wrapper colour through real screen presentation");
                 select(automation, "tank_1");
             }
             case 1 -> {
@@ -209,9 +225,10 @@ final class GroupPresentationClientSmoke {
             }
             case 3 -> {
                 require(
-                    colouredRequests.containsAll(
-                        EnumSet.allOf(ElementHighlight.Kind.class)),
-                    "Coloured wrapper handles decoration, emphasis and inline selection through its"
+                    colouredRequests
+                        .containsAll(EnumSet.of(ElementHighlight.Kind.EMPHASIS,
+                            ElementHighlight.Kind.SELECTION)),
+                    "Coloured wrapper handles emphasis and inline selection through its"
                         + " contract");
                 capture("groups-coloured.png");
                 click(screen, selector);

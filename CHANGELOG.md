@@ -2,6 +2,17 @@
 
 ## Unreleased — 2.0.2
 
+- Add Java recipe-chain helpers for concurrent stages, stock targets, pending
+  input protection, saved cycles and bounded recipe-path discovery. See
+  [recipe chains](docs/recipe-chains.md).
+- Add a shared recipe drawer and optional JEI presentation adapter. Narrow
+  layouts open inward without covering recipe content with the tab rail;
+  foreground element popups retain input priority over the drawer.
+- Add front-face item displays and rectangular, optionally emissive frame
+  overlays to machine appearances. Both `<item-display>` and `<entity-display>`
+  belong inside `<appearance>`; move existing root-level entity displays there.
+- Tint grouped slot and gauge backgrounds while preserving item/fluid colours;
+  reserve group outlines for hover and selection.
 - Update NeoForge to 21.1.265 (from 21.1.247); it is now the minimum NeoForge
   version MMDLib requires. Update the Gradle wrapper to 9.9.1 (from 9.8.2).
 - Machines (#105):

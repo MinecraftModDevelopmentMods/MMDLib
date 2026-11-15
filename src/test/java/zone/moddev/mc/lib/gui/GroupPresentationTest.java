@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import net.minecraft.client.gui.Font;
@@ -19,6 +21,7 @@ import zone.moddev.mc.lib.gui.client.ElementBehavior;
 import zone.moddev.mc.lib.gui.client.ElementBehaviors;
 import zone.moddev.mc.lib.gui.client.ElementHighlight;
 import zone.moddev.mc.lib.gui.client.ElementRenderAccess;
+import zone.moddev.mc.lib.gui.client.GroupColourProvider;
 import zone.moddev.mc.lib.gui.client.GroupLabelProvider;
 import zone.moddev.mc.lib.gui.client.HighlightPresentation;
 import zone.moddev.mc.lib.gui.layout.Rect;
@@ -110,11 +113,11 @@ class GroupPresentationTest {
     @Test
     void fallbackGeometryAndOwnedDecorationRemainDistinct() {
         var bounds = new Rect(10, 20, 30, 40);
-        assertEquals(bounds,
+        assertEquals(new Rect(8, 18, 34, 44),
             ElementHighlight.decoration(0xff123456).outline(bounds));
-        assertEquals(bounds,
+        assertEquals(new Rect(8, 18, 34, 44),
             ElementHighlight.selection(0xff123456).outline(bounds));
-        assertEquals(new Rect(9, 19, 32, 42),
+        assertEquals(new Rect(8, 18, 34, 44),
             ElementHighlight.emphasis(0xff123456).outline(bounds));
         assertThrows(IllegalArgumentException.class,
             () -> new ElementHighlight(ElementHighlight.Kind.EMPHASIS, 0, -1));
@@ -122,11 +125,68 @@ class GroupPresentationTest {
             new LabelElement(Common.empty(), CAPTION));
         var behavior = ElementBehaviors.builtins()
             .create(new ElementBehaviorsTest.Access(group));
+        assertEquals(0xffabcdef,
+            BehaviorCapabilities.find(behavior, GroupColourProvider.class)
+                .orElseThrow().groupColour());
         var presentation = BehaviorCapabilities
             .find(behavior, HighlightPresentation.class).orElseThrow();
         assertDoesNotThrow(
             () -> presentation.highlight(null, bounds,
                 ElementHighlight.decoration(0xff123456)),
             "Owned overlay decoration must not be drawn again by another feature");
+    }
+
+    @Test
+    void nearestGroupColourCrossesPlainContainersAndSupportsHostAssociations() {
+        var leaf = new LabelElement(Common.empty(), CAPTION);
+        var inner = new ColouredGroupElement(Common.empty(), 0xff55ff88, leaf);
+        var plain = new GroupElement(Common.empty(), Optional.empty(),
+            Optional.empty(), 2, List.of(inner));
+        var outer = new ColouredGroupElement(Common.empty(), 0xff4488cc, plain);
+        Map<Element, Element> parents = new IdentityHashMap<>();
+        parents.put(leaf, inner);
+        parents.put(inner, plain);
+        parents.put(plain, outer);
+        var registry = ElementBehaviors.builtins();
+        Map<Element, ElementBehavior> behaviors = new IdentityHashMap<>();
+        for (var element : List.of(leaf, inner, plain, outer))
+            behaviors.put(element,
+                registry.create(new ElementBehaviorsTest.Access(element)));
+        Map<Element, Integer> associations = new IdentityHashMap<>();
+        var access = new ElementRenderAccess() {
+            public Font font() {
+                return null;
+            }
+
+            public Rect viewport() {
+                return new Rect(0, 0, 100, 100);
+            }
+
+            public Optional<Element> parent(Element element) {
+                return Optional.ofNullable(parents.get(element));
+            }
+
+            public <T> Optional<T> capability(Element element, Class<T> type) {
+                var behavior = behaviors.get(element);
+                return behavior == null
+                    ? Optional.empty()
+                    : BehaviorCapabilities.find(behavior, type);
+            }
+
+            public Optional<Integer> associatedGroupColour(Element element) {
+                return Optional.ofNullable(associations.get(element));
+            }
+        };
+        assertEquals(Optional.of(0xff55ff88), access.groupColour(leaf));
+        assertEquals(Optional.of(0xff4488cc), access.groupColour(plain));
+        associations.put(inner, 0xffabcdef);
+        assertEquals(Optional.of(0xff55ff88), access.groupColour(leaf),
+            "The wrapper owns its colour even when associated with another group");
+        behaviors.remove(inner);
+        assertEquals(Optional.of(0xffabcdef), access.groupColour(leaf),
+            "Legacy group anchors also supply inherited colour");
+        parents.remove(leaf);
+        assertTrue(access.groupColour(leaf).isEmpty(),
+            "Ungrouped elements keep their original appearance");
     }
 }

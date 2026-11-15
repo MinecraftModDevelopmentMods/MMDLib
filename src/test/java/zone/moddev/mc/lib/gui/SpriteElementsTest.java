@@ -158,7 +158,9 @@ class SpriteElementsTest {
         assertEquals(18, bounds.height());
         assertEquals(bounds.x() + 20,
             layout.bounds(screen.find("two").orElseThrow()).x());
-        assertEquals(new Rect(bounds.x() - 1, bounds.y() - 1, 40, 20),
+        assertEquals(new Rect(bounds.x() - 2, bounds.y() - 2, 42, 22),
+            outline.outline(bounds, false));
+        assertEquals(new Rect(bounds.x() - 2, bounds.y() - 2, 42, 22),
             outline.outline(bounds, true));
         assertThrows(ScreenException.class,
             () -> read("<coloured-group color=\"#ffffff\"/>"));

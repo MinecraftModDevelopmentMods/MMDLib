@@ -9,7 +9,7 @@ import zone.moddev.mc.lib.gui.model.containers.ColouredGroupElement;
  * The wrapper owns its existing outline and how external controls emphasize it.
  */
 public class ColouredGroupBehavior extends DefaultElementBehavior
-    implements HighlightPresentation {
+    implements HighlightPresentation, GroupColourProvider {
     private final ColouredGroupElement group;
 
     public ColouredGroupBehavior(ColouredGroupElement group,
@@ -18,10 +18,13 @@ public class ColouredGroupBehavior extends DefaultElementBehavior
         this.group = group;
     }
 
+    public int groupColour() {
+        return group.colour();
+    }
+
     public void highlight(GuiGraphics graphics, Rect bounds,
         ElementHighlight request) {
-        // Its registered overlay renderer already supplies the persistent
-        // decoration.
+        // Backgrounds identify the group; outlines are reserved for emphasis.
         if (request.kind() == ElementHighlight.Kind.DECORATION)
             return;
         if (request.kind() == ElementHighlight.Kind.EMPHASIS)

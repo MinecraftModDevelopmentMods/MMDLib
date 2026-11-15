@@ -25,6 +25,7 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
     private final Predicate<E> visible;
     private final Function<E, Rect> bounds;
     private final BiPredicate<Double, Double> hitArea;
+    private final BiPredicate<Double, Double> overlayHitArea;
     private final BiConsumer<E, Boolean> hoverListener;
     private E focused, captured, hovered;
     private double mouseX, mouseY;
@@ -43,10 +44,25 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
         Predicate<E> visible, Function<E, Rect> bounds,
         BiPredicate<Double, Double> hitArea,
         BiConsumer<E, Boolean> hoverListener) {
+        this(elements, factory, visible, bounds, hitArea, hitArea,
+            hoverListener);
+    }
+
+    /**
+     * Separate hit regions let foreground overlays receive input above a
+     * surface that occludes ordinary controls. Both regions include the host's
+     * viewport constraints.
+     */
+    public ElementInput(List<E> elements, Function<E, B> factory,
+        Predicate<E> visible, Function<E, Rect> bounds,
+        BiPredicate<Double, Double> hitArea,
+        BiPredicate<Double, Double> overlayHitArea,
+        BiConsumer<E, Boolean> hoverListener) {
         order = List.copyOf(elements);
         this.visible = visible;
         this.bounds = bounds;
         this.hitArea = Objects.requireNonNull(hitArea);
+        this.overlayHitArea = Objects.requireNonNull(overlayHitArea);
         this.hoverListener = Objects.requireNonNull(hoverListener);
         for (var element : order)
             instances.put(element,
@@ -106,7 +122,7 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
     public E hit(double x, double y) {
         var overlay = overlayOwner();
         if (overlay != null)
-            return hitArea.test(x, y)
+            return overlayHitArea.test(x, y)
                 && (bounds.apply(overlay).contains(x, y) || instances
                     .get(overlay).overlayBounds().orElseThrow().contains(x, y))
                         ? overlay

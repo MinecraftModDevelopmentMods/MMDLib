@@ -66,4 +66,11 @@ public final class SideDrawerLayout {
     public static Rect rail(Rect tab, Rect body) {
         return new Rect(tab.x(), body.y(), tab.width(), body.height());
     }
+
+    /** Shared background beneath the content and the whole column of tabs. */
+    public static Rect frame(Rect tab, Rect body) {
+        int left = Math.min(tab.x(), body.x());
+        return new Rect(left, body.y(),
+            Math.max(tab.right(), body.right()) - left, body.height());
+    }
 }

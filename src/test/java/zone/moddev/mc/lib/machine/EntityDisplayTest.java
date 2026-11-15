@@ -61,9 +61,10 @@ class EntityDisplayTest {
             """
                 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="mmdlib:base_machine" name="Display">
                   <block portable="%s"/>
-                  <appearance preset="model" model="test:block/cage"/>
+                  <appearance preset="model" model="test:block/cage">
+                    <entity-display %s/>
+                  </appearance>
                   <storage/>
-                  <entity-display %s/>
                   <processor id="courier" class="zone.moddev.mc.lib.machine.EntityDisplayTest$Fixture"/>
                   <screen xmlns="https://moddev.zone/mmdlib/screen"><fill name="machine"/><fill name="info"/></screen>
                 </machine>

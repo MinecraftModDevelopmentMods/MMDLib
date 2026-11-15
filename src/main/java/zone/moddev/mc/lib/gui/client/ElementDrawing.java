@@ -17,6 +17,21 @@ public final class ElementDrawing {
     private ElementDrawing() {
     }
 
+    /** Multiply the existing shading by a 40% group-colour wash. */
+    public static int backgroundTint(int tint,
+        java.util.Optional<Integer> groupColour) {
+        if (groupColour.isEmpty())
+            return tint;
+        int colour = groupColour.get();
+        int result = 0;
+        for (int shift = 0; shift <= 16; shift += 8) {
+            int base = tint >> shift & 255;
+            int channel = colour >> shift & 255;
+            result |= (base * (765 + 2 * channel) / 1275) << shift;
+        }
+        return result;
+    }
+
     public static void blit(GuiGraphics g, ResourceLocation icon, int x, int y,
         int width, int height) {
         RenderSystem.enableBlend();

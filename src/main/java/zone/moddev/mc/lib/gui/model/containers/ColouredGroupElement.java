@@ -77,10 +77,9 @@ public class ColouredGroupElement implements Element {
     }
 
     public Rect outline(Rect bounds, boolean highlighted) {
-        return highlighted
-            ? new Rect(bounds.x() - 1, bounds.y() - 1, bounds.width() + 2,
-                bounds.height() + 2)
-            : bounds;
+        int outset = 2;
+        return new Rect(bounds.x() - outset, bounds.y() - outset,
+            bounds.width() + 2 * outset, bounds.height() + 2 * outset);
     }
 
     public boolean verticalChildren(boolean verticalParent) {

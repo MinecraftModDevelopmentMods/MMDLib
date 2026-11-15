@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -45,6 +46,51 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
  * Mod types outside the implementation package exercise the public contracts.
  */
 class ElementBehaviorsTest {
+    @Test
+    void foregroundChooserReceivesCoveredHitsButStillRespectsViewport() {
+        var slot = new ModElement(Common.empty());
+        var viewport = new Rect(0, 0, 80, 60);
+        var drawer = new Rect(20, 0, 60, 60);
+        boolean[] open = {true};
+        int[] clicks = {0};
+        var chooser = new ElementBehavior() {
+            public Optional<Rect> overlayBounds() {
+                return open[0]
+                    ? Optional.of(new Rect(0, 20, 100, 22))
+                    : Optional.empty();
+            }
+            public void dismissOverlay() {
+                open[0] = false;
+            }
+            public Click mouseClicked(double x, double y, int button) {
+                clicks[0]++;
+                return Click.CONSUME;
+            }
+        };
+        var input = new ElementInput<>(List.of(slot), e -> chooser, e -> true,
+            e -> new Rect(0, 0, 60, 40),
+            (x, y) -> viewport.contains(x, y) && !drawer.contains(x, y),
+            viewport::contains, (e, entered) -> {
+            });
+        input.update();
+        input.hover(30, 25);
+        assertEquals(slot, input.hovered());
+        assertTrue(input.click(30, 25, 0));
+        assertEquals(1, clicks[0]);
+        assertTrue(open[0], "Clicking the chooser must not dismiss it");
+        assertNull(input.hit(90, 25),
+            "Overlay remains clipped to the viewport");
+        assertTrue(input.click(90, 25, 0));
+        assertFalse(open[0]);
+        input.update();
+        assertNull(input.hovered(), "Covered ordinary controls remain blocked");
+        assertFalse(input.click(30, 25, 0));
+        assertFalse(input.scroll(30, 25, 0, 1));
+        assertEquals(1, clicks[0]);
+        assertTrue(input.click(5, 5, 0));
+        assertEquals(2, clicks[0]);
+    }
+
     @Test
     void transientChooserOwnsHitsOutsideItsSlotAndConsumesDismissal() {
         var slot = new ModElement(Common.empty());

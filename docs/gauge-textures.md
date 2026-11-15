@@ -8,7 +8,8 @@ Textures for the planned GUI fill gauge, styled as a glass graduated cylinder. T
 These textures supply `<gauge>` and the matching slim background of `<energy-gauge>`. The energy
 renderer draws thin red charge bars with a soft reflection, without a terminal or graduations.
 Bars are at most four pixels thick, separated by one-pixel gaps.
-Both empty interiors use neutral dark grey `#555555`.
+Both empty interiors use neutral dark grey `#555555` as their base. Glass tanks add
+subtle cylindrical shading and reflection over the empty portion.
 
 ## Files
 
@@ -37,7 +38,9 @@ For a gauge of length *L* (≥ 10) at (*x*, *y*):
 3. **Glass**: flush preceding buffered GUI draws, enable source-alpha blending, then draw
    the three `glass_*` pieces in the same arrangement as the body. The renderer restores the
    caller's blend enable/function, depth-test state and shader color after drawing the gauge.
-   The overlay is clipped to the filled portion, leaving the empty interior flat medium grey.
+   The overlay uses full strength over the filled portion and 35% strength over the empty
+   portion, with separate clips meeting at the fluid level. This keeps partially filled and
+   completely empty tanks rounded without changing the lighting over their contents.
    Fluid textures remain visible beneath it; the cylinder effect comes from lighting, not a new
    outline. The energy gauge uses only the body textures, without this glass overlay.
 4. **Graduations**, drawn in code: colour `#EEF3F6` at 85% opacity, with a 35% black shadow
@@ -115,3 +118,7 @@ under 12 px. Thicker gauges keep a 1 px gap-coloured margin on each side.
 - Segments are flat. Only segments at least 4 px in both directions get a bevel (top/left edge
   35% toward white, bottom/right edge at 70%; 12% and 85% when unlit). Smaller segments drawn
   with a bevel blur into the gaps and their proportions read wrong.
+
+Gauge body textures receive the same subtle group-colour background wash as item slots.
+The fluid, glass and charged energy bars retain their original colours. Group outlines
+appear when the associated automation button is highlighted, not continuously.

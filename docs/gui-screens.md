@@ -459,10 +459,10 @@ provider, a rectangular outline uses the request's colour and outset. Highlights
 targets and run with viewport clipping and isolated pose/colour state.
 
 `ElementHighlight` distinguishes persistent `DECORATION`, `EMPHASIS` of an existing decoration,
-and a control's `SELECTION` marker. Factory methods supply the usual zero/one-pixel outsets;
+and a control's `SELECTION` marker. Factory methods supply a two-pixel outset;
 providers may reuse `request.outline(bounds)` or `request.render(graphics, bounds)`.
-`GroupBehavior` supplies panel captions. `ColouredGroupBehavior` suppresses duplicate persistent
-decoration, emphasizes its own coloured outline, and retains the requesting control's selection
+`GroupBehavior` supplies panel captions. `ColouredGroupBehavior` suppresses persistent
+decoration, draws its coloured outline on emphasis, and retains the requesting control's selection
 style. The inline side-config renderer and side-config drawer depend only on these contracts;
 they do not recognize concrete group classes or construct temporary group wrappers.
 
@@ -2167,11 +2167,24 @@ processor arrow composes a `ProgressSpriteElement`, retaining its default arrow 
 darkened custom-icon background.
 
 `ColouredGroupElement` decorates exactly one inner element, which can itself contain any number
-of children. It preserves that child's dimensions and stretching and paints its outline after
-the child backgrounds. Generated resource-group inventories use this wrapper; automation
+of children. It preserves that child's dimensions and stretching. Group outlines appear only
+when the corresponding group control is hovered or selected, without covering the original casing.
+Hover and selection outlines extend two pixels beyond the element bounds. Outlines clip to the
+viewport rather than the child rectangle; layout and hit areas remain unchanged, so leave
+room between neighbouring groups for their decoration. Generated resource-group inventories
+use this wrapper; automation
 selection highlights the whole inventory once. Older hand-authored highlight targets still
 work through the generic highlight service's outline fallback; mod targets can provide their
 own `HighlightPresentation`.
+
+Grouped slot backgrounds and fluid/energy gauge casings receive a 40% group-colour
+wash, preserving their original shading and any explicit slot tint. Fluid contents, energy
+bars, items, empty icons, ghost previews and stack counts retain their colours. Automation
+no longer draws persistent identification outlines; hovering a group button or selecting it
+in the open drawer emphasizes its associated elements. The nearest group wins without stacking tints: registered behaviors can provide
+`GroupColourProvider`, and host resource associations supply colours for older screens without
+wrappers. `ElementRenderAccess.groupColour` resolves these through ordinary parent traversal,
+including in fragments. Ungrouped slots retain their original appearance.
 
 ```xml
 <coloured-group id="input_group" color="#55AA88">
@@ -2694,3 +2707,38 @@ client preview is cached per open screen and rebuilt only when the data or clien
 level changes. It never spawns, ticks or searches for a live world entity, and
 does not load passenger trees. The preview cache is discarded when the screen
 closes. Entity data should be updated by the processor when its occupant changes.
+
+## Shared recipe drawer
+
+`RecipeDrawer` in `gui.client.recipe` hosts a `RecipeCatalog` with named groups
+and paged choices. Register a `DrawerDefinition` using `DrawerRegistry` on both
+sides, then register its `DrawerFactories` client factory:
+
+```java
+DrawerFactories.GLOBAL.register(RECIPE_DRAWER_TYPE, (screen, definition) ->
+    new RecipeDrawer(screen, definition, new MyRecipeCatalog(screen)));
+```
+
+The catalog returns a stable list until recipes change and implements `select`
+by submitting a server-validated element action. `initialGroup()` can select the
+machine's current source. Opening and paging are client presentation only.
+An element behavior opens it through
+`access.service(DrawerOpener.class).map(opener -> opener.open(drawerId))`.
+
+Each choice has a `RecipePresentation`: dimensions, item positions and roles,
+extra item tooltips, indexed fluid requirements, tooltip areas and background
+drawing. Its coordinates are local; background drawing must not draw the items.
+The drawer supplies native item rendering. An optional JEI category extends
+`PresentedRecipeCategory<T>` and returns the same presentation from
+`presentation(T recipe)`; its adapter creates JEI ingredient slots and tooltip
+areas, preserving ingredient lookup without duplicating layout/artwork.
+
+The recipe API itself has no JEI dependency. Consumers keep machine-specific
+recipe policy, catalog construction and action validation. Refresh cached catalogs
+when synchronized recipes/tags change. Drawer choices are previews, never authority.
+The drawer keeps native GUI scale and uses the side margin when available. At narrow
+widths it opens inward over the machine, keeping recipe content clear of the tab rail.
+Its body reserves space in JEI and blocks underlying slot/control hover. Foreground
+element popups retain input priority above the drawer and remain clipped to the viewport.
+Existing drawers can opt into the same behavior through
+`Drawer.renderForeground` and `Drawer.covers`.

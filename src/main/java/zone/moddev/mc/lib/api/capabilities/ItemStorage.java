@@ -3,6 +3,7 @@ package zone.moddev.mc.lib.api.capabilities;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
+import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -69,9 +70,28 @@ public class ItemStorage extends PlannedItemHandler implements ItemStore {
     private Runnable onChange = () -> {
     };
     private boolean bypass;
+    private IntUnaryOperator pendingClaims = slot -> 0;
     private long revision;
     private final String[] slotIds;
     private final ListTag recovery = new ListTag();
+
+    /**
+     * Installs a pure pending-batch quantity projection for output slots.
+     * Publish changed policy state through the host's normal menu snapshots.
+     * Replacing it does not alter active reservations or item contents.
+     */
+    public ItemStorage pendingClaims(IntUnaryOperator claims) {
+        pendingClaims = java.util.Objects.requireNonNull(claims);
+        markChanged();
+        return this;
+    }
+
+    @Override
+    protected int pendingTake(int slot) {
+        return roles[checked(slot)] == Role.OUTPUT
+            ? pendingClaims.applyAsInt(slot)
+            : 0;
+    }
 
     /**
      * Optional stable identity for save migration; legacy saves still load by
@@ -245,8 +265,7 @@ public class ItemStorage extends PlannedItemHandler implements ItemStore {
     /**
      * Sets the role of these slots.
      *
-     * @throws IndexOutOfBoundsException
-     *             if a slot does not exist
+     * @throws IndexOutOfBoundsException if a slot does not exist
      */
     public ItemStorage role(Role role, int... slots) {
         revision++;

@@ -59,6 +59,10 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
             return Optional.ofNullable(renderParents.get(element));
         }
 
+        public Optional<Integer> associatedGroupColour(Element element) {
+            return drawers.groupColour(element);
+        }
+
         public Object value(Element element, boolean maximum) {
             return menu.value(element, maximum);
         }
@@ -180,6 +184,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                 }
 
                 public <T> java.util.Optional<T> service(Class<T> type) {
+                    if (type == DrawerOpener.class)
+                        return java.util.Optional
+                            .of(type.cast((DrawerOpener) drawers::open));
                     return type == EntityPreviewPolicies.class
                         && menu.blockEntity instanceof zone.moddev.mc.lib.gui.runtime.ScreenHost host
                             ? java.util.Optional.of(
@@ -221,6 +228,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
                     return recipes.test(MachineScreen.this, element);
                 }
             }), this::visible, this::bounds,
+            (x, y) -> renderAccess.viewport().contains(x, y)
+                && !drawers.covers(x, y),
             (x, y) -> renderAccess.viewport().contains(x, y), (element,
                 entered) -> ElementHover.dispatch(menu, element, entered));
     }
@@ -369,14 +378,31 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         ElementHover.preview(elementInput.hovered(), renderAccess,
             e -> draw(g, e, bounds(e), mx, my, partial));
         renderElements(ElementRenderers.Pass.FOREGROUND, g, partial, mx, my);
+        g.pose().pushPose();
+        // Native slot items and decorations can reach z=200. Keep the whole
+        // foreground drawer above them, including its opaque background.
+        g.pose().translate(0, 0, 400);
+        drawers.renderForeground(g, mx, my);
+        g.pose().translate(0, 0, 10);
         drawers.renderTabs(g);
+        // XML tabs use the TOP pass; keep them above foreground drawer rails
+        // too.
         renderElements(ElementRenderers.Pass.TOP, g, partial, mx, my);
-        if (elementInput.overlayOwner() == null)
-            renderTooltip(g, mx, my);
-        if (elementInput.hovered() != null)
-            tooltip(g, elementInput.hovered(), mx, my);
-        if (elementInput.overlayOwner() == null)
-            drawers.tooltip(g, mx, my);
+        g.pose().popPose();
+        g.pose().pushPose();
+        // Item decorations add 200 to the drawer's 400; tooltips must clear
+        // that layer.
+        g.pose().translate(0, 0, 400);
+        try {
+            if (elementInput.overlayOwner() == null && !drawers.covers(mx, my))
+                renderTooltip(g, mx, my);
+            if (elementInput.hovered() != null)
+                tooltip(g, elementInput.hovered(), mx, my);
+            if (elementInput.overlayOwner() == null)
+                drawers.tooltip(g, mx, my);
+        } finally {
+            g.pose().popPose();
+        }
     }
 
     private void tooltip(GuiGraphics g, Element e, int mx, int my) {
@@ -589,6 +615,8 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
     @Override
     protected boolean isHovering(int x, int y, int w, int h, double mx,
         double my) {
+        if (drawers.covers(mx, my))
+            return false;
         var bounds = nativeSlots.hitBounds(menu.nativeSlots(), x, y, w, h);
         return super.isHovering(bounds.x(), bounds.y(), bounds.width(),
             bounds.height(), mx, my);

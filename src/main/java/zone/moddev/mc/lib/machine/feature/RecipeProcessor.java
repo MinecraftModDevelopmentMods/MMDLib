@@ -179,8 +179,8 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         return Optional.ofNullable(selectedRecipe);
     }
     public Optional<ResourceLocation> activeRecipe() {
-        return Optional.ofNullable(cycle != null
-            ? cycle.recipe()
+        return Optional.ofNullable(activePlan() != null
+            ? activePlan().recipe()
             : resumeRecipe != null ? resumeRecipe : clientActiveRecipe);
     }
 
@@ -241,9 +241,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     private final MachineInventory inventory;
     private final MachineRecipeType type;
     private final MachineRecipeLookup lookup;
-    @Nullable
-    private CyclePlan cycle;
-    private int progress;
+    private final RecipeCycle runner;
     private boolean redstoneRunning;
     private final List<RedstoneOutput> redstoneOutputs;
     @Nullable
@@ -274,7 +272,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
 
     /** The running cycle, if any. */
     public Optional<CyclePlan> cycle() {
-        return Optional.ofNullable(cycle);
+        return runner.plan();
     }
 
     /** The cycle finished on the latest tick, if one was. */
@@ -315,6 +313,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         outputPrefix = outputPrefix(key);
         this.displayName = displayName.copy();
         this.inventory = inventory;
+        runner = new RecipeCycle(inventory);
         this.type = type;
         lookup = type.lookup();
         redstoneOutputs = List.of(
@@ -362,11 +361,11 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     private int redstoneProgress() {
         if (justFinished != null)
             return 15;
-        int duration = cycle != null
-            ? cycle.time()
+        int duration = activePlan() != null
+            ? activePlan().time()
             : resumeRecipe != null ? resumeTime : 0;
         return duration > 0
-            ? RedstoneControl.level((double) progress / duration)
+            ? RedstoneControl.level((double) progress() / duration)
             : 0;
     }
 
@@ -398,8 +397,8 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
 
     @Override
     public State state() {
-        return new State(paused, progress, Optional.ofNullable(resumeRecipe),
-            resumeTime, Optional.ofNullable(cycle), Optional.of(status),
+        return new State(paused, progress(), Optional.ofNullable(resumeRecipe),
+            resumeTime, runner.plan(), Optional.of(status),
             selectionEnabled
                 ? Optional.of(new Selection(selectedRecipe()))
                 : Optional.empty());
@@ -425,7 +424,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         clientActiveRecipe = state.cycle().map(CyclePlan::recipe)
             .orElse(state.resumeRecipe().orElse(null));
         paused = state.paused();
-        progress = state.progress();
+        runner.idleProgress(state.progress());
         state.status().ifPresent(sent -> status = sent);
         syncedTime = state.cycle().map(CyclePlan::time).orElse(0);
     }
@@ -445,9 +444,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         if (selectionEnabled)
             state.selection().ifPresent(
                 value -> selectedRecipe = value.recipe().orElse(null));
-        if (cycle != null)
-            cycle.release(inventory);
-        cycle = null;
+        runner.reset();
         syncedTime = 0;
         justFinished = null;
         redstoneRunning = false;
@@ -455,29 +452,20 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         searchDelay = 0;
         resumeRecipe = state.resumeRecipe().orElse(null);
         resumeTime = state.resumeTime();
-        progress = resumeRecipe == null ? 0 : state.progress();
-        var saved = state.cycle().filter(plan -> !paused && holds(plan))
-            .orElse(null);
-        if (saved != null) {
-            cycle = saved;
-            progress = Math.min(state.progress(), saved.time());
-        }
+        runner.idleProgress(resumeRecipe == null ? 0 : state.progress());
+        if (!paused && state.cycle().isPresent() && !runner
+            .restore(new RecipeCycle.State(state.cycle(), state.progress())))
+            runner.idleProgress(resumeRecipe == null ? 0 : state.progress());
         status = paused
             ? Status.PAUSED
-            : cycle == null ? Status.IDLE : Status.RUNNING;
+            : runner.active() ? Status.RUNNING : Status.IDLE;
         activityChanges.changed();
         progressChanges.changed();
     }
 
-    /**
-     * Whether the plan's energy groups are there and its reservations can be
-     * put back.
-     */
-    private boolean holds(CyclePlan plan) {
-        for (var key : plan.energy().keySet())
-            if (!(inventory.group(key).orElse(null) instanceof EnergyGroup))
-                return false;
-        return plan.restore(inventory);
+    @Nullable
+    private CyclePlan activePlan() {
+        return runner.plan().orElse(null);
     }
 
     /** Whether an interrupt holds the processor. */
@@ -515,11 +503,10 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     public void pause() {
         if (paused)
             return;
-        if (cycle != null) {
-            cycle.release(inventory);
-            resumeRecipe = cycle.recipe();
-            resumeTime = cycle.time();
-            cycle = null;
+        if (runner.active()) {
+            resumeRecipe = activePlan().recipe();
+            resumeTime = activePlan().time();
+            runner.release();
         }
         paused = true;
         redstoneRunning = false;
@@ -562,12 +549,9 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      * Cancels work, releases reservations and forgets progress and pause state.
      */
     public void reset() {
-        if (cycle != null)
-            cycle.release(inventory);
-        cycle = null;
+        runner.reset();
         resumeRecipe = null;
         resumeTime = 0;
-        progress = 0;
         syncedTime = 0;
         justFinished = null;
         paused = false;
@@ -581,7 +565,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
 
     @Override
     public Statistics statistics() {
-        var plan = cycle != null ? cycle : justFinished;
+        var plan = runner.active() ? activePlan() : justFinished;
         var maximum = plan == null
             ? new Statistics.Text(Statistics.label("no_recipe"))
             : (Statistics.Value) new Statistics.Rate(java.math.BigInteger.ONE,
@@ -618,7 +602,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
 
     /** Ticks of the running cycle done. */
     public int progress() {
-        return progress;
+        return runner.progress();
     }
 
     /**
@@ -628,7 +612,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      * progress} is as of the last status change.
      */
     public int time() {
-        return cycle == null ? syncedTime : cycle.time();
+        return runner.active() ? runner.time() : syncedTime;
     }
 
     /**
@@ -687,32 +671,27 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
             return;
         }
         var level = host.level();
-        if (cycle == null
+        if (!runner.active()
             && (resumeRecipe == null || !reserveAgain(level, host))) {
             start(level, host);
             return;
         }
-        if (progress < cycle.time()) {
-            if (!draw()) {
-                status = Status.STALLED;
-                return;
-            }
-            progress++;
-            progressChanges.changed();
-            status = Status.RUNNING;
-            host.markChanged();
+        var active = activePlan();
+        int before = progress();
+        var result = runner.advance(level.getRandom());
+        status = switch (result) {
+            case IDLE, COMPLETED -> Status.IDLE;
+            case RUNNING -> Status.RUNNING;
+            case STALLED -> Status.STALLED;
+            case BLOCKED -> Status.BLOCKED;
+        };
+        if (result == RecipeCycle.Result.COMPLETED) {
+            completedCycles = completedCycles.add(java.math.BigInteger.ONE);
+            justFinished = active;
         }
-        if (progress >= cycle.time()) {
-            if (cycle.finish(inventory, level.getRandom())) {
-                completedCycles = completedCycles.add(java.math.BigInteger.ONE);
-                justFinished = cycle;
-                cycle = null;
-                progress = 0;
-                status = Status.IDLE;
-                host.markChanged();
-            } else {
-                status = Status.BLOCKED;
-            }
+        if (progress() != before || result == RecipeCycle.Result.COMPLETED) {
+            progressChanges.changed();
+            host.markChanged();
         }
     }
 
@@ -725,21 +704,15 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         var id = resumeRecipe;
         resumeRecipe = null;
         host.markChanged();
-        CyclePlan plan = null;
         var holder = level.getRecipeManager().byKey(id).orElse(null);
-        if (holder != null && holder.value() instanceof MachineRecipeEntry entry
-            && entry.type() == type) {
-            plan = CyclePlan.of(id, entry.recipe(), inventory, true)
-                .filter(found -> found.reserve(inventory)).orElse(null);
-        }
-        if (plan == null) {
-            progress = 0;
+        if (!(holder != null
+            && holder.value() instanceof MachineRecipeEntry entry
+            && entry.type() == type
+            && runner.resume(id, entry.recipe(), progress(), resumeTime))) {
+            runner.idleProgress(0);
             progressChanges.changed();
             return false;
         }
-        cycle = plan;
-        if (plan.time() != resumeTime)
-            progress = 0;
         progressChanges.changed();
         return true;
     }
@@ -760,45 +733,17 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         if (selectionEnabled && found != null
             && !recipeAvailability(found.value()).ok())
             found = null;
-        var plan = found == null
-            ? null
-            : CyclePlan.of(found.id(), found.value().recipe(), inventory)
-                .orElse(null);
-        if (plan == null || !plan.reserve(inventory)) {
+        if (found == null
+            || !runner.start(found.id(), found.value().recipe())) {
             searchDelay = SEARCH_RETRY_INTERVAL - 1;
             searchedRevisions = inventory.revisions();
             return;
         }
-        cycle = plan;
         searchDelay = 0;
-        progress = 0;
         status = Status.RUNNING;
         progressChanges.changed();
         startedCycles++;
         host.markChanged();
     }
 
-    /** Draws this tick's energy from every energy group, or none of it. */
-    private boolean draw() {
-        for (var need : cycle.energy().entrySet()) {
-            long share = EnergySchedule.share(need.getValue(), cycle.time(),
-                progress);
-            if (!(inventory.group(need.getKey())
-                .orElse(null) instanceof EnergyGroup group)
-                || group.stored() < share)
-                return false;
-        }
-        try (var tx = inventory.begin()) {
-            for (var need : cycle.energy().entrySet()) {
-                long share = EnergySchedule.share(need.getValue(), cycle.time(),
-                    progress);
-                if (!(inventory.group(need.getKey())
-                    .orElse(null) instanceof EnergyGroup group)
-                    || group.consume(share, tx) < share)
-                    return false;
-            }
-            tx.commit();
-            return true;
-        }
-    }
 }

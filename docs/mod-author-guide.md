@@ -24,6 +24,9 @@ including inherited storage, generated screens and dynamic recipes. More special
 machines and custom world entities use their dedicated typed factory APIs.
 The manual wiring below remains an alternative; do not queue objects twice.
 
+Machines with a selected material path can use [recipe chains](recipe-chains.md)
+for concurrent stages, per-stage stock targets and processing-first extraction.
+
 Java machines spanning several blocks can use [multiblock placement and lifecycle](multiblocks.md),
 with one controller, linked physical parts and guarded resource ports.
 

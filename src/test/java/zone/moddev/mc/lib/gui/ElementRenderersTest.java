@@ -88,6 +88,32 @@ class ElementRenderersTest {
     }
 
     @Test
+    void backgroundTintIsOptionalForStandaloneContexts() {
+        var element = new ModElement(Common.empty());
+        assertTrue(context(element).groupColour().isEmpty());
+        assertTrue(
+            new ElementRenderers.Context(null, element, new Rect(0, 0, 20, 10),
+                null, null, 0, 0, 0, 5).groupColour().isEmpty());
+        var access = new ElementRenderAccess() {
+            public net.minecraft.client.gui.Font font() {
+                return null;
+            }
+
+            public Rect viewport() {
+                return new Rect(0, 0, 20, 10);
+            }
+
+            public Optional<Integer> associatedGroupColour(Element target) {
+                assertSame(element, target);
+                return Optional.of(0x123456);
+            }
+        };
+        assertEquals(Optional.of(0x123456),
+            new ElementRenderers.Context(null, element, new Rect(0, 0, 20, 10),
+                null, null, 0, 0, 0, 5, access).groupColour());
+    }
+
+    @Test
     void mostSpecificFamilyAndExactOverrideAreIndependentOfRegistrationOrder() {
         for (boolean reverse : new boolean[]{false, true}) {
             var registry = new ElementRenderers();
