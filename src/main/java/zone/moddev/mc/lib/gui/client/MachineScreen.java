@@ -379,7 +379,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
             e -> draw(g, e, bounds(e), mx, my, partial));
         renderElements(ElementRenderers.Pass.FOREGROUND, g, partial, mx, my);
         g.pose().pushPose();
-        g.pose().translate(0, 0, 200);
+        // Native slot items and decorations can reach z=200. Keep the whole
+        // foreground drawer above them, including its opaque background.
+        g.pose().translate(0, 0, 400);
         drawers.renderForeground(g, mx, my);
         g.pose().translate(0, 0, 10);
         drawers.renderTabs(g);
@@ -388,9 +390,9 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
         renderElements(ElementRenderers.Pass.TOP, g, partial, mx, my);
         g.pose().popPose();
         g.pose().pushPose();
-        // Item decorations add 200 to the drawer's 200; tooltips must clear
+        // Item decorations add 200 to the drawer's 400; tooltips must clear
         // that layer.
-        g.pose().translate(0, 0, 200);
+        g.pose().translate(0, 0, 400);
         try {
             if (elementInput.overlayOwner() == null && !drawers.covers(mx, my))
                 renderTooltip(g, mx, my);
