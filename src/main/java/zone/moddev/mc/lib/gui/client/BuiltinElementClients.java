@@ -123,20 +123,19 @@ final class BuiltinElementClients {
             ElementClient.of(SLOT)
                 .renderer((element, c) -> slots.draw(c.graphics(), c.bounds(),
                     element, c.access().contents(element),
-                    c.access().hint(element), c.access().groupColour(element)))
+                    c.access().hint(element), c.groupColour()))
                 .behavior(SlotBehavior::new),
             ElementClient.of(GAUGE)
                 .renderer((element, c) -> GaugeRenderer.draw(c.graphics(),
                     c.bounds(), element.orientation(), element.fill(c.value()),
-                    c.ratio(), c.access().groupColour(element))),
+                    c.ratio(), c.groupColour())),
             ElementClient.of(FLUID_TANK)
                 .renderer((element, c) -> GaugeRenderer.draw(c.graphics(),
                     c.bounds(), element.orientation(), element.fill(c.value()),
-                    c.ratio(), c.access().groupColour(element))),
+                    c.ratio(), c.groupColour())),
             ElementClient.of(ENERGY_GAUGE)
                 .renderer((element, c) -> EnergyGaugeRenderer.draw(c.graphics(),
-                    c.bounds(), element, c.ratio(),
-                    c.access().groupColour(element))),
+                    c.bounds(), element, c.ratio(), c.groupColour())),
             ElementClient.of(METER).renderer(MeterRenderer::draw),
             ElementClient.of(SIDE_CONFIG).renderer(SideConfigRenderer::draw)
                 .renderer(ElementRenderers.Pass.OVERLAY,

@@ -103,6 +103,13 @@ public final class ElementRenderers {
             return element.fillRatio(value, maximum);
         }
 
+        /** Standalone contexts retain the default, untinted background. */
+        public Optional<Integer> groupColour() {
+            return access == null
+                ? Optional.empty()
+                : access.groupColour(element);
+        }
+
         public ElementRenderAccess access() {
             return Objects.requireNonNull(access,
                 "This render context has no presentation services");
