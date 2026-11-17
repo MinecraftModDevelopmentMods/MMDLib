@@ -58,6 +58,41 @@ final class CreativeTabSmoke {
             "the default title key, with the fallback");
         require(MMDLib.creativeTabs().containsKey(id), "the tab is listed");
         automaticItems(level);
+        fallbackRegistration(level);
+    }
+
+    private static void fallbackRegistration(ServerLevel level) {
+        var tabs = BuiltInRegistries.CREATIVE_MODE_TAB;
+        require(
+            !tabs.containsKey(ResourceLocation.parse("mmdlib:materials"))
+                && !tabs.containsKey(
+                    ResourceLocation.parse("mmdlib:mmdlib_content")),
+            "authored main tab prevents both generated placeholder tabs");
+        var fallback = tabs
+            .get(ResourceLocation.parse("mmdlib_smoke:materials"));
+        require(
+            fallback != null && !tabs.containsKey(
+                ResourceLocation.parse("mmdlib_smoke:mmdlib_content")),
+            "a registrar without its own tab receives exactly one materials fallback");
+        require(
+            fallback.getDisplayName()
+                .getContents() instanceof TranslatableContents title
+                && title.getKey().equals("itemGroup.mmdlib_smoke.materials"),
+            "registrar fallback retains the legacy materials translation key");
+        fallback.buildContents(new CreativeModeTab.ItemDisplayParameters(
+            level.enabledFeatures(), false, level.registryAccess()));
+        var expected = RuntimeContentRegistrar.instances().stream()
+            .flatMap(registrar -> registrar.items().keySet().stream())
+            .filter(item -> item.getNamespace().equals("mmdlib_smoke"))
+            .collect(java.util.stream.Collectors.toSet());
+        var shown = fallback.getDisplayItems().stream()
+            .map(stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()))
+            .toList();
+        require(
+            !expected.isEmpty()
+                && new java.util.HashSet<>(shown).equals(expected)
+                && shown.size() == expected.size(),
+            "cached routing fills the fallback with each generated item exactly once");
     }
 
     private static void automaticItems(ServerLevel level) {

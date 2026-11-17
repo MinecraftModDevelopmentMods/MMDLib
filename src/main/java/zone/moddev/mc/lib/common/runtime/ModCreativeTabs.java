@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -14,9 +15,11 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
@@ -29,19 +32,48 @@ import zone.moddev.mc.lib.machine.neoforge.MachineContent;
  * were declared.
  */
 public final class ModCreativeTabs {
+    private static Map<ResourceLocation, CreativeTabDefinition> declared = Map
+        .of();
+    private static Map<String, Map<ResourceLocation, Item>> generated = Map
+        .of();
+    private static Set<String> registrarNamespaces = Set.of();
+    private static Map<String, ResourceLocation> destinations = Map.of();
+
     private ModCreativeTabs() {
     }
 
     public static void register(IEventBus bus) {
         bus.addListener(ModCreativeTabs::registerTabs);
         bus.addListener(ModCreativeTabs::contents);
-        bus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(
-            () -> MMDLib.creativeTabs().forEach(CreativeTabs::verify)));
+        // Install after mod construction, behind native tab registrations.
+        // Each owner's bus may receive RegisterEvent after MMDLib's bus.
+        bus.addListener((FMLConstructModEvent event) -> event
+            .enqueueWork(ModCreativeTabs::installFallbackListeners));
+        bus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(() -> {
+            MMDLib.creativeTabs().forEach(CreativeTabs::verify);
+            var selected = new TreeMap<String, ResourceLocation>();
+            generated.keySet()
+                .forEach(namespace -> choose(namespace, declared,
+                    BuiltInRegistries.CREATIVE_MODE_TAB.keySet())
+                    .ifPresent(id -> selected.put(namespace, id)));
+            destinations = Map.copyOf(selected);
+        }));
     }
 
     private static void registerTabs(RegisterEvent event) {
         event.register(Registries.CREATIVE_MODE_TAB, helper -> {
             var declarations = definitions();
+            declared = Map.copyOf(declarations);
+            var byNamespace = new TreeMap<String, Map<ResourceLocation, Item>>();
+            generatedItems().forEach((id, item) -> byNamespace
+                .computeIfAbsent(id.getNamespace(), ignored -> new TreeMap<>())
+                .put(id, item));
+            byNamespace.replaceAll((namespace, items) -> java.util.Collections
+                .unmodifiableMap(items));
+            generated = java.util.Collections.unmodifiableMap(byNamespace);
+            registrarNamespaces = RuntimeContentRegistrar.instances().stream()
+                .map(RuntimeContentRegistrar::namespace)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
             var defaults = new java.util.HashSet<String>();
             declarations.forEach((id, definition) -> {
                 if (definition.defaultForMod()
@@ -55,31 +87,70 @@ public final class ModCreativeTabs {
                 if (!queued)
                     helper.register(id, CreativeTabs.build(id, definition));
             });
-            // A mod without an authored or Java tab still gets its own tab,
-            // never a shared catch-all.
-            var fallbackIcons = new TreeMap<String, Item>();
-            generatedItems().forEach((id, item) -> fallbackIcons
-                .putIfAbsent(id.getNamespace(), item));
-            fallbackIcons.forEach((namespace, icon) -> {
-                var id = ResourceLocation.fromNamespaceAndPath(namespace,
-                    "mmdlib_content");
-                if (!declarations.containsKey(id)
-                    && !BuiltInRegistries.CREATIVE_MODE_TAB.containsKey(id))
-                    helper.register(id,
-                        CreativeModeTab.builder().title(modTitle(namespace))
-                            .icon(() -> new ItemStack(icon))
-                            .displayItems((parameters, output) -> {
-                            }).build());
-            });
         });
     }
 
-    public static Component modTitle(String namespace) {
-        String name = ModList.get().getModContainerById(namespace)
+    private static void installFallbackListeners() {
+        var buses = new java.util.LinkedHashMap<String, IEventBus>();
+        ModList.get().getMods().forEach(info -> ModList.get()
+            .getModContainerById(info.getModId()).ifPresent(container -> {
+                if (container.getEventBus() != null)
+                    buses.put(info.getModId(), container.getEventBus());
+            }));
+        var owners = Set.copyOf(buses.keySet());
+        buses.forEach((owner, bus) -> bus.addListener(EventPriority.LOWEST,
+            (RegisterEvent event) -> registerFallbacks(event, owner, owners)));
+    }
+
+    private static void registerFallbacks(RegisterEvent event, String owner,
+        Set<String> owners) {
+        event.register(Registries.CREATIVE_MODE_TAB,
+            helper -> generated.forEach((namespace, items) -> {
+                // Synthetic namespaces (for example tests) have no mod bus of
+                // their own.
+                if (!namespace.equals(owner) && !(owner.equals(MMDLib.MODID)
+                    && !owners.contains(namespace)))
+                    return;
+                if (!needsFallback(namespace, declared.keySet(),
+                    BuiltInRegistries.CREATIVE_MODE_TAB.keySet()))
+                    return;
+                boolean materials = registrarNamespaces.contains(namespace);
+                var id = ResourceLocation.fromNamespaceAndPath(namespace,
+                    materials ? "materials" : "mmdlib_content");
+                var icon = items.values().iterator().next();
+                helper.register(id, CreativeModeTab.builder()
+                    .title(
+                        fallbackTitle(namespace, modName(namespace), materials))
+                    .icon(() -> new ItemStack(icon))
+                    .displayItems((parameters, output) -> {
+                    }).build());
+            }));
+    }
+
+    static boolean needsFallback(String namespace,
+        Collection<ResourceLocation> declarations,
+        Collection<ResourceLocation> registered) {
+        return declarations.stream()
+            .noneMatch(id -> id.getNamespace().equals(namespace))
+            && registered.stream()
+                .noneMatch(id -> id.getNamespace().equals(namespace));
+    }
+
+    static Component fallbackTitle(String namespace, String displayName,
+        boolean materials) {
+        return Component.translatableWithFallback(
+            "itemGroup." + namespace + (materials ? ".materials" : ""),
+            displayName);
+    }
+
+    private static String modName(String namespace) {
+        return ModList.get().getModContainerById(namespace)
             .map(container -> container.getModInfo().getDisplayName())
             .orElse(namespace);
-        return Component.translatableWithFallback("itemGroup." + namespace,
-            name);
+    }
+
+    public static Component modTitle(String namespace) {
+        return fallbackTitle(namespace, modName(namespace), false);
     }
 
     private static Map<ResourceLocation, CreativeTabDefinition> definitions() {
@@ -130,18 +201,16 @@ public final class ModCreativeTabs {
 
     private static void contents(BuildCreativeModeTabContentsEvent event) {
         var id = event.getTabKey().location();
-        var registered = BuiltInRegistries.CREATIVE_MODE_TAB.keySet();
-        var definitions = definitions();
-        if (choose(id.getNamespace(), definitions, registered)
-            .filter(id::equals).isEmpty())
+        // Unrelated/secondary tabs do no copying, registry sorting or item
+        // scans.
+        if (!id.equals(destinations.get(id.getNamespace())))
             return;
-        var definition = definitions.get(id);
+        var definition = declared.get(id);
         var excluded = definition == null
             ? java.util.Set.<Item>of()
             : CreativeTabs.excludedItems(definition);
-        generatedItems().forEach((itemId, item) -> {
-            if (!itemId.getNamespace().equals(id.getNamespace())
-                || !item.isEnabled(event.getFlags()) || excluded.contains(item))
+        generated.get(id.getNamespace()).forEach((itemId, item) -> {
+            if (!item.isEnabled(event.getFlags()) || excluded.contains(item))
                 return;
             var stack = new ItemStack(item);
             boolean parent = event.getParentEntries().contains(stack);

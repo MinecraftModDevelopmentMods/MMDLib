@@ -116,14 +116,11 @@ public final class RuntimeContentRegistrar {
         tabs.register(bus);
         sounds.register(bus);
 
-        tabs.register("materials", () -> CreativeModeTab.builder()
-            .title(ModCreativeTabs.modTitle(namespace))
-            .icon(() -> itemEntries.isEmpty()
-                ? new ItemStack(Items.IRON_INGOT)
-                : new ItemStack(itemEntries.values().iterator().next().get()))
-            .displayItems((parameters, output) -> {
-            }).build());
         INSTANCES.add(this);
+    }
+
+    String namespace() {
+        return namespace;
     }
 
     /** Every registrar created so far. */
