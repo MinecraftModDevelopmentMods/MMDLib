@@ -89,8 +89,10 @@ class ItemDisplayTest {
         assertEquals(new Vec3(1.002, .7, .75), display.offset(Direction.EAST));
         assertEquals(new Vec3(.25, .7, 1.002), display.offset(Direction.SOUTH));
         assertEquals(new Vec3(-.002, .7, .25), display.offset(Direction.WEST));
-        assertThrows(IllegalArgumentException.class,
-            () -> display.offset(Direction.UP));
+        assertTrue(display.offset(Direction.UP)
+            .distanceTo(new Vec3(.25, 1.002, .3)) < 1e-12);
+        assertTrue(display.offset(Direction.DOWN)
+            .distanceTo(new Vec3(.75, -.002, .3)) < 1e-12);
         var defaults = load("variable='$processors.test.product'", "")
             .behavior().itemDisplay();
         assertEquals(.5, defaults.x());
