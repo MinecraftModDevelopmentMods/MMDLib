@@ -1752,3 +1752,18 @@ parent, repeat its existing ID alongside the new declaration.
 The companion Parallel Workshop runs two crushing lanes plus a custom water-powered
 Charge Pump (one mB supplies 100 FE). The Shared Workshop rebinds the second lane
 to the first lane's input to demonstrate contention without duplicate products.
+
+
+### Java recipe cycle callbacks
+
+`on-start` and `on-finish` use the ordinary `MaterialExtensions.GLOBAL.events()`
+registry. Mods can register Java callbacks with `MaterialEventTypes.MACHINE_CYCLE_START`
+and `MACHINE_CYCLE_FINISH`; CraftTweaker is optional. `MachineCycle.processor()`
+identifies the lane. Callbacks fire for every actual transition, including multiple
+transitions in one accelerated tick. Loading or resuming a cycle does not replay
+its start, and interruption/failed output does not report a finish. A finish sees
+the committed recipe resources. Java-created recipe processors can use
+`RecipeProcessor.cycleCallbacks(start, finish)` directly.
+
+The companion Parallel Workshop registers both Java callbacks in `CompanionMod`
+and records their counts and lane identity in its charge pump's saved state.

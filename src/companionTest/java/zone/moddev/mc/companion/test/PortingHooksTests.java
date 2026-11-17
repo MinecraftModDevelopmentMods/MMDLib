@@ -31,6 +31,33 @@ public final class PortingHooksTests {
     }
 
     @GameTest(template = "empty")
+    public static void callbacksKeepEveryAcceleratedTransition(
+        GameTestHelper h) {
+        var machine = place(h, "parallel_workshop");
+        machine.energy.setStored(100000);
+        machine.items.inventory("left_input").insertItem(0,
+            new ItemStack(Items.COBBLESTONE, 3), false);
+        machine.serverTick();
+        var lane = machine.features.processor("left").orElseThrow();
+        var observer = machine.features.findProcessor("charge").orElseThrow();
+        lane.tick(machine.features, 303);
+        h.assertTrue(
+            observer.variable("starts").equals(3)
+                && observer.variable("finishes").equals(3),
+            "Every start and finish delivered during one accelerated tick");
+        h.assertTrue(observer.variable("last_lane").equals("left"),
+            "Event identifies its lane");
+        var saved = machine.saveWithFullMetadata(h.getLevel().registryAccess());
+        machine.loadWithComponents(saved, h.getLevel().registryAccess());
+        machine.serverTick();
+        h.assertTrue(
+            observer.variable("starts").equals(3)
+                && observer.variable("finishes").equals(3),
+            "Loading and idle work do not replay callbacks");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void recipeLanesAndChargingRunTogether(GameTestHelper h) {
         var machine = place(h, "parallel_workshop");
         h.assertTrue(machine.features.allProcessors().size() == 3,

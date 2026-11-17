@@ -52,8 +52,6 @@ public final class DefinedMachineEntity extends BaseMachine
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
     private final java.util.Map<String, zone.moddev.mc.lib.machine.feature.WorkTargets> workTargets = new java.util.LinkedHashMap<>();
-    private final java.util.Map<String, java.math.BigInteger> cyclesBefore = new java.util.HashMap<>();
-    private final java.util.Map<String, Long> startsBefore = new java.util.HashMap<>();
 
     private MachineRecipeType recipeType(
         zone.moddev.mc.lib.machine.definition.ProcessorConfiguration config,
@@ -319,6 +317,7 @@ public final class DefinedMachineEntity extends BaseMachine
                     Component.literal(config.name()));
                 if (config.selection() != null)
                     lane.selectable(config.selection().defaultRecipe());
+                bindCycleCallbacks(lane, config);
                 value = lane;
             }
             features.add(value);
@@ -654,49 +653,34 @@ public final class DefinedMachineEntity extends BaseMachine
             value -> value.status() == RecipeProcessor.Status.RUNNING);
     }
 
-    @Override
-    protected void beforeMachineTick() {
-        for (var lane : features.processors()) {
-            cyclesBefore.put(lane.key(), lane.completedCycles());
-            startsBefore.put(lane.key(), lane.startedCycles());
-        }
-    }
-
-    @Override
-    protected void afterMachineTick() {
-        if (!(level instanceof net.minecraft.server.level.ServerLevel server))
-            return;
-        for (var config : definition.processors()) {
-            var lane = features.processor(config.id()).orElse(null);
-            if (lane == null)
-                continue;
-            if (lane.startedCycles() != startsBefore.getOrDefault(lane.key(),
-                0L))
-                config.events().start()
-                    .ifPresent(id -> lane.cycle().ifPresent(cycle -> fire(id,
-                        zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
-                        server, cycle)));
-            if (lane.completedCycles().equals(cyclesBefore.get(lane.key())))
-                continue;
+    private void bindCycleCallbacks(RecipeProcessor lane,
+        zone.moddev.mc.lib.machine.definition.ProcessorConfiguration config) {
+        lane.cycleCallbacks(cycle -> {
+            if (level instanceof net.minecraft.server.level.ServerLevel server)
+                config.events().start().ifPresent(id -> fire(id,
+                    zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
+                    server, config.id(), cycle));
+        }, cycle -> {
+            if (!(level instanceof net.minecraft.server.level.ServerLevel server))
+                return;
             config.sounds().finish()
-                .ifPresent(sound -> level.playSound(null, worldPosition,
+                .ifPresent(sound -> server.playSound(null, worldPosition,
                     SoundDefinition.event(sound), SoundSource.BLOCKS, 1, 1));
-            config.events().finish()
-                .ifPresent(id -> lane.justFinished().ifPresent(cycle -> fire(id,
-                    zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
-                    server, cycle)));
-        }
+            config.events().finish().ifPresent(id -> fire(id,
+                zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
+                server, config.id(), cycle));
+        });
     }
 
     private void fire(ResourceLocation id,
         zone.moddev.mc.lib.api.MaterialEvent<zone.moddev.mc.lib.api.MaterialEventContexts.MachineCycle> event,
-        net.minecraft.server.level.ServerLevel server,
+        net.minecraft.server.level.ServerLevel server, String processor,
         zone.moddev.mc.lib.machine.recipe.CyclePlan cycle) {
         zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.events().dispatch(id,
             event,
             new zone.moddev.mc.lib.api.MaterialEventContexts.MachineCycle(this,
                 server, worldPosition, definition.id(), cycle.recipe(),
-                cycle.time()));
+                cycle.time(), processor));
     }
 
     /**

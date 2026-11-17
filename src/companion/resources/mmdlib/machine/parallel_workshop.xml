@@ -14,7 +14,9 @@
   <recipe-type id="mmdlib_companion:simple_crushing" declare="false" name="Simple Crushing"/>
   <processor id="charge" class="zone.moddev.mc.companion.ChargePump"/>
   <processor id="left" primary="true" name="Left lane" recipe-type="mmdlib_companion:simple_crushing"
+             on-start="mmdlib_companion:workshop_start" on-finish="mmdlib_companion:workshop_finish"
              bindings="input=left_input output=left_output"/>
   <processor id="right" name="Right lane" recipe-type="mmdlib_companion:simple_crushing"
+             on-start="mmdlib_companion:workshop_start" on-finish="mmdlib_companion:workshop_finish"
              bindings="input=right_input output=right_output"/>
 </machine>

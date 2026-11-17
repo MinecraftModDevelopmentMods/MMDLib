@@ -252,6 +252,22 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     private Status status = Status.IDLE;
     private java.math.BigInteger completedCycles = java.math.BigInteger.ZERO;
     private long startedCycles;
+    private java.util.function.Consumer<CyclePlan> onStart = cycle -> {
+    };
+    private java.util.function.Consumer<CyclePlan> onFinish = cycle -> {
+    };
+
+    /**
+     * Called once for each real transition, including accelerated work steps.
+     * Resume/load never replays a start; failed/aborted cycles never finish.
+     */
+    public RecipeProcessor cycleCallbacks(
+        java.util.function.Consumer<CyclePlan> start,
+        java.util.function.Consumer<CyclePlan> finish) {
+        onStart = java.util.Objects.requireNonNull(start);
+        onFinish = java.util.Objects.requireNonNull(finish);
+        return this;
+    }
     private final Component displayName;
 
     /**
@@ -698,6 +714,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         if (result == RecipeCycle.Result.COMPLETED) {
             completedCycles = completedCycles.add(java.math.BigInteger.ONE);
             justFinished = active;
+            onFinish.accept(active);
         }
         if (progress() != before || result == RecipeCycle.Result.COMPLETED) {
             progressChanges.changed();
@@ -754,6 +771,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         progressChanges.changed();
         startedCycles++;
         host.markChanged();
+        onStart.accept(activePlan());
     }
 
 }

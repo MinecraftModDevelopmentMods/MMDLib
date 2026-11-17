@@ -6,6 +6,24 @@ import zone.moddev.mc.lib.machine.feature.StoredProcessor;
 
 /** Example charging alongside recipe lanes: one mB water supplies 100 FE. */
 public final class ChargePump extends StoredProcessor {
+    private final ProcessorState.Key<Integer> starts = variables.define(
+        "starts", com.mojang.serialization.Codec.INT, 0,
+        java.util.function.UnaryOperator.identity(), false, true);
+    private final ProcessorState.Key<Integer> finishes = variables.define(
+        "finishes", com.mojang.serialization.Codec.INT, 0,
+        java.util.function.UnaryOperator.identity(), false, true);
+    private final ProcessorState.Key<String> lastLane = variables.define(
+        "last_lane", com.mojang.serialization.Codec.STRING, "",
+        java.util.function.UnaryOperator.identity(), false, true);
+
+    public void recordCycle(String lane, boolean finished) {
+        variables.update(() -> {
+            var counter = finished ? finishes : starts;
+            variables.set(counter, variables.get(counter) + 1);
+            variables.set(lastLane, lane);
+        });
+    }
+
     @Override
     public boolean canStart(ProcessorState state, ProcessorMachine host) {
         return host.resources().fluids("coolant").free(0) > 0;
