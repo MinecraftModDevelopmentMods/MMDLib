@@ -30,6 +30,56 @@ public final class PortingHooksTests {
         return (DefinedMachineEntity) h.getLevel().getBlockEntity(pos);
     }
 
+    @GameTest(template = "empty")
+    public static void recipeLanesAndChargingRunTogether(GameTestHelper h) {
+        var machine = place(h, "parallel_workshop");
+        h.assertTrue(machine.features.allProcessors().size() == 3,
+            "Recipe and custom processors coexist");
+        machine.items.inventory("left_input").insertItem(0,
+            new ItemStack(Items.COBBLESTONE), false);
+        machine.items.inventory("right_input").insertItem(0,
+            new ItemStack(Items.GRAVEL), false);
+        machine.fluids.fill(new FluidStack(Fluids.WATER, 200),
+            FluidAction.EXECUTE);
+        for (int tick = 0; tick < 102; tick++)
+            machine.serverTick();
+        h.assertTrue(machine.items.inventory("left_output").getStackInSlot(0)
+            .is(Items.GRAVEL), "Left lane output");
+        h.assertTrue(machine.items.inventory("right_output").getStackInSlot(0)
+            .is(Items.SAND), "Right lane output");
+        h.assertTrue(machine.energy.stored() > 0,
+            "Charge pump supplies shared energy beside recipes");
+        var player = h.makeMockServerPlayerInLevel();
+        new zone.moddev.mc.lib.gui.runtime.MachineMenu(1, player.getInventory(),
+            machine);
+        var saved = machine.saveWithFullMetadata(h.getLevel().registryAccess());
+        machine.loadWithComponents(saved, h.getLevel().registryAccess());
+        h.assertTrue(
+            machine.features.processor("left").orElseThrow().completedCycles()
+                .intValue() == 1
+                && machine.features.processor("right").orElseThrow()
+                    .completedCycles().intValue() == 1,
+            "Lanes persist independently");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void sharedInputCannotBeReservedTwice(GameTestHelper h) {
+        var machine = place(h, "shared_workshop");
+        machine.energy.setStored(10000);
+        machine.items.inventory("left_input").insertItem(0,
+            new ItemStack(Items.COBBLESTONE), false);
+        for (int tick = 0; tick < 105; tick++)
+            machine.serverTick();
+        int products = machine.items.inventory("left_output").getStackInSlot(0)
+            .getCount()
+            + machine.items.inventory("right_output").getStackInSlot(0)
+                .getCount();
+        h.assertTrue(products == 1,
+            "Two lanes sharing physical input produce only one result");
+        h.succeed();
+    }
+
     @GameTest(template = "empty", timeoutTicks = 60)
     public static void comparatorsReadSharedSourcesWithoutEmittingFaces(
         GameTestHelper h) {

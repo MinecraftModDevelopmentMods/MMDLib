@@ -51,8 +51,8 @@ public final class MachineEntityDisplays {
         Optional<EntitySnapshotPolicy<?>> policy) {
         static Binding of(MachineDefinition definition) {
             var display = definition.behavior().entityDisplay();
-            var processor = definition.behavior().processor()
-                .schema(definition.processor());
+            var processor = definition.processorSchemas()
+                .get(display.variable().processor());
             var reference = processor
                 .portableVariable(display.variable().name()).orElse(null);
             return new Binding(display,

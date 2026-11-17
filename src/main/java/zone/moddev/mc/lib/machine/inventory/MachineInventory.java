@@ -68,6 +68,20 @@ public final class MachineInventory {
         return new SnapshotTx();
     }
 
+    /**
+     * Aliases share the same groups and physical transaction/reservation
+     * identity.
+     */
+    public MachineInventory view(Map<String, String> bindings) {
+        if (bindings.isEmpty())
+            return this;
+        var builder = builder();
+        bindings.forEach((alias, target) -> builder.group(alias,
+            group(target).orElseThrow(() -> new IllegalArgumentException(
+                "Unknown resource group: " + target))));
+        return builder.build();
+    }
+
     /** Captures the groups' change counters for a failed recipe search. */
     public long[] revisions() {
         return groups.values().stream().mapToLong(SlotGroup::revision)

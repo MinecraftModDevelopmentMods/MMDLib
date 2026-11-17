@@ -18,6 +18,9 @@ sourceSets {
     }
 }
 
+// Unit definition tests load the real companion XML and its mod-owned processors.
+sourceSets.test.runtimeClasspath += sourceSets.companion.output
+
 neoForge.addModdingDependenciesTo(sourceSets.companion)
 neoForge.addModdingDependenciesTo(sourceSets.companionTest)
 neoForge.addModdingDependenciesTo(sourceSets.companionServerTest)

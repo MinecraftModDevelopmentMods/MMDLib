@@ -51,10 +51,54 @@ public final class DefinedMachineEntity extends BaseMachine
     private final MachineShapeState shapes;
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
-    private final RecipeProcessor processor;
-    private final zone.moddev.mc.lib.machine.feature.WorkTargets workTargets;
-    private java.math.BigInteger cyclesBefore = java.math.BigInteger.ZERO;
-    private long startsBefore;
+    private final java.util.Map<String, zone.moddev.mc.lib.machine.feature.WorkTargets> workTargets = new java.util.LinkedHashMap<>();
+    private final java.util.Map<String, java.math.BigInteger> cyclesBefore = new java.util.HashMap<>();
+    private final java.util.Map<String, Long> startsBefore = new java.util.HashMap<>();
+
+    private MachineRecipeType recipeType(
+        zone.moddev.mc.lib.machine.definition.ProcessorConfiguration config,
+        MachineRecipeType primary) {
+        return primary != null && primary.id().equals(config.recipeType().id())
+            ? primary
+            : MachineContent.recipeType(config.recipeType().id());
+    }
+
+    private void installRecipeAdmission(MachineRecipeType primary) {
+        var itemRules = new java.util.HashMap<Integer, java.util.List<java.util.function.Predicate<net.minecraft.world.item.ItemStack>>>();
+        var fluidRules = new java.util.HashMap<Integer, java.util.List<java.util.function.Predicate<net.neoforged.neoforge.fluids.FluidStack>>>();
+        for (var config : definition.processors()) {
+            if (config.recipeType() == null)
+                continue;
+            var filters = new RecipeInputFilters(this::getLevel,
+                resources.recipes().view(config.bindings()));
+            for (String alias : config.filterInputs()) {
+                String target = config.bindings().getOrDefault(alias, alias);
+                var links = List.of(new RecipeInputFilters.Link(
+                    recipeType(config, primary), alias));
+                for (var group : definition.groups())
+                    if (group.id().equals(target))
+                        for (int member : group.members())
+                            itemRules
+                                .computeIfAbsent(member,
+                                    ignored -> new java.util.ArrayList<>())
+                                .add(
+                                    stack -> filters.acceptsItem(links, stack));
+                if (definition.fluids() != null)
+                    for (var group : definition.fluids().groups())
+                        if (group.id().equals(target))
+                            for (int member : group.members())
+                                fluidRules
+                                    .computeIfAbsent(member,
+                                        ignored -> new java.util.ArrayList<>())
+                                    .add(stack -> filters.acceptsFluid(links,
+                                        stack));
+            }
+        }
+        itemRules.forEach((slot, rules) -> items.restrict(
+            stack -> rules.stream().anyMatch(rule -> rule.test(stack)), slot));
+        fluidRules.forEach((tank, rules) -> fluids.restrict(
+            stack -> rules.stream().anyMatch(rule -> rule.test(stack)), tank));
+    }
 
     private void prepareAdmission(
         zone.moddev.mc.lib.machine.definition.AdmissionDeclaration declaration) {
@@ -248,12 +292,9 @@ public final class DefinedMachineEntity extends BaseMachine
                     ResourceType.FLUIDS, group.mode(), group.members(),
                     highlights.get(group.id()), new SideConfig(group.mode())),
                     fluids);
-                if (recipes != null && group.mode() == IoMode.INPUT)
-                    resources.recipeInputs(recipes, group.id());
+
             }
-        for (var group : definition.groups())
-            if (recipes != null && group.mode() == IoMode.INPUT)
-                resources.recipeInputs(recipes, group.id());
+
         for (var ghost : definition.ghosts()) {
             var samples = new zone.moddev.mc.lib.machine.inventory.GhostItemGroup(
                 ghost.count());
@@ -266,31 +307,33 @@ public final class DefinedMachineEntity extends BaseMachine
             resources.recipeOnlyGroup(ghost.id(), samples);
         }
         resources.build();
-        zone.moddev.mc.lib.machine.feature.Processor<?> visualProcessor = null;
-        RecipeProcessor recipeProcessor = null;
-        if (definition.behavior().processor() != null) {
-            visualProcessor = definition.behavior().processor()
-                .create(definition.processor(), this);
-            features.add(visualProcessor);
-        } else if (definition.hasProcessor()) {
-            recipeProcessor = new RecipeProcessor(definition.processor(),
-                recipes, resources.recipes(),
-                Component.literal(definition.processorName()));
-            if (definition.recipeSelection() != null)
-                recipeProcessor
-                    .selectable(definition.recipeSelection().defaultRecipe());
-            features.add(recipeProcessor);
-            visualProcessor = recipeProcessor;
+        var runtimeProcessors = new java.util.LinkedHashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
+        for (var config : definition.processors()) {
+            zone.moddev.mc.lib.machine.feature.Processor<?> value;
+            if (config.declaration() != null)
+                value = config.declaration().create(config.id(), this);
+            else {
+                var typeForProcessor = recipeType(config, recipes);
+                var lane = new RecipeProcessor(config.id(), typeForProcessor,
+                    resources.recipes().view(config.bindings()),
+                    Component.literal(config.name()));
+                if (config.selection() != null)
+                    lane.selectable(config.selection().defaultRecipe());
+                value = lane;
+            }
+            features.add(value);
+            runtimeProcessors.put(config.id(), value);
+            if (value instanceof zone.moddev.mc.lib.machine.feature.WorkTargets.Provider provider) {
+                var targets = new zone.moddev.mc.lib.machine.feature.WorkTargets(
+                    config.id().equals(definition.processor())
+                        ? "mmdlib:work_targets"
+                        : "mmdlib:work_targets/" + config.id(),
+                    provider::workingBlocks, value::processing);
+                workTargets.put(config.id(), targets);
+                features.add(targets);
+            }
         }
-        // Cycle sounds follow recipe processors; custom ones have none.
-        processor = recipeProcessor;
-        workTargets = visualProcessor instanceof zone.moddev.mc.lib.machine.feature.WorkTargets.Provider provider
-            ? new zone.moddev.mc.lib.machine.feature.WorkTargets(
-                "mmdlib:work_targets", provider::workingBlocks,
-                visualProcessor::processing)
-            : null;
-        if (workTargets != null)
-            features.add(workTargets);
+        installRecipeAdmission(recipes);
         inventory = genericInventory(resources.automation());
         if (definition.itemStorageId() != null)
             inventory.items(definition.itemStorageId(), items);
@@ -304,12 +347,12 @@ public final class DefinedMachineEntity extends BaseMachine
         if (redstone != null && !definition.redstone())
             redstone.disabledFaces(java.util.EnumSet
                 .allOf(zone.moddev.mc.lib.api.capabilities.RelativeFace.class));
-        var visualSource = visualProcessor;
+
         var graph = new VisualVariables[1];
         java.util.function.Supplier<VisualVariables> sharedVariables = () -> {
             if (graph[0] == null)
-                graph[0] = BuiltinVisualVariables.forMachine(definition,
-                    visualSource, items, fluids, energy);
+                graph[0] = BuiltinVisualVariables.forProcessors(definition,
+                    runtimeProcessors, items, fluids, energy);
             return graph[0];
         };
         features.bindVisualVariables(sharedVariables);
@@ -607,41 +650,42 @@ public final class DefinedMachineEntity extends BaseMachine
      * sent.
      */
     public boolean running() {
-        return processor != null
-            && processor.status() == RecipeProcessor.Status.RUNNING;
+        return features.processors().stream().anyMatch(
+            value -> value.status() == RecipeProcessor.Status.RUNNING);
     }
 
     @Override
     protected void beforeMachineTick() {
-        if (processor == null)
-            return;
-        cyclesBefore = processor.completedCycles();
-        startsBefore = processor.startedCycles();
+        for (var lane : features.processors()) {
+            cyclesBefore.put(lane.key(), lane.completedCycles());
+            startsBefore.put(lane.key(), lane.startedCycles());
+        }
     }
 
-    /**
-     * Runs the processor's {@code on-start} and {@code on-finish} handlers, and
-     * plays the {@code finish-sound} for everyone near a completed cycle.
-     */
     @Override
     protected void afterMachineTick() {
-        if (processor == null
-            || !(level instanceof net.minecraft.server.level.ServerLevel server))
+        if (!(level instanceof net.minecraft.server.level.ServerLevel server))
             return;
-        if (processor.startedCycles() != startsBefore)
-            definition.events().start()
-                .ifPresent(id -> processor.cycle().ifPresent(cycle -> fire(id,
-                    zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
+        for (var config : definition.processors()) {
+            var lane = features.processor(config.id()).orElse(null);
+            if (lane == null)
+                continue;
+            if (lane.startedCycles() != startsBefore.getOrDefault(lane.key(),
+                0L))
+                config.events().start()
+                    .ifPresent(id -> lane.cycle().ifPresent(cycle -> fire(id,
+                        zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
+                        server, cycle)));
+            if (lane.completedCycles().equals(cyclesBefore.get(lane.key())))
+                continue;
+            config.sounds().finish()
+                .ifPresent(sound -> level.playSound(null, worldPosition,
+                    SoundDefinition.event(sound), SoundSource.BLOCKS, 1, 1));
+            config.events().finish()
+                .ifPresent(id -> lane.justFinished().ifPresent(cycle -> fire(id,
+                    zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
                     server, cycle)));
-        if (processor.completedCycles().equals(cyclesBefore))
-            return;
-        definition.sounds().finish()
-            .ifPresent(sound -> level.playSound(null, worldPosition,
-                SoundDefinition.event(sound), SoundSource.BLOCKS, 1, 1));
-        definition.events().finish().ifPresent(id -> processor.justFinished()
-            .ifPresent(cycle -> fire(id,
-                zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
-                server, cycle)));
+        }
     }
 
     private void fire(ResourceLocation id,
@@ -660,14 +704,16 @@ public final class DefinedMachineEntity extends BaseMachine
      * client tick.
      */
     public void clientTick() {
-        if (definition.sounds().running().isPresent())
-            zone.moddev.mc.lib.client.MachineSoundsClient.tick(this);
-        if (workTargets != null
-            && features.findProcessor(definition.processor())
+        zone.moddev.mc.lib.client.MachineSoundsClient.tick(this);
+        var active = workTargets.entrySet().stream()
+            .filter(entry -> features.findProcessor(entry.getKey())
                 .map(zone.moddev.mc.lib.machine.feature.Processor::processing)
                 .orElse(false))
-            zone.moddev.mc.lib.client.MachineWorkDisplay.tick(this,
-                workTargets.targets(), visualizerStyle().workColor());
+            .flatMap(entry -> entry.getValue().targets().stream()).distinct()
+            .toList();
+        if (!active.isEmpty())
+            zone.moddev.mc.lib.client.MachineWorkDisplay.tick(this, active,
+                visualizerStyle().workColor());
     }
 
     public zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizerStyle() {
@@ -679,7 +725,8 @@ public final class DefinedMachineEntity extends BaseMachine
      * provider.
      */
     public List<BlockPos> workingBlocks() {
-        return workTargets == null ? List.of() : workTargets.targets();
+        return workTargets.values().stream()
+            .flatMap(targets -> targets.targets().stream()).distinct().toList();
     }
 
     @Override
@@ -731,10 +778,20 @@ public final class DefinedMachineEntity extends BaseMachine
     public int[] screenRecipeSlots(ResourceLocation category) {
         if (!definition.processes(category))
             return new int[0];
+        var targets = new java.util.HashSet<String>();
+        for (var config : definition.processors())
+            if (config.recipeType() != null
+                && config.recipeType().id().equals(category)) {
+                if (config.bindings().isEmpty())
+                    definition.groups()
+                        .forEach(group -> targets.add(group.id()));
+                else
+                    targets.addAll(config.bindings().values());
+            }
         return definition.groups().stream()
-            .filter(g -> g.mode() == IoMode.INPUT)
-            .flatMap(g -> g.members().stream()).mapToInt(Integer::intValue)
-            .toArray();
+            .filter(g -> g.mode() == IoMode.INPUT && targets.contains(g.id()))
+            .flatMap(g -> g.members().stream()).distinct()
+            .mapToInt(Integer::intValue).toArray();
     }
 
     @Override

@@ -90,6 +90,81 @@ public final class MachineDefinitions {
         return Collections.unmodifiableMap(plans);
     }
 
+    private static ProcessorConfiguration processorConfiguration(Node node,
+        Map<ResourceLocation, Node> recipes, Set<String> resources,
+        Set<String> inputs, Map<String, ClassLoader> loaders,
+        String machineName) {
+        try {
+            String id = required(node, "id");
+            var bindings = new LinkedHashMap<String, String>();
+            if (node.attributes().containsKey("bindings")) {
+                for (String pair : required(node, "bindings").split("\\s+")) {
+                    String[] parts = pair.split("=", -1);
+                    if (parts.length != 2 || parts[0].isBlank()
+                        || !resources.contains(parts[1])
+                        || bindings.putIfAbsent(parts[0], parts[1]) != null)
+                        throw error(node, "Invalid processor binding: " + pair);
+                }
+                if (resources.contains("energy"))
+                    bindings.putIfAbsent("energy", "energy");
+            } else
+                resources.forEach(key -> bindings.put(key, key));
+            if (node.attributes().containsKey("class")) {
+                for (var option : List.of("recipe-type", "filter-inputs",
+                    "selectable", "default-recipe", "running-sound",
+                    "finish-sound", "on-start", "on-finish"))
+                    if (node.attributes().containsKey(option))
+                        throw error(node,
+                            "Custom processors cannot take " + option);
+                if (node.attributes().containsKey("bindings"))
+                    throw error(node,
+                        "Custom processors use named host resources directly");
+                return new ProcessorConfiguration(id,
+                    node.attributes().getOrDefault("name", machineName), null,
+                    ProcessorDeclaration.load(required(node, "class"),
+                        loaders.get(node.source())),
+                    Map.of(), List.of(), null, MachineDefinition.Sounds.NONE,
+                    MachineDefinition.Events.NONE);
+            }
+            var recipeNode = recipes.get(resource(node, "recipe-type"));
+            if (recipeNode == null)
+                throw error(node, "Unknown recipe type");
+            var filterInputs = node.attributes().containsKey("filter-inputs")
+                ? List.of(required(node, "filter-inputs").split("\\s+"))
+                : bindings.entrySet().stream()
+                    .filter(entry -> inputs.contains(entry.getValue()))
+                    .map(Map.Entry::getKey).toList();
+            var expectedInputs = bindings.entrySet().stream()
+                .filter(entry -> inputs.contains(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(java.util.stream.Collectors.toSet());
+            if (!new HashSet<>(filterInputs).equals(expectedInputs))
+                throw error(node,
+                    "filter-inputs must name all bound input groups");
+            for (var key : filterInputs)
+                if (!inputs.contains(bindings.get(key)))
+                    throw error(node,
+                        "filter-inputs must name bound input groups");
+            boolean selectable = bool(node, "selectable", false);
+            if (!selectable && node.attributes().containsKey("default-recipe"))
+                throw error(node, "default-recipe requires selectable='true'");
+            return new ProcessorConfiguration(id,
+                node.attributes().getOrDefault("name", machineName),
+                recipeType(recipeNode, loaders), null, bindings, filterInputs,
+                selectable
+                    ? new MachineDefinition.RecipeSelection(
+                        optionalResource(node, "default-recipe").orElse(null))
+                    : null,
+                new MachineDefinition.Sounds(
+                    optionalResource(node, "running-sound"),
+                    optionalResource(node, "finish-sound")),
+                new MachineDefinition.Events(optionalResource(node, "on-start"),
+                    optionalResource(node, "on-finish")));
+        } catch (IllegalArgumentException ex) {
+            throw error(node, ex.getMessage());
+        }
+    }
+
     private static AdmissionDeclaration admission(Node node,
         Map<String, ClassLoader> loaders) {
         try {
@@ -128,6 +203,9 @@ public final class MachineDefinitions {
     private static String key(Node parent, Node node) {
         // These sections contain singletons; their ID is configuration, not
         // merge identity.
+        if (parent.name().equals("machine")
+            && Set.of("processor", "recipe-type").contains(node.name()))
+            return node.name() + ":" + required(node, "id");
         if (Set.of("machine", "storage", "recipe-type").contains(parent.name()))
             return node.name();
         if (parent.name().equals("appearance") && isDisplay(node))
@@ -157,16 +235,28 @@ public final class MachineDefinitions {
                 "model"))
                 attrs.remove(attribute);
         attrs.putAll(child.attributes());
+        var singletonOverrides = new HashSet<String>();
+        if (base.name().equals("machine"))
+            for (var kind : List.of("processor", "recipe-type"))
+                if (base.children().stream().filter(n -> n.name().equals(kind))
+                    .count() == 1
+                    && child.children().stream()
+                        .filter(n -> n.name().equals(kind)).count() == 1)
+                    singletonOverrides.add(kind);
         var children = new ArrayList<>(base.children());
         var indexes = new HashMap<String, Integer>();
         for (int i = 0; i < children.size(); i++) {
-            var key = key(base, children.get(i));
+            var key = singletonOverrides.contains(children.get(i).name())
+                ? children.get(i).name()
+                : key(base, children.get(i));
             if (key != null && indexes.putIfAbsent(key, i) != null)
                 throw error(children.get(i), "Duplicate definition " + key);
         }
         var seen = new HashSet<String>();
         for (var node : child.children()) {
-            var key = key(child, node);
+            var key = singletonOverrides.contains(node.name())
+                ? node.name()
+                : key(child, node);
             if (key != null && !seen.add(key))
                 throw error(node, "Duplicate definition " + key);
             var index = key == null ? null : indexes.get(key);
@@ -230,7 +320,7 @@ public final class MachineDefinitions {
         Map.entry("processor",
             Set.of("id", "name", "recipe-type", "filter-inputs", "selectable",
                 "default-recipe", "class", "running-sound", "finish-sound",
-                "on-start", "on-finish")),
+                "on-start", "on-finish", "bindings", "primary")),
         Map.entry("redstone", Set.of("enabled", "pause", "comparator-source")),
         Map.entry("shape", Set.of("id", "when", "bounds")),
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
@@ -606,26 +696,55 @@ public final class MachineDefinitions {
                         "Group mode conflicts with tank role: " + group.id());
             }
         }
-        var recipe = optional(root, "recipe-type");
-        var processor = optional(root, "processor");
-        boolean custom = processor != null
-            && processor.attributes().containsKey("class");
-        if (custom && (recipe != null
-            || processor.attributes().containsKey("recipe-type")
-            || processor.attributes().containsKey("selectable")
-            || processor.attributes().containsKey("filter-inputs")))
-            throw error(processor,
-                "Custom processors do not declare recipe processing options");
-        if (custom)
-            for (var cycleOnly : List.of("running-sound", "finish-sound",
-                "on-start", "on-finish"))
-                if (processor.attributes().containsKey(cycleOnly))
-                    throw error(processor, "Custom processors have no recipe "
-                        + "cycles, so they cannot take " + cycleOnly);
-        if (!custom && (recipe == null) != (processor == null))
-            throw error(root,
-                "recipe-type and processor must be supplied together");
+        var resourceKeys = new LinkedHashSet<String>();
+        resourceKeys.addAll(groups.keySet());
+        resourceKeys.addAll(fluidGroups.keySet());
+        ghosts.forEach(ghost -> resourceKeys.add(ghost.id()));
+        if (power != null)
+            resourceKeys.add("energy");
+        var inputKeys = new LinkedHashSet<String>();
+        groups.values().stream().filter(g -> g.mode() == IoMode.INPUT)
+            .forEach(g -> inputKeys.add(g.id()));
+        fluidGroups.values().stream().filter(g -> g.mode() == IoMode.INPUT)
+            .forEach(g -> inputKeys.add(g.id()));
+        var processorNodes = root.children().stream()
+            .filter(n -> n.name().equals("processor")).toList();
+        var primaryNodes = processorNodes.stream()
+            .filter(n -> bool(n, "primary", false)).toList();
+        if (primaryNodes.size() > 1)
+            throw error(root, "Only one primary processor is allowed");
+        if (processorNodes.size() > 1 && primaryNodes.isEmpty()
+            && (bool(block, "portable", false)
+                || block.attributes().containsKey("on-secondary-use")))
+            throw error(block,
+                "Multiple processors require an explicit primary for portable/secondary actions");
+        var processor = primaryNodes.isEmpty()
+            ? (processorNodes.isEmpty() ? null : processorNodes.getFirst())
+            : primaryNodes.getFirst();
+        var recipeNodes = new LinkedHashMap<ResourceLocation, Node>();
+        for (var node : root.children())
+            if (node.name().equals("recipe-type")
+                && recipeNodes.putIfAbsent(resource(node, "id"), node) != null)
+                throw error(node, "Duplicate recipe type");
+        var processorConfigs = new ArrayList<ProcessorConfiguration>();
+        var processorIds = new HashSet<String>();
+        for (var node : processorNodes) {
+            var config = processorConfiguration(node, recipeNodes, resourceKeys,
+                inputKeys, loaders, required(root, "name"));
+            if (!processorIds.add(config.id()))
+                throw error(node, "Duplicate processor ID " + config.id());
+            processorConfigs.add(config);
+        }
+        var primary = processor == null
+            ? null
+            : processorConfigs.stream()
+                .filter(config -> config.id().equals(required(processor, "id")))
+                .findFirst().orElseThrow();
+        boolean custom = primary != null && primary.declaration() != null;
+        var recipeType = primary == null ? null : primary.recipeType();
         if (processor == null) {
+            if (!recipeNodes.isEmpty())
+                throw error(root, "recipe-type requires a processor");
             if (slots.stream().anyMatch(
                 slot -> slot.role() == Role.INPUT || slot.role() == Role.OUTPUT)
                 || !ghosts.isEmpty())
@@ -636,20 +755,6 @@ public final class MachineDefinitions {
                 throw error(fluidNode,
                     "Machines without a processor require storage/manual tank roles");
         }
-        var recipeType = recipe == null ? null : recipeType(recipe, loaders);
-        if (!custom && processor != null
-            && !recipeType.id().equals(resource(processor, "recipe-type")))
-            throw error(processor, "Unknown recipe type");
-        // All input groups are linked automatically when processing is enabled.
-        var inputs = java.util.stream.Stream
-            .concat(groups.values().stream(), fluidGroups.values().stream())
-            .filter(g -> g.mode() == IoMode.INPUT).map(Group::id).toList();
-        if (processor != null
-            && processor.attributes().containsKey("filter-inputs")
-            && !new HashSet<>(Arrays
-                .asList(required(processor, "filter-inputs").split("\\s+")))
-                .equals(new HashSet<>(inputs)))
-            throw error(processor, "filter-inputs must name the input groups");
         var redstone = optional(root, "redstone");
         if (redstone != null)
             requireChoice(redstone, "pause", "processing-only");
@@ -775,18 +880,18 @@ public final class MachineDefinitions {
                 throw error(itemDisplayNode, ex.getMessage());
             }
         }
-        ProcessorDeclaration declaration = null;
-        zone.moddev.mc.lib.machine.feature.Processor<?> prototype = null;
-        if (custom) {
-            try {
-                declaration = ProcessorDeclaration.load(
-                    required(processor, "class"),
-                    loaders.get(processor.source()));
-                prototype = declaration.schema(required(processor, "id"));
-            } catch (IllegalArgumentException ex) {
-                throw error(processor, ex.getMessage());
-            }
-        }
+        ProcessorDeclaration declaration = primary == null
+            ? null
+            : primary.declaration();
+        zone.moddev.mc.lib.machine.feature.Processor<?> prototype = declaration == null
+            ? null
+            : declaration.schema(primary.id());
+        var schemas = new LinkedHashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
+        processorConfigs.forEach(config -> {
+            if (config.declaration() != null)
+                schemas.put(config.id(),
+                    config.declaration().schema(config.id()));
+        });
         var visualizers = optional(root, "visualizers");
         var visualizerStyle = zone.moddev.mc.lib.machine.presentation.VisualizerStyle.DEFAULT;
         if (visualizers != null) {
@@ -906,7 +1011,11 @@ public final class MachineDefinitions {
                         "toward-player")),
                 redstone == null
                     ? null
-                    : redstone.attributes().get("comparator-source"));
+                    : redstone.attributes().get("comparator-source"),
+                processorConfigs.size() == 1
+                    && !processor.attributes().containsKey("bindings")
+                        ? List.of()
+                        : processorConfigs);
         } catch (IllegalArgumentException ex) {
             throw error(block, ex.getMessage());
         }
@@ -920,11 +1029,11 @@ public final class MachineDefinitions {
                 admissions.add(tank.admission());
         });
         for (var admission : admissions)
-            if (admission.processor() != null && (processor == null
-                || !admission.processor().equals(required(processor, "id"))
-                || declaration == null
-                || !zone.moddev.mc.lib.machine.feature.StorageAdmission.class
-                    .isAssignableFrom(declaration.type())))
+            if (admission.processor() != null && processorConfigs.stream()
+                .noneMatch(config -> config.id().equals(admission.processor())
+                    && config.declaration() != null
+                    && zone.moddev.mc.lib.machine.feature.StorageAdmission.class
+                        .isAssignableFrom(config.declaration().type())))
                 throw error(root,
                     "filter-processor must name a processor implementing StorageAdmission: "
                         + admission.processor());
@@ -933,22 +1042,21 @@ public final class MachineDefinitions {
             throw error(block, "Unknown secondary-use processor action: "
                 + behavior.secondaryAction());
         if (display != null) {
-            if (!custom || (display.item() && !behavior.portable()))
+            if (schemas.isEmpty() || (display.item() && !behavior.portable()))
                 throw error(displayNode,
                     "Entity displays require a custom processor; item displays require portable machines");
             try {
-                display.validate(Map.of(required(processor, "id"), prototype));
+                display.validate(schemas);
             } catch (IllegalArgumentException ex) {
                 throw error(displayNode, ex.getMessage());
             }
         }
         if (itemDisplay != null) {
-            if (prototype == null)
+            if (schemas.isEmpty())
                 throw error(itemDisplayNode,
                     "Item displays require a custom processor with a synchronized variable");
             try {
-                itemDisplay
-                    .validate(Map.of(required(processor, "id"), prototype));
+                itemDisplay.validate(schemas);
             } catch (IllegalArgumentException ex) {
                 throw error(itemDisplayNode, ex.getMessage());
             }

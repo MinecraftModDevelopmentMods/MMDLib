@@ -192,8 +192,8 @@ public final class MachineResourcePack extends AbstractPackResources {
                 lang.addProperty(id + ".info", machine.name());
                 machine.groupNames().forEach((group, name) -> lang
                     .addProperty(machine.groupTranslationKey(group), name));
-                machine.processingType().filter(recipe -> recipe.declare())
-                    .ifPresent(recipe -> {
+                machine.processingTypes().stream()
+                    .filter(recipe -> recipe.declare()).forEach(recipe -> {
                         var recipeId = recipe.id();
                         languages
                             .computeIfAbsent(recipeId.getNamespace(),

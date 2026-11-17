@@ -1719,3 +1719,36 @@ IDs fail when the runtime is assembled. Custom processors contribute values
 through the existing `redstoneOutputs()` method; no second provider is needed.
 The Porting Workshop exposes output fullness to both the redstone drawer and
 comparators, including comparators reading through an adjacent solid block.
+
+## Several processors per machine
+
+Declare repeated `<processor id="...">` elements with unique stable IDs. They tick
+in declaration order and persist separately. Recipe and custom processors can run
+together. Repeated `<recipe-type>` declarations provide the types used by recipe
+lanes. The first processor is the default primary unless one declares `primary="true"`;
+portable or secondary-use machines with several processors require an explicit primary.
+Primary selection controls item/placement behavior; it does not change tick order.
+
+Recipe lanes can declare `bindings="input=left_input output=left_output"` to map
+recipe group names to the machine's physical groups. A binding list defines the
+lane's view; `energy=energy` is included automatically when available. Without a
+list, all resource groups retain their names. Custom processors use named host
+resources directly. Shared targets retain common reservation/transaction identity.
+Recipe admission unions participating lanes by physical slot/tank, then intersects
+that union with authored admission rules. `filter-inputs` names recipe-side aliases;
+omitting it filters all bound input groups.
+
+Generated progress displays and default processor buttons address each lane.
+Per-lane sounds, visuals, statistics and persistence use the same stable IDs.
+JEI registers every used recipe type and routes transfer to its bound inputs.
+Default selection by legacy keyless runtime APIs remains first-in-registration-order;
+use explicit processor keys when choosing a particular lane.
+
+Inheritance merges repeated processors/types by ID. For compatibility, when both
+parent and child declare exactly one processor (or one recipe type), that child
+still overrides the parent singleton even when renaming it. To append to such a
+parent, repeat its existing ID alongside the new declaration.
+
+The companion Parallel Workshop runs two crushing lanes plus a custom water-powered
+Charge Pump (one mB supplies 100 FE). The Shared Workshop rebinds the second lane
+to the first lane's input to demonstrate contention without duplicate products.

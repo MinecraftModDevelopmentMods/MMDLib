@@ -1,0 +1,20 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_powered_machine" name="Parallel Workshop">
+  <appearance preset="cube-front" front="minecraft:block/furnace_front"
+              side="minecraft:block/gold_block" top="minecraft:block/iron_block"/>
+  <storage>
+    <items id="items">
+      <slots id="left_input" count="1" role="input"/>
+      <slots id="left_output" count="1" role="output"/>
+      <slots id="right_input" count="1" role="input"/>
+      <slots id="right_output" count="1" role="output"/>
+    </items>
+    <fluids id="fluids"><tank id="coolant" role="input" capacity="4000" fluid-tag="minecraft:water"/></fluids>
+  </storage>
+  <recipe-type id="mmdlib_companion:simple_crushing" declare="false" name="Simple Crushing"/>
+  <processor id="charge" class="zone.moddev.mc.companion.ChargePump"/>
+  <processor id="left" primary="true" name="Left lane" recipe-type="mmdlib_companion:simple_crushing"
+             bindings="input=left_input output=left_output"/>
+  <processor id="right" name="Right lane" recipe-type="mmdlib_companion:simple_crushing"
+             bindings="input=right_input output=right_output"/>
+</machine>

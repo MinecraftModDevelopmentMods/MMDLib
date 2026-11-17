@@ -66,6 +66,34 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void multipleProcessorsBindResourcesAndValidateEveryLane()
+        throws Exception {
+        String xml = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/parallel_workshop.xml"))
+            .replace("zone.moddev.mc.companion.ChargePump",
+                Admission.class.getName());
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals(List.of("charge", "left", "right"),
+            definition.processors().stream().map(
+                zone.moddev.mc.lib.machine.definition.ProcessorConfiguration::id)
+                .toList());
+        assertEquals("left", definition.processor());
+        assertEquals("right_input",
+            definition.processors().get(2).bindings().get("input"));
+        assertEquals(List.of("input"),
+            definition.processors().get(2).filterInputs());
+        write(xml.replace("input=right_input", "input=missing"));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("id=\"right\"", "id=\"left\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
     void admissionDeclarationsResolveAndRejectMissingProcessors()
         throws Exception {
         String xml = Files
@@ -1125,7 +1153,7 @@ class MachineDefinitionsTest {
         assertNotNull(plan.recipeType().generator());
         assertEquals(100000, plan.power().capacity());
         write(crusher().replace("</machine>",
-            "<processor id=\"duplicate\" recipe-type=\"test:other\"/></machine>"));
+            "<processor id=\"crusher\" recipe-type=\"mmdlib_companion:simple_crushing\"/></machine>"));
         assertTrue(assertThrows(IllegalArgumentException.class,
             () -> MachineDefinitions.load(sources())).getMessage()
             .contains("Duplicate definition processor"));

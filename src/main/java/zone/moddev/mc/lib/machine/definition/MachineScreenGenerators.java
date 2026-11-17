@@ -54,9 +54,9 @@ public final class MachineScreenGenerators {
         register(ResourceLocation.parse("mmdlib:processors"),
             (machine, node) -> {
                 options(node, Set.of());
-                return machine.processingType().isEmpty()
-                    ? List.of()
-                    : List.of(progress(machine, node));
+                return machine.processors().stream()
+                    .filter(config -> config.recipeType() != null)
+                    .map(config -> progress(machine, config, node)).toList();
             });
     }
 
@@ -104,6 +104,22 @@ public final class MachineScreenGenerators {
             @Override
             public Node prepareElement(ResourceLocation id, Node node) {
                 var machine = machines.get(id);
+                if (machine != null && machine.processors().size() > 1
+                    && node.tag().equals(ScreenTags.name("inventory-controls"))
+                    && node.children().size() == 1
+                    && node.children().getFirst().name()
+                        .equals("processor-button")
+                    && !node.children().getFirst().attributes()
+                        .containsKey("processor-key")) {
+                    var buttons = machine.processors().stream()
+                        .map(config -> n(node, "processor-button",
+                            Map.of("id", "toggle_" + config.id(),
+                                "processor-key", config.id()),
+                            List.of()))
+                        .toList();
+                    return new Node(node.name(), node.attributes(), buttons,
+                        node.source(), node.line(), node.namespace());
+                }
                 if (machine != null
                     && node.tag().equals(ScreenTags.name("machine-upgrades")))
                     return upgradeSockets(machine, node);
@@ -286,12 +302,10 @@ public final class MachineScreenGenerators {
             Map.of("processors",
                 !machine.hasProcessor()
                     ? Set.of()
-                    : Set.of(machine.processor())));
-        Map<String, Processor<?>> declared = machine.behavior()
-            .processor() == null
-                ? Map.of()
-                : Map.of(machine.processor(),
-                    machine.behavior().processor().schema(machine.processor()));
+                    : machine.processors().stream()
+                        .map(ProcessorConfiguration::id)
+                        .collect(java.util.stream.Collectors.toSet())));
+        Map<String, Processor<?>> declared = machine.processorSchemas();
         var defaults = machine.visualDefaults(
             machine.hasProcessor() ? declared.get(machine.processor()) : null);
         for (var element : screen.elements()) {
@@ -354,12 +368,21 @@ public final class MachineScreenGenerators {
                     "Unknown generator option " + key);
     }
 
-    private static Node progress(MachineDefinition machine, Node node) {
-        return n(node, "progress",
-            Map.of("id", "generated_progress", "value", "#getProgress", "max",
-                "#getTime", "jei-recipes",
-                machine.recipeType().id().toString()),
-            List.of());
+    private static Node progress(MachineDefinition machine,
+        ProcessorConfiguration config, Node node) {
+        return n(node, "progress", Map.of("id",
+            machine.processors().size() == 1
+                ? "generated_progress"
+                : "generated_progress_" + config.id(),
+            "value",
+            machine.processors().size() == 1
+                ? "#getProgress"
+                : "#getProgress(" + machine.processors().indexOf(config) + ")",
+            "max",
+            machine.processors().size() == 1
+                ? "#getTime"
+                : "#getTime(" + machine.processors().indexOf(config) + ")",
+            "jei-recipes", config.recipeType().id().toString()), List.of());
     }
 
     private static List<Node> processing(MachineDefinition machine, Node node) {
@@ -373,8 +396,9 @@ public final class MachineScreenGenerators {
         var main = new ArrayList<Node>();
         main.add(spacer(node));
         main.addAll(groups(machine, node, IoMode.INPUT, 3, claimed));
-        if (machine.processingType().isPresent())
-            main.add(progress(machine, node));
+        for (var config : machine.processors())
+            if (config.recipeType() != null)
+                main.add(progress(machine, config, node));
         main.addAll(groups(machine, node, IoMode.OUTPUT, 3, claimed));
         main.add(spacer(node));
         var rows = new ArrayList<Node>();
