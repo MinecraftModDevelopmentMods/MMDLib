@@ -300,7 +300,23 @@ public final class DefinitionLoaderTest {
                      "icon": "alpha:hammer",
                      "contents": ["alpha:hammer", "#c:ingots", {"material": "alpha:copper"}],
                      "before": ["minecraft:combat"], "after": ["minecraft:tools_and_utilities"],
-                     "search_bar": true}
+                     "search_bar": true, "default_for_mod": true,
+                     "include_mod_items": true, "exclude": ["alpha:internal"],
+                     "exclude_tags": ["alpha:internal_items"]}
+                    """);
+            write(root, "creative_tab/nested/xml.xml",
+                """
+                    <creative-tab xmlns="https://moddev.zone/mmdlib/creative-tab" version="1"
+                        title="itemGroup.alpha.tools" title-fallback="Tools" icon="alpha:hammer"
+                        search-bar="true" default-for-mod="true" include-mod-items="true">
+                      <item id="alpha:hammer"/>
+                      <tag id="c:ingots"/>
+                      <material id="alpha:copper"/>
+                      <before id="minecraft:combat"/>
+                      <after id="minecraft:tools_and_utilities"/>
+                      <exclude id="alpha:internal"/>
+                      <exclude tag="alpha:internal_items"/>
+                    </creative-tab>
                     """);
             write(root, "creative_tab/misc/odds.json",
                 "{\"contents\": [{\"material\": \"alpha:tin\"}]}");
@@ -314,12 +330,37 @@ public final class DefinitionLoaderTest {
                 .icon(id("alpha:hammer")).item(id("alpha:hammer"))
                 .tag(id("c:ingots")).material(id("alpha:copper"))
                 .before(id("minecraft:combat"))
-                .after(id("minecraft:tools_and_utilities")).searchBar().build();
+                .after(id("minecraft:tools_and_utilities")).searchBar()
+                .defaultForMod().includeModItems().exclude(id("alpha:internal"))
+                .excludeTag(id("alpha:internal_items")).build();
             require(tools.equals(built));
+            require(tabs.get(id("alpha:nested/xml")).equals(built));
             var odds = tabs.get(id("alpha:misc/odds"));
             require(odds.titleKey(id("alpha:misc/odds"))
                 .equals("itemGroup.alpha.misc.odds") && odds.icon().isEmpty()
-                && !odds.searchBar() && odds.before().isEmpty());
+                && !odds.searchBar() && odds.before().isEmpty()
+                && !odds.includeModItems() && odds.exclusions().isEmpty()
+                && odds.excludedTags().isEmpty());
+
+            var empty = temporary.resolve("empty/mmdlib");
+            for (String fields : List.of("", ", \"contents\": []",
+                ", \"content\": [\"alpha:hammer\"]")) {
+                write(empty, "creative_tab/empty.json",
+                    "{\"icon\": \"alpha:hammer\"" + fields + "}");
+                expectFailure(() -> DefinitionLoader.load(
+                    List.of(new SourceRoot("empty", empty, loader)), api(),
+                    mod -> false), "empty.json", "needs contents");
+            }
+            for (String flag : List.of("default_for_mod",
+                "include_mod_items")) {
+                write(empty, "creative_tab/empty.json",
+                    "{\"icon\": \"alpha:hammer\", \"" + flag + "\": true}");
+                require(DefinitionLoader
+                    .load(List.of(new SourceRoot("empty", empty, loader)),
+                        api(), mod -> false)
+                    .creativeTabs().get(id("empty:empty")).contents()
+                    .isEmpty());
+            }
 
             var bad = temporary.resolve("bad/mmdlib");
             write(bad, "creative_tab/tags.json",
@@ -333,6 +374,14 @@ public final class DefinitionLoaderTest {
             expectFailure(() -> DefinitionLoader.load(
                 List.of(new SourceRoot("worse", worse, loader)), api(),
                 mod -> false), "broken.json");
+            write(root, "creative_tab/tools.xml",
+                """
+                    <creative-tab xmlns="https://moddev.zone/mmdlib/creative-tab" version="1"
+                        icon="alpha:hammer" include-mod-items="true"/>
+                    """);
+            expectFailure(() -> DefinitionLoader.load(
+                List.of(new SourceRoot("alpha", root, loader)), api(),
+                mod -> false), "tools.json", "tools.xml");
         } finally {
             try (var paths = Files.walk(temporary)) {
                 for (var path : paths

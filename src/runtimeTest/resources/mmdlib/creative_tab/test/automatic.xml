@@ -1,0 +1,11 @@
+<creative-tab xmlns="https://moddev.zone/mmdlib/creative-tab" version="1"
+              title-fallback="Automatic Items Test" icon="mmdlib:iron_molten_bucket"
+              include-mod-items="true">
+  <item id="mmdlib:iron_molten_bucket"/>
+  <item id="mmdlib:iron_gear"/>
+  <material id="mmdlib:iron"/>
+  <tag id="mmdlib:test/workshop_gear"/>
+  <exclude tag="mmdlib:test/internal_items"/>
+  <exclude tag="mmdlib:test/absent_optional_tag"/>
+  <exclude id="mmdlib:machine_recovery_capsule"/>
+</creative-tab>

@@ -167,6 +167,7 @@ public class MMDLib {
             MMDLibConfig.SERVER_SPEC);
         zone.moddev.mc.lib.gui.runtime.ScreenRuntime.register(modBus);
         zone.moddev.mc.lib.machine.neoforge.MachineContent.register(modBus);
+        zone.moddev.mc.lib.common.runtime.ModCreativeTabs.register(modBus);
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         machineTypes.register(modBus);

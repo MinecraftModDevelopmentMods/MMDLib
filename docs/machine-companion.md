@@ -38,7 +38,7 @@ those mods' login payloads; real client smoke runs include them.
 | `dual_crusher` | Two independently pausable processors share the same input and output slots |
 | `logistics` | Seven independent resource groups for testing automation, filters and side configuration; no recipe processing |
 | `creative_power` | Refills its buffer and supplies up to 1,000 FE per enabled adjacent face per tick |
-| `simple_crusher` | XML-only definition with inherited power, generated screen contents, and tag-generated ore-to-ingot recipes; in the **Data-defined Machines** tab |
+| `simple_crusher` | XML-only definition with inherited power, generated screen contents, and tag-generated ore-to-ingot recipes; in the companion mod's own tab |
 | `multiblock_demo` | One item places a controller and two linked parts; the far part exposes item/fluid/energy ports; breaking a member dismantles the machine |
 
 The **Multiblock Test Bench** is in the Machines tab. It occupies the controller position and two

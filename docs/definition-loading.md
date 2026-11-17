@@ -15,11 +15,12 @@ src/main/resources/mmdlib/
   sound/machine/hum.json
   sound_type/steel_plate.json
   creative_tab/tools.json
+  creative_tab/main.xml
   machine/simple_crusher.xml
 ```
 
 IDs use the owning mod's namespace and the relative path below the section,
-without `.json`. For mod ID `example`, the gear above is `example:components/gear`
+without `.json` or `.xml`. For mod ID `example`, the gear above is `example:components/gear`
 and the material is `example:copper`. For a file declaring several mods, the
 root-level directory belongs to the first mod declared in its metadata. Extension
 files also have file IDs, but their callable handler IDs come from the explicit
@@ -174,7 +175,7 @@ in datapacks, and code playing it through its registry holder.
 
 ## Creative tabs
 
-`mmdlib/creative_tab/<path>.json` describes one creative tab: its title, icon,
+`mmdlib/creative_tab/<path>.xml` (or `.json`) describes one creative tab: its title, icon,
 placement and contents (items, item tags and whole materials). See
 [creative tabs](creative-tabs.md).
 

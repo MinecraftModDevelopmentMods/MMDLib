@@ -421,8 +421,10 @@ public final class DefinitionLoader {
                 continue;
             try (var files = Files.walk(folder)) {
                 for (var file : files.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".json")).sorted()
-                    .toList()) {
+                    .filter(path -> path.toString().endsWith(".json")
+                        || section.equals(CREATIVE_TABS)
+                            && path.toString().endsWith(".xml"))
+                    .sorted().toList()) {
                     var id = resourceId(source.namespace(), folder, file);
                     var loader = source.classLoader();
                     switch (section) {
@@ -455,7 +457,9 @@ public final class DefinitionLoader {
                             decode(file, SoundDefinition.CODEC), loader));
                         case CREATIVE_TABS -> add(batch.creativeTabs, id,
                             new Located<>(file,
-                                decode(file, CreativeTabDefinition.CODEC),
+                                file.toString().endsWith(".xml")
+                                    ? CreativeTabXml.read(file)
+                                    : decode(file, CreativeTabDefinition.CODEC),
                                 loader));
                         case SOUND_TYPES -> add(batch.soundTypes, id,
                             new Located<>(file,
@@ -478,7 +482,7 @@ public final class DefinitionLoader {
         var relative = folder.relativize(file).toString().replace('\\', '/');
         try {
             return ResourceLocation.fromNamespaceAndPath(namespace,
-                relative.substring(0, relative.length() - 5));
+                relative.substring(0, relative.lastIndexOf('.')));
         } catch (RuntimeException ex) {
             throw new IllegalArgumentException(
                 file + ": Invalid definition resource ID", ex);

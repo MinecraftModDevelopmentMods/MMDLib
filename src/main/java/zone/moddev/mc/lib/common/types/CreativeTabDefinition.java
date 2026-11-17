@@ -1,6 +1,9 @@
 package zone.moddev.mc.lib.common.types;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
@@ -10,8 +13,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * A creative tab declared in {@code mmdlib/creative_tab/<path>.json}, or built
- * with {@link #builder()}: its title, icon, contents and placement.
+ * A creative tab declared in {@code mmdlib/creative_tab/} as XML or JSON, or
+ * built with {@link #builder()}: its title, icon, contents and placement.
  *
  * @param title the title's translation key; empty for
  *            {@code itemGroup.<namespace>.<path>}, with {@code /} as {@code .}
@@ -22,11 +25,26 @@ import net.minecraft.resources.ResourceLocation;
  * @param before tabs this one is placed before
  * @param after tabs this one is placed after
  * @param searchBar whether the tab has a search bar
+ * @param defaultForMod whether generated content in this namespace joins this
+ *            tab
+ * @param includeModItems whether to append all registered items in this tab's
+ *            namespace
+ * @param exclusions item IDs omitted from explicit and automatic contents
+ * @param excludedTags item tags omitted from explicit and automatic contents
  */
 public record CreativeTabDefinition(Optional<String> title,
     Optional<String> titleFallback, Optional<ResourceLocation> icon,
     List<Entry> contents, List<ResourceLocation> before,
-    List<ResourceLocation> after, boolean searchBar) {
+    List<ResourceLocation> after, boolean searchBar, boolean defaultForMod,
+    boolean includeModItems, List<ResourceLocation> exclusions,
+    List<ResourceLocation> excludedTags) {
+    public CreativeTabDefinition(Optional<String> title,
+        Optional<String> titleFallback, Optional<ResourceLocation> icon,
+        List<Entry> contents, List<ResourceLocation> before,
+        List<ResourceLocation> after, boolean searchBar) {
+        this(title, titleFallback, icon, contents, before, after, searchBar,
+            false, false, List.of(), List.of());
+    }
     /** One line of a tab's {@code contents}. */
     public sealed interface Entry {
     }
@@ -77,21 +95,32 @@ public record CreativeTabDefinition(Optional<String> title,
                 .forGetter(CreativeTabDefinition::titleFallback),
             ResourceLocation.CODEC.optionalFieldOf("icon")
                 .forGetter(CreativeTabDefinition::icon),
-            ENTRY.listOf().fieldOf("contents")
+            ENTRY.listOf().optionalFieldOf("contents", List.of())
                 .forGetter(CreativeTabDefinition::contents),
             ResourceLocation.CODEC.listOf().optionalFieldOf("before", List.of())
                 .forGetter(CreativeTabDefinition::before),
             ResourceLocation.CODEC.listOf().optionalFieldOf("after", List.of())
                 .forGetter(CreativeTabDefinition::after),
             Codec.BOOL.optionalFieldOf("search_bar", false)
-                .forGetter(CreativeTabDefinition::searchBar))
+                .forGetter(CreativeTabDefinition::searchBar),
+            Codec.BOOL.optionalFieldOf("default_for_mod", false)
+                .forGetter(CreativeTabDefinition::defaultForMod),
+            Codec.BOOL.optionalFieldOf("include_mod_items", false)
+                .forGetter(CreativeTabDefinition::includeModItems),
+            ResourceLocation.CODEC.listOf()
+                .optionalFieldOf("exclude", List.of())
+                .forGetter(CreativeTabDefinition::exclusions),
+            ResourceLocation.CODEC.listOf()
+                .optionalFieldOf("exclude_tags", List.of())
+                .forGetter(CreativeTabDefinition::excludedTags))
             .apply(i, CreativeTabDefinition::new));
 
     /**
      * Copies the lists.
      *
-     * @throws IllegalArgumentException if there is no {@code icon} and no item
-     *             or material entry to take it from
+     * @throws IllegalArgumentException if contents are empty without automatic
+     *             contents, or there is no {@code icon} and no item or material
+     *             entry to take it from
      */
     public CreativeTabDefinition {
         Objects.requireNonNull(title);
@@ -100,6 +129,11 @@ public record CreativeTabDefinition(Optional<String> title,
         contents = List.copyOf(contents);
         before = List.copyOf(before);
         after = List.copyOf(after);
+        exclusions = List.copyOf(exclusions);
+        excludedTags = List.copyOf(excludedTags);
+        if (contents.isEmpty() && !defaultForMod && !includeModItems)
+            throw new IllegalArgumentException(
+                "A creative tab needs contents, include_mod_items or default_for_mod");
         check(icon, contents).getOrThrow(IllegalArgumentException::new);
     }
 
@@ -134,6 +168,10 @@ public record CreativeTabDefinition(Optional<String> title,
         private final List<ResourceLocation> before = new ArrayList<>(),
             after = new ArrayList<>();
         private boolean searchBar;
+        private boolean defaultForMod;
+        private boolean includeModItems;
+        private final List<ResourceLocation> exclusions = new ArrayList<>();
+        private final List<ResourceLocation> excludedTags = new ArrayList<>();
 
         private Builder() {
         }
@@ -192,6 +230,32 @@ public record CreativeTabDefinition(Optional<String> title,
             return this;
         }
 
+        /** Receives this mod's generated machine and material items. */
+        public Builder defaultForMod() {
+            defaultForMod = true;
+            return this;
+        }
+
+        /** Appends all items registered in the tab's owning namespace. */
+        public Builder includeModItems() {
+            includeModItems = true;
+            return this;
+        }
+
+        /** Omits an item from both explicit and automatic contents. */
+        public Builder exclude(ResourceLocation item) {
+            exclusions.add(Objects.requireNonNull(item));
+            return this;
+        }
+
+        /**
+         * Omits all members of an item tag, resolved when the tab is rebuilt.
+         */
+        public Builder excludeTag(ResourceLocation tag) {
+            excludedTags.add(Objects.requireNonNull(tag));
+            return this;
+        }
+
         /**
          * The definition.
          *
@@ -201,7 +265,8 @@ public record CreativeTabDefinition(Optional<String> title,
         public CreativeTabDefinition build() {
             return new CreativeTabDefinition(Optional.ofNullable(title),
                 Optional.ofNullable(titleFallback), Optional.ofNullable(icon),
-                contents, before, after, searchBar);
+                contents, before, after, searchBar, defaultForMod,
+                includeModItems, exclusions, excludedTags);
         }
     }
 }

@@ -1005,7 +1005,7 @@ block using it is created.
 ## Creative tabs
 
 Scripts can make creative tabs, and change the tabs that `mmdlib/creative_tab/`
-JSON files declare (see [creative tabs](creative-tabs.md) for the file format).
+XML or JSON files declare (see [creative tabs](creative-tabs.md) for the file formats).
 
 ```zenscript
 #loader mmdlib
@@ -1026,14 +1026,13 @@ workshop.build();
 ```
 
 `new CreativeTabBuilder("tools")` starts the tab `mmdlib:tools`; other namespaces
-are rejected, as for materials. A name a JSON file already declares is rejected
+are rejected, as for materials. A name a file already declares is rejected
 too: change that tab with `edit` instead.
 
-`CreativeTabBuilder.edit(id)` starts from the tab a JSON file declares, in any
+`CreativeTabBuilder.edit(id)` starts from the tab a file declares, in any
 namespace, with all its settings and contents. Building it replaces the file's
-version, so the changed tab is the one registered. A tab in another mod's namespace
-is registered by that mod; the change applies when it registers its tabs from
-`MMDLib.creativeTabs()`, as [creative tabs](creative-tabs.md) describes.
+version, so the changed tab is the one automatically registered by MMDLib,
+including tabs in another mod's namespace.
 `CreativeTabBuilder.exists(id)` tells whether a file declares a tab, and
 `CreativeTabBuilder.declared()` lists every file tab's ID.
 
@@ -1044,6 +1043,10 @@ is registered by that mod; the change applies when it registers its tabs from
 | `titleFallback` | string | `""`: none |
 | `icon` | item ID | `""`: the first item or material entry |
 | `searchBar` | bool | `false` |
+| `defaultForMod` | bool | `false`; sends the owning mod's generated content to this tab (one default per mod) |
+| `includeModItems` | bool | `false`; includes all registered items in the owning namespace |
+| `exclude` | item IDs, string[] | empty; exclusions override explicit and automatic entries |
+| `excludeTags` | item tag IDs, string[] | empty; bare IDs (no `#`), resolved when tabs rebuild |
 | `before`, `after` | tab IDs, string[] | empty |
 | `contents` | string[], read-only | empty |
 

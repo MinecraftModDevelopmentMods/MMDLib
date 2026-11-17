@@ -1,4 +1,5 @@
 {
+  "itemGroup.mmdlib.main": "MMDLib",
   "screen.mmdlib.face.unavailable": "Unavailable on this machine",
   "screen.mmdlib.tank.name": "Tank %s",
   "screen.mmdlib.tank.empty": "Empty",

@@ -1,8 +1,10 @@
 package zone.moddev.mc.lib.common.runtime;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.mojang.logging.LogUtils;
 
@@ -43,7 +45,7 @@ final class CreativeTabs {
         var builder = CreativeModeTab.builder().title(title)
             .icon(() -> new ItemStack(icon(id, definition)))
             .displayItems((parameters,
-                output) -> items(definition, parameters.enabledFeatures())
+                output) -> items(id, definition, parameters.enabledFeatures())
                     .forEach(item -> output.accept(new ItemStack(item))));
         if (!definition.before().isEmpty())
             builder.withTabsBefore(keys(definition.before()));
@@ -58,8 +60,8 @@ final class CreativeTabs {
      * The tab's items in order: each once, where it first appears, and only
      * those enabled.
      */
-    static List<Item> items(CreativeTabDefinition definition,
-        FeatureFlagSet enabled) {
+    static List<Item> items(ResourceLocation tabId,
+        CreativeTabDefinition definition, FeatureFlagSet enabled) {
         var items = new LinkedHashSet<Item>();
         for (var entry : definition.contents())
             switch (entry) {
@@ -71,7 +73,26 @@ final class CreativeTabs {
                 case MaterialEntry material ->
                     items.addAll(materialItems(material.material()));
             }
-        return items.stream().filter(item -> item.isEnabled(enabled)).toList();
+        if (definition.includeModItems())
+            BuiltInRegistries.ITEM.keySet().stream()
+                .filter(id -> id.getNamespace().equals(tabId.getNamespace()))
+                .sorted().map(BuiltInRegistries.ITEM::get).forEach(items::add);
+        var excluded = excludedItems(definition);
+        return items.stream().filter(item -> item.isEnabled(enabled))
+            .filter(item -> !excluded.contains(item)).toList();
+    }
+
+    /** Resolve tags on every rebuild, after datapack tags have been loaded. */
+    static Set<Item> excludedItems(CreativeTabDefinition definition) {
+        var result = new HashSet<Item>();
+        definition.exclusions().stream()
+            .filter(BuiltInRegistries.ITEM::containsKey)
+            .map(BuiltInRegistries.ITEM::get).forEach(result::add);
+        definition.excludedTags()
+            .forEach(tag -> BuiltInRegistries.ITEM
+                .getTagOrEmpty(TagKey.create(Registries.ITEM, tag))
+                .forEach(holder -> result.add(holder.value())));
+        return result;
     }
 
     /**
