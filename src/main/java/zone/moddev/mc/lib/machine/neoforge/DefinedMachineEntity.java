@@ -548,8 +548,10 @@ public final class DefinedMachineEntity extends BaseMachine
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING)
                     ? net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING
                     : net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING;
-            level.setBlock(worldPosition, getBlockState().setValue(property,
-                definition.behavior().facing().defaultDirection()), 3);
+            level.setBlock(worldPosition,
+                getBlockState().setValue(property,
+                    definition.behavior().facing().defaultDirection()),
+                net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
         }
         if (level != null && !level.isClientSide)
             features

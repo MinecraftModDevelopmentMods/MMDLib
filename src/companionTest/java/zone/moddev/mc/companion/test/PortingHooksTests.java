@@ -31,6 +31,26 @@ public final class PortingHooksTests {
     }
 
     @GameTest(template = "empty")
+    public static void loadingRepairsInvalidFacingWithoutReplacingTheEntity(
+        GameTestHelper h) {
+        var machine = place(h, "facing_up");
+        machine.items.insertItem(0, new ItemStack(Items.DIAMOND, 3), false);
+        var property = net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING;
+        h.getLevel().setBlock(machine.getBlockPos(),
+            machine.getBlockState().setValue(property,
+                net.minecraft.core.Direction.DOWN),
+            net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+        machine.onLoad();
+        h.assertTrue(machine.facing() == net.minecraft.core.Direction.UP,
+            "Load repairs disallowed facing");
+        h.assertTrue(
+            h.getLevel().getBlockEntity(machine.getBlockPos()) == machine
+                && machine.items.getStackInSlot(0).getCount() == 3,
+            "Facing repair preserves entity identity and inventory");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void keylessBindingsSelectTheDeclaredPrimary(
         GameTestHelper h) {
         var machine = place(h, "parallel_workshop");
