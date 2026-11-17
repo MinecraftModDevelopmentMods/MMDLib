@@ -1639,3 +1639,20 @@ emit world light. Default is false. Use transparency around glowing pixels.
 MMDLib expands the declaration into conditional model parts, reusing tracking
 snapshots and model invalidation when the selected frame changes. No per-machine
 renderer or full-face variants are needed. Inventory models keep the base casing.
+
+## Allowed facing and placement
+
+`<block facing="horizontal" placement-facing="toward-player"/>` is the default.
+`facing="all"` allows all six directions. A space-separated list allows any
+nonempty subset, such as `up`, `down`, `up down`, or `north east up`.
+`placement-facing="away-from-player"` reverses the placement preference.
+Placement picks the nearest allowed look direction (opposite the look direction
+for toward-player); a fixed direction always wins. Rotation/mirroring retains
+its old direction when the transformed front is forbidden. Loaded states outside
+the declared set normalize to north if allowed, otherwise the first allowed
+Minecraft direction (down, up, north, south, west, east).
+
+Vertical fronts use north as local top. Shapes, models, displays and working
+areas share that orientation. Range upgrades expand the area's local plane.
+The companion's Facing Demo machines illustrate all, away, up-only, down-only,
+vertical and asymmetric sets; the existing crushers show horizontal defaults.

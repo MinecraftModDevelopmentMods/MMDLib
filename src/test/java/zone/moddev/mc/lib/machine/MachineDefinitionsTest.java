@@ -49,6 +49,28 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void facingFixturesLoadAndValidateInheritedPolicies() throws Exception {
+        for (var name : List.of("all", "away", "up", "down", "vertical",
+            "asymmetric")) {
+            write(Files.readString(
+                Path.of("src/companion/resources/mmdlib/machine/facing_" + name
+                    + ".xml")));
+            var definition = MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher"));
+            assertFalse(definition.behavior().facing().directions().isEmpty());
+            assertEquals(!name.equals("away"),
+                definition.behavior().facing().towardPlayer());
+        }
+        write(crusher().replace("</machine>",
+            "<block facing=\"up north\" placement-facing=\"away-from-player\"/></machine>"));
+        var facing = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher")).behavior().facing();
+        assertEquals(Set.of(net.minecraft.core.Direction.UP,
+            net.minecraft.core.Direction.NORTH), facing.directions());
+        assertFalse(facing.towardPlayer());
+    }
+
+    @Test
     void rangeSocketsSupportRangeOnlyMachinesAndRejectOverlaps()
         throws Exception {
         String xml = crusher()

@@ -379,6 +379,15 @@ public final class DefinedMachineEntity extends BaseMachine
     @Override
     public void onLoad() {
         super.onLoad();
+        if (level != null && !level.isClientSide() && !definition.behavior()
+            .facing().directions().contains(facing())) {
+            var property = getBlockState().hasProperty(
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING)
+                    ? net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING
+                    : net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING;
+            level.setBlock(worldPosition, getBlockState().setValue(property,
+                definition.behavior().facing().defaultDirection()), 3);
+        }
         if (level != null && !level.isClientSide)
             features
                 .findProcessor(definition.processor(),

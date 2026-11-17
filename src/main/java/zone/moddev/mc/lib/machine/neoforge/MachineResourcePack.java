@@ -167,12 +167,20 @@ public final class MachineResourcePack extends AbstractPackResources {
                 item.addProperty("parent", model);
                 put(result, id, "models/item/", item);
                 var variants = new JsonObject();
-                String[] directions = {"north", "east", "south", "west"};
-                for (int i = 0; i < 4; i++) {
+                for (var direction : net.minecraft.core.Direction.values()) {
+                    if (machine.behavior().facing().horizontal()
+                        && direction.getAxis().isVertical())
+                        continue;
                     var variant = new JsonObject();
                     variant.addProperty("model", model);
-                    variant.addProperty("y", i * 90);
-                    variants.add("facing=" + directions[i], variant);
+                    variant.addProperty("x",
+                        zone.moddev.mc.lib.machine.definition.MachineFacing
+                            .modelX(direction));
+                    variant.addProperty("y",
+                        zone.moddev.mc.lib.machine.definition.MachineFacing
+                            .modelY(direction));
+                    variants.add("facing=" + direction.getSerializedName(),
+                        variant);
                 }
                 var state = new JsonObject();
                 state.add("variants", variants);

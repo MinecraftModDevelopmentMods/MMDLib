@@ -77,17 +77,17 @@ public final class MachineShapeState {
     private static Map<Direction, VoxelShape> rotate(
         MachineBehavior.Shape shape) {
         var result = new EnumMap<Direction, VoxelShape>(Direction.class);
-        double x1 = shape.x1(), z1 = shape.z1(), x2 = shape.x2(),
-            z2 = shape.z2();
-        for (var facing : List.of(Direction.NORTH, Direction.EAST,
-            Direction.SOUTH, Direction.WEST)) {
-            result.put(facing, Shapes.box(x1 / 16, shape.y1() / 16, z1 / 16,
-                x2 / 16, shape.y2() / 16, z2 / 16));
-            double oldX1 = x1, oldX2 = x2;
-            x1 = 16 - z2;
-            x2 = 16 - z1;
-            z1 = oldX1;
-            z2 = oldX2;
+        for (var facing : Direction.values()) {
+            var first = zone.moddev.mc.lib.machine.definition.MachineFacing
+                .point(facing, shape.x1() / 16, shape.y1() / 16,
+                    shape.z1() / 16);
+            var last = zone.moddev.mc.lib.machine.definition.MachineFacing
+                .point(facing, shape.x2() / 16, shape.y2() / 16,
+                    shape.z2() / 16);
+            result.put(facing,
+                Shapes.box(Math.min(first.x, last.x), Math.min(first.y, last.y),
+                    Math.min(first.z, last.z), Math.max(first.x, last.x),
+                    Math.max(first.y, last.y), Math.max(first.z, last.z)));
         }
         return Map.copyOf(result);
     }

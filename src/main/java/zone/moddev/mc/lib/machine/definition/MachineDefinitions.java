@@ -173,9 +173,9 @@ public final class MachineDefinitions {
     private static final Map<String, Set<String>> ATTRIBUTES = Map.ofEntries(
         Map.entry("machine", Set.of("version", "abstract", "extends", "name")),
         Map.entry("block",
-            Set.of("hardness", "facing", "drop", "mineable", "requires-tool",
-                "stack-size", "no-occlusion", "immovable", "portable",
-                "on-secondary-use", "drawers")),
+            Set.of("hardness", "facing", "placement-facing", "drop", "mineable",
+                "requires-tool", "stack-size", "no-occlusion", "immovable",
+                "portable", "on-secondary-use", "drawers")),
         Map.entry("appearance",
             Set.of("preset", "front", "side", "top", "bottom", "model")),
         Map.entry("visualizers", Set.of("range-color", "work-color")),
@@ -299,7 +299,7 @@ public final class MachineDefinitions {
         if (!"1".equals(root.attributes().get("version")))
             throw error(root, "Expected machine version=1");
         var block = one(root, "block");
-        requireChoice(block, "facing", "horizontal");
+
         requireChoice(block, "drop", "self");
         var appearance = one(root, "appearance");
         requireChoice(appearance, "preset", "cube-front", "model");
@@ -881,7 +881,11 @@ public final class MachineDefinitions {
                     ? resource(block, "on-secondary-use")
                     : null,
                 display, itemDisplay, visualizerStyle, gearboxSlot,
-                capacitorSlot, rangeSlots, legacyUpgradeStorage);
+                capacitorSlot, rangeSlots, legacyUpgradeStorage,
+                MachineFacing.parse(
+                    block.attributes().getOrDefault("facing", "horizontal"),
+                    block.attributes().getOrDefault("placement-facing",
+                        "toward-player")));
         } catch (IllegalArgumentException ex) {
             throw error(block, ex.getMessage());
         }

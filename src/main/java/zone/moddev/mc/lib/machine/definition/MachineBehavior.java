@@ -10,7 +10,20 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     EntityDisplay entityDisplay, ItemDisplay itemDisplay,
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizers,
     String gearboxSlot, String capacitorSlot, List<String> rangeSlots,
-    String legacyUpgradeStorage) {
+    String legacyUpgradeStorage, MachineFacing facing) {
+    public MachineBehavior(ProcessorDeclaration processor, int stackSize,
+        boolean noOcclusion, boolean immovable, boolean portable,
+        boolean drawers, List<Shape> shapes,
+        net.minecraft.resources.ResourceLocation secondaryAction,
+        EntityDisplay entityDisplay, ItemDisplay itemDisplay,
+        zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizers,
+        String gearboxSlot, String capacitorSlot, List<String> rangeSlots,
+        String legacyUpgradeStorage) {
+        this(processor, stackSize, noOcclusion, immovable, portable, drawers,
+            shapes, secondaryAction, entityDisplay, itemDisplay, visualizers,
+            gearboxSlot, capacitorSlot, rangeSlots, legacyUpgradeStorage,
+            MachineFacing.DEFAULT);
+    }
     public MachineBehavior(ProcessorDeclaration processor, int stackSize,
         boolean noOcclusion, boolean immovable, boolean portable,
         boolean drawers, List<Shape> shapes,
@@ -40,6 +53,7 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
         false, false, false, true, List.of(), null);
     public MachineBehavior {
         java.util.Objects.requireNonNull(visualizers);
+        java.util.Objects.requireNonNull(facing);
         rangeSlots = List.copyOf(rangeSlots);
         if (rangeSlots.size() > 9
             || new java.util.HashSet<>(rangeSlots).size() != rangeSlots.size())
