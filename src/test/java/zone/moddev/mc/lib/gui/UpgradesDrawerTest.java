@@ -35,7 +35,7 @@ class UpgradesDrawerTest {
               <upgrades-drawer id="upgrades">
                 <inventory storage="upgrades" columns="1" spacing="2">
                   <upgrade-slot id="first" index="0" item-tag="test:upgrades"/>
-                  <upgrade-slot id="second" index="1" item-tag="test:upgrades"/>
+                  <upgrade-slot id="second" index="1" item-tag="test:upgrades" max-stack-size="8"/>
                 </inventory>
               </upgrades-drawer>
             </screen>
@@ -51,6 +51,10 @@ class UpgradesDrawerTest {
             screen.find("first").orElseThrow());
         assertEquals(ResourceLocation.parse("test:upgrades"),
             slot.acceptedItems().location());
+        assertEquals(1, slot.maxStackSize());
+        assertEquals(8,
+            ((UpgradeSlotElement) screen.find("second").orElseThrow())
+                .maxStackSize());
         var state = new ElementStates(screen.elements(), RegistryAccess.EMPTY,
             () -> {
             });

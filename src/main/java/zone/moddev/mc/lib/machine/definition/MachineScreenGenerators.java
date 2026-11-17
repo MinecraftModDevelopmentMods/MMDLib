@@ -247,6 +247,7 @@ public final class MachineScreenGenerators {
                 ? slot.itemTag().toString()
                 : "mmdlib:" + kind + "_upgrades");
         attributes.put("kind", "upgrade");
+        attributes.put("max-stack-size", kind.equals("range") ? "1" : "8");
         attributes.put("size", "normal");
         attributes.put("item-size", "16");
         if (!kind.equals("range")) {

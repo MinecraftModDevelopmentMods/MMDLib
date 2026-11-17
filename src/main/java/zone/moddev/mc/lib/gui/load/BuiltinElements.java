@@ -93,7 +93,8 @@ public final class BuiltinElements {
         zone.moddev.mc.lib.gui.model.elements.UpgradeSlotElement.class,
         x -> new zone.moddev.mc.lib.gui.model.elements.UpgradeSlotElement(
             x.common(), x.integer("index"), slot(x, false).appearance(),
-            ResourceLocation.parse(x.attribute("item-tag"))),
+            ResourceLocation.parse(x.attribute("item-tag")),
+            x.optional("max-stack-size").map(Integer::parseInt).orElse(1)),
         "widget", "slots");
     public static final ElementType<SlotElement> SLOT = builtin("slot",
         SlotElement.class, x -> slot(x, false), "widget", "slots")

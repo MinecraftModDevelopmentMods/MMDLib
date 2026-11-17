@@ -20,10 +20,22 @@ import zone.moddev.mc.lib.gui.model.SlotKind;
  */
 public class UpgradeSlotElement extends ItemSlotElement {
     private final TagKey<Item> tag;
+    private final int maxStackSize;
     public UpgradeSlotElement(Common common, int index, Appearance appearance,
         ResourceLocation tag) {
+        this(common, index, appearance, tag, 1);
+    }
+    public UpgradeSlotElement(Common common, int index, Appearance appearance,
+        ResourceLocation tag, int maxStackSize) {
         super(common, index, SlotKind.UPGRADE, appearance);
+        if (maxStackSize < 1 || maxStackSize > 64)
+            throw new IllegalArgumentException(
+                "Upgrade max-stack-size must be between 1 and 64");
+        this.maxStackSize = maxStackSize;
         this.tag = TagKey.create(Registries.ITEM, tag);
+    }
+    public int maxStackSize() {
+        return maxStackSize;
     }
     public TagKey<Item> acceptedItems() {
         return tag;
@@ -43,20 +55,24 @@ public class UpgradeSlotElement extends ItemSlotElement {
         Runnable changed) {
         var xy = itemPosition(bounds);
         return new MenuSlot(storage, local, xy[0], xy[1], visible, interacting,
-            changed, true) {
+            changed, false) {
+            public int getMaxStackSize() {
+                return Math.min(maxStackSize, super.getMaxStackSize());
+            }
             public boolean mayPlace(ItemStack stack) {
                 return stack.is(tag) && super.mayPlace(stack);
             }
         };
     }
     public String toString() {
-        return "UpgradeSlot[" + super.toString() + "," + tag.location() + "]";
+        return "UpgradeSlot[" + super.toString() + "," + tag.location() + ","
+            + maxStackSize + "]";
     }
     public boolean equals(Object other) {
         return super.equals(other) && other instanceof UpgradeSlotElement slot
-            && tag.equals(slot.tag);
+            && tag.equals(slot.tag) && maxStackSize == slot.maxStackSize;
     }
     public int hashCode() {
-        return 31 * super.hashCode() + tag.hashCode();
+        return 31 * (31 * super.hashCode() + tag.hashCode()) + maxStackSize;
     }
 }
