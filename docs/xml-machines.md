@@ -1679,3 +1679,17 @@ The companion Admission Demo shows furnace fuel, vanilla smelting, item/fluid ta
 a mod-config-selected fluid tag and recipe-based fluid admission. Its custom processor
 supplies rules without a recipe processor. `AdmissionDemo.fuelTag` illustrates the
 mod-owned configuration value; the fixture itself is an inspection/storage machine.
+
+## Typed processor storage
+
+`ProcessorMachine.resources()` exposes the host's existing `MachineInventory`.
+Use `items("group")`, `fluids("group")` and `energy("group")` for typed access;
+missing or wrong-kind names fail explicitly. Indexes are local to that group.
+Use `try (var tx = resources.begin())` and commit only when every operation succeeds.
+Closing without commit rolls all changes back. These are internal processing
+operations: they honor reservations but bypass external roles and item admission.
+Use copied `peek` values for inspection. Declaration prototypes have no live host.
+
+The companion Porting Workshop converts one cobblestone and 25 mB water into stone
+using one transaction. A blocked output leaves both inputs unchanged. Its processor
+uses only the common host API, with no cast to the XML block entity.

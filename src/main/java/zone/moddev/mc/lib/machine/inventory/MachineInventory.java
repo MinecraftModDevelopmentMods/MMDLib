@@ -35,6 +35,29 @@ public final class MachineInventory {
         return Optional.ofNullable(groups.get(key));
     }
 
+    /**
+     * Named typed groups, with an explicit error for absent/wrong-kind keys.
+     */
+    public ItemGroup items(String key) {
+        return require(key, ItemGroup.class);
+    }
+
+    public FluidGroup fluids(String key) {
+        return require(key, FluidGroup.class);
+    }
+
+    public EnergyGroup energy(String key) {
+        return require(key, EnergyGroup.class);
+    }
+
+    private <T extends SlotGroup> T require(String key, Class<T> type) {
+        var group = groups.get(key);
+        if (!type.isInstance(group))
+            throw new IllegalArgumentException(
+                "Expected " + type.getSimpleName() + " group: " + key);
+        return type.cast(group);
+    }
+
     /** Every group key, in the order added. */
     public Set<String> keys() {
         return groups.keySet();
@@ -72,8 +95,7 @@ public final class MachineInventory {
         /**
          * Adds {@code group} under {@code key}.
          *
-         * @throws IllegalArgumentException
-         *             if {@code key} is already used
+         * @throws IllegalArgumentException if {@code key} is already used
          */
         public Builder group(String key, SlotGroup group) {
             if (groups.putIfAbsent(key, group) != null)

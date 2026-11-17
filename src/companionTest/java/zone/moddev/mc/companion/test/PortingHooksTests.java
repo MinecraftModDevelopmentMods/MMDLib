@@ -31,6 +31,30 @@ public final class PortingHooksTests {
     }
 
     @GameTest(template = "empty")
+    public static void typedResourceTransactionsRollbackBlockedOutput(
+        GameTestHelper h) {
+        var machine = place(h, "porting_workshop");
+        machine.items.insertItem(0, new ItemStack(Items.COBBLESTONE, 2), false);
+        machine.fluids.fill(new FluidStack(Fluids.WATER, 100),
+            FluidAction.EXECUTE);
+        machine.items.insertResult(1, new ItemStack(Items.DIRT, 64), false);
+        machine.serverTick();
+        h.assertTrue(machine.items.getStackInSlot(0).getCount() == 2,
+            "Blocked output rolls back item input");
+        h.assertTrue(machine.fluids.getFluidInTank(0).getAmount() == 100,
+            "Blocked output rolls back fluid input");
+        machine.items.extractItem(1, 64, false);
+        machine.serverTick();
+        h.assertTrue(machine.items.getStackInSlot(1).is(Items.STONE),
+            "Custom processor inserts its product");
+        h.assertTrue(machine.items.getStackInSlot(0).getCount() == 1,
+            "One input consumed");
+        h.assertTrue(machine.fluids.getFluidInTank(0).getAmount() == 75,
+            "Fluid consumed in same transaction");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void admissionRulesRejectWrongInputsAndFollowConfig(
         GameTestHelper h) {
         var machine = place(h, "admission_demo");

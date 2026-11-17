@@ -40,6 +40,11 @@ public final class DefinedMachineEntity extends BaseMachine
     private final List<Integer> rangeSlots;
     public final MachineResources resources;
     public final MachineInventoryLifecycle inventory;
+
+    @Override
+    public zone.moddev.mc.lib.machine.inventory.MachineInventory resources() {
+        return resources.recipes();
+    }
     private final RedstoneControl redstone;
     private final MachineVisualState visuals;
     private final MachineShapeState shapes;
