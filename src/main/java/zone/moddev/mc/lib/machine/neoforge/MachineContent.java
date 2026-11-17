@@ -7,11 +7,8 @@ import java.util.TreeMap;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.Fluids;
@@ -232,18 +229,6 @@ public final class MachineContent {
                 helper.register(id, type);
                 entities.put(id, type);
             }));
-        event.register(Registries.CREATIVE_MODE_TAB, helper -> {
-            if (!definitions.isEmpty())
-                helper.register(ResourceLocation.parse("mmdlib:data_machines"),
-                    CreativeModeTab.builder()
-                        .title(Component.literal("Data-defined Machines"))
-                        .icon(() -> new ItemStack(
-                            blocks.values().iterator().next()))
-                        .displayItems((parameters, output) -> {
-                            blocks.values().forEach(output::accept);
-                            output.accept(recoveryItem());
-                        }).build());
-        });
     }
 
     private static void capabilities(RegisterCapabilitiesEvent event) {

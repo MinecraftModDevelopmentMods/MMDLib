@@ -59,7 +59,7 @@ The example reuses vanilla textures; your own textures can use names such as
 blockstates, block/item models, English labels, mining tags and a self-drop loot
 table in a low-priority resource pack. Authored resources can override these
 defaults. Crafting recipes remain ordinary files under `data/<modid>/recipe/`.
-The companion's SimpleCrusher is in the **Data-defined Machines** creative tab.
+The companion's SimpleCrusher is in the companion mod's own creative tab.
 
 ## Ghost inventory inputs
 

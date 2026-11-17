@@ -36,6 +36,10 @@ public final class ScriptCreativeTabBuilder {
     private final List<Entry> contents = new ArrayList<>();
     private List<ResourceLocation> before = List.of(), after = List.of();
     private boolean searchBar;
+    private boolean defaultForMod;
+    private boolean includeModItems;
+    private List<ResourceLocation> exclusions = List.of();
+    private List<ResourceLocation> excludedTags = List.of();
 
     /**
      * Starts a new tab named {@code name}, a path such as {@code "tools"}. It
@@ -64,6 +68,10 @@ public final class ScriptCreativeTabBuilder {
         before = from.before();
         after = from.after();
         searchBar = from.searchBar();
+        defaultForMod = from.defaultForMod();
+        includeModItems = from.includeModItems();
+        exclusions = from.exclusions();
+        excludedTags = from.excludedTags();
     }
 
     /**
@@ -202,6 +210,54 @@ public final class ScriptCreativeTabBuilder {
     @ZenCodeType.Setter("searchBar")
     public void setSearchBar(boolean value) {
         searchBar = value;
+    }
+
+    /** Whether generated content belonging to this mod joins this tab. */
+    @ZenCodeType.Getter("defaultForMod")
+    public boolean getDefaultForMod() {
+        return defaultForMod;
+    }
+
+    /** Selects this tab as the mod's destination for generated content. */
+    @ZenCodeType.Setter("defaultForMod")
+    public void setDefaultForMod(boolean value) {
+        defaultForMod = value;
+    }
+
+    /** Whether all items in the owning mod's namespace join this tab. */
+    @ZenCodeType.Getter("includeModItems")
+    public boolean getIncludeModItems() {
+        return includeModItems;
+    }
+
+    /** Includes all items in the owning mod's namespace. */
+    @ZenCodeType.Setter("includeModItems")
+    public void setIncludeModItems(boolean value) {
+        includeModItems = value;
+    }
+
+    /** Item IDs omitted from explicit and automatic contents. */
+    @ZenCodeType.Getter("exclude")
+    public String[] getExclusions() {
+        return strings(exclusions);
+    }
+
+    /** Sets item IDs omitted from explicit and automatic contents. */
+    @ZenCodeType.Setter("exclude")
+    public void setExclusions(String[] values) {
+        exclusions = ids(values);
+    }
+
+    /** Item tags omitted from explicit and automatic contents. */
+    @ZenCodeType.Getter("excludeTags")
+    public String[] getExcludedTags() {
+        return strings(excludedTags);
+    }
+
+    /** Sets item tags omitted from explicit and automatic contents. */
+    @ZenCodeType.Setter("excludeTags")
+    public void setExcludedTags(String[] values) {
+        excludedTags = ids(values);
     }
 
     /**
@@ -373,7 +429,8 @@ public final class ScriptCreativeTabBuilder {
         ScriptDefinitions.add(id,
             new CreativeTabDefinition(Optional.ofNullable(title),
                 Optional.ofNullable(titleFallback), Optional.ofNullable(icon),
-                contents, before, after, searchBar));
+                contents, before, after, searchBar, defaultForMod,
+                includeModItems, exclusions, excludedTags));
     }
 
     private static ResourceLocation tag(String text) {

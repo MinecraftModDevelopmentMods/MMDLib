@@ -117,14 +117,12 @@ public final class RuntimeContentRegistrar {
         sounds.register(bus);
 
         tabs.register("materials", () -> CreativeModeTab.builder()
-            .title(
-                Component.translatable("itemGroup." + namespace + ".materials"))
+            .title(ModCreativeTabs.modTitle(namespace))
             .icon(() -> itemEntries.isEmpty()
                 ? new ItemStack(Items.IRON_INGOT)
                 : new ItemStack(itemEntries.values().iterator().next().get()))
-            .displayItems((parameters, output) -> itemEntries.values()
-                .forEach(item -> output.accept(item.get())))
-            .build());
+            .displayItems((parameters, output) -> {
+            }).build());
         INSTANCES.add(this);
     }
 
@@ -141,6 +139,10 @@ public final class RuntimeContentRegistrar {
     /** Every creative tab queued with {@link #queueTab}, by ID. */
     public Map<ResourceLocation, DeferredHolder<CreativeModeTab, CreativeModeTab>> creativeTabs() {
         return Collections.unmodifiableMap(tabEntries);
+    }
+
+    Map<ResourceLocation, CreativeTabDefinition> creativeTabDefinitions() {
+        return Collections.unmodifiableMap(tabDefinitions);
     }
 
     /**

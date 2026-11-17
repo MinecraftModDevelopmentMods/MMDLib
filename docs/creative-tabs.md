@@ -1,19 +1,66 @@
 # Creative tabs
 
-A mod using MMDLib can describe its creative tabs in JSON, next to its material and
+A mod using MMDLib can describe its creative tabs in XML or JSON, next to its material and
 other definitions. Each file in `mmdlib/creative_tab/` becomes one tab:
 
 ```text
 src/main/resources/mmdlib/
   material/copper.json
-  creative_tab/tools.json        -> tab example:tools
+  creative_tab/main.xml          -> tab example:main
   creative_tab/blocks/deco.json  -> tab example:blocks/deco
 ```
 
 The tab's ID is the mod's ID and the file's path below `creative_tab/`, without
-`.json`, as for every other [definition file](definition-loading.md).
+`.xml` or `.json`. Defining the same ID in both formats is an error.
 
-## The file
+## XML
+
+```xml
+<creative-tab xmlns="https://moddev.zone/mmdlib/creative-tab" version="1"
+              title="itemGroup.example" title-fallback="Example Mod"
+              icon="example:copper_hammer" default-for-mod="true"
+              include-mod-items="true" search-bar="true">
+  <exclude tag="example:internal_items"/>
+  <after id="minecraft:tools_and_utilities"/>
+</creative-tab>
+```
+
+The namespace and `version="1"` are required. Root attributes are `title`,
+`title-fallback`, `icon`, `search-bar`, `default-for-mod` and `include-mod-items`;
+boolean attributes default to `false`. Children are `item`, `tag`, `material`,
+`before`, `after` and `exclude`. Entries use `id`; `exclude` requires exactly one
+of `id` (an item) or `tag` (an item tag). Unknown attributes/elements are errors. DTDs and
+external entities are not allowed. XML and JSON use the same validation and
+runtime behavior.
+
+`include-mod-items="true"` includes every registered item whose namespace matches
+the tab's owning mod, including native Java items and generated block/material
+items. No item list is needed. New items appear automatically after restarting.
+Items are sorted by registry ID. Optional `item`, `tag` and `material` entries
+come first, allowing favorites at the top without duplicates.
+
+`exclude` accepts exact item IDs or item tags and wins over all inclusion sources, including
+explicit entries and `default-for-mod` generated content. It affects this tab's
+display and contribution to creative search; another tab may still list the item.
+Unknown exclusions are harmless, allowing optional or retired internal items.
+Supply an `icon` when there are no explicit item/material entries.
+
+For `<exclude tag="example:internal_items"/>`, put the members in
+`data/example/tags/item/internal_items.json`:
+
+```json
+{
+  "replace": false,
+  "values": ["example:internal_part", "example:legacy_alias"]
+}
+```
+
+Use the bare tag ID in XML (no `#`). Tag files can include nested tags using
+`"#example:other_internal_items"`. Exclusion tags are resolved whenever the tab
+is rebuilt, using the current datapack tags; missing or empty tags exclude nothing.
+Both shipped mod tabs use their own `internal_items` tag.
+
+## JSON
 
 ```json
 {
@@ -29,7 +76,8 @@ The tab's ID is the mod's ID and the file's path below `creative_tab/`, without
 }
 ```
 
-Only `contents` is required.
+`contents` defaults to an empty list. Without an explicit item/material entry,
+an `icon` is required.
 
 | Field | Meaning |
 |---|---|
@@ -39,6 +87,10 @@ Only `contents` is required.
 | `icon` | The item shown on the tab. Defaults to the first item or material entry in `contents`; a tab whose contents are all tags needs one. |
 | `before`, `after` | Tab IDs this tab is placed before or after, such as `"minecraft:combat"`. |
 | `search_bar` | `true` gives the tab a search bar. |
+| `default_for_mod` | `true` sends generated machines and registrar items in this tab's namespace here. At most one default per mod. XML spells this `default-for-mod`. |
+| `include_mod_items` | `true` appends every enabled item registered in the owning namespace, sorted by ID. Defaults to `false`. XML spells this `include-mod-items`. |
+| `exclude` | Item IDs to omit from all inclusion sources, e.g. `["example:internal_part"]`. Defaults to `[]`. XML uses `<exclude id="example:internal_part"/>`. |
+| `exclude_tags` | Item tag IDs to omit, e.g. `["example:internal_items"]` (no `#`). Defaults to `[]`. XML uses `<exclude tag="example:internal_items"/>`. |
 
 An item appears once, where it is first listed: a tag or material that includes an
 item already shown does not repeat it. Items whose feature flags are disabled are
@@ -57,19 +109,24 @@ Tags are filled in when the game builds the tab, so tags from datapacks work.
 
 ## Registering the tabs
 
-MMDLib registers the tabs in its own namespace. As with materials, your mod
-registers its own, through its `RuntimeContentRegistrar`. `MMDLib.creativeTabs()`
-lists every tab file; queue yours once loading is done:
+MMDLib automatically registers file-defined tabs for every owning mod. No Java
+tab registration is needed. `MMDLib.creativeTabs()` lists the loaded definitions.
+Existing consumers that queue file tabs through a `RuntimeContentRegistrar`
+remain supported; a queued tab is not registered a second time.
 
-```java
-MMDLib.creativeTabs().forEach((id, tab) -> {
-    if (id.getNamespace().equals("example"))
-        registrar.queueTab(id, tab);
-});
-```
+Generated machines and material/standalone items join their owner's default tab,
+after its explicit contents, without duplicates. Without an explicit default,
+MMDLib selects a same-namespace Java or file tab: `main`, then `machines`, then
+other names alphabetically, then the registrar's `materials` fallback. A mod
+with no other tab gets `<mod>:mmdlib_content`, titled with the mod's display name.
+Unused fallback tabs stay empty and hidden. There is no shared data-defined
+machines tab. MMDLib's Range, Gearbox and Capacitor Upgrades live in `mmdlib:main`.
 
-`queueTab` returns the tab's `DeferredHolder`. It only takes IDs in the
-registrar's namespace, and not `<mod>:materials`, which is the registrar's own tab.
+Use `include-mod-items` to discover manually registered Java items too, and
+exclude internal parts and compatibility aliases. Without that option, list
+Java items explicitly or use the Java tab's display callback.
+
+When replacing a Java tab with XML, remove the old registration for that ID.
 
 ## Building a tab in code
 
@@ -86,8 +143,15 @@ registrar.queueTab(ResourceLocation.parse("example:tools"),
         .tag(ResourceLocation.parse("c:gears"))
         .after(ResourceLocation.parse("minecraft:tools_and_utilities"))
         .searchBar()
+        .defaultForMod()
+        .includeModItems()
+        .exclude(ResourceLocation.parse("example:internal_part"))
+        .excludeTag(ResourceLocation.parse("example:internal_items"))
         .build());
 ```
+
+`queueTab` returns the tab's `DeferredHolder`. It only takes IDs in the
+registrar's namespace, and not `<mod>:materials`, which is reserved for its fallback.
 
 ## From CraftTweaker scripts
 
@@ -100,6 +164,6 @@ ID replaces it.
 
 ## The materials tab
 
-Every registrar also has its automatic `<mod>:materials` tab, holding every item it
-registers; its title is the translation key `itemGroup.<mod>.materials`. It is
-unchanged by tab files, so an item listed in your own tab also appears there.
+Every registrar retains `<mod>:materials` as a fallback, using translation key
+`itemGroup.<mod>` and the mod's display name. It receives generated content only
+when the mod has no preferred tab; otherwise it stays empty and hidden.

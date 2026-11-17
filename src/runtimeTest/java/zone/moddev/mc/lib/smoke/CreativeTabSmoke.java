@@ -57,6 +57,51 @@ final class CreativeTabSmoke {
                 && "MMDLib Test Workshop".equals(title.getFallback()),
             "the default title key, with the fallback");
         require(MMDLib.creativeTabs().containsKey(id), "the tab is listed");
+        automaticItems(level);
+    }
+
+    private static void automaticItems(ServerLevel level) {
+        var id = ResourceLocation.parse("mmdlib:test/automatic");
+        var excluded = java.util.Set.of(
+            ResourceLocation.parse("mmdlib:iron_gear"),
+            ResourceLocation.parse("mmdlib:machine_recovery_capsule"));
+        var tab = BuiltInRegistries.CREATIVE_MODE_TAB.get(id);
+        require(tab != null, "automatic XML tab registered");
+        for (int rebuild = 0; rebuild < 2; rebuild++) {
+            tab.buildContents(new CreativeModeTab.ItemDisplayParameters(
+                level.enabledFeatures(), false, level.registryAccess()));
+            var shown = tab.getDisplayItems().stream()
+                .map(stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()))
+                .toList();
+            var expected = BuiltInRegistries.ITEM.keySet().stream()
+                .filter(item -> item.getNamespace().equals("mmdlib")
+                    && !excluded.contains(item))
+                .filter(item -> BuiltInRegistries.ITEM.get(item)
+                    .isEnabled(level.enabledFeatures()))
+                .collect(java.util.stream.Collectors.toSet());
+            require(
+                new java.util.HashSet<>(shown).equals(expected)
+                    && shown.size() == expected.size(),
+                "all enabled own-mod items appear once, and exclusions override item, tag, material and automatic entries");
+            require(
+                shown.getFirst().equals(
+                    ResourceLocation.parse("mmdlib:iron_molten_bucket")),
+                "explicit favorite stays first even when also automatically included");
+            require(
+                tab.getSearchTabDisplayItems().stream()
+                    .noneMatch(stack -> excluded.contains(
+                        BuiltInRegistries.ITEM.getKey(stack.getItem()))),
+                "excluded items are not contributed to search");
+            var main = BuiltInRegistries.CREATIVE_MODE_TAB
+                .get(ResourceLocation.parse("mmdlib:main"));
+            main.buildContents(new CreativeModeTab.ItemDisplayParameters(
+                level.enabledFeatures(), false, level.registryAccess()));
+            require(
+                main.getDisplayItems().stream()
+                    .noneMatch(stack -> excluded.contains(
+                        BuiltInRegistries.ITEM.getKey(stack.getItem()))),
+                "nested tag exclusions also prevent default routing from restoring generated items");
+        }
     }
 
     /** The script's tab: an apple, then the gold material, and no stick. */
