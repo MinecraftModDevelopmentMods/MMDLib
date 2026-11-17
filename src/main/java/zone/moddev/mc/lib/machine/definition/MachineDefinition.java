@@ -327,14 +327,22 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public record Slot(String id, Role role, int limit,
-        ResourceLocation itemTag) {
+        ResourceLocation itemTag, AdmissionDeclaration admission) {
+        public Slot(String id, Role role, int limit, ResourceLocation itemTag) {
+            this(id, role, limit, itemTag, null);
+        }
         public Slot(String id, Role role, int limit) {
             this(id, role, limit, null);
         }
     }
 
     public record Tank(String id, Role role, int capacity,
-        ResourceLocation fluid) {
+        ResourceLocation fluid, ResourceLocation fluidTag,
+        AdmissionDeclaration admission) {
+        public Tank(String id, Role role, int capacity,
+            ResourceLocation fluid) {
+            this(id, role, capacity, fluid, null, null);
+        }
     }
 
     public record Fluids(String id, List<Tank> tanks, List<Group> groups) {

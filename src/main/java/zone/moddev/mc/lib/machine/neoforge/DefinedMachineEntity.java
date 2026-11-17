@@ -33,6 +33,7 @@ public final class DefinedMachineEntity extends BaseMachine
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle.Provider {
     public final MachineDefinition definition;
     private Runnable placementComplete;
+    private final java.util.Map<zone.moddev.mc.lib.machine.definition.AdmissionDeclaration, zone.moddev.mc.lib.machine.feature.StorageAdmission> admissionRules = new java.util.HashMap<>();
     public final ItemInventories items;
     public final FluidStorage fluids;
     public final EnergyBuffer energy;
@@ -48,6 +49,23 @@ public final class DefinedMachineEntity extends BaseMachine
     private final zone.moddev.mc.lib.machine.feature.WorkTargets workTargets;
     private java.math.BigInteger cyclesBefore = java.math.BigInteger.ZERO;
     private long startsBefore;
+
+    private void prepareAdmission(
+        zone.moddev.mc.lib.machine.definition.AdmissionDeclaration declaration) {
+        if (declaration.type() != null)
+            admissionRules.computeIfAbsent(declaration, key -> key.create());
+    }
+
+    private zone.moddev.mc.lib.machine.feature.StorageAdmission admission(
+        zone.moddev.mc.lib.machine.definition.AdmissionDeclaration declaration) {
+        if (declaration.processor() == null)
+            return admissionRules.get(declaration);
+        return features
+            .findProcessor(declaration.processor(),
+                zone.moddev.mc.lib.machine.feature.StorageAdmission.class)
+            .orElseThrow(() -> new IllegalStateException(
+                "Missing admission processor " + declaration.processor()));
+    }
 
     public DefinedMachineEntity(BlockEntityType<?> type, BlockPos pos,
         BlockState state, MachineDefinition definition,
@@ -74,6 +92,22 @@ public final class DefinedMachineEntity extends BaseMachine
                     stack -> filter == null || BuiltInRegistries.FLUID
                         .getKey(stack.getFluid()).equals(filter));
                 fluids.tankId(index, tank.id());
+                if (tank.fluidTag() != null) {
+                    var tag = net.minecraft.tags.TagKey.create(
+                        net.minecraft.core.registries.Registries.FLUID,
+                        tank.fluidTag());
+                    fluids.restrict(stack -> stack.is(tag), index);
+                }
+                if (tank.admission() != null) {
+                    prepareAdmission(tank.admission());
+                    fluids.restrict(
+                        stack -> admission(tank.admission()).acceptsFluid(this,
+                            tank.id(),
+                            new zone.moddev.mc.lib.machine.ingredient.FluidAmount(
+                                stack.getFluidHolder(),
+                                stack.getComponentsPatch(), stack.getAmount())),
+                        index);
+                }
             }
         items = ItemInventories.partition(definition.inventoryNames())
             .onChange(this::setChanged);
@@ -81,6 +115,11 @@ public final class DefinedMachineEntity extends BaseMachine
             var slot = definition.slots().get(i);
             items.slotId(i, slot.id()).role(slot.role(), i).limit(slot.limit(),
                 i);
+            if (slot.admission() != null) {
+                prepareAdmission(slot.admission());
+                items.restrict(stack -> admission(slot.admission())
+                    .acceptsItem(this, slot.id(), stack.copy()), i);
+            }
             if (slot.itemTag() != null) {
                 var tag = net.minecraft.tags.TagKey.create(
                     net.minecraft.core.registries.Registries.ITEM,

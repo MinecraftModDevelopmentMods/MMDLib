@@ -1656,3 +1656,26 @@ Vertical fronts use north as local top. Shapes, models, displays and working
 areas share that orientation. Range upgrades expand the area's local plane.
 The companion's Facing Demo machines illustrate all, away, up-only, down-only,
 vertical and asymmetric sets; the existing crushers show horizontal defaults.
+
+## Dynamic storage admission
+
+Real slots accept `filter-class="your.ModAdmission"` or
+`filter-processor="processor_id"`, alongside existing `item-tag` restrictions.
+Tanks accept the same hooks and `fluid-tag="namespace:tag"` alongside exact `fluid`.
+All applicable rules must pass. Recipe admission still accepts the union of linked
+recipe inputs. Rules do not delete contents when tags, recipes or configuration change.
+
+Implement `StorageAdmission` with `acceptsItem(ProcessorMachine, memberId, ItemStack)`
+and/or `acceptsFluid(ProcessorMachine, memberId, FluidAmount)`. Unimplemented kinds
+refuse insertion. A class needs a public no-argument constructor and is instantiated
+per machine; a processor binding names a custom processor implementing that interface.
+The member ID is the stable storage slot/tank ID, such as `fuel/0`. Values are detached;
+the host can have a null level during construction/loading. Queries must not mutate
+storage and must handle simulated operations. Read live config/recipes or invalidate
+any private caches on reload. These hooks govern external admission; machine-product
+transactions retain their existing internal insertion semantics.
+
+The companion Admission Demo shows furnace fuel, vanilla smelting, item/fluid tags,
+a mod-config-selected fluid tag and recipe-based fluid admission. Its custom processor
+supplies rules without a recipe processor. `AdmissionDemo.fuelTag` illustrates the
+mod-owned configuration value; the fixture itself is an inspection/storage machine.

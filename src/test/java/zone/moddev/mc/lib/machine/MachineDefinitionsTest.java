@@ -48,6 +48,51 @@ class MachineDefinitionsTest {
             .of("src/companion/resources/mmdlib/machine/simple_crusher.xml"));
     }
 
+    public static final class Admission
+        extends
+            zone.moddev.mc.lib.machine.feature.StoredProcessor
+        implements zone.moddev.mc.lib.machine.feature.StorageAdmission {
+        public boolean canStart(
+            zone.moddev.mc.lib.machine.feature.ProcessorState state,
+            zone.moddev.mc.lib.machine.feature.ProcessorMachine host) {
+            return false;
+        }
+        public ProcessState process(
+            zone.moddev.mc.lib.machine.feature.ProcessorState state,
+            zone.moddev.mc.lib.machine.feature.ProcessorMachine host,
+            int ticks) {
+            return ProcessState.IDLE;
+        }
+    }
+
+    @Test
+    void admissionDeclarationsResolveAndRejectMissingProcessors()
+        throws Exception {
+        String xml = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/admission_demo.xml"))
+            .replace("zone.moddev.mc.companion.AdmissionDemo",
+                Admission.class.getName());
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals("rules",
+            definition.slots().getFirst().admission().processor());
+        assertEquals(Admission.class,
+            definition.slots().get(1).admission().type());
+        assertEquals(ResourceLocation.parse("minecraft:water"),
+            definition.fluids().tanks().getFirst().fluidTag());
+        write(xml.replace("filter-processor=\"rules\"",
+            "filter-processor=\"missing\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("filter-processor=\"rules\"",
+            "filter-processor=\"rules\" filter-class=\""
+                + Admission.class.getName() + "\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
     @Test
     void facingFixturesLoadAndValidateInheritedPolicies() throws Exception {
         for (var name : List.of("all", "away", "up", "down", "vertical",

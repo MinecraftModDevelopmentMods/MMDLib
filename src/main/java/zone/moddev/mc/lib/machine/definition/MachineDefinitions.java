@@ -90,6 +90,18 @@ public final class MachineDefinitions {
         return Collections.unmodifiableMap(plans);
     }
 
+    private static AdmissionDeclaration admission(Node node,
+        Map<String, ClassLoader> loaders) {
+        try {
+            return AdmissionDeclaration.load(
+                node.attributes().get("filter-class"),
+                node.attributes().get("filter-processor"),
+                loaders.get(node.source()));
+        } catch (IllegalArgumentException ex) {
+            throw error(node, ex.getMessage());
+        }
+    }
+
     private static Node resolve(ResourceLocation id,
         Map<ResourceLocation, Node> nodes, Map<ResourceLocation, Node> resolved,
         Set<ResourceLocation> visiting) {
@@ -195,21 +207,22 @@ public final class MachineDefinitions {
                 "frames", "variable", "emissive", "when")),
         Map.entry("storage", Set.of()), Map.entry("items", Set.of("id")),
         Map.entry("fluids", Set.of("id")),
-        Map.entry("tank",
-            Set.of("id", "capacity", "role", "fluid", "color", "automation",
-                "name")),
+        Map.entry("tank", Set.of("id", "capacity", "role", "fluid", "fluid-tag",
+            "filter-class", "filter-processor", "color", "automation", "name")),
         Map.entry("tanks",
-            Set.of("id", "count", "capacity", "role", "fluid", "color",
-                "automation", "name")),
+            Set.of("id", "count", "capacity", "role", "fluid", "fluid-tag",
+                "filter-class", "filter-processor", "color", "automation",
+                "name")),
         Map.entry("energy",
             Set.of("id", "capacity", "input-rate", "output-rate", "color",
                 "name")),
         Map.entry("slots",
             Set.of("id", "count", "role", "limit", "color", "type",
-                "default-item", "name", "automation", "item-tag")),
+                "default-item", "name", "automation", "item-tag",
+                "filter-class", "filter-processor")),
         Map.entry("slot",
             Set.of("id", "count", "role", "limit", "type", "default-item",
-                "name", "item-tag")),
+                "name", "item-tag", "filter-class", "filter-processor")),
         Map.entry("groups", Set.of()),
         Map.entry("group",
             Set.of("id", "storage", "members", "mode", "color", "name")),
@@ -262,7 +275,7 @@ public final class MachineDefinitions {
             case "recipe-type" -> List.of("id");
             case "processor" -> List.of("recipe-type", "default-recipe",
                 "running-sound", "finish-sound", "on-start", "on-finish");
-            case "tank", "tanks" -> List.of("fluid");
+            case "tank", "tanks" -> List.of("fluid", "fluid-tag");
             case "slot", "slots" -> List.of("default-item", "item-tag");
             default -> List.<String>of();
         };
@@ -376,7 +389,9 @@ public final class MachineDefinitions {
                     if (tankIds.putIfAbsent(member, tanks.size()) != null)
                         throw error(node, "Duplicate tank " + member);
                     members.add(tanks.size());
-                    tanks.add(new Tank(member, role, capacity, filter));
+                    tanks.add(new Tank(member, role, capacity, filter,
+                        optionalResource(node, "fluid-tag").orElse(null),
+                        admission(node, loaders)));
                 }
                 if (fluidGroups.putIfAbsent(tankId, new Group(tankId, members,
                     mode(role),
@@ -410,9 +425,11 @@ public final class MachineDefinitions {
             if (!Set.of("item", "ghost").contains(slotType))
                 throw error(node, "Slot type must be item or ghost");
             if (slotType.equals("ghost")) {
-                if (node.attributes().containsKey("item-tag"))
+                if (node.attributes().containsKey("item-tag")
+                    || node.attributes().containsKey("filter-class")
+                    || node.attributes().containsKey("filter-processor"))
                     throw error(node,
-                        "item-tag is only supported for real item slots");
+                        "Storage filters are only supported for real item slots");
                 if (node.attributes().containsKey("automation"))
                     throw error(node, "Ghost slots do not expose automation");
                 if (role != Role.INPUT
@@ -450,7 +467,8 @@ public final class MachineDefinitions {
                 slots.add(new Slot(memberId, role, limit,
                     node.attributes().containsKey("item-tag")
                         ? resource(node, "item-tag")
-                        : null));
+                        : null,
+                    admission(node, loaders)));
             }
             if (node.name().equals("slots")) {
                 boolean automation = bool(node, "automation", true);
@@ -834,8 +852,8 @@ public final class MachineDefinitions {
                 group -> group.automation() && group.members().contains(index)))
                 throw error(upgrades, "range-slots must not expose automation");
             var slot = slots.get(index);
-            slots.set(index,
-                new Slot(slot.id(), slot.role(), 1, slot.itemTag()));
+            slots.set(index, new Slot(slot.id(), slot.role(), 1, slot.itemTag(),
+                slot.admission()));
         }
         if (capacitorSlot != null && power == null)
             throw error(upgrades, "capacitor-slot requires energy storage");
@@ -865,8 +883,8 @@ public final class MachineDefinitions {
                 throw error(upgrades,
                     attribute + " must not expose automation");
             var slot = slots.get(index);
-            slots.set(index,
-                new Slot(slot.id(), slot.role(), 8, slot.itemTag()));
+            slots.set(index, new Slot(slot.id(), slot.role(), 8, slot.itemTag(),
+                slot.admission()));
         }
         MachineBehavior behavior;
         try {
@@ -889,6 +907,24 @@ public final class MachineDefinitions {
         } catch (IllegalArgumentException ex) {
             throw error(block, ex.getMessage());
         }
+        var admissions = new ArrayList<AdmissionDeclaration>();
+        slots.forEach(slot -> {
+            if (slot.admission() != null)
+                admissions.add(slot.admission());
+        });
+        tanks.forEach(tank -> {
+            if (tank.admission() != null)
+                admissions.add(tank.admission());
+        });
+        for (var admission : admissions)
+            if (admission.processor() != null && (processor == null
+                || !admission.processor().equals(required(processor, "id"))
+                || declaration == null
+                || !zone.moddev.mc.lib.machine.feature.StorageAdmission.class
+                    .isAssignableFrom(declaration.type())))
+                throw error(root,
+                    "filter-processor must name a processor implementing StorageAdmission: "
+                        + admission.processor());
         if (behavior.secondaryAction() != null && (prototype == null
             || !prototype.actions().containsKey(behavior.secondaryAction())))
             throw error(block, "Unknown secondary-use processor action: "
