@@ -237,7 +237,7 @@ public final class FeatureHost implements IRedstoneOutput {
             if (enabled) {
                 if (processorClock != null
                     && feature instanceof Processor<?> processor)
-                    processor.tick(this, processorClock.steps(processor, this));
+                    processorClock.tick(processor, this);
                 else
                     feature.tick(this);
             } else

@@ -33,22 +33,20 @@ public final class ProcessorClock
     }
 
     /**
-     * Never banks more than a fractional tick or accelerates a paused
-     * processor.
+     * Schedules a batch, committing fractional work only when it runs. Idle,
+     * stalled, held and paused processors never bank work or dirty saves.
      */
-    public int steps(Processor<?> processor, FeatureHost host) {
-        if (processor.paused())
-            return 1;
-        int count = Math.clamp(gearboxes.getAsInt(), 0, 8);
-        if (count == 0)
-            return 1;
+    public void tick(Processor<?> processor, FeatureHost host) {
+        int count = processor.paused()
+            ? 0
+            : Math.clamp(gearboxes.getAsInt(), 0, 8);
         int previous = fractions.getOrDefault(processor.key(), 0);
         int total = previous + count;
+        processor.tick(host, 1 + total / 8);
         int remainder = total % 8;
-        if (remainder != previous) {
+        if (processor.processing() && remainder != previous) {
             fractions.put(processor.key(), remainder);
             host.markChanged();
         }
-        return 1 + total / 8;
     }
 }
