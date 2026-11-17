@@ -1729,7 +1729,9 @@ in declaration order and persist separately. Recipe and custom processors can ru
 together. Repeated `<recipe-type>` declarations provide the types used by recipe
 lanes. The first processor is the default primary unless one declares `primary="true"`;
 portable or secondary-use machines with several processors require an explicit primary.
-Primary selection controls item/placement behavior; it does not change tick order.
+Primary selection controls item/placement behavior, keyless processor controls,
+and the no-argument progress/time/pause getters. It does not change tick order or
+explicitly indexed lane bindings.
 
 Recipe lanes can declare `bindings="input=left_input output=left_output"` to map
 recipe group names to the machine's physical groups. A binding list defines the

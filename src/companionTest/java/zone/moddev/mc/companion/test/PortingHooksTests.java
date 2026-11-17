@@ -31,6 +31,42 @@ public final class PortingHooksTests {
     }
 
     @GameTest(template = "empty")
+    public static void keylessBindingsSelectTheDeclaredPrimary(
+        GameTestHelper h) {
+        var machine = place(h, "parallel_workshop");
+        var left = machine.features.processor("left").orElseThrow();
+        var right = machine.features.processor("right").orElseThrow();
+        machine.energy.setStored(10000);
+        machine.items.inventory("left_input").insertItem(0,
+            new ItemStack(Items.COBBLESTONE), false);
+        machine.serverTick();
+        left.tick(machine.features, 4);
+        h.assertTrue(left.progress() > 0 && right.progress() == 0,
+            "Primary recipe has distinct progress");
+        h.assertTrue(
+            machine.getProgress() == left.progress()
+                && machine.getTime() == left.time(),
+            "Keyless recipe getters use primary");
+        h.assertTrue(
+            machine.features.findProcessor(java.util.Optional.empty())
+                .orElseThrow() == left,
+            "Keyless controls select primary even after a custom processor");
+        left.setPaused(true);
+        h.assertTrue(machine.getPaused(),
+            "Keyless pause uses primary, not the preceding charge processor");
+        h.assertTrue(
+            machine.getProgress(0) == 0
+                && machine.getProgress(1) == left.progress(),
+            "Indexed bindings keep declaration order");
+        machine.features.primaryProcessor("right");
+        h.assertTrue(
+            machine.getProgress() == right.progress()
+                && machine.getTime() == right.time() && !machine.getPaused(),
+            "Selecting the second recipe lane changes every keyless getter");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void operatingCostIsAtomicAndTracksAcceleratedWork(
         GameTestHelper h) {
         var machine = place(h, "paid_workshop");

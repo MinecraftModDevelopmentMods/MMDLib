@@ -382,6 +382,8 @@ public final class DefinedMachineEntity extends BaseMachine
                 features.add(targets);
             }
         }
+        if (definition.processor() != null)
+            features.primaryProcessor(definition.processor());
         installRecipeAdmission(recipes);
         inventory = genericInventory(resources.automation());
         if (definition.itemStorageId() != null)
