@@ -367,6 +367,13 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         }
     }
 
+    /** Stable source IDs available before a runtime recipe processor exists. */
+    public static List<String> redstoneOutputIds(String key) {
+        var prefix = outputPrefix(key);
+        return List.of(prefix + "/processing", prefix + "/inactive",
+            prefix + "/progress");
+    }
+
     private RedstoneOutput output(String kind, Component name, String icon,
         int colour, IntSupplier value) {
         return new RedstoneOutput(outputPrefix + "/" + kind,

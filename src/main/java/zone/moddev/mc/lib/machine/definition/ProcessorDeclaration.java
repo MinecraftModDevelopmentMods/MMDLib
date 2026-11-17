@@ -25,14 +25,25 @@ public final class ProcessorDeclaration {
         return schemas.computeIfAbsent(key, id -> new Schema(create(id, null)));
     }
 
+    /** Declared source IDs, without evaluating live redstone levels. */
+    public java.util.List<String> redstoneOutputIds(String key) {
+        return ((Schema) schema(key)).redstoneOutputIds;
+    }
+
     private static final class Schema implements
         zone.moddev.mc.lib.machine.feature.Processor<net.minecraft.nbt.CompoundTag> {
         private final StoredProcessor prototype;
+        private final java.util.List<String> redstoneOutputIds;
         private final java.util.Map<String, Object> visuals;
         private final java.util.Map<net.minecraft.resources.ResourceLocation, zone.moddev.mc.lib.machine.feature.ProcessorAction> actions;
 
         Schema(StoredProcessor prototype) {
             this.prototype = prototype;
+            redstoneOutputIds = prototype instanceof zone.moddev.mc.lib.api.redstone.IRedstoneOutput provider
+                ? provider.redstoneOutputs().stream()
+                    .map(zone.moddev.mc.lib.api.redstone.RedstoneOutput::id)
+                    .toList()
+                : java.util.List.of();
             var builder = new zone.moddev.mc.lib.machine.presentation.VisualVariables.Builder();
             prototype.defineVisualVariables(builder);
             visuals = builder.build().defaults();

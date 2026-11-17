@@ -907,6 +907,22 @@ public final class MachineDefinitions {
                 schemas.put(config.id(),
                     config.declaration().schema(config.id()));
         });
+        if (redstone != null
+            && redstone.attributes().containsKey("comparator-source")) {
+            var source = required(redstone, "comparator-source");
+            var outputIds = new HashSet<String>();
+            for (var config : processorConfigs) {
+                if (config.recipeType() != null)
+                    outputIds.addAll(
+                        zone.moddev.mc.lib.machine.feature.RecipeProcessor
+                            .redstoneOutputIds(config.id()));
+                else
+                    outputIds.addAll(
+                        config.declaration().redstoneOutputIds(config.id()));
+            }
+            if (!outputIds.contains(source))
+                throw error(redstone, "Unknown comparator source: " + source);
+        }
         var visualizers = optional(root, "visualizers");
         var visualizerStyle = zone.moddev.mc.lib.machine.presentation.VisualizerStyle.DEFAULT;
         if (visualizers != null) {

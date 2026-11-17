@@ -48,7 +48,7 @@ class MachineDefinitionsTest {
             .of("src/companion/resources/mmdlib/machine/simple_crusher.xml"));
     }
 
-    public static final class Admission
+    public static class Admission
         extends
             zone.moddev.mc.lib.machine.feature.StoredProcessor
         implements zone.moddev.mc.lib.machine.feature.StorageAdmission {
@@ -63,6 +63,67 @@ class MachineDefinitionsTest {
             int ticks) {
             return ProcessState.IDLE;
         }
+    }
+
+    public static final class ComparatorProcessor extends Admission
+        implements zone.moddev.mc.lib.api.redstone.IRedstoneOutput {
+        public List<zone.moddev.mc.lib.api.redstone.RedstoneOutput> redstoneOutputs() {
+            return List.of(new zone.moddev.mc.lib.api.redstone.RedstoneOutput(
+                "custom/output",
+                net.minecraft.network.chat.Component.literal("Output"),
+                net.minecraft.network.chat.Component.literal("Output"),
+                0xffffff, java.util.Optional.empty(), () -> {
+                    throw new AssertionError(
+                        "Metadata validation must not sample a live level");
+                }));
+        }
+    }
+
+    @Test
+    void comparatorValidationUsesCustomSourceMetadataWithoutSamplingLevels()
+        throws Exception {
+        String xml = """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="mmdlib:base_machine" name="Custom">
+              <appearance preset="model" model="test:block/base"/>
+              <storage/>
+              <processor id="custom" class="zone.moddev.mc.lib.machine.MachineDefinitionsTest$ComparatorProcessor"/>
+              <redstone comparator-source="custom/output"/>
+            </machine>
+            """;
+        write(xml);
+        assertEquals("custom/output",
+            MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher")).behavior()
+                .comparatorSource());
+        write(xml.replace("custom/output", "custom/typo"));
+        assertTrue(assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources())).getMessage()
+            .contains("Unknown comparator source"));
+    }
+
+    @Test
+    void comparatorSourcesFailAtTheRedstoneDeclaration() throws Exception {
+        for (String source : List.of("processor/crusher/processing",
+            "processor/crusher/inactive", "processor/crusher/progress")) {
+            write(crusher().replace("</machine>",
+                "<redstone comparator-source=\"" + source + "\"/></machine>"));
+            assertEquals(source,
+                MachineDefinitions.load(sources())
+                    .get(ResourceLocation.parse("test:crusher")).behavior()
+                    .comparatorSource());
+        }
+        write(crusher().replace("</machine>",
+            "<redstone comparator-source=\"typo\"/></machine>"));
+        var error = assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        assertTrue(error.getMessage().contains("crusher.xml"));
+        long redstoneLine = crusher()
+            .substring(0, crusher().indexOf("</machine>")).lines().count() + 1;
+        assertTrue(
+            error.getMessage().contains("crusher.xml:" + redstoneLine + ":"),
+            error.getMessage());
+        assertTrue(
+            error.getMessage().contains("Unknown comparator source: typo"));
     }
 
     @Test

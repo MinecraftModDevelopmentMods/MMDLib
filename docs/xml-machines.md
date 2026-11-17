@@ -1715,8 +1715,10 @@ Sneak placement chooses the clicked face; ordinary placement faces the player.
 `IRedstoneOutput` descriptor by its stable ID. The source is sampled together
 with per-face outputs, once per selected source per tick. Comparator readout is
 block-wide and independent of Emit faces and their inversion. Unknown source
-IDs fail when the runtime is assembled. Custom processors contribute values
-through the existing `redstoneOutputs()` method; no second provider is needed.
+IDs fail during definition loading with the source file and line. Custom processors
+contribute descriptors through `redstoneOutputs()`; their IDs must be available
+on the host-free schema prototype. Loading reads the IDs without sampling their
+live value suppliers. No second provider is needed.
 The Porting Workshop exposes output fullness to both the redstone drawer and
 comparators, including comparators reading through an adjacent solid block.
 
