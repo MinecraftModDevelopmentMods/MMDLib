@@ -33,6 +33,7 @@ public class DefinedMachineBlock extends Block implements EntityBlock {
     private final Supplier<BlockEntityType<DefinedMachineEntity>> type;
     private final zone.moddev.mc.lib.machine.definition.MachineFacing facing;
     private zone.moddev.mc.lib.machine.feature.Processor<?> placementPrototype;
+    private boolean comparator;
 
     public static DefinedMachineBlock create(Properties properties,
         Supplier<BlockEntityType<DefinedMachineEntity>> type,
@@ -44,6 +45,7 @@ public class DefinedMachineBlock extends Block implements EntityBlock {
         if (definition.behavior().processor() != null)
             block.placementPrototype = definition.behavior().processor()
                 .schema(definition.processor());
+        block.comparator = definition.behavior().comparatorSource() != null;
         return block;
     }
 
@@ -217,6 +219,8 @@ public class DefinedMachineBlock extends Block implements EntityBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos,
         BlockState replacement, boolean moved) {
+        if (comparator && !state.is(replacement.getBlock()))
+            level.updateNeighbourForOutputSignal(pos, this);
         if (!level.restoringBlockSnapshots)
             DropsContents.onRemove(state, level, pos, replacement);
         super.onRemove(state, level, pos, replacement, moved);
@@ -240,6 +244,20 @@ public class DefinedMachineBlock extends Block implements EntityBlock {
             || host.definition.behavior().shapes().isEmpty())
             return super.getShape(state, world, pos, context);
         return host.shape(state.getValue(facingProperty()));
+    }
+
+    @Override
+    protected boolean hasAnalogOutputSignal(BlockState state) {
+        return comparator;
+    }
+
+    @Override
+    protected int getAnalogOutputSignal(BlockState state, Level level,
+        BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
+            && machine.screenRedstone() != null
+                ? machine.screenRedstone().comparatorLevel()
+                : 0;
     }
 
     @Override

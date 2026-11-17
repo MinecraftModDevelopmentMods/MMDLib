@@ -10,7 +10,8 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     EntityDisplay entityDisplay, ItemDisplay itemDisplay,
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizers,
     String gearboxSlot, String capacitorSlot, List<String> rangeSlots,
-    String legacyUpgradeStorage, MachineFacing facing) {
+    String legacyUpgradeStorage, MachineFacing facing,
+    String comparatorSource) {
     public MachineBehavior(ProcessorDeclaration processor, int stackSize,
         boolean noOcclusion, boolean immovable, boolean portable,
         boolean drawers, List<Shape> shapes,
@@ -22,7 +23,7 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
         this(processor, stackSize, noOcclusion, immovable, portable, drawers,
             shapes, secondaryAction, entityDisplay, itemDisplay, visualizers,
             gearboxSlot, capacitorSlot, rangeSlots, legacyUpgradeStorage,
-            MachineFacing.DEFAULT);
+            MachineFacing.DEFAULT, null);
     }
     public MachineBehavior(ProcessorDeclaration processor, int stackSize,
         boolean noOcclusion, boolean immovable, boolean portable,

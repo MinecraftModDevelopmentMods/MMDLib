@@ -9,7 +9,8 @@ import zone.moddev.mc.lib.machine.feature.ProcessorState;
 import zone.moddev.mc.lib.machine.feature.StoredProcessor;
 
 /** A small transactional consumer of typed host resources; no entity cast. */
-public final class WorkshopProcessor extends StoredProcessor {
+public final class WorkshopProcessor extends StoredProcessor
+    implements zone.moddev.mc.lib.api.redstone.IRedstoneOutput {
     private final ProcessorState.Key<Integer> placements = variables.define(
         "placements", com.mojang.serialization.Codec.INT, 0,
         java.util.function.UnaryOperator.identity(), false, true);
@@ -19,6 +20,22 @@ public final class WorkshopProcessor extends StoredProcessor {
     private final ProcessorState.Key<String> team = variables.define("team",
         com.mojang.serialization.Codec.STRING, "",
         java.util.function.UnaryOperator.identity(), false, true);
+
+    @Override
+    public java.util.List<zone.moddev.mc.lib.api.redstone.RedstoneOutput> redstoneOutputs() {
+        return java.util.List
+            .of(new zone.moddev.mc.lib.api.redstone.RedstoneOutput(
+                "workshop/output",
+                net.minecraft.network.chat.Component.literal("Workshop output"),
+                net.minecraft.network.chat.Component
+                    .literal("Stone output fullness"),
+                0xc07040, java.util.Optional.empty(),
+                () -> machine == null
+                    ? 0
+                    : zone.moddev.mc.lib.api.redstone.RedstoneControl.level(
+                        machine.resources().items("output").peek(0).getCount()
+                            / 64.0)));
+    }
 
     @Override
     public net.minecraft.core.Direction placementFacing(
@@ -32,7 +49,7 @@ public final class WorkshopProcessor extends StoredProcessor {
     }
 
     @Override
-    public void placed(
+    protected void onPlaced(
         zone.moddev.mc.lib.machine.feature.MachinePlacement placement) {
         variables.set(placements, variables.get(placements) + 1);
         var player = placement.placer();

@@ -1700,10 +1700,22 @@ Custom processors can override `placementFacing(BlockPlaceContext, Direction)`.
 This pure preference hook runs on the declaration prototype (no live host), on
 both sides. Its result must be allowed by the machine's `facing` declaration.
 `placed(MachinePlacement)` runs on live processors once after successful server
-item placement and portable payload restoration. It receives the final state,
+item placement and portable payload restoration. `StoredProcessor` subclasses override
+`onPlaced(MachinePlacement)` inside the supplied state-update scope. It receives the final state,
 position, nullable placer, level and a copied placing stack. It does not run when
 loading a chunk or when a placement event cancels. Direct world `setBlock` calls
 are not item placement and do not initialize ownership.
 
 The Porting Workshop records the placing player's UUID/team in processor state.
 Sneak placement chooses the clicked face; ordinary placement faces the player.
+
+## Comparator readout
+
+`<redstone comparator-source="workshop/output"/>` selects one existing
+`IRedstoneOutput` descriptor by its stable ID. The source is sampled together
+with per-face outputs, once per selected source per tick. Comparator readout is
+block-wide and independent of Emit faces and their inversion. Unknown source
+IDs fail when the runtime is assembled. Custom processors contribute values
+through the existing `redstoneOutputs()` method; no second provider is needed.
+The Porting Workshop exposes output fullness to both the redstone drawer and
+comparators, including comparators reading through an adjacent solid block.

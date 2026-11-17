@@ -44,6 +44,18 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
         });
     }
 
+    @Override
+    public final void placed(MachinePlacement placement) {
+        variables.update(() -> onPlaced(placement));
+    }
+
+    /**
+     * Successful placement inside a state operation; mutations synchronize
+     * once.
+     */
+    protected void onPlaced(MachinePlacement placement) {
+    }
+
     public abstract boolean canStart(ProcessorState state,
         ProcessorMachine context);
     /**

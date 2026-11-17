@@ -297,8 +297,13 @@ public final class DefinedMachineEntity extends BaseMachine
         if (definition.fluids() != null)
             inventory.fluids(definition.fluids().id(), fluids);
         redstone = definition.redstone()
-            ? new RedstoneControl(this, List.of(features))
-            : null;
+            || definition.behavior().comparatorSource() != null
+                ? new RedstoneControl(this, List.of(features))
+                    .comparatorSource(definition.behavior().comparatorSource())
+                : null;
+        if (redstone != null && !definition.redstone())
+            redstone.disabledFaces(java.util.EnumSet
+                .allOf(zone.moddev.mc.lib.api.capabilities.RelativeFace.class));
         var visualSource = visualProcessor;
         var graph = new VisualVariables[1];
         java.util.function.Supplier<VisualVariables> sharedVariables = () -> {

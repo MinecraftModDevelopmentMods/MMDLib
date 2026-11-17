@@ -17,7 +17,7 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import zone.moddev.mc.companion.AdmissionDemo;
 import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
 
-@GameTestHolder("mmdlib_companion")
+@GameTestHolder("mmdlib_porting")
 @PrefixGameTestTemplate(false)
 public final class PortingHooksTests {
     static DefinedMachineEntity place(GameTestHelper h, String name) {
@@ -28,6 +28,49 @@ public final class PortingHooksTests {
                 .defaultBlockState(),
             3);
         return (DefinedMachineEntity) h.getLevel().getBlockEntity(pos);
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 60)
+    public static void comparatorsReadSharedSourcesWithoutEmittingFaces(
+        GameTestHelper h) {
+        var machine = place(h, "porting_workshop");
+        var origin = machine.getBlockPos();
+        var comparator = origin.east(2);
+        h.getLevel().setBlock(origin.east(),
+            net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(),
+            3);
+        h.getLevel().setBlock(comparator.below(),
+            net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(),
+            3);
+        h.getLevel().setBlock(comparator,
+            net.minecraft.world.level.block.Blocks.COMPARATOR
+                .defaultBlockState().setValue(
+                    net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING,
+                    net.minecraft.core.Direction.WEST),
+            3);
+        machine.items.insertResult(1, new ItemStack(Items.STONE, 32), false);
+        machine.serverTick();
+        h.assertTrue(machine.getBlockState().hasAnalogOutputSignal(),
+            "XML block opts into comparator readout");
+        h.assertTrue(machine.getBlockState().getAnalogOutputSignal(h.getLevel(),
+            origin) == 7, "Readout samples existing source");
+        h.assertTrue(
+            machine.screenRedstone()
+                .signal(net.minecraft.core.Direction.WEST) == 0,
+            "No emitting face needed");
+        h.runAfterDelay(4, () -> {
+            var reader = (net.minecraft.world.level.block.entity.ComparatorBlockEntity) h
+                .getLevel().getBlockEntity(comparator);
+            h.assertTrue(reader.getOutputSignal() == 7,
+                "Comparator reads through a solid block");
+            machine.items.extractItem(1, 32, false);
+            machine.serverTick();
+            h.runAfterDelay(4, () -> {
+                h.assertTrue(reader.getOutputSignal() == 0,
+                    "Storage change notifies comparator");
+                h.succeed();
+            });
+        });
     }
 
     @GameTest(template = "empty")

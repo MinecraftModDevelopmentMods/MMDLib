@@ -48,6 +48,28 @@ public final class RedstoneControl {
     // neighbours.
     private int connections = -1;
     private boolean paused, legacyAny;
+    private int comparatorSource = -1;
+    private int comparatorLevel;
+
+    /**
+     * Machine-owned selection; independent of per-face settings and inversion.
+     */
+    public RedstoneControl comparatorSource(String id) {
+        comparatorSource = -1;
+        if (id != null) {
+            for (int i = 0; i < outputs.size(); i++)
+                if (outputs.get(i).id().equals(id))
+                    comparatorSource = i;
+            if (comparatorSource < 0)
+                throw new IllegalArgumentException(
+                    "Unknown comparator source: " + id);
+        }
+        return this;
+    }
+
+    public int comparatorLevel() {
+        return comparatorLevel;
+    }
 
     public RedstoneControl(BlockEntity owner, List<ResourceGroup<?>> groups,
         ToDoubleFunction<ResourceGroup<?>> fullness) {
@@ -294,6 +316,21 @@ public final class RedstoneControl {
             }
             outputsChanged |= outgoing[face] != output;
             outgoing[face] = output;
+        }
+        int nextComparator = 0;
+        if (comparatorSource >= 0) {
+            int face = 0;
+            while (face < 6 && (mode(face) != Mode.EMIT
+                || source(face) != comparatorSource))
+                face++;
+            nextComparator = face < 6
+                ? sampledLevels[face]
+                : outputs.get(comparatorSource).level();
+        }
+        if (nextComparator != comparatorLevel) {
+            comparatorLevel = nextComparator;
+            level.updateNeighbourForOutputSignal(owner.getBlockPos(),
+                owner.getBlockState().getBlock());
         }
         if (connections != newConnections) {
             boolean firstTick = connections < 0;

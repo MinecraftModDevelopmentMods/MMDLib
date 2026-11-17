@@ -231,7 +231,7 @@ public final class MachineDefinitions {
             Set.of("id", "name", "recipe-type", "filter-inputs", "selectable",
                 "default-recipe", "class", "running-sound", "finish-sound",
                 "on-start", "on-finish")),
-        Map.entry("redstone", Set.of("enabled", "pause")),
+        Map.entry("redstone", Set.of("enabled", "pause", "comparator-source")),
         Map.entry("shape", Set.of("id", "when", "bounds")),
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
@@ -903,7 +903,10 @@ public final class MachineDefinitions {
                 MachineFacing.parse(
                     block.attributes().getOrDefault("facing", "horizontal"),
                     block.attributes().getOrDefault("placement-facing",
-                        "toward-player")));
+                        "toward-player")),
+                redstone == null
+                    ? null
+                    : redstone.attributes().get("comparator-source"));
         } catch (IllegalArgumentException ex) {
             throw error(block, ex.getMessage());
         }
