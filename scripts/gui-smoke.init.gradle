@@ -9,7 +9,15 @@ allprojects {
             // The GUI smoke doesn't test CraftTweaker (the game tests do); keep it out of this client.
             configurations.named('craftTweakerDevRuntime') { dependencies.clear() }
             sourceSets.main.java.srcDir(file('src/runtimeTest/java'))
-            sourceSets.main.resources.srcDir(file('src/runtimeTest/resources'))
+            // Test resources overlay production resources, as they do in the runtime-test pack.
+            def runtimeResources = file('src/runtimeTest/resources')
+            sourceSets.main.resources.srcDir(runtimeResources)
+            tasks.named('processResources') {
+                eachFile { entry ->
+                    def overlay = new File(runtimeResources, entry.path)
+                    if (overlay.isFile() && entry.file != overlay) entry.exclude()
+                }
+            }
             def ghostOnly = providers.gradleProperty('ghostSmokeOnly').isPresent()
             def transferOnly = providers.gradleProperty('transferSmokeOnly').isPresent()
             if (ghostOnly && transferOnly) throw new GradleException('Choose one focused GUI runner')
