@@ -83,6 +83,12 @@ class UpgradeScreenGenerationTest {
         assertEquals(9, count(screen, "upgrades"));
         assertTrue(
             screen.find("gearbox").orElseThrow() instanceof UpgradeSlotElement);
+        assertEquals(8,
+            ((UpgradeSlotElement) screen.find("gearbox").orElseThrow())
+                .maxStackSize());
+        assertEquals(8,
+            ((UpgradeSlotElement) screen.find("capacitor").orElseThrow())
+                .maxStackSize());
         assertFalse(screen.find("slot_4").isPresent());
         assertFalse(screen.find("slot_5").isPresent());
         assertTrue(screen.find("slot_0").isPresent());

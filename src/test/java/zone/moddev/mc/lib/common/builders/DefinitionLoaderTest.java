@@ -342,6 +342,26 @@ public final class DefinitionLoaderTest {
                 && !odds.includeModItems() && odds.exclusions().isEmpty()
                 && odds.excludedTags().isEmpty());
 
+            var empty = temporary.resolve("empty/mmdlib");
+            for (String fields : List.of("", ", \"contents\": []",
+                ", \"content\": [\"alpha:hammer\"]")) {
+                write(empty, "creative_tab/empty.json",
+                    "{\"icon\": \"alpha:hammer\"" + fields + "}");
+                expectFailure(() -> DefinitionLoader.load(
+                    List.of(new SourceRoot("empty", empty, loader)), api(),
+                    mod -> false), "empty.json", "needs contents");
+            }
+            for (String flag : List.of("default_for_mod",
+                "include_mod_items")) {
+                write(empty, "creative_tab/empty.json",
+                    "{\"icon\": \"alpha:hammer\", \"" + flag + "\": true}");
+                require(DefinitionLoader
+                    .load(List.of(new SourceRoot("empty", empty, loader)),
+                        api(), mod -> false)
+                    .creativeTabs().get(id("empty:empty")).contents()
+                    .isEmpty());
+            }
+
             var bad = temporary.resolve("bad/mmdlib");
             write(bad, "creative_tab/tags.json",
                 "{\"contents\": [\"#c:ingots\"]}");
@@ -357,7 +377,7 @@ public final class DefinitionLoaderTest {
             write(root, "creative_tab/tools.xml",
                 """
                     <creative-tab xmlns="https://moddev.zone/mmdlib/creative-tab" version="1"
-                        icon="alpha:hammer"/>
+                        icon="alpha:hammer" include-mod-items="true"/>
                     """);
             expectFailure(() -> DefinitionLoader.load(
                 List.of(new SourceRoot("alpha", root, loader)), api(),

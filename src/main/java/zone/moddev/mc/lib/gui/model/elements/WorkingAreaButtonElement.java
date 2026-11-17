@@ -8,8 +8,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
+import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.gui.model.Common;
 import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
@@ -85,10 +85,7 @@ public class WorkingAreaButtonElement
         tag.putBoolean("available", area != null);
         if (area != null) {
             var state = entity.getBlockState();
-            var facing = state
-                .hasProperty(BlockStateProperties.HORIZONTAL_FACING)
-                    ? state.getValue(BlockStateProperties.HORIZONTAL_FACING)
-                    : net.minecraft.core.Direction.NORTH;
+            var facing = RelativeFace.facing(state);
             var bounds = area.bounds(entity.getBlockPos(), facing);
             tag.putInt("color",
                 zone.moddev.mc.lib.machine.presentation.VisualizerStyle.of(host)

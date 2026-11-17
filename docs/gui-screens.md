@@ -41,7 +41,9 @@ Declare matching machine storage, for example
 `<slots id="upgrades" count="2" role="manual" limit="1" automation="false"/>`
 inside `<items>`. `automation="false"` removes the resource-group selector and
 side-configuration entry while retaining the named inventory and saved contents.
-`upgrade-slot` accepts a storage-bounded stack up to eight from the required item tag; ordinary items and
+`upgrade-slot` accepts one item from the required tag by default. Set `max-stack-size`
+(1-64) to opt into a larger stack, still bounded by storage and the item stack limit.
+Generated gearbox and capacitor sockets explicitly use eight; range sockets use one. Ordinary items and
 items outside that tag are refused. Keep its backing storage manual to prevent
 automation bypassing the menu's admission policy. Removing an item from the tag
 does not destroy existing contents or prevent extraction. MMDLib's gearbox item

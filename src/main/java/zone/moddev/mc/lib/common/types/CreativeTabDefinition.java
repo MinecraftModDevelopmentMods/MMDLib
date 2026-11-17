@@ -118,8 +118,9 @@ public record CreativeTabDefinition(Optional<String> title,
     /**
      * Copies the lists.
      *
-     * @throws IllegalArgumentException if there is no {@code icon} and no item
-     *             or material entry to take it from
+     * @throws IllegalArgumentException if contents are empty without automatic
+     *             contents, or there is no {@code icon} and no item or material
+     *             entry to take it from
      */
     public CreativeTabDefinition {
         Objects.requireNonNull(title);
@@ -130,6 +131,9 @@ public record CreativeTabDefinition(Optional<String> title,
         after = List.copyOf(after);
         exclusions = List.copyOf(exclusions);
         excludedTags = List.copyOf(excludedTags);
+        if (contents.isEmpty() && !defaultForMod && !includeModItems)
+            throw new IllegalArgumentException(
+                "A creative tab needs contents, include_mod_items or default_for_mod");
         check(icon, contents).getOrThrow(IllegalArgumentException::new);
     }
 

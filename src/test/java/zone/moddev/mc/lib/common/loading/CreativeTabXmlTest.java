@@ -38,6 +38,7 @@ class CreativeTabXmlTest {
         var path = directory.resolve("main.xml");
         for (String invalid : List.of(
             "<creative-tab version=\"1\" icon=\"example:item\"/>",
+            xml("version=\"1\" icon=\"example:item\"", ""),
             xml("version=\"2\" icon=\"example:item\"", ""),
             xml("version=\"1\" search-bar=\"yes\" icon=\"example:item\"", ""),
             xml("version=\"1\" include-mod-items=\"yes\" icon=\"example:item\"",

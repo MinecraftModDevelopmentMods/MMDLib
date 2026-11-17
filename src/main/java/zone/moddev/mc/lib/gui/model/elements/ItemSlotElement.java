@@ -87,7 +87,7 @@ public class ItemSlotElement implements SlotElement {
 
         public int getMaxStackSize() {
             return upgrade
-                ? Math.min(8, super.getMaxStackSize())
+                ? Math.min(1, super.getMaxStackSize())
                 : super.getMaxStackSize();
         }
 
