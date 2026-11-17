@@ -67,41 +67,12 @@ public final class DefinedMachineEntity extends BaseMachine
             : MachineContent.recipeType(config.recipeType().id());
     }
 
-    private void installRecipeAdmission(MachineRecipeType primary) {
-        var itemRules = new java.util.HashMap<Integer, java.util.List<java.util.function.Predicate<net.minecraft.world.item.ItemStack>>>();
-        var fluidRules = new java.util.HashMap<Integer, java.util.List<java.util.function.Predicate<net.neoforged.neoforge.fluids.FluidStack>>>();
-        for (var config : processorConfigurations) {
-            if (config.recipeType() == null)
-                continue;
-            var filters = new RecipeInputFilters(this::getLevel,
-                resources.recipes().view(config.bindings()));
-            for (String alias : config.filterInputs()) {
-                String target = config.bindings().getOrDefault(alias, alias);
-                var links = List.of(new RecipeInputFilters.Link(
-                    recipeType(config, primary), alias));
-                for (var group : definition.groups())
-                    if (group.id().equals(target))
-                        for (int member : group.members())
-                            itemRules
-                                .computeIfAbsent(member,
-                                    ignored -> new java.util.ArrayList<>())
-                                .add(
-                                    stack -> filters.acceptsItem(links, stack));
-                if (definition.fluids() != null)
-                    for (var group : definition.fluids().groups())
-                        if (group.id().equals(target))
-                            for (int member : group.members())
-                                fluidRules
-                                    .computeIfAbsent(member,
-                                        ignored -> new java.util.ArrayList<>())
-                                    .add(stack -> filters.acceptsFluid(links,
-                                        stack));
-            }
-        }
-        itemRules.forEach((slot, rules) -> items.restrict(
-            stack -> rules.stream().anyMatch(rule -> rule.test(stack)), slot));
-        fluidRules.forEach((tank, rules) -> fluids.restrict(
-            stack -> rules.stream().anyMatch(rule -> rule.test(stack)), tank));
+    private void linkRecipeAdmission(MachineRecipeType primary) {
+        for (var config : processorConfigurations)
+            if (config.recipeType() != null)
+                resources.recipeInputs(recipeType(config, primary),
+                    config.bindings(),
+                    config.filterInputs().toArray(String[]::new));
     }
 
     /** Stable capability views evaluate both policies on every call. */
@@ -305,9 +276,8 @@ public final class DefinedMachineEntity extends BaseMachine
         var highlights = MachineContent.screenHighlights(definition.id());
         for (var group : definition.groups()) {
             if (!group.automation()) {
-                resources.recipeOnlyGroup(group.id(),
-                    StorageGroups.items(items, group.members().stream()
-                        .mapToInt(Integer::intValue).toArray()));
+                resources.recipeOnlyItems(group.id(), items, group.members()
+                    .stream().mapToInt(Integer::intValue).toArray());
                 continue;
             }
             resources
@@ -331,9 +301,9 @@ public final class DefinedMachineEntity extends BaseMachine
         if (definition.fluids() != null)
             for (var group : definition.fluids().groups()) {
                 if (!group.automation()) {
-                    resources.recipeOnlyGroup(group.id(),
-                        StorageGroups.fluids(fluids, group.members().stream()
-                            .mapToInt(Integer::intValue).toArray()));
+                    resources.recipeOnlyFluids(group.id(), fluids,
+                        group.members().stream().mapToInt(Integer::intValue)
+                            .toArray());
                     continue;
                 }
                 resources.fluids(new ResourceGroup<>(group.id(),
@@ -355,6 +325,7 @@ public final class DefinedMachineEntity extends BaseMachine
             ghosts.put(ghost.id(), samples);
             resources.recipeOnlyGroup(ghost.id(), samples);
         }
+        linkRecipeAdmission(recipes);
         resources.build();
         var runtimeProcessors = new java.util.LinkedHashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
         for (var config : processorConfigurations) {
@@ -390,7 +361,6 @@ public final class DefinedMachineEntity extends BaseMachine
         }
         if (definition.processor() != null)
             features.primaryProcessor(definition.processor());
-        installRecipeAdmission(recipes);
         inventory = genericInventory(resources.automation());
         if (definition.itemStorageId() != null)
             inventory.items(definition.itemStorageId(), items);
