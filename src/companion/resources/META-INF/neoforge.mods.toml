@@ -6,7 +6,7 @@ license="LGPL-2.1-only"
 modId="mmdlib_companion"
 version="${file.jarVersion}"
 displayName="MMDLib Machine Companion"
-description='''Four playable examples of MMDLib's recipe processors and reservations.'''
+description='''Playable examples of MMDLib machines, recipes, storage, automation, placement and processor extensions. Open each machine's Info panel for its purpose and a hands-on check.'''
 
 [[dependencies.mmdlib_companion]]
 modId="neoforge"
