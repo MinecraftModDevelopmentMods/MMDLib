@@ -18,20 +18,28 @@ public record WorkingArea(int minRight, int minUp, int minForward, int maxRight,
     }
 
     public AABB bounds(BlockPos origin, Direction front) {
-        if (front.getAxis().isVertical())
-            throw new IllegalArgumentException(
-                "Working area requires horizontal facing");
-        var right = front.getClockWise();
-        var first = origin.relative(right, minRight).above(minUp)
+        var right = right(front);
+        var up = up(front);
+        var first = origin.relative(right, minRight).relative(up, minUp)
             .relative(front, minForward);
-        var last = origin.relative(right, maxRight).above(maxUp).relative(front,
-            maxForward);
+        var last = origin.relative(right, maxRight).relative(up, maxUp)
+            .relative(front, maxForward);
         return new AABB(Math.min(first.getX(), last.getX()),
             Math.min(first.getY(), last.getY()),
             Math.min(first.getZ(), last.getZ()),
             Math.max(first.getX(), last.getX()) + 1,
             Math.max(first.getY(), last.getY()) + 1,
             Math.max(first.getZ(), last.getZ()) + 1);
+    }
+
+    private static Direction right(Direction front) {
+        return front.getAxis().isVertical()
+            ? (front == Direction.UP ? Direction.WEST : Direction.EAST)
+            : front.getClockWise();
+    }
+
+    private static Direction up(Direction front) {
+        return front.getAxis().isVertical() ? Direction.NORTH : Direction.UP;
     }
 
     public int width() {
@@ -82,23 +90,17 @@ public record WorkingArea(int minRight, int minUp, int minForward, int maxRight,
      * minForward.
      */
     public BlockPos blockAt(BlockPos origin, Direction front, int index) {
-        if (front.getAxis().isVertical())
-            throw new IllegalArgumentException(
-                "Working area requires horizontal facing");
         int row = row(index);
         int forward = maxForward < 0 ? maxForward - row : minForward + row;
-        return origin.relative(front.getClockWise(), minRight + index % width())
-            .above(minUp + index / (width() * depth())).relative(front, forward)
-            .immutable();
+        return origin.relative(right(front), minRight + index % width())
+            .relative(up(front), minUp + index / (width() * depth()))
+            .relative(front, forward).immutable();
     }
 
     /**
      * Lazy enumeration of coordinates; does not read a world or load chunks.
      */
     public Iterable<BlockPos> blocks(BlockPos origin, Direction front) {
-        if (front.getAxis().isVertical())
-            throw new IllegalArgumentException(
-                "Working area requires horizontal facing");
         var fixedOrigin = origin.immutable();
         return () -> new java.util.Iterator<>() {
             private int index;

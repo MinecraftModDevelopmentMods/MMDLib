@@ -82,8 +82,10 @@ class WorkingAreaTest {
             () -> area.blockAt(BlockPos.ZERO, Direction.NORTH, -1));
         assertThrows(IndexOutOfBoundsException.class,
             () -> area.row(area.size()));
-        assertThrows(IllegalArgumentException.class,
-            () -> area.blocks(BlockPos.ZERO, Direction.UP));
+        assertEquals(new BlockPos(1, -1, 0),
+            area.blocks(BlockPos.ZERO, Direction.UP).iterator().next());
+        assertEquals(new BlockPos(-1, 1, 0),
+            area.blocks(BlockPos.ZERO, Direction.DOWN).iterator().next());
         assertEquals(-128, new WorkingArea(-128, 0, -128, -1, 0, -1)
             .expandHorizontal(9).minForward());
     }
@@ -102,13 +104,33 @@ class WorkingAreaTest {
             area.bounds(origin, Direction.WEST));
     }
     @Test
-    void rejectsReversedUnboundedAndVerticalAreas() {
+    void verticalFieldsUseNorthAsLocalUpAndExpandInTheirLocalPlane() {
+        var origin = new BlockPos(10, 64, 20);
+        var area = new WorkingArea(-1, 2, 1, 1, 2, 3).expandHorizontal(1);
+        assertEquals(25, area.size());
+        assertEquals(new AABB(8, 65, 18, 13, 70, 19),
+            area.bounds(origin, Direction.UP));
+        assertEquals(new AABB(8, 59, 18, 13, 64, 19),
+            area.bounds(origin, Direction.DOWN));
+        assertEquals(new BlockPos(12, 65, 18),
+            area.blockAt(origin, Direction.UP, 0));
+        assertEquals(new BlockPos(8, 69, 18),
+            area.blockAt(origin, Direction.UP, 24));
+        assertEquals(new BlockPos(8, 63, 18),
+            area.blockAt(origin, Direction.DOWN, 0));
+        assertEquals(new BlockPos(12, 59, 18),
+            area.blockAt(origin, Direction.DOWN, 24));
+    }
+
+    @Test
+    void rejectsReversedAndUnboundedAreas() {
         assertThrows(IllegalArgumentException.class,
             () -> new WorkingArea(2, 0, 0, 1, 1, 1));
         assertThrows(IllegalArgumentException.class,
             () -> new WorkingArea(-129, 0, 0, 0, 0, 0));
-        assertThrows(IllegalArgumentException.class,
-            () -> new WorkingArea(0, 0, 0, 0, 0, 0).bounds(BlockPos.ZERO,
-                Direction.UP));
+        for (var facing : Direction.values())
+            assertEquals(new AABB(0, 0, 0, 1, 1, 1),
+                new WorkingArea(0, 0, 0, 0, 0, 0).bounds(BlockPos.ZERO,
+                    facing));
     }
 }
