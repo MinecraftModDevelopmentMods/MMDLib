@@ -25,12 +25,12 @@ public final class MachineSoundsClient {
 
     /** Starts {@code machine}'s loop if a cycle runs and it is not playing. */
     public static void tick(DefinedMachineEntity machine) {
-        var loops = LOOPS.computeIfAbsent(machine,
-            ignored -> new java.util.HashMap<>());
-        for (var config : machine.definition.processors()) {
+        for (var config : machine.processorConfigurations()) {
             var id = config.sounds().running().orElse(null);
             if (id == null || !running(machine, config.id()))
                 continue;
+            var loops = LOOPS.computeIfAbsent(machine,
+                ignored -> new java.util.HashMap<>());
             var loop = loops.get(config.id());
             if (loop != null && !loop.isStopped())
                 continue;

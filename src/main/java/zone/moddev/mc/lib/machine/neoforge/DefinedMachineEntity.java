@@ -32,6 +32,11 @@ public final class DefinedMachineEntity extends BaseMachine
     implements zone.moddev.mc.lib.machine.feature.ProcessorMachine,
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle.Provider {
     public final MachineDefinition definition;
+    private final List<zone.moddev.mc.lib.machine.definition.ProcessorConfiguration> processorConfigurations;
+
+    public List<zone.moddev.mc.lib.machine.definition.ProcessorConfiguration> processorConfigurations() {
+        return processorConfigurations;
+    }
     private Runnable placementComplete;
     private boolean placementNotified;
     private final java.util.Map<zone.moddev.mc.lib.machine.definition.AdmissionDeclaration, zone.moddev.mc.lib.machine.feature.StorageAdmission> admissionRules = new java.util.HashMap<>();
@@ -65,7 +70,7 @@ public final class DefinedMachineEntity extends BaseMachine
     private void installRecipeAdmission(MachineRecipeType primary) {
         var itemRules = new java.util.HashMap<Integer, java.util.List<java.util.function.Predicate<net.minecraft.world.item.ItemStack>>>();
         var fluidRules = new java.util.HashMap<Integer, java.util.List<java.util.function.Predicate<net.neoforged.neoforge.fluids.FluidStack>>>();
-        for (var config : definition.processors()) {
+        for (var config : processorConfigurations) {
             if (config.recipeType() == null)
                 continue;
             var filters = new RecipeInputFilters(this::getLevel,
@@ -139,13 +144,14 @@ public final class DefinedMachineEntity extends BaseMachine
         MachineRecipeType recipes) {
         super(type, pos, state);
         this.definition = definition;
+        processorConfigurations = definition.processors();
         // Startup validates registered XML; keep direct Java construction
         // equally strict.
         MachineContent.validateResources(definition);
         var power = definition.power();
         var customProcessors = new java.util.HashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
         if (power != null && power.provider() != null) {
-            var config = definition.processors().stream()
+            var config = processorConfigurations.stream()
                 .filter(value -> value.id().equals(power.provider()))
                 .findFirst().orElseThrow(() -> new IllegalArgumentException(
                     "Unknown energy provider: " + power.provider()));
@@ -351,7 +357,7 @@ public final class DefinedMachineEntity extends BaseMachine
         }
         resources.build();
         var runtimeProcessors = new java.util.LinkedHashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
-        for (var config : definition.processors()) {
+        for (var config : processorConfigurations) {
             zone.moddev.mc.lib.machine.feature.Processor<?> value;
             if (config.declaration() != null)
                 value = customProcessors.computeIfAbsent(config.id(),
@@ -817,7 +823,7 @@ public final class DefinedMachineEntity extends BaseMachine
         if (!definition.processes(category))
             return new int[0];
         var targets = new java.util.HashSet<String>();
-        for (var config : definition.processors())
+        for (var config : processorConfigurations)
             if (config.recipeType() != null
                 && config.recipeType().id().equals(category)) {
                 if (config.bindings().isEmpty())
