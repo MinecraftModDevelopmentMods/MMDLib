@@ -178,6 +178,10 @@ public final class MachineDefinitions {
                 "on-secondary-use", "drawers")),
         Map.entry("appearance",
             Set.of("preset", "front", "side", "top", "bottom", "model")),
+        Map.entry("visualizers", Set.of("range-color", "work-color")),
+        Map.entry("upgrades",
+            Set.of("gearbox-slot", "capacitor-slot", "range-slots",
+                "range-storage", "legacy-layout")),
         Map.entry("entity-display",
             Set.of("variable", "offset", "width", "height", "yaw", "item-yaw",
                 "block", "item", "item-property")),
@@ -202,10 +206,10 @@ public final class MachineDefinitions {
                 "name")),
         Map.entry("slots",
             Set.of("id", "count", "role", "limit", "color", "type",
-                "default-item", "name")),
+                "default-item", "name", "automation", "item-tag")),
         Map.entry("slot",
             Set.of("id", "count", "role", "limit", "type", "default-item",
-                "name")),
+                "name", "item-tag")),
         Map.entry("groups", Set.of()),
         Map.entry("group",
             Set.of("id", "storage", "members", "mode", "color", "name")),
@@ -219,7 +223,8 @@ public final class MachineDefinitions {
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
         Set.of("block", "appearance", "storage", "groups", "recipe-type",
-            "processor", "redstone", "recovery", "screen", "shapes"),
+            "processor", "redstone", "recovery", "screen", "shapes",
+            "visualizers", "upgrades"),
         "storage", Set.of("energy", "items", "fluids"), "fluids",
         Set.of("tank", "tanks"), "items", Set.of("slot", "slots"), "groups",
         Set.of("group"), "appearance",
@@ -258,7 +263,7 @@ public final class MachineDefinitions {
             case "processor" -> List.of("recipe-type", "default-recipe",
                 "running-sound", "finish-sound", "on-start", "on-finish");
             case "tank", "tanks" -> List.of("fluid");
-            case "slot", "slots" -> List.of("default-item");
+            case "slot", "slots" -> List.of("default-item", "item-tag");
             default -> List.<String>of();
         };
         for (var attribute : resources)
@@ -270,6 +275,10 @@ public final class MachineDefinitions {
         if (Set.of("slots", "tank", "tanks", "energy", "group")
             .contains(node.name()))
             color(node, 0);
+        if (node.name().equals("visualizers")) {
+            color(node, "range-color", 0);
+            color(node, "work-color", 0);
+        }
         if (Set.of("slot", "slots", "tank", "tanks", "energy", "group")
             .contains(node.name()) && node.attributes().containsKey("name"))
             required(node, "name");
@@ -401,6 +410,11 @@ public final class MachineDefinitions {
             if (!Set.of("item", "ghost").contains(slotType))
                 throw error(node, "Slot type must be item or ghost");
             if (slotType.equals("ghost")) {
+                if (node.attributes().containsKey("item-tag"))
+                    throw error(node,
+                        "item-tag is only supported for real item slots");
+                if (node.attributes().containsKey("automation"))
+                    throw error(node, "Ghost slots do not expose automation");
                 if (role != Role.INPUT
                     || node.attributes().containsKey("limit"))
                     throw error(node,
@@ -433,9 +447,16 @@ public final class MachineDefinitions {
                 if (ids.putIfAbsent(memberId, slots.size()) != null)
                     throw error(node, "Duplicate slot " + memberId);
                 members.add(slots.size());
-                slots.add(new Slot(memberId, role, limit));
+                slots.add(new Slot(memberId, role, limit,
+                    node.attributes().containsKey("item-tag")
+                        ? resource(node, "item-tag")
+                        : null));
             }
             if (node.name().equals("slots")) {
+                boolean automation = bool(node, "automation", true);
+                if (!automation && role != Role.MANUAL)
+                    throw error(node,
+                        "Slots without automation must use role=manual");
                 IoMode mode = switch (role) {
                     case INPUT -> IoMode.INPUT;
                     case OUTPUT -> IoMode.OUTPUT;
@@ -443,7 +464,7 @@ public final class MachineDefinitions {
                     case MANUAL -> IoMode.DISABLED;
                 };
                 if (groups.putIfAbsent(slotId, new Group(slotId, members, mode,
-                    color(node, defaultItemColor(groups, mode)), true,
+                    color(node, defaultItemColor(groups, mode)), automation,
                     node.attributes().getOrDefault("name", slotId))) != null)
                     throw error(node, "Duplicate group " + slotId);
             }
@@ -528,7 +549,8 @@ public final class MachineDefinitions {
                             prior == null
                                 ? defaultItemColor(groups, mode)
                                 : prior.color()),
-                        true, node.attributes().getOrDefault("name",
+                        prior == null || prior.automation(),
+                        node.attributes().getOrDefault("name",
                             prior == null ? groupId : prior.name())));
             }
         var covered = new HashSet<Integer>();
@@ -747,6 +769,105 @@ public final class MachineDefinitions {
                 throw error(processor, ex.getMessage());
             }
         }
+        var visualizers = optional(root, "visualizers");
+        var visualizerStyle = zone.moddev.mc.lib.machine.presentation.VisualizerStyle.DEFAULT;
+        if (visualizers != null) {
+            visualizerStyle = new zone.moddev.mc.lib.machine.presentation.VisualizerStyle(
+                color(visualizers, "range-color", visualizerStyle.rangeColor()),
+                color(visualizers, "work-color", visualizerStyle.workColor()));
+        }
+        var upgrades = optional(root, "upgrades");
+        String gearboxSlot = upgrades == null
+            ? null
+            : upgrades.attributes().get("gearbox-slot");
+        String capacitorSlot = upgrades == null
+            ? null
+            : upgrades.attributes().get("capacitor-slot");
+        // The library owns standard sockets; machine storage declares only
+        // extras.
+        if (upgrades != null) {
+            for (String reserved : List.of("mmdlib_gearbox",
+                "mmdlib_capacitor"))
+                if (fluidGroups.containsKey(reserved) || ghosts.stream()
+                    .anyMatch(ghost -> ghost.id().equals(reserved)))
+                    throw error(upgrades,
+                        "Reserved component storage: " + reserved);
+            if (gearboxSlot == null && processor != null)
+                gearboxSlot = componentSocket(root, slots, groups, ids,
+                    "gearbox");
+            if (capacitorSlot == null && power != null)
+                capacitorSlot = componentSocket(root, slots, groups, ids,
+                    "capacitor");
+            if (itemId == null && !slots.isEmpty())
+                itemId = "items";
+        }
+        List<String> rangeSlots = upgrades != null
+            && upgrades.attributes().containsKey("range-slots")
+                ? List.of(
+                    required(upgrades, "range-slots").trim().split("[\\s,]+"))
+                : List.of();
+        if (upgrades != null
+            && upgrades.attributes().containsKey("range-storage")) {
+            if (!rangeSlots.isEmpty())
+                throw error(upgrades,
+                    "Use range-storage or range-slots, not both");
+            var group = groups.get(required(upgrades, "range-storage"));
+            if (group == null)
+                throw error(upgrades, "Unknown range-storage");
+            rangeSlots = group.members().stream()
+                .map(index -> slots.get(index).id()).toList();
+        }
+        if (rangeSlots.size() > 9
+            || new java.util.HashSet<>(rangeSlots).size() != rangeSlots.size())
+            throw error(upgrades,
+                "range-slots requires at most nine distinct slots");
+        for (String rangeSlot : rangeSlots) {
+            var index = ids.get(rangeSlot);
+            if (index == null || slots.get(index).role() != Role.MANUAL)
+                throw error(upgrades,
+                    "range-slots must name real manual item slots");
+            if (rangeSlot.equals(gearboxSlot)
+                || rangeSlot.equals(capacitorSlot))
+                throw error(upgrades,
+                    "Range sockets cannot overlap component sockets");
+            if (groups.values().stream().anyMatch(
+                group -> group.automation() && group.members().contains(index)))
+                throw error(upgrades, "range-slots must not expose automation");
+            var slot = slots.get(index);
+            slots.set(index,
+                new Slot(slot.id(), slot.role(), 1, slot.itemTag()));
+        }
+        if (capacitorSlot != null && power == null)
+            throw error(upgrades, "capacitor-slot requires energy storage");
+        if (capacitorSlot != null && capacitorSlot.equals(gearboxSlot))
+            throw error(upgrades,
+                "Gearbox and capacitor require different slots");
+        String legacyUpgradeStorage = upgrades == null
+            ? null
+            : upgrades.attributes().get("legacy-layout");
+        if (legacyUpgradeStorage != null
+            && (!"mmdlib_gearbox/0".equals(gearboxSlot)
+                || !"mmdlib_capacitor/0".equals(capacitorSlot)
+                || rangeSlots.size() != 9 || !legacyUpgradeStorage
+                    .equals(upgrades.attributes().get("range-storage"))))
+            throw error(upgrades,
+                "legacy-layout requires automatic components and nine range-storage slots in the same named inventory");
+        for (String attribute : List.of("gearbox-slot", "capacitor-slot")) {
+            if (upgrades == null
+                || !upgrades.attributes().containsKey(attribute))
+                continue;
+            var index = ids.get(required(upgrades, attribute));
+            if (index == null || slots.get(index).role() != Role.MANUAL)
+                throw error(upgrades,
+                    attribute + " must name a real manual item slot");
+            if (groups.values().stream().anyMatch(
+                group -> group.automation() && group.members().contains(index)))
+                throw error(upgrades,
+                    attribute + " must not expose automation");
+            var slot = slots.get(index);
+            slots.set(index,
+                new Slot(slot.id(), slot.role(), 8, slot.itemTag()));
+        }
         MachineBehavior behavior;
         try {
             behavior = new MachineBehavior(declaration,
@@ -759,7 +880,8 @@ public final class MachineDefinitions {
                 block.attributes().containsKey("on-secondary-use")
                     ? resource(block, "on-secondary-use")
                     : null,
-                display, itemDisplay);
+                display, itemDisplay, visualizerStyle, gearboxSlot,
+                capacitorSlot, rangeSlots, legacyUpgradeStorage);
         } catch (IllegalArgumentException ex) {
             throw error(block, ex.getMessage());
         }
@@ -1048,6 +1170,21 @@ public final class MachineDefinitions {
         throw error(node, key + " must be in " + min + ".." + max);
     }
 
+    private static String componentSocket(Node origin, List<Slot> slots,
+        Map<String, Group> groups, Map<String, Integer> ids, String kind) {
+        String inventory = "mmdlib_" + kind;
+        String id = inventory + "/0";
+        if (groups.containsKey(inventory) || ids.containsKey(id))
+            throw error(origin, "Reserved component storage: " + inventory);
+        int index = slots.size();
+        slots.add(new Slot(id, Role.MANUAL, 8,
+            ResourceLocation.parse("mmdlib:" + kind + "_upgrades")));
+        ids.put(id, index);
+        groups.put(inventory, new Group(inventory, List.of(index),
+            IoMode.DISABLED, 0xffffff, false, kind));
+        return id;
+    }
+
     private static int defaultItemColor(Map<String, Group> groups,
         IoMode mode) {
         int ordinal = (int) groups.values().stream()
@@ -1056,7 +1193,11 @@ public final class MachineDefinitions {
     }
 
     private static int color(Node node, int fallback) {
-        var value = node.attributes().get("color");
+        return color(node, "color", fallback);
+    }
+
+    private static int color(Node node, String attribute, int fallback) {
+        var value = node.attributes().get(attribute);
         if (value == null)
             return fallback;
         try {

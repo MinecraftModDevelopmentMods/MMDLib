@@ -168,7 +168,7 @@ public class ContainerDrawer extends Drawer {
             ? menu.state().sizes().get(menu.state().selected())
             : 0;
         layout = ContainerDrawerLayout.of(screen.panelBounds(),
-            screen.drawerBottom(), slots, super.tabBounds(),
+            screen.drawerBottom(), slots, allocatedTabBounds(),
             menu.policy().layout(), edge(), screen.width);
     }
 

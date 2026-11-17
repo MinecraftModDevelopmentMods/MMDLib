@@ -9,9 +9,10 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Edge;
 
 /**
- * Client-owned drawer behavior. Subclasses supply their appearance, geometry,
- * content, input and preference restoration. The screen dispatches these hooks
- * without knowing the drawer's type.
+ * Client-owned drawer behavior. Subclasses supply appearance, content sizing,
+ * input and preference restoration. Standard body geometry comes from
+ * contentBounds and SideDrawerLayout; the screen dispatches hooks without
+ * knowing the drawer's type.
  */
 public abstract class Drawer {
     protected final MachineScreen screen;
@@ -93,6 +94,11 @@ public abstract class Drawer {
     public abstract boolean open();
 
     public Rect tabBounds() {
+        return allocatedTabBounds();
+    }
+
+    /** Layout-safe tab lookup that never dispatches into a subclass. */
+    protected final Rect allocatedTabBounds() {
         return screen.drawers().tabBounds(this);
     }
 
@@ -152,6 +158,16 @@ public abstract class Drawer {
         else
             SideDrawerRenderer.tab(graphics, tab, colour());
         drawIcon(graphics, tab);
+    }
+
+    /** Shared panel-top placement for standard drawer content. */
+    protected final Rect contentBounds(int width, int height,
+        zone.moddev.mc.lib.gui.layout.SideDrawerLayout.HeightLimit limit) {
+        return zone.moddev.mc.lib.gui.layout.SideDrawerLayout.topBody(
+            screen.panelBounds(), screen.drawerBottom(), edge(),
+            // tabBounds() may invoke a subclass layout that calls this method.
+            // The registry owns the allocated rectangle and needs no layout.
+            allocatedTabBounds(), width, height, limit);
     }
 
     protected void drawIcon(GuiGraphics graphics, Rect tab) {

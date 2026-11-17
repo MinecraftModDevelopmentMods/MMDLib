@@ -23,6 +23,21 @@ public interface Processor<S>
     ProcessState executionStatus();
 
     /**
+     * Work ticks scheduled for one server tick; normal energy checks run on
+     * each.
+     */
+    default void tick(FeatureHost host, int steps) {
+        for (int step = 0; step < steps; step++) {
+            tick(host);
+            var status = executionStatus();
+            if (paused() || status == ProcessState.HELD
+                || status == ProcessState.STALLED
+                || status == ProcessState.BLOCKED)
+                break;
+        }
+    }
+
+    /**
      * Declared client-visible stored values; payloads are defensively copied.
      */
     default Map<String, Object> variableDefaults() {

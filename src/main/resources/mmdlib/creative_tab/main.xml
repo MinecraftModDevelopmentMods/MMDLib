@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <creative-tab xmlns="https://moddev.zone/mmdlib/creative-tab" version="1"
               title="itemGroup.mmdlib.main" title-fallback="MMDLib"
-              icon="minecraft:iron_ingot" default-for-mod="true" include-mod-items="true">
+              icon="mmdlib:range_upgrade" default-for-mod="true" include-mod-items="true">
   <exclude tag="mmdlib:internal_items"/>
 </creative-tab>

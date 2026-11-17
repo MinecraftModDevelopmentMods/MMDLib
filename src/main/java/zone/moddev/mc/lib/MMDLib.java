@@ -68,6 +68,17 @@ public class MMDLib {
      */
     public static final DeferredRegister<Item> ITEMS = DeferredRegister
         .create(Registries.ITEM, MODID);
+    public static final net.neoforged.neoforge.registries.DeferredHolder<Item, zone.moddev.mc.lib.common.item.GearboxUpgradeItem> GEARBOX_UPGRADE = ITEMS
+        .register("gearbox_upgrade",
+            zone.moddev.mc.lib.common.item.GearboxUpgradeItem::new);
+
+    public static final net.neoforged.neoforge.registries.DeferredHolder<Item, zone.moddev.mc.lib.common.item.CapacitorUpgradeItem> CAPACITOR_UPGRADE = ITEMS
+        .register("capacitor_upgrade",
+            zone.moddev.mc.lib.common.item.CapacitorUpgradeItem::new);
+
+    public static final net.neoforged.neoforge.registries.DeferredHolder<Item, zone.moddev.mc.lib.common.item.RangeUpgradeItem> RANGE_UPGRADE = ITEMS
+        .register("range_upgrade",
+            zone.moddev.mc.lib.common.item.RangeUpgradeItem::new);
 
     private final zone.moddev.mc.lib.common.runtime.RuntimeContentRegistrar runtime;
     private final DeferredRegister<net.minecraft.world.level.block.entity.BlockEntityType<?>> machineTypes = DeferredRegister

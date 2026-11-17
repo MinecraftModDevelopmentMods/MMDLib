@@ -44,9 +44,15 @@ public class InventoryElement implements InventoryScope {
     private final int columns;
     private final int spacing;
     private final List<Element> children;
+    private final int selectionColor;
 
     public InventoryElement(Common common, String inventory, int columns,
         int spacing, List<Element> children) {
+        this(common, inventory, columns, spacing, children, 0xff55ff88);
+    }
+
+    public InventoryElement(Common common, String inventory, int columns,
+        int spacing, List<Element> children, int selectionColor) {
         Objects.requireNonNull(common);
         if (inventory == null || !inventory.matches("[a-z0-9_.-]{1,64}"))
             throw new IllegalArgumentException("Invalid inventory name");
@@ -63,6 +69,31 @@ public class InventoryElement implements InventoryScope {
         this.columns = columns;
         this.spacing = spacing;
         this.children = children;
+        this.selectionColor = selectionColor;
+    }
+
+    /**
+     * A synchronized zero-based storage index; negative, missing or unknown
+     * indexes select nothing.
+     */
+    public java.util.Optional<SlotElement> selectedSlot(Object value) {
+        if (!(value instanceof Number number))
+            return java.util.Optional.empty();
+        int index = number.intValue();
+        if (index < 0 || number.doubleValue() != index)
+            return java.util.Optional.empty();
+        return slots().stream().filter(slot -> slot.index() == index)
+            .findFirst();
+    }
+
+    public int selectionColor() {
+        return selectionColor;
+    }
+
+    @Override
+    public Set<zone.moddev.mc.lib.gui.value.ValueType<?>> valueKinds(
+        zone.moddev.mc.lib.gui.WidgetTypes widgets) {
+        return Set.of(zone.moddev.mc.lib.gui.value.ValueTypes.WHOLE);
     }
 
     public List<SlotElement> slots() {
@@ -377,6 +408,7 @@ public class InventoryElement implements InventoryScope {
             && java.util.Objects.equals(inventory, other.inventory)
             && java.util.Objects.equals(columns, other.columns)
             && java.util.Objects.equals(spacing, other.spacing)
+            && selectionColor == other.selectionColor
             && java.util.Objects.equals(children, other.children);
     }
 
@@ -388,6 +420,7 @@ public class InventoryElement implements InventoryScope {
         hash = 31 * hash + java.util.Objects.hashCode(columns);
         hash = 31 * hash + java.util.Objects.hashCode(spacing);
         hash = 31 * hash + java.util.Objects.hashCode(children);
+        hash = 31 * hash + Integer.hashCode(selectionColor);
         return hash;
     }
 
@@ -395,6 +428,6 @@ public class InventoryElement implements InventoryScope {
     public String toString() {
         return "InventoryElement[common=" + common + ", inventory=" + inventory
             + ", columns=" + columns + ", spacing=" + spacing + ", children="
-            + children + "]";
+            + children + ", selectionColor=" + selectionColor + "]";
     }
 }

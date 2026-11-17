@@ -29,12 +29,14 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
 /** Shared runtime assembled from XML. There is no per-machine Java subclass. */
 public final class DefinedMachineEntity extends BaseMachine
-    implements zone.moddev.mc.lib.machine.feature.ProcessorMachine {
+    implements zone.moddev.mc.lib.machine.feature.ProcessorMachine,
+    zone.moddev.mc.lib.machine.presentation.VisualizerStyle.Provider {
     public final MachineDefinition definition;
     private Runnable placementComplete;
     public final ItemInventories items;
     public final FluidStorage fluids;
     public final EnergyBuffer energy;
+    private final List<Integer> rangeSlots;
     public final MachineResources resources;
     public final MachineInventoryLifecycle inventory;
     private final RedstoneControl redstone;
@@ -43,6 +45,7 @@ public final class DefinedMachineEntity extends BaseMachine
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
     private final RecipeProcessor processor;
+    private final zone.moddev.mc.lib.machine.feature.WorkTargets workTargets;
     private java.math.BigInteger cyclesBefore = java.math.BigInteger.ZERO;
     private long startsBefore;
 
@@ -78,10 +81,97 @@ public final class DefinedMachineEntity extends BaseMachine
             var slot = definition.slots().get(i);
             items.slotId(i, slot.id()).role(slot.role(), i).limit(slot.limit(),
                 i);
+            if (slot.itemTag() != null) {
+                var tag = net.minecraft.tags.TagKey.create(
+                    net.minecraft.core.registries.Registries.ITEM,
+                    slot.itemTag());
+                var address = items.address(i);
+                items.inventory(address.inventory())
+                    .restrict(stack -> stack.is(tag), address.slot());
+            }
+        }
+        if (definition.behavior().legacyUpgradeStorage() != null) {
+            String storage = definition.behavior().legacyUpgradeStorage();
+            var layout = new java.util.ArrayList<ItemInventories.Address>();
+            for (int old = 0; old < 11; old++)
+                layout.add(old == 4
+                    ? new ItemInventories.Address("mmdlib_gearbox", 0)
+                    : old == 5
+                        ? new ItemInventories.Address("mmdlib_capacitor", 0)
+                        : new ItemInventories.Address(storage,
+                            old < 4 ? old : old - 2));
+            items.migrateLayout(storage, layout);
+        }
+        rangeSlots = definition.behavior().rangeSlots().stream()
+            .map(id -> java.util.stream.IntStream
+                .range(0, definition.slots().size())
+                .filter(i -> definition.slots().get(i).id().equals(id))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                    "Unknown range slot: " + id)))
+            .toList();
+        for (int slot : rangeSlots)
+            items.limit(1, slot);
+        if (definition.behavior().gearboxSlot() != null) {
+            int index = java.util.stream.IntStream
+                .range(0, definition.slots().size())
+                .filter(i -> definition.slots().get(i).id()
+                    .equals(definition.behavior().gearboxSlot()))
+                .findFirst().orElseThrow(
+                    () -> new IllegalArgumentException("Unknown gearbox slot"));
+            var address = items.address(index);
+            var socket = items.inventory(address.inventory());
+            socket.limit(8, address.slot());
+            socket.restrict(stack -> stack
+                .getItem() instanceof zone.moddev.mc.lib.common.item.GearboxUpgradeItem,
+                address.slot());
+            features.gearboxes(() -> {
+                var stack = socket.getStackInSlot(address.slot());
+                return stack
+                    .getItem() instanceof zone.moddev.mc.lib.common.item.GearboxUpgradeItem
+                        ? stack.getCount()
+                        : 0;
+            });
+        }
+        if (definition.behavior().capacitorSlot() != null) {
+            if (energy == null)
+                throw new IllegalArgumentException(
+                    "Capacitors require energy storage");
+            if (definition.behavior().capacitorSlot()
+                .equals(definition.behavior().gearboxSlot()))
+                throw new IllegalArgumentException(
+                    "Gearbox and capacitor require different slots");
+            int index = java.util.stream.IntStream
+                .range(0, definition.slots().size())
+                .filter(i -> definition.slots().get(i).id()
+                    .equals(definition.behavior().capacitorSlot()))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                    "Unknown capacitor slot"));
+            var address = items.address(index);
+            var socket = items.inventory(address.inventory());
+            socket.limit(8, address.slot());
+            socket.restrict(stack -> stack
+                .getItem() instanceof zone.moddev.mc.lib.common.item.CapacitorUpgradeItem,
+                address.slot());
+            var capacitors = new zone.moddev.mc.lib.machine.feature.CapacitorUpgrades(
+                energy, power.capacity(), power.input(), power.output(), () -> {
+                    var stack = socket.getStackInSlot(address.slot());
+                    return stack
+                        .getItem() instanceof zone.moddev.mc.lib.common.item.CapacitorUpgradeItem
+                            ? stack.getCount()
+                            : 0;
+                });
+            socket.changes().subscribe(capacitors::refresh);
+            capacitors.refresh();
         }
         resources = new MachineResources(this, this::facing);
         var highlights = MachineContent.screenHighlights(definition.id());
         for (var group : definition.groups()) {
+            if (!group.automation()) {
+                resources.recipeOnlyGroup(group.id(),
+                    StorageGroups.items(items, group.members().stream()
+                        .mapToInt(Integer::intValue).toArray()));
+                continue;
+            }
             resources
                 .items(
                     new ResourceGroup<>(group.id(),
@@ -149,6 +239,13 @@ public final class DefinedMachineEntity extends BaseMachine
         }
         // Cycle sounds follow recipe processors; custom ones have none.
         processor = recipeProcessor;
+        workTargets = visualProcessor instanceof zone.moddev.mc.lib.machine.feature.WorkTargets.Provider provider
+            ? new zone.moddev.mc.lib.machine.feature.WorkTargets(
+                "mmdlib:work_targets", provider::workingBlocks,
+                visualProcessor::processing)
+            : null;
+        if (workTargets != null)
+            features.add(workTargets);
         inventory = genericInventory(resources.automation());
         if (definition.itemStorageId() != null)
             inventory.items(definition.itemStorageId(), items);
@@ -243,6 +340,13 @@ public final class DefinedMachineEntity extends BaseMachine
     }
     public void changed() {
         changed(true);
+    }
+    @Override
+    public List<net.minecraft.world.item.ItemStack> inventoryContents(
+        String name) {
+        var storage = items.inventory(name);
+        return java.util.stream.IntStream.range(0, storage.getSlots())
+            .mapToObj(slot -> storage.getStackInSlot(slot).copy()).toList();
     }
     public void changed(boolean synchronize) {
         setChanged();
@@ -480,11 +584,35 @@ public final class DefinedMachineEntity extends BaseMachine
     public void clientTick() {
         if (definition.sounds().running().isPresent())
             zone.moddev.mc.lib.client.MachineSoundsClient.tick(this);
+        if (workTargets != null
+            && features.findProcessor(definition.processor())
+                .map(zone.moddev.mc.lib.machine.feature.Processor::processing)
+                .orElse(false))
+            zone.moddev.mc.lib.client.MachineWorkDisplay.tick(this,
+                workTargets.targets(), visualizerStyle().workColor());
+    }
+
+    public zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizerStyle() {
+        return definition.behavior().visualizers();
+    }
+
+    /**
+     * The synchronized active target snapshot; empty for processors without a
+     * provider.
+     */
+    public List<BlockPos> workingBlocks() {
+        return workTargets == null ? List.of() : workTargets.targets();
     }
 
     @Override
     protected EnergyBuffer powerStorage() {
         return energy;
+    }
+
+    @Override
+    public int rangeUpgrades() {
+        return zone.moddev.mc.lib.machine.feature.RangeUpgrades
+            .count(rangeSlots.stream().map(items::getStackInSlot).toList());
     }
 
     @Override

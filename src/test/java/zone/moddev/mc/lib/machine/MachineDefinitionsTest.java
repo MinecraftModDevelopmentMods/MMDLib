@@ -48,6 +48,152 @@ class MachineDefinitionsTest {
             .of("src/companion/resources/mmdlib/machine/simple_crusher.xml"));
     }
 
+    @Test
+    void rangeSocketsSupportRangeOnlyMachinesAndRejectOverlaps()
+        throws Exception {
+        String xml = crusher()
+            .replace("</items>",
+                """
+                    <slots id="upgrades" count="11" role="manual" limit="8" automation="false"/>
+                    </items>
+                    """)
+            .replace("</machine>",
+                "<upgrades range-slots=\"upgrades/0 upgrades/1\"/></machine>");
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals(List.of("upgrades/0", "upgrades/1"),
+            definition.behavior().rangeSlots());
+        assertEquals(1,
+            definition.slots().stream()
+                .filter(slot -> slot.id().equals("upgrades/0")).findFirst()
+                .orElseThrow().limit());
+        for (String invalid : List.of(
+            xml.replace("upgrades/0 upgrades/1", "upgrades/0 upgrades/0"),
+            xml.replace("upgrades/0 upgrades/1", "missing"),
+            xml.replace("upgrades/0 upgrades/1", "input/0"),
+            xml.replace("automation=\"false\"", "automation=\"true\""),
+            xml.replace("<upgrades range-slots",
+                "<upgrades gearbox-slot=\"upgrades/0\" range-slots"),
+            xml.replace("upgrades/0 upgrades/1",
+                "upgrades/0 upgrades/1 upgrades/2 upgrades/3 upgrades/4 upgrades/5 upgrades/6 upgrades/7 upgrades/8 upgrades/9"))) {
+            write(invalid);
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+    }
+
+    @Test
+    void capacitorSocketSupportsIndependentOrCombinedUpgrades()
+        throws Exception {
+        String xml = crusher()
+            .replace("</items>",
+                """
+                    <slots id="upgrades" count="11" role="manual" limit="1" automation="false"/>
+                    </items>
+                    """)
+            .replace("</machine>",
+                "<upgrades capacitor-slot=\"upgrades/5\"/></machine>");
+        write(xml);
+        var id = ResourceLocation.parse("test:crusher");
+        var definition = MachineDefinitions.load(sources()).get(id);
+        assertEquals("mmdlib_gearbox/0", definition.behavior().gearboxSlot());
+        assertEquals("upgrades/5", definition.behavior().capacitorSlot());
+        assertEquals(8,
+            definition.slots().stream()
+                .filter(slot -> slot.id().equals("upgrades/5")).findFirst()
+                .orElseThrow().limit());
+        write(xml.replace("<upgrades capacitor-slot",
+            "<upgrades gearbox-slot=\"upgrades/4\" capacitor-slot"));
+        assertEquals("upgrades/4", MachineDefinitions.load(sources()).get(id)
+            .behavior().gearboxSlot());
+        for (String invalid : List.of(xml.replace("upgrades/5", "missing"),
+            xml.replace("upgrades/5", "input/0"),
+            xml.replace("automation=\"false\"", "automation=\"true\""),
+            xml.replace("<upgrades capacitor-slot",
+                "<upgrades gearbox-slot=\"upgrades/5\" capacitor-slot"))) {
+            write(invalid);
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+    }
+
+    @Test
+    void gearboxSocketKeepsItsIdentityAndRaisesOnlyItsLimit() throws Exception {
+        String xml = crusher()
+            .replace("</items>",
+                """
+                    <slots id="upgrades" count="11" role="manual" limit="1" automation="false"/>
+                    </items>
+                    """)
+            .replace("</machine>",
+                "<upgrades gearbox-slot=\"upgrades/4\"/></machine>");
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals("upgrades/4", definition.behavior().gearboxSlot());
+        for (var slot : definition.slots()) {
+            if (slot.id().startsWith("upgrades/"))
+                assertEquals(slot.id().equals("upgrades/4") ? 8 : 1,
+                    slot.limit());
+        }
+        for (String slot : List.of("missing", "input/0", "upgrades/99")) {
+            write(xml.replace("gearbox-slot=\"upgrades/4\"",
+                "gearbox-slot=\"" + slot + "\""));
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+        write(xml.replace("automation=\"false\"", "automation=\"true\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
+    void itemTagFiltersBelongToStoredSlots() throws Exception {
+        write(crusher().replace("role=\"input\"",
+            "role=\"input\" item-tag=\"minecraft:hoes\""));
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertTrue(definition.slots().stream()
+            .filter(slot -> slot
+                .role() == zone.moddev.mc.lib.api.capabilities.Role.INPUT)
+            .allMatch(slot -> ResourceLocation.parse("minecraft:hoes")
+                .equals(slot.itemTag())));
+    }
+
+    @Test
+    void visualizerColorsDefaultInheritAndRejectMalformedValues()
+        throws Exception {
+        write(crusher());
+        var id = ResourceLocation.parse("test:crusher");
+        assertEquals(
+            zone.moddev.mc.lib.machine.presentation.VisualizerStyle.DEFAULT,
+            MachineDefinitions.load(sources()).get(id).behavior()
+                .visualizers());
+        String base = crusher().replace("</machine>",
+            "<visualizers range-color=\"#123456\" work-color=\"#ABCDEF\"/></machine>");
+        write(base);
+        var style = MachineDefinitions.load(sources()).get(id).behavior()
+            .visualizers();
+        assertEquals(0x123456, style.rangeColor());
+        assertEquals(0xabcdef, style.workColor());
+        Files.writeString(directory.resolve("machine/child.xml"),
+            """
+                <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="test:crusher">
+                  <visualizers work-color="#010203"/>
+                </machine>
+                """);
+        var child = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:child"));
+        assertEquals(0x123456, child.behavior().visualizers().rangeColor());
+        assertEquals(0x010203, child.behavior().visualizers().workColor());
+        for (String invalid : List.of("#12345", "#ff123456", "banana")) {
+            write(base.replace("#ABCDEF", invalid));
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+    }
+
     private String fluidMachine(String name) throws Exception {
         return Files.readString(
             Path.of("src/companionTest/resources/mmdlib/machine/test/" + name
@@ -216,7 +362,8 @@ class MachineDefinitionsTest {
             "<items id=\"items\">" + ghost));
         var machine = MachineDefinitions.load(sources())
             .get(ResourceLocation.parse("test:crusher"));
-        assertEquals(3, machine.slots().size());
+        assertEquals(5, machine.slots().size()); // Three process slots plus
+                                                 // inherited components.
         assertEquals(1, machine.ghosts().size());
         assertEquals("pattern", machine.ghosts().getFirst().id());
         assertEquals(ResourceLocation.parse("minecraft:stone"),
@@ -577,7 +724,8 @@ class MachineDefinitionsTest {
             .get(ResourceLocation.parse("test:crusher"));
         var expected = Map.of("energy", "Power Supply", "water",
             "Water Catalyst", "buffer", "Fluid Buffer", "pattern",
-            "Rock Selection", "input", "input", "output", "Products");
+            "Rock Selection", "input", "input", "output", "Products",
+            "mmdlib_gearbox", "gearbox", "mmdlib_capacitor", "capacitor");
         assertEquals(expected, machine.groupNames());
         assertThrows(UnsupportedOperationException.class,
             () -> machine.groupNames().put("injected", "Invalid"));
@@ -633,9 +781,12 @@ class MachineDefinitionsTest {
             .get(ResourceLocation.parse("test:crusher"));
         assertEquals(
             Map.of("input", "Raw Materials", "output", "Finished Products",
-                "water", "Reusable Water", "energy", "Electricity"),
+                "water", "Reusable Water", "energy", "Electricity",
+                "mmdlib_gearbox", "gearbox", "mmdlib_capacitor", "capacitor"),
             machine.groupNames());
-        assertEquals(List.of("input/0", "input/1", "output/0", "output/1"),
+        assertEquals(
+            List.of("input/0", "input/1", "output/0", "output/1",
+                "mmdlib_gearbox/0", "mmdlib_capacitor/0"),
             machine.slots().stream().map(MachineDefinition.Slot::id).toList());
         assertFalse(machine.fluids().groups().getFirst().automation());
         assertEquals("test:crusher.group.input",
@@ -690,6 +841,38 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void manualItemStorageCanOptOutOfAutomationWithoutLosingItsIdentity()
+        throws Exception {
+        var xml = crusher().replace("</items>",
+            "<slots id=\"upgrades\" count=\"11\" role=\"manual\" limit=\"1\" automation=\"false\"/></items>");
+        write(xml);
+        var machine = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertFalse(machine.groups().stream()
+            .filter(group -> group.id().equals("upgrades")).findFirst()
+            .orElseThrow().automation());
+        assertTrue(machine.groups().getFirst().automation());
+        assertEquals(11, machine.inventorySlots("upgrades").size());
+        assertEquals("upgrades/0", machine.slots()
+            .get(machine.inventorySlots("upgrades").getFirst()).id());
+        write(xml.replace("<processor",
+            "<groups><group id=\"upgrades\" storage=\"items\" mode=\"disabled\" name=\"Components\"/></groups><processor"));
+        machine = MachineDefinitions.load(sources()).get(machine.id());
+        var upgrades = machine.groups().stream()
+            .filter(group -> group.id().equals("upgrades")).findFirst()
+            .orElseThrow();
+        assertFalse(upgrades.automation());
+        assertEquals("Components", upgrades.name());
+        write(xml.replace("role=\"manual\"", "role=\"storage\""));
+        assertTrue(assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources())).getMessage()
+            .contains("role=manual"));
+        write(xml.replace("automation=\"false\"", "automation=\"invalid\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
     void inheritsPowerAndExpandsStableGroupsAndCustomProperties()
         throws Exception {
         write(crusher().replace("<items id=\"items\">",
@@ -700,7 +883,9 @@ class MachineDefinitionsTest {
         assertEquals(1000, machine.power().input());
         assertEquals(0xd85b5b, machine.power().color());
         assertEquals("Energy", machine.power().name());
-        assertEquals(List.of("input/0", "output/0", "output/1"),
+        assertEquals(
+            List.of("input/0", "output/0", "output/1", "mmdlib_gearbox/0",
+                "mmdlib_capacitor/0"),
             machine.slots().stream().map(s -> s.id()).toList());
         assertEquals(List.of(1, 2), machine.groups().get(1).members());
         assertEquals(Map.of("hardness-level-ratio", ".10"),
@@ -717,7 +902,9 @@ class MachineDefinitionsTest {
             "count=\"3\" role=\"output\""));
         var machine = MachineDefinitions.load(sources()).values().iterator()
             .next();
-        assertEquals(List.of("input/0", "output/0", "output/1", "output/2"),
+        assertEquals(
+            List.of("input/0", "output/0", "output/1", "output/2",
+                "mmdlib_gearbox/0", "mmdlib_capacitor/0"),
             machine.slots().stream().map(s -> s.id()).toList());
     }
 
@@ -862,7 +1049,8 @@ class MachineDefinitionsTest {
         assertEquals("other_processor", plan.processor());
         assertEquals(ResourceLocation.parse("test:other"),
             plan.recipeType().id());
-        assertEquals(3, plan.slots().size());
+        assertEquals(5, plan.slots().size()); // Three process slots plus
+                                              // inherited components.
         assertNotNull(plan.recipeType().generator());
         assertEquals(100000, plan.power().capacity());
         write(crusher().replace("</machine>",

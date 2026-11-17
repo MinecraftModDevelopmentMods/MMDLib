@@ -61,6 +61,140 @@ table in a low-priority resource pack. Authored resources can override these
 defaults. Crafting recipes remain ordinary files under `data/<modid>/recipe/`.
 The companion's SimpleCrusher is in the companion mod's own creative tab.
 
+## Shared gearbox upgrades
+
+`mmdlib:base_powered_machine` enables shared upgrades and supplies their drawer.
+Derived machines automatically receive a capacitor socket and, when they declare
+a processor, a gearbox socket. Their machine XML needs no `<upgrades>` or screen
+declaration unless adding machine-specific extra slots or replacing the layout.
+
+MMDLib owns `mmdlib:gearbox_upgrade`, a permanent item with a maximum stack of
+eight. Each adds 12.5% processor speed and FE consumption **per game tick**:
+one gives 1.125×, four give 1.5×, and eight give 2×. The clock schedules extra
+ordinary work ticks, so normal energy checks still apply and total FE per
+recipe or action does not increase. Energy-producing processors likewise run
+more work ticks; external automation and transfer rates are not accelerated.
+
+Enable capability-based component storage with `<upgrades/>`. MMDLib adds a gearbox socket for a processor and a capacitor socket for energy storage. The inventories `mmdlib_gearbox` and `mmdlib_capacitor` each have one manual, non-automated slot of capacity eight. `<machine-upgrades/>` displays just those sockets; its optional `storage` attribute adds a machine-owned extra grid.
+
+Existing machines may still bind a manual socket by its stable storage slot ID:
+
+```xml
+<upgrades gearbox-slot="upgrades/4"/>
+```
+
+For `<slots id="upgrades" count="11" role="manual" limit="1" automation="false"/>`,
+this changes only `upgrades/4` to an eight-item limit. The socket admits
+`GearboxUpgradeItem` instances and affects **every processor** on the machine,
+including custom `StoredProcessor` implementations and recipe processors.
+Missing slots, non-manual slots and automation-exposed sockets are rejected.
+Use `item-tag="mmdlib:gearbox_upgrades"` on the matching screen `upgrade-slot`.
+Other mods can subclass the shared item and add it to their socket's admission tag.
+Keep any such slot's `item-tag` storage filter consistent with its screen tag.
+
+Java-defined hosts can call `features.gearboxes(() -> installedCount)` before
+binding visual variables. The shared clock clamps counts to 0–8, saves each
+processor's fractional tick, and retains it across pauses, item changes and reloads.
+Disabled hosts do no work. Unpowered or blocked processors still obey their
+normal gates, and paused processors do not accumulate bonus work.
+Custom processors with per-game-tick aggregation can override
+`Processor.tick(FeatureHost, int steps)`; the default invokes their ordinary tick
+once or twice. Non-processor features continue to tick once per game tick.
+
+## Shared capacitor upgrades
+
+`mmdlib:capacitor_upgrade` stacks to eight and never wears out. Each installed
+capacitor adds 12.5% to the machine's **base** energy capacity, input rate and
+output rate, reaching 2× at eight. Values round down to whole FE; a zero rate
+stays zero. The calculation never compounds and saturates at the buffer's long
+integer limit rather than overflowing. Processor energy costs are unaffected.
+
+Bind the second socket independently or alongside the gearbox:
+
+```xml
+<upgrades gearbox-slot="upgrades/4" capacitor-slot="upgrades/5"/>
+```
+
+The capacitor socket must be a different manual slot without automation, and
+the machine must declare energy storage. Its capacity becomes eight and it
+admits `CapacitorUpgradeItem` instances. Use `item-tag="mmdlib:capacitor_upgrades"`
+on its screen slot. Limits update immediately on inventory changes, even while
+paused. Installing capacitors creates no energy; removing them clamps stored
+energy to the smaller capacity. Item storage loads before energy so a fresh
+machine preserves saved energy above its base capacity.
+
+Java-defined machines can use `CapacitorUpgrades(buffer, baseCapacity,
+baseInput, baseOutput, installedCount)` and subscribe `refresh` to their socket's
+change signal. Refresh after loading items and before loading energy. The shared
+`MachineInventoryLifecycle` follows that load order.
+
+## Shared range upgrades and working areas
+
+`mmdlib:range_upgrade` is permanent. Each occupied range socket adds **one to
+the horizontal radius**, up to nine sockets. Socket capacity is one, even though
+the items stack normally in a player's inventory. Existing component sockets
+remain independent. Declare nine extra slots with `role="manual"`, `limit="1"`, `automation="false"`, and `item-tag="mmdlib:range_upgrades"`. Bind the entire group in XML:
+
+```xml
+<upgrades range-storage="upgrades"/>
+```
+
+Component sockets are inferred from capabilities. `range-storage` and explicit `range-slots` are mutually exclusive. Range sockets must be
+distinct manual slots with automation disabled, must not overlap the gearbox or
+capacitor, and are forced to a one-item limit. Use `mmdlib:range_upgrades` as the
+screen admission tag, or a mod tag that includes it. Each `RangeUpgradeItem`
+subclass in a configured socket counts once, regardless of stack size.
+
+Any area-providing processor can use the effect. Implement
+`WorkingArea.Provider.baseWorkingArea()` with its unmodified local offsets.
+The default `workingArea()` applies the shared range policy. `StoredProcessor`
+automatically supplies `rangeUpgrades()` from its `ProcessorMachine`; other
+providers can override `rangeUpgrades()` to return their host's count. Java hosts
+can implement `ProcessorMachine.rangeUpgrades()` using `RangeUpgrades.count` over
+their selected sockets. There is no farming-specific item or coordinate policy.
+
+Expansion adds two blocks to width and depth per upgrade, leaving height alone.
+On an axis entirely to one side of the machine, it keeps the near edge fixed and
+grows outward; an axis spanning zero grows equally in both directions. Growth
+stops at WorkingArea's existing ±128 local-coordinate bounds. For example,
+`(-1, 0, -3)` through `(1, 0, -1)` grows from a rear 3×3 field to 21×21 with nine.
+
+`WorkingArea` supplies these coordinate helpers:
+
+- `width()`, `depth()`, `height()` and `size()` use inclusive block dimensions.
+- `blockAt(origin, facing, index)` returns an immutable world position.
+- `blocks(origin, facing)` lazily enumerates positions without accessing a world
+  or loading chunks. Retaining returned positions is safe.
+- `row(index)` gives the row within a layer, for row-based processing modes.
+- `bounds(origin, facing)` supplies the enclosing AABB for displays and future
+  world/entity queries.
+
+Traversal goes left to right, row by row, bottom layer first. Rear areas begin
+at their near row and move backward; other areas begin at `minForward`.
+Agri-Brain now uses this same indexing for scanning, planting rows and work
+particles. Callers remain responsible for loaded chunks, world limits and
+permissions before acting. Entity enumeration is not implemented yet.
+
+### Migrating development upgrade inventories
+
+`legacy-layout="upgrades"` is an opt-in migration for development saves made with
+this work's earlier combined upgrade inventory. It is not a migration selected by
+MMDLib release version, and must not be enabled merely because a mod used eleven
+slots. The source must be the named `upgrades` inventory with saved `Size=11`,
+gearbox at local index 4, capacitor at 5, and extra upgrades at
+0, 1, 2, 3, 6, 7, 8, 9, 10. Entries must have the corresponding `upgrades/<index>`
+stable IDs or no stable ID.
+
+On the new definition, declare nine extra slots and use
+`<upgrades range-storage="upgrades" legacy-layout="upgrades"/>`. Both component
+sockets must be automatic. The migration moves indexes 4 and 5 into
+`mmdlib_gearbox/0` and `mmdlib_capacitor/0`, then maps the nine extras to local
+indexes 0�8 in their original order. New saves contain the separate component
+inventories and nine-slot extras, so loading them again does not remap them.
+Unknown IDs and displaced contents remain available through normal recovery.
+New machines, other layouts, and saves without that old named inventory should
+omit this option. It can remain enabled while old worlds are still supported.
+
 ## Ghost inventory inputs
 
 Declare a sample-only inventory alongside ordinary item storage:
@@ -154,6 +288,67 @@ fluid amount to the same tank makes it reusable; omitting that return consumes i
 The selector summarizes required and consumed amounts separately for single-fluid
 inputs with deterministic returns. Selection changes invalidate failed-search
 backoff immediately.
+
+## Item-tag admission filters
+
+Real `<slots>` and `<slot>` storage declarations accept `item-tag="minecraft:hoes"`
+(or another namespaced item tag). For example:
+
+```xml
+<slots id="hoe" name="Hoe" count="1" role="input" limit="1" item-tag="minecraft:hoes"/>
+```
+
+The filter belongs to storage and applies to manual insertion and automation,
+in addition to existing recipe filters. Named tags remain reloadable. Loading
+saved stacks and extracting items are unaffected. Ghost slots do not support this
+attribute. Slot declarations without `item-tag` retain their existing admission rules.
+
+## Work and range visualizers
+
+Configure world-display colors on the machine, independently of its screen:
+
+```xml
+<visualizers range-color="#59FF59" work-color="#FFB74D"/>
+```
+
+Both attributes accept `#RRGGBB` or the standard machine palette names. Omitted
+attributes inherit from the parent machine, then fall back to green range outlines
+and amber work particles. A child can override either color independently.
+The range toggle and outline use `range-color`; active work uses `work-color`.
+Java hosts can implement `VisualizerStyle.Provider` instead.
+
+A custom processor opts into work particles by implementing
+`machine.feature.WorkTargets.Provider`:
+
+```java
+@Override
+public List<BlockPos> workingBlocks() {
+    return currentTargets; // Absolute world block positions, not local offsets.
+}
+```
+
+XML machines automatically attach a shared `WorkTargets` feature. After the
+processor ticks, it copies the current list while `processing()` is true. An
+empty list, idle/paused processor or suspended host stops emission. Targets are
+deduplicated, copied to immutable positions and limited to the first 256 unique
+blocks. They are transient and never restored from a disk save. The processor
+owns target selection and should return an empty list when it has no active work.
+
+The feature uses normal tracking-client updates, including initial chunk tracking,
+without an open GUI or a custom packet. Updates share the host's ten-tick sync
+interval. The client emits two rotating dust helices in a column 1.5 blocks tall,
+starting above the target's outline shape (or at block height for air). It visits
+at most four targets per machine every two ticks within 64 blocks of the camera.
+Particle settings reduce each column from nine to five or three samples per strand.
+Dust lasts six ticks to keep the rotating trails distinct. Unloading
+or removing the machine stops further emission. Work particles are automatic and
+independent of the player's range-outline toggle.
+
+For a Java host, add `new WorkTargets(key, provider::workingBlocks,
+processor::processing)` after its processor in the `FeatureHost`, use the existing
+feature sync/update-tag lifecycle, and call `MachineWorkDisplay.tick(entity,
+targets.targets(), style.workColor())` from its client ticker. No Minecraft client
+classes should be loaded from common initialization.
 
 ## Appearance presets
 
@@ -414,6 +609,15 @@ grant automation permissions that its members' roles prohibit. Slot `limit`
 defaults to 64. When `<items>` is present it must contain 1–54 slots overall.
 Omit `<items>` entirely for fluid-only machines; no dummy inventory or item
 capability is created.
+
+For manual component storage that must not appear as a coloured automation
+group, use `<slots id="upgrades" count="11" role="manual" limit="1"
+automation="false"/>`. This flag defaults to `true` and requires `role="manual"`.
+It removes the side-configuration entry, colour selectors and automation addons,
+while preserving the named inventory, stable slot IDs, saved items and internal
+recipe group. Generated screens render that inventory without a coloured wrapper;
+custom screens can place its slots normally. Explicit group overrides retain the
+flag. Ghost inventories do not accept this attribute.
 
 The runtime supports an optional item storage, an optional fluid storage, an optional energy
 buffer named `energy`, and at most one recipe type and processor per machine. Supply

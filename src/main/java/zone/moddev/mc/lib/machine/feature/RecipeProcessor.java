@@ -623,10 +623,20 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      */
     @Override
     public void tick(FeatureHost host) {
+        tick(host, 1);
+    }
+
+    @Override
+    public void tick(FeatureHost host, int steps) {
         if (justFinished != null)
             progressChanges.changed();
         justFinished = null;
-        run(host);
+        for (int step = 0; step < steps; step++) {
+            run(host);
+            if (paused || status == Status.HELD || status == Status.STALLED
+                || status == Status.BLOCKED)
+                break;
+        }
         redstoneRunning = !paused
             && (status == Status.RUNNING || justFinished != null);
         syncStatus(host);

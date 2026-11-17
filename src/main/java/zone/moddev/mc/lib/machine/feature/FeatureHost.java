@@ -36,6 +36,17 @@ public final class FeatureHost implements IRedstoneOutput {
     private boolean syncs;
     private boolean syncPending;
     private int sinceSync = SYNC_INTERVAL;
+    private ProcessorClock processorClock;
+
+    /** Bind a machine's installed gearboxes before binding visual variables. */
+    public FeatureHost gearboxes(java.util.function.IntSupplier count) {
+        if (processorClock != null)
+            throw new IllegalStateException("Gearboxes already bound");
+        var clock = new ProcessorClock(count);
+        add(clock);
+        processorClock = clock;
+        return this;
+    }
 
     /**
      * A host that calls {@code onChange} when a feature says its state changed;
@@ -223,9 +234,13 @@ public final class FeatureHost implements IRedstoneOutput {
             return;
         this.level = level;
         for (var feature : features.values()) {
-            if (enabled)
-                feature.tick(this);
-            else
+            if (enabled) {
+                if (processorClock != null
+                    && feature instanceof Processor<?> processor)
+                    processor.tick(this, processorClock.steps(processor, this));
+                else
+                    feature.tick(this);
+            } else
                 feature.suspended(this);
         }
         if (sinceSync < SYNC_INTERVAL)

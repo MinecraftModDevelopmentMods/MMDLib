@@ -17,7 +17,6 @@ import net.minecraft.world.item.Items;
 
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
-import zone.moddev.mc.lib.gui.layout.AutomationLayout;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.layout.RedstoneLayout;
 import zone.moddev.mc.lib.gui.layout.SideDrawerLayout;
@@ -67,14 +66,11 @@ public final class RedstoneDrawer extends Drawer {
         if (sliderHandle >= 0 && (!model.faceAvailable(sliderFace)
             || model.revision() != sliderRevision))
             sliderHandle = -1;
-        var panel = screen.panelBounds();
         tab = super.tabBounds();
         if (!model.open())
             return;
         int height = contentHeight();
-        body = SideDrawerLayout.body(panel, screen.drawerBottom(),
-            SideDrawerLayout.bodyX(edge(), tab, RedstoneLayout.WIDTH),
-            panel.y() + AutomationLayout.TOP, RedstoneLayout.WIDTH, height,
+        body = contentBounds(RedstoneLayout.WIDTH, height,
             SideDrawerLayout.HeightLimit.SCREEN);
         editorScroll = Math.clamp(editorScroll, 0,
             Math.max(0, height - body.height()));

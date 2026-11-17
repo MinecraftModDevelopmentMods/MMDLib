@@ -16,7 +16,7 @@ public final class BuiltinDrawers {
     public static final ResourceLocation SIDES = id("side_config"),
         REDSTONE = id("redstone"), STATS = id("stats"),
         BACKPACK = id("backpack"), CURIOS = id("curios"), POPOUT = id("popout"),
-        SIDE_TAB = id("side_tab");
+        SIDE_TAB = id("side_tab"), UPGRADES = id("upgrades");
 
     private BuiltinDrawers() {
     }
@@ -26,6 +26,13 @@ public final class BuiltinDrawers {
     }
 
     static void register(DrawerRegistry registry) {
+        registry.register(UPGRADES, c -> c.screen().tabs().stream().filter(
+            zone.moddev.mc.lib.gui.model.containers.UpgradesDrawerElement.class::isInstance)
+            .map(element -> new DrawerDefinition(UPGRADES,
+                element.common().id().orElseThrow(),
+                DrawerPlacement.top(Edge.RIGHT, -10), Optional.of(element), 0,
+                true))
+            .toList());
         registry.register(SIDES,
             c -> c.enabled().contains(SIDES)
                 || c.host() != null && c.host().screenAutomation() != null

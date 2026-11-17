@@ -88,7 +88,16 @@ final class BuiltinElementClients {
             }), ElementClient.of(INVENTORY_CONTROLS).renderer((element, c) -> {
             }), ElementClient.of(PLAYER_SLOTS).renderer((element, c) -> {
             }), ElementClient.of(INVENTORY).renderer((element, c) -> {
-            }),
+            }).renderer(ElementRenderers.Pass.OVERLAY,
+                ElementRenderers.Clip.ELEMENT, (element, c) -> element
+                    .selectedSlot(c.value()).ifPresent(slot -> {
+                        if (!c.access().visible(slot))
+                            return;
+                        var bounds = c.access().bounds(slot);
+                        c.graphics().renderOutline(bounds.x(), bounds.y(),
+                            bounds.width(), bounds.height(),
+                            element.selectionColor());
+                    })),
             ElementClient.of(CONTAINER_INVENTORY)
                 .renderer(ContainerCellRenderer::inventory),
             ElementClient.of(CONTAINER_SLOT)
@@ -104,8 +113,16 @@ final class BuiltinElementClients {
                 .behavior(ContextBehavior::new),
             ElementClient.of(SIDE_TAB)
                 .renderer(ContainerElementRenderer::sideTab),
+            ElementClient
+                .of(zone.moddev.mc.lib.gui.load.BuiltinElements.UPGRADES_DRAWER)
+                .renderer(ElementRenderers.Pass.BACKGROUND,
+                    ElementRenderers.Clip.VIEWPORT, UpgradesDrawer::render),
             ElementClient.of(BUTTON_CONTROL).renderer(ButtonRenderer::draw)
                 .behavior(ButtonBehavior::new),
+            ElementClient.of(
+                zone.moddev.mc.lib.gui.load.BuiltinElements.WORKING_AREA_BUTTON)
+                .renderer(WorkingAreaButtonBehavior::render)
+                .behavior(WorkingAreaButtonBehavior::new),
             ElementClient.of(LABEL).renderer(TextControlRenderer::label),
             ElementClient
                 .of(zone.moddev.mc.lib.gui.load.BuiltinElements.ENTITY_PORTRAIT)

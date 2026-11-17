@@ -7,7 +7,20 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     boolean noOcclusion, boolean immovable, boolean portable, boolean drawers,
     List<Shape> shapes,
     net.minecraft.resources.ResourceLocation secondaryAction,
-    EntityDisplay entityDisplay, ItemDisplay itemDisplay) {
+    EntityDisplay entityDisplay, ItemDisplay itemDisplay,
+    zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizers,
+    String gearboxSlot, String capacitorSlot, List<String> rangeSlots,
+    String legacyUpgradeStorage) {
+    public MachineBehavior(ProcessorDeclaration processor, int stackSize,
+        boolean noOcclusion, boolean immovable, boolean portable,
+        boolean drawers, List<Shape> shapes,
+        net.minecraft.resources.ResourceLocation secondaryAction,
+        EntityDisplay entityDisplay, ItemDisplay itemDisplay) {
+        this(processor, stackSize, noOcclusion, immovable, portable, drawers,
+            shapes, secondaryAction, entityDisplay, itemDisplay,
+            zone.moddev.mc.lib.machine.presentation.VisualizerStyle.DEFAULT,
+            null, null, List.of(), null);
+    }
     public MachineBehavior(ProcessorDeclaration processor, int stackSize,
         boolean noOcclusion, boolean immovable, boolean portable,
         boolean drawers, List<Shape> shapes,
@@ -26,6 +39,12 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     public static final MachineBehavior DEFAULT = new MachineBehavior(null, 64,
         false, false, false, true, List.of(), null);
     public MachineBehavior {
+        java.util.Objects.requireNonNull(visualizers);
+        rangeSlots = List.copyOf(rangeSlots);
+        if (rangeSlots.size() > 9
+            || new java.util.HashSet<>(rangeSlots).size() != rangeSlots.size())
+            throw new IllegalArgumentException(
+                "Expected at most nine distinct range sockets");
         if (stackSize < 1 || stackSize > 64)
             throw new IllegalArgumentException("Stack size must be 1..64");
         if (portable && (processor == null

@@ -46,6 +46,12 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
 
     public abstract boolean canStart(ProcessorState state,
         ProcessorMachine context);
+    /**
+     * Supplies WorkingArea.Provider's shared range policy to custom processors.
+     */
+    public int rangeUpgrades() {
+        return machine == null ? 0 : machine.rangeUpgrades();
+    }
     public abstract ProcessState process(ProcessorState state,
         ProcessorMachine context, int deltaTicks);
 

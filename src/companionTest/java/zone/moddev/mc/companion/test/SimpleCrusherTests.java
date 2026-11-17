@@ -46,6 +46,44 @@ public final class SimpleCrusherTests {
     }
 
     @GameTest(template = "empty")
+    public static void gearboxClockAcceleratesRecipesAndRetainsCompletion(
+        GameTestHelper h) {
+        var machine = place(h);
+        machine.energy.setStored(10000);
+        machine.items.insertItem(0, new ItemStack(Items.IRON_ORE, 2), false);
+        var processor = machine.features.processors().getFirst();
+        // The same FeatureHost API is available to Java-defined machines with
+        // any number of processors.
+        var accelerated = new zone.moddev.mc.lib.machine.feature.FeatureHost(
+            machine::setChanged).gearboxes(() -> 8).add(processor);
+        accelerated.tick(h.getLevel()); // Select recipe, then run its first
+                                        // work tick.
+        require(processor.progress() == 1 && machine.energy.stored() == 9980,
+            "The shared clock runs recipe selection and work in two substeps");
+        accelerated.tick(h.getLevel());
+        require(processor.progress() == 3 && machine.energy.stored() == 9940,
+            "Two recipe work ticks consume twice the normal FE per game tick");
+        for (int tick = 2; tick < 66; tick++)
+            accelerated.tick(h.getLevel());
+        require(
+            processor.completedCycles().intValueExact() == 1
+                && processor.justFinished().isPresent()
+                && machine.items.getStackInSlot(1).getCount() == 2
+                && machine.energy.stored() == 7400,
+            "Finishing in the first substep retains completion events while the second starts the next cycle");
+        processor.setPaused(true);
+        accelerated.tick(h.getLevel());
+        require(machine.energy.stored() == 7400,
+            "Pause consumes no extra recipe energy");
+        processor.setPaused(false);
+        machine.energy.setStored(20);
+        accelerated.tick(h.getLevel());
+        require(machine.energy.stored() == 0,
+            "The second recipe substep cannot draw unpaid energy");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void generatedRecipesDriveAClasslessCrusher(
         GameTestHelper h) {
         var machine = place(h);
@@ -87,7 +125,7 @@ public final class SimpleCrusherTests {
             pos, Direction.NORTH);
         var power = h.getLevel().getCapability(Capabilities.EnergyStorage.BLOCK,
             pos, Direction.NORTH);
-        require(items != null && items.getSlots() == 3 && power != null,
+        require(items != null && items.getSlots() == 5 && power != null,
             "Capabilities registered automatically");
         require(items.insertItem(1, new ItemStack(Items.IRON_ORE), false)
             .getCount() == 1, "Outputs refuse automation insertion");

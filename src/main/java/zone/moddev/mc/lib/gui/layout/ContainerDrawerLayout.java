@@ -40,9 +40,9 @@ public record ContainerDrawerLayout(Rect tab, Rect body, int columns, int rows,
     public static ContainerDrawerLayout of(Rect panel, int bottom, int slots,
         Rect tab, zone.moddev.mc.lib.gui.runtime.ContainerPolicy.Layout policy,
         zone.moddev.mc.lib.gui.model.Edge edge, int screenWidth) {
-        var body = SideDrawerLayout.body(panel, bottom,
-            SideDrawerLayout.bodyX(edge, tab, policy.width()),
-            SideDrawerLayout.top(panel), policy.width(), Integer.MAX_VALUE);
+        var body = SideDrawerLayout.topBody(panel, bottom, edge, tab,
+            policy.width(), Integer.MAX_VALUE,
+            SideDrawerLayout.HeightLimit.PANEL);
         int columns = policy.columns();
         int rows = Math.min(policy.maxRows(),
             Math.max(0, (body.height() - policy.cellY() - policy.footer())
