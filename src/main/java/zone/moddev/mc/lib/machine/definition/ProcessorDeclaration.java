@@ -48,6 +48,12 @@ public final class ProcessorDeclaration {
         public String key() {
             return prototype.key();
         }
+
+        public net.minecraft.core.Direction placementFacing(
+            net.minecraft.world.item.context.BlockPlaceContext context,
+            net.minecraft.core.Direction suggested) {
+            return prototype.placementFacing(context, suggested);
+        }
         public com.mojang.serialization.Codec<net.minecraft.nbt.CompoundTag> codec() {
             return net.minecraft.nbt.CompoundTag.CODEC;
         }

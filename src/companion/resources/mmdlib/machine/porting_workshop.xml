@@ -1,5 +1,6 @@
 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
          extends="mmdlib:base_machine" name="Porting Workshop">
+  <block facing="all"/>
   <appearance preset="cube-front" front="minecraft:block/furnace_front"
               side="minecraft:block/copper_block" top="minecraft:block/iron_block"/>
   <storage>

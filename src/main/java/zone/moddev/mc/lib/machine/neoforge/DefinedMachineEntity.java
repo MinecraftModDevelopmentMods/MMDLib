@@ -33,6 +33,7 @@ public final class DefinedMachineEntity extends BaseMachine
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle.Provider {
     public final MachineDefinition definition;
     private Runnable placementComplete;
+    private boolean placementNotified;
     private final java.util.Map<zone.moddev.mc.lib.machine.definition.AdmissionDeclaration, zone.moddev.mc.lib.machine.feature.StorageAdmission> admissionRules = new java.util.HashMap<>();
     public final ItemInventories items;
     public final FluidStorage fluids;
@@ -371,17 +372,36 @@ public final class DefinedMachineEntity extends BaseMachine
     void afterPlacement(Runnable action) {
         // NeoForge confirms captured placements through Block.onPlace only
         // after the placement event accepts them.
-        if (level != null && level.captureBlockSnapshots)
-            placementComplete = action;
-        else
+        if (level != null && level.captureBlockSnapshots) {
+            var previous = placementComplete;
+            placementComplete = () -> {
+                if (previous != null)
+                    previous.run();
+                action.run();
+            };
+        } else
             action.run();
     }
     void completePlacement() {
         var action = placementComplete;
         placementComplete = null;
-        if (action != null)
+        if (action != null && level != null && !isRemoved()
+            && level.getBlockEntity(worldPosition) == this)
             action.run();
     }
+    void notifyPlacement(net.minecraft.world.entity.player.Player placer,
+        net.minecraft.world.item.ItemStack item) {
+        if (placementNotified || level == null || level.isClientSide()
+            || isRemoved())
+            return;
+        placementNotified = true;
+        var placement = new zone.moddev.mc.lib.machine.feature.MachinePlacement(
+            level, worldPosition, getBlockState(), placer, item);
+        features.allProcessors()
+            .forEach(processor -> processor.placed(placement));
+        setChanged();
+    }
+
     public void changed() {
         changed(true);
     }

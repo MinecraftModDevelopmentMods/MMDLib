@@ -31,6 +31,64 @@ public final class PortingHooksTests {
     }
 
     @GameTest(template = "empty")
+    public static void placementHooksWaitForAcceptanceAndKeepOwner(
+        GameTestHelper h) {
+        var player = h.makeMockServerPlayerInLevel();
+        player.gameMode.changeGameModeForPlayer(
+            net.minecraft.world.level.GameType.CREATIVE);
+        var pos = h.absolutePos(new BlockPos(2, 2, 2));
+        player.setPos(
+            net.minecraft.world.phys.Vec3.atCenterOf(pos.offset(3, 0, 0)));
+        player.setShiftKeyDown(true);
+        h.getLevel().setBlock(pos.below(),
+            net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(),
+            3);
+        var item = zone.moddev.mc.lib.machine.neoforge.MachineContent
+            .item(ResourceLocation.parse("mmdlib_companion:porting_workshop"));
+        var stack = new ItemStack(item);
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
+            stack);
+        var hit = new net.minecraft.world.phys.BlockHitResult(
+            net.minecraft.world.phys.Vec3.atCenterOf(pos.below()),
+            net.minecraft.core.Direction.UP, pos.below(), false);
+        DefinedMachineEntity[] captured = {null};
+        java.util.function.Consumer<net.neoforged.neoforge.event.level.BlockEvent.EntityPlaceEvent> cancel = event -> {
+            if (event.getEntity() == player && event.getPos().equals(pos)) {
+                captured[0] = (DefinedMachineEntity) h.getLevel()
+                    .getBlockEntity(pos);
+                event.setCanceled(true);
+            }
+        };
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(cancel);
+        try {
+            player.gameMode.useItemOn(player, h.getLevel(), stack,
+                net.minecraft.world.InteractionHand.MAIN_HAND, hit);
+        } finally {
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.unregister(cancel);
+        }
+        h.assertTrue(captured[0] != null,
+            "Cancellation saw the candidate machine");
+        h.assertTrue(
+            captured[0].features.findProcessor("workshop").orElseThrow()
+                .variable("placements").equals(0),
+            "Rejected placement never calls placed");
+        player.gameMode.useItemOn(player, h.getLevel(), stack,
+            net.minecraft.world.InteractionHand.MAIN_HAND, hit);
+        var machine = (DefinedMachineEntity) h.getLevel().getBlockEntity(pos);
+        var processor = machine.features.findProcessor("workshop")
+            .orElseThrow();
+        h.assertTrue(machine.facing() == net.minecraft.core.Direction.UP,
+            "Custom placement chooses clicked face");
+        h.assertTrue(
+            processor.variable("owner").equals(player.getUUID().toString()),
+            "Placer ownership recorded");
+        machine.onLoad();
+        h.assertTrue(processor.variable("placements").equals(1),
+            "Loading does not replay placement");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void typedResourceTransactionsRollbackBlockedOutput(
         GameTestHelper h) {
         var machine = place(h, "porting_workshop");

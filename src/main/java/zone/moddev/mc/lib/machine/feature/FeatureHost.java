@@ -88,6 +88,12 @@ public final class FeatureHost implements IRedstoneOutput {
             : java.util.Optional.empty();
     }
 
+    /** All processor kinds in stable declaration order. */
+    public List<Processor<?>> allProcessors() {
+        return features.values().stream().filter(Processor.class::isInstance)
+            .<Processor<?>>map(feature -> (Processor<?>) feature).toList();
+    }
+
     public <T> java.util.Optional<T> findProcessor(String key, Class<T> type) {
         return findProcessor(key).filter(type::isInstance).map(type::cast);
     }

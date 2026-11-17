@@ -32,13 +32,19 @@ import zone.moddev.mc.lib.common.runtime.DropsContents;
 public class DefinedMachineBlock extends Block implements EntityBlock {
     private final Supplier<BlockEntityType<DefinedMachineEntity>> type;
     private final zone.moddev.mc.lib.machine.definition.MachineFacing facing;
+    private zone.moddev.mc.lib.machine.feature.Processor<?> placementPrototype;
 
     public static DefinedMachineBlock create(Properties properties,
         Supplier<BlockEntityType<DefinedMachineEntity>> type,
-        zone.moddev.mc.lib.machine.definition.MachineFacing facing) {
-        return facing.horizontal()
+        zone.moddev.mc.lib.machine.definition.MachineDefinition definition) {
+        var facing = definition.behavior().facing();
+        var block = facing.horizontal()
             ? new DefinedMachineBlock(properties, type, facing)
             : new SixWay(properties, type, facing);
+        if (definition.behavior().processor() != null)
+            block.placementPrototype = definition.behavior().processor()
+                .schema(definition.processor());
+        return block;
     }
 
     private static final class SixWay extends DefinedMachineBlock {
@@ -89,8 +95,16 @@ public class DefinedMachineBlock extends Block implements EntityBlock {
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(facingProperty(),
-            facing.placement(context.getNearestLookingDirections()));
+        var selected = facing.placement(context.getNearestLookingDirections());
+        if (placementPrototype != null) {
+            var proposed = placementPrototype.placementFacing(context,
+                selected);
+            if (!facing.directions().contains(proposed))
+                throw new IllegalArgumentException(
+                    "Processor selected a forbidden facing: " + proposed);
+            selected = proposed;
+        }
+        return defaultBlockState().setValue(facingProperty(), selected);
     }
 
     @Override

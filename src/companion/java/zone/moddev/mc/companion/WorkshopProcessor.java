@@ -10,6 +10,39 @@ import zone.moddev.mc.lib.machine.feature.StoredProcessor;
 
 /** A small transactional consumer of typed host resources; no entity cast. */
 public final class WorkshopProcessor extends StoredProcessor {
+    private final ProcessorState.Key<Integer> placements = variables.define(
+        "placements", com.mojang.serialization.Codec.INT, 0,
+        java.util.function.UnaryOperator.identity(), false, true);
+    private final ProcessorState.Key<String> owner = variables.define("owner",
+        com.mojang.serialization.Codec.STRING, "",
+        java.util.function.UnaryOperator.identity(), false, true);
+    private final ProcessorState.Key<String> team = variables.define("team",
+        com.mojang.serialization.Codec.STRING, "",
+        java.util.function.UnaryOperator.identity(), false, true);
+
+    @Override
+    public net.minecraft.core.Direction placementFacing(
+        net.minecraft.world.item.context.BlockPlaceContext context,
+        net.minecraft.core.Direction suggested) {
+        // Sneak placement demonstrates a consumer choosing the clicked face.
+        return context.getPlayer() != null
+            && context.getPlayer().isShiftKeyDown()
+                ? context.getClickedFace()
+                : suggested;
+    }
+
+    @Override
+    public void placed(
+        zone.moddev.mc.lib.machine.feature.MachinePlacement placement) {
+        variables.set(placements, variables.get(placements) + 1);
+        var player = placement.placer();
+        variables.set(owner, player == null ? "" : player.getUUID().toString());
+        variables.set(team,
+            player == null || player.getTeam() == null
+                ? ""
+                : player.getTeam().getName());
+    }
+
     @Override
     public boolean canStart(ProcessorState state, ProcessorMachine host) {
         var resources = host.resources();

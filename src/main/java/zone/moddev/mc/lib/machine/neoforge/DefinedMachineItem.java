@@ -62,6 +62,11 @@ public final class DefinedMachineItem extends BlockItem {
                 });
             }
         }
+        if (result.consumesAction() && !context.getLevel().isClientSide()
+            && context.getLevel().getBlockEntity(
+                context.getClickedPos()) instanceof DefinedMachineEntity host)
+            host.afterPlacement(
+                () -> host.notifyPlacement(context.getPlayer(), payload));
         return result;
     }
 

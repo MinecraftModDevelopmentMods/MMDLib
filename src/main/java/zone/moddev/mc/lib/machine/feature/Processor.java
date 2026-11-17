@@ -18,6 +18,19 @@ public interface Processor<S>
     }
 
     boolean paused();
+
+    /**
+     * Pure placement preference, also queried on a prototype without a host.
+     */
+    default net.minecraft.core.Direction placementFacing(
+        net.minecraft.world.item.context.BlockPlaceContext context,
+        net.minecraft.core.Direction suggested) {
+        return suggested;
+    }
+
+    /** Server callback for a successful item placement, never chunk loading. */
+    default void placed(MachinePlacement placement) {
+    }
     void setPaused(boolean paused);
     boolean processing();
     ProcessState executionStatus();

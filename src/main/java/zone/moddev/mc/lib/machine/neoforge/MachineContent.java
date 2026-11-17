@@ -205,7 +205,7 @@ public final class MachineContent {
                 if (!definition.behavior().shapes().isEmpty())
                     properties.dynamicShape().noOcclusion();
                 var block = DefinedMachineBlock.create(properties,
-                    () -> entities.get(id), definition.behavior().facing());
+                    () -> entities.get(id), definition);
                 helper.register(id, block);
                 blocks.put(id, block);
             }));
