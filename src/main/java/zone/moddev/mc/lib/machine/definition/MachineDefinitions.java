@@ -96,6 +96,12 @@ public final class MachineDefinitions {
         String machineName) {
         try {
             String id = required(node, "id");
+            long operatingCost = node.attributes()
+                .containsKey("energy-per-tick")
+                    ? number(node, "energy-per-tick", 0, Long.MAX_VALUE)
+                    : 0;
+            if (operatingCost > 0 && !resources.contains("energy"))
+                throw error(node, "energy-per-tick requires energy storage");
             var bindings = new LinkedHashMap<String, String>();
             if (node.attributes().containsKey("bindings")) {
                 for (String pair : required(node, "bindings").split("\\s+")) {
@@ -124,7 +130,7 @@ public final class MachineDefinitions {
                     ProcessorDeclaration.load(required(node, "class"),
                         loaders.get(node.source())),
                     Map.of(), List.of(), null, MachineDefinition.Sounds.NONE,
-                    MachineDefinition.Events.NONE);
+                    MachineDefinition.Events.NONE, operatingCost);
             }
             var recipeNode = recipes.get(resource(node, "recipe-type"));
             if (recipeNode == null)
@@ -159,7 +165,8 @@ public final class MachineDefinitions {
                     optionalResource(node, "running-sound"),
                     optionalResource(node, "finish-sound")),
                 new MachineDefinition.Events(optionalResource(node, "on-start"),
-                    optionalResource(node, "on-finish")));
+                    optionalResource(node, "on-finish")),
+                operatingCost);
         } catch (IllegalArgumentException ex) {
             throw error(node, ex.getMessage());
         }
@@ -320,7 +327,8 @@ public final class MachineDefinitions {
         Map.entry("processor",
             Set.of("id", "name", "recipe-type", "filter-inputs", "selectable",
                 "default-recipe", "class", "running-sound", "finish-sound",
-                "on-start", "on-finish", "bindings", "primary")),
+                "on-start", "on-finish", "bindings", "primary",
+                "energy-per-tick")),
         Map.entry("redstone", Set.of("enabled", "pause", "comparator-source")),
         Map.entry("shape", Set.of("id", "when", "bounds")),
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
@@ -1035,6 +1043,7 @@ public final class MachineDefinitions {
                     : redstone.attributes().get("comparator-source"),
                 processorConfigs.size() == 1
                     && !processor.attributes().containsKey("bindings")
+                    && processorConfigs.getFirst().energyPerTick() == 0
                         ? List.of()
                         : processorConfigs);
         } catch (IllegalArgumentException ex) {

@@ -31,6 +31,105 @@ public final class PortingHooksTests {
     }
 
     @GameTest(template = "empty")
+    public static void operatingCostIsAtomicAndTracksAcceleratedWork(
+        GameTestHelper h) {
+        var machine = place(h, "paid_workshop");
+        machine.energy.setStored(10000);
+        machine.items.inventory("left_input").insertItem(0,
+            new ItemStack(Items.COBBLESTONE), false);
+        machine.serverTick();
+        var lane = machine.features.processor("left").orElseThrow();
+        h.assertTrue(lane.progress() == 0 && machine.energy.stored() == 10000,
+            "Starting is free");
+        machine.energy.setStored(24);
+        machine.serverTick();
+        h.assertTrue(
+            lane.progress() == 0 && machine.energy.stored() == 24
+                && machine.energy.used().signum() == 0,
+            "Combined 20 recipe plus 5 operating FE cannot partially debit");
+        machine.energy.setStored(75);
+        lane.tick(machine.features, 2);
+        h.assertTrue(
+            lane.progress() == 2 && machine.energy.stored() == 25
+                && machine.energy.used().intValue() == 50,
+            "Accelerated steps each pay recipe plus operating cost");
+        lane.setPaused(true);
+        lane.tick(machine.features, 2);
+        h.assertTrue(machine.energy.stored() == 25 && lane.progress() == 2,
+            "Pause is free");
+        lane.setPaused(false);
+        machine.energy.setStored(10000);
+        lane.tick(machine.features, 98);
+        h.assertTrue(
+            machine.energy.stored() == 7550
+                && machine.energy.used().intValue() == 2500,
+            "Full cycle costs recipe 2000 plus operating 500");
+        h.assertTrue(machine.items.inventory("left_output").getStackInSlot(0)
+            .is(Items.GRAVEL), "Cycle completed");
+        lane.tick(machine.features, 5);
+        h.assertTrue(machine.energy.stored() == 7550, "Idle steps are free");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void blockedLastStepRollsBackOperatingAndRecipeEnergy(
+        GameTestHelper h) {
+        var machine = place(h, "paid_workshop");
+        machine.energy.setStored(10000);
+        machine.items.inventory("left_input").insertItem(0,
+            new ItemStack(Items.COBBLESTONE), false);
+        machine.serverTick();
+        var lane = machine.features.processor("left").orElseThrow();
+        lane.tick(machine.features, 99);
+        long before = machine.energy.stored();
+        var used = machine.energy.used();
+        machine.items.inventory("left_output").restoreStack(0,
+            new ItemStack(Items.DIRT, 64));
+        lane.tick(machine.features, 3);
+        h.assertTrue(
+            lane.progress() == 99 && machine.energy.stored() == before
+                && machine.energy.used().equals(used),
+            "Blocked final step rolls back both charges, progress and telemetry");
+        machine.items.inventory("left_output").restoreStack(0, ItemStack.EMPTY);
+        lane.tick(machine.features, 1);
+        h.assertTrue(
+            machine.energy.stored() == before - 25 && machine.items
+                .inventory("left_output").getStackInSlot(0).is(Items.GRAVEL),
+            "Unblocking charges only once");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void customProcessorOperatingCostRefundsFailedWork(
+        GameTestHelper h) {
+        var machine = place(h, "paid_workshop");
+        machine.fluids.fill(new FluidStack(Fluids.WATER, 10),
+            FluidAction.EXECUTE);
+        machine.energy.setStored(2);
+        machine.serverTick();
+        h.assertTrue(
+            machine.energy.stored() == 2
+                && machine.fluids.getFluidInTank(0).getAmount() == 10,
+            "Custom processor stalls before work without operating power");
+        machine.energy.setStored(3);
+        machine.serverTick();
+        h.assertTrue(
+            machine.energy.stored() == 100
+                && machine.fluids.getFluidInTank(0).getAmount() == 9
+                && machine.energy.used().intValue() == 3,
+            "Custom work pays overhead then produces energy");
+        machine.energy.setStored(machine.energy.capacity());
+        var used = machine.energy.used();
+        machine.serverTick();
+        h.assertTrue(
+            machine.energy.stored() == machine.energy.capacity()
+                && machine.energy.used().equals(used)
+                && machine.fluids.getFluidInTank(0).getAmount() == 9,
+            "Blocked custom work refunds overhead and telemetry");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void customEnergyHasOneOwnerAndLiveCapabilityPolicy(
         GameTestHelper h) {
         var machine = place(h, "battery_workshop");

@@ -366,6 +366,10 @@ public final class DefinedMachineEntity extends BaseMachine
                 bindCycleCallbacks(lane, config);
                 value = lane;
             }
+            if (value instanceof RecipeProcessor lane)
+                lane.operatingCost(config.energyPerTick());
+            else if (value instanceof zone.moddev.mc.lib.machine.feature.StoredProcessor custom)
+                custom.operatingCost(config.energyPerTick());
             features.add(value);
             runtimeProcessors.put(config.id(), value);
             if (value instanceof zone.moddev.mc.lib.machine.feature.WorkTargets.Provider provider) {

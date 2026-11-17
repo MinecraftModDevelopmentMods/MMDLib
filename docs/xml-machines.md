@@ -1803,3 +1803,28 @@ existing capacitor behavior. Machines without an energy declaration expose no
 energy capability. The companion Battery Workshop reuses the two recipe lanes
 and supplies their energy through its BatteryBank processor, including live side
 restrictions and capacitor support.
+
+
+### Per-processor operating energy
+
+`<processor energy-per-tick="5" .../>` adds a nonnegative FE cost per successful
+work step. It defaults to zero and requires the machine's `energy` resource.
+Recipe lanes add it to the recipe's scheduled energy; different machines or lanes
+can reuse the same recipe with different operating costs. Gearbox-accelerated
+steps each pay their cost. Starting, idle, paused, held, stalled and blocked steps
+do not charge. Recipe and operating charges commit together: insufficient power
+leaves both energy and progress unchanged. For a costed recipe, a blocked final
+step also rolls back that step's charges and progress until completion succeeds.
+
+Custom `StoredProcessor` implementations use the same option. The cost is reserved
+before `process` runs and retained only when `performedWork(result)` returns true
+(default: `RUNNING`). Override that hook if a successful completion reports `IDLE`.
+Use resource transactions for custom work; return a failure status without committing
+partial resource mutations. On failure, the reserved energy and its telemetry roll
+back. The custom processor sees the remaining energy after its operating reservation.
+Java machines can configure `operatingCost(amount)` directly on either processor type.
+
+The companion Paid Workshop runs the Parallel Workshop's unchanged recipes at 5
+and 9 FE/step overhead, alongside a custom charge pump costing 3 FE/step. Its focused
+tests cover combined-cost starvation, accelerated work, pause/idle, failed final
+output, successful completion and custom-processor refunds.

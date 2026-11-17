@@ -66,6 +66,28 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void processorOperatingCostValidatesPowerAndNonnegativeAmounts()
+        throws Exception {
+        String xml = crusher().replace("<processor ",
+            "<processor energy-per-tick=\"7\" ");
+        write(xml);
+        assertEquals(7,
+            MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher")).processors()
+                .getFirst().energyPerTick());
+        write(xml.replace("energy-per-tick=\"7\"", "energy-per-tick=\"-1\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        String unpowered = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/porting_workshop.xml"))
+            .replace("<processor ", "<processor energy-per-tick=\"7\" ");
+        write(unpowered);
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
     void energyProviderIsExplicitAndControlsCapacitorSupport()
         throws Exception {
         String xml = Files

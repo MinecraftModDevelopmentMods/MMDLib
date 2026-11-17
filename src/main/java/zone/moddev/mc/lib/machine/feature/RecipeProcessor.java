@@ -252,6 +252,16 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     private Status status = Status.IDLE;
     private java.math.BigInteger completedCycles = java.math.BigInteger.ZERO;
     private long startedCycles;
+    private long operatingCost;
+    /** Additional FE per successful work step, from the energy group. */
+    public RecipeProcessor operatingCost(long amount) {
+        if (amount < 0 || amount > 0
+            && !(inventory.group("energy").orElse(null) instanceof EnergyGroup))
+            throw new IllegalArgumentException(
+                "Operating cost requires an energy group and a nonnegative amount");
+        operatingCost = amount;
+        return this;
+    }
     private java.util.function.Consumer<CyclePlan> onStart = cycle -> {
     };
     private java.util.function.Consumer<CyclePlan> onFinish = cycle -> {
@@ -599,6 +609,10 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
                             java.math.BigInteger.valueOf(peak)));
                 }
             }
+        if (plan != null && operatingCost > 0 && inventory.group("energy")
+            .orElse(null) instanceof EnergyGroup group)
+            uses.add(new Statistics.EnergyUse(group.statisticsResource(),
+                java.math.BigInteger.valueOf(operatingCost)));
         return new Statistics(displayName,
             java.util.List.of(
                 Statistics.cycles("cycles",
@@ -704,7 +718,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         }
         var active = activePlan();
         int before = progress();
-        var result = runner.advance(level.getRandom());
+        var result = runner.advance(level.getRandom(), "energy", operatingCost);
         status = switch (result) {
             case IDLE, COMPLETED -> Status.IDLE;
             case RUNNING -> Status.RUNNING;
