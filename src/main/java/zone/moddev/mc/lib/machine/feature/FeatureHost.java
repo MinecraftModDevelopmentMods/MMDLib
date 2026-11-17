@@ -37,6 +37,7 @@ public final class FeatureHost implements IRedstoneOutput {
     private boolean syncPending;
     private int sinceSync = SYNC_INTERVAL;
     private ProcessorClock processorClock;
+    private String primaryProcessor;
 
     /** Bind a machine's installed gearboxes before binding visual variables. */
     public FeatureHost gearboxes(java.util.function.IntSupplier count) {
@@ -82,10 +83,25 @@ public final class FeatureHost implements IRedstoneOutput {
         return this;
     }
 
+    /** Selects the default processor without changing declaration order. */
+    public FeatureHost primaryProcessor(String key) {
+        if (findProcessor(key).isEmpty())
+            throw new IllegalArgumentException(
+                "Unknown primary processor: " + key);
+        primaryProcessor = key;
+        return this;
+    }
+
     public java.util.Optional<Processor<?>> findProcessor(String key) {
         return features.get(key) instanceof Processor<?> p
             ? java.util.Optional.of(p)
             : java.util.Optional.empty();
+    }
+
+    /** All processor kinds in stable declaration order. */
+    public List<Processor<?>> allProcessors() {
+        return features.values().stream().filter(Processor.class::isInstance)
+            .<Processor<?>>map(feature -> (Processor<?>) feature).toList();
     }
 
     public <T> java.util.Optional<T> findProcessor(String key, Class<T> type) {
@@ -94,6 +110,7 @@ public final class FeatureHost implements IRedstoneOutput {
 
     public java.util.Optional<Processor<?>> findProcessor(
         java.util.Optional<String> key) {
+        key = key.or(() -> java.util.Optional.ofNullable(primaryProcessor));
         return key.isPresent()
             ? findProcessor(key.get())
             : features.values().stream().filter(Processor.class::isInstance)
@@ -168,11 +185,12 @@ public final class FeatureHost implements IRedstoneOutput {
     }
 
     /**
-     * An omitted key selects the first recipe processor in feature registration
-     * order.
+     * An omitted key selects the configured primary processor, or the first
+     * recipe processor in registration order when no primary is configured.
      */
     public java.util.Optional<RecipeProcessor> processor(
         java.util.Optional<String> key) {
+        key = key.or(() -> java.util.Optional.ofNullable(primaryProcessor));
         return key.isPresent()
             ? processor(key.orElseThrow())
             : features.values().stream()

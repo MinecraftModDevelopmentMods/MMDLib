@@ -16,7 +16,6 @@ import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -52,8 +51,8 @@ public final class MachineEntityDisplays {
         Optional<EntitySnapshotPolicy<?>> policy) {
         static Binding of(MachineDefinition definition) {
             var display = definition.behavior().entityDisplay();
-            var processor = definition.behavior().processor()
-                .schema(definition.processor());
+            var processor = definition.processorSchemas()
+                .get(display.variable().processor());
             var reference = processor
                 .portableVariable(display.variable().name()).orElse(null);
             return new Binding(display,
@@ -189,8 +188,7 @@ public final class MachineEntityDisplays {
             var entity = cache.get(machine.getLevel(), snapshot);
             if (entity == null)
                 return;
-            var facing = machine.getBlockState()
-                .getValue(BlockStateProperties.HORIZONTAL_FACING);
+            var facing = machine.facing();
             var offset = display.offset(facing);
             entity.setPos(machine.getBlockPos().getX() + offset.x,
                 machine.getBlockPos().getY() + offset.y,
@@ -198,9 +196,16 @@ public final class MachineEntityDisplays {
             pose.pushPose();
             try {
                 pose.translate(offset.x, offset.y, offset.z);
+                if (facing.getAxis().isVertical()) {
+                    pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(
+                        facing == net.minecraft.core.Direction.UP ? 180 : 0));
+                    pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(
+                        facing == net.minecraft.core.Direction.UP ? 90 : -90));
+                }
                 EntityDisplayRendering.render(entity, pose, buffers, light,
                     partialTick, display.width(), display.height(),
-                    facing.toYRot() + display.yaw());
+                    (facing.getAxis().isVertical() ? 180 : facing.toYRot())
+                        + display.yaw());
             } finally {
                 pose.popPose();
             }

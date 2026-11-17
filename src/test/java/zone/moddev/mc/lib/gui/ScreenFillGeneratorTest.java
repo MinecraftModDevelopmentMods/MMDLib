@@ -46,6 +46,32 @@ class ScreenFillGeneratorTest {
     Path directory;
 
     @Test
+    void multipleProcessorsExpandOnlyTheUnmodifiedDefaultControl()
+        throws Exception {
+        var sources = List.of(
+            new SourceRoot("mmdlib", Path.of("src/main/resources/mmdlib"),
+                getClass().getClassLoader()),
+            new SourceRoot("mmdlib_companion",
+                Path.of("src/companion/resources/mmdlib"),
+                getClass().getClassLoader()));
+        var machines = MachineDefinitions.load(sources);
+        var id = ResourceLocation.parse("mmdlib_companion:parallel_workshop");
+        var generator = MachineScreenGenerators.forMachines(machines);
+        var standard = new Node("inventory-controls", Map.of(),
+            List.of(new Node("processor-button", Map.of("id", "toggle_0"),
+                List.of(), "test", 1)),
+            "test", 1);
+        assertEquals(3,
+            generator.prepareElement(id, standard).children().size());
+        var authored = new Node("inventory-controls", Map.of(),
+            List.of(new Node("processor-button",
+                Map.of("id", "custom_toggle", "text", "Custom"), List.of(),
+                "test", 1)),
+            "test", 1);
+        assertEquals(authored, generator.prepareElement(id, authored));
+    }
+
+    @Test
     void machineContextFiltersOnlyUnmodifiedTemplateDefaults()
         throws Exception {
         var sources = List.of(

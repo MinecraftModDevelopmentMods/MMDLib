@@ -579,6 +579,25 @@ final class InventoryArchitectureSmoke {
         var power = new ResourceGroup<>("energy", Component.literal("Energy"),
             0x334455, ResourceType.ENERGY, IoMode.INPUT, List.of(0), List.of(),
             new SideConfig(IoMode.INPUT));
+        var invalid = new MachineResources(owner, () -> Direction.NORTH)
+            .energy(power, energy);
+        rejected(() -> invalid.recipeInputs(MachineRecipeTypeSmoke.GRINDING,
+            "energy"), "requires items or fluids");
+        var hidden = new ItemStorage(1).role(Role.INPUT, 0);
+        new MachineResources(owner, () -> Direction.NORTH)
+            .recipeOnlyItems("hidden", hidden, 0)
+            .recipeOnlyItems("output", storage, 1)
+            .recipeOnlyItems("byproduct", storage, 2)
+            .recipeOnlyFluids("water", fluids, 0).energy(power, energy)
+            .recipeInputs(MachineRecipeTypeSmoke.GRINDING,
+                Map.of("input", "hidden", "output", "output", "byproduct",
+                    "byproduct", "water", "water", "energy", "energy"),
+                "input")
+            .build();
+        require(
+            hidden.isItemValid(0, new ItemStack(Items.COPPER_ORE))
+                && !hidden.isItemValid(0, new ItemStack(Items.DIAMOND)),
+            "Aliased recipe-only item inputs retain admission without exposing automation");
         var resources = new MachineResources(owner, () -> Direction.NORTH)
             .items(items("input", IoMode.INPUT, 0), storage)
             .items(items("output", IoMode.OUTPUT, 1), storage)

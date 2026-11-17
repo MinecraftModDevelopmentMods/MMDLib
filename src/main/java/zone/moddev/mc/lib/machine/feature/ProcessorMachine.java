@@ -8,6 +8,16 @@ import net.minecraft.world.level.Level;
  * entity.
  */
 public interface ProcessorMachine {
+    /**
+     * Named internal resource groups. Transactions preserve reservations and
+     * roll back unless committed; internal insertion uses product semantics.
+     * Available on live hosts after assembly, never on declaration prototypes.
+     */
+    default zone.moddev.mc.lib.machine.inventory.MachineInventory resources() {
+        throw new UnsupportedOperationException(
+            "Host has no processing resources");
+    }
+
     Level level();
     BlockPos position();
     void changed();

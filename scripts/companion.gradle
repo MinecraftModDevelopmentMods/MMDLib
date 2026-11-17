@@ -18,6 +18,9 @@ sourceSets {
     }
 }
 
+// Unit definition tests load the real companion XML and its mod-owned processors.
+sourceSets.test.runtimeClasspath += sourceSets.companion.output
+
 neoForge.addModdingDependenciesTo(sourceSets.companion)
 neoForge.addModdingDependenciesTo(sourceSets.companionTest)
 neoForge.addModdingDependenciesTo(sourceSets.companionServerTest)
@@ -94,7 +97,7 @@ neoForge {
             gameDirectory = layout.buildDirectory.dir('companion-gametest')
             sourceSet = sourceSets.companionServerTest
             loadedMods = [neoForge.mods.named(mod_id).get(), neoForge.mods.mmdlib_companion_test]
-            systemProperty 'neoforge.enabledGameTestNamespaces', 'mmdlib_companion'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.hasProperty('portingHooksOnly') ? 'mmdlib_porting' : 'mmdlib_companion,mmdlib_porting'
         }
         multiblockClientSmoke {
             client()

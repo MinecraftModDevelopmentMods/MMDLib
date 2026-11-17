@@ -3,11 +3,9 @@ package zone.moddev.mc.lib.machine.neoforge;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import net.minecraft.core.Direction;
@@ -44,7 +42,13 @@ public final class MachineResources {
     private final Supplier<Direction> facing;
     private final Map<String, Binding> bindings = new LinkedHashMap<>();
     private final Map<String, List<Binding>> recipeBindings = new LinkedHashMap<>();
-    private final Map<String, Set<MachineRecipeType>> inputTypes = new LinkedHashMap<>();
+    private record Admission(MachineRecipeType type,
+        Map<String, String> aliases, List<String> inputs) {
+    }
+    private final List<Admission> admissions = new ArrayList<>();
+    private record FilterTarget(Object storage, List<Integer> members) {
+    }
+    private final Map<String, FilterTarget> recipeOnlyTargets = new LinkedHashMap<>();
     private final Map<String, SlotGroup> recipeOnly = new LinkedHashMap<>();
     private MachineInventory recipes;
     private AutomationInventory automation;
@@ -166,13 +170,26 @@ public final class MachineResources {
      */
     public MachineResources recipeInputs(MachineRecipeType type,
         String... keys) {
+        return recipeInputs(type, Map.of(), keys);
+    }
+
+    /** Links a lane's recipe aliases to physical input resources. */
+    public MachineResources recipeInputs(MachineRecipeType type,
+        Map<String, String> aliases, String... keys) {
         ensureOpen();
         for (String key : keys) {
-            if (!recipeBindings.containsKey(key))
-                throw invalid(key, "unknown recipe input group");
-            inputTypes.computeIfAbsent(key, ignored -> new LinkedHashSet<>())
-                .add(type);
+            var target = aliases.getOrDefault(key, key);
+            if (!aliases.isEmpty() && !aliases.containsKey(key))
+                throw invalid(key, "input is not bound in this recipe view");
+            var selected = inputTargets(target);
+            if (selected.stream()
+                .anyMatch(binding -> !(binding.storage instanceof ItemStore)
+                    && !(binding.storage instanceof FluidStorage)))
+                throw invalid(key,
+                    "recipe input filtering requires items or fluids");
         }
+        admissions.add(new Admission(Objects.requireNonNull(type),
+            Map.copyOf(aliases), List.of(keys)));
         return this;
     }
 
@@ -186,6 +203,37 @@ public final class MachineResources {
                 Objects.requireNonNull(group)) != null)
             throw invalid(key, "duplicate or empty recipe-only group");
         return this;
+    }
+
+    /** Physical items used by recipes without exposing an automation group. */
+    public MachineResources recipeOnlyItems(String key, ItemStore storage,
+        int... members) {
+        recipeOnlyGroup(key, StorageGroups.items(storage, members));
+        recipeOnlyTargets.put(key, new FilterTarget(storage,
+            java.util.Arrays.stream(members).boxed().toList()));
+        return this;
+    }
+
+    /** Physical fluids used by recipes without exposing an automation group. */
+    public MachineResources recipeOnlyFluids(String key, FluidStorage storage,
+        int... members) {
+        recipeOnlyGroup(key, StorageGroups.fluids(storage, members));
+        recipeOnlyTargets.put(key, new FilterTarget(storage,
+            java.util.Arrays.stream(members).boxed().toList()));
+        return this;
+    }
+
+    private List<FilterTarget> inputTargets(String key) {
+        if (recipeBindings.containsKey(key))
+            return recipeBindings.get(key).stream()
+                .map(binding -> new FilterTarget(binding.storage,
+                    binding.group.members()))
+                .toList();
+        var physical = recipeOnlyTargets.get(key);
+        if (physical != null)
+            return List.of(physical);
+        throw invalid(key,
+            "recipe input filtering requires physical items or fluids");
     }
 
     /**
@@ -210,44 +258,51 @@ public final class MachineResources {
         recipes = builder.build();
         automation = new AutomationInventory(owner,
             bindings.values().stream().map(Binding::group).toList());
-        var filters = new RecipeInputFilters(() -> owner.getLevel(), recipes);
-        // Collect by physical slot before installing: overlapping recipe
-        // aliases accept the union.
-        var itemRules = new IdentityHashMap<ItemStore, Map<Integer, List<RecipeInputFilters.Link>>>();
-        var fluidRules = new IdentityHashMap<FluidStorage, Map<Integer, List<RecipeInputFilters.Link>>>();
-        inputTypes.forEach((key, types) -> {
-            for (var binding : recipeBindings.get(key)) {
-                for (int member : binding.group.members()) {
-                    var links = types.stream()
-                        .map(type -> new RecipeInputFilters.Link(type, key))
-                        .toList();
-                    if (binding.storage instanceof ItemStore items)
-                        itemRules
-                            .computeIfAbsent(items,
-                                ignored -> new LinkedHashMap<>())
-                            .computeIfAbsent(member,
-                                ignored -> new ArrayList<>())
-                            .addAll(links);
-                    else if (binding.storage instanceof FluidStorage fluids)
-                        fluidRules
-                            .computeIfAbsent(fluids,
-                                ignored -> new LinkedHashMap<>())
-                            .computeIfAbsent(member,
-                                ignored -> new ArrayList<>())
-                            .addAll(links);
-                    else
-                        throw invalid(key,
-                            "recipe input filtering requires items or fluids");
+        installRecipeAdmission();
+        return this;
+    }
+
+    private void installRecipeAdmission() {
+        // Union every lane's rules before restricting a physical slot or tank.
+        var itemRules = new IdentityHashMap<ItemStore, Map<Integer, List<java.util.function.Predicate<net.minecraft.world.item.ItemStack>>>>();
+        var fluidRules = new IdentityHashMap<FluidStorage, Map<Integer, List<java.util.function.Predicate<net.neoforged.neoforge.fluids.FluidStack>>>>();
+        for (var admission : admissions) {
+            var filters = new RecipeInputFilters(owner::getLevel,
+                recipes.view(admission.aliases()));
+            for (String alias : admission.inputs()) {
+                var links = List
+                    .of(new RecipeInputFilters.Link(admission.type(), alias));
+                for (var binding : inputTargets(
+                    admission.aliases().getOrDefault(alias, alias))) {
+                    for (int member : binding.members()) {
+                        if (binding.storage instanceof ItemStore items)
+                            itemRules
+                                .computeIfAbsent(items,
+                                    ignored -> new LinkedHashMap<>())
+                                .computeIfAbsent(member,
+                                    ignored -> new ArrayList<>())
+                                .add(
+                                    stack -> filters.acceptsItem(links, stack));
+                        else if (binding.storage instanceof FluidStorage fluids)
+                            fluidRules
+                                .computeIfAbsent(fluids,
+                                    ignored -> new LinkedHashMap<>())
+                                .computeIfAbsent(member,
+                                    ignored -> new ArrayList<>())
+                                .add(stack -> filters.acceptsFluid(links,
+                                    stack));
+                    }
                 }
             }
-        });
-        itemRules
-            .forEach((storage, rules) -> rules.forEach((slot, links) -> storage
-                .restrict(stack -> filters.acceptsItem(links, stack), slot)));
-        fluidRules
-            .forEach((storage, rules) -> rules.forEach((tank, links) -> storage
-                .restrict(stack -> filters.acceptsFluid(links, stack), tank)));
-        return this;
+        }
+        itemRules.forEach((storage,
+            rules) -> rules.forEach((slot, tests) -> storage.restrict(
+                stack -> tests.stream().anyMatch(test -> test.test(stack)),
+                slot)));
+        fluidRules.forEach((storage,
+            rules) -> rules.forEach((tank, tests) -> storage.restrict(
+                stack -> tests.stream().anyMatch(test -> test.test(stack)),
+                tank)));
     }
 
     public MachineInventory recipes() {

@@ -1,0 +1,5 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib_companion:parallel_workshop" name="Battery Workshop">
+  <storage><energy id="energy" provider="battery" capacitors="true" capacity="200000" input-rate="2000" output-rate="2000"/></storage>
+  <processor id="battery" class="zone.moddev.mc.companion.BatteryBank"/>
+</machine>

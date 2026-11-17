@@ -1639,3 +1639,196 @@ emit world light. Default is false. Use transparency around glowing pixels.
 MMDLib expands the declaration into conditional model parts, reusing tracking
 snapshots and model invalidation when the selected frame changes. No per-machine
 renderer or full-face variants are needed. Inventory models keep the base casing.
+
+## Allowed facing and placement
+
+`<block facing="horizontal" placement-facing="toward-player"/>` is the default.
+`facing="all"` allows all six directions. A space-separated list allows any
+nonempty subset, such as `up`, `down`, `up down`, or `north east up`.
+`placement-facing="away-from-player"` reverses the placement preference.
+Placement picks the nearest allowed look direction (opposite the look direction
+for toward-player); a fixed direction always wins. Rotation/mirroring retains
+its old direction when the transformed front is forbidden. Loaded states outside
+the declared set normalize to north if allowed, otherwise the first allowed
+Minecraft direction (down, up, north, south, west, east).
+
+Vertical fronts use north as local top. Shapes, models, displays and working
+areas share that orientation. Range upgrades expand the area's local plane.
+The companion's Facing Demo machines illustrate all, away, up-only, down-only,
+vertical and asymmetric sets; the existing crushers show horizontal defaults.
+
+## Dynamic storage admission
+
+Real slots accept `filter-class="your.ModAdmission"` or
+`filter-processor="processor_id"`, alongside existing `item-tag` restrictions.
+Tanks accept the same hooks and `fluid-tag="namespace:tag"` alongside exact `fluid`.
+All applicable rules must pass. Recipe admission still accepts the union of linked
+recipe inputs. Rules do not delete contents when tags, recipes or configuration change.
+
+Implement `StorageAdmission` with `acceptsItem(ProcessorMachine, memberId, ItemStack)`
+and/or `acceptsFluid(ProcessorMachine, memberId, FluidAmount)`. Unimplemented kinds
+refuse insertion. A class needs a public no-argument constructor and is instantiated
+per machine; a processor binding names a custom processor implementing that interface.
+The member ID is the stable storage slot/tank ID, such as `fuel/0`. Values are detached;
+the host can have a null level during construction/loading. Queries must not mutate
+storage and must handle simulated operations. Read live config/recipes or invalidate
+any private caches on reload. These hooks govern external admission; machine-product
+transactions retain their existing internal insertion semantics.
+
+The companion Admission Demo shows furnace fuel, vanilla smelting, item/fluid tags,
+a mod-config-selected fluid tag and recipe-based fluid admission. Its custom processor
+supplies rules without a recipe processor. `AdmissionDemo.fuelTag` illustrates the
+mod-owned configuration value; the fixture itself is an inspection/storage machine.
+
+## Typed processor storage
+
+`ProcessorMachine.resources()` exposes the host's existing `MachineInventory`.
+Use `items("group")`, `fluids("group")` and `energy("group")` for typed access;
+missing or wrong-kind names fail explicitly. Indexes are local to that group.
+Use `try (var tx = resources.begin())` and commit only when every operation succeeds.
+Closing without commit rolls all changes back. These are internal processing
+operations: they honor reservations but bypass external roles and item admission.
+Use copied `peek` values for inspection. Declaration prototypes have no live host.
+
+The companion Porting Workshop converts one cobblestone and 25 mB water into stone
+using one transaction. A blocked output leaves both inputs unchanged. Its processor
+uses only the common host API, with no cast to the XML block entity.
+
+## Placement callbacks
+
+Custom processors can override `placementFacing(BlockPlaceContext, Direction)`.
+This pure preference hook runs on the declaration prototype (no live host), on
+both sides. Its result must be allowed by the machine's `facing` declaration.
+`placed(MachinePlacement)` runs on live processors once after successful server
+item placement and portable payload restoration. `StoredProcessor` subclasses override
+`onPlaced(MachinePlacement)` inside the supplied state-update scope. It receives the final state,
+position, nullable placer, level and a copied placing stack. It does not run when
+loading a chunk or when a placement event cancels. Direct world `setBlock` calls
+are not item placement and do not initialize ownership.
+
+The Porting Workshop records the placing player's UUID/team in processor state.
+Sneak placement chooses the clicked face; ordinary placement faces the player.
+
+## Comparator readout
+
+`<redstone comparator-source="workshop/output"/>` selects one existing
+`IRedstoneOutput` descriptor by its stable ID. The source is sampled together
+with per-face outputs, once per selected source per tick. Comparator readout is
+block-wide and independent of Emit faces and their inversion. Unknown source
+IDs fail during definition loading with the source file and line. Custom processors
+contribute descriptors through `redstoneOutputs()`; their IDs must be available
+on the host-free schema prototype. Loading reads the IDs without sampling their
+live value suppliers. No second provider is needed.
+The Porting Workshop exposes output fullness to both the redstone drawer and
+comparators, including comparators reading through an adjacent solid block.
+
+## Several processors per machine
+
+Declare repeated `<processor id="...">` elements with unique stable IDs. They tick
+in declaration order and persist separately. Recipe and custom processors can run
+together. Repeated `<recipe-type>` declarations provide the types used by recipe
+lanes. The first processor is the default primary unless one declares `primary="true"`;
+portable or secondary-use machines with several processors require an explicit primary.
+Primary selection controls item/placement behavior, keyless processor controls,
+and the no-argument progress/time/pause getters. It does not change tick order or
+explicitly indexed lane bindings.
+
+Recipe lanes can declare `bindings="input=left_input output=left_output"` to map
+recipe group names to the machine's physical groups. A binding list defines the
+lane's view; `energy=energy` is included automatically when available. Without a
+list, all resource groups retain their names. Custom processors use named host
+resources directly. Shared targets retain common reservation/transaction identity.
+Recipe admission unions participating lanes by physical slot/tank, then intersects
+that union with authored admission rules. `filter-inputs` names recipe-side aliases;
+omitting it filters all bound input groups.
+
+Generated progress displays and default processor buttons address each lane.
+Per-lane sounds, visuals, statistics and persistence use the same stable IDs.
+JEI registers every used recipe type and routes transfer to its bound inputs.
+Default selection by legacy keyless runtime APIs remains first-in-registration-order;
+use explicit processor keys when choosing a particular lane.
+
+Inheritance merges repeated processors/types by ID. For compatibility, when both
+parent and child declare exactly one processor (or one recipe type), that child
+still overrides the parent singleton even when renaming it. To append to such a
+parent, repeat its existing ID alongside the new declaration.
+
+The companion Parallel Workshop runs two crushing lanes plus a custom water-powered
+Charge Pump (one mB supplies 100 FE). The Shared Workshop rebinds the second lane
+to the first lane's input to demonstrate contention without duplicate products.
+
+
+### Java recipe cycle callbacks
+
+`on-start` and `on-finish` use the ordinary `MaterialExtensions.GLOBAL.events()`
+registry. Mods can register Java callbacks with `MaterialEventTypes.MACHINE_CYCLE_START`
+and `MACHINE_CYCLE_FINISH`; CraftTweaker is optional. `MachineCycle.processor()`
+identifies the lane. Callbacks fire for every actual transition, including multiple
+transitions in one accelerated tick. Loading or resuming a cycle does not replay
+its start, and interruption/failed output does not report a finish. A finish sees
+the committed recipe resources. Java-created recipe processors can use
+`RecipeProcessor.cycleCallbacks(start, finish)` directly.
+
+The companion Parallel Workshop registers both Java callbacks in `CompanionMod`
+and records their counts and lane identity in its charge pump's saved state.
+
+
+### Processor-owned energy
+
+An energy declaration uses the built-in buffer by default (`provider="builtin"`).
+To give ownership to a custom processor, set `provider` to its stable processor ID:
+
+```xml
+<storage>
+  <energy id="energy" provider="battery" capacitors="true"
+          capacity="200000" input-rate="2000" output-rate="2000"/>
+</storage>
+<processor id="battery" class="example.BatteryBank"/>
+```
+
+The processor implements `ProcessorEnergy.createEnergyStorage(capacity, inputRate,
+outputRate)` and returns its authoritative `EnergyBuffer` (or subclass). This runs
+once during construction, before host resources are available. The same store
+backs recipe transactions, energy gauges, statistics, visual values, saving and
+the library's single NeoForge capability registration. Do not separately register
+another energy capability or save a second copy. A subclass backed by another
+storage must implement the buffer's transactional checkpoint, consumption,
+telemetry and serialization contracts consistently.
+
+`energyMode(side)` adds live restrictions to ordinary side configuration; null
+means unsided access. Cached views query it on every transfer, so temporary
+unavailability can return `IoMode.DISABLED` without swapping storage or invalidating
+capabilities. The source itself stays stable for the machine's lifetime.
+
+Custom sources default to `capacitors="false"`; their automatic capacitor socket
+is omitted and explicit incompatible sockets are rejected. Opt in only when the
+source supports the standard capacity/rate upgrades. Built-in buffers retain the
+existing capacitor behavior. Machines without an energy declaration expose no
+energy capability. The companion Battery Workshop reuses the two recipe lanes
+and supplies their energy through its BatteryBank processor, including live side
+restrictions and capacitor support.
+
+
+### Per-processor operating energy
+
+`<processor energy-per-tick="5" .../>` adds a nonnegative FE cost per successful
+work step. It defaults to zero and requires the machine's `energy` resource.
+Recipe lanes add it to the recipe's scheduled energy; different machines or lanes
+can reuse the same recipe with different operating costs. Gearbox-accelerated
+steps each pay their cost. Starting, idle, paused, held, stalled and blocked steps
+do not charge. Recipe and operating charges commit together: insufficient power
+leaves both energy and progress unchanged. For a costed recipe, a blocked final
+step also rolls back that step's charges and progress until completion succeeds.
+
+Custom `StoredProcessor` implementations use the same option. The cost is reserved
+before `process` runs and retained only when `performedWork(result)` returns true
+(default: `RUNNING`). Override that hook if a successful completion reports `IDLE`.
+Use resource transactions for custom work; return a failure status without committing
+partial resource mutations. On failure, the reserved energy and its telemetry roll
+back. The custom processor sees the remaining energy after its operating reservation.
+Java machines can configure `operatingCost(amount)` directly on either processor type.
+
+The companion Paid Workshop runs the Parallel Workshop's unchanged recipes at 5
+and 9 FE/step overhead, alongside a custom charge pump costing 3 FE/step. Its focused
+tests cover combined-cost starvation, accelerated work, pause/idle, failed final
+output, successful completion and custom-processor refunds.

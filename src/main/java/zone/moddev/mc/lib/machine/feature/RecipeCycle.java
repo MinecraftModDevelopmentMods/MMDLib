@@ -124,27 +124,62 @@ public final class RecipeCycle {
         return Result.COMPLETED;
     }
 
+    /**
+     * Adds operating energy to each successful step in the same transaction as
+     * recipe energy. A blocked last step rolls back its charge and progress.
+     * Zero preserves legacy behavior.
+     */
+    public Result advance(RandomSource random, String energyGroup,
+        long operatingCost) {
+        if (operatingCost < 0)
+            throw new IllegalArgumentException("Negative operating cost");
+        if (operatingCost == 0)
+            return advance(random);
+        Objects.requireNonNull(random);
+        if (plan == null)
+            return Result.IDLE;
+        boolean advance = progress < plan.time();
+        boolean finishing = !advance || progress + 1 == plan.time();
+        try (var tx = inventory.begin()) {
+            if (advance) {
+                if (!(inventory.group(energyGroup)
+                    .orElse(null) instanceof EnergyGroup group)
+                    || group.consume(operatingCost, tx) != operatingCost
+                    || !draw(tx))
+                    return Result.STALLED;
+            }
+            if (finishing && !plan.finish(inventory, random, tx))
+                return Result.BLOCKED;
+            tx.commit();
+        }
+        if (finishing) {
+            plan = null;
+            progress = 0;
+            return Result.COMPLETED;
+        }
+        progress++;
+        return Result.RUNNING;
+    }
+
     private boolean draw() {
+        try (var tx = inventory.begin()) {
+            if (!draw(tx))
+                return false;
+            tx.commit();
+            return true;
+        }
+    }
+
+    private boolean draw(zone.moddev.mc.lib.machine.inventory.MachineTx tx) {
         for (var need : plan.energy().entrySet()) {
             long share = EnergySchedule.share(need.getValue(), plan.time(),
                 progress);
             if (!(inventory.group(need.getKey())
                 .orElse(null) instanceof EnergyGroup group)
-                || group.stored() < share)
+                || group.consume(share, tx) != share)
                 return false;
         }
-        try (var tx = inventory.begin()) {
-            for (var need : plan.energy().entrySet()) {
-                long share = EnergySchedule.share(need.getValue(), plan.time(),
-                    progress);
-                if (!(inventory.group(need.getKey())
-                    .orElse(null) instanceof EnergyGroup group)
-                    || group.consume(share, tx) < share)
-                    return false;
-            }
-            tx.commit();
-            return true;
-        }
+        return true;
     }
 
     /** Release claims while retaining paid progress for an explicit resume. */

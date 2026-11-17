@@ -12,7 +12,8 @@ import zone.moddev.mc.lib.machine.presentation.VisualVariables;
  * Base for processors with observable state shared by ticks and declared
  * actions.
  */
-public abstract class StoredProcessor implements Processor<CompoundTag> {
+public abstract class StoredProcessor implements Processor<CompoundTag>,
+    zone.moddev.mc.lib.api.stats.StatsProvider {
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils
         .getLogger();
     /** Reserved metadata; variable names cannot contain a colon. */
@@ -31,6 +32,53 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
     private final ProcessorState.Key<Boolean> held = variables.define("held",
         Codec.BOOL, false);
     private String key;
+    private long operatingCost;
+    /**
+     * Additional FE per successful work step. Resources are bound before
+     * ticking.
+     */
+    public final StoredProcessor operatingCost(long amount) {
+        if (amount < 0)
+            throw new IllegalArgumentException("Negative operating cost");
+        operatingCost = amount;
+        return this;
+    }
+
+    @Override
+    public zone.moddev.mc.lib.api.stats.Statistics statistics() {
+        if (operatingCost == 0 || machine == null)
+            return zone.moddev.mc.lib.api.stats.Statistics.EMPTY;
+        var energy = machine.resources().energy("energy");
+        return new zone.moddev.mc.lib.api.stats.Statistics(displayName(),
+            java.util.List.of(),
+            java.util.List
+                .of(new zone.moddev.mc.lib.api.stats.Statistics.EnergyUse(
+                    energy.statisticsResource(),
+                    java.math.BigInteger.valueOf(operatingCost))));
+    }
+
+    /**
+     * Whether this step performed work. Override if completion returns IDLE
+     * after doing work.
+     */
+    protected boolean performedWork(ProcessState result) {
+        return result == ProcessState.RUNNING;
+    }
+
+    private ProcessState processWithCost() {
+        if (operatingCost == 0)
+            return process(variables, machine, 1);
+        var resources = machine.resources();
+        try (var tx = resources.begin()) {
+            if (resources.energy("energy").consume(operatingCost,
+                tx) != operatingCost)
+                return ProcessState.STALLED;
+            var result = process(variables, machine, 1);
+            if (performedWork(result))
+                tx.commit();
+            return result;
+        }
+    }
     protected ProcessorMachine machine;
 
     public final void initialize(String id, ProcessorMachine context) {
@@ -42,6 +90,18 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
             if (machine != null)
                 machine.changed(sync);
         });
+    }
+
+    @Override
+    public final void placed(MachinePlacement placement) {
+        variables.update(() -> onPlaced(placement));
+    }
+
+    /**
+     * Successful placement inside a state operation; mutations synchronize
+     * once.
+     */
+    protected void onPlaced(MachinePlacement placement) {
     }
 
     public abstract boolean canStart(ProcessorState state,
@@ -195,7 +255,7 @@ public abstract class StoredProcessor implements Processor<CompoundTag> {
             if (!active)
                 idle(variables, machine, 1);
             var next = active || canStart(variables, machine)
-                ? process(variables, machine, 1)
+                ? processWithCost()
                 : ProcessState.IDLE;
             variables.set(status, next.name());
         });

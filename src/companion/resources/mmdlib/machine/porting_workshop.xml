@@ -1,0 +1,15 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Porting Workshop">
+  <block facing="all"/>
+  <appearance preset="cube-front" front="minecraft:block/furnace_front"
+              side="minecraft:block/copper_block" top="minecraft:block/iron_block"/>
+  <storage>
+    <items id="items">
+      <slots id="input" name="Cobblestone" count="1" role="input"/>
+      <slots id="output" name="Stone" count="1" role="output"/>
+    </items>
+    <fluids id="fluids"><tank id="water" role="input" capacity="4000" fluid-tag="minecraft:water"/></fluids>
+  </storage>
+  <redstone comparator-source="workshop/output"/>
+  <processor id="workshop" class="zone.moddev.mc.companion.WorkshopProcessor"/>
+</machine>

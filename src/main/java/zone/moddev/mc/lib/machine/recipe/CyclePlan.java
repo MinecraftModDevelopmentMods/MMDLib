@@ -40,19 +40,13 @@ import zone.moddev.mc.lib.machine.recipe.MachineProduct.ItemProduct;
  * Reserving and restoring work from these fields alone, so a plan may be built
  * by hand.
  *
- * @param recipe
- *            the recipe it was made from
- * @param time
- *            ticks the cycle takes
- * @param items
- *            item inputs, by slot
- * @param fluids
- *            fluid inputs, by tank
- * @param products
- *            each product with where it lands; chance products are placed as if
- *            certain
- * @param energy
- *            the energy each energy group must supply over the cycle
+ * @param recipe the recipe it was made from
+ * @param time ticks the cycle takes
+ * @param items item inputs, by slot
+ * @param fluids fluid inputs, by tank
+ * @param products each product with where it lands; chance products are placed
+ *            as if certain
+ * @param energy the energy each energy group must supply over the cycle
  */
 public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
     List<FluidTake> fluids, List<Placed> products, Map<String, Long> energy) {
@@ -373,6 +367,20 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
      *         input is gone or a product no longer fits where it was placed
      */
     public boolean finish(MachineInventory inventory, RandomSource random) {
+        try (var tx = inventory.begin()) {
+            if (!finish(inventory, random, tx))
+                return false;
+            tx.commit();
+            return true;
+        }
+    }
+
+    /**
+     * Finish within a caller-owned transaction; the caller must roll back on
+     * failure.
+     */
+    public boolean finish(MachineInventory inventory, RandomSource random,
+        zone.moddev.mc.lib.machine.inventory.MachineTx tx) {
         if (plans() == null)
             return false;
         var hits = new ArrayList<Placed>();
@@ -382,42 +390,39 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
                 hits.add(placed);
         if (!canFinish(inventory, hits))
             return false;
-        try (var tx = inventory.begin()) {
-            release(inventory, tx);
-            for (var take : items) {
-                var group = items(inventory, take.group);
-                if (group == null)
-                    return false;
-                var held = group.peek(take.slot);
-                int count = take.stack.getCount();
-                if (!ItemStack.isSameItemSameComponents(held, take.stack)
-                    || held.getCount() < count)
-                    return false;
-                int consumed = count - take.retained;
-                if (consumed > 0
-                    && group.extract(take.slot, consumed, tx) != consumed)
-                    return false;
-            }
-            for (var take : fluids) {
-                var group = fluids(inventory, take.group);
-                if (group == null)
-                    return false;
-                var held = group.peek(take.tank);
-                if (!held.sameFluid(take.fluid)
-                    || held.amount() < take.fluid.amount())
-                    return false;
-                int consumed = take.fluid.amount() - take.retained;
-                if (consumed > 0
-                    && group.extract(take.tank, consumed, tx) != consumed)
-                    return false;
-            }
-            for (var placed : hits)
-                for (var at : placed.at)
-                    if (!insert(inventory, placed, at, tx))
-                        return false;
-            tx.commit();
-            return true;
+        release(inventory, tx);
+        for (var take : items) {
+            var group = items(inventory, take.group);
+            if (group == null)
+                return false;
+            var held = group.peek(take.slot);
+            int count = take.stack.getCount();
+            if (!ItemStack.isSameItemSameComponents(held, take.stack)
+                || held.getCount() < count)
+                return false;
+            int consumed = count - take.retained;
+            if (consumed > 0
+                && group.extract(take.slot, consumed, tx) != consumed)
+                return false;
         }
+        for (var take : fluids) {
+            var group = fluids(inventory, take.group);
+            if (group == null)
+                return false;
+            var held = group.peek(take.tank);
+            if (!held.sameFluid(take.fluid)
+                || held.amount() < take.fluid.amount())
+                return false;
+            int consumed = take.fluid.amount() - take.retained;
+            if (consumed > 0
+                && group.extract(take.tank, consumed, tx) != consumed)
+                return false;
+        }
+        for (var placed : hits)
+            for (var at : placed.at)
+                if (!insert(inventory, placed, at, tx))
+                    return false;
+        return true;
     }
 
     /**
