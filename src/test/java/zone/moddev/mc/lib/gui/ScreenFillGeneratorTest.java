@@ -135,8 +135,7 @@ class ScreenFillGeneratorTest {
         var id = ResourceLocation.parse("test:furnace");
         var screen = ScreenLoader
             .load(sources, Map.of(id, machines.get(id).screen()),
-                (key, node) -> MachineScreenGenerators
-                    .generate(machines.get(key), node))
+                MachineScreenGenerators.forMachines(machines))
             .get(id).screen();
         var highlights = MachineScreenGenerators
             .compileHighlights(machines.get(id), screen);
@@ -220,8 +219,7 @@ class ScreenFillGeneratorTest {
         // companion-only classes.
         var screens = ScreenLoader.load(List.of(sources.getFirst()),
             Map.of(id, machines.get(id).screen()),
-            (key, node) -> MachineScreenGenerators.generate(machines.get(key),
-                node));
+            MachineScreenGenerators.forMachines(machines));
         var screen = screens.get(id).screen();
         assertDoesNotThrow(
             () -> MachineScreenGenerators.validate(machines.get(id), screen));
@@ -284,10 +282,14 @@ class ScreenFillGeneratorTest {
             () -> highlights.put("other", List.of()));
         assertThrows(UnsupportedOperationException.class,
             () -> highlights.get("input").add("other"));
-        assertEquals(List.of(0, 0, 1),
+        assertEquals(
+            List.of("input/0", "output/0", "output/1", "mmdlib_gearbox/0",
+                "mmdlib_capacitor/0"),
             screen.elements().stream().filter(
                 e -> e instanceof SlotElement slot && !slot.playerInventory())
-                .map(e -> ((SlotElement) e).index()).toList());
+                .map(e -> InventoryScope.name(screen, e) + "/"
+                    + ((SlotElement) e).index())
+                .toList());
         assertTrue(screen.find("energy").isPresent());
         assertTrue(screen.find("info").isPresent());
         assertTrue(screen.find("generated_progress").isPresent());
@@ -313,15 +315,18 @@ class ScreenFillGeneratorTest {
                 List.of(), "test.xml", 1));
         assertEquals(machines.get(id).recipeType().id().toString(),
             processorNodes.getFirst().attributes().get("jei-recipes"));
+        var definition = machines.get(id).screen();
+        var invalidFills = new ArrayList<>(definition.children());
+        invalidFills.add(new Node("fill", Map.of("name", "machine"),
+            List.of(new Node("slot", Map.of("index", "99"), List.of(),
+                definition.source(), definition.line())),
+            definition.source(), definition.line()));
         var invalid = ScreenLoader.load(List.of(sources.getFirst()),
-            Map.of(id, machines.get(id).screen()),
-            (key,
-                node) -> node.attributes().get("generator")
-                    .equals("mmdlib:processing")
-                        ? List.of(new Node("slot", Map.of("index", "99"),
-                            List.of(), node.source(), node.line()))
-                        : MachineScreenGenerators.generate(machines.get(key),
-                            node));
+            Map.of(id,
+                new Node(definition.name(), definition.attributes(),
+                    invalidFills, definition.source(), definition.line(),
+                    definition.namespace())),
+            MachineScreenGenerators.forMachines(machines));
         assertThrows(IllegalArgumentException.class,
             () -> MachineScreenGenerators.validate(machines.get(id),
                 invalid.get(id).screen()));

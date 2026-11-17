@@ -302,7 +302,11 @@ class MachineDefinitionsTest {
 
     @Test
     void originalConstructorRetainsAutomaticCubeDefaults() throws Exception {
-        write(crusher());
+        // Preserve the original defaults without inherited component sockets.
+        write(crusher()
+            .replace("mmdlib:base_powered_machine", "mmdlib:base_machine")
+            .replace("<storage>",
+                "<storage><energy id=\"energy\" capacity=\"100000\" input-rate=\"1000\" output-rate=\"0\"/>"));
         var d = MachineDefinitions.load(sources())
             .get(ResourceLocation.parse("test:crusher"));
         var compatible = new MachineDefinition(d.id(), d.checksum(), d.name(),
@@ -1066,12 +1070,15 @@ class MachineDefinitionsTest {
             .replace("</machine>",
                 "<screen><hbox><label text=\"third\"/><label text=\"fourth\"/></hbox><hbox><label"
                     + " text=\"fifth\"/></hbox></screen></machine>"));
-        var base = Files
-            .readString(Path.of(
-                "src/main/resources/mmdlib/machine/base_powered_machine.xml"))
-            .replace("extends=\"mmdlib:base_powered_machine\"/>",
-                "><hbox><label text=\"first\"/><label text=\"second\"/></hbox><hbox><label"
-                    + " text=\"base_end\"/></hbox></screen>");
+        var base = """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true"
+                     extends="mmdlib:base_powered_machine">
+              <screen xmlns="https://moddev.zone/mmdlib/screen">
+                <hbox><label text="first"/><label text="second"/></hbox>
+                <hbox><label text="base_end"/></hbox>
+              </screen>
+            </machine>
+            """;
         Files.writeString(directory.resolve("machine/base.xml"), base);
         var plan = MachineDefinitions.load(sources())
             .get(ResourceLocation.parse("test:crusher"));
