@@ -43,6 +43,37 @@ public final class CompanionGameTests {
     private static final BlockPos CENTER = new BlockPos(2, 2, 2);
 
     @GameTest(template = "empty")
+    public static void nativeCreativeTabSuppressesGeneratedFallback(
+        GameTestHelper helper) {
+        var tabs = BuiltInRegistries.CREATIVE_MODE_TAB;
+        var namespace = CompanionMod.ID;
+        require(
+            tabs.containsKey(net.minecraft.resources.ResourceLocation
+                .fromNamespaceAndPath(namespace, "machines")),
+            "Consumer's Java machines tab is registered");
+        require(
+            !tabs.containsKey(net.minecraft.resources.ResourceLocation
+                .fromNamespaceAndPath(namespace, "materials"))
+                && !tabs.containsKey(net.minecraft.resources.ResourceLocation
+                    .fromNamespaceAndPath(namespace, "mmdlib_content")),
+            "Consumer registration after MMDLib does not leave empty fallback tabs");
+        var tab = tabs.get(net.minecraft.resources.ResourceLocation
+            .fromNamespaceAndPath(namespace, "machines"));
+        var level = helper.getLevel();
+        tab.buildContents(
+            new net.minecraft.world.item.CreativeModeTab.ItemDisplayParameters(
+                level.enabledFeatures(), false, level.registryAccess()));
+        var simple = zone.moddev.mc.lib.machine.neoforge.MachineContent
+            .item(net.minecraft.resources.ResourceLocation
+                .fromNamespaceAndPath(namespace, "simple_crusher"));
+        require(
+            tab.getDisplayItems().stream().filter(stack -> stack.is(simple))
+                .count() == 1,
+            "Generated XML machine is routed into the consumer's Java tab exactly once");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void poweredBasePreservesSavesAndSeparatesFeatureUpdates(
         GameTestHelper helper) {
         var level = helper.getLevel();

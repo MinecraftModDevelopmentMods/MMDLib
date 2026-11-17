@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.common.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,6 +49,40 @@ class ModCreativeTabsTest {
             id("example:machines"), definition());
         assertThrows(IllegalArgumentException.class, () -> ModCreativeTabs
             .choose("example", definitions, definitions.keySet()));
+    }
+
+    @Test
+    void fallbackOnlyExistsWhenTheOwnerHasNoDeclaredOrRegisteredTab() {
+        assertTrue(ModCreativeTabs.needsFallback("example",
+            List.of(id("other:main")), List.of(id("minecraft:combat"))));
+        for (String path : List.of("main", "machines", "tools", "materials",
+            "mmdlib_content")) {
+            var own = List.of(id("example:" + path));
+            assertFalse(
+                ModCreativeTabs.needsFallback("example", own, List.of()));
+            assertFalse(
+                ModCreativeTabs.needsFallback("example", List.of(), own));
+        }
+    }
+
+    @Test
+    void materialsFallbackPreservesItsConsumerTranslationKey() {
+        var title = (net.minecraft.network.chat.contents.TranslatableContents) ModCreativeTabs
+            .fallbackTitle("example", "Example Mod", true).getContents();
+        assertEquals("itemGroup.example.materials", title.getKey());
+        assertEquals("Example Mod", title.getFallback());
+        var general = (net.minecraft.network.chat.contents.TranslatableContents) ModCreativeTabs
+            .fallbackTitle("example", "Example Mod", false).getContents();
+        assertEquals("itemGroup.example", general.getKey());
+    }
+
+    @Test
+    void emptyBuilderRequiresAutomaticContents() {
+        assertThrows(IllegalArgumentException.class, () -> CreativeTabDefinition
+            .builder().icon(id("minecraft:stone")).build());
+        assertTrue(CreativeTabDefinition.builder().icon(id("minecraft:stone"))
+            .includeModItems().build().contents().isEmpty());
+        assertTrue(definition().contents().isEmpty());
     }
 
     private static CreativeTabDefinition definition() {

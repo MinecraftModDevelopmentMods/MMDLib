@@ -76,8 +76,11 @@ Both shipped mod tabs use their own `internal_items` tag.
 }
 ```
 
-`contents` defaults to an empty list. Without an explicit item/material entry,
-an `icon` is required.
+`contents` may be omitted or empty only when `include_mod_items` or
+`default_for_mod` is true. Otherwise an empty definition is rejected, including
+one that accidentally uses `content` instead of `contents`. Without an explicit
+item/material entry, an `icon` is required. The same rules apply to XML and Java
+builders.
 
 | Field | Meaning |
 |---|---|
@@ -117,10 +120,15 @@ remain supported; a queued tab is not registered a second time.
 Generated machines and material/standalone items join their owner's default tab,
 after its explicit contents, without duplicates. Without an explicit default,
 MMDLib selects a same-namespace Java or file tab: `main`, then `machines`, then
-other names alphabetically, then the registrar's `materials` fallback. A mod
-with no other tab gets `<mod>:mmdlib_content`, titled with the mod's display name.
-Unused fallback tabs stay empty and hidden. There is no shared data-defined
-machines tab. MMDLib's Range, Gearbox and Capacitor Upgrades live in `mmdlib:main`.
+other names alphabetically, then `materials`, then `mmdlib_content`. A namespace
+with generated items gets a fallback only
+if it has no authored, queued or registered Java tab after its own tab registration
+handlers run. Registrar namespaces retain `<mod>:materials` and the existing
+`itemGroup.<mod>.materials` translation key; other namespaces get
+`<mod>:mmdlib_content`. Both use the mod display name when their title is untranslated.
+No unused placeholder tab is registered. Routing is selected once after registration;
+Tag exclusions and feature flags are still evaluated on each contents rebuild.
+There is no shared data-defined machines tab. MMDLib's Range, Gearbox and Capacitor Upgrades live in `mmdlib:main`.
 
 Use `include-mod-items` to discover manually registered Java items too, and
 exclude internal parts and compatibility aliases. Without that option, list
