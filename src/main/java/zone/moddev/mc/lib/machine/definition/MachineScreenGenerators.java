@@ -109,8 +109,8 @@ public final class MachineScreenGenerators {
                     && node.children().size() == 1
                     && node.children().getFirst().name()
                         .equals("processor-button")
-                    && !node.children().getFirst().attributes()
-                        .containsKey("processor-key")) {
+                    && node.children().getFirst().attributes()
+                        .equals(Map.of("id", "toggle_0"))) {
                     var buttons = machine.processors().stream()
                         .map(config -> n(node, "processor-button",
                             Map.of("id", "toggle_" + config.id(),

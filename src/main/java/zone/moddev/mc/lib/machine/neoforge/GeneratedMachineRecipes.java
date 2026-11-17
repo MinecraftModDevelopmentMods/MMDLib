@@ -259,21 +259,18 @@ public final class GeneratedMachineRecipes {
         var fluids = new HashSet<String>();
         if (machine.fluids() != null)
             machine.fluids().groups().forEach(g -> fluids.add(g.id()));
-        String energy = machine.power() == null ? null : machine.power().id();
+        var energy = new HashSet<String>();
+        if (machine.power() != null)
+            energy.add(machine.power().id());
         if (!bindings.isEmpty()) {
             remap(items, bindings);
             remap(ghostItems, bindings);
             remap(fluids, bindings);
+            remap(energy, bindings);
         }
-        final String energyTarget = energy;
-        final String energyAlias = bindings.isEmpty()
-            ? energy
-            : bindings.entrySet().stream()
-                .filter(e -> e.getValue().equals(energyTarget))
-                .map(java.util.Map.Entry::getKey).findFirst().orElse(null);
         recipe.inputs().forEach((key, parts) -> {
             if (!items.contains(key) && !ghostItems.contains(key)
-                && !fluids.contains(key) && !key.equals(energyAlias))
+                && !fluids.contains(key) && !energy.contains(key))
                 throw new IllegalArgumentException(
                     machine.id() + ": unknown recipe input group " + key);
             var ghost = machine.ghosts().stream()
@@ -291,7 +288,7 @@ public final class GeneratedMachineRecipes {
                     : part instanceof MachineIngredient.FluidPart
                         ? fluids.contains(key)
                         : part instanceof MachineIngredient.EnergyPart
-                            && key.equals(energyAlias);
+                            && energy.contains(key);
                 if (!valid)
                     throw new IllegalArgumentException(machine.id()
                         + ": incompatible recipe input group " + key);
