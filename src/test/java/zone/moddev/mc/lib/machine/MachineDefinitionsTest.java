@@ -66,6 +66,38 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void energyProviderIsExplicitAndControlsCapacitorSupport()
+        throws Exception {
+        String xml = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/parallel_workshop.xml"))
+            .replace("<storage>",
+                "<storage><energy id=\"energy\" provider=\"battery\"/>")
+            .replace("</machine>",
+                "<processor id=\"battery\" class=\"zone.moddev.mc.companion.BatteryBank\"/></machine>");
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals("battery", definition.power().provider());
+        assertNull(definition.behavior().capacitorSlot());
+        write(xml.replace("provider=\"battery\"",
+            "provider=\"battery\" capacitors=\"true\""));
+        assertNotNull(MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher")).behavior()
+            .capacitorSlot());
+        write(xml.replace("provider=\"battery\"", "provider=\"missing\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("provider=\"battery\"", "provider=\"left\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("</machine>",
+            "<upgrades capacitor-slot=\"invalid\"/></machine>"));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
     void multipleProcessorsBindResourcesAndValidateEveryLane()
         throws Exception {
         String xml = Files

@@ -31,6 +31,57 @@ public final class PortingHooksTests {
     }
 
     @GameTest(template = "empty")
+    public static void customEnergyHasOneOwnerAndLiveCapabilityPolicy(
+        GameTestHelper h) {
+        var machine = place(h, "battery_workshop");
+        var bank = machine.features.findProcessor("battery",
+            zone.moddev.mc.companion.BatteryBank.class).orElseThrow();
+        h.assertTrue(
+            bank.buffer() == machine.energy
+                && machine.screenEnergy() == machine.energy,
+            "Provider, recipes, persistence and screen share one buffer");
+        var capability = h.getLevel().getCapability(
+            net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+            machine.getBlockPos(), null);
+        h.assertTrue(
+            capability != null && capability.receiveEnergy(2000, true) == 2000,
+            "Custom capability simulates");
+        h.assertTrue(machine.energy.stored() == 0,
+            "Simulation leaves buffer empty");
+        capability.receiveEnergy(2000, false);
+        h.assertTrue(machine.resources().energy("energy").stored() == 2000,
+            "Transactions see capability input");
+        var east = h.getLevel().getCapability(
+            net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+            machine.getBlockPos(), net.minecraft.core.Direction.EAST);
+        h.assertTrue(east != null && east.receiveEnergy(100, false) == 0,
+            "Provider side policy enforced");
+        bank.setPaused(true);
+        h.assertTrue(
+            capability.extractEnergy(100, false) == 0
+                && capability.receiveEnergy(100, false) == 0,
+            "Cached view observes dynamic provider availability");
+        bank.setPaused(false);
+        h.assertTrue(capability.extractEnergy(100, false) == 100,
+            "Provider permits export");
+        capability.receiveEnergy(2000, false);
+        var saved = machine.saveWithFullMetadata(h.getLevel().registryAccess());
+        machine.energy.setStored(0);
+        machine.loadWithComponents(saved, h.getLevel().registryAccess());
+        h.assertTrue(capability.getEnergyStored() == 3900,
+            "Same capability sees restored authoritative energy");
+        machine.items.inventory("left_input").insertItem(0,
+            new ItemStack(Items.COBBLESTONE), false);
+        for (int tick = 0; tick < 102; tick++)
+            machine.serverTick();
+        h.assertTrue(
+            machine.items.inventory("left_output").getStackInSlot(0)
+                .is(Items.GRAVEL) && machine.energy.stored() == 1900,
+            "Recipe uses provider energy without a second buffer");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void callbacksKeepEveryAcceleratedTransition(
         GameTestHelper h) {
         var machine = place(h, "parallel_workshop");

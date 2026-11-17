@@ -251,12 +251,7 @@ public final class MachineContent {
                     : entity.fluids.view(index -> entity.resources.automation()
                         .mode(ResourceType.FLUIDS, index, side)));
             event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, type,
-                (entity, side) -> entity.energy == null
-                    ? null
-                    : entity.energy.view(() -> side == null
-                        ? IoMode.INPUT
-                        : entity.resources.automation()
-                            .mode(ResourceType.ENERGY, 0, side)));
+                DefinedMachineEntity::energyCapability);
         }
     }
     static void validateResources(MachineDefinition definition) {

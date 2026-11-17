@@ -38,6 +38,7 @@ public final class DefinedMachineEntity extends BaseMachine
     public final ItemInventories items;
     public final FluidStorage fluids;
     public final EnergyBuffer energy;
+    private final zone.moddev.mc.lib.machine.feature.ProcessorEnergy energyProvider;
     private final List<Integer> rangeSlots;
     public final MachineResources resources;
     public final MachineInventoryLifecycle inventory;
@@ -98,6 +99,24 @@ public final class DefinedMachineEntity extends BaseMachine
             stack -> rules.stream().anyMatch(rule -> rule.test(stack)), tank));
     }
 
+    /** Stable capability views evaluate both policies on every call. */
+    public net.neoforged.neoforge.energy.IEnergyStorage energyCapability(
+        @org.jetbrains.annotations.Nullable net.minecraft.core.Direction side) {
+        return energy == null ? null : energy.view(() -> {
+            var configured = side == null
+                ? (energyProvider == null ? IoMode.INPUT : IoMode.BOTH)
+                : resources.automation().mode(ResourceType.ENERGY, 0, side);
+            var supplied = energyProvider == null
+                ? IoMode.BOTH
+                : energyProvider.energyMode(side);
+            boolean input = configured.canInsert() && supplied.canInsert();
+            boolean output = configured.canExtract() && supplied.canExtract();
+            return input
+                ? (output ? IoMode.BOTH : IoMode.INPUT)
+                : (output ? IoMode.OUTPUT : IoMode.DISABLED);
+        });
+    }
+
     private void prepareAdmission(
         zone.moddev.mc.lib.machine.definition.AdmissionDeclaration declaration) {
         if (declaration.type() != null)
@@ -124,10 +143,36 @@ public final class DefinedMachineEntity extends BaseMachine
         // equally strict.
         MachineContent.validateResources(definition);
         var power = definition.power();
-        energy = power == null
-            ? null
-            : new EnergyBuffer(power.capacity(), power.input(), power.output())
-                .onChange(this::setChanged);
+        var customProcessors = new java.util.HashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
+        if (power != null && power.provider() != null) {
+            var config = definition.processors().stream()
+                .filter(value -> value.id().equals(power.provider()))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                    "Unknown energy provider: " + power.provider()));
+            if (config.declaration() == null)
+                throw new IllegalArgumentException(
+                    "Energy provider must be a custom processor");
+            var provider = config.declaration().create(config.id(), this);
+            if (!(provider instanceof zone.moddev.mc.lib.machine.feature.ProcessorEnergy source))
+                throw new IllegalArgumentException(
+                    "Energy provider must implement ProcessorEnergy");
+            customProcessors.put(config.id(), provider);
+            energyProvider = source;
+            energy = java.util.Objects
+                .requireNonNull(source.createEnergyStorage(power.capacity(),
+                    power.input(), power.output()), "Processor energy storage");
+            energy.changes().subscribe(this::setChanged);
+        } else {
+            energyProvider = null;
+            energy = power == null
+                ? null
+                : new EnergyBuffer(power.capacity(), power.input(),
+                    power.output()).onChange(this::setChanged);
+        }
+        if (power != null && !power.capacitors()
+            && definition.behavior().capacitorSlot() != null)
+            throw new IllegalArgumentException(
+                "Selected energy provider does not enable capacitor upgrades");
         fluids = new FluidStorage().onChange(this::setChanged);
         if (definition.fluids() != null)
             for (var tank : definition.fluids().tanks()) {
@@ -309,7 +354,8 @@ public final class DefinedMachineEntity extends BaseMachine
         for (var config : definition.processors()) {
             zone.moddev.mc.lib.machine.feature.Processor<?> value;
             if (config.declaration() != null)
-                value = config.declaration().create(config.id(), this);
+                value = customProcessors.computeIfAbsent(config.id(),
+                    ignored -> config.declaration().create(config.id(), this));
             else {
                 var typeForProcessor = recipeType(config, recipes);
                 var lane = new RecipeProcessor(config.id(), typeForProcessor,

@@ -1767,3 +1767,39 @@ the committed recipe resources. Java-created recipe processors can use
 
 The companion Parallel Workshop registers both Java callbacks in `CompanionMod`
 and records their counts and lane identity in its charge pump's saved state.
+
+
+### Processor-owned energy
+
+An energy declaration uses the built-in buffer by default (`provider="builtin"`).
+To give ownership to a custom processor, set `provider` to its stable processor ID:
+
+```xml
+<storage>
+  <energy id="energy" provider="battery" capacitors="true"
+          capacity="200000" input-rate="2000" output-rate="2000"/>
+</storage>
+<processor id="battery" class="example.BatteryBank"/>
+```
+
+The processor implements `ProcessorEnergy.createEnergyStorage(capacity, inputRate,
+outputRate)` and returns its authoritative `EnergyBuffer` (or subclass). This runs
+once during construction, before host resources are available. The same store
+backs recipe transactions, energy gauges, statistics, visual values, saving and
+the library's single NeoForge capability registration. Do not separately register
+another energy capability or save a second copy. A subclass backed by another
+storage must implement the buffer's transactional checkpoint, consumption,
+telemetry and serialization contracts consistently.
+
+`energyMode(side)` adds live restrictions to ordinary side configuration; null
+means unsided access. Cached views query it on every transfer, so temporary
+unavailability can return `IoMode.DISABLED` without swapping storage or invalidating
+capabilities. The source itself stays stable for the machine's lifetime.
+
+Custom sources default to `capacitors="false"`; their automatic capacitor socket
+is omitted and explicit incompatible sockets are rejected. Opt in only when the
+source supports the standard capacity/rate upgrades. Built-in buffers retain the
+existing capacitor behavior. Machines without an energy declaration expose no
+energy capability. The companion Battery Workshop reuses the two recipe lanes
+and supplies their energy through its BatteryBank processor, including live side
+restrictions and capacitor support.

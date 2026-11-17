@@ -305,7 +305,7 @@ public final class MachineDefinitions {
                 "name")),
         Map.entry("energy",
             Set.of("id", "capacity", "input-rate", "output-rate", "color",
-                "name")),
+                "name", "provider", "capacitors")),
         Map.entry("slots",
             Set.of("id", "count", "role", "limit", "color", "type",
                 "default-item", "name", "automation", "item-tag",
@@ -431,6 +431,13 @@ public final class MachineDefinitions {
         }
         var storage = one(root, "storage");
         var power = optional(storage, "energy");
+        String energyProvider = power == null
+            ? null
+            : power.attributes().get("provider");
+        if ("builtin".equals(energyProvider))
+            energyProvider = null;
+        boolean energyCapacitors = power != null
+            && bool(power, "capacitors", energyProvider == null);
         var items = optional(storage, "items");
         String itemId = items == null ? null : required(items, "id");
         if (items != null && (itemId.equals("energy")
@@ -899,6 +906,17 @@ public final class MachineDefinitions {
                 color(visualizers, "range-color", visualizerStyle.rangeColor()),
                 color(visualizers, "work-color", visualizerStyle.workColor()));
         }
+        if (energyProvider != null) {
+            final String provider = energyProvider;
+            if (processorConfigs.stream()
+                .noneMatch(config -> config.id().equals(provider)
+                    && config.declaration() != null
+                    && zone.moddev.mc.lib.machine.feature.ProcessorEnergy.class
+                        .isAssignableFrom(config.declaration().type())))
+                throw error(power,
+                    "Energy provider must name a processor implementing ProcessorEnergy: "
+                        + provider);
+        }
         var upgrades = optional(root, "upgrades");
         String gearboxSlot = upgrades == null
             ? null
@@ -918,7 +936,7 @@ public final class MachineDefinitions {
             if (gearboxSlot == null && processor != null)
                 gearboxSlot = componentSocket(root, slots, groups, ids,
                     "gearbox");
-            if (capacitorSlot == null && power != null)
+            if (capacitorSlot == null && power != null && energyCapacitors)
                 capacitorSlot = componentSocket(root, slots, groups, ids,
                     "capacitor");
             if (itemId == null && !slots.isEmpty())
@@ -960,6 +978,9 @@ public final class MachineDefinitions {
             slots.set(index, new Slot(slot.id(), slot.role(), 1, slot.itemTag(),
                 slot.admission()));
         }
+        if (capacitorSlot != null && !energyCapacitors)
+            throw error(upgrades,
+                "Selected energy provider does not enable capacitor upgrades");
         if (capacitorSlot != null && power == null)
             throw error(upgrades, "capacitor-slot requires energy storage");
         if (capacitorSlot != null && capacitorSlot.equals(gearboxSlot))
@@ -1071,7 +1092,7 @@ public final class MachineDefinitions {
                     number(power, "capacity", 1, Long.MAX_VALUE),
                     number(power, "input-rate", 0, Long.MAX_VALUE),
                     number(power, "output-rate", 0, Long.MAX_VALUE),
-                    energyColor, energyName),
+                    energyColor, energyName, energyProvider, energyCapacitors),
             fluidNode == null
                 ? null
                 : new Fluids(required(fluidNode, "id"), tanks,

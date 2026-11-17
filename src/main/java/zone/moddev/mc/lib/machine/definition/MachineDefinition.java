@@ -315,7 +315,11 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public record Power(String id, long capacity, long input, long output,
-        int color, String name) {
+        int color, String name, String provider, boolean capacitors) {
+        public Power(String id, long capacity, long input, long output,
+            int color, String name) {
+            this(id, capacity, input, output, color, name, null, true);
+        }
         public Power(String id, long capacity, long input, long output,
             int color) {
             this(id, capacity, input, output, color, "Energy");
