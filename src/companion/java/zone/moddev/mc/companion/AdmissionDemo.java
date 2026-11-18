@@ -13,11 +13,14 @@ import zone.moddev.mc.lib.machine.feature.StorageAdmission;
 import zone.moddev.mc.lib.machine.feature.StoredProcessor;
 import zone.moddev.mc.lib.machine.ingredient.FluidAmount;
 import zone.moddev.mc.lib.machine.ingredient.MachineIngredient;
-import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
+import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 
 /** A custom processor can also supply live insertion rules without casts. */
 public final class AdmissionDemo extends StoredProcessor
     implements StorageAdmission {
+    private static final ResourceLocation STILL_RECIPE_TYPE = ResourceLocation
+        .parse("mmdlib_companion:lava_smelting");
+
     /** A consuming mod can supply this value from its own reloadable config. */
     public static volatile ResourceLocation fuelTag = ResourceLocation
         .parse("minecraft:lava");
@@ -39,15 +42,13 @@ public final class AdmissionDemo extends StoredProcessor
             return fluid.fluid().is(TagKey.create(Registries.FLUID, fuelTag));
         if (host.level() == null)
             return false;
-        return host.level().getRecipeManager().getRecipes().stream().anyMatch(
-            holder -> holder.value() instanceof MachineRecipeEntry entry
-                && entry.type().id().equals(
-                    ResourceLocation.parse("mmdlib_companion:lava_smelting"))
-                && entry.recipe().inputs()
-                    .getOrDefault("fuel", java.util.List.of()).stream()
-                    .anyMatch(
-                        part -> part instanceof MachineIngredient.FluidPart input
-                            && input.fluids().contains(fluid.fluid())));
+        // Query the current manager by type: bounded work and reload-safe.
+        return MachineContent.recipeType(STILL_RECIPE_TYPE)
+            .recipes(host.level().getRecipeManager()).stream()
+            .anyMatch(holder -> holder.value().recipe().inputs()
+                .getOrDefault("fuel", java.util.List.of()).stream().anyMatch(
+                    part -> part instanceof MachineIngredient.FluidPart input
+                        && input.fluids().contains(fluid.fluid())));
     }
 
     @Override
