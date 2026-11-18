@@ -33,8 +33,9 @@ public final class ProcessorClock
     }
 
     /**
-     * Schedules a batch, committing fractional work only when it runs. Idle,
-     * stalled, held and paused processors never bank work or dirty saves.
+     * Schedules a batch, committing fractional work only when it runs. Going
+     * idle clears the fraction; stalled, held and paused processors retain it.
+     * Unchanged inactive processors never dirty saves.
      */
     public void tick(Processor<?> processor, FeatureHost host) {
         int count = processor.paused()
@@ -43,8 +44,11 @@ public final class ProcessorClock
         int previous = fractions.getOrDefault(processor.key(), 0);
         int total = previous + count;
         processor.tick(host, 1 + total / 8);
-        int remainder = total % 8;
-        if (processor.processing() && remainder != previous) {
+        int remainder = processor
+            .executionStatus() == Processor.ProcessState.IDLE
+                ? 0
+                : processor.processing() ? total % 8 : previous;
+        if (remainder != previous) {
             fractions.put(processor.key(), remainder);
             host.markChanged();
         }

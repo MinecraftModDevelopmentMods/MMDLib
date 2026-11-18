@@ -17,6 +17,7 @@ class ProcessorClockTest {
         final String key;
         boolean paused;
         int ticks;
+        int finishAt = Integer.MAX_VALUE;
         int energy = 1000;
         ProcessState inactive;
         ProcessState status = ProcessState.IDLE;
@@ -65,7 +66,11 @@ class ProcessorClockTest {
             }
             ticks++;
             energy -= 5;
-            status = ProcessState.RUNNING;
+            status = ticks >= finishAt
+                ? ProcessState.IDLE
+                : ProcessState.RUNNING;
+            if (status == ProcessState.IDLE)
+                inactive = status;
         }
     }
 
@@ -110,7 +115,7 @@ class ProcessorClockTest {
     }
 
     @Test
-    void inactiveProcessorsDoNotChangeSavedFractionsOrDirtyTheHost() {
+    void suspendedProcessorsDoNotChangeSavedFractionsOrDirtyTheHost() {
         for (int installed = 1; installed <= 8; installed++) {
             int count = installed;
             var changes = new java.util.concurrent.atomic.AtomicInteger();
@@ -121,7 +126,8 @@ class ProcessorClockTest {
             var saved = clock.state();
             changes.set(0);
             for (var state : Processor.ProcessState.values()) {
-                if (state == Processor.ProcessState.RUNNING)
+                if (state == Processor.ProcessState.RUNNING
+                    || state == Processor.ProcessState.IDLE)
                     continue;
                 processor.inactive = state;
                 for (int tick = 0; tick < 40; tick++)
@@ -133,6 +139,37 @@ class ProcessorClockTest {
             clock.tick(processor, host);
             assertEquals((2 * count) % 8,
                 clock.state().getOrDefault("worker", 0));
+        }
+    }
+
+    @Test
+    void completedCyclesClearFractionsAcrossIdleTicksAndReload() {
+        for (int count = 1; count < 8; count++) {
+            int installed = count;
+            var changes = new java.util.concurrent.atomic.AtomicInteger();
+            var clock = new ProcessorClock(() -> installed);
+            var host = new FeatureHost(changes::incrementAndGet).add(clock);
+            var processor = new Consumer("worker");
+            clock.tick(processor, host);
+            assertEquals(count, clock.state().get("worker"));
+            processor.finishAt = 2;
+            clock.tick(processor, host);
+            assertEquals(0, clock.state().get("worker"));
+            var restored = new ProcessorClock(() -> installed);
+            new FeatureHost(() -> {
+            }).add(restored).load(JsonOps.INSTANCE,
+                host.save(JsonOps.INSTANCE));
+            changes.set(0);
+            for (int tick = 0; tick < 40; tick++)
+                restored.tick(processor, host);
+            assertEquals(0, changes.get());
+            assertEquals(0, restored.state().get("worker"));
+            processor.inactive = null;
+            processor.finishAt = Integer.MAX_VALUE;
+            int before = processor.ticks;
+            restored.tick(processor, host);
+            assertEquals(before + 1, processor.ticks);
+            assertEquals(count, restored.state().get("worker"));
         }
     }
 
