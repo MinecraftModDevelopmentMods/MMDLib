@@ -189,7 +189,7 @@ On the new definition, declare nine extra slots and use
 `<upgrades range-storage="upgrades" legacy-layout="upgrades"/>`. Both component
 sockets must be automatic. The migration moves indexes 4 and 5 into
 `mmdlib_gearbox/0` and `mmdlib_capacitor/0`, then maps the nine extras to local
-indexes 0–8 in their original order. New saves contain the separate component
+indexes 0-8 in their original order. New saves contain the separate component
 inventories and nine-slot extras, so loading them again does not remap them.
 Unknown IDs and displaced contents remain available through normal recovery.
 New machines, other layouts, and saves without that old named inventory should
