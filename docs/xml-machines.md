@@ -620,9 +620,10 @@ custom screens can place its slots normally. Explicit group overrides retain the
 flag. Ghost inventories do not accept this attribute.
 
 The runtime supports an optional item storage, an optional fluid storage, an optional energy
-buffer named `energy`, and at most one recipe type and processor per machine. Supply
-`<recipe-type>` and `<processor>` together for processing, or omit both for a plain
-tank or storage block. Storage-only machines do not apply recipe admission filters,
+buffer named `energy`, and zero or more processors. Recipe processors reference a
+`<recipe-type>`; custom processors supply a Java class. Declare several processors
+for parallel lanes (see [Several processors per machine](#several-processors-per-machine)),
+or omit `<recipe-type>` and `<processor>` for a plain tank or storage block. Storage-only machines do not apply recipe admission filters,
 register JEI catalysts, or generate processor progress/buttons in the base screen.
 Without a processor, item and tank roles must be `storage` or `manual`; `input`
 and `output` require a processor to consume or produce their contents.
