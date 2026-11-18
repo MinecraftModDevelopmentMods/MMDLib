@@ -237,14 +237,17 @@ public final class MachineContent {
         // other installed mods.
         for (var definition : definitions.values())
             validateResources(definition);
-        for (var type : entities.values()) {
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type,
-                (entity, side) -> entity.items.getSlots() == 0
-                    ? null
-                    : entity.items.view(index -> entity.resources.automation()
-                        .mode(ResourceType.ITEMS,
-                            entity.items.address(index).inventory(),
-                            entity.items.address(index).slot(), side)));
+        for (var entry : entities.entrySet()) {
+            var type = entry.getValue();
+            // Manual component sockets remain available to menus, not pipes.
+            if (definitions.get(entry.getKey()).slots().stream().anyMatch(
+                slot -> slot.role().canInsert() || slot.role().canExtract()))
+                event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type,
+                    (entity,
+                        side) -> entity.items.view(index -> entity.resources
+                            .automation().mode(ResourceType.ITEMS,
+                                entity.items.address(index).inventory(),
+                                entity.items.address(index).slot(), side)));
             event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, type,
                 (entity, side) -> entity.fluids.getTanks() == 0
                     ? null

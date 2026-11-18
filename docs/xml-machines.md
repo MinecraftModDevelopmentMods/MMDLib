@@ -607,8 +607,10 @@ membership. Roles are `input`, `output`, `storage`, and `manual`; automatic grou
 modes are respectively `input`, `output`, `both`, and `disabled`. A group cannot
 grant automation permissions that its members' roles prohibit. Slot `limit`
 defaults to 64. When `<items>` is present it must contain 1–54 slots overall.
-Omit `<items>` entirely for fluid-only machines; no dummy inventory or item
-capability is created.
+Omit `<items>` entirely for fluid-only machines; no dummy inventory is created.
+Enabled upgrades may add manual component sockets for the GUI, but a machine
+with only manual slots does not advertise an item capability. Machines with
+automatable item slots expose their full stable slot numbering.
 
 For manual component storage that must not appear as a coloured automation
 group, use `<slots id="upgrades" count="11" role="manual" limit="1"

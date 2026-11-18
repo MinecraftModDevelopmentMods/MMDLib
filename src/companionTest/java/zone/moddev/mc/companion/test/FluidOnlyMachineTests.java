@@ -24,13 +24,19 @@ import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
 @PrefixGameTestTemplate(false)
 public final class FluidOnlyMachineTests {
     private static DefinedMachineEntity place(GameTestHelper h, String name) {
+        return place(h, name, false);
+    }
+
+    private static DefinedMachineEntity place(GameTestHelper h, String name,
+        boolean upgraded) {
         var id = ResourceLocation.parse("mmdlib_companion:test/" + name);
         var pos = h.absolutePos(new BlockPos(2, 2, 2));
         h.getLevel().setBlock(pos,
             BuiltInRegistries.BLOCK.get(id).defaultBlockState(), 3);
         var machine = (DefinedMachineEntity) h.getLevel().getBlockEntity(pos);
         require(machine != null, "XML-only fixture registered and placed");
-        require(machine.items.getSlots() == 0, "No dummy item slots");
+        require(machine.items.getSlots() == (upgraded ? 2 : 0),
+            "Only explicitly enabled component sockets are allocated");
         require(h.getLevel().getCapability(Capabilities.ItemHandler.BLOCK, pos,
             null) == null, "No empty item capability advertised");
         var player = h.makeMockServerPlayerInLevel();
@@ -54,6 +60,26 @@ public final class FluidOnlyMachineTests {
             machine.fluids.getFluidInTank(1).is(Fluids.LAVA)
                 && machine.fluids.getFluidInTank(1).getAmount() == 100,
             "Fluid product produced");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void fluidOnlyUpgradesDoNotAdvertiseAnItemCapability(
+        GameTestHelper h) {
+        var machine = place(h, "upgraded_fluid_still", true);
+        for (var side : net.minecraft.core.Direction.values())
+            require(
+                h.getLevel().getCapability(Capabilities.ItemHandler.BLOCK,
+                    machine.getBlockPos(), side) == null,
+                "Component-only storage does not connect pipes on any face");
+        require(
+            h.getLevel().getCapability(Capabilities.FluidHandler.BLOCK,
+                machine.getBlockPos(), null) != null,
+            "Fluid capability remains available");
+        require(
+            h.getLevel().getCapability(Capabilities.EnergyStorage.BLOCK,
+                machine.getBlockPos(), null) != null,
+            "Energy capability remains available");
         h.succeed();
     }
 
