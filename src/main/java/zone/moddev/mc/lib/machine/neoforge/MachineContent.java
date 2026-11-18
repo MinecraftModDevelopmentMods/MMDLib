@@ -5,12 +5,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
 
 import net.neoforged.bus.api.IEventBus;
@@ -51,6 +53,43 @@ public final class MachineContent {
     private static final Map<ResourceLocation, DefinedMachineBlock> blocks = new TreeMap<>();
     private static final Map<ResourceLocation, DefinedMachineItem> items = new TreeMap<>();
     private static final Map<ResourceLocation, BlockEntityType<DefinedMachineEntity>> entities = new TreeMap<>();
+
+    private static final Map<ResourceLocation, EntityFactory> entityFactories = new TreeMap<>();
+    private static boolean entityFactoriesFrozen;
+
+    @FunctionalInterface
+    public interface EntityFactory {
+        /**
+         * Construct the XML entity with the supplied arguments. Recipes may be
+         * null.
+         */
+        DefinedMachineEntity create(BlockEntityType<?> type, BlockPos pos,
+            BlockState state, MachineDefinition definition,
+            @org.jetbrains.annotations.Nullable MachineRecipeType recipes);
+    }
+
+    /**
+     * Selects the block entity constructor for a concrete XML machine. Register
+     * during mod construction, before machine definitions are loaded.
+     */
+    public static synchronized void registerEntityFactory(ResourceLocation id,
+        EntityFactory factory) {
+        if (entityFactoriesFrozen)
+            throw new IllegalStateException(
+                "XML machine entity factories are frozen: " + id);
+        if (entityFactories.putIfAbsent(Objects.requireNonNull(id),
+            Objects.requireNonNull(factory)) != null)
+            throw new IllegalArgumentException(
+                "Duplicate XML machine entity factory: " + id);
+    }
+
+    private static synchronized void freezeEntityFactories() {
+        for (var id : entityFactories.keySet())
+            if (!definitions.containsKey(id))
+                throw new IllegalArgumentException(
+                    "No concrete XML machine for entity factory: " + id);
+        entityFactoriesFrozen = true;
+    }
 
     private MachineContent() {
     }
@@ -139,6 +178,7 @@ public final class MachineContent {
 
     public static void load(List<SourceRoot> roots) {
         definitions = MachineDefinitions.load(roots);
+        freezeEntityFactories();
         var declarations = new TreeMap<ResourceLocation, MachineDefinition.RecipeType>();
         for (var machine : definitions.values())
             machine.processingTypes().stream()
@@ -220,13 +260,24 @@ public final class MachineContent {
         });
         event.register(Registries.BLOCK_ENTITY_TYPE,
             helper -> definitions.forEach((id, definition) -> {
-                var type = BlockEntityType.Builder.of(
-                    (pos, state) -> new DefinedMachineEntity(entities.get(id),
-                        pos, state, definition,
-                        definition.processingType()
-                            .map(recipe -> recipeType(recipe.id()))
-                            .orElse(null)),
-                    blocks.get(id)).build(null);
+                var factory = entityFactories.getOrDefault(id,
+                    DefinedMachineEntity::new);
+                var primary = definition.processingType()
+                    .map(recipe -> recipeType(recipe.id())).orElse(null);
+                var type = BlockEntityType.Builder
+                    .<DefinedMachineEntity>of((pos, state) -> {
+                        var registered = entityType(id);
+                        var entity = factory.create(registered, pos, state,
+                            definition, primary);
+                        if (entity == null || entity.getType() != registered
+                            || !entity.getBlockPos().equals(pos)
+                            || entity.getBlockState() != state
+                            || entity.definition != definition)
+                            throw new IllegalStateException(
+                                "XML machine factory must use the supplied type, position, state and definition: "
+                                    + id);
+                        return entity;
+                    }, blocks.get(id)).build(null);
                 helper.register(id, type);
                 entities.put(id, type);
             }));
