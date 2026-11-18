@@ -3,9 +3,8 @@
 An installed mod can declare a machine with optional item, energy and fluid storage in
 `src/main/resources/mmdlib/machine/<path>.xml`. Its ID is `<modid>:<path>`.
 MMDLib registers the block, item, block-entity type, declared recipe type and
-serializer, capabilities, screen and JEI catalyst. All instances use the shared
-`DefinedMachineBlock` and `DefinedMachineEntity`; no machine-specific Java class
-is needed.
+serializer, capabilities, screen and JEI catalyst. By default, the XML block creates a
+`DefinedMachineEntity`. A mod can supply a subclass for an individual machine.
 
 Definitions load at startup on both sides. Changing a machine's storage, screen,
 appearance or recipe generator configuration requires a restart. Recipe JSON and
@@ -18,6 +17,43 @@ fingerprint. Inherited machine settings are included, so changing the base's ene
 configuration or a slot's role/limit is detected even if the screen looks identical.
 XML attribute order, comments, whitespace and local source paths do not affect the CRC.
 Different definitions are rejected before constructing the client menu.
+
+## Porting an existing block entity
+
+Keep the machine XML at the existing block and block-entity registry ID when
+those IDs match. Let MMDLib own the registrations. In your mod constructor on
+both sides, register the entity constructor under the concrete XML machine ID:
+
+```java
+MachineContent.registerEntityFactory(ResourceLocation.parse("example:boiler"),
+    BoilerEntity::new);
+```
+
+Extend `DefinedMachineEntity` and forward its five constructor arguments
+(`BlockEntityType<?>`, `BlockPos`, `BlockState`, `MachineDefinition`, and the
+primary `MachineRecipeType`, which can be null) to `super`. Both placement and
+world loading use this constructor. The XML definition still supplies the
+machine's storage, processors, capabilities and screen.
+
+For legacy save keys, override `migrateMachineData`. It receives the persistent
+root tag before storage and processors restore their state. For example, a mod
+whose old boiler stored FE in a numeric `BoilerFE` field could use:
+
+```java
+@Override
+protected CompoundTag migrateMachineData(CompoundTag tag, HolderLookup.Provider registries) {
+    if (tag.contains("energy") || !tag.contains("BoilerFE", Tag.TAG_ANY_NUMERIC))
+        return tag;
+    var converted = tag.copy();
+    converted.putLong("energy", tag.getLong("BoilerFE"));
+    converted.remove("BoilerFE");
+    return converted;
+}
+```
+
+The next save writes the current format. Client update tags bypass migration.
+If an old save uses a different block or block-entity registry ID, the mod must
+also arrange for that ID to resolve before Minecraft can load the entity.
 
 ## SimpleCrusher
 

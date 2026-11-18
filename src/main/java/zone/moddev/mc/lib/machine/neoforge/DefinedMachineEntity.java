@@ -27,8 +27,11 @@ import zone.moddev.mc.lib.machine.presentation.BuiltinVisualVariables;
 import zone.moddev.mc.lib.machine.presentation.VisualVariables;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
-/** Shared runtime assembled from XML. There is no per-machine Java subclass. */
-public final class DefinedMachineEntity extends BaseMachine
+/**
+ * Shared XML runtime. Mods can supply a subclass through
+ * {@link MachineContent#registerEntityFactory}.
+ */
+public class DefinedMachineEntity extends BaseMachine
     implements zone.moddev.mc.lib.machine.feature.ProcessorMachine,
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle.Provider {
     public final MachineDefinition definition;

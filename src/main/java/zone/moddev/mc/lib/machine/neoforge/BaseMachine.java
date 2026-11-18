@@ -2,10 +2,12 @@ package zone.moddev.mc.lib.machine.neoforge;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -281,6 +283,16 @@ public abstract class BaseMachine extends BlockEntity
     }
 
     /**
+     * Translates a persistent root tag before shared storage and features load.
+     * Return the original for current saves or a converted copy for legacy
+     * saves. Client synchronization bypasses this hook.
+     */
+    protected CompoundTag migrateMachineData(CompoundTag tag,
+        HolderLookup.Provider registries) {
+        return tag;
+    }
+
+    /**
      * Maps old numeric item/tank indices before storage and processor
      * restoration. Stable IDs bypass it.
      */
@@ -353,6 +365,9 @@ public abstract class BaseMachine extends BlockEntity
                 loadClientData(tag.getCompound(CLIENT_DATA), registries);
             return;
         }
+        tag = Objects.requireNonNull(migrateMachineData(tag, registries),
+            () -> "migrateMachineData must return a tag for "
+                + BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(getType()));
         super.loadAdditional(tag, registries);
         var inventory = configuredInventory();
         if (inventory != null)
