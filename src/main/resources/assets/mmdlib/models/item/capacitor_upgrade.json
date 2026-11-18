@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {"layer0": "mmdlib:item/capacitor_upgrade"}
+}

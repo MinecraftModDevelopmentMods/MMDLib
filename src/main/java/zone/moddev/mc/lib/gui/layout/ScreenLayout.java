@@ -48,8 +48,8 @@ public final class ScreenLayout {
     /**
      * Lays out {@code screen}, measuring text with {@code text}.
      *
-     * @throws IllegalArgumentException
-     *             if the tabs on one edge do not fit the panel's height
+     * @throws IllegalArgumentException if the tabs on one edge do not fit the
+     *             panel's height
      */
     public static ScreenLayout of(Screen screen, TextMeasure text) {
         return of(screen, text, false);
@@ -120,6 +120,10 @@ public final class ScreenLayout {
             .toList();
         layout.place(screen);
         var placement = new LayoutContribution.Panel() {
+            public Rect bounds() {
+                return layout.panel();
+            }
+
             public Rect bounds(Element element) {
                 return layout.bounds(element);
             }

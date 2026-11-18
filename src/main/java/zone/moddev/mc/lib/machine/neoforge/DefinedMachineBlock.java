@@ -29,21 +29,62 @@ import org.jetbrains.annotations.Nullable;
 import zone.moddev.mc.lib.common.runtime.DropsContents;
 
 /** Standard placement, interaction and lifecycle hooks for XML machines. */
-public final class DefinedMachineBlock extends Block implements EntityBlock {
+public class DefinedMachineBlock extends Block implements EntityBlock {
     private final Supplier<BlockEntityType<DefinedMachineEntity>> type;
+    private final zone.moddev.mc.lib.machine.definition.MachineFacing facing;
+    private zone.moddev.mc.lib.machine.feature.Processor<?> placementPrototype;
+    private boolean comparator;
+
+    public static DefinedMachineBlock create(Properties properties,
+        Supplier<BlockEntityType<DefinedMachineEntity>> type,
+        zone.moddev.mc.lib.machine.definition.MachineDefinition definition) {
+        var facing = definition.behavior().facing();
+        var block = facing.horizontal()
+            ? new DefinedMachineBlock(properties, type, facing)
+            : new SixWay(properties, type, facing);
+        if (definition.behavior().processor() != null)
+            block.placementPrototype = definition.behavior().processor()
+                .schema(definition.processor());
+        block.comparator = definition.behavior().comparatorSource() != null;
+        return block;
+    }
+
+    private static final class SixWay extends DefinedMachineBlock {
+        SixWay(Properties properties,
+            Supplier<BlockEntityType<DefinedMachineEntity>> type,
+            zone.moddev.mc.lib.machine.definition.MachineFacing facing) {
+            super(properties, type, facing);
+        }
+        @Override
+        protected net.minecraft.world.level.block.state.properties.DirectionProperty facingProperty() {
+            return BlockStateProperties.FACING;
+        }
+    }
+
+    protected net.minecraft.world.level.block.state.properties.DirectionProperty facingProperty() {
+        return BlockStateProperties.HORIZONTAL_FACING;
+    }
 
     public DefinedMachineBlock(Properties properties,
         Supplier<BlockEntityType<DefinedMachineEntity>> type) {
+        this(properties, type,
+            zone.moddev.mc.lib.machine.definition.MachineFacing.DEFAULT);
+    }
+
+    private DefinedMachineBlock(Properties properties,
+        Supplier<BlockEntityType<DefinedMachineEntity>> type,
+        zone.moddev.mc.lib.machine.definition.MachineFacing facing) {
         super(properties);
         this.type = type;
-        registerDefaultState(stateDefinition.any()
-            .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
+        this.facing = facing;
+        registerDefaultState(stateDefinition.any().setValue(facingProperty(),
+            facing.defaultDirection()));
     }
 
     @Override
     protected void createBlockStateDefinition(
         StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(BlockStateProperties.HORIZONTAL_FACING);
+        builder.add(facingProperty());
     }
 
     @Override
@@ -56,21 +97,29 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(
-            BlockStateProperties.HORIZONTAL_FACING,
-            context.getHorizontalDirection().getOpposite());
+        var selected = facing.placement(context.getNearestLookingDirections());
+        if (placementPrototype != null) {
+            var proposed = placementPrototype.placementFacing(context,
+                selected);
+            if (!facing.directions().contains(proposed))
+                throw new IllegalArgumentException(
+                    "Processor selected a forbidden facing: " + proposed);
+            selected = proposed;
+        }
+        return defaultBlockState().setValue(facingProperty(), selected);
     }
 
     @Override
     public BlockState rotate(BlockState state, Rotation rotation) {
-        return state.setValue(BlockStateProperties.HORIZONTAL_FACING, rotation
-            .rotate(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
+        return state.setValue(facingProperty(),
+            facing.transformed(state.getValue(facingProperty()),
+                rotation.rotate(state.getValue(facingProperty()))));
     }
 
     @Override
     public BlockState mirror(BlockState state, Mirror mirror) {
-        return rotate(state, mirror.getRotation(
-            state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
+        return rotate(state,
+            mirror.getRotation(state.getValue(facingProperty())));
     }
 
     @Override
@@ -170,6 +219,8 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos,
         BlockState replacement, boolean moved) {
+        if (comparator && !state.is(replacement.getBlock()))
+            level.updateNeighbourForOutputSignal(pos, this);
         if (!level.restoringBlockSnapshots)
             DropsContents.onRemove(state, level, pos, replacement);
         super.onRemove(state, level, pos, replacement, moved);
@@ -192,8 +243,21 @@ public final class DefinedMachineBlock extends Block implements EntityBlock {
         if (!(world.getBlockEntity(pos) instanceof DefinedMachineEntity host)
             || host.definition.behavior().shapes().isEmpty())
             return super.getShape(state, world, pos, context);
-        return host
-            .shape(state.getValue(BlockStateProperties.HORIZONTAL_FACING));
+        return host.shape(state.getValue(facingProperty()));
+    }
+
+    @Override
+    protected boolean hasAnalogOutputSignal(BlockState state) {
+        return comparator;
+    }
+
+    @Override
+    protected int getAnalogOutputSignal(BlockState state, Level level,
+        BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof DefinedMachineEntity machine
+            && machine.screenRedstone() != null
+                ? machine.screenRedstone().comparatorLevel()
+                : 0;
     }
 
     @Override

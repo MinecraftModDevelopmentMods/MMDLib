@@ -155,8 +155,7 @@ final class DrawerMemoryClientSmoke {
                 require(!bag.open(),
                     "Curios restoration keeps backpack drawer closed");
                 screen.keyPressed(256, 0, 0);
-                var panel = screen.panelBounds();
-                click(screen, new Rect(panel.right(), panel.y() + 4, 22, 24));
+                click(screen, sideTab(screen));
                 advance();
             }
             case 8 -> {
@@ -167,9 +166,7 @@ final class DrawerMemoryClientSmoke {
                     throw new AssertionError("Fixture has automation");
                 if (!menu.components().get(BuiltinMenuComponents.AUTOMATION)
                     .open()) {
-                    var panel = screen.panelBounds();
-                    click(screen,
-                        new Rect(panel.right(), panel.y() + 4, 22, 24));
+                    click(screen, sideTab(screen));
                     return false;
                 }
                 server(player -> {
@@ -259,9 +256,7 @@ final class DrawerMemoryClientSmoke {
                     return false;
                 if (!menu.components().get(BuiltinMenuComponents.AUTOMATION)
                     .open()) {
-                    var panel = screen.panelBounds();
-                    click(screen,
-                        new Rect(panel.right(), panel.y() + 4, 22, 24));
+                    click(screen, sideTab(screen));
                     return false;
                 }
                 require(
@@ -279,9 +274,7 @@ final class DrawerMemoryClientSmoke {
                     return false;
                 if (!menu.components().get(BuiltinMenuComponents.AUTOMATION)
                     .open()) {
-                    var panel = screen.panelBounds();
-                    click(screen,
-                        new Rect(panel.right(), panel.y() + 4, 22, 24));
+                    click(screen, sideTab(screen));
                     return false;
                 }
                 require(
@@ -300,6 +293,12 @@ final class DrawerMemoryClientSmoke {
             }
         }
         return false;
+    }
+
+    private static Rect sideTab(MachineScreen screen) {
+        return screen.drawers().entries().stream().filter(
+            zone.moddev.mc.lib.gui.client.SideConfigDrawer.class::isInstance)
+            .findFirst().orElseThrow().tabBounds();
     }
 
     private static String describeClient(Minecraft mc) {

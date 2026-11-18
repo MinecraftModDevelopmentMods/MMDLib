@@ -8,6 +8,16 @@ import net.minecraft.world.level.Level;
  * entity.
  */
 public interface ProcessorMachine {
+    /**
+     * Named internal resource groups. Transactions preserve reservations and
+     * roll back unless committed; internal insertion uses product semantics.
+     * Available on live hosts after assembly, never on declaration prototypes.
+     */
+    default zone.moddev.mc.lib.machine.inventory.MachineInventory resources() {
+        throw new UnsupportedOperationException(
+            "Host has no processing resources");
+    }
+
     Level level();
     BlockPos position();
     void changed();
@@ -16,6 +26,22 @@ public interface ProcessorMachine {
     }
     net.minecraft.world.level.block.state.BlockState blockState();
     net.minecraft.world.item.ItemStack item();
+    /**
+     * Installed range sockets shared by all area-providing processors on this
+     * host.
+     */
+    default int rangeUpgrades() {
+        return 0;
+    }
+    /**
+     * Server-side snapshot of a named item inventory in local slot order.
+     * Stacks are detached copies; changing them never changes machine storage.
+     * Hosts without the requested inventory reject the name.
+     */
+    default java.util.List<net.minecraft.world.item.ItemStack> inventoryContents(
+        String inventory) {
+        throw new IllegalArgumentException("Unknown inventory: " + inventory);
+    }
     /**
      * Authorize player pickup before ownership changes. Hosts must enforce
      * build permissions and platform protection events; absent support denies

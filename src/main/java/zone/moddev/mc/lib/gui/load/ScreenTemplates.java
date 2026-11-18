@@ -140,7 +140,8 @@ final class ScreenTemplates {
         var root = resolve(id);
         if (flag(root, "abstract"))
             throw error(root, "An abstract screen cannot be opened or bound");
-        return root.withChildren(expand(id, root.children()));
+        return root.withChildren(
+            expand(id, root.children(), generator.forScreen(id, root)));
     }
 
     private Map<String, Node> placeholders(Node root) {
@@ -193,7 +194,8 @@ final class ScreenTemplates {
         return result;
     }
 
-    private List<Node> expand(ResourceLocation id, List<Node> nodes) {
+    private List<Node> expand(ResourceLocation id, List<Node> nodes,
+        ScreenFillGenerator generator) {
         var result = new ArrayList<Node>();
         for (var node : nodes) {
             if (tags.is(node, ScreenTag.Role.PLACEHOLDER)) {
@@ -204,12 +206,13 @@ final class ScreenTemplates {
                     var generated = generator.generate(id, node);
                     for (var child : generated)
                         rejectTemplates(child);
-                    result.addAll(generated);
+                    result.addAll(expand(id, generated, generator));
                 } else if (!node.attributes().containsKey("default-filter")
                     || generator.includeDefault(id, node))
-                    result.addAll(expand(id, node.children()));
+                    result.addAll(expand(id, node.children(), generator));
             } else
-                result.add(node.withChildren(expand(id, node.children())));
+                result.add(generator.prepareElement(id,
+                    node.withChildren(expand(id, node.children(), generator))));
         }
         return result;
     }

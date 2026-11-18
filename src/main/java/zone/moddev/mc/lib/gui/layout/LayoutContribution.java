@@ -79,6 +79,9 @@ public interface LayoutContribution {
     }
 
     interface Panel {
+        /** Main-panel geometry in the same coordinates as element bounds. */
+        Rect bounds();
+
         Rect bounds(Element element);
 
         void place(Element element, Rect bounds);

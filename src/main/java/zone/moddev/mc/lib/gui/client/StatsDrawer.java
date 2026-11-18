@@ -10,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
-import zone.moddev.mc.lib.gui.layout.AutomationLayout;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.layout.SideDrawerLayout;
 import zone.moddev.mc.lib.gui.runtime.StatsPage;
@@ -96,7 +95,6 @@ public final class StatsDrawer extends Drawer {
 
     void layout() {
         updatePage();
-        var panel = screen.panelBounds();
         tab = super.tabBounds();
         if (!open)
             return;
@@ -117,9 +115,7 @@ public final class StatsDrawer extends Drawer {
                     .stream())
                 .toList();
         }
-        body = SideDrawerLayout.body(panel, screen.drawerBottom(),
-            SideDrawerLayout.bodyX(edge(), tab, width),
-            panel.y() + AutomationLayout.TOP, width, 28 + lines.size() * 9,
+        body = contentBounds(width, 28 + lines.size() * 9,
             SideDrawerLayout.HeightLimit.SCREEN);
         scroll = Math.clamp(scroll, 0,
             Math.max(0, lines.size() * 9 - Math.max(0, body.height() - 28)));

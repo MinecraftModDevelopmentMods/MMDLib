@@ -36,13 +36,6 @@ public record ItemDisplay(ProcessorVariable variable, double x, double y,
      */
     public net.minecraft.world.phys.Vec3 offset(
         net.minecraft.core.Direction facing) {
-        return switch (facing) {
-            case SOUTH -> new net.minecraft.world.phys.Vec3(x, y, 1.002);
-            case NORTH -> new net.minecraft.world.phys.Vec3(1 - x, y, -.002);
-            case EAST -> new net.minecraft.world.phys.Vec3(1.002, y, 1 - x);
-            case WEST -> new net.minecraft.world.phys.Vec3(-.002, y, x);
-            default -> throw new IllegalArgumentException(
-                "Item display requires horizontal facing");
-        };
+        return MachineFacing.point(facing, 1 - x, y, -.002);
     }
 }

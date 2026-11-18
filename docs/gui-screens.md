@@ -1,5 +1,142 @@
 # GUI screens
 
+## Working-area control and upgrades drawer
+
+`<working-area-button processor-key="farm"/>` is a flat, client-local display
+toggle. Place it beside `<processor-button>` inside `<inventory-controls>`.
+The selected processor implements `machine.feature.WorkingArea.Provider` and
+returns its base area from `baseWorkingArea()`: inclusive block offsets `(minRight, minUp, minForward,
+maxRight, maxUp, maxForward)` relative to the controller's horizontal facing.
+For example, `new WorkingArea(-4, 0, 1, 4, 0, 9)` describes a 9×9 crop layer in
+front of the controller. Offsets are bounded to ±128. The server samples the
+world bounds; the button never changes processing or another player's view.
+Returning null clears that processor's enabled outline. The snapshot retains its
+machine and resolved processor identity, so other processors' outlines are unaffected.
+When an area becomes available again, the player can enable it again.
+
+Enabled outlines remain visible after closing the GUI. They clear on machine
+removal/unload, dimension change or disconnect. Each processor has an independent toggle, including multiple processors on one
+machine. At most 32 processor outlines are shown,
+within 128 blocks of the camera. An open screen refreshes its displayed bounds;
+this first API does not subscribe to range changes after the screen closes.
+The machine's `VisualizerStyle.Provider` supplies the outline and enabled-button
+color. XML machines configure it with `<visualizers range-color="#59FF59"
+work-color="#FFB74D"/>`; work particles use a separate tracking-client feature
+and remain live without an open GUI. See [work and range visualizers](xml-machines.md#work-and-range-visualizers).
+
+`<upgrades-drawer>` is a registered, collapsible right-side drawer. It contains
+ordinary inventory elements and uses normal native slot synchronization, saved
+machine storage, shift-click validation and server-side drawer exclusion:
+
+```xml
+<upgrades-drawer id="upgrades">
+  <inventory storage="upgrades" columns="1" spacing="2">
+    <upgrade-slot index="0" item-tag="example:machine_upgrades"/>
+    <upgrade-slot index="1" item-tag="example:machine_upgrades"/>
+  </inventory>
+</upgrades-drawer>
+```
+
+Declare matching machine storage, for example
+`<slots id="upgrades" count="2" role="manual" limit="1" automation="false"/>`
+inside `<items>`. `automation="false"` removes the resource-group selector and
+side-configuration entry while retaining the named inventory and saved contents.
+`upgrade-slot` accepts one item from the required tag by default. Set `max-stack-size`
+(1-64) to opt into a larger stack, still bounded by storage and the item stack limit.
+Generated gearbox and capacitor sockets explicitly use eight; range sockets use one. Ordinary items and
+items outside that tag are refused. Keep its backing storage manual to prevent
+automation bypassing the menu's admission policy. Removing an item from the tag
+does not destroy existing contents or prevent extraction. MMDLib's gearbox item
+has a shared processor effect; mods may supply other upgrade effects. An empty
+tag is useful while those effects are not built.
+Only one upgrades drawer is allowed per screen.
+
+For two component sockets above a 3×3 grid, use `<machine-upgrades>`. Inside a
+machine XML screen, its slots are generated from the machine's `<upgrades>`
+declaration and backing storage:
+
+```xml
+<upgrades-drawer id="upgrades">
+  <machine-upgrades storage="upgrades"/>
+</upgrades-drawer>
+```
+
+Machines extending `mmdlib:base_powered_machine` inherit upgrade support and a
+components-only drawer automatically; no per-machine declaration is needed.
+Other machine bases can enable support with `<upgrades/>`. MMDLib
+allocates a manual gearbox socket when a processor exists and a manual
+capacitor socket when energy storage exists. Their independent inventories are
+`mmdlib_gearbox` and `mmdlib_capacitor`, each with one slot (index 0, limit 8).
+They use shared icons, tooltips and item tags and never expose automation.
+A machine with just one capability gets one centered component socket.
+Override `<fill name="upgrades">` to supply a drawer containing extra slots.
+An authored upgrade layout also suppresses the inherited default drawer, so
+existing custom layouts do not bind the same component slots twice. Generation
+examines the composed screen, including inherited layouts. Slots placed by upgrade
+layouts are omitted from the generated processing/resource body; other slots in
+the same inventory retain their local indexes and remain visible. An empty
+`<fill name="upgrades"/>` leaves the sockets in the generated main body.
+
+The screen's `storage` names only the machine-owned extra upgrade inventory:
+up to nine manual slots displayed in three columns below the components. Declare
+its count and `item-tag` on storage. For range upgrades, `<upgrades
+range-storage="upgrades"/>` binds the entire extra inventory without listing
+individual addresses. Omit the screen `storage` attribute for components only.
+Machines without either capability can still display their own extra slots.
+
+Generated component IDs are `gearbox` and `capacitor`; extra IDs are
+`<storage>_<local-index>`. An explicit `id` on `<machine-upgrades>` prefixes all
+of them with `<id>_`. Composition uses ordinary boxes and scoped inventories,
+so component and extra slots retain their own filters and storage identities.
+The two-component/nine-extra layout remains 58×84 pixels, with an 8-pixel gap.
+
+Explicit `gearbox-slot` / `capacitor-slot` bindings remain supported for existing
+machines. `<machine-upgrades>` is an empty, machine-aware shorthand that expands into
+ordinary boxes and inventories; it has no separate element class or fixed eleven-slot
+variant. For a custom or standalone screen, compose `<hbox>`, `<vbox>`,
+`<inventory>` and `<upgrade-slot>` directly. New machines should let MMDLib own
+component storage and declare only their extras.
+
+The drawer is first on the right, above side configuration and redstone, and
+uses `mmdlib:icon_upgrades` for its tab. Mods can replace the socket `icon`
+sprites normally or compose other inventories inside `<upgrades-drawer>`.
+Upgrade slots are neutral grey and opt out of resource-group highlights.
+Stored processors can read `machine.inventoryContents("upgrades")` to derive
+effects from the named inventory in local slot order. This server-side snapshot
+contains detached item copies; it does not expose a mutable inventory or depend
+on GUI classes. Unknown inventory names are rejected. Count occupied eligible
+slots when each installed item should contribute once, regardless of stack size.
+For shared range effects, declare `range-slots` in machine XML and implement
+`WorkingArea.Provider.baseWorkingArea()`. Its default `workingArea()` expands
+the base using the host's installed range count (supplied by `StoredProcessor`).
+The area button samples these bounds through normal menu synchronization;
+its client behavior refreshes an enabled outline as snapshots arrive, including
+while processing is paused. The consuming mod defines its base area; MMDLib
+supplies range growth and block traversal. See [shared upgrades](xml-machines.md#shared-range-upgrades-and-working-areas).
+Upgrades are permanent. MMDLib supplies range, gearbox and capacitor effects;
+mods can add other upgrade items and policies.
+
+The drawer's open state is per menu; closing it or opening another server-owned
+drawer on the right makes its slots inactive. Drawer preference restoration and
+action acknowledgment use the shared UI lifecycle.
+
+All built-in drawers use `SideDrawerLayout.topBody` for body placement:
+upgrades, side configuration, redstone, statistics, information, equipment and
+recipes. `Drawer.contentBounds` is the client convenience entry point; the
+equipment and recipe helpers delegate to the same common-side geometry. Their
+tab positions are independent: moving a tab down never moves its content body
+down. A body includes its active tab's height in the shared rail, subject to the
+viewport limit. Panel/screen height limits and the recipe drawer's narrow-screen
+fallback are explicit policies of that shared geometry; content size and paging
+remain feature-owned.
+
+Upgrades places native slot children through an element layout contribution
+using those same body bounds. Its renderer reads the drawer's presentation,
+and its input/exclusion regions include the shared rail. New drawers should use
+`contentBounds` or `SideDrawerLayout.topBody`, rather than computing body X/Y.
+Layout code must use `allocatedTabBounds()` instead of calling a subclass's
+`tabBounds()` override, which may itself trigger layout.
+
 Entity previews can share `api.entity.EntityPreviewCache<T>`. It caches immutable
 `EntitySnapshot` values, including failed decodes, with a bounded least-recently-used
 capacity. A changed level clears the cache. The default loader creates detached
@@ -561,7 +698,33 @@ checks (including shared slot rules when implementing `SlotElement`).
 
 `InventoryElement` contains `ItemSlotElement` and `GhostSlotElement` children. Its `storage`
 name selects an independent handler from `ScreenHost.screenInventories()`; child indexes are
-local to that handler. For example, both inventories below have their own slot zero:
+local to that handler. XML machine screens can omit children to display all slots
+from the named item storage, with the count resolved after template composition:
+
+```xml
+<inventory id="seeds" storage="seeds" columns="2" spacing="2"
+           slot-tooltip="example.seeds" value="example.FarmScreen#selectedSeed"
+           selection-color="#55FF88"/>
+<inventory storage="hoe" slot-icon="example:slot_hoe" slot-tooltip="example.hoe"/>
+<inventory storage="output" columns="3" spacing="2"/>
+```
+
+These generate ordinary item slots with local indexes starting at zero and IDs
+`<inventory-id>_<index>` (or `<storage>_<index>` when the inventory has no ID).
+`slot-icon` and `slot-tooltip` apply to every generated slot. Storage owns item
+filters, limits and input/output roles; screen generation does not change them.
+Standalone screens without machine storage metadata can provide `count="4"`.
+Counts must be 1–4096; combining `count` with explicit slot children is an error.
+Auto-sized machine inventories reject unknown or empty item storage.
+
+An inventory's optional integer `value` binding identifies the selected local
+storage index. The shared renderer outlines that slot in `selection-color`
+(default green); missing, negative or out-of-range values show no outline.
+The value uses the normal synchronized getter/provider mechanism. This supports
+next-input indicators without machine-specific slot types or client renderers.
+
+Explicit children remain available for mixed item/ghost slots or per-slot
+appearance. For example, both inventories below have their own slot zero:
 
 ```xml
 <inventory storage="input" columns="2" spacing="2">
@@ -2122,7 +2285,7 @@ reservations. Its client renderer reuses the glass gauge drawing code and never 
 | `spacer` | Fills leftover room in a box | |
 | `group` | Recessed grouping panel | `label`, `tint`, `padding` |
 | `coloured-group` | Outline around exactly one child, without added padding | `color` |
-| `slot` | Item slot from the menu | `index`, `size` (`normal`/`large`), `kind` (`normal`/`upgrade`/`ghost`; `upgrade` holds one item), `tint`, `icon` |
+| `slot` | Item slot from the menu | `index`, `size` (`normal`/`large`), `kind` (`normal`/`upgrade`/`ghost`; `upgrade` respects storage limits up to eight items), `tint`, `icon` |
 | `gauge` | General glass graduated display ([gauge textures](gauge-textures.md)) | `orientation`, `length` (size or `fill`), `color` (solid fill) or a fluid value; `tank` selects the `fluid-tank` component |
 | `fluid-tank` | Complete tank component with synchronized contents, tooltip and container transfers | `tank` (storage index), `orientation`, `length`; no `value`, `max` or `interaction` |
 | `energy-gauge` | Energy component with synchronized contents and an FE tooltip | Defaults: vertical, `length="54"`, `color="#E64B38"`; style and tooltip can be overridden; no `value` or `max` |
@@ -2349,14 +2512,10 @@ authorization and correction. These hooks introduce no wire-format changes.
   swap part of the screen in place. This replaces the earlier Mekanism-style detached windows,
   following feedback from players of games with complex interfaces. Because such buttons can be
   unclear, every button needs a tooltip that says what it does.
-- **Upgrades (AE2 / Industrial Foregoing style, not Mekanism's).** Upgrades stay in an
-  always-visible `<side-tab>` column with a small, fixed number of slots; they never move into
-  a view. Upgrades are **tiered, not stacked**: an upgrade slot holds exactly one item, and a
-  stronger effect comes from a higher-tier upgrade item, not from a larger stack.
-
-- **Upgrade meaning belongs to the mod.** MMDLib supplies upgrade slots (one item each) and
-  their layout, and defines no upgrade items, tiers, or effects. The mod's block entity decides
-  what an upgrade item is and what it does.
+- **Upgrades.** The shared `<upgrades-drawer>` contains storage-bounded upgrade slots.
+  Use a limit of one for individual modules, or eight for a gearbox socket.
+  MMDLib supplies the permanent gearbox item and shared processor clock; each
+  gearbox adds 12.5% speed and FE usage rate, up to +100%. Mods can add other effects.
 - **JEI recipe click areas** (`jei-recipes`) are wanted, as described under JEI.
 - **Information pop-outs** are wanted (PneumaticCraft style), in three kinds: `info`
   (explains the screen), and `warning` and `error` (reported live by the block entity). Their
@@ -2625,6 +2784,39 @@ BaseMachine does this automatically. Normal disk persistence still uses `save`/`
 Automation and redstone drawer protocols are version 17 with bounded unavailable-face masks.
 Inline controls synchronize a separate `mmdlib:side_unavailable` field. Existing machines default
 to all faces available and need no policy declaration.
+
+## Cycle buttons
+
+`<cycle-button>` is a shared, slot-sized (18×18) icon button for processor modes.
+It uses the standard button renderer, click authorization and snapshot transport;
+consumer mods need no custom screen element or client registration.
+
+```xml
+<cycle-button id="mode" variable="$processors.worker.mode" tooltip="demo.mode.cycle">
+  <cycle-mode value="0" icon="demo:first" label="demo.mode.first"
+              tooltip="demo.mode.first.help" action="demo:select_first"/>
+  <cycle-mode value="1" icon="demo:rows" label="demo.mode.rows"
+              tooltip="demo.mode.rows.help" action="demo:select_rows"/>
+</cycle-button>
+```
+
+Declare the integer processor variable with `.synced()`. Each mode provides its
+stored value, GUI sprite, translated label, optional translated help, and a declared
+processor action that selects that mode. `label-fallback` and `tooltip-fallback`
+are supported. The button tooltip follows the selected mode's label and help.
+Keep 16×16 sprites padded for the vanilla button bevel; icons are drawn at native size.
+
+A left click reads the current server value, chooses the next XML entry, and invokes
+its action on the variable's processor. The last entry wraps to the first. Values
+need not be contiguous or sorted; XML order defines the cycle. Actions retain their
+availability checks and own any domain side effects (for example, resetting a seed
+cursor). The control never writes arbitrary processor state. Right clicks do nothing.
+An unrecognized saved value cycles to the first entry.
+
+There must be 2–256 entries with unique integer values. Loading validates that the
+variable is client-visible, its default matches an entry, and every action exists.
+The button owns its state and clicks, so `value`, `max`, click callbacks,
+`interaction`, and `jei-recipes` are rejected.
 
 ## Processor-bound buttons
 

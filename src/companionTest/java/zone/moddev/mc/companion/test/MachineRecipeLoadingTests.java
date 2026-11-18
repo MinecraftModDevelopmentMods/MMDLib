@@ -27,6 +27,7 @@ import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
 import zone.moddev.mc.lib.machine.neoforge.GeneratedMachineRecipes;
+import zone.moddev.mc.lib.machine.neoforge.MachineContent;
 import zone.moddev.mc.lib.machine.neoforge.MachineRecipeTypes;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipe;
 import zone.moddev.mc.lib.machine.recipe.MachineRecipeEntry;
@@ -114,11 +115,16 @@ public final class MachineRecipeLoadingTests {
                 load(h, read(h, "mmdlib_companion:bad_recipe", json));
                 throw new AssertionError("Invalid authored recipe accepted");
             } catch (IllegalArgumentException expected) {
+                // Several companion machines now share this recipe type; the
+                // first invalid consumer need not be the original crusher.
                 require(
-                    expected.getMessage()
-                        .contains("mmdlib_companion:bad_recipe")
-                        && expected.getMessage().contains(MACHINE.toString()),
-                    "Error identifies both recipe and machine");
+                    MachineContent.definitions().values().stream()
+                        .filter(machine -> machine.processes(TYPE))
+                        .anyMatch(machine -> expected.getMessage()
+                            .startsWith("Recipe mmdlib_companion:bad_recipe: "
+                                + machine.id() + ": ")),
+                    "Error identifies both recipe and an affected machine: "
+                        + expected.getMessage());
             }
         }
         require(load(h, read(h, "mmdlib_companion:valid_recipe", SINGLE))

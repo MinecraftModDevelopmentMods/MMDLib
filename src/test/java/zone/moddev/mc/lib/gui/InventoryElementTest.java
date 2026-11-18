@@ -33,6 +33,47 @@ import zone.moddev.mc.lib.gui.model.elements.GhostSlotElement;
 import zone.moddev.mc.lib.gui.model.elements.ItemSlotElement;
 
 class InventoryElementTest {
+    @Test
+    void generatedSlotsUseOrdinaryInventoryBindingAndSelection()
+        throws Exception {
+        var screen = read(
+            """
+                <inventory id="seeds" storage="input" count="4" columns="2" spacing="2"
+                           slot-icon="test:seed" slot-tooltip="test.seeds" selection-color="#22CC66"/>
+                """);
+        var inventory = (InventoryElement) screen.body().getFirst();
+        assertArrayEquals(new int[]{38, 38}, inventory.dimensions());
+        for (int index = 0; index < 4; index++) {
+            var slot = inventory.slots().get(index);
+            assertEquals(ItemSlotElement.class, slot.getClass());
+            assertSame(slot, screen.find("seeds_" + index).orElseThrow());
+            assertEquals(index, slot.index());
+            assertEquals("input", InventoryScope.name(screen, slot));
+            assertEquals(ResourceLocation.parse("test:seed"),
+                slot.icon().orElseThrow());
+            assertEquals("test.seeds",
+                slot.common().tooltip().orElseThrow().key());
+            assertSame(slot,
+                inventory.selectedSlot(java.math.BigInteger.valueOf(index))
+                    .orElseThrow());
+        }
+        assertEquals(0xff22cc66, inventory.selectionColor());
+        for (Object invalid : new Object[]{-1, 4, .5, "1",
+            java.math.BigInteger.ONE.shiftLeft(64)})
+            assertTrue(inventory.selectedSlot(invalid).isEmpty());
+        assertTrue(inventory.selectedSlot(null).isEmpty());
+    }
+
+    @Test
+    void generatedSlotsRejectAmbiguousOrUnboundedDeclarations() {
+        for (String body : java.util.List.of(
+            "<inventory storage=\"input\" count=\"4\"><slot index=\"0\"/></inventory>",
+            "<inventory storage=\"input\" count=\"4097\"/>",
+            "<inventory storage=\"input\" count=\"0\"/>",
+            "<inventory storage=\"input\" slot-icon=\"test:seed\"><slot index=\"0\"/></inventory>"))
+            assertThrows(Exception.class, () -> read(body));
+    }
+
     private Screen read(String body) throws Exception {
         String xml = "<screen xmlns=\"https://moddev.zone/mmdlib/screen\" title=\"test\" block-entity=\""
             + ElementInteractionTest.Host.class.getName() + "\">" + body

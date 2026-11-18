@@ -252,6 +252,32 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
     private Status status = Status.IDLE;
     private java.math.BigInteger completedCycles = java.math.BigInteger.ZERO;
     private long startedCycles;
+    private long operatingCost;
+    /** Additional FE per successful work step, from the energy group. */
+    public RecipeProcessor operatingCost(long amount) {
+        if (amount < 0 || amount > 0
+            && !(inventory.group("energy").orElse(null) instanceof EnergyGroup))
+            throw new IllegalArgumentException(
+                "Operating cost requires an energy group and a nonnegative amount");
+        operatingCost = amount;
+        return this;
+    }
+    private java.util.function.Consumer<CyclePlan> onStart = cycle -> {
+    };
+    private java.util.function.Consumer<CyclePlan> onFinish = cycle -> {
+    };
+
+    /**
+     * Called once for each real transition, including accelerated work steps.
+     * Resume/load never replays a start; failed/aborted cycles never finish.
+     */
+    public RecipeProcessor cycleCallbacks(
+        java.util.function.Consumer<CyclePlan> start,
+        java.util.function.Consumer<CyclePlan> finish) {
+        onStart = java.util.Objects.requireNonNull(start);
+        onFinish = java.util.Objects.requireNonNull(finish);
+        return this;
+    }
     private final Component displayName;
 
     /**
@@ -339,6 +365,13 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         } catch (java.security.NoSuchAlgorithmException impossible) {
             throw new AssertionError(impossible);
         }
+    }
+
+    /** Stable source IDs available before a runtime recipe processor exists. */
+    public static List<String> redstoneOutputIds(String key) {
+        var prefix = outputPrefix(key);
+        return List.of(prefix + "/processing", prefix + "/inactive",
+            prefix + "/progress");
     }
 
     private RedstoneOutput output(String kind, Component name, String icon,
@@ -583,6 +616,10 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
                             java.math.BigInteger.valueOf(peak)));
                 }
             }
+        if (plan != null && operatingCost > 0 && inventory.group("energy")
+            .orElse(null) instanceof EnergyGroup group)
+            uses.add(new Statistics.EnergyUse(group.statisticsResource(),
+                java.math.BigInteger.valueOf(operatingCost)));
         return new Statistics(displayName,
             java.util.List.of(
                 Statistics.cycles("cycles",
@@ -623,10 +660,20 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
      */
     @Override
     public void tick(FeatureHost host) {
+        tick(host, 1);
+    }
+
+    @Override
+    public void tick(FeatureHost host, int steps) {
         if (justFinished != null)
             progressChanges.changed();
         justFinished = null;
-        run(host);
+        for (int step = 0; step < steps; step++) {
+            run(host);
+            if (paused || status == Status.HELD || status == Status.STALLED
+                || status == Status.BLOCKED)
+                break;
+        }
         redstoneRunning = !paused
             && (status == Status.RUNNING || justFinished != null);
         syncStatus(host);
@@ -678,7 +725,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         }
         var active = activePlan();
         int before = progress();
-        var result = runner.advance(level.getRandom());
+        var result = runner.advance(level.getRandom(), "energy", operatingCost);
         status = switch (result) {
             case IDLE, COMPLETED -> Status.IDLE;
             case RUNNING -> Status.RUNNING;
@@ -688,6 +735,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         if (result == RecipeCycle.Result.COMPLETED) {
             completedCycles = completedCycles.add(java.math.BigInteger.ONE);
             justFinished = active;
+            onFinish.accept(active);
         }
         if (progress() != before || result == RecipeCycle.Result.COMPLETED) {
             progressChanges.changed();
@@ -744,6 +792,7 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         progressChanges.changed();
         startedCycles++;
         host.markChanged();
+        onStart.accept(activePlan());
     }
 
 }

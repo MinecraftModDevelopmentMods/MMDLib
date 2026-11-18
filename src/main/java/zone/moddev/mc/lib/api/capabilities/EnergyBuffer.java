@@ -99,12 +99,9 @@ public class EnergyBuffer
     /**
      * An empty buffer. Negative values are treated as zero.
      *
-     * @param capacity
-     *            the most energy it holds
-     * @param maxInsert
-     *            the most automation may insert per call
-     * @param maxExtract
-     *            the most automation may extract per call
+     * @param capacity the most energy it holds
+     * @param maxInsert the most automation may insert per call
+     * @param maxExtract the most automation may extract per call
      */
     public EnergyBuffer(long capacity, long maxInsert, long maxExtract) {
         this.capacity = Math.max(0, capacity);
@@ -167,8 +164,14 @@ public class EnergyBuffer
      * {@link #extract} ignore them.
      */
     public void setRates(long maxInsert, long maxExtract) {
-        this.maxInsert = Math.max(0, maxInsert);
-        this.maxExtract = Math.max(0, maxExtract);
+        long input = Math.max(0, maxInsert);
+        long output = Math.max(0, maxExtract);
+        if (this.maxInsert == input && this.maxExtract == output)
+            return;
+        this.maxInsert = input;
+        this.maxExtract = output;
+        changes.changed();
+        onChange.run();
     }
 
     /**

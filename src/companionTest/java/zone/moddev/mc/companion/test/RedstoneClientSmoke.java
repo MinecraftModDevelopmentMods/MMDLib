@@ -217,8 +217,10 @@ final class RedstoneClientSmoke {
                     model.open() && !model.pending() && model.lower(0) == 4
                         && model.upper(0) == 10,
                     "Escape cancels range preview");
-                click(screen, new Rect(panel.right(), y, AutomationLayout.RAIL,
-                    AutomationLayout.TAB_HEIGHT), 0);
+                var sideTab = screen.drawers().entries().stream().filter(
+                    zone.moddev.mc.lib.gui.client.SideConfigDrawer.class::isInstance)
+                    .findFirst().orElseThrow().tabBounds();
+                click(screen, sideTab, 0);
             }
             case 14 -> {
                 if (!menu.components().get(BuiltinMenuComponents.AUTOMATION)

@@ -1,0 +1,7 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Facing Demo: Asymmetric">
+  <block facing="north east up" placement-facing="toward-player"/>
+  <appearance preset="cube-front" front="minecraft:block/dispenser_front"
+              side="minecraft:block/iron_block" top="minecraft:block/gold_block"/>
+  <storage><items id="items"><slots id="storage" count="1" role="storage"/></items></storage>
+</machine>

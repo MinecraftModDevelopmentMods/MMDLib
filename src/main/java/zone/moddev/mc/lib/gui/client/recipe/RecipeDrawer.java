@@ -79,7 +79,7 @@ public final class RecipeDrawer extends Drawer {
                 rowHeight = Math.max(rowHeight, choice.presentation().height());
             }
         body = zone.moddev.mc.lib.gui.layout.RecipeDrawerLayout.body(edge(),
-            tabBounds(), screen.panelBounds(), screen.width,
+            allocatedTabBounds(), screen.panelBounds(), screen.width,
             screen.drawerBottom(), width, rowHeight);
         pageSize = zone.moddev.mc.lib.gui.layout.RecipeDrawerLayout
             .pageSize(body, rowHeight);

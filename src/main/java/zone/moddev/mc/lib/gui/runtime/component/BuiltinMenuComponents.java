@@ -19,6 +19,9 @@ import zone.moddev.mc.lib.gui.runtime.slot.ReservationMenuComponent;
  * as mods.
  */
 public final class BuiltinMenuComponents {
+    public static final MenuComponentKey<zone.moddev.mc.lib.gui.runtime.UpgradesMenu> UPGRADES = new MenuComponentKey<>(
+        BuiltinDrawers.UPGRADES,
+        zone.moddev.mc.lib.gui.runtime.UpgradesMenu.class);
     public static final MenuComponentKey<TooltipMenuComponent> TOOLTIPS = new MenuComponentKey<>(
         ResourceLocation.parse("mmdlib:tooltips"), TooltipMenuComponent.class);
     public static final MenuComponentKey<ReservationMenuComponent> RESERVATIONS = new MenuComponentKey<>(
@@ -42,6 +45,16 @@ public final class BuiltinMenuComponents {
     }
 
     static void register(MenuComponentRegistry registry) {
+        registry.register(UPGRADES, 15, c -> c.menu().bound.screen().tabs()
+            .stream()
+            .filter(
+                zone.moddev.mc.lib.gui.model.containers.UpgradesDrawerElement.class::isInstance)
+            .map(
+                zone.moddev.mc.lib.gui.model.containers.UpgradesDrawerElement.class::cast)
+            .findFirst()
+            .map(element -> new zone.moddev.mc.lib.gui.runtime.UpgradesMenu(
+                c.menu(), element))
+            .orElse(null));
         registry.register(TOOLTIPS, 25, TooltipMenuComponent::new,
             TooltipMenuComponent.ROWS);
         registry.register(INVENTORY, -1000, InventoryMenuComponent::new,

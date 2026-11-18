@@ -143,6 +143,23 @@ public abstract class BaseMachine extends BlockEntity
             .map(RecipeProcessor::time).orElse(0);
     }
 
+    /** Generated multi-lane bindings use stable declaration-order indexes. */
+    public int getProgress(int processorIndex) {
+        var processors = features.allProcessors();
+        return processorIndex >= 0 && processorIndex < processors.size()
+            && processors.get(processorIndex) instanceof RecipeProcessor recipe
+                ? recipe.progress()
+                : 0;
+    }
+
+    public int getTime(int processorIndex) {
+        var processors = features.allProcessors();
+        return processorIndex >= 0 && processorIndex < processors.size()
+            && processors.get(processorIndex) instanceof RecipeProcessor recipe
+                ? recipe.time()
+                : 0;
+    }
+
     public boolean getPaused() {
         return features.findProcessor(java.util.Optional.empty())
             .map(zone.moddev.mc.lib.machine.feature.Processor::paused)

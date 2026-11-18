@@ -18,32 +18,44 @@ import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
  * is gone.
  */
 public final class MachineSoundsClient {
-    private static final Map<DefinedMachineEntity, Loop> LOOPS = new WeakHashMap<>();
+    private static final Map<DefinedMachineEntity, Map<String, Loop>> LOOPS = new WeakHashMap<>();
 
     private MachineSoundsClient() {
     }
 
     /** Starts {@code machine}'s loop if a cycle runs and it is not playing. */
     public static void tick(DefinedMachineEntity machine) {
-        var id = machine.definition.sounds().running().orElse(null);
-        if (id == null || !machine.running())
-            return;
-        var loop = LOOPS.get(machine);
-        if (loop != null && !loop.isStopped())
-            return;
-        loop = new Loop(machine, id);
-        LOOPS.put(machine, loop);
-        Minecraft.getInstance().getSoundManager().play(loop);
+        for (var config : machine.processorConfigurations()) {
+            var id = config.sounds().running().orElse(null);
+            if (id == null || !running(machine, config.id()))
+                continue;
+            var loops = LOOPS.computeIfAbsent(machine,
+                ignored -> new java.util.HashMap<>());
+            var loop = loops.get(config.id());
+            if (loop != null && !loop.isStopped())
+                continue;
+            loop = new Loop(machine, config.id(), id);
+            loops.put(config.id(), loop);
+            Minecraft.getInstance().getSoundManager().play(loop);
+        }
+    }
+
+    private static boolean running(DefinedMachineEntity machine, String key) {
+        return machine.features.findProcessor(key)
+            .map(zone.moddev.mc.lib.machine.feature.Processor::processing)
+            .orElse(false);
     }
 
     private static final class Loop extends AbstractTickableSoundInstance {
         private final DefinedMachineEntity machine;
+        private final String processor;
 
-        Loop(DefinedMachineEntity machine,
+        Loop(DefinedMachineEntity machine, String processor,
             net.minecraft.resources.ResourceLocation id) {
             super(SoundDefinition.event(id), SoundSource.BLOCKS,
                 RandomSource.create());
             this.machine = machine;
+            this.processor = processor;
             var pos = machine.getBlockPos();
             x = pos.getX() + .5;
             y = pos.getY() + .5;
@@ -55,7 +67,7 @@ public final class MachineSoundsClient {
 
         @Override
         public void tick() {
-            if (machine.isRemoved() || !machine.running())
+            if (machine.isRemoved() || !running(machine, processor))
                 stop();
         }
     }

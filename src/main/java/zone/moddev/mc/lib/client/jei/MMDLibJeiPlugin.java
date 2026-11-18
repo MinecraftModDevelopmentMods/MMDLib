@@ -101,7 +101,7 @@ public final class MMDLibJeiPlugin implements IModPlugin {
         IRecipeCatalystRegistration registration) {
         zone.moddev.mc.lib.machine.neoforge.MachineContent.definitions()
             .forEach(
-                (id, machine) -> machine.processingType().ifPresent(type -> {
+                (id, machine) -> machine.processingTypes().forEach(type -> {
                     registration.addRecipeCatalyst(
                         new net.minecraft.world.item.ItemStack(
                             BuiltInRegistries.ITEM.get(id)),

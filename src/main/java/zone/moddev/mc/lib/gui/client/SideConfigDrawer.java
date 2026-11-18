@@ -162,9 +162,8 @@ public final class SideConfigDrawer extends Drawer {
                 AutomationLayout.EDITOR_Y + editorHeight
                     + AutomationLayout.PADDING)
             : baseHeight;
-        body = SideDrawerLayout.body(panel, screen.drawerBottom(),
-            SideDrawerLayout.bodyX(edge(), tab, WIDTH), tab.y(), WIDTH,
-            desiredHeight, SideDrawerLayout.HeightLimit.SCREEN);
+        body = contentBounds(WIDTH, desiredHeight,
+            SideDrawerLayout.HeightLimit.SCREEN);
         model.position(body.x() - panel.x(), body.y() - panel.y());
         syncSlots();
         int shown = Math.max(1,

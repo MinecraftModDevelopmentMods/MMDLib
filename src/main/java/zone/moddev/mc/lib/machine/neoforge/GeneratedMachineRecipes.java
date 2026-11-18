@@ -237,13 +237,21 @@ public final class GeneratedMachineRecipes {
     public static void validateGroups(MachineRecipeType type,
         MachineRecipe recipe) {
         for (var machine : MachineContent.definitions().values())
-            if (machine.processes(type.id()))
-                validateGroups(machine, recipe);
+            for (var processor : machine.processors())
+                if (processor.recipeType() != null
+                    && processor.recipeType().id().equals(type.id()))
+                    validateGroups(machine, recipe, processor.bindings());
     }
 
     static void validateGroups(
         zone.moddev.mc.lib.machine.definition.MachineDefinition machine,
         MachineRecipe recipe) {
+        validateGroups(machine, recipe, java.util.Map.of());
+    }
+
+    private static void validateGroups(
+        zone.moddev.mc.lib.machine.definition.MachineDefinition machine,
+        MachineRecipe recipe, java.util.Map<String, String> bindings) {
         var items = new HashSet<String>();
         machine.groups().forEach(g -> items.add(g.id()));
         var ghostItems = new HashSet<String>();
@@ -251,14 +259,23 @@ public final class GeneratedMachineRecipes {
         var fluids = new HashSet<String>();
         if (machine.fluids() != null)
             machine.fluids().groups().forEach(g -> fluids.add(g.id()));
-        String energy = machine.power() == null ? null : machine.power().id();
+        var energy = new HashSet<String>();
+        if (machine.power() != null)
+            energy.add(machine.power().id());
+        if (!bindings.isEmpty()) {
+            remap(items, bindings);
+            remap(ghostItems, bindings);
+            remap(fluids, bindings);
+            remap(energy, bindings);
+        }
         recipe.inputs().forEach((key, parts) -> {
             if (!items.contains(key) && !ghostItems.contains(key)
-                && !fluids.contains(key) && !key.equals(energy))
+                && !fluids.contains(key) && !energy.contains(key))
                 throw new IllegalArgumentException(
                     machine.id() + ": unknown recipe input group " + key);
             var ghost = machine.ghosts().stream()
-                .filter(g -> g.id().equals(key)).findFirst().orElse(null);
+                .filter(g -> g.id().equals(bindings.getOrDefault(key, key)))
+                .findFirst().orElse(null);
             if (ghost != null && parts.stream()
                 .mapToLong(MachineIngredient::amount).sum() > ghost.count())
                 throw new IllegalArgumentException(
@@ -271,7 +288,7 @@ public final class GeneratedMachineRecipes {
                     : part instanceof MachineIngredient.FluidPart
                         ? fluids.contains(key)
                         : part instanceof MachineIngredient.EnergyPart
-                            && key.equals(energy);
+                            && energy.contains(key);
                 if (!valid)
                     throw new IllegalArgumentException(machine.id()
                         + ": incompatible recipe input group " + key);
@@ -291,4 +308,14 @@ public final class GeneratedMachineRecipes {
             });
         });
     }
+    private static void remap(java.util.Set<String> names,
+        java.util.Map<String, String> bindings) {
+        var targets = java.util.Set.copyOf(names);
+        names.clear();
+        bindings.forEach((alias, target) -> {
+            if (targets.contains(target))
+                names.add(alias);
+        });
+    }
+
 }

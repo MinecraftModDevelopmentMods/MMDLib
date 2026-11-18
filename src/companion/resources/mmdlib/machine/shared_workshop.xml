@@ -1,0 +1,4 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib_companion:parallel_workshop" name="Shared Workshop">
+  <processor id="right" bindings="supply=energy input=left_input output=right_output"/>
+</machine>

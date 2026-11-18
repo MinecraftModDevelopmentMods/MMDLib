@@ -123,14 +123,23 @@ public final class BuiltinVisualVariables {
     public static VisualVariables forMachine(MachineDefinition definition,
         zone.moddev.mc.lib.machine.feature.Processor<?> processor,
         ItemInventories items, FluidStorage fluids, EnergyBuffer energy) {
+        return forProcessors(definition,
+            processor == null
+                ? java.util.Map.of()
+                : java.util.Map.of(processor.key(), processor),
+            items, fluids, energy);
+    }
+
+    public static VisualVariables forProcessors(MachineDefinition definition,
+        java.util.Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> processors,
+        ItemInventories items, FluidStorage fluids, EnergyBuffer energy) {
         var vars = new VisualVariables.Builder();
-        if (definition.hasProcessor())
-            vars.component("processors." + definition.processor(),
-                processor != null
-                    ? processor
-                    : definition.behavior().processor() != null
-                        ? definition.behavior().processor()
-                            .schema(definition.processor())
+        for (var config : definition.processors())
+            vars.component("processors." + config.id(),
+                processors.containsKey(config.id())
+                    ? processors.get(config.id())
+                    : config.declaration() != null
+                        ? config.declaration().schema(config.id())
                         : processor(null));
         for (var group : definition.groups()) {
             var indexes = definition.inventorySlots(group.id());

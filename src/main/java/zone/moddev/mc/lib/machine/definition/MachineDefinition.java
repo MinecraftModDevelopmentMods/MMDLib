@@ -54,10 +54,23 @@ public record MachineDefinition(ResourceLocation id, String checksum,
                 continue;
             var ghosts = new HashSet<String>();
             machine.ghosts().forEach(ghost -> ghosts.add(ghost.id()));
-            if (result == null)
-                result = ghosts;
-            else
-                result.retainAll(ghosts);
+            for (var config : machine.processors()) {
+                if (config.recipeType() == null
+                    || !config.recipeType().id().equals(recipeType))
+                    continue;
+                var aliases = new HashSet<String>();
+                if (config.bindings().isEmpty())
+                    aliases.addAll(ghosts);
+                else
+                    config.bindings().forEach((alias, target) -> {
+                        if (ghosts.contains(target))
+                            aliases.add(alias);
+                    });
+                if (result == null)
+                    result = aliases;
+                else
+                    result.retainAll(aliases);
+            }
         }
         return result == null ? Set.of() : Set.copyOf(result);
     }
@@ -232,6 +245,37 @@ public record MachineDefinition(ResourceLocation id, String checksum,
         return Collections.unmodifiableMap(names);
     }
 
+    public List<ProcessorConfiguration> processors() {
+        if (!behavior.processors().isEmpty())
+            return behavior.processors();
+        if (processor == null)
+            return List.of();
+        var inputGroups = new java.util.ArrayList<String>();
+        groups.stream().filter(g -> g.mode() == IoMode.INPUT)
+            .forEach(g -> inputGroups.add(g.id()));
+        if (fluids != null)
+            fluids.groups().stream().filter(g -> g.mode() == IoMode.INPUT)
+                .forEach(g -> inputGroups.add(g.id()));
+        return List.of(new ProcessorConfiguration(processor, processorName,
+            recipeType, behavior.processor(), Map.of(), inputGroups,
+            recipeSelection, sounds, events));
+    }
+
+    public List<RecipeType> processingTypes() {
+        return processors().stream().map(ProcessorConfiguration::recipeType)
+            .filter(java.util.Objects::nonNull).distinct().toList();
+    }
+
+    public Map<String, zone.moddev.mc.lib.machine.feature.Processor<?>> processorSchemas() {
+        var result = new LinkedHashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
+        processors().forEach(config -> {
+            if (config.declaration() != null)
+                result.put(config.id(),
+                    config.declaration().schema(config.id()));
+        });
+        return Collections.unmodifiableMap(result);
+    }
+
     public boolean hasProcessor() {
         return processor != null;
     }
@@ -245,7 +289,8 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public boolean processes(ResourceLocation type) {
-        return recipeType != null && recipeType.id().equals(type);
+        return processingTypes().stream()
+            .anyMatch(recipe -> recipe.id().equals(type));
     }
 
     public Map<String, Object> visualDefaults() {
@@ -270,7 +315,11 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     }
 
     public record Power(String id, long capacity, long input, long output,
-        int color, String name) {
+        int color, String name, String provider, boolean capacitors) {
+        public Power(String id, long capacity, long input, long output,
+            int color, String name) {
+            this(id, capacity, input, output, color, name, null, true);
+        }
         public Power(String id, long capacity, long input, long output,
             int color) {
             this(id, capacity, input, output, color, "Energy");
@@ -326,11 +375,23 @@ public record MachineDefinition(ResourceLocation id, String checksum,
             .filter(i -> names.get(i).equals(name)).boxed().toList();
     }
 
-    public record Slot(String id, Role role, int limit) {
+    public record Slot(String id, Role role, int limit,
+        ResourceLocation itemTag, AdmissionDeclaration admission) {
+        public Slot(String id, Role role, int limit, ResourceLocation itemTag) {
+            this(id, role, limit, itemTag, null);
+        }
+        public Slot(String id, Role role, int limit) {
+            this(id, role, limit, null);
+        }
     }
 
     public record Tank(String id, Role role, int capacity,
-        ResourceLocation fluid) {
+        ResourceLocation fluid, ResourceLocation fluidTag,
+        AdmissionDeclaration admission) {
+        public Tank(String id, Role role, int capacity,
+            ResourceLocation fluid) {
+            this(id, role, capacity, fluid, null, null);
+        }
     }
 
     public record Fluids(String id, List<Tank> tanks, List<Group> groups) {

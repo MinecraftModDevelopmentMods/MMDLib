@@ -445,6 +445,77 @@ def write_side_config_sprites():
     write_png("icon_side_config", outlined(img))
 
 
+def write_upgrade_sprites():
+    """Hand-pixelled 16px circuit-module tab and permanent component socket glyphs."""
+    palette = {
+        '.': CLEAR, 'o': (29, 39, 46, 255),
+        's': (67, 83, 92, 255), 'm': (116, 139, 148, 255),
+        'h': (191, 212, 215, 255), 'w': (232, 243, 233, 255),
+        't': (27, 95, 89, 255), 'c': (53, 155, 135, 255),
+        'b': (100, 219, 177, 255), 'g': (207, 151, 66, 255),
+        'y': (251, 216, 118, 255),
+    }
+    sprites = {
+        'icon_upgrades': [
+            '................',
+            '...g.g.g.g.g....',
+            '..ooooooooooo...',
+            '.gohtttttttto...',
+            '..otbbctctcto.g.',
+            '.gotctcttttto...',
+            '..ottttooyyooog.',
+            '.gotctoyyyyyyo..',
+            '..otttyyoooooyo.',
+            '.gottyyohhsooyo.',
+            '..ottyyohssooyo.',
+            '.gotctoyooooyo..',
+            '..oooooyyyyyyo..',
+            '...g.g.ooyyoo...',
+            '................',
+            '................',
+        ],
+        'socket_gearbox': [
+            '................',
+            '....ss..........',
+            '..sshhss........',
+            '..shmmhs........',
+            '.shmssmhs.......',
+            '.shs..sms.......',
+            '..smssms..ss....',
+            '..ssmmss.swws...',
+            '....ss..shmmhs..',
+            '.......shmssmhs.',
+            '.......sms..sms.',
+            '........smssms..',
+            '........ssmmss..',
+            '..........ss....',
+            '................',
+            '................',
+        ],
+        'socket_capacitor': [
+            '................',
+            '.....hh..hh.....',
+            '.....ms..ms.....',
+            '....ssssssss....',
+            '...shhhhhhhms...',
+            '...shmccccmss...',
+            '...shcbcbcmss...',
+            '...shcbbccmss...',
+            '...shccbcbmss...',
+            '...shmccccmss...',
+            '...shmmmmmmss...',
+            '...smmmmmmsss...',
+            '....ssssssss....',
+            '................',
+            '................',
+            '................',
+        ],
+    }
+    for name, rows in sprites.items():
+        assert len(rows) == 16 and all(len(row) == 16 for row in rows), name
+        write_png(name, [[palette[pixel] for pixel in row] for row in rows])
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print(f"writing to {OUT}:")
@@ -462,6 +533,7 @@ def main():
     write_filter_icons()
     write_flat_buttons()
     write_side_config_sprites()
+    write_upgrade_sprites()
     write_png("checkbox", checkbox(False))
     write_png("checkbox_selected", checkbox(True))
     write_png("radio", radio(False))

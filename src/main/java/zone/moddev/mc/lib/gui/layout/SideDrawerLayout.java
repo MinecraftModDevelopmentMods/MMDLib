@@ -15,6 +15,11 @@ public final class SideDrawerLayout {
         PANEL, SCREEN
     }
 
+    /** Horizontal fitting is a policy; panel-top anchoring is always shared. */
+    public enum WidthPolicy {
+        OUTWARD, INWARD_IF_NEEDED
+    }
+
     private SideDrawerLayout() {
     }
 
@@ -35,6 +40,34 @@ public final class SideDrawerLayout {
 
     public static int top(Rect panel) {
         return Math.max(MARGIN, panel.y() + MARGIN);
+    }
+
+    /** Standard content anchor: tab order never changes the body's top edge. */
+    public static Rect topBody(Rect panel, int screenBottom,
+        zone.moddev.mc.lib.gui.model.Edge edge, Rect tab, int width,
+        int desiredHeight, HeightLimit limit) {
+        return topBody(panel, Integer.MAX_VALUE, screenBottom, edge, tab, width,
+            desiredHeight, limit, WidthPolicy.OUTWARD);
+    }
+
+    public static Rect topBody(Rect panel, int screenWidth, int screenBottom,
+        zone.moddev.mc.lib.gui.model.Edge edge, Rect tab, int width,
+        int desiredHeight, HeightLimit limit, WidthPolicy fitting) {
+        int x = bodyX(edge, tab, width);
+        if (fitting == WidthPolicy.INWARD_IF_NEEDED) {
+            int right = Math.max(MARGIN, screenWidth - MARGIN);
+            int leftEnd = Math.clamp(tab.x(), MARGIN, right);
+            int rightStart = Math.clamp(tab.right(), MARGIN, right);
+            int leftRoom = leftEnd - MARGIN, rightRoom = right - rightStart;
+            boolean left = edge == zone.moddev.mc.lib.gui.model.Edge.LEFT;
+            if ((left ? leftRoom : rightRoom) < width
+                && (left ? rightRoom > leftRoom : leftRoom > rightRoom))
+                left = !left;
+            width = Math.min(width, left ? leftRoom : rightRoom);
+            x = left ? leftEnd - width : rightStart;
+        }
+        return body(panel, screenBottom, x, top(panel), width,
+            Math.max(desiredHeight, tab.bottom() - top(panel)), limit);
     }
 
     /** The screen/overlay limit already includes its own margin. */

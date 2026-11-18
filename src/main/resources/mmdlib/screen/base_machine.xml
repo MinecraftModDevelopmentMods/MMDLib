@@ -19,4 +19,5 @@
   <placeholder name="info">
     <popout id="info" kind="info" edge="left" text="{machineId}.info" value="#getWarnings"/>
   </placeholder>
+  <placeholder name="upgrades"/>
 </screen>

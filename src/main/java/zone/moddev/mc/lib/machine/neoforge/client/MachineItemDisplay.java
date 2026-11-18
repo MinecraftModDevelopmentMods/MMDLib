@@ -11,7 +11,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import zone.moddev.mc.lib.machine.definition.ItemDisplay;
 import zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity;
@@ -42,8 +41,7 @@ final class MachineItemDisplay
         var stack = item(display.variable().read(machine));
         if (stack.isEmpty())
             return;
-        var facing = machine.getBlockState()
-            .getValue(BlockStateProperties.HORIZONTAL_FACING);
+        var facing = machine.facing();
         if (machine.getLevel() != null)
             light = LevelRenderer.getLightColor(machine.getLevel(),
                 machine.getBlockPos().relative(facing));
@@ -51,7 +49,13 @@ final class MachineItemDisplay
         try {
             var offset = display.offset(facing);
             pose.translate(offset.x, offset.y, offset.z);
-            pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
+            if (facing.getAxis().isVertical()) {
+                pose.mulPose(Axis.YP.rotationDegrees(
+                    facing == net.minecraft.core.Direction.UP ? 0 : 180));
+                pose.mulPose(Axis.XP.rotationDegrees(
+                    facing == net.minecraft.core.Direction.UP ? -90 : 90));
+            } else
+                pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
             pose.scale(display.width(), display.height(), .001f);
             Minecraft.getInstance().getItemRenderer().renderStatic(stack,
                 ItemDisplayContext.GUI, light, overlay, pose, buffers,
