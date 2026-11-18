@@ -83,7 +83,7 @@ def generate():
         '....ygyygygy....',
         '................',
     ]
-    assert all(len(row) == 16 for row in rows)
+    assert len(rows) == 16 and all(len(row) == 16 for row in rows)
     sprites.write_png('range_upgrade', [[palette[pixel] for pixel in row] for row in rows])
 
 if __name__ == '__main__':
