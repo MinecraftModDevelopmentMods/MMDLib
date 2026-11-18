@@ -2,10 +2,12 @@ package zone.moddev.mc.lib.machine.neoforge;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -363,7 +365,9 @@ public abstract class BaseMachine extends BlockEntity
                 loadClientData(tag.getCompound(CLIENT_DATA), registries);
             return;
         }
-        tag = migrateMachineData(tag, registries);
+        tag = Objects.requireNonNull(migrateMachineData(tag, registries),
+            () -> "migrateMachineData must return a tag for "
+                + BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(getType()));
         super.loadAdditional(tag, registries);
         var inventory = configuredInventory();
         if (inventory != null)
