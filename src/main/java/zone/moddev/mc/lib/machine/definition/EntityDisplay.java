@@ -45,13 +45,6 @@ public record EntityDisplay(ProcessorVariable variable, double x, double y,
 
     public net.minecraft.world.phys.Vec3 offset(
         net.minecraft.core.Direction facing) {
-        return switch (facing) {
-            case NORTH -> new net.minecraft.world.phys.Vec3(x, y, z);
-            case EAST -> new net.minecraft.world.phys.Vec3(1 - z, y, x);
-            case SOUTH -> new net.minecraft.world.phys.Vec3(1 - x, y, 1 - z);
-            case WEST -> new net.minecraft.world.phys.Vec3(z, y, 1 - x);
-            default -> throw new IllegalArgumentException(
-                "Entity display requires horizontal facing");
-        };
+        return MachineFacing.point(facing, x, y, z);
     }
 }

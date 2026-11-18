@@ -550,12 +550,24 @@ public final class MaterialEventContexts {
      * @param machineId the machine definition's ID
      * @param recipe the cycle's recipe
      * @param time the cycle's length, in ticks
+     * @param processor the stable processor ID, empty for legacy Java callers
      */
     public record MachineCycle(
         net.minecraft.world.level.block.entity.BlockEntity machine,
         ServerLevel level, BlockPos position,
         net.minecraft.resources.ResourceLocation machineId,
-        net.minecraft.resources.ResourceLocation recipe, int time) {
+        net.minecraft.resources.ResourceLocation recipe, int time,
+        String processor) {
+        /**
+         * Compatibility constructor for callers without a processor identity.
+         */
+        public MachineCycle(
+            net.minecraft.world.level.block.entity.BlockEntity machine,
+            ServerLevel level, BlockPos position,
+            net.minecraft.resources.ResourceLocation machineId,
+            net.minecraft.resources.ResourceLocation recipe, int time) {
+            this(machine, level, position, machineId, recipe, time, "");
+        }
         /** Requires every value. */
         public MachineCycle {
             Objects.requireNonNull(machine);
@@ -563,6 +575,7 @@ public final class MaterialEventContexts {
             position = Objects.requireNonNull(position).immutable();
             Objects.requireNonNull(machineId);
             Objects.requireNonNull(recipe);
+            Objects.requireNonNull(processor);
         }
     }
 }

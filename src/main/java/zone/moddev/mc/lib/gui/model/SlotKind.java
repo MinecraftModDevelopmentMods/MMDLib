@@ -4,7 +4,10 @@ package zone.moddev.mc.lib.gui.model;
 public enum SlotKind {
     /** An ordinary slot. */
     NORMAL,
-    /** An upgrade slot: one item, gold tint, ghost outline. */
+    /**
+     * An upgrade slot: storage-bounded stack up to eight, gold tint, ghost
+     * outline.
+     */
     UPGRADE,
     /**
      * A JEI ghost slot: sets the item the slot expects, never holds real items.

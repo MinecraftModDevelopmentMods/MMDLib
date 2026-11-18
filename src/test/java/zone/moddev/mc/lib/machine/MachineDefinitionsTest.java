@@ -48,6 +48,362 @@ class MachineDefinitionsTest {
             .of("src/companion/resources/mmdlib/machine/simple_crusher.xml"));
     }
 
+    public static class Admission
+        extends
+            zone.moddev.mc.lib.machine.feature.StoredProcessor
+        implements zone.moddev.mc.lib.machine.feature.StorageAdmission {
+        public boolean canStart(
+            zone.moddev.mc.lib.machine.feature.ProcessorState state,
+            zone.moddev.mc.lib.machine.feature.ProcessorMachine host) {
+            return false;
+        }
+        public ProcessState process(
+            zone.moddev.mc.lib.machine.feature.ProcessorState state,
+            zone.moddev.mc.lib.machine.feature.ProcessorMachine host,
+            int ticks) {
+            return ProcessState.IDLE;
+        }
+    }
+
+    public static final class ComparatorProcessor extends Admission
+        implements zone.moddev.mc.lib.api.redstone.IRedstoneOutput {
+        public List<zone.moddev.mc.lib.api.redstone.RedstoneOutput> redstoneOutputs() {
+            return List.of(new zone.moddev.mc.lib.api.redstone.RedstoneOutput(
+                "custom/output",
+                net.minecraft.network.chat.Component.literal("Output"),
+                net.minecraft.network.chat.Component.literal("Output"),
+                0xffffff, java.util.Optional.empty(), () -> {
+                    throw new AssertionError(
+                        "Metadata validation must not sample a live level");
+                }));
+        }
+    }
+
+    @Test
+    void comparatorValidationUsesCustomSourceMetadataWithoutSamplingLevels()
+        throws Exception {
+        String xml = """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="mmdlib:base_machine" name="Custom">
+              <appearance preset="model" model="test:block/base"/>
+              <storage/>
+              <processor id="custom" class="zone.moddev.mc.lib.machine.MachineDefinitionsTest$ComparatorProcessor"/>
+              <redstone comparator-source="custom/output"/>
+            </machine>
+            """;
+        write(xml);
+        assertEquals("custom/output",
+            MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher")).behavior()
+                .comparatorSource());
+        write(xml.replace("custom/output", "custom/typo"));
+        assertTrue(assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources())).getMessage()
+            .contains("Unknown comparator source"));
+    }
+
+    @Test
+    void comparatorSourcesFailAtTheRedstoneDeclaration() throws Exception {
+        for (String source : List.of("processor/crusher/processing",
+            "processor/crusher/inactive", "processor/crusher/progress")) {
+            write(crusher().replace("</machine>",
+                "<redstone comparator-source=\"" + source + "\"/></machine>"));
+            assertEquals(source,
+                MachineDefinitions.load(sources())
+                    .get(ResourceLocation.parse("test:crusher")).behavior()
+                    .comparatorSource());
+        }
+        write(crusher().replace("</machine>",
+            "<redstone comparator-source=\"typo\"/></machine>"));
+        var error = assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        assertTrue(error.getMessage().contains("crusher.xml"));
+        long redstoneLine = crusher()
+            .substring(0, crusher().indexOf("</machine>")).lines().count() + 1;
+        assertTrue(
+            error.getMessage().contains("crusher.xml:" + redstoneLine + ":"),
+            error.getMessage());
+        assertTrue(
+            error.getMessage().contains("Unknown comparator source: typo"));
+    }
+
+    @Test
+    void processorOperatingCostValidatesPowerAndNonnegativeAmounts()
+        throws Exception {
+        String xml = crusher().replace("<processor ",
+            "<processor energy-per-tick=\"7\" ");
+        write(xml);
+        assertEquals(7,
+            MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher")).processors()
+                .getFirst().energyPerTick());
+        write(xml.replace("energy-per-tick=\"7\"", "energy-per-tick=\"-1\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        String unpowered = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/porting_workshop.xml"))
+            .replace("<processor ", "<processor energy-per-tick=\"7\" ");
+        write(unpowered);
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
+    void energyProviderIsExplicitAndControlsCapacitorSupport()
+        throws Exception {
+        String xml = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/parallel_workshop.xml"))
+            .replace("<storage>",
+                "<storage><energy id=\"energy\" provider=\"battery\"/>")
+            .replace("</machine>",
+                "<processor id=\"battery\" class=\"zone.moddev.mc.companion.BatteryBank\"/></machine>");
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals("battery", definition.power().provider());
+        assertNull(definition.behavior().capacitorSlot());
+        write(xml.replace("provider=\"battery\"",
+            "provider=\"battery\" capacitors=\"true\""));
+        assertNotNull(MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher")).behavior()
+            .capacitorSlot());
+        write(xml.replace("provider=\"battery\"", "provider=\"missing\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("provider=\"battery\"", "provider=\"left\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("</machine>",
+            "<upgrades capacitor-slot=\"invalid\"/></machine>"));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
+    void multipleProcessorsBindResourcesAndValidateEveryLane()
+        throws Exception {
+        String xml = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/parallel_workshop.xml"))
+            .replace("zone.moddev.mc.companion.ChargePump",
+                Admission.class.getName());
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals(List.of("charge", "left", "right"),
+            definition.processors().stream().map(
+                zone.moddev.mc.lib.machine.definition.ProcessorConfiguration::id)
+                .toList());
+        assertEquals("left", definition.processor());
+        assertEquals("right_input",
+            definition.processors().get(2).bindings().get("input"));
+        assertEquals(List.of("input"),
+            definition.processors().get(2).filterInputs());
+        write(xml.replace("input=right_input", "input=missing"));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("id=\"right\"", "id=\"left\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
+    void admissionDeclarationsResolveAndRejectMissingProcessors()
+        throws Exception {
+        String xml = Files
+            .readString(Path.of(
+                "src/companion/resources/mmdlib/machine/admission_demo.xml"))
+            .replace("zone.moddev.mc.companion.AdmissionDemo",
+                Admission.class.getName());
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals("rules",
+            definition.slots().getFirst().admission().processor());
+        assertEquals(Admission.class,
+            definition.slots().get(1).admission().type());
+        assertEquals(ResourceLocation.parse("minecraft:water"),
+            definition.fluids().tanks().getFirst().fluidTag());
+        write(xml.replace("filter-processor=\"rules\"",
+            "filter-processor=\"missing\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+        write(xml.replace("filter-processor=\"rules\"",
+            "filter-processor=\"rules\" filter-class=\""
+                + Admission.class.getName() + "\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
+    void facingFixturesLoadAndValidateInheritedPolicies() throws Exception {
+        for (var name : List.of("all", "away", "up", "down", "vertical",
+            "asymmetric")) {
+            write(Files.readString(
+                Path.of("src/companion/resources/mmdlib/machine/facing_" + name
+                    + ".xml")));
+            var definition = MachineDefinitions.load(sources())
+                .get(ResourceLocation.parse("test:crusher"));
+            assertFalse(definition.behavior().facing().directions().isEmpty());
+            assertEquals(!name.equals("away"),
+                definition.behavior().facing().towardPlayer());
+        }
+        write(crusher().replace("</machine>",
+            "<block facing=\"up north\" placement-facing=\"away-from-player\"/></machine>"));
+        var facing = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher")).behavior().facing();
+        assertEquals(Set.of(net.minecraft.core.Direction.UP,
+            net.minecraft.core.Direction.NORTH), facing.directions());
+        assertFalse(facing.towardPlayer());
+    }
+
+    @Test
+    void rangeSocketsSupportRangeOnlyMachinesAndRejectOverlaps()
+        throws Exception {
+        String xml = crusher()
+            .replace("</items>",
+                """
+                    <slots id="upgrades" count="11" role="manual" limit="8" automation="false"/>
+                    </items>
+                    """)
+            .replace("</machine>",
+                "<upgrades range-slots=\"upgrades/0 upgrades/1\"/></machine>");
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals(List.of("upgrades/0", "upgrades/1"),
+            definition.behavior().rangeSlots());
+        assertEquals(1,
+            definition.slots().stream()
+                .filter(slot -> slot.id().equals("upgrades/0")).findFirst()
+                .orElseThrow().limit());
+        for (String invalid : List.of(
+            xml.replace("upgrades/0 upgrades/1", "upgrades/0 upgrades/0"),
+            xml.replace("upgrades/0 upgrades/1", "missing"),
+            xml.replace("upgrades/0 upgrades/1", "input/0"),
+            xml.replace("automation=\"false\"", "automation=\"true\""),
+            xml.replace("<upgrades range-slots",
+                "<upgrades gearbox-slot=\"upgrades/0\" range-slots"),
+            xml.replace("upgrades/0 upgrades/1",
+                "upgrades/0 upgrades/1 upgrades/2 upgrades/3 upgrades/4 upgrades/5 upgrades/6 upgrades/7 upgrades/8 upgrades/9"))) {
+            write(invalid);
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+    }
+
+    @Test
+    void capacitorSocketSupportsIndependentOrCombinedUpgrades()
+        throws Exception {
+        String xml = crusher()
+            .replace("</items>",
+                """
+                    <slots id="upgrades" count="11" role="manual" limit="1" automation="false"/>
+                    </items>
+                    """)
+            .replace("</machine>",
+                "<upgrades capacitor-slot=\"upgrades/5\"/></machine>");
+        write(xml);
+        var id = ResourceLocation.parse("test:crusher");
+        var definition = MachineDefinitions.load(sources()).get(id);
+        assertEquals("mmdlib_gearbox/0", definition.behavior().gearboxSlot());
+        assertEquals("upgrades/5", definition.behavior().capacitorSlot());
+        assertEquals(8,
+            definition.slots().stream()
+                .filter(slot -> slot.id().equals("upgrades/5")).findFirst()
+                .orElseThrow().limit());
+        write(xml.replace("<upgrades capacitor-slot",
+            "<upgrades gearbox-slot=\"upgrades/4\" capacitor-slot"));
+        assertEquals("upgrades/4", MachineDefinitions.load(sources()).get(id)
+            .behavior().gearboxSlot());
+        for (String invalid : List.of(xml.replace("upgrades/5", "missing"),
+            xml.replace("upgrades/5", "input/0"),
+            xml.replace("automation=\"false\"", "automation=\"true\""),
+            xml.replace("<upgrades capacitor-slot",
+                "<upgrades gearbox-slot=\"upgrades/5\" capacitor-slot"))) {
+            write(invalid);
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+    }
+
+    @Test
+    void gearboxSocketKeepsItsIdentityAndRaisesOnlyItsLimit() throws Exception {
+        String xml = crusher()
+            .replace("</items>",
+                """
+                    <slots id="upgrades" count="11" role="manual" limit="1" automation="false"/>
+                    </items>
+                    """)
+            .replace("</machine>",
+                "<upgrades gearbox-slot=\"upgrades/4\"/></machine>");
+        write(xml);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals("upgrades/4", definition.behavior().gearboxSlot());
+        for (var slot : definition.slots()) {
+            if (slot.id().startsWith("upgrades/"))
+                assertEquals(slot.id().equals("upgrades/4") ? 8 : 1,
+                    slot.limit());
+        }
+        for (String slot : List.of("missing", "input/0", "upgrades/99")) {
+            write(xml.replace("gearbox-slot=\"upgrades/4\"",
+                "gearbox-slot=\"" + slot + "\""));
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+        write(xml.replace("automation=\"false\"", "automation=\"true\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
+    void itemTagFiltersBelongToStoredSlots() throws Exception {
+        write(crusher().replace("role=\"input\"",
+            "role=\"input\" item-tag=\"minecraft:hoes\""));
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertTrue(definition.slots().stream()
+            .filter(slot -> slot
+                .role() == zone.moddev.mc.lib.api.capabilities.Role.INPUT)
+            .allMatch(slot -> ResourceLocation.parse("minecraft:hoes")
+                .equals(slot.itemTag())));
+    }
+
+    @Test
+    void visualizerColorsDefaultInheritAndRejectMalformedValues()
+        throws Exception {
+        write(crusher());
+        var id = ResourceLocation.parse("test:crusher");
+        assertEquals(
+            zone.moddev.mc.lib.machine.presentation.VisualizerStyle.DEFAULT,
+            MachineDefinitions.load(sources()).get(id).behavior()
+                .visualizers());
+        String base = crusher().replace("</machine>",
+            "<visualizers range-color=\"#123456\" work-color=\"#ABCDEF\"/></machine>");
+        write(base);
+        var style = MachineDefinitions.load(sources()).get(id).behavior()
+            .visualizers();
+        assertEquals(0x123456, style.rangeColor());
+        assertEquals(0xabcdef, style.workColor());
+        Files.writeString(directory.resolve("machine/child.xml"),
+            """
+                <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" extends="test:crusher">
+                  <visualizers work-color="#010203"/>
+                </machine>
+                """);
+        var child = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:child"));
+        assertEquals(0x123456, child.behavior().visualizers().rangeColor());
+        assertEquals(0x010203, child.behavior().visualizers().workColor());
+        for (String invalid : List.of("#12345", "#ff123456", "banana")) {
+            write(base.replace("#ABCDEF", invalid));
+            assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+        }
+    }
+
     private String fluidMachine(String name) throws Exception {
         return Files.readString(
             Path.of("src/companionTest/resources/mmdlib/machine/test/" + name
@@ -156,7 +512,11 @@ class MachineDefinitionsTest {
 
     @Test
     void originalConstructorRetainsAutomaticCubeDefaults() throws Exception {
-        write(crusher());
+        // Preserve the original defaults without inherited component sockets.
+        write(crusher()
+            .replace("mmdlib:base_powered_machine", "mmdlib:base_machine")
+            .replace("<storage>",
+                "<storage><energy id=\"energy\" capacity=\"100000\" input-rate=\"1000\" output-rate=\"0\"/>"));
         var d = MachineDefinitions.load(sources())
             .get(ResourceLocation.parse("test:crusher"));
         var compatible = new MachineDefinition(d.id(), d.checksum(), d.name(),
@@ -216,7 +576,8 @@ class MachineDefinitionsTest {
             "<items id=\"items\">" + ghost));
         var machine = MachineDefinitions.load(sources())
             .get(ResourceLocation.parse("test:crusher"));
-        assertEquals(3, machine.slots().size());
+        assertEquals(5, machine.slots().size()); // Three process slots plus
+                                                 // inherited components.
         assertEquals(1, machine.ghosts().size());
         assertEquals("pattern", machine.ghosts().getFirst().id());
         assertEquals(ResourceLocation.parse("minecraft:stone"),
@@ -577,7 +938,8 @@ class MachineDefinitionsTest {
             .get(ResourceLocation.parse("test:crusher"));
         var expected = Map.of("energy", "Power Supply", "water",
             "Water Catalyst", "buffer", "Fluid Buffer", "pattern",
-            "Rock Selection", "input", "input", "output", "Products");
+            "Rock Selection", "input", "input", "output", "Products",
+            "mmdlib_gearbox", "gearbox", "mmdlib_capacitor", "capacitor");
         assertEquals(expected, machine.groupNames());
         assertThrows(UnsupportedOperationException.class,
             () -> machine.groupNames().put("injected", "Invalid"));
@@ -633,9 +995,12 @@ class MachineDefinitionsTest {
             .get(ResourceLocation.parse("test:crusher"));
         assertEquals(
             Map.of("input", "Raw Materials", "output", "Finished Products",
-                "water", "Reusable Water", "energy", "Electricity"),
+                "water", "Reusable Water", "energy", "Electricity",
+                "mmdlib_gearbox", "gearbox", "mmdlib_capacitor", "capacitor"),
             machine.groupNames());
-        assertEquals(List.of("input/0", "input/1", "output/0", "output/1"),
+        assertEquals(
+            List.of("input/0", "input/1", "output/0", "output/1",
+                "mmdlib_gearbox/0", "mmdlib_capacitor/0"),
             machine.slots().stream().map(MachineDefinition.Slot::id).toList());
         assertFalse(machine.fluids().groups().getFirst().automation());
         assertEquals("test:crusher.group.input",
@@ -690,6 +1055,38 @@ class MachineDefinitionsTest {
     }
 
     @Test
+    void manualItemStorageCanOptOutOfAutomationWithoutLosingItsIdentity()
+        throws Exception {
+        var xml = crusher().replace("</items>",
+            "<slots id=\"upgrades\" count=\"11\" role=\"manual\" limit=\"1\" automation=\"false\"/></items>");
+        write(xml);
+        var machine = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertFalse(machine.groups().stream()
+            .filter(group -> group.id().equals("upgrades")).findFirst()
+            .orElseThrow().automation());
+        assertTrue(machine.groups().getFirst().automation());
+        assertEquals(11, machine.inventorySlots("upgrades").size());
+        assertEquals("upgrades/0", machine.slots()
+            .get(machine.inventorySlots("upgrades").getFirst()).id());
+        write(xml.replace("<processor",
+            "<groups><group id=\"upgrades\" storage=\"items\" mode=\"disabled\" name=\"Components\"/></groups><processor"));
+        machine = MachineDefinitions.load(sources()).get(machine.id());
+        var upgrades = machine.groups().stream()
+            .filter(group -> group.id().equals("upgrades")).findFirst()
+            .orElseThrow();
+        assertFalse(upgrades.automation());
+        assertEquals("Components", upgrades.name());
+        write(xml.replace("role=\"manual\"", "role=\"storage\""));
+        assertTrue(assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources())).getMessage()
+            .contains("role=manual"));
+        write(xml.replace("automation=\"false\"", "automation=\"invalid\""));
+        assertThrows(IllegalArgumentException.class,
+            () -> MachineDefinitions.load(sources()));
+    }
+
+    @Test
     void inheritsPowerAndExpandsStableGroupsAndCustomProperties()
         throws Exception {
         write(crusher().replace("<items id=\"items\">",
@@ -700,7 +1097,9 @@ class MachineDefinitionsTest {
         assertEquals(1000, machine.power().input());
         assertEquals(0xd85b5b, machine.power().color());
         assertEquals("Energy", machine.power().name());
-        assertEquals(List.of("input/0", "output/0", "output/1"),
+        assertEquals(
+            List.of("input/0", "output/0", "output/1", "mmdlib_gearbox/0",
+                "mmdlib_capacitor/0"),
             machine.slots().stream().map(s -> s.id()).toList());
         assertEquals(List.of(1, 2), machine.groups().get(1).members());
         assertEquals(Map.of("hardness-level-ratio", ".10"),
@@ -717,7 +1116,9 @@ class MachineDefinitionsTest {
             "count=\"3\" role=\"output\""));
         var machine = MachineDefinitions.load(sources()).values().iterator()
             .next();
-        assertEquals(List.of("input/0", "output/0", "output/1", "output/2"),
+        assertEquals(
+            List.of("input/0", "output/0", "output/1", "output/2",
+                "mmdlib_gearbox/0", "mmdlib_capacitor/0"),
             machine.slots().stream().map(s -> s.id()).toList());
     }
 
@@ -862,11 +1263,12 @@ class MachineDefinitionsTest {
         assertEquals("other_processor", plan.processor());
         assertEquals(ResourceLocation.parse("test:other"),
             plan.recipeType().id());
-        assertEquals(3, plan.slots().size());
+        assertEquals(5, plan.slots().size()); // Three process slots plus
+                                              // inherited components.
         assertNotNull(plan.recipeType().generator());
         assertEquals(100000, plan.power().capacity());
         write(crusher().replace("</machine>",
-            "<processor id=\"duplicate\" recipe-type=\"test:other\"/></machine>"));
+            "<processor id=\"crusher\" recipe-type=\"mmdlib_companion:simple_crushing\"/></machine>"));
         assertTrue(assertThrows(IllegalArgumentException.class,
             () -> MachineDefinitions.load(sources())).getMessage()
             .contains("Duplicate definition processor"));
@@ -878,12 +1280,15 @@ class MachineDefinitionsTest {
             .replace("</machine>",
                 "<screen><hbox><label text=\"third\"/><label text=\"fourth\"/></hbox><hbox><label"
                     + " text=\"fifth\"/></hbox></screen></machine>"));
-        var base = Files
-            .readString(Path.of(
-                "src/main/resources/mmdlib/machine/base_powered_machine.xml"))
-            .replace("extends=\"mmdlib:base_powered_machine\"/>",
-                "><hbox><label text=\"first\"/><label text=\"second\"/></hbox><hbox><label"
-                    + " text=\"base_end\"/></hbox></screen>");
+        var base = """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true"
+                     extends="mmdlib:base_powered_machine">
+              <screen xmlns="https://moddev.zone/mmdlib/screen">
+                <hbox><label text="first"/><label text="second"/></hbox>
+                <hbox><label text="base_end"/></hbox>
+              </screen>
+            </machine>
+            """;
         Files.writeString(directory.resolve("machine/base.xml"), base);
         var plan = MachineDefinitions.load(sources())
             .get(ResourceLocation.parse("test:crusher"));

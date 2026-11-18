@@ -153,6 +153,7 @@
       <xs:element ref="label"/>
       <xs:element ref="entity-portrait"/>
       <xs:element ref="button"/>
+      <xs:element ref="cycle-button"/>
       <xs:element ref="processor-button"/>
       <xs:element ref="recipe-selector"/>
       <xs:element ref="checkbox"/>
@@ -171,7 +172,7 @@
     <xs:attribute name="value" type="xs:string" use="required"/>
   </xs:complexType></xs:element>
   <xs:group name="slots"><xs:choice><xs:element ref="slot"/><xs:element ref="item-slot"/><xs:element ref="ghost-slot"/></xs:choice></xs:group>
-  <xs:group name="buttons"><xs:choice><xs:element ref="button"/><xs:element ref="processor-button"/></xs:choice></xs:group>
+  <xs:group name="buttons"><xs:choice><xs:element ref="button"/><xs:element ref="cycle-button"/><xs:element ref="processor-button"/></xs:choice></xs:group>
   <xs:group name="views"><xs:choice><xs:element ref="view"/></xs:choice></xs:group>
   <xs:group name="radios"><xs:choice><xs:element ref="radio"/></xs:choice></xs:group>
   <xs:group name="dock"><xs:choice><xs:element ref="side-tab"/><xs:element ref="popout"/></xs:choice></xs:group>
@@ -295,6 +296,14 @@
     </xs:complexType>
   </xs:element>
 
+  <xs:element name="upgrade-slot">
+    <xs:complexType><xs:complexContent><xs:extension base="slotType">
+      <xs:attribute name="item-tag" type="resourceId" use="required"/>
+      <xs:attribute name="max-stack-size" default="1">
+        <xs:simpleType><xs:restriction base="xs:int"><xs:minInclusive value="1"/><xs:maxInclusive value="64"/></xs:restriction></xs:simpleType>
+      </xs:attribute>
+    </xs:extension></xs:complexContent></xs:complexType>
+  </xs:element>
   <xs:complexType name="slotType">
 
       <xs:complexContent>
@@ -328,6 +337,12 @@
   <xs:element name="slot" type="slotType"/>
   <xs:element name="item-slot" type="slotType"/>
   <xs:element name="ghost-slot" type="slotType"/>
+  <xs:element name="machine-upgrades">
+    <xs:complexType>
+      <xs:attributeGroup ref="common"/>
+      <xs:attribute name="storage" type="elementId"/>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="inventory">
     <xs:complexType>
       <xs:group ref="slots" minOccurs="0" maxOccurs="unbounded"/>
@@ -335,6 +350,10 @@
       <xs:attribute name="storage" type="elementId" use="required"/>
       <xs:attribute name="columns" type="xs:positiveInteger" default="1"/>
       <xs:attribute name="spacing" type="pixels" default="0"/>
+      <xs:attribute name="count" type="xs:positiveInteger"/>
+      <xs:attribute name="slot-icon" type="resourceId"/>
+      <xs:attribute name="slot-tooltip" type="xs:string"/>
+      <xs:attribute name="selection-color" type="color" default="#55FF88"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="gauge">
@@ -485,6 +504,30 @@
     </xs:complexType>
   </xs:element>
 
+  <xs:element name="cycle-mode">
+    <xs:complexType>
+      <xs:attribute name="value" type="xs:int" use="required"/>
+      <xs:attribute name="icon" type="resourceId" use="required"/>
+      <xs:attribute name="label" type="translationKey" use="required"/>
+      <xs:attribute name="label-fallback" type="xs:string"/>
+      <xs:attribute name="tooltip" type="translationKey"/>
+      <xs:attribute name="tooltip-fallback" type="xs:string"/>
+      <xs:attribute name="action" type="resourceId" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="cycle-button">
+    <xs:complexType>
+      <xs:sequence><xs:element ref="cycle-mode" minOccurs="2" maxOccurs="256"/></xs:sequence>
+      <xs:attributeGroup ref="common"/>
+      <xs:attribute name="variable" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="working-area-button">
+    <xs:complexType><xs:complexContent><xs:extension base="leaf">
+      <xs:attribute name="processor-key" type="xs:string"/>
+    </xs:extension></xs:complexContent></xs:complexType>
+  </xs:element>
   <xs:element name="processor-button">
     <xs:complexType>
       <xs:complexContent>
@@ -573,6 +616,7 @@
   <xs:element name="player-armour" type="leaf"/>
   <xs:element name="player-offhand" type="leaf"/>
 
+  <xs:element name="upgrades-drawer" type="container"/>
   <xs:element name="side-tab">
     <xs:complexType>
       <xs:complexContent>

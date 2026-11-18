@@ -1,5 +1,22 @@
 {
   "itemGroup.mmdlib.main": "MMDLib",
+  "item.mmdlib.range_upgrade": "Range Upgrade",
+  "item.mmdlib.range_upgrade.effect": "+1 working-area radius (+2 width and depth).",
+  "item.mmdlib.range_upgrade.limit": "One per range socket, up to 9. Never wears out.",
+
+  "item.mmdlib.capacitor_upgrade": "Capacitor Upgrade",
+  "item.mmdlib.capacitor_upgrade.effect": "+12.5% energy capacity and input/output rates per upgrade.",
+  "item.mmdlib.capacitor_upgrade.limit": "Stacks to 8: +100% capacity and transfer rates. Never wears out.",
+
+  "item.mmdlib.gearbox_upgrade": "Gearbox Upgrade",
+  "item.mmdlib.gearbox_upgrade.effect": "+12.5% processor speed and FE usage rate per upgrade.",
+  "item.mmdlib.gearbox_upgrade.limit": "Stacks to 8: +100% speed and FE usage rate. Never wears out.",
+
+  "screen.mmdlib.working_area.show": "Show working area",
+  "screen.mmdlib.working_area.hide": "Hide working area",
+  "screen.mmdlib.upgrades.title": "Upgrades",
+  "screen.mmdlib.upgrades.gearbox": "Gearbox socket — up to 8. Each adds 12.5% speed and FE usage rate. Never wears out.",
+  "screen.mmdlib.upgrades.capacitor": "Capacitor socket — up to 8. Each adds 12.5% storage and input/output rate. Never wears out.",
   "screen.mmdlib.face.unavailable": "Unavailable on this machine",
   "screen.mmdlib.tank.name": "Tank %s",
   "screen.mmdlib.tank.empty": "Empty",

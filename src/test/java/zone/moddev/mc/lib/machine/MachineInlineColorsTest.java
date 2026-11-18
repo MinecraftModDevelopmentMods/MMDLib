@@ -71,14 +71,15 @@ class MachineInlineColorsTest {
         assertEquals(0x123abc, machine.power().color());
         assertEquals(128, machine.power().input());
         assertEquals(0, machine.power().output());
-        assertEquals(List.of(0xa184ce, 0x4dc6d8), machine.groups().stream()
-            .map(MachineDefinition.Group::color).toList());
+        assertEquals(List.of(0xa184ce, 0x4dc6d8, 0xffffff, 0xffffff), machine
+            .groups().stream().map(MachineDefinition.Group::color).toList());
         assertEquals(List.of(0x508ee0, 0xee963c), machine.fluids().groups()
             .stream().map(MachineDefinition.Group::color).toList());
         assertEquals(List.of(1, 2), machine.fluids().groups().get(1).members());
         var screen = ScreenLoader
             .load(sources(), Map.of(machine.id(), machine.screen()),
-                (id, node) -> MachineScreenGenerators.generate(machine, node))
+                MachineScreenGenerators
+                    .forMachines(Map.of(machine.id(), machine)))
             .get(machine.id()).screen();
         assertEquals(0xff4dc6d8, ((ColouredGroupElement) screen
             .find("inventory_output").orElseThrow()).colour());
@@ -139,7 +140,7 @@ class MachineInlineColorsTest {
         var plan = load(xml);
         assertEquals(
             List.of(0x568bd8, 0x4dc6d8, 0x010203, 0xcf84aa, 0x568bd8, 0x83b967,
-                0x8c9eac, 0xaaa0b7),
+                0x8c9eac, 0xaaa0b7, 0xffffff, 0xffffff),
             plan.groups().stream().map(MachineDefinition.Group::color)
                 .toList());
         assertEquals(List.of(0x508ee0, 0xee963c), plan.fluids().groups()

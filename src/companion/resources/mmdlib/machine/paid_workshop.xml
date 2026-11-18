@@ -1,0 +1,7 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib_companion:parallel_workshop" name="Paid Workshop">
+  <!-- Same recipes, different operating overhead. The pump is a custom processor. -->
+  <processor id="left" energy-per-tick="5"/>
+  <processor id="right" energy-per-tick="9"/>
+  <processor id="charge" energy-per-tick="3"/>
+</machine>

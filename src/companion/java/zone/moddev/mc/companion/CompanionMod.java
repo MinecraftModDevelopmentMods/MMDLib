@@ -80,6 +80,12 @@ public final class CompanionMod {
     }
 
     public CompanionMod(IEventBus bus) {
+        MaterialExtensions.GLOBAL.events().registerCallback(
+            id("workshop_start"), MaterialEventTypes.MACHINE_CYCLE_START,
+            event -> recordWorkshopCycle(event, false));
+        MaterialExtensions.GLOBAL.events().registerCallback(
+            id("workshop_finish"), MaterialEventTypes.MACHINE_CYCLE_FINISH,
+            event -> recordWorkshopCycle(event, true));
         MultiblockDemo.register(bus);
         CompanionWidgets.register();
         CompanionAddons.register(bus);
@@ -98,6 +104,16 @@ public final class CompanionMod {
                 if (click.menu().blockEntity instanceof ProcessorEntity machine)
                     machine.toggle(0);
             });
+    }
+
+    private static void recordWorkshopCycle(
+        zone.moddev.mc.lib.api.MaterialEventContexts.MachineCycle event,
+        boolean finished) {
+        if (event
+            .machine() instanceof zone.moddev.mc.lib.machine.neoforge.DefinedMachineEntity machine)
+            machine.features.findProcessor("charge", ChargePump.class)
+                .ifPresent(
+                    pump -> pump.recordCycle(event.processor(), finished));
     }
 
     private static void capabilities(RegisterCapabilitiesEvent event) {

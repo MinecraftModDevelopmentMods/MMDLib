@@ -61,6 +61,140 @@ table in a low-priority resource pack. Authored resources can override these
 defaults. Crafting recipes remain ordinary files under `data/<modid>/recipe/`.
 The companion's SimpleCrusher is in the companion mod's own creative tab.
 
+## Shared gearbox upgrades
+
+`mmdlib:base_powered_machine` enables shared upgrades and supplies their drawer.
+Derived machines automatically receive a capacitor socket and, when they declare
+a processor, a gearbox socket. Their machine XML needs no `<upgrades>` or screen
+declaration unless adding machine-specific extra slots or replacing the layout.
+
+MMDLib owns `mmdlib:gearbox_upgrade`, a permanent item with a maximum stack of
+eight. Each adds 12.5% processor speed and FE consumption **per game tick**:
+one gives 1.125×, four give 1.5×, and eight give 2×. The clock schedules extra
+ordinary work ticks, so normal energy checks still apply and total FE per
+recipe or action does not increase. Energy-producing processors likewise run
+more work ticks; external automation and transfer rates are not accelerated.
+
+Enable capability-based component storage with `<upgrades/>`. MMDLib adds a gearbox socket for a processor and a capacitor socket for energy storage. The inventories `mmdlib_gearbox` and `mmdlib_capacitor` each have one manual, non-automated slot of capacity eight. `<machine-upgrades/>` displays just those sockets; its optional `storage` attribute adds a machine-owned extra grid.
+
+Existing machines may still bind a manual socket by its stable storage slot ID:
+
+```xml
+<upgrades gearbox-slot="upgrades/4"/>
+```
+
+For `<slots id="upgrades" count="11" role="manual" limit="1" automation="false"/>`,
+this changes only `upgrades/4` to an eight-item limit. The socket admits
+`GearboxUpgradeItem` instances and affects **every processor** on the machine,
+including custom `StoredProcessor` implementations and recipe processors.
+Missing slots, non-manual slots and automation-exposed sockets are rejected.
+Use `item-tag="mmdlib:gearbox_upgrades"` on the matching screen `upgrade-slot`.
+Other mods can subclass the shared item and add it to their socket's admission tag.
+Keep any such slot's `item-tag` storage filter consistent with its screen tag.
+
+Java-defined hosts can call `features.gearboxes(() -> installedCount)` before
+binding visual variables. The shared clock clamps counts to 0–8, saves each
+processor's fractional tick, and retains it across pauses, item changes and reloads.
+Disabled hosts do no work. Unpowered or blocked processors still obey their
+normal gates, and paused processors do not accumulate bonus work.
+Custom processors with per-game-tick aggregation can override
+`Processor.tick(FeatureHost, int steps)`; the default invokes their ordinary tick
+once or twice. Non-processor features continue to tick once per game tick.
+
+## Shared capacitor upgrades
+
+`mmdlib:capacitor_upgrade` stacks to eight and never wears out. Each installed
+capacitor adds 12.5% to the machine's **base** energy capacity, input rate and
+output rate, reaching 2× at eight. Values round down to whole FE; a zero rate
+stays zero. The calculation never compounds and saturates at the buffer's long
+integer limit rather than overflowing. Processor energy costs are unaffected.
+
+Bind the second socket independently or alongside the gearbox:
+
+```xml
+<upgrades gearbox-slot="upgrades/4" capacitor-slot="upgrades/5"/>
+```
+
+The capacitor socket must be a different manual slot without automation, and
+the machine must declare energy storage. Its capacity becomes eight and it
+admits `CapacitorUpgradeItem` instances. Use `item-tag="mmdlib:capacitor_upgrades"`
+on its screen slot. Limits update immediately on inventory changes, even while
+paused. Installing capacitors creates no energy; removing them clamps stored
+energy to the smaller capacity. Item storage loads before energy so a fresh
+machine preserves saved energy above its base capacity.
+
+Java-defined machines can use `CapacitorUpgrades(buffer, baseCapacity,
+baseInput, baseOutput, installedCount)` and subscribe `refresh` to their socket's
+change signal. Refresh after loading items and before loading energy. The shared
+`MachineInventoryLifecycle` follows that load order.
+
+## Shared range upgrades and working areas
+
+`mmdlib:range_upgrade` is permanent. Each occupied range socket adds **one to
+the horizontal radius**, up to nine sockets. Socket capacity is one, even though
+the items stack normally in a player's inventory. Existing component sockets
+remain independent. Declare nine extra slots with `role="manual"`, `limit="1"`, `automation="false"`, and `item-tag="mmdlib:range_upgrades"`. Bind the entire group in XML:
+
+```xml
+<upgrades range-storage="upgrades"/>
+```
+
+Component sockets are inferred from capabilities. `range-storage` and explicit `range-slots` are mutually exclusive. Range sockets must be
+distinct manual slots with automation disabled, must not overlap the gearbox or
+capacitor, and are forced to a one-item limit. Use `mmdlib:range_upgrades` as the
+screen admission tag, or a mod tag that includes it. Each `RangeUpgradeItem`
+subclass in a configured socket counts once, regardless of stack size.
+
+Any area-providing processor can use the effect. Implement
+`WorkingArea.Provider.baseWorkingArea()` with its unmodified local offsets.
+The default `workingArea()` applies the shared range policy. `StoredProcessor`
+automatically supplies `rangeUpgrades()` from its `ProcessorMachine`; other
+providers can override `rangeUpgrades()` to return their host's count. Java hosts
+can implement `ProcessorMachine.rangeUpgrades()` using `RangeUpgrades.count` over
+their selected sockets. There is no farming-specific item or coordinate policy.
+
+Expansion adds two blocks to width and depth per upgrade, leaving height alone.
+On an axis entirely to one side of the machine, it keeps the near edge fixed and
+grows outward; an axis spanning zero grows equally in both directions. Growth
+stops at WorkingArea's existing ±128 local-coordinate bounds. For example,
+`(-1, 0, -3)` through `(1, 0, -1)` grows from a rear 3×3 field to 21×21 with nine.
+
+`WorkingArea` supplies these coordinate helpers:
+
+- `width()`, `depth()`, `height()` and `size()` use inclusive block dimensions.
+- `blockAt(origin, facing, index)` returns an immutable world position.
+- `blocks(origin, facing)` lazily enumerates positions without accessing a world
+  or loading chunks. Retaining returned positions is safe.
+- `row(index)` gives the row within a layer, for row-based processing modes.
+- `bounds(origin, facing)` supplies the enclosing AABB for displays and future
+  world/entity queries.
+
+Traversal goes left to right, row by row, bottom layer first. Rear areas begin
+at their near row and move backward; other areas begin at `minForward`.
+Agri-Brain now uses this same indexing for scanning, planting rows and work
+particles. Callers remain responsible for loaded chunks, world limits and
+permissions before acting. Entity enumeration is not implemented yet.
+
+### Migrating development upgrade inventories
+
+`legacy-layout="upgrades"` is an opt-in migration for development saves made with
+this work's earlier combined upgrade inventory. It is not a migration selected by
+MMDLib release version, and must not be enabled merely because a mod used eleven
+slots. The source must be the named `upgrades` inventory with saved `Size=11`,
+gearbox at local index 4, capacitor at 5, and extra upgrades at
+0, 1, 2, 3, 6, 7, 8, 9, 10. Entries must have the corresponding `upgrades/<index>`
+stable IDs or no stable ID.
+
+On the new definition, declare nine extra slots and use
+`<upgrades range-storage="upgrades" legacy-layout="upgrades"/>`. Both component
+sockets must be automatic. The migration moves indexes 4 and 5 into
+`mmdlib_gearbox/0` and `mmdlib_capacitor/0`, then maps the nine extras to local
+indexes 0-8 in their original order. New saves contain the separate component
+inventories and nine-slot extras, so loading them again does not remap them.
+Unknown IDs and displaced contents remain available through normal recovery.
+New machines, other layouts, and saves without that old named inventory should
+omit this option. It can remain enabled while old worlds are still supported.
+
 ## Ghost inventory inputs
 
 Declare a sample-only inventory alongside ordinary item storage:
@@ -154,6 +288,67 @@ fluid amount to the same tank makes it reusable; omitting that return consumes i
 The selector summarizes required and consumed amounts separately for single-fluid
 inputs with deterministic returns. Selection changes invalidate failed-search
 backoff immediately.
+
+## Item-tag admission filters
+
+Real `<slots>` and `<slot>` storage declarations accept `item-tag="minecraft:hoes"`
+(or another namespaced item tag). For example:
+
+```xml
+<slots id="hoe" name="Hoe" count="1" role="input" limit="1" item-tag="minecraft:hoes"/>
+```
+
+The filter belongs to storage and applies to manual insertion and automation,
+in addition to existing recipe filters. Named tags remain reloadable. Loading
+saved stacks and extracting items are unaffected. Ghost slots do not support this
+attribute. Slot declarations without `item-tag` retain their existing admission rules.
+
+## Work and range visualizers
+
+Configure world-display colors on the machine, independently of its screen:
+
+```xml
+<visualizers range-color="#59FF59" work-color="#FFB74D"/>
+```
+
+Both attributes accept `#RRGGBB` or the standard machine palette names. Omitted
+attributes inherit from the parent machine, then fall back to green range outlines
+and amber work particles. A child can override either color independently.
+The range toggle and outline use `range-color`; active work uses `work-color`.
+Java hosts can implement `VisualizerStyle.Provider` instead.
+
+A custom processor opts into work particles by implementing
+`machine.feature.WorkTargets.Provider`:
+
+```java
+@Override
+public List<BlockPos> workingBlocks() {
+    return currentTargets; // Absolute world block positions, not local offsets.
+}
+```
+
+XML machines automatically attach a shared `WorkTargets` feature. After the
+processor ticks, it copies the current list while `processing()` is true. An
+empty list, idle/paused processor or suspended host stops emission. Targets are
+deduplicated, copied to immutable positions and limited to the first 256 unique
+blocks. They are transient and never restored from a disk save. The processor
+owns target selection and should return an empty list when it has no active work.
+
+The feature uses normal tracking-client updates, including initial chunk tracking,
+without an open GUI or a custom packet. Updates share the host's ten-tick sync
+interval. The client emits two rotating dust helices in a column 1.5 blocks tall,
+starting above the target's outline shape (or at block height for air). It visits
+at most four targets per machine every two ticks within 64 blocks of the camera.
+Particle settings reduce each column from nine to five or three samples per strand.
+Dust lasts six ticks to keep the rotating trails distinct. Unloading
+or removing the machine stops further emission. Work particles are automatic and
+independent of the player's range-outline toggle.
+
+For a Java host, add `new WorkTargets(key, provider::workingBlocks,
+processor::processing)` after its processor in the `FeatureHost`, use the existing
+feature sync/update-tag lifecycle, and call `MachineWorkDisplay.tick(entity,
+targets.targets(), style.workColor())` from its client ticker. No Minecraft client
+classes should be loaded from common initialization.
 
 ## Appearance presets
 
@@ -412,13 +607,25 @@ membership. Roles are `input`, `output`, `storage`, and `manual`; automatic grou
 modes are respectively `input`, `output`, `both`, and `disabled`. A group cannot
 grant automation permissions that its members' roles prohibit. Slot `limit`
 defaults to 64. When `<items>` is present it must contain 1–54 slots overall.
-Omit `<items>` entirely for fluid-only machines; no dummy inventory or item
-capability is created.
+Omit `<items>` entirely for fluid-only machines; no dummy inventory is created.
+Enabled upgrades may add manual component sockets for the GUI, but a machine
+with only manual slots does not advertise an item capability. Machines with
+automatable item slots expose their full stable slot numbering.
+
+For manual component storage that must not appear as a coloured automation
+group, use `<slots id="upgrades" count="11" role="manual" limit="1"
+automation="false"/>`. This flag defaults to `true` and requires `role="manual"`.
+It removes the side-configuration entry, colour selectors and automation addons,
+while preserving the named inventory, stable slot IDs, saved items and internal
+recipe group. Generated screens render that inventory without a coloured wrapper;
+custom screens can place its slots normally. Explicit group overrides retain the
+flag. Ghost inventories do not accept this attribute.
 
 The runtime supports an optional item storage, an optional fluid storage, an optional energy
-buffer named `energy`, and at most one recipe type and processor per machine. Supply
-`<recipe-type>` and `<processor>` together for processing, or omit both for a plain
-tank or storage block. Storage-only machines do not apply recipe admission filters,
+buffer named `energy`, and zero or more processors. Recipe processors reference a
+`<recipe-type>`; custom processors supply a Java class. Declare several processors
+for parallel lanes (see [Several processors per machine](#several-processors-per-machine)),
+or omit `<recipe-type>` and `<processor>` for a plain tank or storage block. Storage-only machines do not apply recipe admission filters,
 register JEI catalysts, or generate processor progress/buttons in the base screen.
 Without a processor, item and tank roles must be `storage` or `manual`; `input`
 and `output` require a processor to consume or produce their contents.
@@ -1435,3 +1642,196 @@ emit world light. Default is false. Use transparency around glowing pixels.
 MMDLib expands the declaration into conditional model parts, reusing tracking
 snapshots and model invalidation when the selected frame changes. No per-machine
 renderer or full-face variants are needed. Inventory models keep the base casing.
+
+## Allowed facing and placement
+
+`<block facing="horizontal" placement-facing="toward-player"/>` is the default.
+`facing="all"` allows all six directions. A space-separated list allows any
+nonempty subset, such as `up`, `down`, `up down`, or `north east up`.
+`placement-facing="away-from-player"` reverses the placement preference.
+Placement picks the nearest allowed look direction (opposite the look direction
+for toward-player); a fixed direction always wins. Rotation/mirroring retains
+its old direction when the transformed front is forbidden. Loaded states outside
+the declared set normalize to north if allowed, otherwise the first allowed
+Minecraft direction (down, up, north, south, west, east).
+
+Vertical fronts use north as local top. Shapes, models, displays and working
+areas share that orientation. Range upgrades expand the area's local plane.
+The companion's Facing Demo machines illustrate all, away, up-only, down-only,
+vertical and asymmetric sets; the existing crushers show horizontal defaults.
+
+## Dynamic storage admission
+
+Real slots accept `filter-class="your.ModAdmission"` or
+`filter-processor="processor_id"`, alongside existing `item-tag` restrictions.
+Tanks accept the same hooks and `fluid-tag="namespace:tag"` alongside exact `fluid`.
+All applicable rules must pass. Recipe admission still accepts the union of linked
+recipe inputs. Rules do not delete contents when tags, recipes or configuration change.
+
+Implement `StorageAdmission` with `acceptsItem(ProcessorMachine, memberId, ItemStack)`
+and/or `acceptsFluid(ProcessorMachine, memberId, FluidAmount)`. Unimplemented kinds
+refuse insertion. A class needs a public no-argument constructor and is instantiated
+per machine; a processor binding names a custom processor implementing that interface.
+The member ID is the stable storage slot/tank ID, such as `fuel/0`. Values are detached;
+the host can have a null level during construction/loading. Queries must not mutate
+storage and must handle simulated operations. Read live config/recipes or invalidate
+any private caches on reload. These hooks govern external admission; machine-product
+transactions retain their existing internal insertion semantics.
+
+The companion Admission Demo shows furnace fuel, vanilla smelting, item/fluid tags,
+a mod-config-selected fluid tag and recipe-based fluid admission. Its custom processor
+supplies rules without a recipe processor. `AdmissionDemo.fuelTag` illustrates the
+mod-owned configuration value; the fixture itself is an inspection/storage machine.
+
+## Typed processor storage
+
+`ProcessorMachine.resources()` exposes the host's existing `MachineInventory`.
+Use `items("group")`, `fluids("group")` and `energy("group")` for typed access;
+missing or wrong-kind names fail explicitly. Indexes are local to that group.
+Use `try (var tx = resources.begin())` and commit only when every operation succeeds.
+Closing without commit rolls all changes back. These are internal processing
+operations: they honor reservations but bypass external roles and item admission.
+Use copied `peek` values for inspection. Declaration prototypes have no live host.
+
+The companion Porting Workshop converts one cobblestone and 25 mB water into stone
+using one transaction. A blocked output leaves both inputs unchanged. Its processor
+uses only the common host API, with no cast to the XML block entity.
+
+## Placement callbacks
+
+Custom processors can override `placementFacing(BlockPlaceContext, Direction)`.
+This pure preference hook runs on the declaration prototype (no live host), on
+both sides. Its result must be allowed by the machine's `facing` declaration.
+`placed(MachinePlacement)` runs on live processors once after successful server
+item placement and portable payload restoration. `StoredProcessor` subclasses override
+`onPlaced(MachinePlacement)` inside the supplied state-update scope. It receives the final state,
+position, nullable placer, level and a copied placing stack. It does not run when
+loading a chunk or when a placement event cancels. Direct world `setBlock` calls
+are not item placement and do not initialize ownership.
+
+The Porting Workshop records the placing player's UUID/team in processor state.
+Sneak placement chooses the clicked face; ordinary placement faces the player.
+
+## Comparator readout
+
+`<redstone comparator-source="workshop/output"/>` selects one existing
+`IRedstoneOutput` descriptor by its stable ID. The source is sampled together
+with per-face outputs, once per selected source per tick. Comparator readout is
+block-wide and independent of Emit faces and their inversion. Unknown source
+IDs fail during definition loading with the source file and line. Custom processors
+contribute descriptors through `redstoneOutputs()`; their IDs must be available
+on the host-free schema prototype. Loading reads the IDs without sampling their
+live value suppliers. No second provider is needed.
+The Porting Workshop exposes output fullness to both the redstone drawer and
+comparators, including comparators reading through an adjacent solid block.
+
+## Several processors per machine
+
+Declare repeated `<processor id="...">` elements with unique stable IDs. They tick
+in declaration order and persist separately. Recipe and custom processors can run
+together. Repeated `<recipe-type>` declarations provide the types used by recipe
+lanes. The first processor is the default primary unless one declares `primary="true"`;
+portable or secondary-use machines with several processors require an explicit primary.
+Primary selection controls item/placement behavior, keyless processor controls,
+and the no-argument progress/time/pause getters. It does not change tick order or
+explicitly indexed lane bindings.
+
+Recipe lanes can declare `bindings="input=left_input output=left_output"` to map
+recipe group names to the machine's physical groups. A binding list defines the
+lane's view; `energy=energy` is included automatically when available. Without a
+list, all resource groups retain their names. Custom processors use named host
+resources directly. Shared targets retain common reservation/transaction identity.
+Recipe admission unions participating lanes by physical slot/tank, then intersects
+that union with authored admission rules. `filter-inputs` names recipe-side aliases;
+omitting it filters all bound input groups.
+
+Generated progress displays and default processor buttons address each lane.
+Per-lane sounds, visuals, statistics and persistence use the same stable IDs.
+JEI registers every used recipe type and routes transfer to its bound inputs.
+Default selection by legacy keyless runtime APIs remains first-in-registration-order;
+use explicit processor keys when choosing a particular lane.
+
+Inheritance merges repeated processors/types by ID. For compatibility, when both
+parent and child declare exactly one processor (or one recipe type), that child
+still overrides the parent singleton even when renaming it. To append to such a
+parent, repeat its existing ID alongside the new declaration.
+
+The companion Parallel Workshop runs two crushing lanes plus a custom water-powered
+Charge Pump (one mB supplies 100 FE). The Shared Workshop rebinds the second lane
+to the first lane's input to demonstrate contention without duplicate products.
+
+
+### Java recipe cycle callbacks
+
+`on-start` and `on-finish` use the ordinary `MaterialExtensions.GLOBAL.events()`
+registry. Mods can register Java callbacks with `MaterialEventTypes.MACHINE_CYCLE_START`
+and `MACHINE_CYCLE_FINISH`; CraftTweaker is optional. `MachineCycle.processor()`
+identifies the lane. Callbacks fire for every actual transition, including multiple
+transitions in one accelerated tick. Loading or resuming a cycle does not replay
+its start, and interruption/failed output does not report a finish. A finish sees
+the committed recipe resources. Java-created recipe processors can use
+`RecipeProcessor.cycleCallbacks(start, finish)` directly.
+
+The companion Parallel Workshop registers both Java callbacks in `CompanionMod`
+and records their counts and lane identity in its charge pump's saved state.
+
+
+### Processor-owned energy
+
+An energy declaration uses the built-in buffer by default (`provider="builtin"`).
+To give ownership to a custom processor, set `provider` to its stable processor ID:
+
+```xml
+<storage>
+  <energy id="energy" provider="battery" capacitors="true"
+          capacity="200000" input-rate="2000" output-rate="2000"/>
+</storage>
+<processor id="battery" class="example.BatteryBank"/>
+```
+
+The processor implements `ProcessorEnergy.createEnergyStorage(capacity, inputRate,
+outputRate)` and returns its authoritative `EnergyBuffer` (or subclass). This runs
+once during construction, before host resources are available. The same store
+backs recipe transactions, energy gauges, statistics, visual values, saving and
+the library's single NeoForge capability registration. Do not separately register
+another energy capability or save a second copy. A subclass backed by another
+storage must implement the buffer's transactional checkpoint, consumption,
+telemetry and serialization contracts consistently.
+
+`energyMode(side)` adds live restrictions to ordinary side configuration; null
+means unsided access. Cached views query it on every transfer, so temporary
+unavailability can return `IoMode.DISABLED` without swapping storage or invalidating
+capabilities. The source itself stays stable for the machine's lifetime.
+
+Custom sources default to `capacitors="false"`; their automatic capacitor socket
+is omitted and explicit incompatible sockets are rejected. Opt in only when the
+source supports the standard capacity/rate upgrades. Built-in buffers retain the
+existing capacitor behavior. Machines without an energy declaration expose no
+energy capability. The companion Battery Workshop reuses the two recipe lanes
+and supplies their energy through its BatteryBank processor, including live side
+restrictions and capacitor support.
+
+
+### Per-processor operating energy
+
+`<processor energy-per-tick="5" .../>` adds a nonnegative FE cost per successful
+work step. It defaults to zero and requires the machine's `energy` resource.
+Recipe lanes add it to the recipe's scheduled energy; different machines or lanes
+can reuse the same recipe with different operating costs. Gearbox-accelerated
+steps each pay their cost. Starting, idle, paused, held, stalled and blocked steps
+do not charge. Recipe and operating charges commit together: insufficient power
+leaves both energy and progress unchanged. For a costed recipe, a blocked final
+step also rolls back that step's charges and progress until completion succeeds.
+
+Custom `StoredProcessor` implementations use the same option. The cost is reserved
+before `process` runs and retained only when `performedWork(result)` returns true
+(default: `RUNNING`). Override that hook if a successful completion reports `IDLE`.
+Use resource transactions for custom work; return a failure status without committing
+partial resource mutations. On failure, the reserved energy and its telemetry roll
+back. The custom processor sees the remaining energy after its operating reservation.
+Java machines can configure `operatingCost(amount)` directly on either processor type.
+
+The companion Paid Workshop runs the Parallel Workshop's unchanged recipes at 5
+and 9 FE/step overhead, alongside a custom charge pump costing 3 FE/step. Its focused
+tests cover combined-cost starvation, accelerated work, pause/idle, failed final
+output, successful completion and custom-processor refunds.

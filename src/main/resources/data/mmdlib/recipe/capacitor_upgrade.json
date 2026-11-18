@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ICI", "RQR", "ICI"],
+  "key": {
+    "I": {"item": "minecraft:iron_ingot"},
+    "C": {"item": "minecraft:copper_ingot"},
+    "R": {"item": "minecraft:redstone"},
+    "Q": {"item": "minecraft:quartz"}
+  },
+  "result": {"id": "mmdlib:capacitor_upgrade", "count": 1}
+}

@@ -133,7 +133,11 @@ public final class MachineInventoryLifecycle {
             else if (storage instanceof FluidStorage fluids)
                 fluids.deserializeNBT(registries, tag.getCompound(key),
                     legacySlots.apply(key, tag));
-            else if (tag.contains(key))
+        });
+        // Item upgrades establish capacity before saved energy is clamped to
+        // it.
+        storages.forEach((key, storage) -> {
+            if (storage instanceof EnergyBuffer && tag.contains(key))
                 ((EnergyBuffer) storage).deserializeNBT(registries,
                     tag.get(key));
         });

@@ -46,6 +46,7 @@ import zone.moddev.mc.lib.gui.model.elements.ButtonElement;
 import zone.moddev.mc.lib.gui.model.elements.CheckboxElement;
 import zone.moddev.mc.lib.gui.model.elements.ContainerSlotElement;
 import zone.moddev.mc.lib.gui.model.elements.CustomElement;
+import zone.moddev.mc.lib.gui.model.elements.CycleButtonElement;
 import zone.moddev.mc.lib.gui.model.elements.EnergyGaugeElement;
 import zone.moddev.mc.lib.gui.model.elements.FluidTankElement;
 import zone.moddev.mc.lib.gui.model.elements.GaugeElement;
@@ -87,6 +88,14 @@ public final class BuiltinElements {
     public static final ElementType<InventoryElement> INVENTORY = builtin(
         "inventory", InventoryElement.class, BuiltinElements::inventory,
         "widget");
+    public static final ElementType<zone.moddev.mc.lib.gui.model.elements.UpgradeSlotElement> UPGRADE_SLOT = builtin(
+        "upgrade-slot",
+        zone.moddev.mc.lib.gui.model.elements.UpgradeSlotElement.class,
+        x -> new zone.moddev.mc.lib.gui.model.elements.UpgradeSlotElement(
+            x.common(), x.integer("index"), slot(x, false).appearance(),
+            ResourceLocation.parse(x.attribute("item-tag")),
+            x.optional("max-stack-size").map(Integer::parseInt).orElse(1)),
+        "widget", "slots");
     public static final ElementType<SlotElement> SLOT = builtin("slot",
         SlotElement.class, x -> slot(x, false), "widget", "slots")
         .withXml(name("item-slot"),
@@ -127,6 +136,13 @@ public final class BuiltinElements {
             x.common(), x.attribute("variable"), x.size("width", 1),
             x.size("height", 1), x.text("empty-text")),
         "widget");
+    public static final ElementType<zone.moddev.mc.lib.gui.model.elements.WorkingAreaButtonElement> WORKING_AREA_BUTTON = builtin(
+        "working-area-button",
+        zone.moddev.mc.lib.gui.model.elements.WorkingAreaButtonElement.class,
+        x -> new zone.moddev.mc.lib.gui.model.elements.WorkingAreaButtonElement(
+            x.common(),
+            Optional.ofNullable(x.node().attributes().get("processor-key"))),
+        "widget", "buttons");
     public static final ElementType<ProcessorButtonElement> PROCESSOR_BUTTON = builtin(
         "processor-button", ProcessorButtonElement.class,
         BuiltinElements::processorButton, "widget", "buttons");
@@ -137,6 +153,11 @@ public final class BuiltinElements {
         "widget");
     public static final ElementType<ButtonElement> BUTTON = builtin("button",
         ButtonElement.class, BuiltinElements::button, "widget", "buttons");
+    public static final ElementType<CycleButtonElement> CYCLE_BUTTON = builtin(
+        "cycle-button", CycleButtonElement.class,
+        x -> new CycleButtonElement(x.common(), x.attribute("variable"),
+            x.children(CycleButtonElement.Mode.class)),
+        "widget", "buttons");
     public static final ElementType<CheckboxElement> CHECKBOX = builtin(
         "checkbox", CheckboxElement.class, BuiltinElements::checkbox, "widget");
     public static final ElementType<RadioGroupElement> RADIO_GROUP = builtin(
@@ -160,6 +181,12 @@ public final class BuiltinElements {
     public static final ElementType<PlayerOffhandElement> PLAYER_OFFHAND = builtin(
         "player-offhand", PlayerOffhandElement.class,
         x -> new PlayerOffhandElement(x.common()), "widget");
+    public static final ElementType<zone.moddev.mc.lib.gui.model.containers.UpgradesDrawerElement> UPGRADES_DRAWER = builtin(
+        "upgrades-drawer",
+        zone.moddev.mc.lib.gui.model.containers.UpgradesDrawerElement.class,
+        x -> new zone.moddev.mc.lib.gui.model.containers.UpgradesDrawerElement(
+            x.common(), x.children()),
+        "dock");
     public static final ElementType<SideTabElement> SIDE_TAB = builtin(
         "side-tab", SideTabElement.class, BuiltinElements::sideTab, "dock");
     public static final ElementType<PopoutElement> POPOUT = builtin("popout",
@@ -204,18 +231,30 @@ public final class BuiltinElements {
 
     static void register(ScreenTags tags) {
         for (var element : List.of(BOX, SPACER, INVENTORY_CONTROLS, CUSTOM,
-            GROUP, INVENTORY, SLOT, GHOST_SLOT, LEGACY_GAUGE, ENERGY_GAUGE,
-            METER, SPRITE, ANIMATED_SPRITE, PROGRESS_SPRITE, COLOURED_GROUP,
-            PROGRESS, LABEL, ENTITY_PORTRAIT, PROCESSOR_BUTTON, RECIPE_SELECTOR,
-            BUTTON, CHECKBOX, RADIO_GROUP, RADIO, CONTEXT, VIEW, SIDE_CONFIG,
-            PLAYER_INVENTORY, PLAYER_ARMOUR, PLAYER_OFFHAND, SIDE_TAB, POPOUT,
-            FLUID_TANK))
+            GROUP, INVENTORY, SLOT, UPGRADE_SLOT, GHOST_SLOT, LEGACY_GAUGE,
+            ENERGY_GAUGE, METER, SPRITE, ANIMATED_SPRITE, PROGRESS_SPRITE,
+            COLOURED_GROUP, PROGRESS, LABEL, ENTITY_PORTRAIT, PROCESSOR_BUTTON,
+            WORKING_AREA_BUTTON, RECIPE_SELECTOR, BUTTON, CYCLE_BUTTON,
+            CHECKBOX, RADIO_GROUP, RADIO, CONTEXT, VIEW, SIDE_CONFIG,
+            PLAYER_INVENTORY, PLAYER_ARMOUR, PLAYER_OFFHAND, SIDE_TAB,
+            UPGRADES_DRAWER, POPOUT, FLUID_TANK))
             element.register(tags);
+        tags.register("machine-upgrades",
+            ScreenSchemas.builtin("machine-upgrades", Element.class, x -> {
+                throw x.error(
+                    "machine-upgrades requires a machine definition; use ordinary inventories for an explicit layout");
+            }, ScreenTag.Role.ELEMENT, "widget"));
         tags.register("screen", ScreenSchemas.builtin("screen", Screen.class,
             BuiltinElements::screen, ScreenTag.Role.DOCUMENT));
         tags.register("property",
             ScreenSchemas.builtin("property", Property.class,
                 x -> new Property(x.attribute("name"), x.attribute("value")),
+                ScreenTag.Role.DATA));
+        tags.register("cycle-mode",
+            ScreenSchemas.builtin("cycle-mode", CycleButtonElement.Mode.class,
+                x -> new CycleButtonElement.Mode(x.integer("value"),
+                    x.id("icon").orElseThrow(), x.text("label").orElseThrow(),
+                    x.text("tooltip"), x.id("action").orElseThrow()),
                 ScreenTag.Role.DATA));
         tags.register("placeholder",
             ScreenSchemas.builtin("placeholder", Object.class, x -> {
@@ -307,8 +346,41 @@ public final class BuiltinElements {
     private static InventoryElement inventory(ScreenXml x) {
         var node = x.node();
         var c = x.common();
+        var children = x.children();
+        if (node.attributes().containsKey("count")) {
+            if (!children.isEmpty())
+                throw x.error(
+                    "An inventory cannot combine count with explicit slots");
+            int count = x.integer("count");
+            if (count < 1 || count > 4096)
+                throw x.error("Inventory count must be 1..4096");
+            var generated = new ArrayList<Element>();
+            String prefix = c.id().orElse(x.attribute("storage"));
+            for (int index = 0; index < count; index++) {
+                var attributes = new java.util.LinkedHashMap<String, String>();
+                attributes.put("id", prefix + "_" + index);
+                attributes.put("index", Integer.toString(index));
+                attributes.put("kind", "normal");
+                attributes.put("size", "normal");
+                attributes.put("item-size", "16");
+                x.optional("slot-icon")
+                    .ifPresent(icon -> attributes.put("icon", icon));
+                x.optional("slot-tooltip")
+                    .ifPresent(tooltip -> attributes.put("tooltip", tooltip));
+                generated.add(x.read(
+                    new ScreenReader.Node("slot", attributes, List.of(),
+                        node.source(), node.line(), node.namespace()),
+                    Element.class));
+            }
+            children = List.copyOf(generated);
+        } else if (node.attributes().containsKey("slot-icon")
+            || node.attributes().containsKey("slot-tooltip")) {
+            throw x.error(
+                "slot-icon and slot-tooltip require generated inventory slots");
+        }
         return new InventoryElement(c, node.attributes().get("storage"),
-            x.integer("columns"), x.size("spacing", 0), x.children());
+            x.integer("columns"), x.size("spacing", 0), children,
+            x.color("selection-color").orElse(0xff55ff88));
     }
 
     private static SlotElement slot(ScreenXml x, boolean ghost) {

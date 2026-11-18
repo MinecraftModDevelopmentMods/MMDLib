@@ -26,6 +26,7 @@ public final class DrawerFactories {
     public static DrawerFactories builtins() {
         var registry = new DrawerFactories();
         registry.register(BuiltinDrawers.STATS, StatsDrawer::new);
+        registry.register(BuiltinDrawers.UPGRADES, UpgradesDrawer::new);
         registry.register(BuiltinDrawers.BACKPACK, (screen,
             definition) -> new ContainerDrawer(screen, definition, false));
         registry.register(BuiltinDrawers.CURIOS, (screen,

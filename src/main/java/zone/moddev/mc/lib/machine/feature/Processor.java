@@ -18,9 +18,37 @@ public interface Processor<S>
     }
 
     boolean paused();
+
+    /**
+     * Pure placement preference, also queried on a prototype without a host.
+     */
+    default net.minecraft.core.Direction placementFacing(
+        net.minecraft.world.item.context.BlockPlaceContext context,
+        net.minecraft.core.Direction suggested) {
+        return suggested;
+    }
+
+    /** Server callback for a successful item placement, never chunk loading. */
+    default void placed(MachinePlacement placement) {
+    }
     void setPaused(boolean paused);
     boolean processing();
     ProcessState executionStatus();
+
+    /**
+     * Work ticks scheduled for one server tick; normal energy checks run on
+     * each.
+     */
+    default void tick(FeatureHost host, int steps) {
+        for (int step = 0; step < steps; step++) {
+            tick(host);
+            var status = executionStatus();
+            if (paused() || status == ProcessState.HELD
+                || status == ProcessState.STALLED
+                || status == ProcessState.BLOCKED)
+                break;
+        }
+    }
 
     /**
      * Declared client-visible stored values; payloads are defensively copied.

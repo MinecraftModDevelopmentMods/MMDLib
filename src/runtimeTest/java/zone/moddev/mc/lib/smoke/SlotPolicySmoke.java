@@ -115,6 +115,7 @@ final class SlotPolicySmoke {
                 "Default adapter uses direct implementation positioning: "
                     + kind);
         }
+        upgradeCaps();
         ghostFactories();
         selection(player);
         adapters(player);
@@ -152,6 +153,41 @@ final class SlotPolicySmoke {
 
         public boolean mayPlace(ItemStack stack) {
             return stack.is(Items.DIAMOND_HELMET) && super.mayPlace(stack);
+        }
+    }
+
+    private static void upgradeCaps() {
+        var appearance = SlotElement.Appearance.standard(SlotSize.NORMAL,
+            Optional.empty(), Optional.empty());
+        var common = Common.empty();
+        var tag = net.minecraft.resources.ResourceLocation
+            .parse("mmdlib:gearbox_upgrades");
+        var ordinary = new ItemSlotElement(common, 0, SlotKind.UPGRADE,
+            appearance);
+        var automation = new zone.moddev.mc.lib.gui.model.elements.AutomationSlotElement(
+            common, 0, appearance);
+        var manual = new zone.moddev.mc.lib.gui.model.elements.UpgradeSlotElement(
+            common, 0, appearance, tag);
+        var gearbox = new zone.moddev.mc.lib.gui.model.elements.UpgradeSlotElement(
+            common, 0, appearance, tag, 8);
+        for (int storageLimit : List.of(1, 4, 64)) {
+            var storage = new ItemStackHandler(1) {
+                public int getSlotLimit(int slot) {
+                    return storageLimit;
+                }
+            };
+            for (var element : List.of(ordinary, automation, manual, gearbox)) {
+                var slot = element.createSlot(storage, 0,
+                    new Rect(0, 0, 18, 18), () -> true, () -> false, () -> {
+                    });
+                int expected = element == gearbox
+                    ? Math.min(8, storageLimit)
+                    : 1;
+                require(
+                    slot.getMaxStackSize() == expected && slot.getMaxStackSize(
+                        new ItemStack(Items.STONE)) == expected,
+                    "Upgrade stack caps require explicit opt-in and respect backing storage");
+            }
         }
     }
 

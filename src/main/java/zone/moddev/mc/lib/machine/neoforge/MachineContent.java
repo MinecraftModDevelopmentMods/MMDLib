@@ -112,14 +112,16 @@ public final class MachineContent {
      */
     private static void checkEvents(MachineDefinition machine) {
         var events = zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.events();
-        machine.events().start()
-            .ifPresent(id -> checkEvent(machine, "on-start", id,
+        for (var config : machine.processors()) {
+            config.events().start().ifPresent(id -> checkEvent(machine,
+                "on-start", id,
                 zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
                 events));
-        machine.events().finish()
-            .ifPresent(id -> checkEvent(machine, "on-finish", id,
+            config.events().finish().ifPresent(id -> checkEvent(machine,
+                "on-finish", id,
                 zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
                 events));
+        }
     }
 
     private static void checkEvent(MachineDefinition machine, String attribute,
@@ -139,9 +141,8 @@ public final class MachineContent {
         definitions = MachineDefinitions.load(roots);
         var declarations = new TreeMap<ResourceLocation, MachineDefinition.RecipeType>();
         for (var machine : definitions.values())
-            machine.processingType()
-                .filter(MachineDefinition.RecipeType::declare)
-                .ifPresent(type -> {
+            machine.processingTypes().stream()
+                .filter(MachineDefinition.RecipeType::declare).forEach(type -> {
                     var previous = declarations.putIfAbsent(type.id(), type);
                     if (previous != null && !same(previous, type))
                         throw new IllegalArgumentException(
@@ -150,7 +151,7 @@ public final class MachineContent {
         declarations
             .forEach((id, type) -> recipes.put(id, new MachineRecipeType(id)));
         for (var machine : definitions.values())
-            machine.processingType().ifPresent(type -> {
+            machine.processingTypes().forEach(type -> {
                 if (!recipes.containsKey(type.id()))
                     throw new IllegalArgumentException(machine.id()
                         + ": recipe type must be declared in machine XML: "
@@ -204,8 +205,8 @@ public final class MachineContent {
                         net.minecraft.world.level.material.PushReaction.BLOCK);
                 if (!definition.behavior().shapes().isEmpty())
                     properties.dynamicShape().noOcclusion();
-                var block = new DefinedMachineBlock(properties,
-                    () -> entities.get(id));
+                var block = DefinedMachineBlock.create(properties,
+                    () -> entities.get(id), definition);
                 helper.register(id, block);
                 blocks.put(id, block);
             }));
@@ -236,26 +237,24 @@ public final class MachineContent {
         // other installed mods.
         for (var definition : definitions.values())
             validateResources(definition);
-        for (var type : entities.values()) {
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type,
-                (entity, side) -> entity.items.getSlots() == 0
-                    ? null
-                    : entity.items.view(index -> entity.resources.automation()
-                        .mode(ResourceType.ITEMS,
-                            entity.items.address(index).inventory(),
-                            entity.items.address(index).slot(), side)));
+        for (var entry : entities.entrySet()) {
+            var type = entry.getValue();
+            // Manual component sockets remain available to menus, not pipes.
+            if (definitions.get(entry.getKey()).slots().stream().anyMatch(
+                slot -> slot.role().canInsert() || slot.role().canExtract()))
+                event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type,
+                    (entity,
+                        side) -> entity.items.view(index -> entity.resources
+                            .automation().mode(ResourceType.ITEMS,
+                                entity.items.address(index).inventory(),
+                                entity.items.address(index).slot(), side)));
             event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, type,
                 (entity, side) -> entity.fluids.getTanks() == 0
                     ? null
                     : entity.fluids.view(index -> entity.resources.automation()
                         .mode(ResourceType.FLUIDS, index, side)));
             event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, type,
-                (entity, side) -> entity.energy == null
-                    ? null
-                    : entity.energy.view(() -> side == null
-                        ? IoMode.INPUT
-                        : entity.resources.automation()
-                            .mode(ResourceType.ENERGY, 0, side)));
+                DefinedMachineEntity::energyCapability);
         }
     }
     static void validateResources(MachineDefinition definition) {

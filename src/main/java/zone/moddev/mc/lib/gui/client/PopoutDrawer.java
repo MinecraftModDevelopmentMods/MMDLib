@@ -97,10 +97,7 @@ public final class PopoutDrawer extends Drawer {
         int width = bodyWidth();
         int top = SideDrawerLayout.top(screen.panelBounds());
         int height = Math.max(tab.bottom() - top, lines().size() * 10 + 12);
-        return SideDrawerLayout.body(screen.panelBounds(),
-            screen.drawerBottom(),
-            edge() == Edge.LEFT ? tab.x() - width : tab.right(), top, width,
-            height);
+        return contentBounds(width, height, SideDrawerLayout.HeightLimit.PANEL);
     }
 
     public <T> Optional<T> presentation(Class<T> type) {

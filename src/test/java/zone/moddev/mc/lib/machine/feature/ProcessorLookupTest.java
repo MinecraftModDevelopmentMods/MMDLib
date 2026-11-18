@@ -9,6 +9,28 @@ import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 
 class ProcessorLookupTest {
     @Test
+    void primarySelectionKeepsExplicitAndIndexedOrderIndependent() {
+        var first = new ProcessorStateTest.Fixture();
+        first.initialize("first", null);
+        var second = new ProcessorStateTest.Fixture();
+        second.initialize("second", null);
+        var features = new FeatureHost(() -> {
+        }).add(first).add(second);
+        assertSame(first,
+            features.findProcessor(java.util.Optional.empty()).orElseThrow());
+        features.primaryProcessor("second");
+        assertSame(second,
+            features.findProcessor(java.util.Optional.empty()).orElseThrow());
+        assertSame(first, features.findProcessor(java.util.Optional.of("first"))
+            .orElseThrow());
+        assertSame(first, features.allProcessors().getFirst());
+        assertTrue(features.processor(java.util.Optional.empty()).isEmpty());
+        org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> features.primaryProcessor("missing"));
+    }
+
+    @Test
     void lookupAcceptsGenericHostsAndRejectsMissingOrMismatchedProcessors() {
         var processor = new ProcessorStateTest.Fixture();
         processor.initialize("work", null);

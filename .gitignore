@@ -19,3 +19,7 @@
 # Local Maven repository (publishAllPublicationsToLocalRepository)
 /mcmodsrepo/
 /.eclipse/
+
+# Python asset-generator caches
+__pycache__/
+*.py[cod]

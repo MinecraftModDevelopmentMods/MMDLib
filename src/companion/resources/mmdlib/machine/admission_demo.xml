@@ -1,0 +1,18 @@
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         extends="mmdlib:base_machine" name="Admission Demo">
+  <appearance preset="cube-front" front="minecraft:block/furnace_front"
+              side="minecraft:block/bricks" top="minecraft:block/iron_block"/>
+  <storage>
+    <items id="items">
+      <slots id="fuel" name="Burnable fuel" count="1" role="input" filter-processor="rules"/>
+      <slots id="smeltable" name="Smeltable items" count="1" role="input" filter-class="zone.moddev.mc.companion.AdmissionDemo"/>
+      <slots id="tagged" name="Logs only" count="1" role="storage" item-tag="minecraft:logs"/>
+    </items>
+    <fluids id="fluids">
+      <tank id="water" name="Water tag" role="storage" capacity="4000" fluid-tag="minecraft:water"/>
+      <tank id="oil" name="Configured fuel tag" role="input" capacity="4000" filter-processor="rules"/>
+      <tank id="still" name="Recipe fluid" role="input" capacity="4000" filter-processor="rules"/>
+    </fluids>
+  </storage>
+  <processor id="rules" class="zone.moddev.mc.companion.AdmissionDemo"/>
+</machine>

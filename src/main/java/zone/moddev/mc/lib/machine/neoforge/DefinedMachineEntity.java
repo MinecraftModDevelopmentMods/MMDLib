@@ -29,36 +29,127 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 
 /** Shared runtime assembled from XML. There is no per-machine Java subclass. */
 public final class DefinedMachineEntity extends BaseMachine
-    implements zone.moddev.mc.lib.machine.feature.ProcessorMachine {
+    implements zone.moddev.mc.lib.machine.feature.ProcessorMachine,
+    zone.moddev.mc.lib.machine.presentation.VisualizerStyle.Provider {
     public final MachineDefinition definition;
+    private final List<zone.moddev.mc.lib.machine.definition.ProcessorConfiguration> processorConfigurations;
+
+    public List<zone.moddev.mc.lib.machine.definition.ProcessorConfiguration> processorConfigurations() {
+        return processorConfigurations;
+    }
     private Runnable placementComplete;
+    private boolean placementNotified;
+    private final java.util.Map<zone.moddev.mc.lib.machine.definition.AdmissionDeclaration, zone.moddev.mc.lib.machine.feature.StorageAdmission> admissionRules = new java.util.HashMap<>();
     public final ItemInventories items;
     public final FluidStorage fluids;
     public final EnergyBuffer energy;
+    private final zone.moddev.mc.lib.machine.feature.ProcessorEnergy energyProvider;
+    private final List<Integer> rangeSlots;
     public final MachineResources resources;
     public final MachineInventoryLifecycle inventory;
+
+    @Override
+    public zone.moddev.mc.lib.machine.inventory.MachineInventory resources() {
+        return resources.recipes();
+    }
     private final RedstoneControl redstone;
     private final MachineVisualState visuals;
     private final MachineShapeState shapes;
     private ResourceLocation legacyGhostRecipe;
     private final java.util.Map<String, zone.moddev.mc.lib.machine.inventory.GhostItemGroup> ghosts = new java.util.LinkedHashMap<>();
-    private final RecipeProcessor processor;
-    private java.math.BigInteger cyclesBefore = java.math.BigInteger.ZERO;
-    private long startsBefore;
+    private final java.util.Map<String, zone.moddev.mc.lib.machine.feature.WorkTargets> workTargets = new java.util.LinkedHashMap<>();
+
+    private MachineRecipeType recipeType(
+        zone.moddev.mc.lib.machine.definition.ProcessorConfiguration config,
+        MachineRecipeType primary) {
+        return primary != null && primary.id().equals(config.recipeType().id())
+            ? primary
+            : MachineContent.recipeType(config.recipeType().id());
+    }
+
+    private void linkRecipeAdmission(MachineRecipeType primary) {
+        for (var config : processorConfigurations)
+            if (config.recipeType() != null)
+                resources.recipeInputs(recipeType(config, primary),
+                    config.bindings(),
+                    config.filterInputs().toArray(String[]::new));
+    }
+
+    /** Stable capability views evaluate both policies on every call. */
+    public net.neoforged.neoforge.energy.IEnergyStorage energyCapability(
+        @org.jetbrains.annotations.Nullable net.minecraft.core.Direction side) {
+        return energy == null ? null : energy.view(() -> {
+            var configured = side == null
+                ? (energyProvider == null ? IoMode.INPUT : IoMode.BOTH)
+                : resources.automation().mode(ResourceType.ENERGY, 0, side);
+            var supplied = energyProvider == null
+                ? IoMode.BOTH
+                : energyProvider.energyMode(side);
+            boolean input = configured.canInsert() && supplied.canInsert();
+            boolean output = configured.canExtract() && supplied.canExtract();
+            return input
+                ? (output ? IoMode.BOTH : IoMode.INPUT)
+                : (output ? IoMode.OUTPUT : IoMode.DISABLED);
+        });
+    }
+
+    private void prepareAdmission(
+        zone.moddev.mc.lib.machine.definition.AdmissionDeclaration declaration) {
+        if (declaration.type() != null)
+            admissionRules.computeIfAbsent(declaration, key -> key.create());
+    }
+
+    private zone.moddev.mc.lib.machine.feature.StorageAdmission admission(
+        zone.moddev.mc.lib.machine.definition.AdmissionDeclaration declaration) {
+        if (declaration.processor() == null)
+            return admissionRules.get(declaration);
+        return features
+            .findProcessor(declaration.processor(),
+                zone.moddev.mc.lib.machine.feature.StorageAdmission.class)
+            .orElseThrow(() -> new IllegalStateException(
+                "Missing admission processor " + declaration.processor()));
+    }
 
     public DefinedMachineEntity(BlockEntityType<?> type, BlockPos pos,
         BlockState state, MachineDefinition definition,
         MachineRecipeType recipes) {
         super(type, pos, state);
         this.definition = definition;
+        processorConfigurations = definition.processors();
         // Startup validates registered XML; keep direct Java construction
         // equally strict.
         MachineContent.validateResources(definition);
         var power = definition.power();
-        energy = power == null
-            ? null
-            : new EnergyBuffer(power.capacity(), power.input(), power.output())
-                .onChange(this::setChanged);
+        var customProcessors = new java.util.HashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
+        if (power != null && power.provider() != null) {
+            var config = processorConfigurations.stream()
+                .filter(value -> value.id().equals(power.provider()))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                    "Unknown energy provider: " + power.provider()));
+            if (config.declaration() == null)
+                throw new IllegalArgumentException(
+                    "Energy provider must be a custom processor");
+            var provider = config.declaration().create(config.id(), this);
+            if (!(provider instanceof zone.moddev.mc.lib.machine.feature.ProcessorEnergy source))
+                throw new IllegalArgumentException(
+                    "Energy provider must implement ProcessorEnergy");
+            customProcessors.put(config.id(), provider);
+            energyProvider = source;
+            energy = java.util.Objects
+                .requireNonNull(source.createEnergyStorage(power.capacity(),
+                    power.input(), power.output()), "Processor energy storage");
+            energy.changes().subscribe(this::setChanged);
+        } else {
+            energyProvider = null;
+            energy = power == null
+                ? null
+                : new EnergyBuffer(power.capacity(), power.input(),
+                    power.output()).onChange(this::setChanged);
+        }
+        if (power != null && !power.capacitors()
+            && definition.behavior().capacitorSlot() != null)
+            throw new IllegalArgumentException(
+                "Selected energy provider does not enable capacitor upgrades");
         fluids = new FluidStorage().onChange(this::setChanged);
         if (definition.fluids() != null)
             for (var tank : definition.fluids().tanks()) {
@@ -71,6 +162,22 @@ public final class DefinedMachineEntity extends BaseMachine
                     stack -> filter == null || BuiltInRegistries.FLUID
                         .getKey(stack.getFluid()).equals(filter));
                 fluids.tankId(index, tank.id());
+                if (tank.fluidTag() != null) {
+                    var tag = net.minecraft.tags.TagKey.create(
+                        net.minecraft.core.registries.Registries.FLUID,
+                        tank.fluidTag());
+                    fluids.restrict(stack -> stack.is(tag), index);
+                }
+                if (tank.admission() != null) {
+                    prepareAdmission(tank.admission());
+                    fluids.restrict(
+                        stack -> admission(tank.admission()).acceptsFluid(this,
+                            tank.id(),
+                            new zone.moddev.mc.lib.machine.ingredient.FluidAmount(
+                                stack.getFluidHolder(),
+                                stack.getComponentsPatch(), stack.getAmount())),
+                        index);
+                }
             }
         items = ItemInventories.partition(definition.inventoryNames())
             .onChange(this::setChanged);
@@ -78,10 +185,101 @@ public final class DefinedMachineEntity extends BaseMachine
             var slot = definition.slots().get(i);
             items.slotId(i, slot.id()).role(slot.role(), i).limit(slot.limit(),
                 i);
+            if (slot.admission() != null) {
+                prepareAdmission(slot.admission());
+                items.restrict(stack -> admission(slot.admission())
+                    .acceptsItem(this, slot.id(), stack.copy()), i);
+            }
+            if (slot.itemTag() != null) {
+                var tag = net.minecraft.tags.TagKey.create(
+                    net.minecraft.core.registries.Registries.ITEM,
+                    slot.itemTag());
+                var address = items.address(i);
+                items.inventory(address.inventory())
+                    .restrict(stack -> stack.is(tag), address.slot());
+            }
+        }
+        if (definition.behavior().legacyUpgradeStorage() != null) {
+            String storage = definition.behavior().legacyUpgradeStorage();
+            var layout = new java.util.ArrayList<ItemInventories.Address>();
+            for (int old = 0; old < 11; old++)
+                layout.add(old == 4
+                    ? new ItemInventories.Address("mmdlib_gearbox", 0)
+                    : old == 5
+                        ? new ItemInventories.Address("mmdlib_capacitor", 0)
+                        : new ItemInventories.Address(storage,
+                            old < 4 ? old : old - 2));
+            items.migrateLayout(storage, layout);
+        }
+        rangeSlots = definition.behavior().rangeSlots().stream()
+            .map(id -> java.util.stream.IntStream
+                .range(0, definition.slots().size())
+                .filter(i -> definition.slots().get(i).id().equals(id))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                    "Unknown range slot: " + id)))
+            .toList();
+        for (int slot : rangeSlots)
+            items.limit(1, slot);
+        if (definition.behavior().gearboxSlot() != null) {
+            int index = java.util.stream.IntStream
+                .range(0, definition.slots().size())
+                .filter(i -> definition.slots().get(i).id()
+                    .equals(definition.behavior().gearboxSlot()))
+                .findFirst().orElseThrow(
+                    () -> new IllegalArgumentException("Unknown gearbox slot"));
+            var address = items.address(index);
+            var socket = items.inventory(address.inventory());
+            socket.limit(8, address.slot());
+            socket.restrict(stack -> stack
+                .getItem() instanceof zone.moddev.mc.lib.common.item.GearboxUpgradeItem,
+                address.slot());
+            features.gearboxes(() -> {
+                var stack = socket.getStackInSlot(address.slot());
+                return stack
+                    .getItem() instanceof zone.moddev.mc.lib.common.item.GearboxUpgradeItem
+                        ? stack.getCount()
+                        : 0;
+            });
+        }
+        if (definition.behavior().capacitorSlot() != null) {
+            if (energy == null)
+                throw new IllegalArgumentException(
+                    "Capacitors require energy storage");
+            if (definition.behavior().capacitorSlot()
+                .equals(definition.behavior().gearboxSlot()))
+                throw new IllegalArgumentException(
+                    "Gearbox and capacitor require different slots");
+            int index = java.util.stream.IntStream
+                .range(0, definition.slots().size())
+                .filter(i -> definition.slots().get(i).id()
+                    .equals(definition.behavior().capacitorSlot()))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                    "Unknown capacitor slot"));
+            var address = items.address(index);
+            var socket = items.inventory(address.inventory());
+            socket.limit(8, address.slot());
+            socket.restrict(stack -> stack
+                .getItem() instanceof zone.moddev.mc.lib.common.item.CapacitorUpgradeItem,
+                address.slot());
+            var capacitors = new zone.moddev.mc.lib.machine.feature.CapacitorUpgrades(
+                energy, power.capacity(), power.input(), power.output(), () -> {
+                    var stack = socket.getStackInSlot(address.slot());
+                    return stack
+                        .getItem() instanceof zone.moddev.mc.lib.common.item.CapacitorUpgradeItem
+                            ? stack.getCount()
+                            : 0;
+                });
+            socket.changes().subscribe(capacitors::refresh);
+            capacitors.refresh();
         }
         resources = new MachineResources(this, this::facing);
         var highlights = MachineContent.screenHighlights(definition.id());
         for (var group : definition.groups()) {
+            if (!group.automation()) {
+                resources.recipeOnlyItems(group.id(), items, group.members()
+                    .stream().mapToInt(Integer::intValue).toArray());
+                continue;
+            }
             resources
                 .items(
                     new ResourceGroup<>(group.id(),
@@ -103,9 +301,9 @@ public final class DefinedMachineEntity extends BaseMachine
         if (definition.fluids() != null)
             for (var group : definition.fluids().groups()) {
                 if (!group.automation()) {
-                    resources.recipeOnlyGroup(group.id(),
-                        StorageGroups.fluids(fluids, group.members().stream()
-                            .mapToInt(Integer::intValue).toArray()));
+                    resources.recipeOnlyFluids(group.id(), fluids,
+                        group.members().stream().mapToInt(Integer::intValue)
+                            .toArray());
                     continue;
                 }
                 resources.fluids(new ResourceGroup<>(group.id(),
@@ -113,12 +311,9 @@ public final class DefinedMachineEntity extends BaseMachine
                     ResourceType.FLUIDS, group.mode(), group.members(),
                     highlights.get(group.id()), new SideConfig(group.mode())),
                     fluids);
-                if (recipes != null && group.mode() == IoMode.INPUT)
-                    resources.recipeInputs(recipes, group.id());
+
             }
-        for (var group : definition.groups())
-            if (recipes != null && group.mode() == IoMode.INPUT)
-                resources.recipeInputs(recipes, group.id());
+
         for (var ghost : definition.ghosts()) {
             var samples = new zone.moddev.mc.lib.machine.inventory.GhostItemGroup(
                 ghost.count());
@@ -130,39 +325,61 @@ public final class DefinedMachineEntity extends BaseMachine
             ghosts.put(ghost.id(), samples);
             resources.recipeOnlyGroup(ghost.id(), samples);
         }
+        linkRecipeAdmission(recipes);
         resources.build();
-        zone.moddev.mc.lib.machine.feature.Processor<?> visualProcessor = null;
-        RecipeProcessor recipeProcessor = null;
-        if (definition.behavior().processor() != null) {
-            visualProcessor = definition.behavior().processor()
-                .create(definition.processor(), this);
-            features.add(visualProcessor);
-        } else if (definition.hasProcessor()) {
-            recipeProcessor = new RecipeProcessor(definition.processor(),
-                recipes, resources.recipes(),
-                Component.literal(definition.processorName()));
-            if (definition.recipeSelection() != null)
-                recipeProcessor
-                    .selectable(definition.recipeSelection().defaultRecipe());
-            features.add(recipeProcessor);
-            visualProcessor = recipeProcessor;
+        var runtimeProcessors = new java.util.LinkedHashMap<String, zone.moddev.mc.lib.machine.feature.Processor<?>>();
+        for (var config : processorConfigurations) {
+            zone.moddev.mc.lib.machine.feature.Processor<?> value;
+            if (config.declaration() != null)
+                value = customProcessors.computeIfAbsent(config.id(),
+                    ignored -> config.declaration().create(config.id(), this));
+            else {
+                var typeForProcessor = recipeType(config, recipes);
+                var lane = new RecipeProcessor(config.id(), typeForProcessor,
+                    resources.recipes().view(config.bindings()),
+                    Component.literal(config.name()));
+                if (config.selection() != null)
+                    lane.selectable(config.selection().defaultRecipe());
+                bindCycleCallbacks(lane, config);
+                value = lane;
+            }
+            if (value instanceof RecipeProcessor lane)
+                lane.operatingCost(config.energyPerTick());
+            else if (value instanceof zone.moddev.mc.lib.machine.feature.StoredProcessor custom)
+                custom.operatingCost(config.energyPerTick());
+            features.add(value);
+            runtimeProcessors.put(config.id(), value);
+            if (value instanceof zone.moddev.mc.lib.machine.feature.WorkTargets.Provider provider) {
+                var targets = new zone.moddev.mc.lib.machine.feature.WorkTargets(
+                    config.id().equals(definition.processor())
+                        ? "mmdlib:work_targets"
+                        : "mmdlib:work_targets/" + config.id(),
+                    provider::workingBlocks, value::processing);
+                workTargets.put(config.id(), targets);
+                features.add(targets);
+            }
         }
-        // Cycle sounds follow recipe processors; custom ones have none.
-        processor = recipeProcessor;
+        if (definition.processor() != null)
+            features.primaryProcessor(definition.processor());
         inventory = genericInventory(resources.automation());
         if (definition.itemStorageId() != null)
             inventory.items(definition.itemStorageId(), items);
         if (definition.fluids() != null)
             inventory.fluids(definition.fluids().id(), fluids);
         redstone = definition.redstone()
-            ? new RedstoneControl(this, List.of(features))
-            : null;
-        var visualSource = visualProcessor;
+            || definition.behavior().comparatorSource() != null
+                ? new RedstoneControl(this, List.of(features))
+                    .comparatorSource(definition.behavior().comparatorSource())
+                : null;
+        if (redstone != null && !definition.redstone())
+            redstone.disabledFaces(java.util.EnumSet
+                .allOf(zone.moddev.mc.lib.api.capabilities.RelativeFace.class));
+
         var graph = new VisualVariables[1];
         java.util.function.Supplier<VisualVariables> sharedVariables = () -> {
             if (graph[0] == null)
-                graph[0] = BuiltinVisualVariables.forMachine(definition,
-                    visualSource, items, fluids, energy);
+                graph[0] = BuiltinVisualVariables.forProcessors(definition,
+                    runtimeProcessors, items, fluids, energy);
             return graph[0];
         };
         features.bindVisualVariables(sharedVariables);
@@ -230,19 +447,45 @@ public final class DefinedMachineEntity extends BaseMachine
     void afterPlacement(Runnable action) {
         // NeoForge confirms captured placements through Block.onPlace only
         // after the placement event accepts them.
-        if (level != null && level.captureBlockSnapshots)
-            placementComplete = action;
-        else
+        if (level != null && level.captureBlockSnapshots) {
+            var previous = placementComplete;
+            placementComplete = () -> {
+                if (previous != null)
+                    previous.run();
+                action.run();
+            };
+        } else
             action.run();
     }
     void completePlacement() {
         var action = placementComplete;
         placementComplete = null;
-        if (action != null)
+        if (action != null && level != null && !isRemoved()
+            && level.getBlockEntity(worldPosition) == this)
             action.run();
     }
+    void notifyPlacement(net.minecraft.world.entity.player.Player placer,
+        net.minecraft.world.item.ItemStack item) {
+        if (placementNotified || level == null || level.isClientSide()
+            || isRemoved())
+            return;
+        placementNotified = true;
+        var placement = new zone.moddev.mc.lib.machine.feature.MachinePlacement(
+            level, worldPosition, getBlockState(), placer, item);
+        features.allProcessors()
+            .forEach(processor -> processor.placed(placement));
+        setChanged();
+    }
+
     public void changed() {
         changed(true);
+    }
+    @Override
+    public List<net.minecraft.world.item.ItemStack> inventoryContents(
+        String name) {
+        var storage = items.inventory(name);
+        return java.util.stream.IntStream.range(0, storage.getSlots())
+            .mapToObj(slot -> storage.getStackInSlot(slot).copy()).toList();
     }
     public void changed(boolean synchronize) {
         setChanged();
@@ -275,6 +518,17 @@ public final class DefinedMachineEntity extends BaseMachine
     @Override
     public void onLoad() {
         super.onLoad();
+        if (level != null && !level.isClientSide() && !definition.behavior()
+            .facing().directions().contains(facing())) {
+            var property = getBlockState().hasProperty(
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING)
+                    ? net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING
+                    : net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING;
+            level.setBlock(worldPosition,
+                getBlockState().setValue(property,
+                    definition.behavior().facing().defaultDirection()),
+                net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+        }
         if (level != null && !level.isClientSide)
             features
                 .findProcessor(definition.processor(),
@@ -425,52 +679,38 @@ public final class DefinedMachineEntity extends BaseMachine
      * sent.
      */
     public boolean running() {
-        return processor != null
-            && processor.status() == RecipeProcessor.Status.RUNNING;
+        return features.processors().stream().anyMatch(
+            value -> value.status() == RecipeProcessor.Status.RUNNING);
     }
 
-    @Override
-    protected void beforeMachineTick() {
-        if (processor == null)
-            return;
-        cyclesBefore = processor.completedCycles();
-        startsBefore = processor.startedCycles();
-    }
-
-    /**
-     * Runs the processor's {@code on-start} and {@code on-finish} handlers, and
-     * plays the {@code finish-sound} for everyone near a completed cycle.
-     */
-    @Override
-    protected void afterMachineTick() {
-        if (processor == null
-            || !(level instanceof net.minecraft.server.level.ServerLevel server))
-            return;
-        if (processor.startedCycles() != startsBefore)
-            definition.events().start()
-                .ifPresent(id -> processor.cycle().ifPresent(cycle -> fire(id,
+    private void bindCycleCallbacks(RecipeProcessor lane,
+        zone.moddev.mc.lib.machine.definition.ProcessorConfiguration config) {
+        lane.cycleCallbacks(cycle -> {
+            if (level instanceof net.minecraft.server.level.ServerLevel server)
+                config.events().start().ifPresent(id -> fire(id,
                     zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_START,
-                    server, cycle)));
-        if (processor.completedCycles().equals(cyclesBefore))
-            return;
-        definition.sounds().finish()
-            .ifPresent(sound -> level.playSound(null, worldPosition,
-                SoundDefinition.event(sound), SoundSource.BLOCKS, 1, 1));
-        definition.events().finish().ifPresent(id -> processor.justFinished()
-            .ifPresent(cycle -> fire(id,
+                    server, config.id(), cycle));
+        }, cycle -> {
+            if (!(level instanceof net.minecraft.server.level.ServerLevel server))
+                return;
+            config.sounds().finish()
+                .ifPresent(sound -> server.playSound(null, worldPosition,
+                    SoundDefinition.event(sound), SoundSource.BLOCKS, 1, 1));
+            config.events().finish().ifPresent(id -> fire(id,
                 zone.moddev.mc.lib.api.MaterialEventTypes.MACHINE_CYCLE_FINISH,
-                server, cycle)));
+                server, config.id(), cycle));
+        });
     }
 
     private void fire(ResourceLocation id,
         zone.moddev.mc.lib.api.MaterialEvent<zone.moddev.mc.lib.api.MaterialEventContexts.MachineCycle> event,
-        net.minecraft.server.level.ServerLevel server,
+        net.minecraft.server.level.ServerLevel server, String processor,
         zone.moddev.mc.lib.machine.recipe.CyclePlan cycle) {
         zone.moddev.mc.lib.api.MaterialExtensions.GLOBAL.events().dispatch(id,
             event,
             new zone.moddev.mc.lib.api.MaterialEventContexts.MachineCycle(this,
                 server, worldPosition, definition.id(), cycle.recipe(),
-                cycle.time()));
+                cycle.time(), processor));
     }
 
     /**
@@ -478,13 +718,40 @@ public final class DefinedMachineEntity extends BaseMachine
      * client tick.
      */
     public void clientTick() {
-        if (definition.sounds().running().isPresent())
-            zone.moddev.mc.lib.client.MachineSoundsClient.tick(this);
+        zone.moddev.mc.lib.client.MachineSoundsClient.tick(this);
+        var active = workTargets.entrySet().stream()
+            .filter(entry -> features.findProcessor(entry.getKey())
+                .map(zone.moddev.mc.lib.machine.feature.Processor::processing)
+                .orElse(false))
+            .flatMap(entry -> entry.getValue().targets().stream()).distinct()
+            .toList();
+        if (!active.isEmpty())
+            zone.moddev.mc.lib.client.MachineWorkDisplay.tick(this, active,
+                visualizerStyle().workColor());
+    }
+
+    public zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizerStyle() {
+        return definition.behavior().visualizers();
+    }
+
+    /**
+     * The synchronized active target snapshot; empty for processors without a
+     * provider.
+     */
+    public List<BlockPos> workingBlocks() {
+        return workTargets.values().stream()
+            .flatMap(targets -> targets.targets().stream()).distinct().toList();
     }
 
     @Override
     protected EnergyBuffer powerStorage() {
         return energy;
+    }
+
+    @Override
+    public int rangeUpgrades() {
+        return zone.moddev.mc.lib.machine.feature.RangeUpgrades
+            .count(rangeSlots.stream().map(items::getStackInSlot).toList());
     }
 
     @Override
@@ -525,10 +792,20 @@ public final class DefinedMachineEntity extends BaseMachine
     public int[] screenRecipeSlots(ResourceLocation category) {
         if (!definition.processes(category))
             return new int[0];
+        var targets = new java.util.HashSet<String>();
+        for (var config : processorConfigurations)
+            if (config.recipeType() != null
+                && config.recipeType().id().equals(category)) {
+                if (config.bindings().isEmpty())
+                    definition.groups()
+                        .forEach(group -> targets.add(group.id()));
+                else
+                    targets.addAll(config.bindings().values());
+            }
         return definition.groups().stream()
-            .filter(g -> g.mode() == IoMode.INPUT)
-            .flatMap(g -> g.members().stream()).mapToInt(Integer::intValue)
-            .toArray();
+            .filter(g -> g.mode() == IoMode.INPUT && targets.contains(g.id()))
+            .flatMap(g -> g.members().stream()).distinct()
+            .mapToInt(Integer::intValue).toArray();
     }
 
     @Override

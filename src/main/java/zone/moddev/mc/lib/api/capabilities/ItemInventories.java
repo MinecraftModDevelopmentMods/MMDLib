@@ -37,6 +37,26 @@ public final class ItemInventories implements ItemStore {
     private final List<Address> addresses;
     private final Map<Address, Integer> indexes;
     private ListTag recovery = new ListTag();
+    private final Map<String, List<Address>> legacyLayouts = new HashMap<>();
+
+    /**
+     * Explicit old named-inventory layout, applied only when its saved size
+     * matches.
+     */
+    public ItemInventories migrateLayout(String inventory,
+        List<Address> targets) {
+        if (targets.isEmpty()
+            || targets.stream().anyMatch(target -> !indexes.containsKey(target))
+            || targets.stream().distinct().count() != targets.size()
+            || (inventories.containsKey(inventory)
+                && inventories.get(inventory).getSlots() == targets.size()))
+            throw new IllegalArgumentException(
+                "Migration must identify a distinct old layout and unique current slots");
+        if (legacyLayouts.putIfAbsent(inventory, List.copyOf(targets)) != null)
+            throw new IllegalArgumentException(
+                "Duplicate inventory migration: " + inventory);
+        return this;
+    }
 
     public ItemInventories(Map<String, ItemStorage> inventories) {
         this(inventories, inventories.entrySet().stream()
@@ -306,11 +326,26 @@ public final class ItemInventories implements ItemStore {
         var named = tag.getCompound("Inventories");
         for (String name : named.getAllKeys()) {
             var saved = named.getCompound(name);
+            var layout = legacyLayouts.get(name);
+            boolean migrate = layout != null
+                && saved.getInt("Size") == layout.size();
             var values = saved.getList("Items", Tag.TAG_COMPOUND).copy();
             values.addAll(saved.getList("Recovery", Tag.TAG_COMPOUND).copy());
             for (var value : values) {
                 var entry = (CompoundTag) value;
                 int local = entry.getInt("Slot");
+                if (migrate && local >= 0 && local < layout.size()
+                    && (!entry.contains("SlotId") || entry.getString("SlotId")
+                        .equals(name + "/" + local))) {
+                    var target = layout.get(local);
+                    entry.putInt("Slot",
+                        index(target.inventory(), target.slot()));
+                    entry.putString("SlotId",
+                        target.inventory() + "::" + inventories
+                            .get(target.inventory()).slotId(target.slot()));
+                    entries.add(entry);
+                    continue;
+                }
                 int current = index(name, local);
                 entry.putInt("Slot", current);
                 entry.putString("SlotId",

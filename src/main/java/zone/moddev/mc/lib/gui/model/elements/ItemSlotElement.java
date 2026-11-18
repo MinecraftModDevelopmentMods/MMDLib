@@ -86,7 +86,9 @@ public class ItemSlotElement implements SlotElement {
         }
 
         public int getMaxStackSize() {
-            return upgrade ? 1 : super.getMaxStackSize();
+            return upgrade
+                ? Math.min(1, super.getMaxStackSize())
+                : super.getMaxStackSize();
         }
 
         public SlotPlan plan() {
