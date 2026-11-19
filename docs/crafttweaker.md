@@ -1104,7 +1104,11 @@ code-registered types get no generated assets; their mod supplies them.
 Raw ore items and raw ore storage blocks include default 16×16 grayscale
 templates: a fractured mineral lump and packed angular chunks, respectively.
 These are fallback artwork; **we expect mod and pack authors to supply their own
-textures** to suit their materials and visual style.
+textures** for accessibility. Tint alone is not a reliable way for color-blind
+players to distinguish materials. Give different materials recognizable shapes,
+patterns, or other visual cues that do not depend on color. Replacing the shared
+grayscale template changes every material alike; use per-material artwork to
+provide those distinctions.
 
 For every script material, replace
 `scripts/mmdlibdata/templates/textures/item/__material___raw.png` and

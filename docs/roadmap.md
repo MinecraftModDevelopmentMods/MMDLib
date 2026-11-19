@@ -1,5 +1,34 @@
 # Roadmap
 
+## TODO: 2.0.3
+
+- [ ] **Iron: remove the blend and small blend, add the powder.** Iron is an
+  element, so it must have neither a blend nor a small blend; it is also missing
+  its powdered form. BaseMetals'
+  `src/main/resources/mmdlib/material/iron.json` lists
+  `blend` and `smallblend` (whose models reuse the powder textures) and gets
+  powder only from the BaseMetals-owned `basemetals:powder` form. Do both
+  together: dropping the blend alone leaves whatever used it for iron dust
+  without a replacement.
+  The blend's models reuse the powder textures, so in item lists the blend
+  looks exactly like iron powder.
+
+- [ ] **Stone crackhammer does not crush iron ingots.** Seen in a modpack
+  (with Almost Unified): a stone crackhammer gave nothing from iron ingots,
+  while an iron crackhammer crushed them. No code path found gates ingot
+  crushing on hammer tier. `CrackhammerEvents.canCrushDroppedBlock` checks tier
+  only for block items, `CrushingRecipe.matches` tests only the ingredient,
+  BaseMetals has no crackhammer logic of its own, and stone's and iron's
+  hammers are the same `mmdlib:crackhammer` form. Reproduce outside the pack
+  first. Then check whether the stone hammer is bound to
+  `mmdlib:crackhammer_crush` (and listed as a JEI crushing catalyst), and
+  whether it crushes other ingots. Decide whether tier gating of ingots is
+  wanted (1.12 BaseMetals gated crushing by hardness); if so, make it explicit
+  and document it.
+  Not a bug: in that pack, iron powder missing from JEI and the crackhammer
+  recipe appearing under another mod's dust are Almost Unified merging
+  `basemetals:iron_powder` into the pack's preferred dust.
+
 ## TODO: food and creative tabs
 
 These are follow-up work for Java, JSON, and CraftTweaker users, outside the

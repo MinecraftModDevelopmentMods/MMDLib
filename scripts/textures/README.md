@@ -13,5 +13,8 @@ Update these sources alongside their bundled copies when revising the artwork.
 The source hashes are recorded in `mmdlib_templates/provenance.json`.
 
 These are fallback textures. Mod and pack authors are expected to replace them
-with artwork suited to their materials. They do not replace the in-world ore
+with distinct per-material shapes or patterns for accessibility. Tint alone does
+not reliably distinguish materials for color-blind players. Replacing a shared
+template alone does not provide those per-material distinctions.
+These defaults do not replace the in-world ore
 overlay, which is deferred for separate artwork.

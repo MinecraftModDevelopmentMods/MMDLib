@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## Unreleased — 2.0.3
 
 - Raw ores. Two new bundled forms, the `raw` item and the `raw_block` storage
   block, named like vanilla's: `raw_tin` and `raw_tin_block` for a material
@@ -9,8 +9,13 @@
   - Raw items are tagged `c:raw_materials/<material>` (in `c:raw_materials`).
   - CraftTweaker script materials with a raw form generate vanilla-style ore
     loot: Silk Touch drops the ore, otherwise the raw item with Fortune. Their
-    raw item gets generated art; the raw block uses the storage block's art
-    for now. Recipes are still not generated.
+    raw item and raw storage block get dedicated default tintable 16×16
+    textures: a fractured mineral lump and packed angular chunks, respectively.
+    Recipes are still not generated.
+  - Document texture overrides and the accessibility reason for expecting
+    authors to provide their own per-material artwork: distinct shapes or
+    patterns let color-blind players distinguish materials without relying
+    on tint alone.
   - Module `part` metadata gains `name_pattern` (such as `"raw_{material}"`)
     for forms that are not named `<material>_<form>`, and `in_all: false` for
     forms a material must name. `!all` still excludes every form, and a

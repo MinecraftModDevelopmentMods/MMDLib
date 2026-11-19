@@ -43,7 +43,8 @@ powder remains an accepted alias. The codec serializes resolved selections in a
 deterministic form, rather than preserving the original expression's spelling.
 
 Raw items and raw storage blocks have default tintable artwork, but authors are
-expected to supply their own textures. See
+expected to supply their own textures for accessibility: materials should have
+distinct shapes or patterns so color-blind players need not rely on tint alone. See
 [replacing artwork](crafttweaker.md#replacing-artwork) for the template and
 per-material override paths.
 
