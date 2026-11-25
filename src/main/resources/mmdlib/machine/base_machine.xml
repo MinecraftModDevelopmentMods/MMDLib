@@ -1,9 +1,14 @@
 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true">
   <block hardness="3.5" facing="horizontal" drop="self"
          mineable="minecraft:mineable/pickaxe" requires-tool="true"/>
-  <redstone enabled="true" pause="processing-only"/>
+  <feature id="info" type="mmdlib:info"/>
+  <feature id="statistics" type="mmdlib:stats"/>
+  <feature id="curios" type="mmdlib:curios"/>
+  <feature id="backpack" type="mmdlib:backpack"/>
+  <feature id="redstone" type="mmdlib:redstone" default-mode="ignore"/>
   <recovery policy="capsule"/>
   <screen xmlns="https://moddev.zone/mmdlib/screen" extends="mmdlib:base_machine">
     <fill name="tanks" generator="mmdlib:tanks"/>
+    <fill name="upgrades" generator="mmdlib:component-upgrades"/>
   </screen>
 </machine>

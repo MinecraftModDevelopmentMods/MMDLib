@@ -128,10 +128,8 @@ final class CyclePlanSmoke {
         require(held.fluids.plan(0).take() == 250, "the water is locked");
         require(held.items.plan(1).sameAs(new SlotPlan(0, rawCopper)),
             "the copper space is held");
-        require(
-            held.items.plan(3)
-                .sameAs(new SlotPlan(0, new ItemStack(Items.GRAVEL))),
-            "the gravel space is held");
+        require(held.items.plan(3).isNone(),
+            "the chance byproduct reserves no space");
         var cramped = new Crusher(3, 1_000);
         cramped.items.setStackInSlot(1, new ItemStack(Items.RAW_COPPER, 62));
         cramped.items.setStackInSlot(2, new ItemStack(Items.COBBLESTONE, 64));
@@ -285,26 +283,40 @@ final class CyclePlanSmoke {
         require(tanks.plan(0).isNone() && tanks.plan(1).isNone(),
             "tank plans gone");
 
-        // Only a hit needs its space: a byproduct slot filled mid-cycle blocks
-        // a hit, not a miss.
+        // A full byproduct slot cannot block a hit, including after the cycle
+        // has already reserved its guaranteed products.
         var jammed = new Crusher(3, 1_000);
         var jammedPlan = CyclePlan.of(ID, crusher, jammed.inventory)
             .orElseThrow();
         jammedPlan.reserve(jammed.inventory);
         jammed.items.setStackInSlot(3, new ItemStack(Items.COBBLESTONE, 64));
-        require(!jammedPlan.finish(jammed.inventory, fixed(0F)),
-            "a hit has no room");
+        require(jammedPlan.finish(jammed.inventory, fixed(0F)),
+            "A hit can be skipped without blocking the cycle");
         require(
-            jammed.items.getStackInSlot(0).getCount() == 3
-                && jammed.items.getStackInSlot(1).isEmpty()
-                && jammed.items.plan(0).sameAs(new SlotPlan(1, none)),
-            "a blocked finish changes nothing");
-        require(jammedPlan.finish(jammed.inventory, fixed(.5F)),
-            "a miss needs no room");
+            jammed.items.getStackInSlot(0).getCount() == 2
+                && jammed.unplanned(),
+            "the cycle consumed inputs and released plans");
         require(jammed.items.getStackInSlot(3).getCount() == 64,
             "the cobblestone stays");
         require(ItemStack.matches(jammed.items.getStackInSlot(1), rawCopper),
             "the dust is made");
+
+        var sameGroup = new zone.moddev.mc.lib.machine.recipe.MachineRecipe(
+            crusher.inputs(),
+            Map.of("output",
+                List.of(plan.products().get(1).product(), copper.product())),
+            crusher.time());
+        var sharedOutput = new Crusher(3, 1_000);
+        sharedOutput.items.setStackInSlot(2,
+            new ItemStack(Items.COBBLESTONE, 64));
+        var guaranteed = CyclePlan.of(ID, sameGroup, sharedOutput.inventory)
+            .orElseThrow();
+        require(
+            guaranteed.reserve(sharedOutput.inventory)
+                && guaranteed.finish(sharedOutput.inventory, fixed(0F))
+                && ItemStack.matches(sharedOutput.items.getStackInSlot(1),
+                    rawCopper),
+            "A guaranteed output gets the last slot even with the chance item listed first");
 
         // release: this plan goes, another lane's plan on the same slot stays.
         var shared = new Crusher(3, 1_000);
@@ -332,10 +344,18 @@ final class CyclePlanSmoke {
         savedPlan.reserve(saved.inventory);
         var tag = (CompoundTag) CyclePlan.CODEC.encodeStart(nbt, savedPlan)
             .getOrThrow();
+        var legacyPlacement = new CompoundTag();
+        legacyPlacement.putInt("index", 0);
+        legacyPlacement.putInt("amount", 1);
+        var chancePlacement = new net.minecraft.nbt.ListTag();
+        chancePlacement.add(legacyPlacement);
+        tag.getList("products", 10).getCompound(1).put("at", chancePlacement);
         var loaded = CyclePlan.CODEC.parse(nbt, tag).getOrThrow();
         require(loaded.recipe().equals(ID) && loaded.time() == 200
             && loaded.energy().equals(savedPlan.energy())
             && loaded.products().size() == 2, "decoded plan");
+        require(loaded.products().get(1).at().isEmpty(),
+            "an old saved chance byproduct releases its former placement");
         var fresh = new Crusher(3, 1_000);
         require(loaded.restore(fresh.inventory), "restore on fresh storages");
         for (int index = 0; index < 4; index++)

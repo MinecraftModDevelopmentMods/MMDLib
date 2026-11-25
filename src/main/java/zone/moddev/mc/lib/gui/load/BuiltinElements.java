@@ -295,7 +295,8 @@ public final class BuiltinElements {
         if (x.optional("color").isPresent())
             throw x.error("A fluid tank uses its fluid texture");
         return new FluidTankElement(x.common(), x.integer("tank"),
-            x.enumValue(Orientation.class, "orientation"), x.length(8));
+            x.enumValue(Orientation.class, "orientation"), x.length(8),
+            x.optional("drain-button").isEmpty() || x.flag("drain-button"));
     }
 
     private static CustomElement customElement(ScreenXml x) {
@@ -403,6 +404,8 @@ public final class BuiltinElements {
         var c = x.common();
         if (node.attributes().containsKey("tank"))
             return fluidTank(x);
+        if (x.optional("drain-button").isPresent())
+            throw x.error("drain-button requires a tank binding");
         return new GaugeElement(c,
             x.enumValue(Orientation.class, "orientation"), x.length(8),
             x.color("color"));
@@ -465,7 +468,8 @@ public final class BuiltinElements {
         var node = x.node();
         var c = x.common();
         return new ProgressElement(c, x.id("icon"),
-            x.enumValue(ProgressDirection.class, "direction"));
+            x.enumValue(ProgressDirection.class, "direction"),
+            Optional.ofNullable(node.attributes().get("processor-key")));
     }
 
     private static LabelElement label(ScreenXml x) {

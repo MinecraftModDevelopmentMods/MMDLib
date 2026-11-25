@@ -34,6 +34,7 @@ public final class RedstoneControl {
     private static final RelativeFace[] FACES = RelativeFace.values();
     private final BlockEntity owner;
     private final List<RedstoneOutput> outputs;
+    private final Mode defaultMode;
     private final int[] modes = new int[6], incoming = new int[6],
         outgoing = new int[6], lower = new int[6], upper = new int[6];
     private final boolean[] outside = new boolean[6], inverted = new boolean[6];
@@ -82,7 +83,13 @@ public final class RedstoneControl {
      * nothing.
      */
     public RedstoneControl(BlockEntity owner, Collection<?> parts) {
+        this(owner, parts, Mode.IGNORE);
+    }
+
+    public RedstoneControl(BlockEntity owner, Collection<?> parts,
+        Mode defaultMode) {
         this.owner = Objects.requireNonNull(owner);
+        this.defaultMode = Objects.requireNonNull(defaultMode);
         var found = new LinkedHashMap<String, RedstoneOutput>();
         for (var part : parts)
             if (part instanceof IRedstoneOutput provider)
@@ -94,6 +101,7 @@ public final class RedstoneControl {
         if (found.size() > 4096)
             throw new IllegalArgumentException("Too many redstone outputs");
         outputs = List.copyOf(found.values());
+        Arrays.fill(modes, defaultMode.ordinal());
         Arrays.fill(lower, 1);
         Arrays.fill(upper, 15);
         Arrays.fill(sourceIds, "");
@@ -427,7 +435,7 @@ public final class RedstoneControl {
             : tag.getInt("without");
         for (int i = 0; i < 6; i++) {
             modes[i] = saved.length == 6 && saved[i] >= 0
-                && saved[i] < MODES.length ? saved[i] : 0;
+                && saved[i] < MODES.length ? saved[i] : defaultMode.ordinal();
             lower[i] = lows.length == 6 ? Math.clamp(lows[i], 0, 15) : 1;
             upper[i] = highs.length == 6
                 ? Math.clamp(highs[i], lower[i], 15)

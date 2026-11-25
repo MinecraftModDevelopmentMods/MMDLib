@@ -20,6 +20,7 @@ import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Screen;
+import zone.moddev.mc.lib.machine.inventory.TankPlan;
 
 /**
  * Client renderer registry. Register built-in or mod-owned element classes
@@ -108,6 +109,10 @@ public final class ElementRenderers {
             return access == null
                 ? Optional.empty()
                 : access.groupColour(element);
+        }
+
+        public TankPlan tankPlan(int tank) {
+            return access == null ? TankPlan.NONE : access.tankPlan(tank);
         }
 
         public ElementRenderAccess access() {

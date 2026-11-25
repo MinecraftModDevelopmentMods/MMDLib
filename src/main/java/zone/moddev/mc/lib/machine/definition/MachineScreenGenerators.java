@@ -63,6 +63,77 @@ public final class MachineScreenGenerators {
     private MachineScreenGenerators() {
     }
 
+    /** An ordered layout owns the base screen's entire machine row. */
+    static Node withLayout(MachineDefinition machine, Node screen,
+        Node layout) {
+        var claimed = upgradeSlots(machine, screen);
+        var controls = layout.children().stream()
+            .map(entry -> switch (entry.name()) {
+                case "tank" -> layoutTank(machine, entry);
+                case "inventory" -> layoutInventory(machine, entry, claimed);
+                case "processor" -> {
+                    String ref = MachineDefinitions.required(entry, "ref");
+                    var processor = machine.processors().stream()
+                        .filter(config -> config.id().equals(ref)).findFirst()
+                        .orElseThrow(() -> MachineDefinitions.error(entry,
+                            "Unknown layout processor " + ref));
+                    yield progress(machine, processor, entry);
+                }
+                case "energy" -> {
+                    if (machine.power() == null)
+                        throw MachineDefinitions.error(entry,
+                            "A layout energy gauge requires energy storage");
+                    yield n(entry, "energy-gauge",
+                        Map.of("id", "energy", "length", "3s"), List.of());
+                }
+                default -> throw MachineDefinitions.error(entry,
+                    "Unexpected layout entry " + entry.name());
+            }).toList();
+        var fills = new ArrayList<Node>();
+        for (var child : screen.children())
+            if (!child.name().equals("fill")
+                || !Set.of("machine", "tanks", "energy")
+                    .contains(child.attributes().getOrDefault("name", "")))
+                fills.add(child);
+        var row = n(layout, "hbox", Map.of("spacing", "6", "align", "center"),
+            controls);
+        fills.add(n(layout, "fill", Map.of("name", "machine"),
+            List.of(spacer(layout), row)));
+        fills.add(n(layout, "fill", Map.of("name", "tanks"), List.of()));
+        fills.add(n(layout, "fill", Map.of("name", "energy"), List.of()));
+        return n(screen, "screen", screen.attributes(), fills);
+    }
+
+    private static Node layoutTank(MachineDefinition machine, Node entry) {
+        String ref = MachineDefinitions.required(entry, "ref");
+        if (machine.fluids() != null) {
+            var tanks = machine.fluids().tanks();
+            for (int i = 0; i < tanks.size(); i++)
+                if (tanks.get(i).id().equals(ref))
+                    return tank(entry, i);
+        }
+        throw MachineDefinitions.error(entry, "Unknown layout tank " + ref);
+    }
+
+    private static Node layoutInventory(MachineDefinition machine, Node entry,
+        Set<Integer> claimed) {
+        String ref = MachineDefinitions.required(entry, "ref");
+        int columns = Integer
+            .parseInt(entry.attributes().getOrDefault("columns", "3"));
+        for (var ghost : machine.ghosts())
+            if (ghost.id().equals(ref))
+                return ghostInventory(machine, entry, ghost, columns);
+        var members = machine.inventorySlots(ref);
+        var visible = members.stream().filter(index -> !claimed.contains(index))
+            .toList();
+        if (visible.isEmpty())
+            throw MachineDefinitions.error(entry,
+                "Layout inventory has no available slots: " + ref);
+        var group = machine.groups().stream()
+            .filter(config -> config.id().equals(ref)).findFirst().orElse(null);
+        return itemInventory(entry, ref, group, columns, members, visible);
+    }
+
     /**
      * Machine context for generated fills and template-owned literal defaults.
      */
@@ -371,7 +442,7 @@ public final class MachineScreenGenerators {
 
     private static Node progress(MachineDefinition machine,
         ProcessorConfiguration config, Node node) {
-        return n(node, "progress", Map.of("id",
+        var attributes = new LinkedHashMap<>(Map.of("id",
             machine.processors().size() == 1
                 ? "generated_progress"
                 : "generated_progress_" + config.id(),
@@ -383,7 +454,10 @@ public final class MachineScreenGenerators {
             machine.processors().size() == 1
                 ? "#getTime"
                 : "#getTime(" + machine.processors().indexOf(config) + ")",
-            "jei-recipes", config.recipeType().id().toString()), List.of());
+            "processor-key", config.id()));
+        if (config.recipeType() != null)
+            attributes.put("jei-recipes", config.recipeType().id().toString());
+        return n(node, "progress", attributes, List.of());
     }
 
     private static List<Node> processing(MachineDefinition machine, Node node) {
@@ -453,57 +527,67 @@ public final class MachineScreenGenerators {
         if (machine.fluids() == null)
             return result;
         for (int index = 0; index < machine.fluids().tanks().size(); index++)
-            result.add(n(node, "fluid-tank", Map.of("id", "tank_" + index,
-                "length", "3s", "tank", Integer.toString(index)), List.of()));
+            result.add(tank(node, index));
         return result;
+    }
+
+    private static Node tank(Node node, int index) {
+        var attributes = new LinkedHashMap<>(Map.of("id", "tank_" + index,
+            "length", "3s", "tank", Integer.toString(index)));
+        if (node.attributes().containsKey("tooltip"))
+            attributes.put("tooltip", node.attributes().get("tooltip"));
+        return n(node, "fluid-tank", attributes, List.of());
     }
 
     private static List<Node> groups(MachineDefinition machine, Node node,
         IoMode mode, int columns, Set<Integer> claimed) {
         var result = new ArrayList<Node>();
         if (mode == IoMode.INPUT)
-            for (var ghost : machine.ghosts()) {
-                var children = new ArrayList<Node>();
-                for (int i = 0; i < ghost.count(); i++)
-                    children.add(n(node, "ghost-slot",
-                        Map.of("id", "ghost_" + ghost.id() + "_" + i, "index",
-                            Integer.toString(i), "tooltip",
-                            machine.groupTranslationKey(ghost.id())),
-                        List.of()));
-                result.add(n(node, "inventory", Map.of("storage", ghost.id(),
-                    "columns", Integer.toString(columns)), children));
-            }
+            for (var ghost : machine.ghosts())
+                result.add(ghostInventory(machine, node, ghost, columns));
         for (var group : machine.groups()) {
             var unclaimed = group.members().stream()
                 .filter(index -> !claimed.contains(index)).toList();
             if (!unclaimed.isEmpty() && (group.mode() == mode
                 || (mode == IoMode.BOTH && group.mode() == IoMode.DISABLED))) {
-                var rows = new ArrayList<Node>();
-                rows.add(spacer(node));
-                var children = new ArrayList<Node>();
-                var members = machine.inventorySlots(group.id());
-                for (int index : unclaimed)
-                    children.add(n(node, "item-slot",
-                        Map.of("id", "slot_" + index, "index",
-                            Integer.toString(members.indexOf(index))),
-                        List.of()));
-                var inventory = n(node, "inventory",
-                    Map.of("storage", group.id(), "columns",
-                        Integer.toString(columns), "spacing", "2"),
-                    children);
-                rows.add(
-                    group.automation()
-                        ? n(node, "coloured-group",
-                            Map.of("id", "inventory_" + group.id(), "color",
-                                String.format("#%06X",
-                                    group.color() & 0xffffff)),
-                            List.of(inventory))
-                        : inventory);
-                rows.add(spacer(node));
-                result.add(n(node, "vbox", Map.of("spacing", "2"), rows));
+                var inventory = itemInventory(node, group.id(), group, columns,
+                    machine.inventorySlots(group.id()), unclaimed);
+                result.add(n(node, "vbox", Map.of("spacing", "2"),
+                    List.of(spacer(node), inventory, spacer(node))));
             }
         }
         return result;
+    }
+
+    private static Node ghostInventory(MachineDefinition machine, Node node,
+        MachineDefinition.Ghost ghost, int columns) {
+        var children = new ArrayList<Node>();
+        for (int i = 0; i < ghost.count(); i++)
+            children.add(n(node, "ghost-slot",
+                Map.of("id", "ghost_" + ghost.id() + "_" + i, "index",
+                    Integer.toString(i), "tooltip",
+                    machine.groupTranslationKey(ghost.id())),
+                List.of()));
+        return n(node, "inventory",
+            Map.of("storage", ghost.id(), "columns", Integer.toString(columns)),
+            children);
+    }
+
+    private static Node itemInventory(Node node, String id,
+        MachineDefinition.Group group, int columns, List<Integer> members,
+        List<Integer> visible) {
+        var children = new ArrayList<Node>();
+        for (int index : visible)
+            children.add(n(node, "item-slot", Map.of("id", "slot_" + index,
+                "index", Integer.toString(members.indexOf(index))), List.of()));
+        var inventory = n(node, "inventory", Map.of("storage", id, "columns",
+            Integer.toString(columns), "spacing", "2"), children);
+        return group != null && group.automation()
+            ? n(node, "coloured-group",
+                Map.of("id", "inventory_" + id, "color",
+                    String.format("#%06X", group.color() & 0xffffff)),
+                List.of(inventory))
+            : inventory;
     }
 
     /**

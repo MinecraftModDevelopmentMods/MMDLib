@@ -276,8 +276,7 @@ final class ProcessorSmoke {
     }
 
     /**
-     * The gravel byproduct's space is only held for the cycle: a miss leaves it
-     * free.
+     * The gravel byproduct leaves its capacity available throughout a cycle.
      */
     static void chanceKeepsNothing(ServerLevel level) {
         var rig = ProcessorRig.crusher(16, 4_000, 1_000_000);
@@ -288,7 +287,7 @@ final class ProcessorSmoke {
             rig.ticks(level, 1);
             require(rig.processor.status() == Status.RUNNING,
                 "cycle " + cycle + " started");
-            require(!rig.items.fits(3, rest), "gravel's space is held");
+            require(rig.items.fits(3, rest), "the byproduct leaves space free");
             rig.energy.setStored(1_000_000);
             rig.ticks(level, 200);
             require(rig.processor.status() == Status.IDLE,

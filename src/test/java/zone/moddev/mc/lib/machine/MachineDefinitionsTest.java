@@ -23,8 +23,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot;
+import zone.moddev.mc.lib.gui.drawer.BuiltinDrawers;
+import zone.moddev.mc.lib.gui.drawer.DrawerPlacement;
+import zone.moddev.mc.lib.gui.model.Edge;
+import zone.moddev.mc.lib.machine.definition.MachineBehavior;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition;
 import zone.moddev.mc.lib.machine.definition.MachineDefinitions;
+import zone.moddev.mc.lib.machine.definition.MachineFeatureDefinition;
 import zone.moddev.mc.lib.machine.recipe.generation.GeneratorProperties;
 
 class MachineDefinitionsTest {
@@ -46,6 +51,205 @@ class MachineDefinitionsTest {
     private String crusher() throws Exception {
         return Files.readString(Path
             .of("src/companion/resources/mmdlib/machine/simple_crusher.xml"));
+    }
+
+    @Test
+    void machinePartsDefineStorageAndScreenOrderTogether() throws Exception {
+        write(
+            """
+                <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+                         extends="test:base" name="Filter">
+                  <appearance preset="model" model="test:block/filter"/>
+                  <recipe-type id="test:filter" declare="true" name="Filtering"/>
+                  <parts>
+                    <tanks id="water" count="2" role="input" capacity="4000" tooltip="test.water"/>
+                    <processor id="filter" recipe-type="test:filter" filter-inputs="water"/>
+                    <inventory id="solids" count="4" columns="2" role="output"/>
+                    <energy/>
+                  </parts>
+                </machine>
+                """);
+        Files.writeString(directory.resolve("machine/base.xml"), """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+                     abstract="true" extends="mmdlib:base_powered_machine">
+              <storage><items id="cargo"/><fluids id="liquids"/></storage>
+            </machine>
+            """);
+        var machine = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        assertEquals("cargo", machine.itemStorageId());
+        assertEquals("liquids", machine.fluids().id());
+        assertEquals(List.of("water/0", "water/1"),
+            machine.fluids().tanks().stream().map(tank -> tank.id()).toList());
+        assertEquals(4, machine.inventorySlots("solids").size());
+        assertEquals("filter", machine.processors().getFirst().id());
+        var row = machine.screen().children().stream()
+            .filter(fill -> "machine".equals(fill.attributes().get("name")))
+            .findFirst().orElseThrow().children().getLast();
+        assertEquals(
+            List.of("fluid-tank", "fluid-tank", "progress", "coloured-group",
+                "energy-gauge"),
+            row.children().stream().map(node -> node.name()).toList());
+        assertEquals("test.water",
+            row.children().getFirst().attributes().get("tooltip"));
+        assertEquals("2", row.children().get(3).children().getFirst()
+            .attributes().get("columns"));
+    }
+
+    @Test
+    void machinePartsRejectASecondRowDeclaration() throws Exception {
+        write(crusher().replace("</machine>", """
+              <parts><energy/></parts>
+              <layout><energy/></layout>
+            </machine>
+            """));
+        var failure = assertThrows(
+            zone.moddev.mc.lib.gui.load.ScreenException.class,
+            () -> MachineDefinitions.load(sources()));
+        assertTrue(failure.getMessage().contains("both parts and layout"));
+    }
+
+    @Test
+    void orderedLayoutReplacesTheInheritedRow() throws Exception {
+        write(crusher().replace("mmdlib:base_powered_machine", "test:base")
+            .replace("</machine>",
+                """
+                      <layout><processor ref="crusher"/><inventory ref="output"/></layout>
+                    </machine>
+                    """));
+        Files.writeString(directory.resolve("machine/base.xml"), """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+                     abstract="true" extends="mmdlib:base_powered_machine">
+              <layout><energy/></layout>
+            </machine>
+            """);
+        var id = ResourceLocation.parse("test:crusher");
+        var screen = MachineDefinitions.load(sources()).get(id).screen();
+        var row = screen.children().stream()
+            .filter(fill -> "machine".equals(fill.attributes().get("name")))
+            .findFirst().orElseThrow().children().getLast();
+        assertEquals(List.of("progress", "coloured-group"),
+            row.children().stream().map(node -> node.name()).toList());
+        for (String region : List.of("tanks", "energy"))
+            assertTrue(screen.children().stream()
+                .anyMatch(fill -> region.equals(fill.attributes().get("name"))
+                    && fill.children().isEmpty()
+                    && !fill.attributes().containsKey("generator")));
+    }
+
+    @Test
+    void orderedLayoutReportsUnknownTankReference() throws Exception {
+        write(crusher().replace("</machine>", """
+              <layout><tank ref="missing"/></layout>
+            </machine>
+            """));
+        var machine = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        var failure = assertThrows(
+            zone.moddev.mc.lib.gui.load.ScreenException.class, machine::screen);
+        assertTrue(
+            failure.getMessage().contains("Unknown layout tank missing"));
+    }
+
+    @Test
+    void featureOverridesInheritTypeOptionsAndDrawerPlacementById()
+        throws Exception {
+        write(crusher().replace("mmdlib:base_powered_machine", "test:base")
+            .replace("</machine>", """
+                  <feature id="redstone"><drawer enabled="false"/></feature>
+                  <feature id="upgrades" gearbox="false"/>
+                  <feature id="statistics" enabled="false"/>
+                </machine>
+                """));
+        Files.writeString(directory.resolve("machine/base.xml"), """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+                     abstract="true" extends="mmdlib:base_powered_machine">
+              <feature id="redstone" default-mode="pause-while-powered">
+                <drawer edge="left" anchor="bottom" order="25"/>
+              </feature>
+            </machine>
+            """);
+        var definition = MachineDefinitions.load(sources())
+            .get(ResourceLocation.parse("test:crusher"));
+        var behavior = definition.behavior();
+        var redstone = behavior.feature(BuiltinDrawers.REDSTONE).orElseThrow();
+        assertTrue(definition.redstone());
+        assertEquals("pause-while-powered",
+            redstone.options().get("default-mode"));
+        assertFalse(redstone.drawerSettings().enabled());
+        assertEquals(Edge.LEFT, redstone.drawer().edge());
+        assertEquals(DrawerPlacement.Anchor.BOTTOM, redstone.drawer().anchor());
+        assertEquals(25, redstone.drawer().order());
+        assertNull(behavior.gearboxSlot());
+        assertEquals("mmdlib_capacitor/0", behavior.capacitorSlot());
+        assertFalse(behavior.feature(BuiltinDrawers.STATS).orElseThrow()
+            .drawerSettings().enabled());
+        assertTrue(behavior.feature(BuiltinDrawers.INFO).orElseThrow()
+            .drawerSettings().enabled());
+    }
+
+    @Test
+    void unpoweredMachineInheritsRedstoneWithIgnoreDefault() throws Exception {
+        String xml = """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+                     extends="mmdlib:base_machine" name="Basic">
+              <appearance preset="model" model="test:block/basic"/>
+              <storage/>
+            </machine>
+            """;
+        write(xml);
+        var id = ResourceLocation.parse("test:crusher");
+        var definition = MachineDefinitions.load(sources()).get(id);
+        assertNull(definition.power());
+        assertTrue(definition.redstone());
+        assertEquals("ignore",
+            definition.behavior().feature(BuiltinDrawers.REDSTONE).orElseThrow()
+                .options().get("default-mode"));
+        assertEquals(
+            List.of(BuiltinDrawers.INFO, BuiltinDrawers.STATS,
+                BuiltinDrawers.CURIOS, BuiltinDrawers.BACKPACK,
+                BuiltinDrawers.REDSTONE),
+            definition.behavior().features().stream()
+                .map(MachineFeatureDefinition::type).toList());
+
+        write(xml.replace("</machine>",
+            "<redstone enabled=\"false\"/></machine>"));
+        assertFalse(MachineDefinitions.load(sources()).get(id).redstone());
+    }
+
+    @Test
+    void standaloneLegacyRedstoneRequiresExplicitEnable() throws Exception {
+        String xml = """
+            <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" name="Basic">
+              <block hardness="3.5" facing="horizontal" drop="self"
+                     mineable="minecraft:mineable/pickaxe" requires-tool="true"/>
+              <appearance preset="model" model="test:block/basic"/>
+              <storage/>
+              <redstone pause="processing-only"/>
+              <recovery policy="capsule"/>
+              <screen xmlns="https://moddev.zone/mmdlib/screen" extends="mmdlib:base_machine"/>
+            </machine>
+            """;
+        var id = ResourceLocation.parse("test:crusher");
+        write(xml);
+        assertFalse(MachineDefinitions.load(sources()).get(id).redstone());
+        write(xml.replace("<redstone ", "<redstone enabled=\"true\" "));
+        assertTrue(MachineDefinitions.load(sources()).get(id).redstone());
+    }
+
+    @Test
+    void featureOverridesRejectUnknownTypesAndIncompatibleTypeChanges()
+        throws Exception {
+        for (var override : List.of(
+            "<feature id=\"test\" type=\"test:missing\"/>",
+            "<feature id=\"redstone\" type=\"mmdlib:info\"/>",
+            "<feature id=\"redstone\" default-mode=\"bad\"/>",
+            "<feature id=\"redstone\"><drawer edge=\"bad\"/></feature>")) {
+            write(crusher().replace("</machine>", override + "</machine>"));
+            var error = assertThrows(IllegalArgumentException.class,
+                () -> MachineDefinitions.load(sources()));
+            assertTrue(error.getMessage().contains("crusher.xml"));
+        }
     }
 
     public static class Admission
@@ -524,7 +728,8 @@ class MachineDefinitionsTest {
             d.power(), d.fluids(), d.itemStorageId(), d.slots(), d.groups(),
             d.recipeType(), d.processor(), d.processorName(), d.redstone(),
             d.screen());
-        assertEquals(d, compatible);
+        assertEquals(d.textures(), compatible.textures());
+        assertEquals(MachineBehavior.DEFAULT, compatible.behavior());
         assertNull(compatible.baseModel());
         assertNull(compatible.recipeSelection());
         assertTrue(compatible.ghosts().isEmpty());

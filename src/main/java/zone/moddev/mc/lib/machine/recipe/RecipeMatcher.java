@@ -41,9 +41,9 @@ public final class RecipeMatcher {
 
     /**
      * Whether {@code recipe} can start: every input present and room for every
-     * product once the consumed inputs are gone, counting chance products as
-     * certain. A product may land in the slot or tank its own input empties.
-     * Changes nothing, and no storage's change callback runs.
+     * reserved product once the consumed inputs are gone. A product may land in
+     * the slot or tank its own input empties. Changes nothing, and no storage's
+     * change callback runs.
      */
     public static MatchResult check(MachineRecipe recipe,
         MachineInventory inventory) {
@@ -122,10 +122,10 @@ public final class RecipeMatcher {
     }
 
     /**
-     * Rolls each product's chance and inserts the hits in one transaction, all
-     * or nothing.
+     * Inserts rolled products in one transaction. Reserved products must fit in
+     * full. Optional items use any space left after them.
      *
-     * @return whether everything rolled fitted; if not, nothing was inserted
+     * @return whether all rolled reserved products fitted
      */
     public static boolean produce(MachineRecipe recipe,
         MachineInventory inventory, RandomSource random) {
@@ -135,16 +135,34 @@ public final class RecipeMatcher {
                 if (group == null)
                     return false;
                 for (var product : entry.getValue()) {
-                    if (product.chance() < 1
-                        && random.nextFloat() >= product.chance())
-                        continue;
-                    if (!put(group, product, tx))
+                    if (product.reservesOutput() && roll(product, random)
+                        && !put(group, product, tx))
                         return false;
                 }
+            }
+            for (var entry : recipe.outputs().entrySet()) {
+                var group = inventory.group(entry.getKey()).orElse(null);
+                for (var product : entry.getValue())
+                    if (!product.reservesOutput()
+                        && product instanceof ItemProduct item) {
+                        if (!(group instanceof ItemGroup items))
+                            return false;
+                        bonus(items, item, random, tx);
+                    }
             }
             tx.commit();
             return true;
         }
+    }
+
+    static boolean roll(MachineProduct product, RandomSource random) {
+        return product.chance() >= 1 || random.nextFloat() < product.chance();
+    }
+
+    static void bonus(ItemGroup group, ItemProduct product, RandomSource random,
+        MachineTx tx) {
+        if (roll(product, random) && group != null)
+            group.insert(product.stack(), tx);
     }
 
     /**
@@ -185,6 +203,8 @@ public final class RecipeMatcher {
             boolean fits;
             if (products.get(i) instanceof ItemProduct item
                 && group instanceof ItemGroup items) {
+                if (!item.reservesOutput())
+                    continue;
                 stacks.add(item.stack());
                 fits = taken == null
                     ? items.fits(stacks)

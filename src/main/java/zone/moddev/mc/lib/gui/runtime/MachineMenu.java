@@ -215,10 +215,9 @@ public class MachineMenu extends AbstractContainerMenu {
     /**
      * For tests only.
      *
-     * @param client
-     *            whether the slots are the client's copy, as on a client; the
-     *            menu still reads the level's side for layout, so this is only
-     *            meaningful for running both against one server
+     * @param client whether the slots are the client's copy, as on a client;
+     *            the menu still reads the level's side for layout, so this is
+     *            only meaningful for running both against one server
      */
     protected MachineMenu(int id, Inventory inventory, BlockEntity entity,
         boolean client) {
@@ -368,8 +367,8 @@ public class MachineMenu extends AbstractContainerMenu {
         if (visibility.isEmpty()) {
             for (var root : bound.screen().body())
                 cacheVisibility(root, true);
-            for (var root : bound.screen().tabs())
-                cacheVisibility(root, true);
+            for (var drawer : layout.drawers())
+                drawer.element().ifPresent(root -> cacheVisibility(root, true));
             for (var root : bound.screen().implicitElements())
                 cacheVisibility(root,
                     root.visibilityAnchor(bound.screen()).map(

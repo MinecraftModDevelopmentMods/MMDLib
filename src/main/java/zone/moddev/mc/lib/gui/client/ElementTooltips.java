@@ -30,6 +30,13 @@ public final class ElementTooltips {
         boolean shift, boolean control, boolean alt) {
         if (!access.visible(target))
             return List.of();
+        var targetBehavior = behaviors.apply(target);
+        if (targetBehavior.additionalHitBounds()
+            .filter(bounds -> bounds.contains(x, y)).isPresent()) {
+            var foregroundRows = targetBehavior.tooltip(x, y);
+            if (!foregroundRows.isEmpty())
+                return copyRows(foregroundRows);
+        }
         var rows = new ArrayList<Component>();
         var visited = Collections
             .newSetFromMap(new IdentityHashMap<Element, Boolean>());
@@ -40,17 +47,20 @@ public final class ElementTooltips {
                     "Cyclic tooltip parent chain");
             var context = new Context(target, current,
                 Optional.ofNullable(child), x, y, shift, control, alt, access);
-            var behavior = behaviors.apply(current);
             if (child == null) {
                 current.appendTooltip(context, rows);
-                behavior.appendTooltip(context, rows);
+                targetBehavior.appendTooltip(context, rows);
             } else {
                 current.appendChildTooltip(context, rows);
-                behavior.appendChildTooltip(context, rows);
+                behaviors.apply(current).appendChildTooltip(context, rows);
             }
             child = current;
             current = access.parent(current).orElse(null);
         }
+        return copyRows(rows);
+    }
+
+    private static List<Component> copyRows(List<Component> rows) {
         return rows.stream().map(Component::copy).map(Component.class::cast)
             .toList();
     }

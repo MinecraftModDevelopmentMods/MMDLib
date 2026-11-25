@@ -111,12 +111,19 @@ ordinary work ticks, so normal energy checks still apply and total FE per
 recipe or action does not increase. Energy-producing processors likewise run
 more work ticks; external automation and transfer rates are not accelerated.
 
-Enable capability-based component storage with `<upgrades/>`. MMDLib adds a gearbox socket for a processor and a capacitor socket for energy storage. The inventories `mmdlib_gearbox` and `mmdlib_capacitor` each have one manual, non-automated slot of capacity eight. `<machine-upgrades/>` displays just those sockets; its optional `storage` attribute adds a machine-owned extra grid.
+Enable capability-based component storage with
+`<feature id="upgrades" type="mmdlib:upgrades"/>`. MMDLib adds a gearbox socket for a
+processor and a capacitor socket for eligible energy storage. Set `gearbox="false"`
+or `capacitor="false"` to omit the corresponding socket. The inventories
+`mmdlib_gearbox` and `mmdlib_capacitor` each have one manual, non-automated slot of capacity
+eight. `<machine-upgrades/>` displays the enabled sockets. Its optional `storage`
+attribute adds a machine-owned extra grid. Existing `<upgrades>` declarations are
+also supported.
 
 Existing machines may still bind a manual socket by its stable storage slot ID:
 
 ```xml
-<upgrades gearbox-slot="upgrades/4"/>
+<feature id="upgrades" type="mmdlib:upgrades" gearbox-slot="upgrades/4"/>
 ```
 
 For `<slots id="upgrades" count="11" role="manual" limit="1" automation="false"/>`,
@@ -148,7 +155,8 @@ integer limit rather than overflowing. Processor energy costs are unaffected.
 Bind the second socket independently or alongside the gearbox:
 
 ```xml
-<upgrades gearbox-slot="upgrades/4" capacitor-slot="upgrades/5"/>
+<feature id="upgrades" type="mmdlib:upgrades"
+         gearbox-slot="upgrades/4" capacitor-slot="upgrades/5"/>
 ```
 
 The capacitor socket must be a different manual slot without automation, and
@@ -199,6 +207,8 @@ stops at WorkingArea's existing ±128 local-coordinate bounds. For example,
 
 - `width()`, `depth()`, `height()` and `size()` use inclusive block dimensions.
 - `blockAt(origin, facing, index)` returns an immutable world position.
+- `snakeBlockAt(origin, facing, index)` alternates left-to-right and right-to-left rows;
+  each layer starts left-to-right. `row(index)` keeps the same meaning.
 - `blocks(origin, facing)` lazily enumerates positions without accessing a world
   or loading chunks. Retaining returned positions is safe.
 - `row(index)` gives the row within a layer, for row-based processing modes.
@@ -207,8 +217,7 @@ stops at WorkingArea's existing ±128 local-coordinate bounds. For example,
 
 Traversal goes left to right, row by row, bottom layer first. Rear areas begin
 at their near row and move backward; other areas begin at `minForward`.
-Agri-Brain now uses this same indexing for scanning, planting rows and work
-particles. Callers remain responsible for loaded chunks, world limits and
+Agri-Brain uses snake traversal for scanning and work particles, with unchanged row numbers for planting. Callers remain responsible for loaded chunks, world limits and
 permissions before acting. Entity enumeration is not implemented yet.
 
 ### Migrating development upgrade inventories
@@ -582,15 +591,69 @@ the root model's `textures` object, without `#`.
 Its declarations and conditions must match the Java subscriptions.
 Getters are never invoked on the rendering thread.
 
+## Machine features and drawers
+
+Use `<feature id="…" type="namespace:path"/>` to install a feature. An abstract
+machine can declare a mod's common features and let its children override individual
+settings by ID. An override can omit `type`. Use `enabled="false"` on the feature
+to disable it, or on its nested `<drawer>` to hide its drawer while retaining the
+feature's behavior. The drawer also accepts `edge="left|right"`,
+`anchor="top|bottom"`, and an integer `order`. Lower order values sit closer to
+the anchor. Drawer attributes inherit individually.
+
+```xml
+<machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
+         abstract="true" extends="mmdlib:base_powered_machine">
+  <feature id="backpack" enabled="false"/>
+  <feature id="redstone" default-mode="pause-while-powered">
+    <drawer enabled="false"/>
+  </feature>
+  <feature id="upgrades" gearbox="false">
+    <drawer edge="right" order="5"/>
+  </feature>
+</machine>
+```
+
+This base removes Backpack, keeps a capacitor socket and its drawer, and pauses
+processing when a signal of 1–15 reaches any face. The redstone drawer can be
+re-enabled by a child. The default redstone mode is `ignore`. A saved face
+configuration takes precedence over the default.
+
+| Feature type | ID in MMDLib's bases | Drawer or behavior |
+| --- | --- | --- |
+| `mmdlib:info` | `info` | Screen popouts with `kind="info"` |
+| `mmdlib:stats` | `statistics` | Machine statistics |
+| `mmdlib:curios` | `curios` | A player's available Curios equipment |
+| `mmdlib:backpack` | `backpack` | A player's available equipped containers |
+| `mmdlib:side_config` | `automation` | Side configuration for machines with configurable resources |
+| `mmdlib:redstone` | `redstone` | Redstone input, output and comparator configuration |
+| `mmdlib:upgrades` | `upgrades` | Upgrade sockets and their screen layout |
+| `mmdlib:popout` | | Warning and error popouts declared in the screen |
+| `mmdlib:side_tab` | | Side tabs declared in the screen |
+
+The common machine base declares Info, Statistics, Curios, Backpack, and Redstone.
+Redstone defaults to ignoring input and uses any saved face settings on load.
+The powered preset adds Side Configuration and Upgrades. A machine without an inherited
+Redstone feature can still opt in through the version-1 `<redstone enabled="true"/>` shorthand.
+
+Mods can register a feature type, its allowed XML attributes, and a per-machine
+factory using `MachineFeatureTypes.register` on both sides. The factory returns a
+`MachineFeature` whose key is the XML feature ID. To contribute drawers, also
+implement `MachineFeatureDrawers` and return common-side drawer definitions. The
+usual client drawer factory and menu component registrations handle rendering and
+server interactions.
+
 ## Base machine and storage
 
 The generic [`base_machine.xml`](../src/main/resources/mmdlib/machine/base_machine.xml)
-provides block settings, redstone control, recovery and the common screen with generated
-tank fills. It declares no storage. The powered base extends it:
+provides block settings, the shared drawer features, recovery and the common screen
+with generated tank fills. It declares no storage. The powered base extends it:
 
 ```xml
 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true"
          extends="mmdlib:base_machine">
+  <feature id="automation" type="mmdlib:side_config"/>
+  <feature id="upgrades" type="mmdlib:upgrades"/>
   <storage>
     <energy id="energy" capacity="100000" input-rate="1000" output-rate="0" color="energy"/>
   </storage>
@@ -984,6 +1047,60 @@ area before the base template's energy gauge. Generated processor arrows open
 their recipe type in JEI when clicked. SimpleCrusher needs no `<screen>` or
 `<fill>` of its own.
 
+Generated arrows show a warning badge and a red **Output blocked** tooltip
+when a ready recipe cannot place its products. Set `processor-key` on an authored
+`<progress>` element to link it to the same warning.
+
+Use machine-level `<parts>` to declare resources and processors in the order they
+should appear in the generated screen.
+
+```xml
+<parts>
+  <tank id="raw_input" name="Input" role="input" capacity="4000"/>
+  <processor id="filter" recipe-type="example:filtering"/>
+  <inventory id="solids" name="Solid Output" count="9" role="output"/>
+  <tank id="filtered_output" name="Liquid Output" role="output" capacity="4000"/>
+  <energy/>
+</parts>
+```
+
+An inventory takes the same storage attributes as `<slots>`. It defaults to one
+slot and three display columns. Set `columns` to change its width. A tank takes
+the usual storage attributes and an optional `tooltip` translation key. Use
+`<tanks count="…">` to show a group of tanks together. A processor uses the same
+attributes as a top-level processor. An empty `<energy/>` places the inherited
+energy gauge. Supply the usual energy attributes on it to define energy storage
+there as well.
+
+The loader reuses the inherited item and fluid storage IDs, with `items` and
+`fluids` as defaults. Keep part IDs stable for save data and recipe bindings.
+A child that declares its own `<parts>` supplies a new row while inheriting
+storage and processors under the usual machine inheritance rules.
+
+Use a machine-level `<layout>` when the controls should reference declarations
+that already live elsewhere. Declare one row per machine XML using either
+`<parts>` or `<layout>`.
+
+```xml
+<layout>
+  <tank ref="raw_input"/>
+  <processor ref="filter"/>
+  <inventory ref="solids" columns="3"/>
+  <tank ref="filtered_output"/>
+  <energy/>
+</layout>
+```
+
+Entries appear from left to right. `tank`, `processor`, and `inventory`
+reference their existing machine IDs. An inventory can reference an item group
+or ghost inventory and defaults to three columns. A tank accepts an optional
+`tooltip` translation key. `energy` shows the machine's energy gauge.
+
+The layout supplies the machine, tank, and energy regions of the standard
+screen. Only the controls listed in the layout appear in that row. A derived
+machine inherits the layout or replaces it as a whole. Use `<layout/>` to
+restore the screen's usual fills.
+
 A machine can replace that region:
 
 ```xml
@@ -1306,8 +1423,9 @@ Buttons without a processor target continue to use ordinary callback routing.
 
 `<block>` also accepts `stack-size="1"`, `no-occlusion="true"`,
 `immovable="true"`, `drawers="false"` and `portable="true"`.
-These are opt-in policies; existing machines retain their defaults. `drawers`
-controls the stats and automation drawers, while redstone remains separately configured.
+The legacy `drawers="false"` shorthand suppresses Statistics and Side Configuration
+together. [Machine features](#machine-features-and-drawers) can control each drawer
+individually.
 
 ```xml
 <shapes>
@@ -1750,7 +1868,8 @@ Sneak placement chooses the clicked face; ordinary placement faces the player.
 
 ## Comparator readout
 
-`<redstone comparator-source="workshop/output"/>` selects one existing
+`<feature id="redstone" type="mmdlib:redstone" comparator-source="workshop/output"/>`
+selects one existing
 `IRedstoneOutput` descriptor by its stable ID. The source is sampled together
 with per-face outputs, once per selected source per tick. Comparator readout is
 block-wide and independent of Emit faces and their inversion. Unknown source

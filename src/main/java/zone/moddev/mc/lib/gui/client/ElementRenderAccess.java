@@ -12,6 +12,7 @@ import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.sync.ElementStateView;
+import zone.moddev.mc.lib.machine.inventory.TankPlan;
 
 /**
  * Read-only client presentation services. No machine, menu, packets or storage
@@ -123,6 +124,10 @@ public interface ElementRenderAccess {
 
     default ItemStack hint(SlotElement element) {
         return ItemStack.EMPTY;
+    }
+
+    default TankPlan tankPlan(int tank) {
+        return TankPlan.NONE;
     }
 
     default <T> Optional<T> drawerPresentation(Element element, Class<T> type) {

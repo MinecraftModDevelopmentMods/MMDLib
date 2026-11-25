@@ -110,8 +110,8 @@ final class MachineRecipeSmoke {
         var full = new Crusher(3, 1_000, 20, true);
         full.items.insertResult(3, new ItemStack(Items.COBBLESTONE, 64), false);
         int before = full.changes[0];
-        expect(RecipeMatcher.check(crusher, full.inventory), Reason.NO_ROOM,
-            "byproduct", 0);
+        require(RecipeMatcher.check(crusher, full.inventory).ok(),
+            "A full byproduct slot does not prevent a match");
         require(full.changes[0] == before, "check changed nothing");
 
         var run = new Crusher(3, 1_000, 20, true);
@@ -130,16 +130,8 @@ final class MachineRecipeSmoke {
         require(partial.items.getStackInSlot(0).getCount() == 3,
             "ore put back when water is short");
 
-        // A full byproduct slot and a hit on the 25%: nothing is produced at
-        // all.
-        full.items.setStackInSlot(3, new ItemStack(Items.COBBLESTONE, 64));
-        require(!RecipeMatcher.produce(crusher, full.inventory, fixed(0F)),
-            "blocked");
-        require(full.items.getStackInSlot(1).isEmpty()
-            && full.items.getStackInSlot(2).isEmpty(), "rolled back");
-        // A miss: only the copper.
-        require(RecipeMatcher.produce(crusher, full.inventory, fixed(.99F)),
-            "produced on a miss");
+        require(RecipeMatcher.produce(crusher, full.inventory, fixed(0F)),
+            "Guaranteed products survive a rolled byproduct with no room");
         require(full.items.getStackInSlot(1).is(Items.RAW_COPPER)
             && full.items.getStackInSlot(1).getCount() == 2, "copper");
         require(full.items.getStackInSlot(3).is(Items.COBBLESTONE),

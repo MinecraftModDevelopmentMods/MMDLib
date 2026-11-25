@@ -1,6 +1,9 @@
 package zone.moddev.mc.lib.gui.client;
 
 import java.util.List;
+import java.util.Optional;
+
+import zone.moddev.mc.lib.gui.layout.Rect;
 
 /**
  * One element's state for one open screen. Factories must return fresh
@@ -10,6 +13,14 @@ import java.util.List;
  * capture without committing.
  */
 public interface ElementBehavior {
+    /**
+     * A non-modal foreground control outside the element's layout bounds. Its
+     * nonempty {@link #tooltip} is displayed on its own.
+     */
+    default Optional<Rect> additionalHitBounds() {
+        return Optional.empty();
+    }
+
     /**
      * Optional transient chooser drawn above normal elements, outside the
      * owner's layout box.

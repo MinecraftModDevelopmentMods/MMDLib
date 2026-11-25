@@ -365,6 +365,7 @@
           <xs:attribute name="orientation" type="orientation" default="vertical"/>
           <xs:attribute name="length" type="length" use="required"/>
           <xs:attribute name="color" type="color"/>
+          <xs:attribute name="drain-button" type="xs:boolean"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>
@@ -378,6 +379,7 @@
           <xs:attribute name="tank" type="xs:nonNegativeInteger" use="required"/>
           <xs:attribute name="orientation" type="orientation" default="vertical"/>
           <xs:attribute name="length" type="length" use="required"/>
+          <xs:attribute name="drain-button" type="xs:boolean"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>
@@ -451,6 +453,7 @@
         <xs:extension base="leaf">
           <xs:attribute name="icon" type="resourceId"/>
           <xs:attribute name="direction" type="direction" default="right"/>
+          <xs:attribute name="processor-key" type="xs:string"/>
         </xs:extension>
       </xs:complexContent>
     </xs:complexType>

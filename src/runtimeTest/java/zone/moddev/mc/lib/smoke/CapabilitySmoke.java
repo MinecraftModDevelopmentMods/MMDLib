@@ -96,6 +96,24 @@ final class CapabilitySmoke {
         fluidCopy.addTank(1000, Role.OUTPUT);
         fluidCopy.deserializeNBT(provider, fluids.serializeNBT(provider));
         require(fluidCopy.getFluidInTank(in).getAmount() == 1000, "fluid NBT");
+        require(!fluidCopy.drainOpen(in) && !fluidCopy.drainOpen(out),
+            "tanks without saved valve settings start closed");
+
+        fluids.tankId(in, "input").tankId(out, "output");
+        fluids.toggleDrain(out);
+        require(!fluids.drainOpen(out), "empty tanks cannot start draining");
+        fluids.tank(out).fill(new FluidStack(Fluids.LAVA, 3),
+            FluidAction.EXECUTE);
+        fluids.toggleDrain(out);
+        var reordered = new FluidStorage();
+        reordered.tankId(reordered.addTank(1000, Role.OUTPUT), "output");
+        reordered.tankId(reordered.addTank(1000, Role.INPUT), "input");
+        reordered.deserializeNBT(provider, fluids.serializeNBT(provider));
+        require(reordered.drainOpen(0) && !reordered.drainOpen(1),
+            "a nonempty tank's open valve follows its stable ID after loading");
+        reordered.tickDrains();
+        require(reordered.tank(0).isEmpty() && !reordered.drainOpen(0),
+            "an open valve discards the last few mB and closes");
 
         var energy = new EnergyBuffer(10_000_000_000L, 1000);
         require(energy.insert(5_000_000_000L, false) == 5_000_000_000L,

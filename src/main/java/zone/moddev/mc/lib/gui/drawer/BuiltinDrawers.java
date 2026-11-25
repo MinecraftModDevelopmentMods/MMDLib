@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.gui.layout.ElementLayouts;
 import zone.moddev.mc.lib.gui.model.Edge;
+import zone.moddev.mc.lib.gui.model.PopoutKind;
 import zone.moddev.mc.lib.gui.model.containers.SideTabElement;
 import zone.moddev.mc.lib.gui.model.elements.PopoutElement;
 
@@ -16,13 +17,20 @@ public final class BuiltinDrawers {
     public static final ResourceLocation SIDES = id("side_config"),
         REDSTONE = id("redstone"), STATS = id("stats"),
         BACKPACK = id("backpack"), CURIOS = id("curios"), POPOUT = id("popout"),
-        SIDE_TAB = id("side_tab"), UPGRADES = id("upgrades");
+        SIDE_TAB = id("side_tab"), UPGRADES = id("upgrades"), INFO = id("info");
 
     private BuiltinDrawers() {
     }
 
     private static ResourceLocation id(String name) {
         return ResourceLocation.fromNamespaceAndPath("mmdlib", name);
+    }
+
+    /** The Info feature controls the info popouts supplied by the screen. */
+    public static ResourceLocation featureType(DrawerDefinition drawer) {
+        return drawer.type().equals(POPOUT)
+            && drawer.element().orElse(null) instanceof PopoutElement popout
+            && popout.kind() == PopoutKind.INFO ? INFO : drawer.type();
     }
 
     static void register(DrawerRegistry registry) {

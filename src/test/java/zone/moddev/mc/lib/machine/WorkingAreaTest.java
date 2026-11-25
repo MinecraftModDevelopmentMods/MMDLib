@@ -14,6 +14,50 @@ import zone.moddev.mc.lib.machine.feature.WorkingArea;
 
 class WorkingAreaTest {
     @Test
+    void snakeTraversalAlternatesRowsWithoutSkippingBlocksAtEveryFacingAndRange() {
+        var origin = new BlockPos(10, 64, 20);
+        for (int range = 0; range <= 9; range++) {
+            var area = new WorkingArea(-1, 0, -3, 1, 0, -1)
+                .expandHorizontal(range);
+            for (var front : Direction.Plane.HORIZONTAL) {
+                var visited = new java.util.HashSet<BlockPos>();
+                BlockPos previous = null;
+                for (int index = 0; index < area.size(); index++) {
+                    var current = area.snakeBlockAt(origin, front, index);
+                    assertTrue(visited.add(current));
+                    if (previous != null)
+                        assertEquals(1, previous.distManhattan(current));
+                    int row = area.row(index);
+                    if (index % area.width() == 0)
+                        assertEquals(
+                            origin.relative(front, -1 - row).relative(
+                                front.getClockWise(),
+                                row % 2 == 0 ? -1 - range : 1 + range),
+                            current);
+                    assertTrue(area.bounds(origin, front).contains(
+                        net.minecraft.world.phys.Vec3.atCenterOf(current)));
+                    previous = current;
+                }
+                assertEquals(area.size(), visited.size());
+            }
+        }
+    }
+
+    @Test
+    void snakeRowsResetPerLayerAndRejectInvalidIndexes() {
+        var area = new WorkingArea(0, 0, 0, 2, 1, 2);
+        int[] columns = {0, 1, 2, 2, 1, 0, 0, 1, 2};
+        for (int index = 0; index < area.size(); index++)
+            assertEquals(
+                new BlockPos(columns[index % 9], index / 9, -(index / 3 % 3)),
+                area.snakeBlockAt(BlockPos.ZERO, Direction.NORTH, index));
+        assertThrows(IndexOutOfBoundsException.class,
+            () -> area.snakeBlockAt(BlockPos.ZERO, Direction.NORTH, -1));
+        assertThrows(IndexOutOfBoundsException.class, () -> area
+            .snakeBlockAt(BlockPos.ZERO, Direction.NORTH, area.size()));
+    }
+
+    @Test
     void rearExpansionAndTraversalAgreeForEveryFacingAndRange() {
         var base = new WorkingArea(-1, 0, -3, 1, 0, -1);
         var origin = new BlockPos(10, 64, 20);

@@ -26,7 +26,9 @@ import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.model.elements.SlotElement;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
 import zone.moddev.mc.lib.gui.runtime.ScreenRuntime;
+import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
 import zone.moddev.mc.lib.gui.sync.ElementStateView;
+import zone.moddev.mc.lib.machine.inventory.TankPlan;
 
 /**
  * Client presentation of a data-defined machine; getters are never invoked
@@ -100,6 +102,14 @@ public class MachineScreen extends AbstractContainerScreen<MachineMenu> {
 
         public ItemStack hint(SlotElement element) {
             return menu.slotHint(element).copy();
+        }
+
+        public TankPlan tankPlan(int tank) {
+            var reservations = menu.components()
+                .get(BuiltinMenuComponents.RESERVATIONS);
+            return reservations == null
+                ? TankPlan.NONE
+                : reservations.tankPlan(tank);
         }
 
         public <T> Optional<T> drawerPresentation(Element element,

@@ -1,10 +1,13 @@
 package zone.moddev.mc.lib.api.capabilities;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
+import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -36,6 +39,8 @@ import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
  */
 public class FluidStorage
     implements IFluidHandler, INBTSerializable<CompoundTag> {
+    public static final int DRAIN_RATE = 5;
+
     private final ChangeSignal changes = new ChangeSignal();
 
     /**
@@ -49,6 +54,7 @@ public class FluidStorage
     private final List<FluidTank> tanks = new ArrayList<>();
     private final List<Role> roles = new ArrayList<>();
     private final List<String> tankIds = new ArrayList<>();
+    private final BitSet openDrains = new BitSet();
     private final List<Predicate<FluidStack>> insertionRules = new ArrayList<>();
     private final ListTag recovery = new ListTag();
     private final ReservationPlans<TankPlan> plans = new ReservationPlans<>(0,
@@ -103,6 +109,8 @@ public class FluidStorage
 
             @Override
             protected void onContentsChanged() {
+                if (isEmpty())
+                    openDrains.clear(index);
                 revision++;
                 changes.changed();
                 onChange.run();
@@ -151,6 +159,25 @@ public class FluidStorage
      */
     public FluidTank tank(int index) {
         return tanks.get(index);
+    }
+
+    public boolean drainOpen(int index) {
+        return openDrains.get(Objects.checkIndex(index, getTanks()));
+    }
+
+    /** Toggles a nonempty tank's valve without draining immediately. */
+    public void toggleDrain(int index) {
+        if (tank(index).isEmpty())
+            return;
+        openDrains.flip(index);
+        onChange.run();
+    }
+
+    /** Tick once on the server. Each open valve discards unreserved fluid. */
+    public void tickDrains() {
+        for (int index = openDrains.nextSetBit(
+            0); index >= 0; index = openDrains.nextSetBit(index + 1))
+            tank(index).drain(DRAIN_RATE, FluidAction.EXECUTE);
     }
 
     /**
@@ -204,6 +231,7 @@ public class FluidStorage
      */
     public void clear() {
         recovery.clear();
+        openDrains.clear();
         for (int tank = 0; tank < getTanks(); tank++) {
             setPlan(tank, TankPlan.NONE);
             restoreFluid(tank, FluidStack.EMPTY);
@@ -421,6 +449,8 @@ public class FluidStorage
             var entry = tanks.get(i).writeToNBT(provider, new CompoundTag());
             if (tankIds.get(i) != null)
                 entry.putString("TankId", tankIds.get(i));
+            if (drainOpen(i))
+                entry.putBoolean("DrainOpen", true);
             list.add(entry);
         }
         CompoundTag tag = new CompoundTag();
@@ -436,8 +466,7 @@ public class FluidStorage
     @Override
     public void deserializeNBT(HolderLookup.Provider provider,
         CompoundTag tag) {
-        deserializeNBT(provider, tag,
-            java.util.function.IntUnaryOperator.identity());
+        deserializeNBT(provider, tag, IntUnaryOperator.identity());
     }
 
     /**
@@ -445,9 +474,10 @@ public class FluidStorage
      * its save version.
      */
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag,
-        java.util.function.IntUnaryOperator legacyTanks) {
+        IntUnaryOperator legacyTanks) {
         var saved = tag.getList("Tanks", Tag.TAG_COMPOUND);
         var list = new ListTag();
+        openDrains.clear();
         for (int i = 0; i < saved.size(); i++) {
             var tank = saved.getCompound(i);
             var entry = tank.getCompound("Fluid").copy();
@@ -464,9 +494,8 @@ public class FluidStorage
             tank.setFluid(FluidStack.EMPTY);
         for (var value : list) {
             var entry = (CompoundTag) value;
-            int index = entry.contains("TankId")
-                ? tankIds.indexOf(entry.getString("TankId"))
-                : legacyTanks.applyAsInt(entry.getInt("Tank"));
+            int index = savedTankIndex(entry, entry.getInt("Tank"),
+                legacyTanks);
             if (!entry.contains("TankId")) {
                 entry.putInt("Tank", index);
                 if (inRange(index) && tankIds.get(index) != null)
@@ -495,8 +524,24 @@ public class FluidStorage
                 recovery.add(extra);
             }
         }
+        for (int i = 0; i < saved.size(); i++) {
+            var tank = saved.getCompound(i);
+            if (!tank.getBoolean("DrainOpen")
+                || tank.getCompound("Fluid").isEmpty())
+                continue;
+            int index = savedTankIndex(tank, i, legacyTanks);
+            if (inRange(index) && !tanks.get(index).isEmpty())
+                openDrains.set(index);
+        }
         revision++;
         changes.changed();
         onChange.run();
+    }
+
+    private int savedTankIndex(CompoundTag entry, int index,
+        IntUnaryOperator legacyTanks) {
+        return entry.contains("TankId")
+            ? tankIds.indexOf(entry.getString("TankId"))
+            : legacyTanks.applyAsInt(index);
     }
 }

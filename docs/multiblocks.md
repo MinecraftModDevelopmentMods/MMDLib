@@ -1,6 +1,6 @@
-# Java multiblock machines
+# Multiblock machines
 
-MMDLib provides whole-machine placement for fixed Java-defined structures. One controller owns storage and processing; linked physical parts expose interactions and optional resource ports. The companion's **Multiblock Test Bench** is a complete registration example in `MultiblockDemo` and `MultiblockDemoEntity`.
+MMDLib provides whole-machine placement for fixed structures defined in Java or XML. One controller owns storage and processing. Linked physical parts expose interactions and optional resource ports. The companion's **Multiblock Test Bench** is a complete registration example in `MultiblockDemo` and `MultiblockDemoEntity`.
 
 The common structure model is in `zone.moddev.mc.lib.machine.multiblock`. NeoForge placement, blocks, linked block entities and capability adapters live in `machine.neoforge`. These APIs do not depend on the XML machine-definition runtime. Screens can still use ordinary MMDLib XML.
 
@@ -29,6 +29,27 @@ var layout = new FixedLayout(
 The controller is the sole member with role `controller`, at offset zero. Member keys and positions must be unique. States and offsets are authored facing north; `StructureTransform` rotates positions and states consistently for four horizontal orientations. Custom blocks must implement state rotation; `MultiblockBlock` supplies horizontal facing and rotation.
 
 Required space is separate from physical membership. A rule is a mod-owned `(Level, BlockPos) -> boolean` predicate. Set `continuous` for conditions that suspend operation while obstructed; otherwise a requirement is checked only at formation. Clearance rules for an animal gym should allow the intended animal while refusing obstructing blocks. Requirements never become removable dummy blocks.
+
+### Load a fixed layout from XML
+
+Bundle `data/<namespace>/mmdlib/multiblock/<path>.xml` and pass its ID and a class from the owning mod to `MultiblockDefinitions.load(id, OwnerMod.class)` after the member blocks are registered. Reuse the returned definition for the placement item and controller.
+
+```xml
+<structure xmlns="https://moddev.zone/mmdlib/multiblock" version="1"
+           max-members="2" max-extent="1" dismantling="remove-owned">
+  <member id="controller" role="controller" offset="0 0 0"
+          state="example:controller[facing=north]"/>
+  <member id="apron" role="apron" offset="0 0 1" state="example:apron"/>
+  <rule id="clearance" type="air"/>
+  <requirement rule="clearance" offset="0 1 1" continuous="true"/>
+  <port member="controller" resource="energy" kind="energy"
+        faces="back bottom" output="true"/>
+</structure>
+```
+
+Member states use vanilla block-state syntax. The `air` rule uses `BlockState.isAir()`. Port kinds are `items`, `fluids`, and `energy`. Face names are relative to a viewer looking at the front (`front back left right top bottom`). The `continuous`, `unsided`, `input`, and `output` flags default to `false`. `version` is the saved structure version. To move an existing fixed layout to XML, preserve its version, member keys, member states, and requirements in their original order so saved manifests still match.
+
+XML defines the layout for Java-registered blocks, block entities, and placement items. It is read from the bundled resource at startup. Custom processors, models, and lifecycle callbacks use the same APIs as Java-defined layouts.
 
 ## Register the blocks and item
 

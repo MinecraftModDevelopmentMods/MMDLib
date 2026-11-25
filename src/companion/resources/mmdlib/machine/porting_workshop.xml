@@ -10,6 +10,7 @@
     </items>
     <fluids id="fluids"><tank id="water" role="input" capacity="4000" fluid-tag="minecraft:water"/></fluids>
   </storage>
-  <redstone comparator-source="workshop/output"/>
+  <feature id="redstone" comparator-source="workshop/output"/>
+  <feature id="automation" type="mmdlib:side_config"/>
   <processor id="workshop" class="zone.moddev.mc.companion.WorkshopProcessor"/>
 </machine>

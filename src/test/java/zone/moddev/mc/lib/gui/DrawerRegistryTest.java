@@ -7,7 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.Optional;
 
+import com.mojang.serialization.Codec;
+
 import net.minecraft.resources.ResourceLocation;
+
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +19,8 @@ import zone.moddev.mc.lib.gui.client.DrawerFactories;
 import zone.moddev.mc.lib.gui.drawer.DrawerDefinition;
 import zone.moddev.mc.lib.gui.drawer.DrawerPlacement;
 import zone.moddev.mc.lib.gui.drawer.DrawerRegistry;
+import zone.moddev.mc.lib.gui.drawer.DrawerSettings;
+import zone.moddev.mc.lib.gui.drawer.MachineFeatureDrawers;
 import zone.moddev.mc.lib.gui.layout.DrawerTabs;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.layout.ScreenLayout;
@@ -29,7 +35,10 @@ import zone.moddev.mc.lib.gui.model.Text;
 import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 import zone.moddev.mc.lib.gui.model.containers.SideTabElement;
 import zone.moddev.mc.lib.gui.model.elements.PopoutElement;
+import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 import zone.moddev.mc.lib.gui.sync.ElementStateView;
+import zone.moddev.mc.lib.machine.feature.FeatureHost;
+import zone.moddev.mc.lib.machine.feature.MachineFeature;
 
 class DrawerRegistryTest {
     static final ResourceLocation TYPE = ResourceLocation.parse("test:drawer");
@@ -47,6 +56,63 @@ class DrawerRegistryTest {
     private static DrawerDefinition definition(String id,
         DrawerPlacement placement) {
         return new DrawerDefinition(TYPE, id, placement);
+    }
+
+    private record Feature(String key)
+        implements MachineFeature<Integer>, MachineFeatureDrawers {
+        public Codec<Integer> codec() {
+            return Codec.INT;
+        }
+
+        public Integer state() {
+            return 0;
+        }
+
+        public void restore(Integer state) {
+        }
+
+        public List<DrawerDefinition> drawers(DrawerRegistry.Context context) {
+            return List
+                .of(definition("provided", DrawerPlacement.top(Edge.LEFT, 0)));
+        }
+    }
+
+    @Test
+    void installedFeatureSuppliesADrawerAndInheritsTheHostsPlacementPolicy() {
+        var features = new FeatureHost(() -> {
+        }).add(new Feature("provider"));
+        var host = new ScreenHost() {
+            @Override
+            public IItemHandlerModifiable screenItems() {
+                return null;
+            }
+
+            @Override
+            public FeatureHost screenFeatures() {
+                return features;
+            }
+
+            @Override
+            public DrawerSettings screenDrawerSettings(String featureId,
+                DrawerDefinition drawer) {
+                return "provider".equals(featureId)
+                    ? new DrawerSettings(true, Edge.RIGHT,
+                        DrawerPlacement.Anchor.BOTTOM, 15)
+                    : DrawerSettings.HIDDEN;
+            }
+        };
+        var popout = new PopoutElement(Common.empty(), PopoutKind.INFO,
+            Optional.empty(), Edge.LEFT,
+            Optional.of(new Text("test:info", Optional.empty())));
+        var drawers = DrawerRegistry.builtins()
+            .resolve(new DrawerRegistry.Context(screen(List.of(popout)),
+                TextMeasure.NONE, host));
+        assertEquals(1, drawers.size());
+        var placement = drawers.getFirst().placement();
+        assertEquals("provided", drawers.getFirst().id());
+        assertEquals(Edge.RIGHT, placement.edge());
+        assertEquals(DrawerPlacement.Anchor.BOTTOM, placement.anchor());
+        assertEquals(15, placement.order());
     }
 
     @Test

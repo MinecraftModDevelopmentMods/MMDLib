@@ -262,6 +262,9 @@ public abstract class BaseMachine extends BlockEntity
                 && pausePolicy().processingEnabled(paused));
         if (structureReady)
             afterMachineTick();
+        var fluids = screenFluids();
+        if (fluids != null)
+            fluids.tickDrains();
         if (redstone != null)
             redstone.updateOutputs();
     }
@@ -385,10 +388,11 @@ public abstract class BaseMachine extends BlockEntity
         if (redstone != null) {
             if (tag.contains("redstone_control"))
                 redstone.load(tag.getCompound("redstone_control"), registries);
-            else {
+            else if (tag.contains("redstone_mode")) {
                 int mode = tag.getInt("redstone_mode");
                 redstone.migrate(mode >= 0 && mode <= 2 ? mode : 0);
-            }
+            } else
+                redstone.load(new CompoundTag(), registries);
         }
         loadMachineData(tag, registries);
         if (multiblock() != null) {

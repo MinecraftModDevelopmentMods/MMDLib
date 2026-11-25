@@ -31,6 +31,11 @@ public sealed interface MachineProduct
     /** The chance this product is made on a run, in (0, 1]. */
     float chance();
 
+    /** Chance-based item drops use available space at completion. */
+    default boolean reservesOutput() {
+        return !(this instanceof ItemProduct) || chance() >= 1;
+    }
+
     /** The JSON form: exactly one of {@code item} or {@code fluid}. */
     Codec<MachineProduct> CODEC = new Dispatch().codec();
 

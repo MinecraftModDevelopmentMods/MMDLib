@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,6 +47,34 @@ import zone.moddev.mc.lib.machine.inventory.SlotPlan;
  * Mod types outside the implementation package exercise the public contracts.
  */
 class ElementBehaviorsTest {
+    @Test
+    void foregroundHitDoesNotBecomeAModalOverlay() {
+        var tank = new ModElement(Common.empty());
+        var other = new ModElement(Common.empty());
+        var control = new ElementBehavior() {
+            public Optional<Rect> additionalHitBounds() {
+                return Optional.of(new Rect(2, 20, 9, 7));
+            }
+
+            public Click mouseClicked(double x, double y, int button) {
+                return Click.CONSUME;
+            }
+        };
+        var input = new ElementInput<>(List.of(tank, other),
+            e -> e == tank ? control : new ElementBehavior() {
+            }, e -> true,
+            e -> e == tank ? new Rect(0, 0, 18, 20) : new Rect(0, 20, 40, 20),
+            (x, y) -> x < 10, (e, entered) -> {
+            });
+        input.update();
+        assertNull(input.overlayOwner());
+        assertSame(tank, input.hit(3, 23));
+        assertTrue(input.click(3, 23, 0));
+        assertSame(other, input.hit(3, 30));
+        assertNull(input.hit(10, 23));
+        assertFalse(input.click(10, 23, 0));
+    }
+
     @Test
     void foregroundChooserReceivesCoveredHitsButStillRespectsViewport() {
         var slot = new ModElement(Common.empty());
