@@ -63,11 +63,15 @@ public final class ReservationMenuComponent implements MenuSnapshot {
             .allMatch(e -> e.getKey() != null && e.getKey() >= 0
                 && e.getKey() < MAX_SLOTS && e.getValue() != null));
 
+    // Resolve the fluid codec at packet time, after the registry boots.
     public static final ComponentSync<Map<Integer, TankPlan>> TANK_PLANS = new ComponentSync<>(
         ResourceLocation.parse("mmdlib:tank_reservation_plans"), 1,
-        ByteBufCodecs.map(LinkedHashMap::new, ByteBufCodecs.VAR_INT,
-            StreamCodec.composite(ByteBufCodecs.VAR_INT, TankPlan::take,
-                FluidAmount.STREAM_CODEC, TankPlan::add, TankPlan::new),
+        ByteBufCodecs.map(LinkedHashMap::new, ByteBufCodecs.VAR_INT, StreamCodec
+            .<RegistryFriendlyByteBuf, TankPlan>of((buffer, plan) -> {
+                buffer.writeVarInt(plan.take());
+                FluidAmount.STREAM_CODEC.encode(buffer, plan.add());
+            }, buffer -> new TankPlan(buffer.readVarInt(),
+                FluidAmount.STREAM_CODEC.decode(buffer))),
             MAX_SLOTS),
         65536, Map::of,
         plans -> plans.size() <= MAX_SLOTS
