@@ -20,6 +20,12 @@
     for forms that are not named `<material>_<form>`, and `in_all: false` for
     forms a material must name. `!all` still excludes every form, and a
     script's `removeItems("all")` / `removeBlocks("all")` still clear them.
+- XML machine drawer migration. Machines with configurable resources that inherit
+  only `mmdlib:base_machine` now need
+  `<feature id="automation" type="mmdlib:side_config"/>` to retain the Side
+  Configuration drawer. Standalone definitions also need explicit features for
+  the Statistics, Curios, and Backpack drawers they use.
+  See [upgrading existing XML machines](docs/xml-machines.md#upgrading-existing-xml-machines).
 
 ## Unreleased — 2.0.2
 

@@ -643,6 +643,28 @@ implement `MachineFeatureDrawers` and return common-side drawer definitions. The
 usual client drawer factory and menu component registrations handle rendering and
 server interactions.
 
+### Upgrading existing XML machines
+
+Side Configuration, Statistics, Curios, and Backpack now require a matching
+feature, declared on the machine or inherited from a base. For an existing machine
+with configurable resources that inherits only `mmdlib:base_machine`, add this
+line inside `<machine>` or in a shared base to retain its Side Configuration drawer:
+
+```xml
+<feature id="automation" type="mmdlib:side_config"/>
+```
+
+`mmdlib:base_powered_machine` already declares this feature.
+
+For standalone XML definitions, also add the declarations for the other drawers
+you want to retain. Both MMDLib machine bases already supply these features:
+
+```xml
+<feature id="statistics" type="mmdlib:stats"/>
+<feature id="curios" type="mmdlib:curios"/>
+<feature id="backpack" type="mmdlib:backpack"/>
+```
+
 ## Base machine and storage
 
 The generic [`base_machine.xml`](../src/main/resources/mmdlib/machine/base_machine.xml)
