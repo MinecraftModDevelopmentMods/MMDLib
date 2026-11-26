@@ -236,6 +236,36 @@ public final class RecipeProcessor implements Processor<RecipeProcessor.State>,
         return RecipeMatcher.check(entry.recipe(), inventory);
     }
 
+    private record OutputCheck(long recipes, ResourceLocation selected,
+        long[] storage, boolean blocked) {
+    }
+
+    @Nullable
+    private OutputCheck outputCheck;
+
+    /** An otherwise-ready recipe is waiting for space in its outputs. */
+    public boolean outputBlocked(Level level) {
+        if (level == null || level.isClientSide || runner.active())
+            return false;
+        long revision = recipeRevision(level);
+        var previous = outputCheck;
+        if (previous != null && previous.recipes() == revision
+            && java.util.Objects.equals(previous.selected(), selectedRecipe)
+            && inventory.unchanged(previous.storage()))
+            return previous.blocked();
+        var result = selectionEnabled
+            ? selectedRecipe().flatMap(id -> selectedEntry(level, id))
+                .map(holder -> recipeAvailability(holder.value()))
+            : lookup.explain(level, inventory)
+                .map(MachineRecipeLookup.Attempt::result);
+        boolean blocked = result
+            .filter(match -> match.reason() == MatchResult.Reason.NO_ROOM)
+            .isPresent();
+        outputCheck = new OutputCheck(revision, selectedRecipe,
+            inventory.revisions(), blocked);
+        return blocked;
+    }
+
     private final String key;
     private final String outputPrefix;
     private final MachineInventory inventory;

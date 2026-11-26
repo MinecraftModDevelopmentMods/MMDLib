@@ -17,6 +17,13 @@ import zone.moddev.mc.lib.api.capabilities.SideConfig;
  * data-defined menu.
  */
 public interface ScreenHost {
+    /** Feature ID is present for a drawer supplied by an installed feature. */
+    default zone.moddev.mc.lib.gui.drawer.DrawerSettings screenDrawerSettings(
+        String featureId,
+        zone.moddev.mc.lib.gui.drawer.DrawerDefinition drawer) {
+        return zone.moddev.mc.lib.gui.drawer.DrawerSettings.DEFAULT;
+    }
+
     default boolean screenStatsDrawer() {
         return true;
     }

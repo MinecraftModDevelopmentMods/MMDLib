@@ -45,8 +45,10 @@ public final class BuiltinMenuComponents {
     }
 
     static void register(MenuComponentRegistry registry) {
-        registry.register(UPGRADES, 15, c -> c.menu().bound.screen().tabs()
+        registry.register(UPGRADES, 15, c -> c.menu().layout().drawers()
             .stream()
+            .filter(drawer -> drawer.type().equals(BuiltinDrawers.UPGRADES))
+            .flatMap(drawer -> drawer.element().stream())
             .filter(
                 zone.moddev.mc.lib.gui.model.containers.UpgradesDrawerElement.class::isInstance)
             .map(
@@ -61,22 +63,40 @@ public final class BuiltinMenuComponents {
             InventoryMenuComponent.HINTS);
         registry.register(RESERVATIONS, -900,
             c -> new ReservationMenuComponent(c.menu().nativeSlots(),
-                c.client()),
-            ReservationMenuComponent.PLANS);
+                c.client(), c.host() == null ? null : c.host().screenFluids()),
+            ReservationMenuComponent.PLANS,
+            ReservationMenuComponent.TANK_PLANS);
         registry.register(AUTOMATION, 0,
-            c -> c.host() != null && c.host().screenAutomation() != null
-                ? new AutomationMenu(c.menu(), c.host().screenAutomation(),
-                    c.inventory().player, c.client())
-                : null);
+            c -> hasDrawer(c, BuiltinDrawers.SIDES) && c.host() != null
+                && c.host().screenAutomation() != null
+                    ? new AutomationMenu(c.menu(), c.host().screenAutomation(),
+                        c.inventory().player, c.client())
+                    : null);
         registry.register(REDSTONE, 10,
-            c -> c.host() != null && c.host().screenRedstone() != null
-                ? new RedstoneMenu(c.menu(), c.inventory().player,
-                    c.host().screenRedstone(), c.client())
-                : null);
-        registry.register(STATS, 20, StatsMenuComponent::new,
+            c -> hasDrawer(c, BuiltinDrawers.REDSTONE) && c.host() != null
+                && c.host().screenRedstone() != null
+                    ? new RedstoneMenu(c.menu(), c.inventory().player,
+                        c.host().screenRedstone(), c.client())
+                    : null);
+        registry.register(STATS, 20,
+            c -> hasDrawer(c, BuiltinDrawers.STATS)
+                ? new StatsMenuComponent(c)
+                : null,
             StatsMenuComponent.PAGES);
-        registry.register(BACKPACK, 30, c -> equipment(c, false));
-        registry.register(CURIOS, 40, c -> equipment(c, true));
+        registry.register(BACKPACK, 30,
+            c -> hasDrawer(c, BuiltinDrawers.BACKPACK)
+                ? equipment(c, false)
+                : null);
+        registry.register(CURIOS, 40,
+            c -> hasDrawer(c, BuiltinDrawers.CURIOS)
+                ? equipment(c, true)
+                : null);
+    }
+
+    private static boolean hasDrawer(MenuComponentRegistry.Context context,
+        ResourceLocation type) {
+        return context.menu().layout().drawers().stream()
+            .anyMatch(drawer -> drawer.type().equals(type));
     }
 
     private static ContainerDrawerMenu equipment(

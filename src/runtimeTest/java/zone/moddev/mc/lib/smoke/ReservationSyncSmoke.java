@@ -17,7 +17,10 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.material.Fluids;
 
+import zone.moddev.mc.lib.api.capabilities.FluidStorage;
+import zone.moddev.mc.lib.api.capabilities.Role;
 import zone.moddev.mc.lib.gui.runtime.ScreenNetwork;
 import zone.moddev.mc.lib.gui.runtime.ScreenValues;
 import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
@@ -27,7 +30,9 @@ import zone.moddev.mc.lib.gui.runtime.slot.MenuSlots;
 import zone.moddev.mc.lib.gui.runtime.slot.ReservationMenuComponent;
 import zone.moddev.mc.lib.gui.runtime.slot.SlotAdapter;
 import zone.moddev.mc.lib.gui.sync.ElementStateValue;
+import zone.moddev.mc.lib.machine.ingredient.FluidAmount;
 import zone.moddev.mc.lib.machine.inventory.SlotPlan;
+import zone.moddev.mc.lib.machine.inventory.TankPlan;
 
 /**
  * Registered reservation state supports any mod slot adapter, independent of
@@ -57,6 +62,11 @@ final class ReservationSyncSmoke {
     }
 
     private static Fixture fixture(RegistryAccess registries, boolean client) {
+        return fixture(registries, client, null);
+    }
+
+    private static Fixture fixture(RegistryAccess registries, boolean client,
+        FluidStorage fluids) {
         var slots = new MenuSlots();
         var registrar = slots
             .registrar(slot -> slot.index = slots.entries().size());
@@ -68,10 +78,11 @@ final class ReservationSyncSmoke {
         registrar.add(input, null, MenuSlots.Role.MACHINE);
         registrar.add(output, null, MenuSlots.Role.MACHINE);
         registrar.add(player, null, MenuSlots.Role.PLAYER_STORAGE);
-        var component = new ReservationMenuComponent(slots, client);
+        var component = new ReservationMenuComponent(slots, client, fluids);
         var registry = new MenuComponentRegistry();
         registry.register(BuiltinMenuComponents.RESERVATIONS, 0, c -> null,
-            ReservationMenuComponent.PLANS);
+            ReservationMenuComponent.PLANS,
+            ReservationMenuComponent.TANK_PLANS);
         var state = new ComponentStates(registry.schema(),
             Map.of(BuiltinMenuComponents.RESERVATIONS, component), registries);
         return new Fixture(component, state, input, output, player);
@@ -125,7 +136,10 @@ final class ReservationSyncSmoke {
             field.encode(registries, reverse)
                 .equals(field.encode(registries, plans)),
             "Map order changed reservation encoding");
-        int address = before.keySet().iterator().next();
+        int address = before.entrySet().stream()
+            .filter(entry -> entry.getValue()
+                .equals(field.encode(registries, plans)))
+            .findFirst().orElseThrow().getKey();
         var saved = client.state.snapshot();
         for (var malformed : List.of(
             encoded(registries, b -> b.writeVarInt(-1)),
@@ -182,6 +196,38 @@ final class ReservationSyncSmoke {
             Map.of(3, new SlotPlan(20, ItemStack.EMPTY), 20, SlotPlan.NONE))));
         require(client.input.plan.isNone() && client.player.applied == 0,
             "Omitted plans or non-machine indexes were applied incorrectly");
+        tankReservations(registries);
+    }
+
+    private static void tankReservations(RegistryAccess registries) {
+        var fluids = new FluidStorage();
+        fluids.addTank(4_000, Role.INPUT);
+        fluids.addTank(4_000, Role.OUTPUT);
+        var server = fixture(registries, false, fluids);
+        var client = fixture(registries, true, new FluidStorage());
+        var take = new TankPlan(250, FluidAmount.EMPTY);
+        var add = new TankPlan(0,
+            new FluidAmount(Fluids.LAVA.builtInRegistryHolder(),
+                net.minecraft.core.component.DataComponentPatch.EMPTY, 200));
+        fluids.setPlan(0, take);
+        fluids.setPlan(1, add);
+        var before = server.state.sample(List.of(server.component));
+        client.state.apply(before);
+        require(
+            client.component.tankPlan(0).sameAs(take)
+                && client.component.tankPlan(1).sameAs(add),
+            "Tank reservation state lost input amount or output fluid and amount");
+        fluids.setPlan(0, TankPlan.NONE);
+        fluids.setPlan(1, TankPlan.NONE);
+        var delta = ScreenValues.changed(before,
+            server.state.sample(List.of(server.component)), false);
+        require(delta.size() == 1,
+            "Clearing tank plans must send a complete tank field");
+        client.state.apply(delta);
+        require(
+            client.component.tankPlan(0).isNone()
+                && client.component.tankPlan(1).isNone(),
+            "Tank reservation clearing left stale client state");
     }
 
     private static ElementStateValue encoded(RegistryAccess registries,

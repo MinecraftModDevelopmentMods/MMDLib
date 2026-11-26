@@ -1,5 +1,6 @@
 package zone.moddev.mc.lib.gui;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -58,6 +59,22 @@ class ElementInteractionTest {
         assertTrue(gauge.common().value().isEmpty());
         assertTrue(gauge.common().max().isEmpty());
         assertFalse(gauge.common().clicks().any());
+    }
+
+    @Test
+    void drainButtonCanBeDisabledWithoutChangingTankSize() throws Exception {
+        var shown = (FluidTankElement) read(
+            "<fluid-tank tank=\"0\" length=\"3s\"/>").body().getFirst();
+        var hidden = (FluidTankElement) read(
+            "<gauge tank=\"0\" length=\"3s\" drain-button=\"false\"/>").body()
+            .getFirst();
+        assertTrue(shown.validClickOption(FluidTankElement.DRAIN_OPTION));
+        assertFalse(hidden.validClickOption(FluidTankElement.DRAIN_OPTION));
+        assertTrue(hidden.validClickOption(0));
+        var text = zone.moddev.mc.lib.gui.layout.TextMeasure.NONE;
+        assertArrayEquals(shown.measure(text), hidden.measure(text));
+        assertThrows(ScreenException.class, () -> read(
+            "<gauge length=\"3s\" value=\"#getFluid\" max=\"#getCapacity\" drain-button=\"true\"/>"));
     }
 
     @Test

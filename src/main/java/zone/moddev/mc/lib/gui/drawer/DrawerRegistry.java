@@ -15,6 +15,7 @@ import java.util.function.Function;
 import net.minecraft.resources.ResourceLocation;
 
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
+import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Screen;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
 
@@ -24,6 +25,9 @@ import zone.moddev.mc.lib.gui.runtime.ScreenHost;
  */
 public final class DrawerRegistry {
     public static final DrawerRegistry GLOBAL = builtins();
+
+    private record Contribution(String featureId, DrawerDefinition drawer) {
+    }
 
     public record Context(Screen screen, TextMeasure text, ScreenHost host,
         Set<ResourceLocation> enabled) {
@@ -65,10 +69,7 @@ public final class DrawerRegistry {
     }
 
     public synchronized List<DrawerDefinition> resolve(Context context) {
-        var result = new ArrayList<DrawerDefinition>();
-        var ids = new HashSet<String>();
-        var elements = Collections.newSetFromMap(
-            new IdentityHashMap<zone.moddev.mc.lib.gui.model.Element, Boolean>());
+        var contributions = new ArrayList<Contribution>();
         for (var entry : providers.entrySet())
             for (var definition : List
                 .copyOf(entry.getValue().apply(context))) {
@@ -76,21 +77,42 @@ public final class DrawerRegistry {
                     throw new IllegalArgumentException(
                         "Drawer provider returned another type: "
                             + definition.type());
-                if (!ids
-                    .add(definition.placement().edge() + "/" + definition.id()))
-                    throw new IllegalArgumentException(
-                        "Duplicate drawer: " + definition.id());
-                definition.element().ifPresent(element -> {
-                    if (context.screen().tabs().stream().noneMatch(
-                        tab -> tab == element) || !elements.add(element))
-                        throw new IllegalArgumentException(
-                            "Drawer element must be a unique screen tab");
-                });
-                result.add(definition);
-                if (result.size() > 4096)
-                    throw new IllegalArgumentException(
-                        "Too many drawer declarations");
+                contributions.add(new Contribution(null, definition));
             }
+        var host = context.host();
+        var features = host == null ? null : host.screenFeatures();
+        if (features != null)
+            for (var contributor : features
+                .contributors(MachineFeatureDrawers.class))
+                for (var drawer : List.copyOf(contributor.drawers(context)))
+                    contributions
+                        .add(new Contribution(contributor.key(), drawer));
+
+        if (contributions.size() > 4096)
+            throw new IllegalArgumentException("Too many drawer declarations");
+        var result = new ArrayList<DrawerDefinition>();
+        var ids = new HashSet<String>();
+        var elements = Collections
+            .newSetFromMap(new IdentityHashMap<Element, Boolean>());
+        for (var contribution : contributions) {
+            var drawer = contribution.drawer();
+            drawer.element().ifPresent(element -> {
+                if (context.screen().tabs().stream()
+                    .noneMatch(tab -> tab == element) || !elements.add(element))
+                    throw new IllegalArgumentException(
+                        "Drawer element must be a unique screen tab");
+            });
+            var settings = host == null
+                ? DrawerSettings.DEFAULT
+                : host.screenDrawerSettings(contribution.featureId(), drawer);
+            if (!settings.enabled())
+                continue;
+            var placed = settings.apply(drawer);
+            if (!ids.add(placed.placement().edge() + "/" + placed.id()))
+                throw new IllegalArgumentException(
+                    "Duplicate drawer: " + placed.id());
+            result.add(placed);
+        }
         for (var tab : context.screen().tabs())
             if (!elements.contains(tab))
                 throw new IllegalArgumentException(

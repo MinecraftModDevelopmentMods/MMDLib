@@ -78,9 +78,10 @@ final class BuiltinElementClients {
                     .ifPresent(view -> view.render(c)))
                 .behavior(FilterCustomBehavior::new),
             ElementClient.of(SPRITE).renderer(SpriteRenderer::draw),
-            ElementClient.of(PROGRESS)
-                .renderer((element, c) -> SpriteRenderer
-                    .draw(element.spriteElement(), c)),
+            ElementClient.of(PROGRESS).renderer(
+                (element, c) -> SpriteRenderer.draw(element.spriteElement(), c))
+                .overlay(ProgressBehavior::badge)
+                .behavior(ProgressBehavior::new),
             ElementClient.of(COLOURED_GROUP).renderer((element, c) -> {
             }).behavior(ColouredGroupBehavior::new),
             ElementClient.of(BOX).renderer((element, c) -> {
@@ -146,10 +147,9 @@ final class BuiltinElementClients {
                 .renderer((element, c) -> GaugeRenderer.draw(c.graphics(),
                     c.bounds(), element.orientation(), element.fill(c.value()),
                     c.ratio(), c.groupColour())),
-            ElementClient.of(FLUID_TANK)
-                .renderer((element, c) -> GaugeRenderer.draw(c.graphics(),
-                    c.bounds(), element.orientation(), element.fill(c.value()),
-                    c.ratio(), c.groupColour())),
+            ElementClient.of(FLUID_TANK).renderer(GaugeRenderer::tank)
+                .foreground(FluidTankBehavior::drawDrain)
+                .behavior(FluidTankBehavior::new),
             ElementClient.of(ENERGY_GAUGE)
                 .renderer((element, c) -> EnergyGaugeRenderer.draw(c.graphics(),
                     c.bounds(), element, c.ratio(), c.groupColour())),

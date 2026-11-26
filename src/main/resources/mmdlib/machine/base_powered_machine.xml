@@ -1,6 +1,7 @@
 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1" abstract="true"
          extends="mmdlib:base_machine">
-  <upgrades/>
+  <feature id="automation" type="mmdlib:side_config"/>
+  <feature id="upgrades" type="mmdlib:upgrades"/>
   <storage>
     <energy id="energy" capacity="100000" input-rate="1000" output-rate="0" color="energy"/>
   </storage>
@@ -8,7 +9,5 @@
   <groups>
     <group id="energy" storage="energy" mode="input"/>
   </groups>
-  <screen xmlns="https://moddev.zone/mmdlib/screen" extends="mmdlib:base_powered_machine">
-    <fill name="upgrades" generator="mmdlib:component-upgrades"/>
-  </screen>
+  <screen xmlns="https://moddev.zone/mmdlib/screen" extends="mmdlib:base_powered_machine"/>
 </machine>

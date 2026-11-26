@@ -1,5 +1,6 @@
 <machine xmlns="https://moddev.zone/mmdlib/machine" version="1"
          extends="mmdlib:base_machine" name="Admission Demo">
+  <feature id="automation" type="mmdlib:side_config"/>
   <appearance preset="cube-front" front="minecraft:block/furnace_front"
               side="minecraft:block/bricks" top="minecraft:block/iron_block"/>
   <storage>

@@ -1,6 +1,7 @@
 package zone.moddev.mc.lib.machine.neoforge;
 
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,7 +22,12 @@ import zone.moddev.mc.lib.api.capabilities.ItemInventories;
 import zone.moddev.mc.lib.api.capabilities.SideConfig;
 import zone.moddev.mc.lib.api.redstone.RedstoneControl;
 import zone.moddev.mc.lib.common.types.SoundDefinition;
+import zone.moddev.mc.lib.gui.drawer.BuiltinDrawers;
+import zone.moddev.mc.lib.gui.drawer.DrawerDefinition;
+import zone.moddev.mc.lib.gui.drawer.DrawerSettings;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition;
+import zone.moddev.mc.lib.machine.definition.MachineFeatureDefinition;
+import zone.moddev.mc.lib.machine.definition.MachineFeatureTypes;
 import zone.moddev.mc.lib.machine.feature.RecipeProcessor;
 import zone.moddev.mc.lib.machine.presentation.BuiltinVisualVariables;
 import zone.moddev.mc.lib.machine.presentation.VisualVariables;
@@ -34,6 +40,10 @@ import zone.moddev.mc.lib.machine.recipe.MachineRecipeType;
 public class DefinedMachineEntity extends BaseMachine
     implements zone.moddev.mc.lib.machine.feature.ProcessorMachine,
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle.Provider {
+    private static final Set<ResourceLocation> DECLARED_DRAWERS = Set.of(
+        BuiltinDrawers.SIDES, BuiltinDrawers.STATS, BuiltinDrawers.CURIOS,
+        BuiltinDrawers.BACKPACK);
+
     public final MachineDefinition definition;
     private final List<zone.moddev.mc.lib.machine.definition.ProcessorConfiguration> processorConfigurations;
 
@@ -369,9 +379,20 @@ public class DefinedMachineEntity extends BaseMachine
             inventory.items(definition.itemStorageId(), items);
         if (definition.fluids() != null)
             inventory.fluids(definition.fluids().id(), fluids);
+        for (var declaration : definition.behavior().features()) {
+            var feature = MachineFeatureTypes.create(declaration, this);
+            if (feature != null)
+                features.add(feature);
+        }
+        var redstoneMode = definition.behavior()
+            .feature(BuiltinDrawers.REDSTONE)
+            .filter(feature -> "pause-while-powered"
+                .equals(feature.options().get("default-mode")))
+            .map(feature -> RedstoneControl.Mode.READ)
+            .orElse(RedstoneControl.Mode.IGNORE);
         redstone = definition.redstone()
             || definition.behavior().comparatorSource() != null
-                ? new RedstoneControl(this, List.of(features))
+                ? new RedstoneControl(this, List.of(features), redstoneMode)
                     .comparatorSource(definition.behavior().comparatorSource())
                 : null;
         if (redstone != null && !definition.redstone())
@@ -774,6 +795,22 @@ public class DefinedMachineEntity extends BaseMachine
     @Override
     public String screenDefinitionFingerprint() {
         return definition.checksum();
+    }
+
+    @Override
+    public DrawerSettings screenDrawerSettings(String featureId,
+        DrawerDefinition drawer) {
+        if (featureId != null)
+            return definition.behavior().features().stream()
+                .filter(feature -> feature.id().equals(featureId)).findFirst()
+                .map(MachineFeatureDefinition::drawerSettings)
+                .orElse(DrawerSettings.DEFAULT);
+        var type = BuiltinDrawers.featureType(drawer);
+        return definition.behavior().feature(type)
+            .map(MachineFeatureDefinition::drawerSettings)
+            .orElse(DECLARED_DRAWERS.contains(type)
+                ? DrawerSettings.HIDDEN
+                : DrawerSettings.DEFAULT);
     }
 
     @Override

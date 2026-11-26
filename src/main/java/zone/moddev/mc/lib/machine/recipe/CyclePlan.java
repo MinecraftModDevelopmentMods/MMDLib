@@ -44,8 +44,7 @@ import zone.moddev.mc.lib.machine.recipe.MachineProduct.ItemProduct;
  * @param time ticks the cycle takes
  * @param items item inputs, by slot
  * @param fluids fluid inputs, by tank
- * @param products each product with where it lands; chance products are placed
- *            as if certain
+ * @param products each product with its reserved destination, if any
  * @param energy the energy each energy group must supply over the cycle
  */
 public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
@@ -136,7 +135,8 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
 
         /** Copies the list. */
         public Placed {
-            at = List.copyOf(at);
+            // Older saved plans included a placement for every chance item.
+            at = product.reservesOutput() ? List.copyOf(at) : List.of();
         }
     }
 
@@ -174,7 +174,7 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
 
     /**
      * What running {@code recipe} would reserve now, ignoring energy; empty if
-     * it can't. Changes nothing. Chance products are placed as if certain.
+     * it can't. Changes nothing.
      */
     public static Optional<CyclePlan> of(ResourceLocation id,
         MachineRecipe recipe, MachineInventory inventory) {
@@ -244,16 +244,28 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
             if (group == null)
                 return Optional.empty();
             var list = entry.getValue();
-            var placed = place(group, list,
-                taken.getOrDefault(key, new long[size(group)]));
+            var reserved = list.stream().filter(MachineProduct::reservesOutput)
+                .toList();
+            var placed = reserved.isEmpty()
+                ? new int[0][]
+                : place(group, reserved,
+                    taken.getOrDefault(key, new long[size(group)]));
             if (placed == null)
                 return Optional.empty();
-            for (int i = 0; i < list.size(); i++) {
+            int nextPlacement = 0;
+            for (var product : list) {
+                if (!product.reservesOutput()) {
+                    if (!(group instanceof ItemGroup))
+                        return Optional.empty();
+                    products.add(new Placed(key, product, List.of()));
+                    continue;
+                }
+                var row = placed[nextPlacement++];
                 var at = new ArrayList<At>();
-                for (int slot = 0; slot < placed[i].length; slot++)
-                    if (placed[i][slot] > 0)
-                        at.add(new At(slot, placed[i][slot]));
-                products.add(new Placed(key, list.get(i), at));
+                for (int slot = 0; slot < row.length; slot++)
+                    if (row[slot] > 0)
+                        at.add(new At(slot, row[slot]));
+                products.add(new Placed(key, product, at));
             }
         }
         return Optional.of(
@@ -358,10 +370,8 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
     }
 
     /**
-     * Rolls each product's chance, then in one transaction releases this plan,
-     * takes the consumed inputs and inserts the hits where they were placed.
-     * Retained inputs stay untouched. A product that misses leaves its space
-     * free, and nothing is kept of the roll, so a retry rolls again.
+     * Releases the plan, takes the consumed inputs and inserts rolled products
+     * in one transaction. Reserved outputs go in before optional item drops.
      *
      * @return false, with the plan still in place and nothing changed, if an
      *         input is gone or a product no longer fits where it was placed
@@ -385,8 +395,8 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
             return false;
         var hits = new ArrayList<Placed>();
         for (var placed : products)
-            if (placed.product.chance() >= 1
-                || random.nextFloat() < placed.product.chance())
+            if (placed.product.reservesOutput()
+                && RecipeMatcher.roll(placed.product, random))
                 hits.add(placed);
         if (!canFinish(inventory, hits))
             return false;
@@ -422,6 +432,11 @@ public record CyclePlan(ResourceLocation recipe, int time, List<ItemTake> items,
             for (var at : placed.at)
                 if (!insert(inventory, placed, at, tx))
                     return false;
+        for (var placed : products)
+            if (!placed.product.reservesOutput()
+                && placed.product instanceof ItemProduct item)
+                RecipeMatcher.bonus(items(inventory, placed.group), item,
+                    random, tx);
         return true;
     }
 

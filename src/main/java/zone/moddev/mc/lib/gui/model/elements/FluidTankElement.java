@@ -8,6 +8,7 @@ import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
@@ -24,7 +25,6 @@ import zone.moddev.mc.lib.gui.ElementInteractions;
 import zone.moddev.mc.lib.gui.layout.ElementLayouts;
 import zone.moddev.mc.lib.gui.layout.TextMeasure;
 import zone.moddev.mc.lib.gui.model.Common;
-import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.ElementSnapshot;
 import zone.moddev.mc.lib.gui.model.GaugeFill;
 import zone.moddev.mc.lib.gui.model.Interaction;
@@ -32,23 +32,41 @@ import zone.moddev.mc.lib.gui.model.Orientation;
 import zone.moddev.mc.lib.gui.model.ResourceBinding;
 import zone.moddev.mc.lib.gui.runtime.ScreenClick;
 import zone.moddev.mc.lib.gui.runtime.ScreenHost;
+import zone.moddev.mc.lib.gui.sync.ElementStateView;
+import zone.moddev.mc.lib.gui.sync.ElementSync;
+import zone.moddev.mc.lib.gui.sync.SynchronizedElement;
+import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 
 /**
  * A complete tank UI component: binding, values, tooltip and cursor-container
  * interaction. All storage access runs on the server. The client draws its
  * snapshots with the glass gauge renderer.
  */
-public class FluidTankElement implements Element {
+public class FluidTankElement implements SynchronizedElement {
+    private static final ElementSync<Boolean> DRAIN_OPEN = ElementSync
+        .field(ResourceLocation.parse("mmdlib:tank_drain_open"),
+            ByteBufCodecs.BOOL.cast(), 1, element -> false)
+        .sample(source -> source.machine() instanceof ScreenHost host
+            && ((FluidTankElement) source.element()).drainOpen(host))
+        .immutable().build();
+
     private final Common common;
     private final int tank;
     private final Orientation orientation;
     private final int length;
+    private final boolean drainButton;
 
+    public static final int DRAIN_OPTION = 1;
     public static final ResourceLocation INTERACTION_ID = ResourceLocation
         .fromNamespaceAndPath("mmdlib", "fluid-container");
 
     public FluidTankElement(Common common, int tank, Orientation orientation,
         int length) {
+        this(common, tank, orientation, length, true);
+    }
+
+    public FluidTankElement(Common common, int tank, Orientation orientation,
+        int length, boolean drainButton) {
         Objects.requireNonNull(common);
         Objects.requireNonNull(orientation);
         if (tank < 0)
@@ -62,6 +80,7 @@ public class FluidTankElement implements Element {
         this.tank = tank;
         this.orientation = orientation;
         this.length = length;
+        this.drainButton = drainButton;
     }
 
     public boolean fills() {
@@ -110,7 +129,32 @@ public class FluidTankElement implements Element {
     }
 
     @Override
+    public List<ElementSync<?>> synchronizedValues() {
+        return drainButton() ? List.of(DRAIN_OPEN) : List.of();
+    }
+
+    private boolean drainOpen(ScreenHost host) {
+        return storage(host, tank).drainOpen(tank);
+    }
+
+    public boolean drainOpen(ElementStateView state) {
+        return drainButton() && state.get(this, DRAIN_OPEN);
+    }
+
+    @Override
+    public boolean validClickOption(int option) {
+        return option == 0 || drainButton() && option == DRAIN_OPTION;
+    }
+
+    @Override
     public boolean interact(ScreenClick click) {
+        if (click.option() == DRAIN_OPTION) {
+            if (!drainButton() || click.button() != 0
+                || !(click.menu().blockEntity instanceof ScreenHost host))
+                return false;
+            storage(host, tank).toggleDrain(tank);
+            return true;
+        }
         return transfer(click, tank);
     }
 
@@ -218,8 +262,8 @@ public class FluidTankElement implements Element {
     public List<Component> tooltip(ScreenHost host, ItemStack carried) {
         var storage = storage(host, tank);
         var current = storage.getFluidInTank(tank);
-        Component name = host.screenTankName(tank).orElseGet(
-            () -> Component.translatable("screen.mmdlib.tank.name", tank + 1));
+        Component name = host.screenTankName(tank)
+            .orElseGet(this::defaultTankName);
         var accepted = BuiltInRegistries.FLUID.stream()
             .filter(fluid -> fluid != Fluids.EMPTY
                 && fluid.isSource(fluid.defaultFluidState()))
@@ -233,6 +277,17 @@ public class FluidTankElement implements Element {
                 .withStyle(ChatFormatting.GRAY)
             : Component.translatable("screen.mmdlib.tank.contents",
                 current.getAmount(), current.getHoverName()));
+        var plan = storage.plan(tank);
+        if (plan.take() > 0)
+            lines.add(Component
+                .translatable("screen.mmdlib.tank.reserved_input", plan.take())
+                .withStyle(ChatFormatting.GOLD));
+        if (!plan.add().isEmpty())
+            lines.add(Component
+                .translatable("screen.mmdlib.tank.reserved_output",
+                    plan.add().amount(),
+                    FluidStacks.stack(plan.add()).getHoverName())
+                .withStyle(ChatFormatting.AQUA));
         var names = Component.empty();
         for (var acceptedName : accepted) {
             if (!names.getSiblings().isEmpty())
@@ -300,12 +355,20 @@ public class FluidTankElement implements Element {
         return tank;
     }
 
+    public Component defaultTankName() {
+        return Component.translatable("screen.mmdlib.tank.name", tank + 1);
+    }
+
     public Orientation orientation() {
         return orientation;
     }
 
     public int length() {
         return length;
+    }
+
+    public boolean drainButton() {
+        return drainButton;
     }
 
     @Override
@@ -318,7 +381,8 @@ public class FluidTankElement implements Element {
         return java.util.Objects.equals(common, other.common)
             && java.util.Objects.equals(tank, other.tank)
             && java.util.Objects.equals(orientation, other.orientation)
-            && java.util.Objects.equals(length, other.length);
+            && java.util.Objects.equals(length, other.length)
+            && drainButton == other.drainButton;
     }
 
     @Override
@@ -328,12 +392,14 @@ public class FluidTankElement implements Element {
         hash = 31 * hash + java.util.Objects.hashCode(tank);
         hash = 31 * hash + java.util.Objects.hashCode(orientation);
         hash = 31 * hash + java.util.Objects.hashCode(length);
+        hash = 31 * hash + Boolean.hashCode(drainButton);
         return hash;
     }
 
     @Override
     public String toString() {
         return "FluidTankElement[common=" + common + ", tank=" + tank
-            + ", orientation=" + orientation + ", length=" + length + "]";
+            + ", orientation=" + orientation + ", length=" + length
+            + ", drainButton=" + drainButton + "]";
     }
 }

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import zone.moddev.mc.lib.gui.client.ElementBehavior;
 import zone.moddev.mc.lib.gui.client.ElementRenderAccess;
 import zone.moddev.mc.lib.gui.client.ElementTooltips;
+import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.Common;
 import zone.moddev.mc.lib.gui.model.Element;
 import zone.moddev.mc.lib.gui.model.Text;
@@ -66,8 +67,8 @@ class TooltipCompositionTest {
             return null;
         }
 
-        public zone.moddev.mc.lib.gui.layout.Rect viewport() {
-            return new zone.moddev.mc.lib.gui.layout.Rect(0, 0, 100, 100);
+        public Rect viewport() {
+            return new Rect(0, 0, 100, 100);
         }
 
         public boolean visible(Element e) {
@@ -110,6 +111,34 @@ class TooltipCompositionTest {
         assertEquals(
             List.of("server", "Detailed 7/9", "behavior", "parent",
                 "parent behavior", "root", "parent behavior"),
+            rows.stream().map(Component::getString).toList());
+    }
+
+    @Test
+    void foregroundControlShowsItsOwnTooltip() {
+        var leaf = new Leaf(authored("Gauge"));
+        var parent = new Parent(Common.empty(), leaf, "Parent");
+        var access = new Access();
+        access.parents.put(leaf, parent);
+        var drain = new ElementBehavior() {
+            public Optional<Rect> additionalHitBounds() {
+                return Optional.of(new Rect(10, 30, 11, 10));
+            }
+
+            public List<Component> tooltip(int x, int y) {
+                return additionalHitBounds().orElseThrow().contains(x, y)
+                    ? List.of(Component.literal("Drain"))
+                    : List.of();
+            }
+        };
+        var rows = ElementTooltips.collect(leaf, access, e -> drain, 12, 34,
+            false, false, false);
+        assertEquals(List.of("Drain"),
+            rows.stream().map(Component::getString).toList());
+        access.parents.clear();
+        rows = ElementTooltips.collect(leaf, access, e -> drain, 12, 29, true,
+            false, false);
+        assertEquals(List.of("server", "Detailed 7/9"),
             rows.stream().map(Component::getString).toList());
     }
 

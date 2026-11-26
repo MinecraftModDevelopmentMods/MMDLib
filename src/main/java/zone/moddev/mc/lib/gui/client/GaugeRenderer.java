@@ -18,13 +18,45 @@ import org.lwjgl.opengl.GL14;
 import zone.moddev.mc.lib.gui.layout.Rect;
 import zone.moddev.mc.lib.gui.model.GaugeFill;
 import zone.moddev.mc.lib.gui.model.Orientation;
+import zone.moddev.mc.lib.gui.model.elements.FluidTankElement;
+import zone.moddev.mc.lib.machine.neoforge.FluidStacks;
 
 /**
  * Graduated glass gauge, with clipped fluid tiles kept upright in both
  * orientations.
  */
 final class GaugeRenderer {
+    private static final float GHOST_OPACITY = .45f;
+
+    private record Reservation(double input, double output, GaugeFill fill) {
+        static final Reservation NONE = new Reservation(0, 0, null);
+    }
+
+    private enum BandWidth {
+        FULL, INPUT_HALF, OUTPUT_HALF
+    }
+
     private GaugeRenderer() {
+    }
+
+    static void tank(FluidTankElement element, ElementRenderers.Context c) {
+        var plan = c.tankPlan(element.tank());
+        var reservation = Reservation.NONE;
+        if (!plan.isNone() && c.maximum() instanceof Number capacity
+            && capacity.doubleValue() > 0) {
+            int held = c.value() instanceof FluidStack fluid
+                ? fluid.getAmount()
+                : 0;
+            var output = plan.add();
+            reservation = new Reservation(
+                Math.min(held, plan.take()) / capacity.doubleValue(),
+                output.isEmpty() ? 0 : output.amount() / capacity.doubleValue(),
+                output.isEmpty()
+                    ? null
+                    : element.fill(FluidStacks.stack(output)));
+        }
+        draw(c.graphics(), c.bounds(), element.orientation(),
+            element.fill(c.value()), c.ratio(), c.groupColour(), reservation);
     }
 
     /**
@@ -58,11 +90,17 @@ final class GaugeRenderer {
 
     static void draw(GuiGraphics g, Rect r, Orientation orientation,
         GaugeFill fill, double ratio, java.util.Optional<Integer> groupColour) {
+        draw(g, r, orientation, fill, ratio, groupColour, Reservation.NONE);
+    }
+
+    private static void draw(GuiGraphics g, Rect r, Orientation orientation,
+        GaugeFill fill, double ratio, java.util.Optional<Integer> groupColour,
+        Reservation reservation) {
         var state = RenderState.capture();
         try {
             g.flush();
             g.setColor(1, 1, 1, 1);
-            drawGauge(g, r, orientation, fill, ratio, groupColour);
+            drawGauge(g, r, orientation, fill, ratio, groupColour, reservation);
         } finally {
             try {
                 g.flush();
@@ -74,31 +112,32 @@ final class GaugeRenderer {
 
     private static void drawGauge(GuiGraphics g, Rect r,
         Orientation orientation, GaugeFill fill, double ratio,
-        java.util.Optional<Integer> groupColour) {
+        java.util.Optional<Integer> groupColour, Reservation reservation) {
         boolean vertical = orientation == Orientation.VERTICAL;
         int length = vertical ? r.height() : r.width();
         shell(g, r, vertical, length, "body", 1,
             ElementDrawing.backgroundTint(0xffffff, groupColour));
-        int filled = (int) Math.round((length - 2) * ratio);
-        FluidStack fluid = fill.fluid().orElse(null);
-        int color = fill.colour().orElseGet(() -> IClientFluidTypeExtensions
-            .of(fluid.getFluid()).getTintColor(fluid));
-        for (int step = 0; step < filled; step++) {
-            int row = length - 2 - step;
-            int inset = (row == 1 || row == length - 2) ? 2 : 1;
-            Rect strip = vertical
-                ? new Rect(r.x() + inset, r.y() + row, 18 - 2 * inset, 1)
-                : new Rect(r.x() + length - 1 - row, r.y() + inset, 1,
-                    18 - 2 * inset);
-            if (fluid != null)
-                fluid(g, strip, r, fluid, color);
-            else
-                g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(),
-                    color | 0xff000000);
-            if (vertical && step == filled - 1)
-                g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(),
-                    0x4dffffff);
-        }
+        int inner = length - 2;
+        int filled = Math.max(reservation.input() > 0 && ratio > 0 ? 1 : 0,
+            (int) Math.round(inner * ratio));
+        double freeRatio = Math.max(0, ratio - reservation.input());
+        int free = reservation.input() > 0 && filled > 0
+            ? Math.min(filled - 1, (int) Math.round(inner * freeRatio))
+            : filled;
+        int preview = reservation.output() > 0
+            ? Math.min(inner,
+                Math.max(free + 1,
+                    (int) Math.round(
+                        inner * Math.min(1, freeRatio + reservation.output()))))
+            : free;
+        // A tank can reserve both a withdrawal and a deposit in the same space.
+        boolean split = free < filled && preview > free;
+        band(g, r, vertical, fill, 0, free, 1, BandWidth.FULL);
+        band(g, r, vertical, fill, free, filled, GHOST_OPACITY,
+            split ? BandWidth.INPUT_HALF : BandWidth.FULL);
+        if (preview > free)
+            band(g, r, vertical, reservation.fill(), free, preview,
+                GHOST_OPACITY, split ? BandWidth.OUTPUT_HALF : BandWidth.FULL);
         // Continue the same curvature above the fluid with a softer reflection.
         // Clip the two strengths separately so filled pixels keep their
         // lighting.
@@ -128,7 +167,6 @@ final class GaugeRenderer {
                 g.disableScissor();
             }
         }
-        int inner = length - 2;
         for (int n = 1; n < 20; n++) {
             boolean major = n == 5 || n == 10 || n == 15;
             if (!major && ((inner / 20f < 3 && n % 2 != 0) || inner / 10f < 3))
@@ -141,6 +179,35 @@ final class GaugeRenderer {
                 y + 1 + (vertical ? 1 : mark), 0x59000000);
             g.fill(x, y, x + (vertical ? mark : 1), y + (vertical ? 1 : mark),
                 0xd9eef3f6);
+        }
+    }
+
+    private static void band(GuiGraphics g, Rect r, boolean vertical,
+        GaugeFill fill, int from, int to, float opacity, BandWidth width) {
+        if (from >= to)
+            return;
+        int length = vertical ? r.height() : r.width();
+        var stack = fill.fluid().orElse(null);
+        int color = fill.colour().orElseGet(() -> IClientFluidTypeExtensions
+            .of(stack.getFluid()).getTintColor(stack));
+        int alpha = stack == null ? 255 : color >>> 24;
+        int tint = (Math.round(alpha * opacity) << 24) | (color & 0xffffff);
+        for (int step = from; step < to; step++) {
+            int row = length - 2 - step;
+            int inset = row == 1 || row == length - 2 ? 2 : 1;
+            int start = width == BandWidth.OUTPUT_HALF ? 9 : inset;
+            int end = width == BandWidth.INPUT_HALF ? 9 : 18 - inset;
+            Rect strip = vertical
+                ? new Rect(r.x() + start, r.y() + row, end - start, 1)
+                : new Rect(r.x() + 1 + step, r.y() + start, 1, end - start);
+            if (stack != null)
+                fluid(g, strip, r, stack, tint);
+            else
+                g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(),
+                    tint);
+            if (vertical && step == to - 1)
+                g.fill(strip.x(), strip.y(), strip.right(), strip.bottom(),
+                    (Math.round(0x4d * opacity) << 24) | 0xffffff);
         }
     }
 

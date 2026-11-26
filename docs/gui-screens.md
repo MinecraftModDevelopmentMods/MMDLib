@@ -878,7 +878,8 @@ opacity with `+1` at the top, without creating a real stack. Mixed consume/produ
 both signed counts on the top row. Tooltips provide reservation counts and the planned output's
 name. Clearing the plan removes the badge and ghost. Player inventory, equipment and filter
 slots are unaffected by default; custom elements can opt into overlays using the hooks above.
-Chance outputs show their reserved capacity, not a guarantee that the product will be rolled.
+Only guaranteed item outputs reserve capacity. Chance items roll when the cycle finishes
+and use any remaining room after the guaranteed products.
 No extra packet or XML binding is needed; `MachineMenu.reservationPlan(index)` exposes the existing
 synchronized snapshot for real machine slots.
 
@@ -2195,8 +2196,19 @@ for the same component; a plain `<gauge>` remains a general display with getter 
 With a fluid container on the cursor, **left-click fills the tank** and **right-click drains
 it into the container**. Input and manual tanks can be drained by players. Insertion retains
 fluid/recipe filters and rejects output tanks; both directions respect reservations. Each
-click handles one container, including partial modded containers. Stacked results go into the
+click handles one container, including partial modded containers. Tank gauges fade the reserved
+portion of the current fluid and preview reserved output as translucent fluid. When one tank
+reserves both, it shows the two previews side by side. Hover to see exact amounts and the
+planned output fluid. Stacked results go into the
 player inventory (or drop when full); creative containers remain unchanged.
+
+Click the small brass valve below a tank with fluid to open or close it. An open
+valve discards up to 5 mB of unreserved fluid per game tick, even with the screen
+closed. The valve closes automatically when the tank is empty and takes up no
+layout space.
+Use `drain-button="false"` to hide it on a tank.
+`BaseMachine` ticks the valves automatically. Custom screen hosts can call
+`FluidStorage.tickDrains()` from their server tick.
 
 Getters and element-owned snapshots run only on the server, each tick while the screen is open.
 The client only receives their values.

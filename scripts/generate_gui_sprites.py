@@ -256,6 +256,31 @@ def write_flat_buttons():
         write_png(name, img, {"type": "nine_slice", "width": 14, "height": 14, "border": 1})
 
 
+def write_tank_drain():
+    """Brass drain valve, drawn at its native 11x10 GUI size."""
+    palette = {
+        ".": CLEAR,
+        "#": (70, 39, 24, 255),
+        "S": (117, 64, 30, 255),
+        "M": (171, 99, 38, 255),
+        "H": (219, 153, 60, 255),
+        "L": (255, 208, 111, 255),
+    }
+    rows = [
+        ".........##",
+        "......###L#",
+        "....##LHM#.",
+        "....#H###..",
+        "...##H##...",
+        "###LHLHH##.",
+        "#HLMLMMHLH#",
+        "#SM#HMS#SS#",
+        ".##.#HS###.",
+        ".....##....",
+    ]
+    write_png("icon_tank_drain", [[palette[pixel] for pixel in row] for row in rows])
+
+
 def write_filter_icons():
     """White/black list cards for the flat grey mode toggle."""
     for mode, fill in (("whitelist", 0xF1), ("blacklist", 0x24)):
@@ -532,6 +557,7 @@ def main():
     write_processor_progress_icon()
     write_filter_icons()
     write_flat_buttons()
+    write_tank_drain()
     write_side_config_sprites()
     write_upgrade_sprites()
     write_png("checkbox", checkbox(False))

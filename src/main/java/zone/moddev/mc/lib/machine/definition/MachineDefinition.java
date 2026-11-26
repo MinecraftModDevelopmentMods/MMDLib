@@ -31,8 +31,8 @@ public record MachineDefinition(ResourceLocation id, String checksum,
     String itemStorageId, List<Slot> slots, List<Group> groups,
     RecipeType recipeType, String processor, String processorName,
     boolean redstone, Node screen, RecipeSelection recipeSelection,
-    List<Ghost> ghosts, MachineBehavior behavior, Sounds sounds,
-    Events events) {
+    List<Ghost> ghosts, MachineBehavior behavior, Sounds sounds, Events events,
+    Node layout) {
     public record Ghost(String id, int count, ResourceLocation defaultItem,
         String name) {
         public Ghost(String id, int count, ResourceLocation defaultItem) {
@@ -134,6 +134,29 @@ public record MachineDefinition(ResourceLocation id, String checksum,
             baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
             slots, groups, recipeType, processor, processorName, redstone,
             screen, recipeSelection, ghosts, behavior, sounds, Events.NONE);
+    }
+
+    public MachineDefinition(ResourceLocation id, String checksum, String name,
+        float hardness, ResourceLocation mineable, boolean requiresTool,
+        Map<String, String> textures, ResourceLocation baseModel,
+        List<ConditionalModelPart> modelParts,
+        List<ConditionalFaceTexture> faceTextures, Power power, Fluids fluids,
+        String itemStorageId, List<Slot> slots, List<Group> groups,
+        RecipeType recipeType, String processor, String processorName,
+        boolean redstone, Node screen, RecipeSelection recipeSelection,
+        List<Ghost> ghosts, MachineBehavior behavior, Sounds sounds,
+        Events events) {
+        this(id, checksum, name, hardness, mineable, requiresTool, textures,
+            baseModel, modelParts, faceTextures, power, fluids, itemStorageId,
+            slots, groups, recipeType, processor, processorName, redstone,
+            screen, recipeSelection, ghosts, behavior, sounds, events, null);
+    }
+
+    @Override
+    public Node screen() {
+        return layout == null || layout.children().isEmpty()
+            ? screen
+            : MachineScreenGenerators.withLayout(this, screen, layout);
     }
 
     public record RecipeSelection(ResourceLocation defaultRecipe) {

@@ -1,6 +1,9 @@
 package zone.moddev.mc.lib.machine.definition;
 
 import java.util.List;
+import java.util.Optional;
+
+import net.minecraft.resources.ResourceLocation;
 
 /** Optional physical/item policies and a mod-owned processor. */
 public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
@@ -11,7 +14,26 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
     zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizers,
     String gearboxSlot, String capacitorSlot, List<String> rangeSlots,
     String legacyUpgradeStorage, MachineFacing facing, String comparatorSource,
-    List<ProcessorConfiguration> processors) {
+    List<ProcessorConfiguration> processors,
+    List<MachineFeatureDefinition> features) {
+    public MachineBehavior(ProcessorDeclaration processor, int stackSize,
+        boolean noOcclusion, boolean immovable, boolean portable,
+        boolean drawers, List<Shape> shapes, ResourceLocation secondaryAction,
+        EntityDisplay entityDisplay, ItemDisplay itemDisplay,
+        zone.moddev.mc.lib.machine.presentation.VisualizerStyle visualizers,
+        String gearboxSlot, String capacitorSlot, List<String> rangeSlots,
+        String legacyUpgradeStorage, MachineFacing facing,
+        String comparatorSource, List<ProcessorConfiguration> processors) {
+        this(processor, stackSize, noOcclusion, immovable, portable, drawers,
+            shapes, secondaryAction, entityDisplay, itemDisplay, visualizers,
+            gearboxSlot, capacitorSlot, rangeSlots, legacyUpgradeStorage,
+            facing, comparatorSource, processors, List.of());
+    }
+
+    public Optional<MachineFeatureDefinition> feature(ResourceLocation type) {
+        return features.stream().filter(feature -> feature.type().equals(type))
+            .findFirst();
+    }
     public MachineBehavior(ProcessorDeclaration processor, int stackSize,
         boolean noOcclusion, boolean immovable, boolean portable,
         boolean drawers, List<Shape> shapes,
@@ -57,6 +79,7 @@ public record MachineBehavior(ProcessorDeclaration processor, int stackSize,
         java.util.Objects.requireNonNull(facing);
         rangeSlots = List.copyOf(rangeSlots);
         processors = List.copyOf(processors);
+        features = List.copyOf(features);
         if (rangeSlots.size() > 9
             || new java.util.HashSet<>(rangeSlots).size() != rangeSlots.size())
             throw new IllegalArgumentException(

@@ -6,6 +6,7 @@ import net.minecraft.client.Screenshot;
 import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.gui.client.MachineScreen;
+import zone.moddev.mc.lib.gui.drawer.BuiltinDrawers;
 import zone.moddev.mc.lib.gui.layout.AutomationLayout;
 import zone.moddev.mc.lib.gui.model.containers.PlayerInventoryElement;
 import zone.moddev.mc.lib.gui.runtime.component.BuiltinMenuComponents;
@@ -40,10 +41,9 @@ final class CreativePowerClientSmoke {
                         .isPresent()
                     || screen.layout.region(PlayerInventoryElement.TOOLBAR)
                         .isPresent()
-                    || !menu.components().get(BuiltinMenuComponents.BACKPACK)
-                        .state().icons().isEmpty()
-                    || !menu.components().get(BuiltinMenuComponents.CURIOS)
-                        .state().icons().isEmpty())
+                    || screen.layout.drawers().stream().anyMatch(
+                        drawer -> drawer.type().equals(BuiltinDrawers.BACKPACK)
+                            || drawer.type().equals(BuiltinDrawers.CURIOS)))
                     throw new AssertionError(
                         "Generator has no inventory, addon slots or equipment drawers");
                 if (menu.components().require(BuiltinMenuComponents.STATS)

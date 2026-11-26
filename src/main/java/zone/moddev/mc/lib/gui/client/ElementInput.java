@@ -127,10 +127,22 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
                     .get(overlay).overlayBounds().orElseThrow().contains(x, y))
                         ? overlay
                         : null;
-        if (!closed && hitArea.test(x, y))
+        if (!closed && hitArea.test(x, y)) {
+            var additional = additionalHit(x, y);
+            if (additional != null)
+                return additional;
             for (var element : order.reversed())
                 if (isShown(element) && bounds.apply(element).contains(x, y))
                     return element;
+        }
+        return null;
+    }
+
+    private E additionalHit(double x, double y) {
+        for (var element : order.reversed())
+            if (isShown(element) && instances.get(element).additionalHitBounds()
+                .filter(area -> area.contains(x, y)).isPresent())
+                return element;
         return null;
     }
 
@@ -236,14 +248,22 @@ public class ElementInput<E extends Element, B extends ElementBehavior> {
                 instances.get(overlay).dismissOverlay();
             return true;
         }
-        if (hitArea.test(x, y))
+        if (hitArea.test(x, y)) {
+            var additional = additionalHit(x, y);
+            if (additional != null) {
+                blurUnless(additional);
+                if (click(additional, x, y, button))
+                    return true;
+            }
             for (var element : order.reversed()) {
-                if (!isShown(element) || !bounds.apply(element).contains(x, y))
+                if (element == additional || !isShown(element)
+                    || !bounds.apply(element).contains(x, y))
                     continue;
                 blurUnless(element);
                 if (click(element, x, y, button))
                     return true;
             }
+        }
         clearFocus();
         return false;
     }

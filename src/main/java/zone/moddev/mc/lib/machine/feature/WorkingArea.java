@@ -98,6 +98,20 @@ public record WorkingArea(int minRight, int minUp, int minForward, int maxRight,
     }
 
     /**
+     * Snake traversal: left to right on even rows, right to left on odd rows.
+     * Row/layer order matches blockAt; each layer starts left to right again.
+     * The same index can still be passed to row for row-based processing.
+     */
+    public BlockPos snakeBlockAt(BlockPos origin, Direction front, int index) {
+        int row = row(index);
+        int column = index % width();
+        int ordered = (row & 1) == 0
+            ? index
+            : index - column + width() - 1 - column;
+        return blockAt(origin, front, ordered);
+    }
+
+    /**
      * Lazy enumeration of coordinates; does not read a world or load chunks.
      */
     public Iterable<BlockPos> blocks(BlockPos origin, Direction front) {

@@ -9,8 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
 /**
- * Consumer-owned Java definition. No global registry or assembly-mode-specific
- * catalog.
+ * Consumer-owned structure definition used by Java and fixed-layout XML.
  */
 public record MultiblockDefinition(ResourceLocation id, int version,
     StructureResolver resolver, int maxMembers, int maxExtent,
@@ -49,7 +48,10 @@ public record MultiblockDefinition(ResourceLocation id, int version,
         }
         var bindings = new java.util.HashSet<String>();
         for (var port : ports) {
-            structure.member(port.member());
+            if (structure.members().stream()
+                .noneMatch(member -> member.key().equals(port.member())))
+                throw new IllegalArgumentException(
+                    "Unknown port member " + port.member());
             for (var face : DirectionKeys.of(port))
                 if (!bindings
                     .add(port.member() + "/" + port.kind() + "/" + face))

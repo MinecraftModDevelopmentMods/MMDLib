@@ -1,13 +1,20 @@
 package zone.moddev.mc.companion.test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+
+import java.nio.charset.StandardCharsets;
+
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -29,6 +36,7 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import zone.moddev.mc.companion.MultiblockDemo;
 import zone.moddev.mc.companion.MultiblockDemoEntity;
 import zone.moddev.mc.lib.gui.runtime.MachineMenu;
+import zone.moddev.mc.lib.machine.multiblock.MultiblockDefinitions;
 import zone.moddev.mc.lib.machine.multiblock.MultiblockInstance;
 import zone.moddev.mc.lib.machine.multiblock.ResolvedStructure;
 import zone.moddev.mc.lib.machine.multiblock.StructureMember;
@@ -39,6 +47,40 @@ import zone.moddev.mc.lib.machine.neoforge.MultiblockPorts;
 @GameTestHolder("mmdlib_companion")
 @PrefixGameTestTemplate(false)
 public final class MultiblockTests {
+    @GameTest(template = "empty")
+    public static void invalidXmlLayoutFailsBeforePlacement(
+        GameTestHelper helper) throws IOException {
+        String xml = """
+            <structure xmlns="https://moddev.zone/mmdlib/multiblock" version="1"
+                       max-members="1" max-extent="1" dismantling="remove-owned">
+              <member id="controller" role="controller" offset="0 0 0" state="%s"/>
+              <port member="%s" resource="energy" kind="energy" faces="front" output="true"/>
+            </structure>
+            """;
+        var cases = List.of(
+            List.of("minecraft:furnace[facing=up]", "controller",
+                "invalid.xml:3:", "facing"),
+            List.of("minecraft:furnace[facing=north]", "missing",
+                "invalid.xml:", "Unknown port member missing"));
+        for (var entry : cases) {
+            var input = new ByteArrayInputStream(
+                xml.formatted(entry.get(0), entry.get(1))
+                    .getBytes(StandardCharsets.UTF_8));
+            try {
+                MultiblockDefinitions.read(
+                    ResourceLocation.parse("mmdlib_companion:invalid"),
+                    "invalid.xml", input, BuiltInRegistries.BLOCK.asLookup());
+                throw new AssertionError("Invalid fixed layout accepted");
+            } catch (IllegalArgumentException ex) {
+                require(
+                    ex.getMessage().contains(entry.get(2))
+                        && ex.getMessage().contains(entry.get(3)),
+                    "XML error identifies the offending entry");
+            }
+        }
+        helper.succeed();
+    }
+
     @GameTest(template = "empty")
     public static void capabilityQueriesDoNotValidateOrDismantle(
         GameTestHelper helper) {

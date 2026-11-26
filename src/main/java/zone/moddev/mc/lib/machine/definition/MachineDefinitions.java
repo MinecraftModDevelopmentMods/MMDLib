@@ -24,9 +24,13 @@ import zone.moddev.mc.lib.api.capabilities.IoMode;
 import zone.moddev.mc.lib.api.capabilities.RelativeFace;
 import zone.moddev.mc.lib.api.capabilities.Role;
 import zone.moddev.mc.lib.common.loading.DefinitionLoader.SourceRoot;
+import zone.moddev.mc.lib.gui.drawer.BuiltinDrawers;
+import zone.moddev.mc.lib.gui.drawer.DrawerPlacement;
+import zone.moddev.mc.lib.gui.drawer.DrawerSettings;
 import zone.moddev.mc.lib.gui.load.ScreenException;
 import zone.moddev.mc.lib.gui.load.ScreenReader.Node;
 import zone.moddev.mc.lib.gui.load.ScreenReader;
+import zone.moddev.mc.lib.gui.model.Edge;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition.Fluids;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition.Generator;
 import zone.moddev.mc.lib.machine.definition.MachineDefinition.Group;
@@ -68,7 +72,6 @@ public final class MachineDefinitions {
                     try (var stream = Files.newInputStream(path)) {
                         var node = ScreenReader.parseMachine(path.toString(),
                             stream);
-                        validateTree(node);
                         if (!node.name().equals("machine"))
                             throw error(node, "Expected <machine>");
                         if (nodes.putIfAbsent(id, node) != null)
@@ -195,13 +198,16 @@ public final class MachineDefinitions {
         if (!visiting.add(id))
             throw error(node, "Machine inheritance cycle " + visiting);
         var parent = node.attributes().get("extends");
-        var result = node;
+        Node base = null;
         if (parent != null) {
             var parentId = resource(node, "extends");
             if (!nodes.containsKey(parentId))
                 throw error(node, "Unknown base machine " + parent);
-            result = merge(resolve(parentId, nodes, resolved, visiting), node);
+            base = resolve(parentId, nodes, resolved, visiting);
         }
+        var expanded = MachineParts.expand(node, base);
+        validateTree(expanded);
+        var result = base == null ? expanded : merge(base, expanded);
         visiting.remove(id);
         resolved.put(id, result);
         return result;
@@ -210,9 +216,11 @@ public final class MachineDefinitions {
     private static String key(Node parent, Node node) {
         // These sections contain singletons; their ID is configuration, not
         // merge identity.
-        if (parent.name().equals("machine")
-            && Set.of("processor", "recipe-type").contains(node.name()))
+        if (parent.name().equals("machine") && Set
+            .of("processor", "recipe-type", "feature").contains(node.name()))
             return node.name() + ":" + required(node, "id");
+        if (parent.name().equals("feature"))
+            return node.name();
         if (Set.of("machine", "storage", "recipe-type").contains(parent.name()))
             return node.name();
         if (parent.name().equals("appearance") && isDisplay(node))
@@ -230,8 +238,13 @@ public final class MachineDefinitions {
     }
 
     private static Node merge(Node base, Node child) {
-        if (child.name().equals("generator") || child.name().equals("fill"))
+        if (Set.of("generator", "fill", "layout").contains(child.name()))
             return child;
+        if (child.name().equals("feature")
+            && child.attributes().containsKey("type")
+            && base.attributes().containsKey("type")
+            && !resource(child, "type").equals(resource(base, "type")))
+            throw error(child, "An inherited feature cannot change type");
         var attrs = new LinkedHashMap<>(base.attributes());
         // A new preset replaces the previous preset's base configuration, but
         // retains parts.
@@ -330,18 +343,20 @@ public final class MachineDefinitions {
                 "on-start", "on-finish", "bindings", "primary",
                 "energy-per-tick")),
         Map.entry("redstone", Set.of("enabled", "pause", "comparator-source")),
+        Map.entry("drawer", Set.of("enabled", "edge", "anchor", "order")),
         Map.entry("shape", Set.of("id", "when", "bounds")),
         Map.entry("shapes", Set.of()), Map.entry("recovery", Set.of("policy")));
     private static final Map<String, Set<String>> CHILDREN = Map.of("machine",
         Set.of("block", "appearance", "storage", "groups", "recipe-type",
             "processor", "redstone", "recovery", "screen", "shapes",
-            "visualizers", "upgrades"),
+            "visualizers", "upgrades", "feature", "layout"),
         "storage", Set.of("energy", "items", "fluids"), "fluids",
         Set.of("tank", "tanks"), "items", Set.of("slot", "slots"), "groups",
         Set.of("group"), "appearance",
         Set.of("part", "face-texture", "face-overlay", "entity-display",
             "item-display"),
-        "recipe-type", Set.of("generator"), "shapes", Set.of("shape"));
+        "recipe-type", Set.of("generator"), "shapes", Set.of("shape"),
+        "feature", Set.of("drawer"));
 
     private static void validateTree(Node node) {
         if (node.name().equals("screen")
@@ -350,7 +365,11 @@ public final class MachineDefinitions {
         if (!node.namespace().equals(ScreenReader.NAMESPACE))
             throw error(node,
                 "Unknown machine XML namespace: " + node.namespace());
-        if (!node.name().equals("generator")) {
+        if (node.name().equals("layout")) {
+            validateLayout(node);
+            return;
+        }
+        if (!Set.of("generator", "feature").contains(node.name())) {
             var allowed = ATTRIBUTES.get(node.name());
             if (allowed == null)
                 throw error(node, "Unknown machine element " + node.name());
@@ -363,6 +382,7 @@ public final class MachineDefinitions {
         // source.
         var resources = switch (node.name()) {
             case "machine" -> List.of("extends");
+            case "feature" -> List.of("type");
             case "block" -> List.of("mineable");
             case "appearance" ->
                 List.of("front", "side", "top", "bottom", "model");
@@ -380,6 +400,8 @@ public final class MachineDefinitions {
         for (var attribute : resources)
             if (node.attributes().containsKey(attribute))
                 resource(node, attribute);
+        if (node.name().equals("drawer"))
+            drawerSettings(node);
         if (node.name().equals("block")
             && node.attributes().containsKey("hardness"))
             hardness(node);
@@ -405,11 +427,122 @@ public final class MachineDefinitions {
         }
     }
 
+    private static final Map<String, Set<String>> LAYOUT_ENTRIES = Map.of(
+        "tank", Set.of("ref", "tooltip"), "processor", Set.of("ref"),
+        "inventory", Set.of("ref", "columns"), "energy", Set.of());
+
+    private static void validateLayout(Node node) {
+        if (!node.attributes().isEmpty())
+            throw error(node, "A layout does not accept attributes");
+        var seen = new HashSet<String>();
+        for (var entry : node.children()) {
+            var allowed = LAYOUT_ENTRIES.get(entry.name());
+            if (allowed == null || !entry.namespace().equals(node.namespace()))
+                throw error(entry, "Unexpected layout entry " + entry.name());
+            if (!entry.children().isEmpty())
+                throw error(entry, "A layout entry cannot have children");
+            for (var attr : entry.attributes().keySet())
+                if (!allowed.contains(attr))
+                    throw error(entry, "Unknown layout attribute " + attr);
+            var key = allowed.contains("ref")
+                ? entry.name() + ":" + required(entry, "ref")
+                : entry.name();
+            if (!seen.add(key))
+                throw error(entry, "Duplicate layout entry " + key);
+            if (entry.attributes().containsKey("columns"))
+                number(entry, "columns", 1, 9);
+        }
+    }
+
+    private static DrawerSettings drawerSettings(Node node) {
+        if (node == null)
+            return DrawerSettings.DEFAULT;
+        Edge edge = null;
+        DrawerPlacement.Anchor anchor = null;
+        Integer order = null;
+        if (node.attributes().containsKey("edge")) {
+            requireChoice(node, "edge", "left", "right");
+            edge = Edge
+                .valueOf(required(node, "edge").toUpperCase(Locale.ROOT));
+        }
+        if (node.attributes().containsKey("anchor")) {
+            requireChoice(node, "anchor", "top", "bottom");
+            anchor = DrawerPlacement.Anchor
+                .valueOf(required(node, "anchor").toUpperCase(Locale.ROOT));
+        }
+        if (node.attributes().containsKey("order"))
+            order = (int) number(node, "order", Integer.MIN_VALUE,
+                Integer.MAX_VALUE);
+        return new DrawerSettings(bool(node, "enabled", true), edge, anchor,
+            order);
+    }
+
+    private record FeaturePlan(MachineFeatureDefinition definition, Node node) {
+    }
+
+    private static List<FeaturePlan> features(Node root) {
+        var features = new ArrayList<FeaturePlan>();
+        var builtins = new HashSet<ResourceLocation>();
+        for (var node : root.children()) {
+            if (!node.name().equals("feature"))
+                continue;
+            String id = required(node, "id");
+            if (!id.matches("[a-z0-9_.-]+"))
+                throw error(node, "Invalid feature ID " + id);
+            var type = resource(node, "type");
+            Set<String> allowed;
+            try {
+                allowed = MachineFeatureTypes.options(type);
+            } catch (IllegalArgumentException ex) {
+                throw error(node, ex.getMessage());
+            }
+            if (MachineFeatureTypes.builtin(type) && !builtins.add(type))
+                throw error(node,
+                    "Only one feature of type " + type + " is supported");
+            var options = new LinkedHashMap<>(node.attributes());
+            options.keySet().removeAll(Set.of("id", "type", "enabled"));
+            for (var key : options.keySet())
+                if (!allowed.contains(key))
+                    throw error(node,
+                        "Unknown feature option " + key + " for " + type);
+            if (type.equals(BuiltinDrawers.REDSTONE)
+                && options.containsKey("default-mode"))
+                requireChoice(node, "default-mode", "ignore",
+                    "pause-while-powered");
+            features.add(new FeaturePlan(new MachineFeatureDefinition(id, type,
+                bool(node, "enabled", true), options,
+                drawerSettings(optional(node, "drawer"))), node));
+        }
+        return List.copyOf(features);
+    }
+
+    /** Resolve built-in options alongside version-1 shorthand declarations. */
+    private static Node featureOptions(Node root, String name,
+        ResourceLocation type, List<FeaturePlan> features) {
+        var legacy = optional(root, name);
+        for (var feature : features) {
+            if (!feature.definition().type().equals(type))
+                continue;
+            if (!feature.definition().enabled())
+                return null;
+            var options = new LinkedHashMap<>(feature.definition().options());
+            if (type.equals(BuiltinDrawers.REDSTONE))
+                options.put("enabled", "true");
+            if (legacy != null)
+                options.putAll(legacy.attributes());
+            var source = legacy == null ? feature.node() : legacy;
+            return new Node(name, options, List.of(), source.source(),
+                source.line(), source.namespace());
+        }
+        return legacy;
+    }
+
     private static MachineDefinition plan(ResourceLocation id, Node root,
         Map<String, ClassLoader> loaders) {
         if (!"1".equals(root.attributes().get("version")))
             throw error(root, "Expected machine version=1");
         var block = one(root, "block");
+        var features = features(root);
 
         requireChoice(block, "drop", "self");
         var appearance = one(root, "appearance");
@@ -770,8 +903,9 @@ public final class MachineDefinitions {
                 throw error(fluidNode,
                     "Machines without a processor require storage/manual tank roles");
         }
-        var redstone = optional(root, "redstone");
-        if (redstone != null)
+        var redstone = featureOptions(root, "redstone", BuiltinDrawers.REDSTONE,
+            features);
+        if (redstone != null && redstone.attributes().containsKey("pause"))
             requireChoice(redstone, "pause", "processing-only");
         var recovery = one(root, "recovery");
         requireChoice(recovery, "policy", "capsule");
@@ -941,11 +1075,16 @@ public final class MachineDefinitions {
                     "Energy provider must name a processor implementing ProcessorEnergy: "
                         + provider);
         }
-        var upgrades = optional(root, "upgrades");
-        String gearboxSlot = upgrades == null
+        var upgrades = featureOptions(root, "upgrades", BuiltinDrawers.UPGRADES,
+            features);
+        boolean gearboxEnabled = upgrades != null
+            && bool(upgrades, "gearbox", true);
+        boolean capacitorEnabled = upgrades != null
+            && bool(upgrades, "capacitor", true);
+        String gearboxSlot = !gearboxEnabled
             ? null
             : upgrades.attributes().get("gearbox-slot");
-        String capacitorSlot = upgrades == null
+        String capacitorSlot = !capacitorEnabled
             ? null
             : upgrades.attributes().get("capacitor-slot");
         // The library owns standard sockets; machine storage declares only
@@ -957,10 +1096,11 @@ public final class MachineDefinitions {
                     .anyMatch(ghost -> ghost.id().equals(reserved)))
                     throw error(upgrades,
                         "Reserved component storage: " + reserved);
-            if (gearboxSlot == null && processor != null)
+            if (gearboxEnabled && gearboxSlot == null && processor != null)
                 gearboxSlot = componentSocket(root, slots, groups, ids,
                     "gearbox");
-            if (capacitorSlot == null && power != null && energyCapacitors)
+            if (capacitorEnabled && capacitorSlot == null && power != null
+                && energyCapacitors)
                 capacitorSlot = componentSocket(root, slots, groups, ids,
                     "capacitor");
             if (itemId == null && !slots.isEmpty())
@@ -1022,6 +1162,9 @@ public final class MachineDefinitions {
                 "legacy-layout requires automatic components and nine range-storage slots in the same named inventory");
         for (String attribute : List.of("gearbox-slot", "capacitor-slot")) {
             if (upgrades == null
+                || (attribute.equals("gearbox-slot")
+                    ? !gearboxEnabled
+                    : !capacitorEnabled)
                 || !upgrades.attributes().containsKey(attribute))
                 continue;
             var index = ids.get(required(upgrades, attribute));
@@ -1061,7 +1204,8 @@ public final class MachineDefinitions {
                     && !processor.attributes().containsKey("bindings")
                     && processorConfigs.getFirst().energyPerTick() == 0
                         ? List.of()
-                        : processorConfigs);
+                        : processorConfigs,
+                features.stream().map(FeaturePlan::definition).toList());
         } catch (IllegalArgumentException ex) {
             throw error(block, ex.getMessage());
         }
@@ -1147,7 +1291,8 @@ public final class MachineDefinitions {
                 ? MachineDefinition.Events.NONE
                 : new MachineDefinition.Events(
                     optionalResource(processor, "on-start"),
-                    optionalResource(processor, "on-finish")));
+                    optionalResource(processor, "on-finish")),
+            optional(root, "layout"));
         var defaults = definition.visualDefaults(prototype);
         for (var part : appearanceRules) {
             try {
@@ -1283,7 +1428,7 @@ public final class MachineDefinitions {
         text.append(value.length()).append(':').append(value);
     }
 
-    private static Node optional(Node node, String name) {
+    static Node optional(Node node, String name) {
         var children = node.children().stream()
             .filter(n -> n.name().equals(name)).toList();
         if (children.size() > 1)
@@ -1356,7 +1501,7 @@ public final class MachineDefinitions {
         return Boolean.parseBoolean(value);
     }
 
-    private static long number(Node node, String key, long min, long max) {
+    static long number(Node node, String key, long min, long max) {
         try {
             long value = Long.parseLong(required(node, key));
             if (value >= min && value <= max)
