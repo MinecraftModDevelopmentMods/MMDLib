@@ -62,7 +62,7 @@ before registry events. It is not a server datapack reload entry: item, block,
 fluid, and entity types cannot be added by reloading this JSON later.
 
 Declare MMDLib as a required dependency in your NeoForge metadata. This checkout's
-mod ID is `mmdlib`, and its current version is `2.0.3`:
+mod ID is `mmdlib`, and its current version is `2.0.4`:
 
 ```toml
 [[dependencies.example]]
